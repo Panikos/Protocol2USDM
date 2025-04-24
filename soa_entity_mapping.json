@@ -1,0 +1,3860 @@
+{
+  "Study": {
+    "attributes": {
+      "name": {
+        "name": "name",
+        "c_code": "C68631",
+        "definition": "The literal identifier (i.e., distinctive designation) of the clinical study.",
+        "role": "Attribute"
+      },
+      "description": {
+        "name": "description",
+        "c_code": "C142704",
+        "definition": "A narrative representation of the clinical study.",
+        "role": "Attribute"
+      },
+      "label": {
+        "name": "label",
+        "c_code": "C207479",
+        "definition": "The short descriptive designation for the clinical study.",
+        "role": "Attribute"
+      }
+    },
+    "relationships": {
+      "documentedBy": {
+        "name": "documentedBy",
+        "c_code": null,
+        "definition": "A USDM relationship between the Study and StudyDefinitionDocument classes signifying that the study is documented in a study definition document.",
+        "role": "Relationship"
+      },
+      "versions": {
+        "name": "versions",
+        "c_code": null,
+        "definition": "A USDM relationship between the Study and StudyVersion classes which identifies the set of versions associated with the study.",
+        "role": "Relationship"
+      }
+    }
+  },
+  "StudyIdentifier": {
+    "attributes": {
+      "text": {
+        "name": "text",
+        "c_code": "CNEW",
+        "definition": "An instance of structured text that represents the study identifier.",
+        "role": "Attribute"
+      }
+    },
+    "relationships": {
+      "scope": {
+        "name": "scope",
+        "c_code": null,
+        "definition": "A USDM relationship between the StudyIdentifier and Organization classes which provides the details associated with each organization that has assigned the study identifier.",
+        "role": "Relationship"
+      }
+    }
+  },
+  "Organization": {
+    "attributes": {
+      "identifierScheme": {
+        "name": "identifierScheme",
+        "c_code": "C188819",
+        "definition": "The name of the organization that provides the identifier for the entity.",
+        "role": "Attribute"
+      },
+      "identifier": {
+        "name": "identifier",
+        "c_code": "C93401",
+        "definition": "A unique symbol that establishes identity of the organization. (BRIDG)",
+        "role": "Attribute"
+      },
+      "name": {
+        "name": "name",
+        "c_code": "C93874",
+        "definition": "The literal identifier (i.e., distinctive designation) of the organization.",
+        "role": "Attribute"
+      },
+      "label": {
+        "name": "label",
+        "c_code": "C207514",
+        "definition": "The short descriptive designation for the organization.",
+        "role": "Attribute"
+      }
+    },
+    "complex_datatype_relationships": {
+      "type": {
+        "name": "type",
+        "c_code": "C188820",
+        "definition": "A characterization or classification of the formalized group of persons or other organizations collected together for a common purpose (such as administrative, legal, political) and the infrastructure to carry out that purpose.",
+        "role": "Complex Datatype Relationship"
+      }
+    },
+    "relationships": {
+      "legalAddress": {
+        "name": "legalAddress",
+        "c_code": null,
+        "definition": "A USDM relationship between the Organization and Address classes which provides the legal address for an organization.",
+        "role": "Relationship"
+      },
+      "managedSites": {
+        "name": "managedSites",
+        "c_code": null,
+        "definition": "A USDM relationship between the Organization and StudySite classes which identifies the set of study sites managed by the organization.",
+        "role": "Relationship"
+      }
+    }
+  },
+  "StudyDesign": {
+    "relationships": {
+      "studyCells": {
+        "name": "studyCells",
+        "c_code": null,
+        "definition": "A USDM relationship between the StudyDesign and StudyCell classes which identifies the set of study cells associated with the study design. ",
+        "role": "Relationship"
+      },
+      "indications": {
+        "name": "indications",
+        "c_code": null,
+        "definition": "A USDM relationship between the StudyDesign and Indication classes which identifies the set of indications associated with the study design.",
+        "role": "Relationship"
+      },
+      "studyInterventions": {
+        "name": "studyInterventions",
+        "c_code": null,
+        "definition": "A USDM relationship between the StudyDesign and StudyIntervention classes which identifies the set of study interventions associated with study design.",
+        "role": "Relationship"
+      },
+      "estimands": {
+        "name": "estimands",
+        "c_code": null,
+        "definition": "A USDM relationship between the StudyDesign and Estimand classes which identifies the set of estimands associated with the study design.",
+        "role": "Relationship"
+      },
+      "objectives": {
+        "name": "objectives",
+        "c_code": null,
+        "definition": "A USDM relationship between the StudyDesign and Objective classes which identifies the set of objectives associated with the study design.",
+        "role": "Relationship"
+      },
+      "population": {
+        "name": "population",
+        "c_code": null,
+        "definition": "A USDM relationship between the StudyDesign and StudyDesignPopulation classes which identifies the population associated with the study design.",
+        "role": "Relationship"
+      },
+      "encounters": {
+        "name": "encounters",
+        "c_code": null,
+        "definition": "A USDM relationship between the StudyDesign and Encounter classes which identifies the set of encounters associated with the study design.",
+        "role": "Relationship"
+      },
+      "scheduleTimelines": {
+        "name": "scheduleTimelines",
+        "c_code": null,
+        "definition": "A USDM relationship between the StudyDesign and ScheduleTimeline classes which identifies the set of scheduled timelines associated with the study design.",
+        "role": "Relationship"
+      },
+      "epochs": {
+        "name": "epochs",
+        "c_code": null,
+        "definition": "A USDM relationship between the StudyDesign and StudyEpoch classes which identifies the set of study epochs associated with the study design.",
+        "role": "Relationship"
+      },
+      "arms": {
+        "name": "arms",
+        "c_code": null,
+        "definition": "A USDM relationship between the StudyDesign and StudyArm classes which identifies the set of study arms associated with the study design.",
+        "role": "Relationship"
+      },
+      "elements": {
+        "name": "elements",
+        "c_code": null,
+        "definition": "A USDM relationship between the StudyDesign and StudyElement classes which identifies the set of study elements associated with the study design.",
+        "role": "Relationship"
+      },
+      "documentVersions": {
+        "name": "documentVersions",
+        "c_code": null,
+        "definition": "A USDM relationship between the StudyDesign and StudyDefinitionDocumentVersion classes which identifies the version of the study definition documents associated with the study design.",
+        "role": "Relationship"
+      },
+      "activities": {
+        "name": "activities",
+        "c_code": null,
+        "definition": "A USDM relationship between the StudyDesign and Activity classes which identifies the set of activities associated with the study design.",
+        "role": "Relationship"
+      },
+      "biospecimenRetentions": {
+        "name": "biospecimenRetentions",
+        "c_code": null,
+        "definition": "A USDM relationship between the StudyDesign and BiospecimenRetention classes which identifies the status of biospecimen retentions related to the study design.",
+        "role": "Relationship"
+      }
+    },
+    "complex_datatype_relationships": {
+      "notes": {
+        "name": "notes",
+        "c_code": "CNEW",
+        "definition": "A brief written record relevant to the study design.",
+        "role": "Complex Datatype Relationship"
+      },
+      "therapeuticAreas": {
+        "name": "therapeuticAreas",
+        "c_code": "C101302",
+        "definition": "A categorization of a disease, disorder, or other condition based on common characteristics and often associated with a medical specialty focusing on research and development of specific therapeutic interventions for the purpose of treatment and prevention.",
+        "role": "Complex Datatype Relationship"
+      },
+      "characteristics": {
+        "name": "characteristics",
+        "c_code": "C207547",
+        "definition": "The distinguishing qualities or prominent aspect of a study design.",
+        "role": "Complex Datatype Relationship"
+      },
+      "studyType": {
+        "name": "studyType",
+        "c_code": "C142175",
+        "definition": "The nature of the investigation for which study information is being collected. (After clinicaltrials.gov)",
+        "role": "Complex Datatype Relationship"
+      },
+      "studyPhase": {
+        "name": "studyPhase",
+        "c_code": "C48281",
+        "definition": "A step in the clinical research and development of a therapy from initial clinical trials to post-approval studies. NOTE: Clinical trials are generally categorized into four (sometimes five) phases. A therapeutic intervention may be evaluated in two or more phases simultaneously in different trials, and some trials may overlap two different phases. [21 CFR section 312.21; After ICH Topic E8 NOTE FOR GUIDANCE ON GENERAL CONSIDERATIONS FOR CLINICAL TRIALS, CPMP/ICH/291/95 March 1998]",
+        "role": "Complex Datatype Relationship"
+      }
+    },
+    "attributes": {
+      "name": {
+        "name": "name",
+        "c_code": "C201338",
+        "definition": "The literal identifier (i.e., distinctive designation) of the study design.",
+        "role": "Attribute"
+      },
+      "description": {
+        "name": "description",
+        "c_code": "C147139",
+        "definition": "A narrative representation of the study design.",
+        "role": "Attribute"
+      },
+      "rationale": {
+        "name": "rationale",
+        "c_code": "C142705",
+        "definition": "Reason(s) for choosing the study design. This may include reasons for the choice of control or comparator, as well as the scientific rationale for the study design.",
+        "role": "Attribute"
+      },
+      "label": {
+        "name": "label",
+        "c_code": "C207548",
+        "definition": "The short descriptive designation for the study design.",
+        "role": "Attribute"
+      }
+    }
+  },
+  "Indication": {
+    "complex_datatype_relationships": {
+      "codes": {
+        "name": "codes",
+        "c_code": "C188822",
+        "definition": "A short sequence of characters that represents the disease/condition indication.",
+        "role": "Complex Datatype Relationship"
+      },
+      "notes": {
+        "name": "notes",
+        "c_code": "CNEW",
+        "definition": "A brief written record relevant to the disease/condition indication.",
+        "role": "Complex Datatype Relationship"
+      }
+    },
+    "attributes": {
+      "description": {
+        "name": "description",
+        "c_code": "C112038",
+        "definition": "A narrative representation of the condition, disease or disorder that the clinical trial is intended to investigate or address.",
+        "role": "Attribute"
+      },
+      "name": {
+        "name": "name",
+        "c_code": "C207503",
+        "definition": "The literal identifier (i.e., distinctive designation) of the disease/condition indication.",
+        "role": "Attribute"
+      },
+      "label": {
+        "name": "label",
+        "c_code": "C207502",
+        "definition": "The short descriptive designation for the disease/condition indication.",
+        "role": "Attribute"
+      },
+      "isRareDisease": {
+        "name": "isRareDisease",
+        "c_code": "C207501",
+        "definition": "An indication as to whether the disease/condition indication under study is considered a rare disease.",
+        "role": "Attribute"
+      }
+    }
+  },
+  "StudyDesignPopulation": {
+    "attributes": {
+      "description": {
+        "name": "description",
+        "c_code": "C70834",
+        "definition": "A narrative representation of the study design population.",
+        "role": "Attribute"
+      },
+      "name": {
+        "name": "name",
+        "c_code": "C207553",
+        "definition": "The literal identifier (i.e., distinctive designation) of the study design population.",
+        "role": "Attribute"
+      },
+      "label": {
+        "name": "label",
+        "c_code": "C207550",
+        "definition": "The short descriptive designation for the study design population.",
+        "role": "Attribute"
+      },
+      "includesHealthySubjects": {
+        "name": "includesHealthySubjects",
+        "c_code": "C207549",
+        "definition": "An indication as to whether the study design population includes healthy subjects, that is, subjects without the disease or condition under study.",
+        "role": "Attribute"
+      }
+    },
+    "complex_datatype_relationships": {
+      "plannedSex": {
+        "name": "plannedSex",
+        "c_code": "C207551",
+        "definition": "The protocol-defined sex within the study design population.",
+        "role": "Complex Datatype Relationship"
+      },
+      "plannedAge": {
+        "name": "plannedAge",
+        "c_code": "C207450",
+        "definition": "The anticipated age of subjects within the study design population.",
+        "role": "Complex Datatype Relationship"
+      },
+      "plannedCompletionNumberRange": {
+        "name": "plannedCompletionNumberRange",
+        "c_code": "CNEW",
+        "definition": "The range of values representing the planned number of subjects that must complete the study in order to meet the objectives and endpoints of the study, within the study design population.",
+        "role": "Complex Datatype Relationship"
+      },
+      "plannedEnrollmentNumberRange": {
+        "name": "plannedEnrollmentNumberRange",
+        "c_code": "CNEW",
+        "definition": "The range of values representing the planned number of subjects to be entered in a clinical trial, within the study design population.",
+        "role": "Complex Datatype Relationship"
+      },
+      "plannedCompletionNumberQuantity": {
+        "name": "plannedCompletionNumberQuantity",
+        "c_code": "CNEW",
+        "definition": "The value representing the planned number of subjects that must complete the study in order to meet the objectives and endpoints of the study, within the study design population.",
+        "role": "Complex Datatype Relationship"
+      },
+      "plannedEnrollmentNumberQuantity": {
+        "name": "plannedEnrollmentNumberQuantity",
+        "c_code": "CNEW",
+        "definition": "The value representing the planned number of subjects to be entered in a clinical trial, within the study design population.",
+        "role": "Complex Datatype Relationship"
+      },
+      "notes": {
+        "name": "notes",
+        "c_code": "CNEW",
+        "definition": "A brief written record relevant to the study design population.",
+        "role": "Complex Datatype Relationship"
+      }
+    },
+    "relationships": {
+      "cohorts": {
+        "name": "cohorts",
+        "c_code": null,
+        "definition": "A USDM relationship between the StudyDesignPopulation and StudyCohort classes which identifies the set of study cohorts associated with the study design population.",
+        "role": "Relationship"
+      },
+      "criteria": {
+        "name": "criteria",
+        "c_code": null,
+        "definition": "A USDM relationship between the StudyDesignPopulation and EligibilityCriterion classes which identifies the set of eligibility criteria associated with the study design population.",
+        "role": "Relationship"
+      }
+    }
+  },
+  "Objective": {
+    "complex_datatype_relationships": {
+      "level": {
+        "name": "level",
+        "c_code": "C188823",
+        "definition": "A characterization or classification of the study objective that determines its category of importance relative to other study objectives.",
+        "role": "Complex Datatype Relationship"
+      },
+      "notes": {
+        "name": "notes",
+        "c_code": "CNEW",
+        "definition": "A brief written record relevant to the study objective.",
+        "role": "Complex Datatype Relationship"
+      }
+    },
+    "attributes": {
+      "text": {
+        "name": "text",
+        "c_code": "C207513",
+        "definition": "An instance of structured text that represents the study objective.",
+        "role": "Attribute"
+      },
+      "description": {
+        "name": "description",
+        "c_code": "C94090",
+        "definition": "A narrative representation of the study objective. (BRIDG)",
+        "role": "Attribute"
+      },
+      "name": {
+        "name": "name",
+        "c_code": "C207512",
+        "definition": "The literal identifier (i.e., distinctive designation) of the study objective.",
+        "role": "Attribute"
+      },
+      "label": {
+        "name": "label",
+        "c_code": "C207511",
+        "definition": "The short descriptive designation for the study objective.",
+        "role": "Attribute"
+      }
+    },
+    "relationships": {
+      "endpoints": {
+        "name": "endpoints",
+        "c_code": null,
+        "definition": "A USDM relationship between the Objective and Endpoint classes which identifies the set of endpoints associated with the study objective.",
+        "role": "Relationship"
+      },
+      "dictionary": {
+        "name": "dictionary",
+        "c_code": null,
+        "definition": "A USDM relationship between the Objective and SyntaxTemplateDictionary classes which provides the set of dictionary entries related to study objectives.",
+        "role": "Relationship"
+      }
+    }
+  },
+  "Endpoint": {
+    "attributes": {
+      "purpose": {
+        "name": "purpose",
+        "c_code": "C188825",
+        "definition": "The textual representation of the study endpoint purpose.",
+        "role": "Attribute"
+      },
+      "text": {
+        "name": "text",
+        "c_code": "C207493",
+        "definition": "An instance of structured text that represents the study endpoint.",
+        "role": "Attribute"
+      },
+      "description": {
+        "name": "description",
+        "c_code": "C188824",
+        "definition": "A narrative representation of the study endpoint.",
+        "role": "Attribute"
+      },
+      "name": {
+        "name": "name",
+        "c_code": "C207492",
+        "definition": "The literal identifier (i.e., distinctive designation) of the study endpoint.",
+        "role": "Attribute"
+      },
+      "label": {
+        "name": "label",
+        "c_code": "C207491",
+        "definition": "The short descriptive designation for the study endpoint.",
+        "role": "Attribute"
+      }
+    },
+    "complex_datatype_relationships": {
+      "level": {
+        "name": "level",
+        "c_code": "C188826",
+        "definition": "A characterization or classification of the study endpoint that determines its category of importance relative to other study endpoints.",
+        "role": "Complex Datatype Relationship"
+      },
+      "notes": {
+        "name": "notes",
+        "c_code": "CNEW",
+        "definition": "A brief written record relevant to the study endpoint.",
+        "role": "Complex Datatype Relationship"
+      }
+    },
+    "relationships": {
+      "dictionary": {
+        "name": "dictionary",
+        "c_code": null,
+        "definition": "A USDM relationship between the Endpoint and SyntaxTemplateDictionary classes which provides the set of dictionary entries related to study endpoints.",
+        "role": "Relationship"
+      }
+    }
+  },
+  "StudyCell": {
+    "relationships": {
+      "arm": {
+        "name": "arm",
+        "c_code": null,
+        "definition": "A USDM relationship between the StudyCell and StudyArm classes which identifies the study arm associated with a study cell.",
+        "role": "Relationship"
+      },
+      "epoch": {
+        "name": "epoch",
+        "c_code": null,
+        "definition": "A USDM relationship between the StudyCell and StudyEpoch classes which identifies the study epoch associated with a study cell.",
+        "role": "Relationship"
+      },
+      "elements": {
+        "name": "elements",
+        "c_code": null,
+        "definition": "A USDM relationship between the StudyCell and StudyElement classes which identifies the set of study elements associated with the study cell.",
+        "role": "Relationship"
+      }
+    }
+  },
+  "StudyArm": {
+    "attributes": {
+      "name": {
+        "name": "name",
+        "c_code": "C170984",
+        "definition": "The literal identifier (i.e., distinctive designation) of the study arm.",
+        "role": "Attribute"
+      },
+      "description": {
+        "name": "description",
+        "c_code": "C93728",
+        "definition": "A narrative representation of the study arm.",
+        "role": "Attribute"
+      },
+      "dataOriginDescription": {
+        "name": "dataOriginDescription",
+        "c_code": "C188828",
+        "definition": "The textual representation of the study arm data origin.",
+        "role": "Attribute"
+      },
+      "label": {
+        "name": "label",
+        "c_code": "C172456",
+        "definition": "The short descriptive designation for the study arm.",
+        "role": "Attribute"
+      }
+    },
+    "complex_datatype_relationships": {
+      "type": {
+        "name": "type",
+        "c_code": "C188827",
+        "definition": "A characterization or classification of the study arm.",
+        "role": "Complex Datatype Relationship"
+      },
+      "dataOriginType": {
+        "name": "dataOriginType",
+        "c_code": "C188829",
+        "definition": "A characterization or classification of the study arm with respect to where the study arm data originates. ",
+        "role": "Complex Datatype Relationship"
+      },
+      "notes": {
+        "name": "notes",
+        "c_code": "CNEW",
+        "definition": "A brief written record relevant to the study arm.",
+        "role": "Complex Datatype Relationship"
+      }
+    },
+    "relationships": {
+      "populations": {
+        "name": "populations",
+        "c_code": null,
+        "definition": "A USDM relationship between the StudyArm and PopulationDefinition classes which identifies the set of populations associated with the study arm.",
+        "role": "Relationship"
+      }
+    }
+  },
+  "StudyEpoch": {
+    "attributes": {
+      "name": {
+        "name": "name",
+        "c_code": "C93825",
+        "definition": "The literal identifier (i.e., distinctive designation) of the study epoch, i.e., the named time period defined in the protocol, wherein a study activity is specified and unchanging throughout the interval, to support a study-specific purpose.",
+        "role": "Attribute"
+      },
+      "description": {
+        "name": "description",
+        "c_code": "C93824",
+        "definition": "A narrative representation of the study epoch.",
+        "role": "Attribute"
+      },
+      "label": {
+        "name": "label",
+        "c_code": "C207555",
+        "definition": "The short descriptive designation for the study epoch.",
+        "role": "Attribute"
+      }
+    },
+    "complex_datatype_relationships": {
+      "type": {
+        "name": "type",
+        "c_code": "C188830",
+        "definition": "A characterization or classification of the study epoch, i.e., the named time period defined in the protocol, wherein a study activity is specified and unchanging throughout the interval, to support a study-specific purpose.",
+        "role": "Complex Datatype Relationship"
+      },
+      "notes": {
+        "name": "notes",
+        "c_code": "CNEW",
+        "definition": "A brief written record relevant to the study epoch.",
+        "role": "Complex Datatype Relationship"
+      }
+    },
+    "relationships": {
+      "previous": {
+        "name": "previous",
+        "c_code": null,
+        "definition": "A USDM relationship within the StudyEpoch class which identifies the study epoch that chronologically precedes the current study epoch.",
+        "role": "Relationship"
+      },
+      "next": {
+        "name": "next",
+        "c_code": null,
+        "definition": "A USDM relationship within the StudyEpoch class which identifies the study epoch that chronologically follows the current study epoch.",
+        "role": "Relationship"
+      }
+    }
+  },
+  "StudyElement": {
+    "relationships": {
+      "transitionStartRule": {
+        "name": "transitionStartRule",
+        "c_code": null,
+        "definition": "A USDM relationship between the StudyElement and TransitionRule classes which provides the details associated with a transition rule used to trigger the start of a study element.",
+        "role": "Relationship"
+      },
+      "transitionEndRule": {
+        "name": "transitionEndRule",
+        "c_code": null,
+        "definition": "A USDM relationship between the StudyElement and TransitionRule classes which provides the details associated with a transition rule used to trigger the end of a study element.",
+        "role": "Relationship"
+      },
+      "studyInterventions": {
+        "name": "studyInterventions",
+        "c_code": null,
+        "definition": "A USDM relationship between the StudyElement and StudyIntervention classes which identifies the set of study interventions associated with the study element.",
+        "role": "Relationship"
+      }
+    },
+    "complex_datatype_relationships": {
+      "notes": {
+        "name": "notes",
+        "c_code": "CNEW",
+        "definition": "A brief written record relevant to the study element.",
+        "role": "Complex Datatype Relationship"
+      }
+    },
+    "attributes": {
+      "name": {
+        "name": "name",
+        "c_code": "C188833",
+        "definition": "The literal identifier (i.e., distinctive designation) of the study design element.",
+        "role": "Attribute"
+      },
+      "description": {
+        "name": "description",
+        "c_code": "C188834",
+        "definition": "A narrative representation of the study design element.",
+        "role": "Attribute"
+      },
+      "label": {
+        "name": "label",
+        "c_code": "C207554",
+        "definition": "The short descriptive designation for the study design element.",
+        "role": "Attribute"
+      }
+    }
+  },
+  "TransitionRule": {
+    "attributes": {
+      "description": {
+        "name": "description",
+        "c_code": "C188835",
+        "definition": "A narrative representation of the transition rule.",
+        "role": "Attribute"
+      },
+      "name": {
+        "name": "name",
+        "c_code": "C207588",
+        "definition": "The literal identifier (i.e., distinctive designation) of the transition rule.",
+        "role": "Attribute"
+      },
+      "label": {
+        "name": "label",
+        "c_code": "C207587",
+        "definition": "The short descriptive designation for the transition rule.",
+        "role": "Attribute"
+      },
+      "text": {
+        "name": "text",
+        "c_code": "C207589",
+        "definition": "An instance of unstructured text that represents the transition rule.",
+        "role": "Attribute"
+      }
+    }
+  },
+  "Encounter": {
+    "attributes": {
+      "name": {
+        "name": "name",
+        "c_code": "C171010",
+        "definition": "The literal identifier (i.e., distinctive designation) for a protocol-defined study encounter.",
+        "role": "Attribute"
+      },
+      "description": {
+        "name": "description",
+        "c_code": "C188836",
+        "definition": "A narrative representation of the protocol-defined study encounter.",
+        "role": "Attribute"
+      },
+      "label": {
+        "name": "label",
+        "c_code": "C207490",
+        "definition": "The short descriptive designation for the study encounter.",
+        "role": "Attribute"
+      }
+    },
+    "complex_datatype_relationships": {
+      "type": {
+        "name": "type",
+        "c_code": "C188839",
+        "definition": "A characterization or classification of the study encounter.",
+        "role": "Complex Datatype Relationship"
+      },
+      "environmentalSettings": {
+        "name": "environmentalSettings",
+        "c_code": "C188840",
+        "definition": "The environment/setting where the event, intervention, or finding occurred.",
+        "role": "Complex Datatype Relationship"
+      },
+      "contactModes": {
+        "name": "contactModes",
+        "c_code": "C188841",
+        "definition": "The means by which an interaction occurs between the subject/participant and person or entity (e.g., a device).",
+        "role": "Complex Datatype Relationship"
+      },
+      "notes": {
+        "name": "notes",
+        "c_code": "CNEW",
+        "definition": "A brief written record relevant to the study encounter.",
+        "role": "Complex Datatype Relationship"
+      }
+    },
+    "relationships": {
+      "transitionStartRule": {
+        "name": "transitionStartRule",
+        "c_code": null,
+        "definition": "A USDM relationship between the Encounter and TransitionRule classes which provides the details associated with a transition rule used to trigger the start of an encounter.",
+        "role": "Relationship"
+      },
+      "transitionEndRule": {
+        "name": "transitionEndRule",
+        "c_code": null,
+        "definition": "A USDM relationship between the Encounter and TransitionRule classes which provides the details associated with a transition rule used to trigger the end of an encounter.",
+        "role": "Relationship"
+      },
+      "scheduledAt": {
+        "name": "scheduledAt",
+        "c_code": null,
+        "definition": "A USDM relationship between the Encounter and Timing classes which provides information related to the scheduled timing of an encounter.",
+        "role": "Relationship"
+      },
+      "previous": {
+        "name": "previous",
+        "c_code": null,
+        "definition": "A USDM relationship within the Encounter class which identifies the encounter that chronologically precedes the current encounter.",
+        "role": "Relationship"
+      },
+      "next": {
+        "name": "next",
+        "c_code": null,
+        "definition": "A USDM relationship within the Encounter class which identifies the encounter that chronologically follows the current encounter.",
+        "role": "Relationship"
+      }
+    }
+  },
+  "Activity": {
+    "relationships": {
+      "definedProcedures": {
+        "name": "definedProcedures",
+        "c_code": null,
+        "definition": "A USDM relationship between the Activity and Procedure classes which identifies the set of defined procedures associated with the activity.",
+        "role": "Relationship"
+      },
+      "biomedicalConcepts": {
+        "name": "biomedicalConcepts",
+        "c_code": null,
+        "definition": "A USDM relationship between the Activity and BiomedicalConcept classes which identifies the set of biomedical concepts associated with the activity.",
+        "role": "Relationship"
+      },
+      "bcCategories": {
+        "name": "bcCategories",
+        "c_code": null,
+        "definition": "A USDM relationship between the Activity and BiomedicalConceptCategory classes which identifies the set of biomedical concept categories associated with the activity.",
+        "role": "Relationship"
+      },
+      "bcSurrogates": {
+        "name": "bcSurrogates",
+        "c_code": null,
+        "definition": "A USDM relationship between the Activity and BiomedicalConceptSurrogate classes which identifies the set of biomedical concept surrogates associated with the activity.",
+        "role": "Relationship"
+      },
+      "previous": {
+        "name": "previous",
+        "c_code": null,
+        "definition": "A USDM relationship within the Activity class which identifies the activity that precedes the current activity in the display order.",
+        "role": "Relationship"
+      },
+      "next": {
+        "name": "next",
+        "c_code": null,
+        "definition": "A USDM relationship within the Activity class which identifies the activity that follows the current activity in the display order.",
+        "role": "Relationship"
+      },
+      "timeline": {
+        "name": "timeline",
+        "c_code": null,
+        "definition": "A USDM relationship between the Activity and ScheduleTimeline classes which provides the details associated with an instance of the scheduled timeline related to the activity.",
+        "role": "Relationship"
+      },
+      "children": {
+        "name": "children",
+        "c_code": null,
+        "definition": "A USDM relationship within the Activity class which identifies the set of child activities associated with an activity.",
+        "role": "Relationship"
+      }
+    },
+    "complex_datatype_relationships": {
+      "notes": {
+        "name": "notes",
+        "c_code": "CNEW",
+        "definition": "A brief written record relevant to the activity.",
+        "role": "Complex Datatype Relationship"
+      }
+    },
+    "attributes": {
+      "name": {
+        "name": "name",
+        "c_code": "C188842",
+        "definition": "The literal identifier (i.e., distinctive designation) of the study activity.",
+        "role": "Attribute"
+      },
+      "description": {
+        "name": "description",
+        "c_code": "C70960",
+        "definition": "A narrative representation of the study activity.",
+        "role": "Attribute"
+      },
+      "label": {
+        "name": "label",
+        "c_code": "C207458",
+        "definition": "The short descriptive designation for the study activity.",
+        "role": "Attribute"
+      }
+    }
+  },
+  "Procedure": {
+    "attributes": {
+      "procedureType": {
+        "name": "procedureType",
+        "c_code": "C188848",
+        "definition": "A characterization or classification of the study procedure.",
+        "role": "Attribute"
+      },
+      "name": {
+        "name": "name",
+        "c_code": "C201325",
+        "definition": "The literal identifier (i.e., distinctive designation) of the procedure.",
+        "role": "Attribute"
+      },
+      "description": {
+        "name": "description",
+        "c_code": "C201324",
+        "definition": "A narrative representation of the procedure.",
+        "role": "Attribute"
+      },
+      "label": {
+        "name": "label",
+        "c_code": "C207524",
+        "definition": "The short descriptive designation for the procedure.",
+        "role": "Attribute"
+      }
+    },
+    "complex_datatype_relationships": {
+      "code": {
+        "name": "code",
+        "c_code": "C154626",
+        "definition": "A symbol or combination of symbols which is assigned to medical procedure.",
+        "role": "Complex Datatype Relationship"
+      },
+      "notes": {
+        "name": "notes",
+        "c_code": "CNEW",
+        "definition": "A brief written record relevant to the procedure.",
+        "role": "Complex Datatype Relationship"
+      }
+    },
+    "relationships": {
+      "studyIntervention": {
+        "name": "studyIntervention",
+        "c_code": null,
+        "definition": "A USDM relationship between the Procedure and StudyInterventionclasses which provides the details associated with an instance of an intervention performed during the conduct of a procedure.",
+        "role": "Relationship"
+      }
+    }
+  },
+  "Estimand": {
+    "relationships": {
+      "analysisPopulation": {
+        "name": "analysisPopulation",
+        "c_code": null,
+        "definition": "A USDM relationship between the Estimand and AnalysisPopulation classes which provides the details associated with an instance of the analysis population used to partially define a study estimand.",
+        "role": "Relationship"
+      },
+      "intercurrentEvents": {
+        "name": "intercurrentEvents",
+        "c_code": null,
+        "definition": "A USDM relationship between the Estimand and IntercurrentEvent classes which identifies the set of intercurrent events associated with a study estimand.",
+        "role": "Relationship"
+      },
+      "interventions": {
+        "name": "interventions",
+        "c_code": null,
+        "definition": "A USDM relationship between the Estimand and StudyIntervention classes which identifies the set of study interventions associated with the Estimand.",
+        "role": "Relationship"
+      },
+      "variableOfInterest": {
+        "name": "variableOfInterest",
+        "c_code": null,
+        "definition": "A USDM relationship between the Estimand and Endpoint classes which provides the details associated with an instance of the variable of interest within a study endpoint used to partially define a study estimand.",
+        "role": "Relationship"
+      }
+    },
+    "complex_datatype_relationships": {
+      "notes": {
+        "name": "notes",
+        "c_code": "CNEW",
+        "definition": "A brief written record relevant to the study estimand.",
+        "role": "Complex Datatype Relationship"
+      }
+    },
+    "attributes": {
+      "populationSummary": {
+        "name": "populationSummary",
+        "c_code": "C188853",
+        "definition": "A synopsis of the clinical endpoint of interest within the analysis target study population.",
+        "role": "Attribute"
+      },
+      "name": {
+        "name": "name",
+        "c_code": "CNEW",
+        "definition": "The literal identifier (i.e., distinctive designation) of the estimand.",
+        "role": "Attribute"
+      },
+      "description": {
+        "name": "description",
+        "c_code": "CNEW",
+        "definition": "A narrative representation of the estimand.",
+        "role": "Attribute"
+      },
+      "label": {
+        "name": "label",
+        "c_code": "CNEW",
+        "definition": "The short descriptive designation for the estimand.",
+        "role": "Attribute"
+      }
+    }
+  },
+  "AnalysisPopulation": {
+    "attributes": {
+      "description": {
+        "name": "description",
+        "c_code": "C188854",
+        "definition": "A narrative representation of the analysis population.",
+        "role": "Attribute"
+      },
+      "name": {
+        "name": "name",
+        "c_code": "C207467",
+        "definition": "The literal identifier (i.e., distinctive designation) of the analysis population.",
+        "role": "Attribute"
+      },
+      "label": {
+        "name": "label",
+        "c_code": "C207466",
+        "definition": "The short descriptive designation for the analysis population.",
+        "role": "Attribute"
+      },
+      "text": {
+        "name": "text",
+        "c_code": "C207468",
+        "definition": "An instance of unstructured text that represents the analysis population.",
+        "role": "Attribute"
+      }
+    },
+    "complex_datatype_relationships": {
+      "notes": {
+        "name": "notes",
+        "c_code": "CNEW",
+        "definition": "A brief written record relevant to the analysis population.",
+        "role": "Complex Datatype Relationship"
+      }
+    },
+    "relationships": {
+      "subsetOf": {
+        "name": "subsetOf",
+        "c_code": null,
+        "definition": "A USDM relationship between the AnalysisPopulation and PopulationDefinition classes which identifies the population definition of which the analysis population is a subset.",
+        "role": "Relationship"
+      }
+    }
+  },
+  "IntercurrentEvent": {
+    "attributes": {
+      "name": {
+        "name": "name",
+        "c_code": "C188855",
+        "definition": "The literal identifier (i.e., distinctive designation) of the intercurrent event.",
+        "role": "Attribute"
+      },
+      "description": {
+        "name": "description",
+        "c_code": "C188856",
+        "definition": "A narrative representation of the intercurrent event.",
+        "role": "Attribute"
+      },
+      "strategy": {
+        "name": "strategy",
+        "c_code": "C188857",
+        "definition": "A textual description of the planned strategy to manage and/or mitigate intercurrent events.",
+        "role": "Attribute"
+      },
+      "label": {
+        "name": "label",
+        "c_code": "C207504",
+        "definition": "The short descriptive designation for the intercurrent event.",
+        "role": "Attribute"
+      },
+      "text": {
+        "name": "text",
+        "c_code": "CNEW",
+        "definition": "An instance of structured text that represents the intercurrent event.",
+        "role": "Attribute"
+      }
+    },
+    "complex_datatype_relationships": {
+      "notes": {
+        "name": "notes",
+        "c_code": "CNEW",
+        "definition": "A brief written record relevant to the intercurrent event.",
+        "role": "Complex Datatype Relationship"
+      }
+    },
+    "relationships": {
+      "dictionary": {
+        "name": "dictionary",
+        "c_code": null,
+        "definition": "A USDM relationship between the IntercurrentEvent and SyntaxTemplateDictionary classes which provides the set of dictionary entries related to the intercurrent event. ",
+        "role": "Relationship"
+      }
+    }
+  },
+  "Code": {
+    "attributes": {
+      "code": {
+        "name": "code",
+        "c_code": "C188858",
+        "definition": "The literal value of a code.",
+        "role": "Attribute"
+      },
+      "codeSystem": {
+        "name": "codeSystem",
+        "c_code": "C188859",
+        "definition": "The literal identifier (i.e., distinctive designation) of the system used to assign and/or manage codes.",
+        "role": "Attribute"
+      },
+      "codeSystemVersion": {
+        "name": "codeSystemVersion",
+        "c_code": "C188868",
+        "definition": "The version of the code system.",
+        "role": "Attribute"
+      },
+      "decode": {
+        "name": "decode",
+        "c_code": "C188861",
+        "definition": "Standardized or dictionary-derived human readable text associated with a code.",
+        "role": "Attribute"
+      }
+    }
+  },
+  "AliasCode": {
+    "complex_datatype_relationships": {
+      "standardCode": {
+        "name": "standardCode",
+        "c_code": "CNEW",
+        "definition": "A combination of symbols that is used to represent the standard code.",
+        "role": "Complex Datatype Relationship"
+      },
+      "standardCodeAliases": {
+        "name": "standardCodeAliases",
+        "c_code": "CNEW",
+        "definition": "Alternative combinations of symbols used to represent aliases or alternatives to the standard code.",
+        "role": "Complex Datatype Relationship"
+      }
+    }
+  },
+  "Address": {
+    "attributes": {
+      "text": {
+        "name": "text",
+        "c_code": "C201311",
+        "definition": "A standardized representation of the complete set of components denoting the physical address of the person, business, building, or organization.",
+        "role": "Attribute"
+      },
+      "lines": {
+        "name": "lines",
+        "c_code": "C25690",
+        "definition": "The street name and number, building number, apartment or unit number, or post office box number where an entity is physically located.",
+        "role": "Attribute"
+      },
+      "city": {
+        "name": "city",
+        "c_code": "C25160",
+        "definition": "A relatively large and/or densely populated area of human habitation with administrative or legal status that may be specified as a component of a postal address.",
+        "role": "Attribute"
+      },
+      "district": {
+        "name": "district",
+        "c_code": "C176229",
+        "definition": "An administrative or territorial division of a city, town, county, parish, state, country, or other locality based on a shared characteristic.",
+        "role": "Attribute"
+      },
+      "state": {
+        "name": "state",
+        "c_code": "C87194",
+        "definition": "A sub-division of a country that forms part of a federal union. States are usually, but not always, more autonomous than provinces and may have different laws from the central government.",
+        "role": "Attribute"
+      },
+      "postalCode": {
+        "name": "postalCode",
+        "c_code": "C25621",
+        "definition": "An alphanumeric code assigned to a mail delivery area.",
+        "role": "Attribute"
+      }
+    },
+    "complex_datatype_relationships": {
+      "country": {
+        "name": "country",
+        "c_code": "C25464",
+        "definition": "A sovereign nation occupying a distinct territory and ruled by an autonomous government.",
+        "role": "Complex Datatype Relationship"
+      }
+    }
+  },
+  "BiomedicalConcept": {
+    "relationships": {
+      "properties": {
+        "name": "properties",
+        "c_code": null,
+        "definition": "A USDM relationship between the BiomedicalConcept and BiomedicalConceptProperty classes which identifies the set of properties associated with the biomedical concept.",
+        "role": "Relationship"
+      }
+    },
+    "complex_datatype_relationships": {
+      "notes": {
+        "name": "notes",
+        "c_code": "CNEW",
+        "definition": "A brief written record relevant to the biomedical concept.",
+        "role": "Complex Datatype Relationship"
+      },
+      "code": {
+        "name": "code",
+        "c_code": "C207469",
+        "definition": "A concept unique identifier assigned to a biomedical concept that points to the meaning of that biomedical concept.",
+        "role": "Complex Datatype Relationship"
+      }
+    },
+    "attributes": {
+      "name": {
+        "name": "name",
+        "c_code": "C201312",
+        "definition": "The literal identifier (i.e., distinctive designation) of the biomedical concept.",
+        "role": "Attribute"
+      },
+      "synonyms": {
+        "name": "synonyms",
+        "c_code": "C201314",
+        "definition": "A word or an expression that serves as a figurative, symbolic, or exact substitute for a biomedical concept, and which has the same meaning.",
+        "role": "Attribute"
+      },
+      "reference": {
+        "name": "reference",
+        "c_code": "C201313",
+        "definition": "A citation to an authoritative source for a biomedical concept.",
+        "role": "Attribute"
+      },
+      "label": {
+        "name": "label",
+        "c_code": "C207470",
+        "definition": "The short descriptive designation for the biomedical concept.",
+        "role": "Attribute"
+      }
+    }
+  },
+  "BiomedicalConceptProperty": {
+    "relationships": {
+      "responseCodes": {
+        "name": "responseCodes",
+        "c_code": null,
+        "definition": "A USDM relationship between the BiomedicalConceptProperty and ResponseCode classes which identifies the set of response codes associated with the biomedical concept property.",
+        "role": "Relationship"
+      }
+    },
+    "complex_datatype_relationships": {
+      "notes": {
+        "name": "notes",
+        "c_code": "CNEW",
+        "definition": "A brief written record relevant to the biomedical concept property.",
+        "role": "Complex Datatype Relationship"
+      },
+      "code": {
+        "name": "code",
+        "c_code": "C201318",
+        "definition": "A concept unique identifier assigned to a biomedical concept property that points to the meaning of that biomedical concept property.",
+        "role": "Complex Datatype Relationship"
+      }
+    },
+    "attributes": {
+      "name": {
+        "name": "name",
+        "c_code": "C202494",
+        "definition": "The literal identifier (i.e., distinctive designation) of the biomedical concept property.",
+        "role": "Attribute"
+      },
+      "isRequired": {
+        "name": "isRequired",
+        "c_code": "C202495",
+        "definition": "An indication as to whether the biomedical concept property is required.",
+        "role": "Attribute"
+      },
+      "isEnabled": {
+        "name": "isEnabled",
+        "c_code": "C202496",
+        "definition": "An indication as to whether the biomedical concept property is activated for use within a given usage context for a biomedical concept.",
+        "role": "Attribute"
+      },
+      "datatype": {
+        "name": "datatype",
+        "c_code": "C201319",
+        "definition": "The structural format of the biomedical concept property response value. The datatype is carried in the attribute and influences the set of allowable values the attribute may assume. (After HL7)",
+        "role": "Attribute"
+      },
+      "label": {
+        "name": "label",
+        "c_code": "C207472",
+        "definition": "The short descriptive designation for the biomedical concept property.",
+        "role": "Attribute"
+      }
+    }
+  },
+  "ResponseCode": {
+    "attributes": {
+      "isEnabled": {
+        "name": "isEnabled",
+        "c_code": "C201330",
+        "definition": "An indication as to whether the response code is activated for use within a given usage context.",
+        "role": "Attribute"
+      }
+    },
+    "complex_datatype_relationships": {
+      "code": {
+        "name": "code",
+        "c_code": "C25162",
+        "definition": "A symbol or combination of symbols which is assigned to the members of a collection.",
+        "role": "Complex Datatype Relationship"
+      }
+    }
+  },
+  "BiomedicalConceptSurrogate": {
+    "complex_datatype_relationships": {
+      "notes": {
+        "name": "notes",
+        "c_code": "CNEW",
+        "definition": "A brief written record relevant to the biomedical concept surrogate.",
+        "role": "Complex Datatype Relationship"
+      }
+    },
+    "attributes": {
+      "name": {
+        "name": "name",
+        "c_code": "C207474",
+        "definition": "The literal identifier (i.e., distinctive designation) of the biomedical concept surrogate.",
+        "role": "Attribute"
+      },
+      "description": {
+        "name": "description",
+        "c_code": "C201320",
+        "definition": "A narrative representation of the biomedical concept surrogate.",
+        "role": "Attribute"
+      },
+      "reference": {
+        "name": "reference",
+        "c_code": "C201321",
+        "definition": "A citation to an authoritative source for a biomedical concept surrogate.",
+        "role": "Attribute"
+      },
+      "label": {
+        "name": "label",
+        "c_code": "C207473",
+        "definition": "The short descriptive designation for the biomedical concept surrogate.",
+        "role": "Attribute"
+      }
+    }
+  },
+  "BiomedicalConceptCategory": {
+    "relationships": {
+      "members": {
+        "name": "members",
+        "c_code": null,
+        "definition": "A USDM relationship between the BiomedicalConceptCategory and BiomedicalConcept classes which identifies the set of biomedical concept members associated with the biomedical concept category.",
+        "role": "Relationship"
+      },
+      "children": {
+        "name": "children",
+        "c_code": null,
+        "definition": "A USDM relationship within the BiomedicalConceptCategory class which identifies the set of child categories of a biomedical concept.",
+        "role": "Relationship"
+      }
+    },
+    "complex_datatype_relationships": {
+      "notes": {
+        "name": "notes",
+        "c_code": "CNEW",
+        "definition": "A brief written record relevant to the biomedical concept category.",
+        "role": "Complex Datatype Relationship"
+      },
+      "code": {
+        "name": "code",
+        "c_code": "C201315",
+        "definition": "A symbol or combination of symbols which is assigned to the biomedical concept category.",
+        "role": "Complex Datatype Relationship"
+      }
+    },
+    "attributes": {
+      "name": {
+        "name": "name",
+        "c_code": "C201317",
+        "definition": "The literal identifier (i.e., distinctive designation) of the biomedical concept category.",
+        "role": "Attribute"
+      },
+      "description": {
+        "name": "description",
+        "c_code": "C201316",
+        "definition": "A narrative representation of the biomedical concept category.",
+        "role": "Attribute"
+      },
+      "label": {
+        "name": "label",
+        "c_code": "C207471",
+        "definition": "The short descriptive designation for the biomedical concept category.",
+        "role": "Attribute"
+      }
+    }
+  },
+  "ScheduledActivityInstance": {
+    "attributes": {
+      "name": {
+        "name": "name",
+        "c_code": "C207533",
+        "definition": "The literal identifier (i.e., distinctive designation) of the scheduled activity instance.",
+        "role": "Attribute"
+      },
+      "description": {
+        "name": "description",
+        "c_code": "C207531",
+        "definition": "A narrative representation of the scheduled activity instance.",
+        "role": "Attribute"
+      },
+      "label": {
+        "name": "label",
+        "c_code": "C207532",
+        "definition": "The short descriptive designation for the scheduled activity instance.",
+        "role": "Attribute"
+      }
+    },
+    "relationships": {
+      "activities": {
+        "name": "activities",
+        "c_code": null,
+        "definition": "A USDM relationship between the ScheduledActivityInstance and Activity classes which identifies the set of activities associated with a scheduled activity instance.",
+        "role": "Relationship"
+      },
+      "encounter": {
+        "name": "encounter",
+        "c_code": null,
+        "definition": "A USDM relationship between the ScheduledActivityInstance and Encounter classes which defines the subject encounter associated with the ScheduleActivityInstance.",
+        "role": "Relationship"
+      },
+      "timelineExit": {
+        "name": "timelineExit",
+        "c_code": null,
+        "definition": "A USDM relationship between the ScheduledActivityInstance and ScheduleTimelineExit classes which provides the details associated with the exit from a timeline related to a scheduled activity instance.",
+        "role": "Relationship"
+      },
+      "timeline": {
+        "name": "timeline",
+        "c_code": null,
+        "definition": "A USDM relationship between the ScheduledActivityInstance and ScheduleTimeline classes which provides the details associated with an instance of a scheduled timeline related to a scheduled activity instance.",
+        "role": "Relationship"
+      },
+      "defaultCondition": {
+        "name": "defaultCondition",
+        "c_code": null,
+        "definition": "A USDM relationship within the ScheduledActivityInstance class which identifies the default condition within a scheduled activity instance.",
+        "role": "Relationship"
+      },
+      "epoch": {
+        "name": "epoch",
+        "c_code": null,
+        "definition": "A USDM relationship between the ScheduledActivityInstance and StudyEpoch classes which identifies the study epoch associated with a scheduled activity instance.",
+        "role": "Relationship"
+      }
+    }
+  },
+  "ScheduledDecisionInstance": {
+    "attributes": {
+      "name": {
+        "name": "name",
+        "c_code": "C207536",
+        "definition": "The literal identifier (i.e., distinctive designation) of the scheduled Decision instance.",
+        "role": "Attribute"
+      },
+      "description": {
+        "name": "description",
+        "c_code": "C207534",
+        "definition": "A narrative representation of the scheduled Decision instance.",
+        "role": "Attribute"
+      },
+      "label": {
+        "name": "label",
+        "c_code": "C207535",
+        "definition": "The short descriptive designation for the scheduled Decision instance.",
+        "role": "Attribute"
+      }
+    },
+    "relationships": {
+      "defaultCondition": {
+        "name": "defaultCondition",
+        "c_code": null,
+        "definition": "A USDM relationship within the ScheduledDecisionInstance class which identifies the default condition within a scheduled decision instance.",
+        "role": "Relationship"
+      },
+      "epoch": {
+        "name": "epoch",
+        "c_code": null,
+        "definition": "A USDM relationship between the ScheduledDecisionInstance and StudyEpoch classes which identifies the study epoch associated with a scheduled decision instance.",
+        "role": "Relationship"
+      },
+      "conditionAssignments": {
+        "name": "conditionAssignments",
+        "c_code": null,
+        "definition": "A USDM relationship between the ScheduledDecisionInstance and ConditionAssignment classes which identifies the set of condition assignments associated with a scheduled decision instance.",
+        "role": "Relationship"
+      }
+    }
+  },
+  "ScheduledInstance": {
+    "attributes": {
+      "name": {
+        "name": "name",
+        "c_code": "C207455",
+        "definition": "The literal identifier (i.e., distinctive designation) of the scheduled instance.",
+        "role": "Attribute"
+      },
+      "description": {
+        "name": "description",
+        "c_code": "C207453",
+        "definition": "A narrative representation of the scheduled instance.",
+        "role": "Attribute"
+      },
+      "label": {
+        "name": "label",
+        "c_code": "C207454",
+        "definition": "The short descriptive designation for the scheduled instance.",
+        "role": "Attribute"
+      }
+    },
+    "relationships": {
+      "defaultCondition": {
+        "name": "defaultCondition",
+        "c_code": null,
+        "definition": "A USDM relationship within the ScheduledInstance class which identifies the default condition within a scheduled instance.",
+        "role": "Relationship"
+      },
+      "epoch": {
+        "name": "epoch",
+        "c_code": null,
+        "definition": "A USDM relationship between the ScheduledInstance and StudyEpoch classes which identifies the study epoch associated with a scheduled instance.",
+        "role": "Relationship"
+      }
+    }
+  },
+  "ScheduleTimeline": {
+    "attributes": {
+      "name": {
+        "name": "name",
+        "c_code": "C201334",
+        "definition": "The literal identifier (i.e., distinctive designation) of the schedule timeline.",
+        "role": "Attribute"
+      },
+      "description": {
+        "name": "description",
+        "c_code": "C201332",
+        "definition": "A narrative representation of the schedule timeline.",
+        "role": "Attribute"
+      },
+      "entryCondition": {
+        "name": "entryCondition",
+        "c_code": "C201333",
+        "definition": "A logical evaluation on which rests the validity of entry into a schedule timeline.",
+        "role": "Attribute"
+      },
+      "mainTimeline": {
+        "name": "mainTimeline",
+        "c_code": "C201331",
+        "definition": "An indication as to whether the timeline or timeline component is part of the central or principal timeline.",
+        "role": "Attribute"
+      },
+      "label": {
+        "name": "label",
+        "c_code": "C207530",
+        "definition": "The short descriptive designation for the schedule timeline.",
+        "role": "Attribute"
+      }
+    },
+    "relationships": {
+      "instances": {
+        "name": "instances",
+        "c_code": null,
+        "definition": "A USDM relationship between the ScheduleTimeline and ScheduledInstance classes which identifies the set of scheduled instances (e.g., scheduled activity instances or scheduled decision instances) associated with the scheduled timeline.",
+        "role": "Relationship"
+      },
+      "entry": {
+        "name": "entry",
+        "c_code": null,
+        "definition": "A USDM relationship between the ScheduleTimeline and ScheduledInstance classes which defines the entry into a scheduled instance (e.g., scheduled activity instances or scheduled decision instances) for a timeline.",
+        "role": "Relationship"
+      },
+      "exits": {
+        "name": "exits",
+        "c_code": null,
+        "definition": "A USDM relationship between the ScheduleTimeline and ScheduleTimelineExit classes which identifies the set of exits from the scheduled timeline.",
+        "role": "Relationship"
+      },
+      "timings": {
+        "name": "timings",
+        "c_code": null,
+        "definition": "A USDM relationship between the ScheduleTimeline and Timing classes which identifies the set of timings associated with the scheduled timeline.",
+        "role": "Relationship"
+      }
+    }
+  },
+  "Timing": {
+    "complex_datatype_relationships": {
+      "type": {
+        "name": "type",
+        "c_code": "C201298",
+        "definition": "A characterization or classification of the chronological relationship between temporal events.",
+        "role": "Complex Datatype Relationship"
+      },
+      "relativeToFrom": {
+        "name": "relativeToFrom",
+        "c_code": "C201297",
+        "definition": "The name of the reference event used to define the temporal relationship with another event.",
+        "role": "Complex Datatype Relationship"
+      }
+    },
+    "attributes": {
+      "value": {
+        "name": "value",
+        "c_code": "C201341",
+        "definition": "The temporal value of the chronological relationship between temporal events.",
+        "role": "Attribute"
+      },
+      "windowLabel": {
+        "name": "windowLabel",
+        "c_code": "C207586",
+        "definition": "The short descriptive designation for a time period, or other type of interval, during which a temporal event may be achieved, obtained, or observed.",
+        "role": "Attribute"
+      },
+      "description": {
+        "name": "description",
+        "c_code": "C164648",
+        "definition": "A narrative representation of the chronological relationship between temporal events.",
+        "role": "Attribute"
+      },
+      "windowLower": {
+        "name": "windowLower",
+        "c_code": "C201342",
+        "definition": "The earliest chronological value of an allowable period of time during which a temporal event takes place.",
+        "role": "Attribute"
+      },
+      "windowUpper": {
+        "name": "windowUpper",
+        "c_code": "C201343",
+        "definition": "The latest chronological value of an allowable period of time during which a temporal event takes place.",
+        "role": "Attribute"
+      },
+      "label": {
+        "name": "label",
+        "c_code": "C207583",
+        "definition": "The short descriptive designation for the timing.",
+        "role": "Attribute"
+      },
+      "name": {
+        "name": "name",
+        "c_code": "C207584",
+        "definition": "The literal identifier (i.e., distinctive designation) of the timing.",
+        "role": "Attribute"
+      },
+      "valueLabel": {
+        "name": "valueLabel",
+        "c_code": "C207585",
+        "definition": "The short descriptive designation for the timing value.",
+        "role": "Attribute"
+      }
+    },
+    "relationships": {
+      "relativeFromScheduledInstance": {
+        "name": "relativeFromScheduledInstance",
+        "c_code": null,
+        "definition": "A USDM relationship between the Timing and ScheduledInstance classes which identifies the scheduled instance (e.g., scheduled activity instances or scheduled decision instances) to which the timing applies.",
+        "role": "Relationship"
+      },
+      "relativeToScheduledInstance": {
+        "name": "relativeToScheduledInstance",
+        "c_code": null,
+        "definition": "A USDM relationship between the Timing and ScheduledInstance classes which identifies the scheduled instance (e.g., scheduled activity instances or scheduled decision instances) to which the timing is relative to.",
+        "role": "Relationship"
+      }
+    }
+  },
+  "NarrativeContent": {
+    "attributes": {
+      "sectionNumber": {
+        "name": "sectionNumber",
+        "c_code": "C207509",
+        "definition": "The numeric identifier assigned to a particular document section containing narrative content.",
+        "role": "Attribute"
+      },
+      "sectionTitle": {
+        "name": "sectionTitle",
+        "c_code": "C207510",
+        "definition": "An identifying designation for the document section containing narrative content.",
+        "role": "Attribute"
+      },
+      "name": {
+        "name": "name",
+        "c_code": "C207507",
+        "definition": "The literal identifier (i.e., distinctive designation) of the narrative content.",
+        "role": "Attribute"
+      },
+      "displaySectionTitle": {
+        "name": "displaySectionTitle",
+        "c_code": "CNEW",
+        "definition": "An indication as to whether the section title is to be displayed in the document containing narrative content.",
+        "role": "Attribute"
+      },
+      "displaySectionNumber": {
+        "name": "displaySectionNumber",
+        "c_code": "CNEW",
+        "definition": "An indication as to whether the section number is to be displayed in the document containing narrative content.",
+        "role": "Attribute"
+      }
+    },
+    "relationships": {
+      "children": {
+        "name": "children",
+        "c_code": null,
+        "definition": "A USDM relationship within the NarrativeContent class which identifies the set of child content associated with an instance of narrative content.",
+        "role": "Relationship"
+      },
+      "previous": {
+        "name": "previous",
+        "c_code": null,
+        "definition": "A USDM relationship within the NarrativeContent class which identifies the narrative content that precedes the current narrative content in the display order.",
+        "role": "Relationship"
+      },
+      "next": {
+        "name": "next",
+        "c_code": null,
+        "definition": "A USDM relationship within the NarrativeContent class which identifies the narrative content that follows the current narrative content in the display order.",
+        "role": "Relationship"
+      },
+      "contentItem": {
+        "name": "contentItem",
+        "c_code": null,
+        "definition": "A USDM relationship between the NarrativeContent and NarrativeContentItem classes which identifies the content item associated with the narrative content.",
+        "role": "Relationship"
+      }
+    }
+  },
+  "SyntaxTemplate": {
+    "attributes": {
+      "name": {
+        "name": "name",
+        "c_code": "C207577",
+        "definition": "The literal identifier (i.e., distinctive designation) of the syntax template.",
+        "role": "Attribute"
+      },
+      "text": {
+        "name": "text",
+        "c_code": "C207578",
+        "definition": "A structured text string containing prescribed text interspersed with user-defined parameter values.",
+        "role": "Attribute"
+      },
+      "description": {
+        "name": "description",
+        "c_code": "C207575",
+        "definition": "A narrative representation of the syntax template.",
+        "role": "Attribute"
+      },
+      "label": {
+        "name": "label",
+        "c_code": "C207576",
+        "definition": "The short descriptive designation for the syntax template.",
+        "role": "Attribute"
+      }
+    },
+    "relationships": {
+      "dictionary": {
+        "name": "dictionary",
+        "c_code": null,
+        "definition": "A USDM relationship between the SyntaxTemplate and SyntaxTemplateDictionary classes which provides the dictionary entry associated with a syntax template. ",
+        "role": "Relationship"
+      }
+    },
+    "complex_datatype_relationships": {
+      "notes": {
+        "name": "notes",
+        "c_code": "CNEW",
+        "definition": "A brief written record relevant to the syntax template.",
+        "role": "Complex Datatype Relationship"
+      }
+    }
+  },
+  "SyntaxTemplateDictionary": {
+    "attributes": {
+      "name": {
+        "name": "name",
+        "c_code": "C207581",
+        "definition": "The literal identifier (i.e., distinctive designation) of the syntax template dictionary.",
+        "role": "Attribute"
+      },
+      "description": {
+        "name": "description",
+        "c_code": "C207579",
+        "definition": "A narrative representation of the syntax template dictionary.",
+        "role": "Attribute"
+      },
+      "label": {
+        "name": "label",
+        "c_code": "C207580",
+        "definition": "The short descriptive designation for the syntax template dictionary.",
+        "role": "Attribute"
+      }
+    },
+    "relationships": {
+      "parameterMaps": {
+        "name": "parameterMaps",
+        "c_code": null,
+        "definition": "A USDM relationship between the SyntaxTemplateDictionary and ParameterMap classes which identifies the set of parameter maps (parameter map entries) associated with a syntax template dictionary.",
+        "role": "Relationship"
+      }
+    }
+  },
+  "EligibilityCriterion": {
+    "complex_datatype_relationships": {
+      "category": {
+        "name": "category",
+        "c_code": "C83016",
+        "definition": "A classification of the inclusion exclusion criterion.",
+        "role": "Complex Datatype Relationship"
+      },
+      "notes": {
+        "name": "notes",
+        "c_code": "CNEW",
+        "definition": "A brief written record relevant to the eligibility criterion.",
+        "role": "Complex Datatype Relationship"
+      }
+    },
+    "attributes": {
+      "identifier": {
+        "name": "identifier",
+        "c_code": "C207489",
+        "definition": "A sequence of characters used to identify, name, or characterize the inclusion or exclusion criterion.",
+        "role": "Attribute"
+      },
+      "description": {
+        "name": "description",
+        "c_code": "C207486",
+        "definition": "A narrative representation of the study eligibility criterion.",
+        "role": "Attribute"
+      },
+      "name": {
+        "name": "name",
+        "c_code": "C207488",
+        "definition": "The literal identifier (i.e., distinctive designation) of the study eligibility criterion.",
+        "role": "Attribute"
+      },
+      "label": {
+        "name": "label",
+        "c_code": "C207487",
+        "definition": "The short descriptive designation for the study eligibility criterion.",
+        "role": "Attribute"
+      }
+    },
+    "relationships": {
+      "next": {
+        "name": "next",
+        "c_code": null,
+        "definition": "A USDM relationship within the EligibilityCriterion class which identifies the eligibility criterion that follows the current eligibility criterion in the display order.",
+        "role": "Relationship"
+      },
+      "previous": {
+        "name": "previous",
+        "c_code": null,
+        "definition": "A USDM relationship within the EligibilityCriterion class which identifies the eligibility criterion that precedes the current eligibility criterion in the display order.",
+        "role": "Relationship"
+      },
+      "criterionItem": {
+        "name": "criterionItem",
+        "c_code": null,
+        "definition": "A USDM relationship between the EligibilityCriterion and EligibilityCriterionItem classes which identifies the item belonging to the eligibility criterion.",
+        "role": "Relationship"
+      }
+    }
+  },
+  "GovernanceDate": {
+    "attributes": {
+      "name": {
+        "name": "name",
+        "c_code": "C207499",
+        "definition": "The literal identifier (i.e., distinctive designation) of the study governance date",
+        "role": "Attribute"
+      },
+      "description": {
+        "name": "description",
+        "c_code": "C207497",
+        "definition": "A narrative representation of the study governance date.",
+        "role": "Attribute"
+      },
+      "label": {
+        "name": "label",
+        "c_code": "C207498",
+        "definition": "The short descriptive designation for the study governance date.",
+        "role": "Attribute"
+      },
+      "dateValue": {
+        "name": "dateValue",
+        "c_code": "C207500",
+        "definition": "The information contained in the date field.",
+        "role": "Attribute"
+      }
+    },
+    "complex_datatype_relationships": {
+      "type": {
+        "name": "type",
+        "c_code": "C207496",
+        "definition": "A characterization or classification of the study governance date.",
+        "role": "Complex Datatype Relationship"
+      }
+    },
+    "relationships": {
+      "geographicScopes": {
+        "name": "geographicScopes",
+        "c_code": null,
+        "definition": "A USDM relationship between the GovernanceDate and GeographicScope classes which identifies the set of geographic scopes associated with the governance date.",
+        "role": "Relationship"
+      }
+    }
+  },
+  "StudyAmendmentReason": {
+    "complex_datatype_relationships": {
+      "code": {
+        "name": "code",
+        "c_code": "C207540",
+        "definition": "A symbol or combination of symbols which is assigned to the study amendment reason.",
+        "role": "Complex Datatype Relationship"
+      }
+    },
+    "attributes": {
+      "otherReason": {
+        "name": "otherReason",
+        "c_code": "C207539",
+        "definition": "The rationale for the change(s) to, or formal clarification of, a protocol that is not otherwise specified.",
+        "role": "Attribute"
+      }
+    }
+  },
+  "StudyAmendment": {
+    "attributes": {
+      "number": {
+        "name": "number",
+        "c_code": "C207537",
+        "definition": "A string of numerals that uniquely identifies a protocol amendment.",
+        "role": "Attribute"
+      },
+      "summary": {
+        "name": "summary",
+        "c_code": "C115627",
+        "definition": "A short narrative representation describing the changes introduced in the current version of the protocol.",
+        "role": "Attribute"
+      }
+    },
+    "relationships": {
+      "previous": {
+        "name": "previous",
+        "c_code": null,
+        "definition": "A USDM relationship within the StudyAmendment class which identifies the study amendment that chronologically precedes the current study amendment.",
+        "role": "Relationship"
+      },
+      "enrollments": {
+        "name": "enrollments",
+        "c_code": null,
+        "definition": "A USDM relationship between the StudyAmendment and SubjectEnrollment classes which provides the set of subject enrollments associated with the study amendment.",
+        "role": "Relationship"
+      },
+      "primaryReason": {
+        "name": "primaryReason",
+        "c_code": null,
+        "definition": "A USDM relationship between the StudyAmendment and StudyAmendmentReason classes which identifies the primary reason for issuing the study amendment.",
+        "role": "Relationship"
+      },
+      "secondaryReasons": {
+        "name": "secondaryReasons",
+        "c_code": null,
+        "definition": "A USDM relationship between the StudyAmendment and StudyAmendmentReason classes which identifies the set of secondary reasons for issuing the study amendment.",
+        "role": "Relationship"
+      },
+      "dateValues": {
+        "name": "dateValues",
+        "c_code": null,
+        "definition": "A USDM relationship between the StudyAmendment and GovernanceDate classes which provides the set of governance dates associated with the study amendment.",
+        "role": "Relationship"
+      },
+      "geographicScopes": {
+        "name": "geographicScopes",
+        "c_code": null,
+        "definition": "A USDM relationship between the StudyAmendment and GeographicScope classes which identifies the set of geographic scopes associated with the study amendment.",
+        "role": "Relationship"
+      },
+      "changes": {
+        "name": "changes",
+        "c_code": null,
+        "definition": "A USDM relationship between the StudyAmendment and  StudyChange classes which identifies the set of changes associated with the study amendment.",
+        "role": "Relationship"
+      },
+      "impacts": {
+        "name": "impacts",
+        "c_code": null,
+        "definition": "A USDM relationship between the StudyAmendment and StudyAmendmentImpact classes which identifies the set of impacts that the study amendment has on the study or study subjects.",
+        "role": "Relationship"
+      }
+    },
+    "complex_datatype_relationships": {
+      "notes": {
+        "name": "notes",
+        "c_code": "CNEW",
+        "definition": "A brief written record relevant to the study amendment.",
+        "role": "Complex Datatype Relationship"
+      }
+    }
+  },
+  "StudyVersion": {
+    "attributes": {
+      "versionIdentifier": {
+        "name": "versionIdentifier",
+        "c_code": "C207570",
+        "definition": "A sequence of characters used to identify, name, or characterize the study version.",
+        "role": "Attribute"
+      },
+      "rationale": {
+        "name": "rationale",
+        "c_code": "C94122",
+        "definition": "A statement describing the overall rationale of the study. This field describes the contribution of this study to product development, i.e., what knowledge is being contributed from the conduct of this study.",
+        "role": "Attribute"
+      }
+    },
+    "complex_datatype_relationships": {
+      "businessTherapeuticAreas": {
+        "name": "businessTherapeuticAreas",
+        "c_code": "C201322",
+        "definition": "A therapeutic area classification based on the structure and operations of the business unit.",
+        "role": "Complex Datatype Relationship"
+      },
+      "notes": {
+        "name": "notes",
+        "c_code": "CNEW",
+        "definition": "A brief written record relevant to the study version.",
+        "role": "Complex Datatype Relationship"
+      }
+    },
+    "relationships": {
+      "dateValues": {
+        "name": "dateValues",
+        "c_code": null,
+        "definition": "A USDM relationship between the StudyVersion and GovernanceDate classes which provides the set of governance dates associated with the study version.",
+        "role": "Relationship"
+      },
+      "amendments": {
+        "name": "amendments",
+        "c_code": null,
+        "definition": "A USDM relationship between the StudyVersion and StudyAmendment classes which identifies the set of study amendments associated with the study version.",
+        "role": "Relationship"
+      },
+      "documentVersions": {
+        "name": "documentVersions",
+        "c_code": null,
+        "definition": "A USDM relationship between the StudyVersion and StudyDefinitionDocumentVersion classes which identifies the version of the study definition document associated with the study version.",
+        "role": "Relationship"
+      },
+      "studyIdentifiers": {
+        "name": "studyIdentifiers",
+        "c_code": null,
+        "definition": "A USDM relationship between the StudyVersion and StudyIdentifier classes which identifies the set of study identifiers associated with the study version.",
+        "role": "Relationship"
+      },
+      "studyDesigns": {
+        "name": "studyDesigns",
+        "c_code": null,
+        "definition": "A USDM relationship between the StudyVersion and StudyDesign classes which identifies the set of study designs associated with the study version.",
+        "role": "Relationship"
+      },
+      "titles": {
+        "name": "titles",
+        "c_code": null,
+        "definition": "A USDM relationship between the StudyVersion and StudyTitle classes which identifies the set of study titles associated with the study version.",
+        "role": "Relationship"
+      },
+      "abbreviations": {
+        "name": "abbreviations",
+        "c_code": null,
+        "definition": "A USDM relationship between the StudyVersion and Abbreviation classes which provides the set of abbreviations associated with the study version.",
+        "role": "Relationship"
+      },
+      "referenceIdentifiers": {
+        "name": "referenceIdentifiers",
+        "c_code": null,
+        "definition": "A USDM relationship between the StudyVersion and ReferenceIdentifier classes which identifies the set of reference identifiers associated with the study version.",
+        "role": "Relationship"
+      }
+    }
+  },
+  "GeographicScope": {
+    "complex_datatype_relationships": {
+      "type": {
+        "name": "type",
+        "c_code": "C207495",
+        "definition": "A characterization or classification of the geographic scope.",
+        "role": "Complex Datatype Relationship"
+      },
+      "code": {
+        "name": "code",
+        "c_code": "C207494",
+        "definition": "A symbol or combination of symbols which is assigned to the geographic scope.",
+        "role": "Complex Datatype Relationship"
+      }
+    }
+  },
+  "SubjectEnrollment": {
+    "attributes": {
+      "name": {
+        "name": "name",
+        "c_code": "CNEW",
+        "definition": "The literal identifier (i.e., distinctive designation) of the subject enrollment.",
+        "role": "Attribute"
+      },
+      "description": {
+        "name": "description",
+        "c_code": "CNEW",
+        "definition": "A narrative representation of the subject enrollment.",
+        "role": "Attribute"
+      },
+      "label": {
+        "name": "label",
+        "c_code": "CNEW",
+        "definition": "The short descriptive designation for the subject enrollment..",
+        "role": "Attribute"
+      }
+    },
+    "complex_datatype_relationships": {
+      "quantity": {
+        "name": "quantity",
+        "c_code": "C207573",
+        "definition": "The value representing the number of individuals enrolled in a study.",
+        "role": "Complex Datatype Relationship"
+      }
+    },
+    "relationships": {
+      "forStudySite": {
+        "name": "forStudySite",
+        "c_code": null,
+        "definition": "A USDM relationship between the SubjectEnrollment and StudySite classes which identifies the study site to which the subject enrollment applies.",
+        "role": "Relationship"
+      },
+      "forGeographicScope": {
+        "name": "forGeographicScope",
+        "c_code": null,
+        "definition": "A USDM relationship between the SubjectEnrollment and GeographicScope classes which identifies the geographic scope to which the subject enrollment applies.",
+        "role": "Relationship"
+      },
+      "forStudyCohort": {
+        "name": "forStudyCohort",
+        "c_code": null,
+        "definition": "A USDM relationship between the SubjectEnrollment and StudyCohort classes which identifies the study cohort to which the subject enrollment applies.",
+        "role": "Relationship"
+      }
+    }
+  },
+  "StudyIntervention": {
+    "attributes": {
+      "description": {
+        "name": "description",
+        "c_code": "C207647",
+        "definition": "A narrative representation of the study intervention.",
+        "role": "Attribute"
+      },
+      "name": {
+        "name": "name",
+        "c_code": "C207558",
+        "definition": "The literal identifier (i.e., distinctive designation) of the study intervention.",
+        "role": "Attribute"
+      },
+      "label": {
+        "name": "label",
+        "c_code": "C207556",
+        "definition": "The short descriptive designation for the study intervention.",
+        "role": "Attribute"
+      }
+    },
+    "complex_datatype_relationships": {
+      "codes": {
+        "name": "codes",
+        "c_code": "C207648",
+        "definition": "A symbol or combination of symbols which is assigned to the study intervention.",
+        "role": "Complex Datatype Relationship"
+      },
+      "role": {
+        "name": "role",
+        "c_code": "C207560",
+        "definition": "The intended use of the trial intervention within the context of the study design.",
+        "role": "Complex Datatype Relationship"
+      },
+      "type": {
+        "name": "type",
+        "c_code": "C98747",
+        "definition": "The kind of product or procedure studied in a trial.",
+        "role": "Complex Datatype Relationship"
+      },
+      "minimumResponseDuration": {
+        "name": "minimumResponseDuration",
+        "c_code": "C207557",
+        "definition": "The value representing the minimum amount of time required to meet the criteria for response to study intervention.",
+        "role": "Complex Datatype Relationship"
+      },
+      "notes": {
+        "name": "notes",
+        "c_code": "CNEW",
+        "definition": "A brief written record relevant to the study intervention.",
+        "role": "Complex Datatype Relationship"
+      }
+    },
+    "relationships": {
+      "administrations": {
+        "name": "administrations",
+        "c_code": null,
+        "definition": "A USDM relationship between the StudyIntervention and AgentAdministration classes which identifies the set of agent administrations associated with the study intervention.",
+        "role": "Relationship"
+      }
+    }
+  },
+  "AdministrationDuration": {
+    "attributes": {
+      "description": {
+        "name": "description",
+        "c_code": "C207459",
+        "definition": "A narrative representation of the agent administration duration.",
+        "role": "Attribute"
+      },
+      "durationWillVary": {
+        "name": "durationWillVary",
+        "c_code": "C207461",
+        "definition": "An indication as to whether the agent administration duration is planned to vary within and/or across subjects.",
+        "role": "Attribute"
+      },
+      "reasonDurationWillVary": {
+        "name": "reasonDurationWillVary",
+        "c_code": "C207462",
+        "definition": "The explanation for why the agent administration duration will vary within and/or across subjects.",
+        "role": "Attribute"
+      }
+    },
+    "complex_datatype_relationships": {
+      "quantity": {
+        "name": "quantity",
+        "c_code": "C207460",
+        "definition": "The value representing the amount of time over which the administration of an agent occurs.",
+        "role": "Complex Datatype Relationship"
+      }
+    }
+  },
+  "Administration": {
+    "attributes": {
+      "name": {
+        "name": "name",
+        "c_code": "C207465",
+        "definition": "The literal identifier (i.e., distinctive designation) for the administration of a product, agent, or therapy.",
+        "role": "Attribute"
+      },
+      "description": {
+        "name": "description",
+        "c_code": "C207463",
+        "definition": "A narrative representation for the administration of a product, agent, or therapy.",
+        "role": "Attribute"
+      },
+      "label": {
+        "name": "label",
+        "c_code": "C207464",
+        "definition": "The short descriptive designation for the administration of a product, agent, or therapy.",
+        "role": "Attribute"
+      }
+    },
+    "complex_datatype_relationships": {
+      "route": {
+        "name": "route",
+        "c_code": "C38114",
+        "definition": "The pathway by which a substance is administered in order to reach the site of action in the body.",
+        "role": "Complex Datatype Relationship"
+      },
+      "frequency": {
+        "name": "frequency",
+        "c_code": "C89081",
+        "definition": "The number of doses administered per a specific interval.",
+        "role": "Complex Datatype Relationship"
+      },
+      "dose": {
+        "name": "dose",
+        "c_code": "C167190",
+        "definition": "The value representing the amount of an agent given to an individual at one time.",
+        "role": "Complex Datatype Relationship"
+      },
+      "notes": {
+        "name": "notes",
+        "c_code": "CNEW",
+        "definition": "A brief written record relevant to the administration of the product, agent, or therapy.",
+        "role": "Complex Datatype Relationship"
+      }
+    },
+    "relationships": {
+      "duration": {
+        "name": "duration",
+        "c_code": null,
+        "definition": "A USDM relationship between the Administration and AdministrationDuration classes which provides the duration of an instance of product, agent, or therapy administration.",
+        "role": "Relationship"
+      },
+      "administrableProduct": {
+        "name": "administrableProduct",
+        "c_code": null,
+        "definition": "A USDM relationship between the Administration and AdministrableProductDefinition classes which identifies the administrable product associated with the administration of the product, agent, or therapy.",
+        "role": "Relationship"
+      },
+      "medicalDevice": {
+        "name": "medicalDevice",
+        "c_code": null,
+        "definition": "A USDM relationship between the Administration and MedicalDevice classes which identifies the medical device associated with an instance of product, agent, or therapy administration.",
+        "role": "Relationship"
+      }
+    }
+  },
+  "Quantity": {
+    "attributes": {
+      "value": {
+        "name": "value",
+        "c_code": "C25712",
+        "definition": "A numerical quantity measured or assigned or computed.",
+        "role": "Attribute"
+      }
+    },
+    "complex_datatype_relationships": {
+      "unit": {
+        "name": "unit",
+        "c_code": "C44258",
+        "definition": "The type of unit of measure being used to express a quantity.",
+        "role": "Complex Datatype Relationship"
+      }
+    }
+  },
+  "StudyCohort": {
+    "attributes": {
+      "name": {
+        "name": "name",
+        "c_code": "C207544",
+        "definition": "The literal identifier (i.e., distinctive designation) of the study cohort.",
+        "role": "Attribute"
+      },
+      "description": {
+        "name": "description",
+        "c_code": "C207542",
+        "definition": "A narrative representation of the study cohort.",
+        "role": "Attribute"
+      },
+      "label": {
+        "name": "label",
+        "c_code": "C207543",
+        "definition": "The short descriptive designation for the study cohort.",
+        "role": "Attribute"
+      },
+      "includesHealthySubjects": {
+        "name": "includesHealthySubjects",
+        "c_code": "C207480",
+        "definition": "An indication as to whether the study cohort includes healthy subjects, that is, subjects without the disease or condition under study.",
+        "role": "Attribute"
+      }
+    },
+    "complex_datatype_relationships": {
+      "plannedSex": {
+        "name": "plannedSex",
+        "c_code": "C207541",
+        "definition": "The protocol-defined sex within the study cohort.",
+        "role": "Complex Datatype Relationship"
+      },
+      "plannedAge": {
+        "name": "plannedAge",
+        "c_code": "C207545",
+        "definition": "The anticipated age of subjects within the study cohort.",
+        "role": "Complex Datatype Relationship"
+      },
+      "plannedCompletionNumberRange": {
+        "name": "plannedCompletionNumberRange",
+        "c_code": "CNEW",
+        "definition": "The range of values representing the planned number of subjects that must complete the study in order to meet the objectives and endpoints of the study, within the study cohort.",
+        "role": "Complex Datatype Relationship"
+      },
+      "plannedEnrollmentNumberRange": {
+        "name": "plannedEnrollmentNumberRange",
+        "c_code": "CNEW",
+        "definition": "The range of values representing the planned number of subjects to be entered in a clinical trial, within the study cohort.",
+        "role": "Complex Datatype Relationship"
+      },
+      "plannedCompletionNumberQuantity": {
+        "name": "plannedCompletionNumberQuantity",
+        "c_code": "CNEW",
+        "definition": "The value representing the planned number of subjects that must complete the study in order to meet the objectives and endpoints of the study, within the study cohort.",
+        "role": "Complex Datatype Relationship"
+      },
+      "plannedEnrollmentNumberQuantity": {
+        "name": "plannedEnrollmentNumberQuantity",
+        "c_code": "CNEW",
+        "definition": "The value representing the planned number of subjects to be entered in a clinical trial, within the study cohort.",
+        "role": "Complex Datatype Relationship"
+      },
+      "notes": {
+        "name": "notes",
+        "c_code": "CNEW",
+        "definition": "A brief written record relevant to the study cohort.",
+        "role": "Complex Datatype Relationship"
+      }
+    },
+    "relationships": {
+      "criteria": {
+        "name": "criteria",
+        "c_code": null,
+        "definition": "A USDM relationship between the StudyCohort and EligibilityCriterion classes which identifies the set of eligibility criteria associated with the study cohort.",
+        "role": "Relationship"
+      },
+      "characteristics": {
+        "name": "characteristics",
+        "c_code": null,
+        "definition": "A USDM relationship between the StudyCohort and Characteristic classes which identifies the set of subject characteristics associated with the study cohort.",
+        "role": "Relationship"
+      },
+      "indications": {
+        "name": "indications",
+        "c_code": null,
+        "definition": "A USDM relationship between the StudyCohort and Indication classes which identifies the set of indications associated with the study cohort.",
+        "role": "Relationship"
+      }
+    }
+  },
+  "Characteristic": {
+    "attributes": {
+      "name": {
+        "name": "name",
+        "c_code": "C207477",
+        "definition": "The literal identifier (i.e., distinctive designation) of the characteristic.",
+        "role": "Attribute"
+      },
+      "text": {
+        "name": "text",
+        "c_code": "C207478",
+        "definition": "An instance of structured text that represents the characteristic.",
+        "role": "Attribute"
+      },
+      "description": {
+        "name": "description",
+        "c_code": "C207475",
+        "definition": "A narrative representation of the characteristic.",
+        "role": "Attribute"
+      },
+      "label": {
+        "name": "label",
+        "c_code": "C207476",
+        "definition": "The short descriptive designation for the characteristic.",
+        "role": "Attribute"
+      }
+    },
+    "relationships": {
+      "dictionary": {
+        "name": "dictionary",
+        "c_code": null,
+        "definition": "A USDM relationship between the Characteristic and SyntaxTemplateDictionary classes which provides the set of dictionary entries related to characteristics.",
+        "role": "Relationship"
+      }
+    },
+    "complex_datatype_relationships": {
+      "notes": {
+        "name": "notes",
+        "c_code": "CNEW",
+        "definition": "A brief written record relevant to the characteristic.",
+        "role": "Complex Datatype Relationship"
+      }
+    }
+  },
+  "PopulationDefinition": {
+    "attributes": {
+      "name": {
+        "name": "name",
+        "c_code": "C207520",
+        "definition": "The literal identifier (i.e., distinctive designation) of the population definition.",
+        "role": "Attribute"
+      },
+      "description": {
+        "name": "description",
+        "c_code": "C207517",
+        "definition": "A narrative representation of the population definition.",
+        "role": "Attribute"
+      },
+      "label": {
+        "name": "label",
+        "c_code": "C207519",
+        "definition": "The short descriptive designation for the population definition.",
+        "role": "Attribute"
+      },
+      "includesHealthySubjects": {
+        "name": "includesHealthySubjects",
+        "c_code": "C207518",
+        "definition": "An indication as to whether the population definition includes healthy subjects, that is, subjects without the disease or condition under study.",
+        "role": "Attribute"
+      }
+    },
+    "complex_datatype_relationships": {
+      "plannedSex": {
+        "name": "plannedSex",
+        "c_code": "C207523",
+        "definition": "The protocol-defined sex within the population definition.",
+        "role": "Complex Datatype Relationship"
+      },
+      "plannedAge": {
+        "name": "plannedAge",
+        "c_code": "C207701",
+        "definition": "The anticipated age of subjects within the population definition.",
+        "role": "Complex Datatype Relationship"
+      },
+      "plannedCompletionNumberRange": {
+        "name": "plannedCompletionNumberRange",
+        "c_code": "CNEW",
+        "definition": "The range of values representing the planned number of subjects that must complete the study in order to meet the objectives and endpoints of the study, within the population definition.",
+        "role": "Complex Datatype Relationship"
+      },
+      "plannedEnrollmentNumberRange": {
+        "name": "plannedEnrollmentNumberRange",
+        "c_code": "CNEW",
+        "definition": "The range of values representing the planned number of subjects to be entered in a clinical trial, within the population definition.",
+        "role": "Complex Datatype Relationship"
+      },
+      "plannedCompletionNumberQuantity": {
+        "name": "plannedCompletionNumberQuantity",
+        "c_code": "CNEW",
+        "definition": "The value representing the planned number of subjects that must complete the study in order to meet the objectives and endpoints of the study, within the population definition.",
+        "role": "Complex Datatype Relationship"
+      },
+      "plannedEnrollmentNumberQuantity": {
+        "name": "plannedEnrollmentNumberQuantity",
+        "c_code": "CNEW",
+        "definition": "The value representing the planned number of subjects to be entered in a clinical trial, within the population definition.",
+        "role": "Complex Datatype Relationship"
+      },
+      "notes": {
+        "name": "notes",
+        "c_code": "CNEW",
+        "definition": "A brief written record relevant to the population definition.",
+        "role": "Complex Datatype Relationship"
+      }
+    },
+    "relationships": {
+      "criteria": {
+        "name": "criteria",
+        "c_code": null,
+        "definition": "A USDM relationship between the PopulationDefinition and EligibilityCriterion classes which identifies the set of eligibility criteria associated with the population definition.",
+        "role": "Relationship"
+      }
+    }
+  },
+  "Range": {
+    "complex_datatype_relationships": {
+      "minValue": {
+        "name": "minValue",
+        "c_code": "C25570",
+        "definition": "The smallest value in quantity or degree in a set of values.",
+        "role": "Complex Datatype Relationship"
+      },
+      "maxValue": {
+        "name": "maxValue",
+        "c_code": "C25564",
+        "definition": "The largest value in quantity or degree in a set of values.",
+        "role": "Complex Datatype Relationship"
+      }
+    },
+    "attributes": {
+      "isApproximate": {
+        "name": "isApproximate",
+        "c_code": "C207525",
+        "definition": "An indication as to whether the value range is almost, but not quite, exact.",
+        "role": "Attribute"
+      }
+    }
+  },
+  "StudyTitle": {
+    "attributes": {
+      "text": {
+        "name": "text",
+        "c_code": "C207567",
+        "definition": "An instance of unstructured text that represents the study title.",
+        "role": "Attribute"
+      }
+    },
+    "complex_datatype_relationships": {
+      "type": {
+        "name": "type",
+        "c_code": "C207568",
+        "definition": "A characterization or classification of the study title.",
+        "role": "Complex Datatype Relationship"
+      }
+    }
+  },
+  "Condition": {
+    "attributes": {
+      "name": {
+        "name": "name",
+        "c_code": "C207483",
+        "definition": "The literal identifier (i.e., distinctive designation) of the condition.",
+        "role": "Attribute"
+      },
+      "text": {
+        "name": "text",
+        "c_code": "C207484",
+        "definition": "An instance of structured text that represents the condition.",
+        "role": "Attribute"
+      },
+      "description": {
+        "name": "description",
+        "c_code": "C207481",
+        "definition": "A narrative representation of the condition.",
+        "role": "Attribute"
+      },
+      "label": {
+        "name": "label",
+        "c_code": "C207482",
+        "definition": "The short descriptive designation for the condition.",
+        "role": "Attribute"
+      }
+    },
+    "relationships": {
+      "context": {
+        "name": "context",
+        "c_code": null,
+        "definition": "A USDM relationship between the Condition and the ScheduledActivityInstance or Activity classes which identifies the scheduled activity instance or activity to which the condition belongs.",
+        "role": "Relationship"
+      },
+      "appliesTo": {
+        "name": "appliesTo",
+        "c_code": null,
+        "definition": "A USDM relationship between the Condition and the Activity, Procedure, BiomedicalConcept, BiomedicalConceptSurrogate, or BiomedicalConceptCategory classes which identifies the procedure, activity, biomedical concept, biomedical concept surrogate, or biomedical concept category that applies to the condition.",
+        "role": "Relationship"
+      },
+      "dictionary": {
+        "name": "dictionary",
+        "c_code": null,
+        "definition": "A USDM relationship between the Condition and SyntaxTemplateDictionary classes which provides the set of dictionary entries related to conditions.",
+        "role": "Relationship"
+      }
+    },
+    "complex_datatype_relationships": {
+      "notes": {
+        "name": "notes",
+        "c_code": "CNEW",
+        "definition": "A brief written record relevant to the condition.",
+        "role": "Complex Datatype Relationship"
+      }
+    }
+  },
+  "Masking": {
+    "attributes": {
+      "text": {
+        "name": "text",
+        "c_code": "CNEW",
+        "definition": "An instance of unstructured text that represents how the masking is performed and maintained.",
+        "role": "Attribute"
+      },
+      "isMasked": {
+        "name": "isMasked",
+        "c_code": "CNEW",
+        "definition": "An indication as to whether the study role is masked.",
+        "role": "Attribute"
+      }
+    }
+  },
+  "StudySite": {
+    "attributes": {
+      "name": {
+        "name": "name",
+        "c_code": "C207566",
+        "definition": "The literal identifier (i.e., distinctive designation) of the study site.",
+        "role": "Attribute"
+      },
+      "description": {
+        "name": "description",
+        "c_code": "C207564",
+        "definition": "A narrative representation of the study site.",
+        "role": "Attribute"
+      },
+      "label": {
+        "name": "label",
+        "c_code": "C207565",
+        "definition": "The short descriptive designation for the study site.",
+        "role": "Attribute"
+      }
+    },
+    "complex_datatype_relationships": {
+      "country": {
+        "name": "country",
+        "c_code": "C170990",
+        "definition": "The country in which the study site is located.",
+        "role": "Complex Datatype Relationship"
+      }
+    }
+  },
+  "ParameterMap": {
+    "attributes": {
+      "tag": {
+        "name": "tag",
+        "c_code": "C207515",
+        "definition": "Character strings bounded by angle brackets that act as containers for programming language elements.",
+        "role": "Attribute"
+      },
+      "reference": {
+        "name": "reference",
+        "c_code": "C207516",
+        "definition": "The reference for a tag used in programming languages, such as a markup language (e.g., HTML, XML), to store attributes and elements.",
+        "role": "Attribute"
+      }
+    }
+  },
+  "ConditionAssignment": {
+    "attributes": {
+      "condition": {
+        "name": "condition",
+        "c_code": "C47953",
+        "definition": "An assumption on which rests the validity or effect of something else.",
+        "role": "Attribute"
+      }
+    },
+    "relationships": {
+      "conditionTarget": {
+        "name": "conditionTarget",
+        "c_code": null,
+        "definition": "A USDM relationship between the ConditionAssignment and ScheduledInstance classes which identifies the scheduled instance associated with the condition assignment.",
+        "role": "Relationship"
+      }
+    }
+  },
+  "CommentAnnotation": {
+    "attributes": {
+      "text": {
+        "name": "text",
+        "c_code": "CNEW",
+        "definition": "An instance of unstructured text that represents the comment annotation.",
+        "role": "Attribute"
+      }
+    },
+    "complex_datatype_relationships": {
+      "codes": {
+        "name": "codes",
+        "c_code": "CNEW",
+        "definition": "A symbol or combination of symbols which is assigned to the comment annotation.",
+        "role": "Complex Datatype Relationship"
+      }
+    }
+  },
+  "NarrativeContentItem": {
+    "attributes": {
+      "name": {
+        "name": "name",
+        "c_code": "CNEW",
+        "definition": "The literal identifier (i.e., distinctive designation) of the narrative content item.",
+        "role": "Attribute"
+      },
+      "text": {
+        "name": "text",
+        "c_code": "CNEW",
+        "definition": "An instance of unstructured text that represents the narrative content item.",
+        "role": "Attribute"
+      }
+    }
+  },
+  "StudyDefinitionDocument": {
+    "attributes": {
+      "name": {
+        "name": "name",
+        "c_code": "CNEW",
+        "definition": "The literal identifier (i.e., distinctive designation) of the study definition document.",
+        "role": "Attribute"
+      },
+      "description": {
+        "name": "description",
+        "c_code": "CNEW",
+        "definition": "A narrative representation of the study definition document.",
+        "role": "Attribute"
+      },
+      "label": {
+        "name": "label",
+        "c_code": "CNEW",
+        "definition": "The short descriptive designation for the study definition document.",
+        "role": "Attribute"
+      },
+      "templateName": {
+        "name": "templateName",
+        "c_code": "CNEW",
+        "definition": "The literal identifier (i.e., distinctive designation) of the study definition document template.",
+        "role": "Attribute"
+      }
+    },
+    "complex_datatype_relationships": {
+      "language": {
+        "name": "language",
+        "c_code": "CNEW",
+        "definition": "The language in which the study definition document is written.",
+        "role": "Complex Datatype Relationship"
+      },
+      "type": {
+        "name": "type",
+        "c_code": "CNEW",
+        "definition": "A characterization or classification of the study definition document.",
+        "role": "Complex Datatype Relationship"
+      },
+      "notes": {
+        "name": "notes",
+        "c_code": "CNEW",
+        "definition": "A brief written record relevant to the study definition document.",
+        "role": "Complex Datatype Relationship"
+      }
+    },
+    "relationships": {
+      "versions": {
+        "name": "versions",
+        "c_code": null,
+        "definition": "A USDM relationship between the StudyDefinitionDocument and StudyDefinitionDocumentVersion classes which identifies the set of versions associated with the study definition document.",
+        "role": "Relationship"
+      }
+    }
+  },
+  "StudyDefinitionDocumentVersion": {
+    "attributes": {
+      "version": {
+        "name": "version",
+        "c_code": "CNEW",
+        "definition": "A representation of a particular edition or snapshot of the study definition document as it exists at a particular point in time.",
+        "role": "Attribute"
+      }
+    },
+    "complex_datatype_relationships": {
+      "status": {
+        "name": "status",
+        "c_code": "CNEW",
+        "definition": "A condition of the study definition document at a point in time with respect to its state of readiness for implementation.",
+        "role": "Complex Datatype Relationship"
+      },
+      "notes": {
+        "name": "notes",
+        "c_code": "CNEW",
+        "definition": "A brief written record relevant to the study definition document version.",
+        "role": "Complex Datatype Relationship"
+      }
+    },
+    "relationships": {
+      "contents": {
+        "name": "contents",
+        "c_code": null,
+        "definition": "A USDM relationship between the StudyDefinitionDocumentVersion and NarrativeContent classes which identifies the set of narrative content associated with the version of the study definition document.",
+        "role": "Relationship"
+      },
+      "children": {
+        "name": "children",
+        "c_code": null,
+        "definition": "A USDM relationship within the StudyDefinitionDocumentVersion class which identifies the set of child documents of a study definition document version.",
+        "role": "Relationship"
+      },
+      "dateValues": {
+        "name": "dateValues",
+        "c_code": null,
+        "definition": "A USDM relationship between the StudyDefinitionDocumentVersion and GovernanceDate classes which provides the set of governance dates associated with the study definition document version.",
+        "role": "Relationship"
+      }
+    }
+  },
+  "Abbreviation": {
+    "attributes": {
+      "abbreviatedText": {
+        "name": "abbreviatedText",
+        "c_code": "C42610",
+        "definition": "A set of letters that are drawn from a word or from a sequence of words and that are used for brevity in place of the full word or phrase. (CDISC Glossary)",
+        "role": "Attribute"
+      },
+      "expandedText": {
+        "name": "expandedText",
+        "c_code": "CNEW",
+        "definition": "The full literal representation of the abbreviation.",
+        "role": "Attribute"
+      }
+    },
+    "complex_datatype_relationships": {
+      "notes": {
+        "name": "notes",
+        "c_code": "CNEW",
+        "definition": "A brief written record relevant to the abbreviation.",
+        "role": "Complex Datatype Relationship"
+      }
+    }
+  },
+  "ReferenceIdentifier": {
+    "complex_datatype_relationships": {
+      "type": {
+        "name": "type",
+        "c_code": "CNEW",
+        "definition": "A characterization or classification of the reference identifier.",
+        "role": "Complex Datatype Relationship"
+      }
+    },
+    "attributes": {
+      "text": {
+        "name": "text",
+        "c_code": "CNEW",
+        "definition": "An instance of structured text that represents the reference identifier.",
+        "role": "Attribute"
+      }
+    },
+    "relationships": {
+      "scope": {
+        "name": "scope",
+        "c_code": null,
+        "definition": "A USDM relationship between the ReferenceIdentifier and Organization classes which provides the details associated with each organization that has assigned the reference identifier.",
+        "role": "Relationship"
+      }
+    }
+  },
+  "Identifier": {
+    "attributes": {
+      "text": {
+        "name": "text",
+        "c_code": "CNEW",
+        "definition": "An instance of structured text that represents the identifier.",
+        "role": "Attribute"
+      }
+    },
+    "relationships": {
+      "scope": {
+        "name": "scope",
+        "c_code": null,
+        "definition": "A USDM relationship between the Identifier and Organization classes which provides the details associated with each organization that has assigned the identifier.",
+        "role": "Relationship"
+      }
+    }
+  },
+  "AdministrableProduct": {
+    "attributes": {
+      "name": {
+        "name": "name",
+        "c_code": "CNEW",
+        "definition": "The literal identifier (i.e., distinctive designation) of the administrable product.",
+        "role": "Attribute"
+      },
+      "description": {
+        "name": "description",
+        "c_code": "CNEW",
+        "definition": "A narrative representation of the administrable product.",
+        "role": "Attribute"
+      },
+      "label": {
+        "name": "label",
+        "c_code": "CNEW",
+        "definition": "The short descriptive designation for the administrable product.",
+        "role": "Attribute"
+      }
+    },
+    "complex_datatype_relationships": {
+      "administrableDoseForm": {
+        "name": "administrableDoseForm",
+        "c_code": "CNEW",
+        "definition": "The physical form in which formulated ingredient(s) are presented in the administrable product.",
+        "role": "Complex Datatype Relationship"
+      },
+      "pharmacologicClass": {
+        "name": "pharmacologicClass",
+        "c_code": "CNEW",
+        "definition": "The pharmacological class of the administrable product.",
+        "role": "Complex Datatype Relationship"
+      },
+      "sourcing": {
+        "name": "sourcing",
+        "c_code": "CNEW",
+        "definition": "An indication as to whether the administrable product is obtained from a local or central source.",
+        "role": "Complex Datatype Relationship"
+      },
+      "productDesignation": {
+        "name": "productDesignation",
+        "c_code": "CNEW",
+        "definition": "An indication as to whether the administrable product is an investigational medicinal product or an auxiliary medicinal product.",
+        "role": "Complex Datatype Relationship"
+      },
+      "notes": {
+        "name": "notes",
+        "c_code": "CNEW",
+        "definition": "A brief written record relevant to the administrable product.",
+        "role": "Complex Datatype Relationship"
+      }
+    },
+    "relationships": {
+      "ingredients": {
+        "name": "ingredients",
+        "c_code": null,
+        "definition": "A USDM relationship between the AdministrableProduct and Ingredient classes which provides the set of ingredients related to the administrable product.",
+        "role": "Relationship"
+      },
+      "properties": {
+        "name": "properties",
+        "c_code": null,
+        "definition": "A USDM relationship between the AdministrableProduct and AdministrableProductProperty classes which provides the set of properties related to the administrable product.",
+        "role": "Relationship"
+      },
+      "identifiers": {
+        "name": "identifiers",
+        "c_code": null,
+        "definition": "A USDM relationship between the AdministrableProduct and AdministrableProductIdentifier classes which provides the set of identifiers related to the administrable product.",
+        "role": "Relationship"
+      }
+    }
+  },
+  "AdministrableProductIdentifier": {
+    "attributes": {
+      "text": {
+        "name": "text",
+        "c_code": "CNEW",
+        "definition": "An instance of structured text that represents the administrable product.",
+        "role": "Attribute"
+      }
+    },
+    "relationships": {
+      "scope": {
+        "name": "scope",
+        "c_code": null,
+        "definition": "A USDM relationship between the AdministrableProductIdentifier and Organization class which provides the details associated with which provides the details associated with each organization that has assigned the administrable product identifier.",
+        "role": "Relationship"
+      }
+    }
+  },
+  "AdministrableProductProperty": {
+    "attributes": {
+      "name": {
+        "name": "name",
+        "c_code": "CNEW",
+        "definition": "The literal identifier (i.e., distinctive designation) of the administrable product property.",
+        "role": "Attribute"
+      },
+      "text": {
+        "name": "text",
+        "c_code": "CNEW",
+        "definition": "An instance of structured text that represents the administrable product property.",
+        "role": "Attribute"
+      }
+    },
+    "complex_datatype_relationships": {
+      "quantity": {
+        "name": "quantity",
+        "c_code": "CNEW",
+        "definition": "The numeric value associated with an administrable product property.",
+        "role": "Complex Datatype Relationship"
+      },
+      "type": {
+        "name": "type",
+        "c_code": "CNEW",
+        "definition": "A characterization or classification of the administrable product property.",
+        "role": "Complex Datatype Relationship"
+      }
+    }
+  },
+  "Substance": {
+    "attributes": {
+      "name": {
+        "name": "name",
+        "c_code": "CNEW",
+        "definition": "The literal identifier (i.e., distinctive designation) of the substance.",
+        "role": "Attribute"
+      },
+      "description": {
+        "name": "description",
+        "c_code": "CNEW",
+        "definition": "A narrative representation of the substance.",
+        "role": "Attribute"
+      },
+      "label": {
+        "name": "label",
+        "c_code": "CNEW",
+        "definition": "The short descriptive designation for the substance.",
+        "role": "Attribute"
+      }
+    },
+    "complex_datatype_relationships": {
+      "codes": {
+        "name": "codes",
+        "c_code": "CNEW",
+        "definition": "A symbol or combination of symbols which is assigned to the substance.",
+        "role": "Complex Datatype Relationship"
+      }
+    },
+    "relationships": {
+      "strengths": {
+        "name": "strengths",
+        "c_code": null,
+        "definition": "A USDM relationship between the Substance and Strength class which provides the values of the strengths of the substance.",
+        "role": "Relationship"
+      },
+      "referenceSubstance": {
+        "name": "referenceSubstance",
+        "c_code": null,
+        "definition": "A USDM relationship within the Substance class that identifies the association between two substances, one of which is used as a reference for the other.",
+        "role": "Relationship"
+      }
+    }
+  },
+  "Strength": {
+    "attributes": {
+      "name": {
+        "name": "name",
+        "c_code": "CNEW",
+        "definition": "The literal identifier (i.e., distinctive designation) of the substance strength.",
+        "role": "Attribute"
+      },
+      "description": {
+        "name": "description",
+        "c_code": "CNEW",
+        "definition": "A narrative representation of the substance strength.",
+        "role": "Attribute"
+      },
+      "label": {
+        "name": "label",
+        "c_code": "CNEW",
+        "definition": "The short descriptive designation for the substance strength.",
+        "role": "Attribute"
+      }
+    },
+    "complex_datatype_relationships": {
+      "numeratorQuantity": {
+        "name": "numeratorQuantity",
+        "c_code": "CNEW",
+        "definition": "The value representing the numerator for the substance strength.",
+        "role": "Complex Datatype Relationship"
+      },
+      "numeratorRange": {
+        "name": "numeratorRange",
+        "c_code": "CNEW",
+        "definition": "The lowest and highest numerical values that define a range for the substance strength.",
+        "role": "Complex Datatype Relationship"
+      },
+      "denominator": {
+        "name": "denominator",
+        "c_code": "C80489",
+        "definition": "The divisor of a fraction.",
+        "role": "Complex Datatype Relationship"
+      }
+    }
+  },
+  "Ingredient": {
+    "complex_datatype_relationships": {
+      "role": {
+        "name": "role",
+        "c_code": "CNEW",
+        "definition": "The intended use of the ingredient within the context of the compounded substance or mixture.",
+        "role": "Complex Datatype Relationship"
+      }
+    },
+    "relationships": {
+      "substance": {
+        "name": "substance",
+        "c_code": null,
+        "definition": "A USDM relationship between the Ingredient and Substance classes that identifies the substance associated with the ingredient.",
+        "role": "Relationship"
+      }
+    }
+  },
+  "AssignedPerson": {
+    "attributes": {
+      "name": {
+        "name": "name",
+        "c_code": "CNEW",
+        "definition": "The literal identifier (i.e., distinctive designation) of the assigned person.",
+        "role": "Attribute"
+      },
+      "description": {
+        "name": "description",
+        "c_code": "CNEW",
+        "definition": "A narrative representation of the assigned person.",
+        "role": "Attribute"
+      },
+      "label": {
+        "name": "label",
+        "c_code": "CNEW",
+        "definition": "The short descriptive designation for the assigned person.",
+        "role": "Attribute"
+      },
+      "jobTitle": {
+        "name": "jobTitle",
+        "c_code": "CNEW",
+        "definition": "An identifying designation related to the assigned person's occupation.",
+        "role": "Attribute"
+      }
+    },
+    "relationships": {
+      "organization": {
+        "name": "organization",
+        "c_code": null,
+        "definition": "A USDM relationship between the AssignedPerson and Organization classes that identifies that organization to which the assigned person belongs.",
+        "role": "Relationship"
+      }
+    }
+  },
+  "StudyRole": {
+    "attributes": {
+      "name": {
+        "name": "name",
+        "c_code": "CNEW",
+        "definition": "The literal identifier (i.e., distinctive designation) of the study role.",
+        "role": "Attribute"
+      },
+      "description": {
+        "name": "description",
+        "c_code": "CNEW",
+        "definition": "A narrative representation of the study role.",
+        "role": "Attribute"
+      },
+      "label": {
+        "name": "label",
+        "c_code": "CNEW",
+        "definition": "The short descriptive designation for the study role.",
+        "role": "Attribute"
+      }
+    },
+    "relationships": {
+      "assignedPersons": {
+        "name": "assignedPersons",
+        "c_code": null,
+        "definition": "A USDM relationship between the StudyRole and AssignedPerson classes that identifies the set of individuals that are assigned to fill a particular role within the study.",
+        "role": "Relationship"
+      },
+      "masking": {
+        "name": "masking",
+        "c_code": null,
+        "definition": "A USDM relationship between the StudyRole and Masking classes which describes the masking associated with the study role.",
+        "role": "Relationship"
+      },
+      "appliesTo": {
+        "name": "appliesTo",
+        "c_code": null,
+        "definition": "A USDM relationship between the StudyRole and either StudyVersion or StudyDesign classes that identifies the study version or study design to which the study role applies.",
+        "role": "Relationship"
+      },
+      "organizations": {
+        "name": "organizations",
+        "c_code": null,
+        "definition": "A USDM relationship between the StudyRole and Organization classes which identifies the set of organizations associated with the study role.",
+        "role": "Relationship"
+      }
+    },
+    "complex_datatype_relationships": {
+      "code": {
+        "name": "code",
+        "c_code": "CNEW",
+        "definition": "A symbol or combination of symbols which is assigned to the study role.",
+        "role": "Complex Datatype Relationship"
+      }
+    }
+  },
+  "StudyChange": {
+    "attributes": {
+      "name": {
+        "name": "name",
+        "c_code": "CNEW",
+        "definition": "The literal identifier (i.e., distinctive designation) of the study change.",
+        "role": "Attribute"
+      },
+      "description": {
+        "name": "description",
+        "c_code": "CNEW",
+        "definition": "A narrative representation of the study change.",
+        "role": "Attribute"
+      },
+      "label": {
+        "name": "label",
+        "c_code": "CNEW",
+        "definition": "The short descriptive designation for the study change.",
+        "role": "Attribute"
+      },
+      "summary": {
+        "name": "summary",
+        "c_code": "CNEW",
+        "definition": "A short narrative representation describing the changes introduced in the current version of the study.",
+        "role": "Attribute"
+      },
+      "rationale": {
+        "name": "rationale",
+        "c_code": "CNEW",
+        "definition": "An explanation as to the logical reasons for why a study change has occurred.",
+        "role": "Attribute"
+      }
+    },
+    "relationships": {
+      "changedSections": {
+        "name": "changedSections",
+        "c_code": null,
+        "definition": "A USDM relationship between the StudyChange and DocumentContentReference class which provides the set of changed document sections related to the study change.",
+        "role": "Relationship"
+      }
+    }
+  },
+  "DocumentContentReference": {
+    "attributes": {
+      "sectionNumber": {
+        "name": "sectionNumber",
+        "c_code": "CNEW",
+        "definition": "The numeric identifier of a particular section for the document content reference.",
+        "role": "Attribute"
+      },
+      "sectionTitle": {
+        "name": "sectionTitle",
+        "c_code": "CNEW",
+        "definition": "An identifying designation for a particular section for the document content reference.",
+        "role": "Attribute"
+      }
+    },
+    "relationships": {
+      "appliesTo": {
+        "name": "appliesTo",
+        "c_code": null,
+        "definition": "A USDM relationship between the DocumentContentReference and StudyDefinitionDocument classes which identifies the study definition document to which the document content reference applies.",
+        "role": "Relationship"
+      }
+    }
+  },
+  "StudyAmendmentImpact": {
+    "attributes": {
+      "text": {
+        "name": "text",
+        "c_code": "CNEW",
+        "definition": "An instance of unstructured text that represents the study amendment impact.",
+        "role": "Attribute"
+      },
+      "isSubstantial": {
+        "name": "isSubstantial",
+        "c_code": "C207538",
+        "definition": "An indication as to whether the study amendment's impact on the study is substantial.",
+        "role": "Attribute"
+      }
+    },
+    "complex_datatype_relationships": {
+      "type": {
+        "name": "type",
+        "c_code": "CNEW",
+        "definition": "A characterization or classification of the study amendment impact.",
+        "role": "Complex Datatype Relationship"
+      },
+      "notes": {
+        "name": "notes",
+        "c_code": "CNEW",
+        "definition": "A brief written record relevant to the study amendment impact.",
+        "role": "Complex Datatype Relationship"
+      }
+    }
+  },
+  "MedicalDevice": {
+    "attributes": {
+      "name": {
+        "name": "name",
+        "c_code": "CNEW",
+        "definition": "The literal identifier (i.e., distinctive designation) of the medical device.",
+        "role": "Attribute"
+      },
+      "description": {
+        "name": "description",
+        "c_code": "CNEW",
+        "definition": "A narrative representation of the medical device.",
+        "role": "Attribute"
+      },
+      "label": {
+        "name": "label",
+        "c_code": "CNEW",
+        "definition": "The short descriptive designation for the medical device.",
+        "role": "Attribute"
+      },
+      "hardwareVersion": {
+        "name": "hardwareVersion",
+        "c_code": "CNEW",
+        "definition": "A form or variant of hardware; one of a sequence of copies of the physical components from which a computer is constructed, each incorporating new modifications.",
+        "role": "Attribute"
+      },
+      "softwareVersion": {
+        "name": "softwareVersion",
+        "c_code": "C111093",
+        "definition": "A form or variant of software; one of a sequence of copies of a software program, each incorporating new modifications. (NCI)",
+        "role": "Attribute"
+      }
+    },
+    "relationships": {
+      "embeddedProduct": {
+        "name": "embeddedProduct",
+        "c_code": null,
+        "definition": "A USDM relationship between the MedicalDevice and AdministrableProduct classes which identifies the administrable product that is an integral component of the medical device.",
+        "role": "Relationship"
+      },
+      "identifiers": {
+        "name": "identifiers",
+        "c_code": null,
+        "definition": "A USDM relationship between the MedicalDevice and MedicalDeviceIdentifier classes which provides the set of identifiers related to the medical device.",
+        "role": "Relationship"
+      }
+    },
+    "complex_datatype_relationships": {
+      "notes": {
+        "name": "notes",
+        "c_code": "CNEW",
+        "definition": "A brief written record relevant to the medical device.",
+        "role": "Complex Datatype Relationship"
+      },
+      "sourcing": {
+        "name": "sourcing",
+        "c_code": "CNEW",
+        "definition": "An indication as to whether the medical device is obtained from a local or central source.",
+        "role": "Complex Datatype Relationship"
+      }
+    }
+  },
+  "MedicalDeviceIdentifier": {
+    "attributes": {
+      "text": {
+        "name": "text",
+        "c_code": "CNEW",
+        "definition": "An instance of structured text that represents the medical device identifier.",
+        "role": "Attribute"
+      }
+    },
+    "complex_datatype_relationships": {
+      "type": {
+        "name": "type",
+        "c_code": "CNEW",
+        "definition": "A characterization or classification of the medical device identifier.",
+        "role": "Complex Datatype Relationship"
+      }
+    },
+    "relationships": {
+      "scope": {
+        "name": "scope",
+        "c_code": null,
+        "definition": "A USDM relationship between the MedicalDeviceIdentifier and Organization classes which provides the details associated with each organization that has assigned the identifier.",
+        "role": "Relationship"
+      }
+    }
+  },
+  "ProductOrganizationRole": {
+    "attributes": {
+      "name": {
+        "name": "name",
+        "c_code": "CNEW",
+        "definition": "The literal identifier (i.e., distinctive designation) of the product organization role.",
+        "role": "Attribute"
+      },
+      "description": {
+        "name": "description",
+        "c_code": "CNEW",
+        "definition": "A narrative representation of the product organization role.",
+        "role": "Attribute"
+      },
+      "label": {
+        "name": "label",
+        "c_code": "CNEW",
+        "definition": "The short descriptive designation for the product organization role.",
+        "role": "Attribute"
+      }
+    },
+    "complex_datatype_relationships": {
+      "code": {
+        "name": "code",
+        "c_code": "CNEW",
+        "definition": "A symbol or combination of symbols which is assigned to the product organization role.",
+        "role": "Complex Datatype Relationship"
+      }
+    },
+    "relationships": {
+      "appliesTo": {
+        "name": "appliesTo",
+        "c_code": null,
+        "definition": "A USDM relationship between the ProductOrganizationRole and either the AdministrableProduct or MedicalDevice class that identifies the administrable product or medical device to which the product organization role applies.",
+        "role": "Relationship"
+      },
+      "organization": {
+        "name": "organization",
+        "c_code": null,
+        "definition": "A USDM relationship between the ProductOrganizationRole and Organization classes which identifies the organization associated with the product organization role.",
+        "role": "Relationship"
+      }
+    }
+  },
+  "InterventionalStudyDesign": {
+    "complex_datatype_relationships": {
+      "blindingSchema": {
+        "name": "blindingSchema",
+        "c_code": "C49658",
+        "definition": "The type of experimental design used to describe the level of awareness of the study subjects and/ or study personnel as it relates to the respective intervention(s) or assessments being observed, received or administered.",
+        "role": "Complex Datatype Relationship"
+      },
+      "intentTypes": {
+        "name": "intentTypes",
+        "c_code": "C49652",
+        "definition": "The planned purpose of the therapy, device, or agent under study in the clinical trial.",
+        "role": "Complex Datatype Relationship"
+      },
+      "model": {
+        "name": "model",
+        "c_code": "C98746",
+        "definition": "The general design of the strategy for assigning interventions to subjects in a clinical study. (clinicaltrials.gov)",
+        "role": "Complex Datatype Relationship"
+      },
+      "subTypes": {
+        "name": "subTypes",
+        "c_code": "C49660",
+        "definition": "The nature of the interventional study for which information is being collected.",
+        "role": "Complex Datatype Relationship"
+      },
+      "studyPhase": {
+        "name": "studyPhase",
+        "c_code": "CNEW",
+        "definition": "The study phase associated with the interventional study design.",
+        "role": "Complex Datatype Relationship"
+      },
+      "studyType": {
+        "name": "studyType",
+        "c_code": "CNEW",
+        "definition": "The study type associated with the interventional study design.",
+        "role": "Complex Datatype Relationship"
+      },
+      "characteristics": {
+        "name": "characteristics",
+        "c_code": "CNEW",
+        "definition": "The distinguishing qualities or prominent aspects of an interventional study design.",
+        "role": "Complex Datatype Relationship"
+      },
+      "therapeuticAreas": {
+        "name": "therapeuticAreas",
+        "c_code": "CNEW",
+        "definition": "A categorization of a disease, disorder, or other condition based on common characteristics and often associated with a medical specialty focusing on research and development of specific therapeutic interventions for the purpose of treatment and prevention, which is associated with the interventional study design.",
+        "role": "Complex Datatype Relationship"
+      },
+      "notes": {
+        "name": "notes",
+        "c_code": "CNEW",
+        "definition": "A brief written record relevant to the interventional study design.",
+        "role": "Complex Datatype Relationship"
+      }
+    },
+    "attributes": {
+      "name": {
+        "name": "name",
+        "c_code": "CNEW",
+        "definition": "The literal identifier (i.e., distinctive designation) of the interventional study design.",
+        "role": "Attribute"
+      },
+      "description": {
+        "name": "description",
+        "c_code": "CNEW",
+        "definition": "A narrative representation of the interventional study design.",
+        "role": "Attribute"
+      },
+      "label": {
+        "name": "label",
+        "c_code": "CNEW",
+        "definition": "The short descriptive designation for the interventional study design.",
+        "role": "Attribute"
+      },
+      "rationale": {
+        "name": "rationale",
+        "c_code": "CNEW",
+        "definition": "Reason(s) for choosing the interventional study design. This may include reasons for the choice of control or comparator, as well as the scientific rationale for the study design.",
+        "role": "Attribute"
+      }
+    },
+    "relationships": {
+      "studyCells": {
+        "name": "studyCells",
+        "c_code": null,
+        "definition": "A USDM relationship between the InterventionalStudyDesign and StudyCell classes which identifies the set of study cells associated with the interventional study design. ",
+        "role": "Relationship"
+      },
+      "indications": {
+        "name": "indications",
+        "c_code": null,
+        "definition": "A USDM relationship between the InterventionalStudyDesign and Indication classes which identifies the set of indications associated with the interventional study design.",
+        "role": "Relationship"
+      },
+      "studyInterventions": {
+        "name": "studyInterventions",
+        "c_code": null,
+        "definition": "A USDM relationship between the InterventionalStudyDesign and StudyIntervention classes which identifies the set of study interventions associated with interventional study design.",
+        "role": "Relationship"
+      },
+      "estimands": {
+        "name": "estimands",
+        "c_code": null,
+        "definition": "A USDM relationship between the InterventionalStudyDesign and Estimand classes which identifies the set of estimands associated with the interventional study design.",
+        "role": "Relationship"
+      },
+      "objectives": {
+        "name": "objectives",
+        "c_code": null,
+        "definition": "A USDM relationship between the InterventionalStudyDesign and Objective classes which identifies the set of objectives associated with the interventional study design.",
+        "role": "Relationship"
+      },
+      "population": {
+        "name": "population",
+        "c_code": null,
+        "definition": "A USDM relationship between the InterventionalStudyDesign and StudyDesignPopulation classes which identifies the population associated with the interventional study design.",
+        "role": "Relationship"
+      },
+      "encounters": {
+        "name": "encounters",
+        "c_code": null,
+        "definition": "A USDM relationship between the InterventionalStudyDesign and Encounter classes which identifies the set of encounters associated with the interventional study design.",
+        "role": "Relationship"
+      },
+      "activities": {
+        "name": "activities",
+        "c_code": null,
+        "definition": "A USDM relationship between the InterventionalStudyDesign and Activity classes which identifies the set of activities associated with the interventional study design.",
+        "role": "Relationship"
+      },
+      "scheduleTimelines": {
+        "name": "scheduleTimelines",
+        "c_code": null,
+        "definition": "A USDM relationship between the InterventionalStudyDesign and ScheduleTimeline classes which identifies the set of scheduled timelines associated with the interventional study design.",
+        "role": "Relationship"
+      },
+      "epochs": {
+        "name": "epochs",
+        "c_code": null,
+        "definition": "A USDM relationship between the InterventionalStudyDesign and StudyEpoch classes which identifies the set of study epochs associated with the interventional study design.",
+        "role": "Relationship"
+      },
+      "arms": {
+        "name": "arms",
+        "c_code": null,
+        "definition": "A USDM relationship between the InterventionalStudyDesign and StudyArm classes which identifies the set of study arms associated with the interventional study design.",
+        "role": "Relationship"
+      },
+      "elements": {
+        "name": "elements",
+        "c_code": null,
+        "definition": "A USDM relationship between the InterventionalStudyDesign and StudyElement classes which identifies the set of study elements associated with the interventional study design.",
+        "role": "Relationship"
+      },
+      "documentVersions": {
+        "name": "documentVersions",
+        "c_code": null,
+        "definition": "A USDM relationship between the InterventionalStudyDesign and StudyDefinitionDocumentVersion classes which identifies the version of the study definition documents associated with the interventional study design.",
+        "role": "Relationship"
+      },
+      "biospecimenRetentions": {
+        "name": "biospecimenRetentions",
+        "c_code": null,
+        "definition": "A USDM relationship between the InterventionalStudyDesign and BiospecimenRetention classes which identifies the status of biospecimen retentions related to the interventional study design.",
+        "role": "Relationship"
+      }
+    }
+  },
+  "ObservationalStudyDesign": {
+    "complex_datatype_relationships": {
+      "samplingMethod": {
+        "name": "samplingMethod",
+        "c_code": "C126067",
+        "definition": "The sampling method used to assign study participants into groups or cohorts within an observational study.",
+        "role": "Complex Datatype Relationship"
+      },
+      "timePerspective": {
+        "name": "timePerspective",
+        "c_code": "C126065",
+        "definition": "The temporal relationship between the observation period and time of subject enrollment. (ClinicalTrials.gov)",
+        "role": "Complex Datatype Relationship"
+      },
+      "model": {
+        "name": "model",
+        "c_code": "C147138",
+        "definition": "The general design of the strategy for identifying and following up with participants during observational studies. (clinicaltrials.gov)",
+        "role": "Complex Datatype Relationship"
+      },
+      "subTypes": {
+        "name": "subTypes",
+        "c_code": "CNEW",
+        "definition": "The nature of the observational study for which information is being collected.",
+        "role": "Complex Datatype Relationship"
+      },
+      "studyPhase": {
+        "name": "studyPhase",
+        "c_code": "CNEW",
+        "definition": "The study phase associated with the observational study design.",
+        "role": "Complex Datatype Relationship"
+      },
+      "studyType": {
+        "name": "studyType",
+        "c_code": "CNEW",
+        "definition": "The study type associated with the observational study design.",
+        "role": "Complex Datatype Relationship"
+      },
+      "characteristics": {
+        "name": "characteristics",
+        "c_code": "CNEW",
+        "definition": "The distinguishing qualities or prominent aspects of an observational study design.",
+        "role": "Complex Datatype Relationship"
+      },
+      "therapeuticAreas": {
+        "name": "therapeuticAreas",
+        "c_code": "CNEW",
+        "definition": "A categorization of a disease, disorder, or other condition based on common characteristics and often associated with a medical specialty focusing on research and development of specific therapeutic interventions for the purpose of treatment and prevention, which is associated with the observational study design.",
+        "role": "Complex Datatype Relationship"
+      },
+      "notes": {
+        "name": "notes",
+        "c_code": "CNEW",
+        "definition": "A brief written record relevant to the observational study design.",
+        "role": "Complex Datatype Relationship"
+      }
+    },
+    "attributes": {
+      "name": {
+        "name": "name",
+        "c_code": "CNEW",
+        "definition": "The literal identifier (i.e., distinctive designation) of the observational study design.",
+        "role": "Attribute"
+      },
+      "description": {
+        "name": "description",
+        "c_code": "CNEW",
+        "definition": "A narrative representation of the observational study design.",
+        "role": "Attribute"
+      },
+      "label": {
+        "name": "label",
+        "c_code": "CNEW",
+        "definition": "The short descriptive designation for the observational study design.",
+        "role": "Attribute"
+      },
+      "rationale": {
+        "name": "rationale",
+        "c_code": "CNEW",
+        "definition": "Reason(s) for choosing the observational study design. This may include reasons for the choice of control or comparator, as well as the scientific rationale for the study design.",
+        "role": "Attribute"
+      }
+    },
+    "relationships": {
+      "studyCells": {
+        "name": "studyCells",
+        "c_code": null,
+        "definition": "A USDM relationship between the ObservationalStudyDesign and StudyCell classes which identifies the set of study cells associated with the observational study design. ",
+        "role": "Relationship"
+      },
+      "indications": {
+        "name": "indications",
+        "c_code": null,
+        "definition": "A USDM relationship between the ObservationalStudyDesign and Indication classes which identifies the set of indications associated with the observational study design.",
+        "role": "Relationship"
+      },
+      "studyInterventions": {
+        "name": "studyInterventions",
+        "c_code": null,
+        "definition": "A USDM relationship between the ObservationalStudyDesign and StudyIntervention classes which identifies the set of study interventions associated with observational study design.",
+        "role": "Relationship"
+      },
+      "estimands": {
+        "name": "estimands",
+        "c_code": null,
+        "definition": "A USDM relationship between the ObservationalStudyDesign and Estimand classes which identifies the set of estimands associated with the observational study design.",
+        "role": "Relationship"
+      },
+      "objectives": {
+        "name": "objectives",
+        "c_code": null,
+        "definition": "A USDM relationship between the ObservationalStudyDesign and Objective classes which identifies the set of objectives associated with the observational study design.",
+        "role": "Relationship"
+      },
+      "population": {
+        "name": "population",
+        "c_code": null,
+        "definition": "A USDM relationship between the ObservationalStudyDesign and StudyDesignPopulation classes which identifies the population associated with the observational study design.",
+        "role": "Relationship"
+      },
+      "encounters": {
+        "name": "encounters",
+        "c_code": null,
+        "definition": "A USDM relationship between the ObservationalStudyDesign and Encounter classes which identifies the set of encounters associated with the observational study design.",
+        "role": "Relationship"
+      },
+      "activities": {
+        "name": "activities",
+        "c_code": null,
+        "definition": "A USDM relationship between the ObservationalStudyDesign and Activity classes which identifies the set of activities associated with the observational study design.",
+        "role": "Relationship"
+      },
+      "scheduleTimelines": {
+        "name": "scheduleTimelines",
+        "c_code": null,
+        "definition": "A USDM relationship between the ObservationalStudyDesign and ScheduleTimeline classes which identifies the set of scheduled timelines associated with the observational study design.",
+        "role": "Relationship"
+      },
+      "epochs": {
+        "name": "epochs",
+        "c_code": null,
+        "definition": "A USDM relationship between the ObservationalStudyDesign and StudyEpoch classes which identifies the set of study epochs associated with the observational study design.",
+        "role": "Relationship"
+      },
+      "arms": {
+        "name": "arms",
+        "c_code": null,
+        "definition": "A USDM relationship between the ObservationalStudyDesign and StudyArm classes which identifies the set of study arms associated with the observational study design.",
+        "role": "Relationship"
+      },
+      "elements": {
+        "name": "elements",
+        "c_code": null,
+        "definition": "A USDM relationship between the ObservationalStudyDesign and StudyElement classes which identifies the set of study elements associated with the observational study design.",
+        "role": "Relationship"
+      },
+      "documentVersions": {
+        "name": "documentVersions",
+        "c_code": null,
+        "definition": "A USDM relationship between the ObservationalStudyDesign and StudyDefinitionDocumentVersion classes which identifies the version of the study definition documents associated with the observational study design.",
+        "role": "Relationship"
+      },
+      "biospecimenRetentions": {
+        "name": "biospecimenRetentions",
+        "c_code": null,
+        "definition": "A USDM relationship between the ObservationalStudyDesign and BiospecimenRetention classes which identifies the status of biospecimen retentions related to the observational study design.",
+        "role": "Relationship"
+      }
+    }
+  },
+  "BiospecimenRetention": {
+    "attributes": {
+      "name": {
+        "name": "name",
+        "c_code": "CNEW",
+        "definition": "The literal identifier (i.e., distinctive designation) of the biospecimen retention.",
+        "role": "Attribute"
+      },
+      "description": {
+        "name": "description",
+        "c_code": "C181231",
+        "definition": "A narrative representation of the biospecimen retention.",
+        "role": "Attribute"
+      },
+      "label": {
+        "name": "label",
+        "c_code": "CNEW",
+        "definition": "The short descriptive designation for the biospecimen retention.",
+        "role": "Attribute"
+      },
+      "includesDNA": {
+        "name": "includesDNA",
+        "c_code": "C127777",
+        "definition": "An indication as to whether retained biospecimens contain DNA.",
+        "role": "Attribute"
+      },
+      "isRetained": {
+        "name": "isRetained",
+        "c_code": "C164620",
+        "definition": "An indication as to whether biospecimens were retained.",
+        "role": "Attribute"
+      }
+    }
+  },
+  "EligibilityCriterionItem": {
+    "attributes": {
+      "name": {
+        "name": "name",
+        "c_code": "CNEW",
+        "definition": "The literal identifier (i.e., distinctive designation) of the eligibility criterion item.",
+        "role": "Attribute"
+      },
+      "text": {
+        "name": "text",
+        "c_code": "CNEW",
+        "definition": "An instance of structured text that represents the eligibility criterion item.",
+        "role": "Attribute"
+      },
+      "description": {
+        "name": "description",
+        "c_code": "CNEW",
+        "definition": "A narrative representation of the eligibility criterion item.",
+        "role": "Attribute"
+      },
+      "label": {
+        "name": "label",
+        "c_code": "CNEW",
+        "definition": "The short descriptive designation for the eligibility criterion item.",
+        "role": "Attribute"
+      }
+    },
+    "relationships": {
+      "dictionary": {
+        "name": "dictionary",
+        "c_code": null,
+        "definition": "A USDM relationship between the EligibilityCriterionItem and SyntaxTemplateDictionary classes which provides the dictionary entry associated with a eligibility criterion item. ",
+        "role": "Relationship"
+      }
+    },
+    "complex_datatype_relationships": {
+      "notes": {
+        "name": "notes",
+        "c_code": "CNEW",
+        "definition": "A brief written record relevant to the eligibility criterion item.",
+        "role": "Complex Datatype Relationship"
+      }
+    }
+  }
+}

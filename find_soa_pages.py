@@ -38,12 +38,15 @@ def keyword_filter(page_texts):
             candidates.append(i)
     return candidates
 
+import time
+
 def llm_is_soa_page(page_text, client):
+    unique_run_id = f"RunID:{time.time()}"
     prompt = (
         "You are an expert in clinical trial protocol parsing. "
         "Does the following page contain the Schedule of Activities (SoA) table for a clinical trial protocol? "
         "Reply only 'yes' or 'no'.\n\n"
-        f"Page Text:\n{textwrap.shorten(page_text, width=3500)}"
+        f"Page Text:\n{textwrap.shorten(page_text, width=3500)}\n{unique_run_id}"
     )
     response = client.chat.completions.create(
         model="gpt-4o",
@@ -59,16 +62,19 @@ def llm_is_soa_page_image(pdf_path, page_num, client):
     """Send image of a PDF page to OpenAI vision API and ask if it contains the SOA table."""
     import tempfile
     import fitz
+    import time
     doc = fitz.open(pdf_path)
     page = doc[page_num]
     pix = page.get_pixmap(dpi=200)
     with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp:
         pix.save(tmp.name)
         image_path = tmp.name
+    unique_run_id = f"RunID:{time.time()}"
     prompt = (
         "You are an expert in clinical trial protocol parsing. "
         "Does this image contain the Schedule of Activities (SoA) table for a clinical trial protocol? "
-        "Reply only 'yes' or 'no'."
+        "Reply only 'yes' or 'no'. "
+        f"{unique_run_id}"
     )
     response = client.chat.completions.create(
         model="gpt-4o",
@@ -109,29 +115,48 @@ def main():
     def log_llm(page_idx, answer, mode):
         print(f"[LLM][{mode}] Page {page_idx+1} response: {answer}")
 
+    adjudicated = set()
+    found_soa = False
+    # 1. Adjudicate keyword candidate pages
+    N_EXTRA = getattr(args, 'extra_pages', 1)  # Default to 1 extra page if not set
     if candidates:
-        print("[INFO] Using TEXT+KEYWORD+LLM adjudication.")
-        # Optionally, also check the following page for each candidate
-        next_pages = set()
+        print(f"[INFO] Running LLM adjudication on keyword candidate pages: {candidates}")
         for i in candidates:
-            next_pages.add(i)
-            if i+1 < len(page_texts):
-                next_pages.add(i+1)
-        for i in sorted(next_pages):
-            print(f"[INFO] LLM adjudicating page {i+1} (text)...")
             answer = llm_is_soa_page(page_texts[i], client)
             log_llm(i, answer, "text")
+            adjudicated.add(i)
             if answer:
                 soa_pages.append(i)
-    else:
-        print(f"[WARNING] No keyword candidates found. Falling back to VISION LLM adjudication for first {args.max_pages} pages.")
-        for i in range(min(args.max_pages, len(page_texts))):
+                found_soa = True
+                # Check N_EXTRA subsequent pages
+                for j in range(1, N_EXTRA+1):
+                    if i+j < len(page_texts):
+                        answer_next = llm_is_soa_page(page_texts[i+j], client)
+                        log_llm(i+j, answer_next, "text (extra)")
+                        adjudicated.add(i+j)
+                        if answer_next:
+                            soa_pages.append(i+j)
+                        else:
+                            break
+    # 2. If no SOA found, continue adjudicating all remaining pages in order
+    if not soa_pages:
+        print(f"[INFO] No SOA found in keyword candidates. Adjudicating all pages in order...")
+        for i in range(len(page_texts)):
+            if i in adjudicated:
+                continue
             print(f"[INFO] LLM adjudicating page {i+1} (vision)...")
             answer = llm_is_soa_page_image(args.pdf_path, i, client)
             log_llm(i, answer, "vision")
             if answer:
                 soa_pages.append(i)
-    print(f"[RESULT] SOA pages: {soa_pages}")
+            elif found_soa:
+                print(f"[INFO] First non-SOA page after finding SOA: page {i+1}. Stopping adjudication.")
+                break
+    if soa_pages:
+        print(f"[RESULT] SOA pages: {soa_pages}")
+        print(f"SOA page range: {soa_pages[0]+1} to {soa_pages[-1]+1}")
+    else:
+        print("[RESULT] No SOA pages found.")
     print(",".join(str(p) for p in soa_pages))
 
 if __name__ == "__main__":

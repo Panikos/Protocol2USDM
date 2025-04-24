@@ -19,28 +19,51 @@ def extract_pdf_text(pdf_path):
 
 def send_text_to_openai(text):
     usdm_prompt = (
-        "You are an expert at extracting structured data from clinical trial protocols. "
-        "Extract the Schedule of Activities (SoA) from the following protocol text and return it as a JSON object graph conforming to the USDM v4.0 model. "
-        "The structure must be:\n"
-        "{\n"
-        "  'name': '<study name>',\n"
-        "  'instanceType': 'Study',\n"
-        "  'studyVersions': [\n"
-        "    {\n"
-        "      'studyVersionId': 'SV1',\n"
-        "      'studyDesign': {\n"
-        "        'timeline': {\n"
-        "          'plannedTimepoints': [...],\n"
-        "          'activities': [...],\n"
-        "          'activityGroups': [...],\n"
-        "          'activityTimepoints': [...]\n"
-        "        }\n"
-        "      }\n"
-        "    }\n"
-        "  ]\n"
-        "}\n"
-        "Use unique IDs for cross-referencing. Only include PlannedVisit objects if both visits and weeks are shown. Output must be valid JSON conforming to the USDM v4 OpenAPI schema. "
-        "The top-level object must include both 'name' and 'instanceType' fields as shown. Use the study name from the protocol for 'name'. Output ONLY valid JSON, with no explanations, comments, or markdown."
+        "You are an expert in clinical trial protocol data modeling.\n"
+        "Extract the Schedule of Activities (SoA) from the following protocol text and return it as a single JSON object conforming to the CDISC USDM v4.0 OpenAPI schema, specifically the Wrapper-Input object.\n"
+        "\n"
+        "Requirements:\n"
+        "- The top-level object must have these keys:\n"
+        "  - study: an object conforming to the Study-Input schema, fully populated with all required and as many optional fields as possible.\n"
+        "  - usdmVersion: string, always set to '4.0'.\n"
+        "  - systemName: string, set to 'Protocol2USDMv3'.\n"
+        "  - systemVersion: string, set to '1.0'.\n"
+        "\n"
+        "The study object must include:\n"
+        "- id: string (use protocol’s unique identifier).\n"
+        "- name: string (full study name).\n"
+        "- description: string or null.\n"
+        "- label: string or null.\n"
+        "- versions: array of StudyVersion-Input objects (at least one).\n"
+        "- documentedBy: array (can be empty).\n"
+        "- instanceType: string, must be 'Study'.\n"
+        "\n"
+        "Within each StudyVersion-Input object, include:\n"
+        "- id: string (unique version ID).\n"
+        "- versionIdentifier: string (e.g., protocol version).\n"
+        "- rationale: string or null.\n"
+        "- timeline: object, must include:\n"
+        "    - plannedTimepoints: array of PlannedTimepoint-Input (each with unique id, name, instanceType, etc.).\n"
+        "    - activities: array of Activity-Input (each with unique id, name, instanceType, etc.).\n"
+        "    - activityGroups: array of ActivityGroup-Input (each with unique id, name, instanceType, etc.).\n"
+        "    - activityTimepoints: array of ActivityTimepoint-Input (each mapping an activity to a timepoint).\n"
+        "- amendments: array (can be empty).\n"
+        "- instanceType: string, must be 'StudyVersion'.\n"
+        "\n"
+        "For the Schedule of Activities:\n"
+        "- plannedTimepoints: List all planned visits/timepoints (e.g., Screening, Baseline, Week 1, End of Study). Each must have id, name, and instanceType ('PlannedTimepoint').\n"
+        "- activities: List all activities/procedures (e.g., Informed Consent, Blood Draw, ECG). Each must have id, name, and instanceType ('Activity').\n"
+        "- activityGroups: If the protocol groups activities (e.g., Labs, Safety Assessments), define these here.\n"
+        "- activityTimepoints: For each cell in the SoA table (i.e., each activity at each timepoint), create an object mapping the activity to the timepoint. Each must have id, activityId, plannedTimepointId, and instanceType ('ActivityTimepoint').\n"
+        "- Use unique IDs for all entities.\n"
+        "\n"
+        "General Instructions:\n"
+        "- Output ONLY valid JSON (no markdown, explanations, or comments).\n"
+        "- If a required field is missing in the protocol, use null or an empty array as appropriate.\n"
+        "- All objects must include their required instanceType property with the correct value.\n"
+        "- Follow the OpenAPI schema exactly for field names, types, and nesting.\n"
+        "\n"
+        "If you need the full field list for each object, refer to the OpenAPI schema.\n"
     )
     response = client.chat.completions.create(
         model="gpt-4o",
@@ -48,7 +71,7 @@ def send_text_to_openai(text):
             {"role": "system", "content": usdm_prompt},
             {"role": "user", "content": text}
         ],
-        max_tokens=4096
+        max_tokens=16384
     )
     content = response.choices[0].message.content
     if len(content) > 3800:
@@ -88,5 +111,5 @@ except json.JSONDecodeError:
 print(json.dumps(parsed_json, indent=2, ensure_ascii=False))
 
 # Optionally, save to file
-with open("soa_text.json", "w", encoding="utf-8") as f:
+with open("STEP1_soa_text.json", "w", encoding="utf-8") as f:
     json.dump(parsed_json, f, indent=2, ensure_ascii=False)

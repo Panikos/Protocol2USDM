@@ -3,28 +3,65 @@ import sys
 import os
 import json
 
+# Ensure all output is UTF-8 safe for Windows terminals
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
+
 def run_script(script, args=None):
     """Run a script and return (success, output)"""
     cmd = [sys.executable, script]
     if args:
         cmd.extend(args)
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-        print(f"[SUCCESS] {script} output:\n{result.stdout}")
+        result = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", check=True)
+        try:
+            print(f"[SUCCESS] {script} output:\n{result.stdout}")
+        except UnicodeEncodeError:
+            print(f"[SUCCESS] {script} output (UTF-8 chars replaced):\n{result.stdout.encode('utf-8', errors='replace').decode('utf-8')}")
         return True, result.stdout
     except subprocess.CalledProcessError as e:
-        print(f"[ERROR] {script} failed:\n{e.stderr}")
+        try:
+            print(f"[ERROR] {script} failed:\n{e.stderr}")
+        except UnicodeEncodeError:
+            print(f"[ERROR] {script} failed (UTF-8 chars replaced):\n{e.stderr.encode('utf-8', errors='replace').decode('utf-8')}")
         return False, e.stderr
 
-def validate_json(json_path):
-    """Validate a JSON file against the USDM OpenAPI schema."""
-    success, _ = run_script("validate_usdm.py", [json_path])
-    return success
+
+import glob
+import shutil
+import subprocess
+
+def cleanup_outputs():
+    # Delete all .json files except requirements.json
+    for f in glob.glob('*.json'):
+        if f not in ['requirements.json', 'soa_entity_mapping.json']:
+            try:
+                os.remove(f)
+            except Exception as e:
+                print(f"[WARN] Could not delete {f}: {e}")
+    # Clear soa_images directory
+    img_dir = 'soa_images'
+    if os.path.exists(img_dir):
+        for fname in os.listdir(img_dir):
+            fpath = os.path.join(img_dir, fname)
+            try:
+                if os.path.isfile(fpath):
+                    os.remove(fpath)
+                elif os.path.isdir(fpath):
+                    shutil.rmtree(fpath)
+            except Exception as e:
+                print(f"[WARN] Could not delete {fpath}: {e}")
+
 
 def main():
-    # Set protocol PDF path here for all steps
-    PDF_PATH = "c:/Users/panik/Documents/GitHub/Protcol2USDMv3/CDISC_Pilot_Study.pdf"
+    import argparse
+    parser = argparse.ArgumentParser(description="Run the SoA extraction pipeline.")
+    parser.add_argument("pdf_path", help="Path to the protocol PDF")
+    args = parser.parse_args()
+    PDF_PATH = args.pdf_path
     SOA_IMAGES_DIR = "./soa_images"
+    # Cleanup outputs before starting
+    cleanup_outputs()
 
     # 1. Extract SoA from text (PDF)
     print("\n[STEP 1] Extracting SoA from PDF text...")
@@ -33,20 +70,21 @@ def main():
         print("[FATAL] Text extraction failed. Aborting.")
         return
 
-    # 2. Validate soa_text.json
-    print("\n[STEP 2] Validating soa_text.json...")
-    if not validate_json("soa_text.json"):
-        print("[FATAL] soa_text.json is invalid. Aborting.")
-        return
+    # 2. (Optional) Regenerate LLM prompt from mapping
+    print("\n[STEP 2] Generating up-to-date LLM prompt from mapping...")
+    run_script("generate_soa_llm_prompt.py")
 
     # 3. Find SOA pages
     print("\n[STEP 3] Identifying SOA pages in PDF...")
-    result = subprocess.run([sys.executable, "find_soa_pages.py", PDF_PATH], capture_output=True, text=True)
+    result = subprocess.run([sys.executable, "find_soa_pages.py", PDF_PATH], capture_output=True, text=True, encoding="utf-8", errors="replace")
     if result.returncode != 0:
         print("[FATAL] SOA page identification failed:", result.stderr)
         return
-    # The last line with comma-separated page numbers is the output
-    page_line = result.stdout.strip().split("\n")[-1]
+    if result.stdout is not None:
+        page_line = result.stdout.strip().split("\n")[-1]
+    else:
+        print("[ERROR] No output from find_soa_pages.py subprocess.")
+        return
     if not page_line or not any(x.isdigit() for x in page_line.split(",")):
         print("[FATAL] No SOA pages found.")
         return
@@ -65,49 +103,48 @@ def main():
 
     # 5. Extract SoA from images (vision)
     print("\n[STEP 5] Extracting SoA from protocol images...")
-    # Write image paths to a file or set as input in vision_extract_soa.py as needed
-    # For now, assume vision_extract_soa.py reads from SOA_IMAGES_DIR
-    success, _ = run_script("vision_extract_soa.py")
+    vision_args = image_paths + ["--output", "STEP2_soa_vision.json"]
+    success, _ = run_script("vision_extract_soa.py", vision_args)
     if not success:
         print("[FATAL] Vision extraction failed. Aborting.")
         return
 
-    # 6. Validate soa_vision.json
-    print("\n[STEP 6] Validating soa_vision.json...")
-    if not validate_json("soa_vision.json"):
-        print("[FATAL] soa_vision.json is invalid. Aborting.")
+    # 6. Postprocess and consolidate SoA vision extraction
+    print("\n[STEP 6] Consolidating and normalizing STEP2_soa_vision.json...")
+    success, _ = run_script("soa_postprocess_consolidated.py", ["STEP2_soa_vision.json", "STEP3_soa_vision_fixed.json"])
+    if not success:
+        print("[FATAL] STEP2_soa_vision.json post-processing failed. Aborting.")
+        return
+    print("[STEP 6b] Validating STEP3_soa_vision_fixed.json against mapping...")
+    success, _ = run_script("soa_extraction_validator.py", ["STEP3_soa_vision_fixed.json"])
+    if not success:
+        print("[FATAL] STEP3_soa_vision_fixed.json failed mapping validation. Aborting.")
+        return
+    print("\n[STEP 7] Consolidating and normalizing STEP1_soa_text.json...")
+    success, _ = run_script("soa_postprocess_consolidated.py", ["STEP1_soa_text.json", "STEP4_soa_text_fixed.json"])
+    if not success:
+        print("[FATAL] STEP1_soa_text.json post-processing failed. Aborting.")
+        return
+    print("[STEP 7b] Validating STEP4_soa_text_fixed.json against mapping...")
+    success, _ = run_script("soa_extraction_validator.py", ["STEP4_soa_text_fixed.json"])
+    if not success:
+        print("[FATAL] STEP4_soa_text_fixed.json failed mapping validation. Aborting.")
         return
 
-    # 7. LLM-based reconciliation
-    print("\n[STEP 7] LLM-based reconciliation of text and vision outputs...")
-    result = subprocess.run([sys.executable, "reconcile_soa_llm.py", "--text", "soa_text.json", "--vision", "soa_vision.json", "--output", "soa_final.json"], capture_output=True, text=True)
+    # 8. LLM-based reconciliation
+    print("\n[STEP 8] LLM-based reconciliation of text and vision outputs...")
+    result = subprocess.run([sys.executable, "reconcile_soa_llm.py", "--text", "STEP4_soa_text_fixed.json", "--vision", "STEP3_soa_vision_fixed.json", "--output", "STEP5_soa_final.json"], capture_output=True, text=True)
     if result.returncode != 0:
         print("[FATAL] LLM reconciliation failed:", result.stderr)
         return
     print(result.stdout)
 
-    # 8. Validate against CORE rule set (stub)
-    print("\n[STEP 8] Validating soa_final.json against USDM v4 CORE rules (stub)...")
-    # TODO: Implement actual CORE rule validation logic or call
-    # For now, just check if file exists and is valid JSON
-    try:
-        with open("soa_final.json", "r", encoding="utf-8") as f:
-            soa_final = json.load(f)
-        print("[SUCCESS] soa_final.json is valid JSON. (CORE rules validation stub)")
-    except Exception as e:
-        print(f"[FATAL] soa_final.json failed validation: {e}")
-        return
-
-    # 9. Render round-trip SoA for review
-    print("\n[STEP 9] Rendering SoA for review...")
-    result = subprocess.run([sys.executable, "render_soa_html.py", "--soa", "soa_final.json", "--output", "soa_final.html"], capture_output=True, text=True)
-    if result.returncode != 0:
-        print("[FATAL] SoA rendering failed:", result.stderr)
-        return
-    print(result.stdout)
-    print("[INFO] Final SoA rendered to soa_final.html. Open this file in your browser for review.")
-
     print("\n[ALL STEPS COMPLETE]")
+
+    # Launch Streamlit SoA reviewer with final output
+    print("\n[INFO] Launching interactive SoA review UI (Streamlit)...")
+    subprocess.Popen(["streamlit", "run", "soa_streamlit_viewer.py"], encoding="utf-8")  # Non-blocking
+    print("[INFO] Visit http://localhost:8501 in your browser to review the SoA.")
 
 if __name__ == "__main__":
     main()

@@ -1,14 +1,14 @@
 # Protocol2USDMv3
 
 ## Overview
-This project automates the extraction and structuring of the Schedule of Activities (SoA) from clinical trial protocol PDFs, producing output conformant to the USDM v4.0 model. It uses a hybrid workflow with both text and vision LLMs, validates output against the USDM schema, and supports advanced LLM-based reconciliation.
+Protocol2USDMv3 is an automated pipeline for extracting, validating, and structuring the Schedule of Activities (SoA) from clinical trial protocol PDFs, outputting data conformant to the USDM v4.0 model. The workflow combines LLM text and vision extraction, robust validation, and advanced mapping/regeneration tools for maximum reliability.
 
-## Features
-- **Automated SoA Extraction**: Identifies and extracts SoA tables from protocol PDFs using keyword search, LLM text, and LLM vision analysis.
-- **Dual-Path Workflow**: Extracts both text-based and image-based SoA representations.
-- **LLM Adjudication & Reconciliation**: Uses GPT-4o for both adjudicating candidate pages and merging text/vision outputs.
-- **Validation**: Validates output against the USDM OpenAPI schema and (stub) v4 CORE rule set.
-- **Packaging**: CLI interface, requirements.txt, and modular scripts for easy deployment.
+## Key Features
+- **Automated SoA Extraction**: Extracts SoA tables from protocol PDFs using both LLM text and vision analysis (GPT-4o recommended).
+- **Robust Dual-Path Workflow**: Parallel extraction from PDF text and images, with downstream LLM-based adjudication and merging.
+- **Entity Mapping Regeneration**: Regenerate `soa_entity_mapping.json` from the latest USDM Excel mapping (`USDM_CT.xlsx`) at any time using `generate_soa_entity_mapping.py`. The mapping is automatically preserved during cleanup.
+- **Validation & Error Handling**: Validates all outputs against the USDM OpenAPI schema and mapping. The pipeline is resilient to missing or malformed fields (e.g., missing timepoint IDs) and will warn and continue instead of crashing.
+- **Modular & Extensible**: All steps are modular scripts, easily customizable for your workflow.
 
 ## Installation
 ```bash
@@ -21,32 +21,64 @@ pip install -r requirements.txt
    ```
    OPENAI_API_KEY=sk-...
    ```
-3. Run the main workflow:
+3. (Optional) Regenerate the entity mapping from Excel:
    ```bash
-   python main.py --pdf_path <your_protocol.pdf>
+   python generate_soa_entity_mapping.py
+   # This reads temp/USDM_CT.xlsx and writes soa_entity_mapping.json
    ```
-4. Outputs:
-   - `soa_text.json`: SoA extracted from text.
+4. Run the main workflow:
+   ```bash
+   python main.py <your_protocol.pdf>
+   ```
+5. Outputs:
+   - `soa_text.json`: SoA extracted from PDF text.
    - `soa_vision.json`: SoA extracted from images (vision).
-   - `soa_final.json`: LLM-adjudicated, merged SoA.
+   - `soa_vision_fixed.json` and `soa_text_fixed.json`: Post-processed, normalized outputs.
+   - `soa_final.json`: (If adjudication/merging is enabled) LLM-adjudicated, merged SoA.
    - (Stub) HTML/Markdown rendering for review.
 
 ## Project Structure
-- `main.py` — Orchestrates the workflow.
-- `find_soa_pages.py` — Finds candidate SoA pages.
+- `main.py` — Orchestrates the full workflow.
+- `generate_soa_entity_mapping.py` — Regenerates `soa_entity_mapping.json` from `USDM_CT.xlsx`.
+- `generate_soa_llm_prompt.py` — Generates LLM prompt instructions from the mapping.
+- `find_soa_pages.py` — Finds candidate SoA pages in PDFs.
 - `extract_pdf_pages_as_images.py` — Extracts PDF pages as images.
-- `vision_extract_soa.py` — LLM vision-based SoA extraction.
-- `send_pdf_to_openai.py` — LLM text-based SoA extraction.
-- `reconcile_soa_llm.py` — LLM-based reconciliation of text/vision outputs.
-- `validate_usdm.py` — Validates output against USDM schema.
+- `send_pdf_to_openai.py` — LLM text-based SoA extraction (GPT-4o, max_tokens=16384).
+- `vision_extract_soa.py` — LLM vision-based SoA extraction (GPT-4o, max_tokens=16384).
+- `soa_postprocess_consolidated.py` — Consolidates and normalizes extracted SoA JSON, robust to missing/misnamed keys.
+- `soa_extraction_validator.py` — Validates output against USDM mapping and schema.
+- `reconcile_soa_llm.py` — (Optional) LLM-based adjudication/merging of text/vision outputs.
+- `requirements.txt` — All dependencies listed here.
+- `temp/` — Place `USDM_CT.xlsx` here for mapping regeneration.
 
-## Requirements
-See `requirements.txt` for all dependencies.
+## Model & Token Settings
+- **GPT-4o** is recommended for both text and vision extraction.
+- The pipeline automatically sets `max_tokens=16384` (the current GPT-4o completion limit).
+- If you see truncation warnings, consider splitting large PDFs or reducing prompt size.
+
+## Troubleshooting
+- **KeyError: 'plannedTimepointId'**: The pipeline now skips and warns on timepoints missing both `plannedTimepointId` and `plannedVisitId`.
+- **LLM Output Truncation**: The pipeline uses the maximum allowed tokens for completions, but very large protocols may still require splitting.
+- **Mapping Issues**: Regenerate `soa_entity_mapping.json` anytime the Excel mapping changes.
+- **Validation**: All outputs are validated against both the mapping and USDM schema. Warnings are issued for missing or non-conformant fields.
+
+## Streamlit SoA Viewer
+- `soa_streamlit_viewer.py` provides an interactive web-based interface for visualizing and reviewing SoA extraction results.
+- **How to launch:**
+  ```bash
+  streamlit run soa_streamlit_viewer.py
+  ```
+- The viewer allows you to:
+  - Load and inspect `soa_text.json`, `soa_vision.json`, or any other SoA output file.
+  - Browse entities, activities, and timepoints in a user-friendly format.
+  - Quickly identify extraction issues or missing data.
+- Useful for quality control, annotation, and sharing results with non-technical stakeholders.
 
 ## Notes
 - The workflow is fully automated and robust to both text-based and image-based PDFs.
 - For best results, use GPT-4o or a model with vision capabilities for image-based adjudication.
 - CORE rule validation is currently a stub; integrate your rule set as needed.
+- Deprecated scripts are in the `deprecated/` folder and should not be used in production.
 
 ## License
-MIT
+None. Contact author for permission to use.
