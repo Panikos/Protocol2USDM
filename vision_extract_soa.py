@@ -8,6 +8,15 @@ env_path = os.path.join(os.path.dirname(__file__), '.env')
 load_dotenv(env_path)
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument('--model', default=os.environ.get('OPENAI_MODEL', 'gpt-4o'))
+args, _ = parser.parse_known_args()
+MODEL_NAME = args.model
+if 'OPENAI_MODEL' not in os.environ:
+    os.environ['OPENAI_MODEL'] = MODEL_NAME
+print(f"[INFO] Using OpenAI model: {MODEL_NAME}")
+
 def encode_image_to_base64(image_path):
     with open(image_path, 'rb') as img_file:
         return base64.b64encode(img_file.read()).decode('utf-8')
@@ -73,7 +82,7 @@ def extract_soa_from_images(image_paths):
             "image_url": {"url": f"data:image/png;base64,{img_b64}"}
         })
     response = client.chat.completions.create(
-        model="gpt-4o",
+        model=MODEL_NAME,
         messages=messages,
         max_tokens=16384
     )

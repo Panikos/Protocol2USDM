@@ -23,6 +23,14 @@ KEYWORDS = [k.lower() for k in KEYWORDS]
 # --- ENV SETUP ---
 env_path = os.path.join(os.path.dirname(__file__), '.env')
 load_dotenv(env_path)
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument('--model', default=os.environ.get('OPENAI_MODEL', 'gpt-4o'))
+args, _ = parser.parse_known_args()
+MODEL_NAME = args.model
+if 'OPENAI_MODEL' not in os.environ:
+    os.environ['OPENAI_MODEL'] = MODEL_NAME
+print(f"[INFO] Using OpenAI model: {MODEL_NAME}")
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 # --- FUNCTIONS ---
@@ -58,7 +66,7 @@ def llm_is_soa_page(page_text, client):
     answer = response.choices[0].message.content.strip().lower()
     return answer.startswith('yes')
 
-def llm_is_soa_page_image(pdf_path, page_num, client):
+def llm_is_soa_page_image(pdf_path, page_num, client, model=MODEL_NAME):
     """Send image of a PDF page to OpenAI vision API and ask if it contains the SOA table."""
     import tempfile
     import fitz
@@ -77,7 +85,7 @@ def llm_is_soa_page_image(pdf_path, page_num, client):
         f"{unique_run_id}"
     )
     response = client.chat.completions.create(
-        model="gpt-4o",
+        model=model,
         messages=[
             {"role": "system", "content": prompt},
             {"role": "user", "content": [
@@ -89,6 +97,7 @@ def llm_is_soa_page_image(pdf_path, page_num, client):
     answer = response.choices[0].message.content.strip().lower()
     os.remove(image_path)
     return answer.startswith('yes')
+
 
 def main():
     import argparse

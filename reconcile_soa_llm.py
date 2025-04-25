@@ -8,6 +8,15 @@ env_path = os.path.join(os.path.dirname(__file__), '.env')
 load_dotenv(env_path)
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument('--model', default=os.environ.get('OPENAI_MODEL', 'gpt-4o'))
+args, _ = parser.parse_known_args()
+MODEL_NAME = args.model
+if 'OPENAI_MODEL' not in os.environ:
+    os.environ['OPENAI_MODEL'] = MODEL_NAME
+print(f"[INFO] Using OpenAI model: {MODEL_NAME}")
+
 LLM_PROMPT = (
     "You are an expert in clinical trial data curation and CDISC USDM v4.0 standards.\n"
     "You will be given two JSON objects, each representing a Schedule of Activities (SoA) extracted from a clinical trial protocol. Both are intended to conform to the USDM v4.0 Wrapper-Input OpenAPI schema.\n"
@@ -31,13 +40,14 @@ def reconcile_soa(text_path, vision_path, output_path):
         "TEXT-EXTRACTED SoA JSON:\n" + json.dumps(text_soa, ensure_ascii=False, indent=2) +
         "\nVISION-EXTRACTED SoA JSON:\n" + json.dumps(vision_soa, ensure_ascii=False, indent=2)
     )
+    messages = [
+        {"role": "system", "content": LLM_PROMPT},
+        {"role": "user", "content": user_content}
+    ]
     response = client.chat.completions.create(
-        model="gpt-4o",
-        messages=[
-            {"role": "system", "content": LLM_PROMPT},
-            {"role": "user", "content": user_content}
-        ],
-        max_tokens=4096
+        model=MODEL_NAME,
+        messages=messages,
+        max_tokens=16384
     )
     result = response.choices[0].message.content
     # Clean up: remove code block markers, trailing text

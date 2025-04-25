@@ -10,6 +10,17 @@ load_dotenv(env_path)
 # Set your OpenAI API key using environment variable for security
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument('--model', default=os.environ.get('OPENAI_MODEL', 'gpt-4o'))
+parser.add_argument('pdf_path', nargs='?')
+parser.add_argument('--output', default='soa_extracted.json')
+args, _ = parser.parse_known_args()
+MODEL_NAME = args.model
+if 'OPENAI_MODEL' not in os.environ:
+    os.environ['OPENAI_MODEL'] = MODEL_NAME
+print(f"[INFO] Using OpenAI model: {MODEL_NAME}")
+
 def extract_pdf_text(pdf_path):
     doc = fitz.open(pdf_path)
     text = ""
@@ -65,12 +76,13 @@ def send_text_to_openai(text):
         "\n"
         "If you need the full field list for each object, refer to the OpenAPI schema.\n"
     )
+    messages = [
+        {"role": "system", "content": usdm_prompt},
+        {"role": "user", "content": text}
+    ]
     response = client.chat.completions.create(
-        model="gpt-4o",
-        messages=[
-            {"role": "system", "content": usdm_prompt},
-            {"role": "user", "content": text}
-        ],
+        model=MODEL_NAME,
+        messages=messages,
         max_tokens=16384
     )
     content = response.choices[0].message.content

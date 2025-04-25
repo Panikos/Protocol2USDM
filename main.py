@@ -53,13 +53,19 @@ def cleanup_outputs():
                 print(f"[WARN] Could not delete {fpath}: {e}")
 
 
+MODEL_NAME = 'gpt-4o'
+
 def main():
+    global MODEL_NAME
     import argparse
     parser = argparse.ArgumentParser(description="Run the SoA extraction pipeline.")
     parser.add_argument("pdf_path", help="Path to the protocol PDF")
+    parser.add_argument("--model", default=MODEL_NAME, help="OpenAI model to use (default: gpt-4o)")
     args = parser.parse_args()
+    MODEL_NAME = args.model
     PDF_PATH = args.pdf_path
     SOA_IMAGES_DIR = "./soa_images"
+    print(f"[INFO] Using LLM model: {MODEL_NAME}")
     # Cleanup outputs before starting
     cleanup_outputs()
 

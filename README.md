@@ -30,12 +30,46 @@ pip install -r requirements.txt
    ```bash
    python main.py <your_protocol.pdf>
    ```
+
+## How to Select the LLM Model
+
+You can specify which OpenAI model (e.g., `gpt-4o` or `gpt-3o`) is used for all LLM-powered pipeline steps. This works for `main.py`, `find_soa_pages.py`, and all other scripts in the pipeline.
+
+**Option 1: Command-line argument**
+```bash
+python main.py <your_protocol.pdf> --model gpt-3o
+python find_soa_pages.py <your_protocol.pdf> --model gpt-3o
+```
+
+**Option 2: Environment variable**
+```bash
+set OPENAI_MODEL=gpt-3o  # Windows
+export OPENAI_MODEL=gpt-3o  # Linux/Mac
+python main.py <your_protocol.pdf>
+```
+
+If not specified, the default is `gpt-4o`.
+
 5. Outputs:
    - `soa_text.json`: SoA extracted from PDF text.
    - `soa_vision.json`: SoA extracted from images (vision).
    - `soa_vision_fixed.json` and `soa_text_fixed.json`: Post-processed, normalized outputs.
    - `soa_final.json`: (If adjudication/merging is enabled) LLM-adjudicated, merged SoA.
    - (Stub) HTML/Markdown rendering for review.
+
+## How to Run the Streamlit SoA Review App
+
+You can launch the interactive SoA review UI at any time to visualize and explore any SoA output JSON file:
+
+```bash
+streamlit run soa_streamlit_viewer.py
+```
+
+- By default, you can select any output file (e.g., `STEP5_soa_final.json`) from the UI sidebar.
+- The app supports all USDM/M11-compliant outputs and will auto-detect the timeline structure.
+- You can also set the model for any LLM-powered features in the viewer using the same `--model` argument or `OPENAI_MODEL` environment variable if applicable.
+
+Visit [http://localhost:8501](http://localhost:8501) in your browser after running the above command.
 
 ## Project Structure
 - `main.py` — Orchestrates the full workflow.

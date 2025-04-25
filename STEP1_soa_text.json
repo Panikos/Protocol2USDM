@@ -6,190 +6,311 @@
     "label": null,
     "versions": [
       {
-        "id": "H2Q-MC-LZZT(c)-V1",
-        "versionIdentifier": "v1.0",
+        "id": "H2Q-MC-LZZT(c)_v1",
+        "versionIdentifier": "Version 1",
         "rationale": null,
         "timeline": {
           "plannedTimepoints": [
             {
-              "id": "TP1",
+              "id": "tp1",
               "name": "Screening",
               "instanceType": "PlannedTimepoint"
             },
             {
-              "id": "TP2",
-              "name": "Baseline",
+              "id": "tp2",
+              "name": "Baseline/Randomization",
               "instanceType": "PlannedTimepoint"
             },
             {
-              "id": "TP3",
+              "id": "tp3",
               "name": "Week 2",
               "instanceType": "PlannedTimepoint"
             },
             {
-              "id": "TP4",
+              "id": "tp4",
               "name": "Week 4",
               "instanceType": "PlannedTimepoint"
             },
             {
-              "id": "TP5",
+              "id": "tp5",
               "name": "Week 6",
               "instanceType": "PlannedTimepoint"
             },
             {
-              "id": "TP6",
+              "id": "tp6",
               "name": "Week 8",
               "instanceType": "PlannedTimepoint"
             },
             {
-              "id": "TP7",
+              "id": "tp7",
               "name": "Week 12",
               "instanceType": "PlannedTimepoint"
             },
             {
-              "id": "TP8",
+              "id": "tp8",
               "name": "Week 16",
               "instanceType": "PlannedTimepoint"
             },
             {
-              "id": "TP9",
+              "id": "tp9",
               "name": "Week 20",
               "instanceType": "PlannedTimepoint"
             },
             {
-              "id": "TP10",
+              "id": "tp10",
               "name": "Week 24",
+              "instanceType": "PlannedTimepoint"
+            },
+            {
+              "id": "tp11",
+              "name": "End of Study (Week 26)",
               "instanceType": "PlannedTimepoint"
             }
           ],
           "activities": [
             {
-              "id": "ACT1",
+              "id": "act1",
               "name": "Informed Consent",
               "instanceType": "Activity"
             },
             {
-              "id": "ACT2",
-              "name": "Physical Exam",
+              "id": "act2",
+              "name": "Randomization",
               "instanceType": "Activity"
             },
             {
-              "id": "ACT3",
-              "name": "Vital Signs",
+              "id": "act3",
+              "name": "Vital Signs/Temperature",
               "instanceType": "Activity"
             },
             {
-              "id": "ACT4",
+              "id": "act4",
               "name": "ECG",
               "instanceType": "Activity"
             },
             {
-              "id": "ACT5",
-              "name": "Lab Tests",
-              "instanceType": "Activity"
-            },
-            {
-              "id": "ACT6",
+              "id": "act5",
               "name": "ADAS-Cog",
               "instanceType": "Activity"
             },
             {
-              "id": "ACT7",
+              "id": "act6",
               "name": "CIBIC+",
               "instanceType": "Activity"
             },
             {
-              "id": "ACT8",
+              "id": "act7",
               "name": "DAD",
               "instanceType": "Activity"
             },
             {
-              "id": "ACT9",
+              "id": "act8",
               "name": "NPI-X",
               "instanceType": "Activity"
             },
             {
-              "id": "ACT10",
-              "name": "Xanomeline Plasma Sample",
+              "id": "act9",
+              "name": "Ambulatory ECG",
               "instanceType": "Activity"
             },
             {
-              "id": "ACT11",
-              "name": "Concomitant Medications Review",
+              "id": "act10",
+              "name": "Laboratory Tests",
               "instanceType": "Activity"
             },
             {
-              "id": "ACT12",
-              "name": "Adverse Events Recording",
+              "id": "act11",
+              "name": "Concomitant Medications",
+              "instanceType": "Activity"
+            },
+            {
+              "id": "act12",
+              "name": "Adverse Events",
               "instanceType": "Activity"
             }
           ],
-          "activityGroups": [],
+          "activityGroups": [
+            {
+              "id": "ag1",
+              "name": "Screening Assessments",
+              "instanceType": "ActivityGroup",
+              "activities": [
+                "act1",
+                "act3",
+                "act4",
+                "act9",
+                "act10",
+                "act11",
+                "act12"
+              ]
+            },
+            {
+              "id": "ag2",
+              "name": "Efficacy Assessments",
+              "instanceType": "ActivityGroup",
+              "activities": [
+                "act5",
+                "act6",
+                "act7",
+                "act8"
+              ]
+            },
+            {
+              "id": "ag3",
+              "name": "Safety Monitoring",
+              "instanceType": "ActivityGroup",
+              "activities": [
+                "act3",
+                "act4",
+                "act9",
+                "act10",
+                "act12"
+              ]
+            }
+          ],
           "activityTimepoints": [
             {
-              "id": "ATP1",
-              "activityId": "ACT1",
-              "plannedTimepointId": "TP1",
+              "id": "atp1",
+              "activityId": "act1",
+              "plannedTimepointId": "tp1",
               "instanceType": "ActivityTimepoint"
             },
             {
-              "id": "ATP2",
-              "activityId": "ACT2",
-              "plannedTimepointId": "TP1",
+              "id": "atp2",
+              "activityId": "act2",
+              "plannedTimepointId": "tp2",
               "instanceType": "ActivityTimepoint"
             },
             {
-              "id": "ATP3",
-              "activityId": "ACT3",
-              "plannedTimepointId": "TP1",
+              "id": "atp3",
+              "activityId": "act3",
+              "plannedTimepointId": "tp2",
               "instanceType": "ActivityTimepoint"
             },
             {
-              "id": "ATP4",
-              "activityId": "ACT4",
-              "plannedTimepointId": "TP3",
+              "id": "atp4",
+              "activityId": "act4",
+              "plannedTimepointId": "tp2",
               "instanceType": "ActivityTimepoint"
             },
             {
-              "id": "ATP5",
-              "activityId": "ACT3",
-              "plannedTimepointId": "TP3",
+              "id": "atp5",
+              "activityId": "act9",
+              "plannedTimepointId": "tp2",
               "instanceType": "ActivityTimepoint"
             },
             {
-              "id": "ATP6",
-              "activityId": "ACT5",
-              "plannedTimepointId": "TP3",
+              "id": "atp6",
+              "activityId": "act5",
+              "plannedTimepointId": "tp3",
               "instanceType": "ActivityTimepoint"
             },
             {
-              "id": "ATP7",
-              "activityId": "ACT6",
-              "plannedTimepointId": "TP3",
+              "id": "atp7",
+              "activityId": "act6",
+              "plannedTimepointId": "tp3",
               "instanceType": "ActivityTimepoint"
             },
             {
-              "id": "ATP8",
-              "activityId": "ACT7",
-              "plannedTimepointId": "TP3",
+              "id": "atp8",
+              "activityId": "act7",
+              "plannedTimepointId": "tp3",
               "instanceType": "ActivityTimepoint"
             },
             {
-              "id": "ATP9",
-              "activityId": "ACT5",
-              "plannedTimepointId": "TP5",
+              "id": "atp9",
+              "activityId": "act8",
+              "plannedTimepointId": "tp3",
               "instanceType": "ActivityTimepoint"
             },
             {
-              "id": "ATP10",
-              "activityId": "ACT9",
-              "plannedTimepointId": "TP7",
+              "id": "atp10",
+              "activityId": "act10",
+              "plannedTimepointId": "tp3",
               "instanceType": "ActivityTimepoint"
             },
             {
-              "id": "ATP11",
-              "activityId": "ACT8",
-              "plannedTimepointId": "TP10",
+              "id": "atp11",
+              "activityId": "act12",
+              "plannedTimepointId": "tp3",
+              "instanceType": "ActivityTimepoint"
+            },
+            {
+              "id": "atp12",
+              "activityId": "act5",
+              "plannedTimepointId": "tp6",
+              "instanceType": "ActivityTimepoint"
+            },
+            {
+              "id": "atp13",
+              "activityId": "act6",
+              "plannedTimepointId": "tp6",
+              "instanceType": "ActivityTimepoint"
+            },
+            {
+              "id": "atp14",
+              "activityId": "act7",
+              "plannedTimepointId": "tp6",
+              "instanceType": "ActivityTimepoint"
+            },
+            {
+              "id": "atp15",
+              "activityId": "act8",
+              "plannedTimepointId": "tp6",
+              "instanceType": "ActivityTimepoint"
+            },
+            {
+              "id": "atp16",
+              "activityId": "act5",
+              "plannedTimepointId": "tp10",
+              "instanceType": "ActivityTimepoint"
+            },
+            {
+              "id": "atp17",
+              "activityId": "act6",
+              "plannedTimepointId": "tp10",
+              "instanceType": "ActivityTimepoint"
+            },
+            {
+              "id": "atp18",
+              "activityId": "act7",
+              "plannedTimepointId": "tp10",
+              "instanceType": "ActivityTimepoint"
+            },
+            {
+              "id": "atp19",
+              "activityId": "act8",
+              "plannedTimepointId": "tp10",
+              "instanceType": "ActivityTimepoint"
+            },
+            {
+              "id": "atp20",
+              "activityId": "act3",
+              "plannedTimepointId": "tp1",
+              "instanceType": "ActivityTimepoint"
+            },
+            {
+              "id": "atp21",
+              "activityId": "act4",
+              "plannedTimepointId": "tp3",
+              "instanceType": "ActivityTimepoint"
+            },
+            {
+              "id": "atp22",
+              "activityId": "act4",
+              "plannedTimepointId": "tp4",
+              "instanceType": "ActivityTimepoint"
+            },
+            {
+              "id": "atp23",
+              "activityId": "act10",
+              "plannedTimepointId": "tp5",
+              "instanceType": "ActivityTimepoint"
+            },
+            {
+              "id": "atp24",
+              "activityId": "act11",
+              "plannedTimepointId": "tp5",
               "instanceType": "ActivityTimepoint"
             }
           ]
