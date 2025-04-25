@@ -10,7 +10,7 @@ client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 import argparse
 parser = argparse.ArgumentParser()
-parser.add_argument('--model', default=os.environ.get('OPENAI_MODEL', 'gpt-4o'))
+parser.add_argument('--model', default=os.environ.get('OPENAI_MODEL', 'o3'))
 args, _ = parser.parse_known_args()
 MODEL_NAME = args.model
 if 'OPENAI_MODEL' not in os.environ:
@@ -27,6 +27,9 @@ def extract_soa_from_images(image_paths):
         "Extract the Schedule of Activities (SoA) from the following protocol images and return it as a single JSON object conforming to the CDISC USDM v4.0 OpenAPI schema, specifically the Wrapper-Input object.\n"
         "\n"
         "Requirements:\n"
+        "- IMPORTANT: Use the table column headers EXACTLY as they appear in the protocol as the timepoint labels. Do NOT infer, canonicalize, or generate visit/week names that are not present in the table. If a header is ambiguous or missing, output it as-is and flag for review.\n"
+        "- Output a 'table_headers' array with the literal table headers for traceability.\n"
+        "IMPORTANT: Output ONLY a valid JSON object. Do not include any commentary, markdown, or explanation.\n"
         "- The top-level object must have these keys:\n"
         "  - study: an object conforming to the Study-Input schema, fully populated with all required and as many optional fields as possible.\n"
         "  - usdmVersion: string, always set to '4.0'.\n"
@@ -81,15 +84,33 @@ def extract_soa_from_images(image_paths):
             "type": "image_url",
             "image_url": {"url": f"data:image/png;base64,{img_b64}"}
         })
-    response = client.chat.completions.create(
-        model=MODEL_NAME,
-        messages=messages,
-        max_tokens=16384
-    )
-    content = response.choices[0].message.content
-    if len(content) > 3800:
-        print("[WARNING] LLM output may be truncated. Consider splitting the task or increasing max_tokens if supported.")
-    return content
+    # Model fallback logic
+    model_order = [MODEL_NAME]
+    if MODEL_NAME == 'o3':
+        model_order += ['o3-mini-high', 'gpt-4o']
+    elif MODEL_NAME == 'o3-mini-high':
+        model_order += ['gpt-4o']
+    tried = []
+    for model_try in model_order:
+        max_tokens = 90000 if model_try in ['o3', 'o3-mini-high'] else 16384
+        print(f"[INFO] Using OpenAI model: {model_try}")
+        try:
+            response = client.chat.completions.create(
+                model=model_try,
+                messages=messages,
+                max_tokens=max_tokens
+            )
+            content = response.choices[0].message.content
+            if len(content) > 3800:
+                print("[WARNING] LLM output may be truncated. Consider splitting the task or increasing max_tokens if supported.")
+            return content
+        except Exception as e:
+            err_msg = str(e)
+            print(f"[WARNING] Model '{model_try}' failed: {err_msg}")
+            tried.append(model_try)
+            continue
+    print(f"[FATAL] All model attempts failed: {tried}")
+    raise RuntimeError(f"No available model succeeded: {tried}")
 
 
 if __name__ == "__main__":

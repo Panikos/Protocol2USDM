@@ -20,6 +20,14 @@ def run_script(script, args=None):
             print(f"[SUCCESS] {script} output (UTF-8 chars replaced):\n{result.stdout.encode('utf-8', errors='replace').decode('utf-8')}")
         return True, result.stdout
     except subprocess.CalledProcessError as e:
+        print(f"[ERROR] {script} failed with exit code {e.returncode}")
+        if e.stdout:
+            print(f"[STDOUT]:\n{e.stdout}")
+        if e.stderr:
+            print(f"[STDERR]:\n{e.stderr}")
+        return False, e.stdout + '\n' + (e.stderr or '')
+        return True, result.stdout
+    except subprocess.CalledProcessError as e:
         try:
             print(f"[ERROR] {script} failed:\n{e.stderr}")
         except UnicodeEncodeError:

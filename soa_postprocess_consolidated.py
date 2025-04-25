@@ -57,41 +57,41 @@ def consolidate_and_fix_soa(input_path, output_path, ref_metadata_path=None):
         raise ValueError("No timeline found in study version.")
 
     # --- Normalize plannedTimepoints and add milestone support ---
-    pt_map = {}
-    norm_timepoints = []
+    # --- Strict deduplication: only merge if ALL identifying fields match ---
     pts = timeline.get('plannedTimepoints', [])
+    seen = set()
+    norm_timepoints = []
     for pt in pts:
         pt = deepcopy(pt)
         pt_id = pt.get('plannedTimepointId') or pt.get('plannedId') or pt.get('id')
+        pt_label = pt.get('label') or pt.get('visit') or pt.get('visitName') or pt.get('name')
+        pt_key = (str(pt_id).strip().lower() if pt_id else None, str(pt_label).strip().lower() if pt_label else None)
+        # Only merge if both id and label match exactly (case-insensitive)
+        if pt_key in seen:
+            continue  # Exact duplicate
+        seen.add(pt_key)
         if pt_id:
             pt['plannedTimepointId'] = pt_id
         # Milestone support: look for milestone or milestoneType
         if 'milestone' not in pt:
             if pt.get('milestoneType') or (pt.get('isMilestone') is True):
                 pt['milestone'] = True
+        if 'visit' in pt and 'visitName' not in pt:
+            pt['visitName'] = pt['visit']
+        if 'name' in pt and 'visitName' not in pt:
+            pt['visitName'] = pt['name']
+        # Merge in metadata from reference if available
+        if ref_metadata:
+            ref_pts = ref_metadata.get('plannedTimepoints', [])
+            ref = next((x for x in ref_pts if (x.get('plannedTimepointId') or x.get('id')) == pt_id), None)
+            if ref:
+                for k in ['description', 'code', 'window']:
+                    if k in ref:
+                        pt[k] = ref[k]
         norm_timepoints.append(pt)
-        pt_map[pt['plannedTimepointId']] = pt
-    else:
-        for pt in pts:
-            pt = deepcopy(pt)
-            pt_id = pt.get('plannedTimepointId') or pt.get('plannedId') or pt.get('id')
-            if pt_id:
-                pt['plannedTimepointId'] = pt_id
-            if 'visit' in pt and 'visitName' not in pt:
-                pt['visitName'] = pt['visit']
-            if 'name' in pt and 'visitName' not in pt:
-                pt['visitName'] = pt['name']
-            # Merge in metadata from reference if available
-            if ref_metadata:
-                ref_pts = ref_metadata.get('plannedTimepoints', [])
-                ref = next((x for x in ref_pts if x.get('plannedTimepointId') == pt_id or x.get('id') == pt_id), None)
-                if ref:
-                    for k in ['description', 'code', 'window']:
-                        if k in ref:
-                            pt[k] = ref[k]
-            pt_map[pt['plannedTimepointId']] = pt
-            norm_timepoints.append(pt)
     timeline['plannedTimepoints'] = norm_timepoints
+    # Ensure pt_map is available for downstream usage
+    pt_map = {pt.get('plannedTimepointId'): pt for pt in norm_timepoints if pt.get('plannedTimepointId')}
 
     # --- Normalize activities ---
     act_map = {}
