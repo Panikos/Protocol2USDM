@@ -1,5 +1,7 @@
 import os
 import sys
+import io
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
 import fitz  # PyMuPDF
 import textwrap
 from openai import OpenAI
@@ -48,7 +50,7 @@ def keyword_filter(page_texts):
 
 import time
 
-def llm_is_soa_page(page_text, client):
+def llm_is_soa_page(page_text, client, model):
     unique_run_id = f"RunID:{time.time()}"
     prompt = (
         "You are an expert in clinical trial protocol parsing. "
@@ -56,13 +58,15 @@ def llm_is_soa_page(page_text, client):
         "Reply only 'yes' or 'no'.\n\n"
         f"Page Text:\n{textwrap.shorten(page_text, width=3500)}\n{unique_run_id}"
     )
-    response = client.chat.completions.create(
-        model="gpt-4o",
-        messages=[
-            {"role": "system", "content": prompt}
-        ],
-        max_tokens=5
-    )
+    params = dict(model=model, messages=[
+        {"role": "system", "content": prompt}
+    ])
+    if model in ['o3', 'o3-mini', 'o3-mini-high']:
+        params['max_completion_tokens'] = 5
+    else:
+        params['max_tokens'] = 5
+    response = client.chat.completions.create(**params)
+
     answer = response.choices[0].message.content.strip().lower()
     return answer.startswith('yes')
 
@@ -84,16 +88,18 @@ def llm_is_soa_page_image(pdf_path, page_num, client, model=MODEL_NAME):
         "Reply only 'yes' or 'no'. "
         f"{unique_run_id}"
     )
-    response = client.chat.completions.create(
-        model=model,
-        messages=[
-            {"role": "system", "content": prompt},
-            {"role": "user", "content": [
-                {"type": "image_url", "image_url": {"url": f"file://{image_path}"}}
-            ]}
-        ],
-        max_tokens=5
-    )
+    params = dict(model=model, messages=[
+        {"role": "system", "content": prompt},
+        {"role": "user", "content": [
+            {"type": "image_url", "image_url": {"url": f"file://{image_path}"}}
+        ]}
+    ])
+    if model in ['o3', 'o3-mini', 'o3-mini-high']:
+        params['max_completion_tokens'] = 5
+    else:
+        params['max_tokens'] = 5
+    response = client.chat.completions.create(**params)
+
     answer = response.choices[0].message.content.strip().lower()
     os.remove(image_path)
     return answer.startswith('yes')
@@ -131,22 +137,23 @@ def main():
     if candidates:
         print(f"[INFO] Running LLM adjudication on keyword candidate pages: {candidates}")
         for i in candidates:
-            answer = llm_is_soa_page(page_texts[i], client)
+            answer = llm_is_soa_page(page_texts[i], client, MODEL_NAME)
             log_llm(i, answer, "text")
             adjudicated.add(i)
             if answer:
                 soa_pages.append(i)
                 found_soa = True
-                # Check N_EXTRA subsequent pages
-                for j in range(1, N_EXTRA+1):
-                    if i+j < len(page_texts):
-                        answer_next = llm_is_soa_page(page_texts[i+j], client)
-                        log_llm(i+j, answer_next, "text (extra)")
-                        adjudicated.add(i+j)
-                        if answer_next:
-                            soa_pages.append(i+j)
-                        else:
-                            break
+                # Keep checking subsequent pages until a "no"
+                next_idx = i + 1
+                while next_idx < len(page_texts):
+                    answer_next = llm_is_soa_page(page_texts[next_idx], client, MODEL_NAME)
+                    log_llm(next_idx, answer_next, "text (contiguous)")
+                    adjudicated.add(next_idx)
+                    if answer_next:
+                        soa_pages.append(next_idx)
+                        next_idx += 1
+                    else:
+                        break
     # 2. If no SOA found, continue adjudicating all remaining pages in order
     if not soa_pages:
         print(f"[INFO] No SOA found in keyword candidates. Adjudicating all pages in order...")

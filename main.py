@@ -73,23 +73,37 @@ def main():
     MODEL_NAME = args.model
     PDF_PATH = args.pdf_path
     SOA_IMAGES_DIR = "./soa_images"
-    print(f"[INFO] Using LLM model: {MODEL_NAME}")
     # Cleanup outputs before starting
     cleanup_outputs()
 
     # 1. Extract SoA from text (PDF)
     print("\n[STEP 1] Extracting SoA from PDF text...")
-    success, _ = run_script("send_pdf_to_openai.py")
+    print("[INFO] INPUT: PDF file:", PDF_PATH)
+    print("[INFO] OUTPUT: STEP1_soa_text.json")
+    success, output = run_script("send_pdf_to_openai.py")
+    actual_model = None
+    if output:
+        for line in output.splitlines():
+            if line.startswith('[ACTUAL_MODEL_USED]'):
+                actual_model = line.split(']', 1)[-1].strip()
+                break
+    if actual_model:
+        print(f"[INFO] Actual OpenAI model used: {actual_model}")
+    else:
+        print("[WARNING] Could not determine actual model used from send_pdf_to_openai.py output.")
     if not success:
         print("[FATAL] Text extraction failed. Aborting.")
         return
 
     # 2. (Optional) Regenerate LLM prompt from mapping
     print("\n[STEP 2] Generating up-to-date LLM prompt from mapping...")
+    print("[INFO] INPUT: soa_entity_mapping.json")
+    print("[INFO] OUTPUT: llm_soa_prompt.txt")
     run_script("generate_soa_llm_prompt.py")
 
     # 3. Find SOA pages
     print("\n[STEP 3] Identifying SOA pages in PDF...")
+    print("[INFO] INPUT: PDF file:", PDF_PATH)
     result = subprocess.run([sys.executable, "find_soa_pages.py", PDF_PATH], capture_output=True, text=True, encoding="utf-8", errors="replace")
     if result.returncode != 0:
         print("[FATAL] SOA page identification failed:", result.stderr)
@@ -107,6 +121,8 @@ def main():
 
     # 4. Extract those pages as images
     print("\n[STEP 4] Extracting SOA pages as images...")
+    print("[INFO] INPUT: PDF file:", PDF_PATH)
+    print("[INFO] OUTPUT: ./soa_images/soa_page_*.png")
     page_str = ",".join(str(p) for p in soa_pages)
     result = subprocess.run([sys.executable, "extract_pdf_pages_as_images.py", PDF_PATH, page_str, SOA_IMAGES_DIR], capture_output=True, text=True)
     if result.returncode != 0:
@@ -117,6 +133,8 @@ def main():
 
     # 5. Extract SoA from images (vision)
     print("\n[STEP 5] Extracting SoA from protocol images...")
+    print("[INFO] INPUT: Images:", image_paths)
+    print("[INFO] OUTPUT: STEP2_soa_vision.json")
     vision_args = image_paths + ["--output", "STEP2_soa_vision.json"]
     success, _ = run_script("vision_extract_soa.py", vision_args)
     if not success:
@@ -125,21 +143,27 @@ def main():
 
     # 6. Postprocess and consolidate SoA vision extraction
     print("\n[STEP 6] Consolidating and normalizing STEP2_soa_vision.json...")
+    print("[INFO] INPUT: STEP2_soa_vision.json")
+    print("[INFO] OUTPUT: STEP3_soa_vision_fixed.json")
     success, _ = run_script("soa_postprocess_consolidated.py", ["STEP2_soa_vision.json", "STEP3_soa_vision_fixed.json"])
     if not success:
         print("[FATAL] STEP2_soa_vision.json post-processing failed. Aborting.")
         return
     print("[STEP 6b] Validating STEP3_soa_vision_fixed.json against mapping...")
+    print("[INFO] INPUT: STEP3_soa_vision_fixed.json, soa_entity_mapping.json")
     success, _ = run_script("soa_extraction_validator.py", ["STEP3_soa_vision_fixed.json"])
     if not success:
         print("[FATAL] STEP3_soa_vision_fixed.json failed mapping validation. Aborting.")
         return
     print("\n[STEP 7] Consolidating and normalizing STEP1_soa_text.json...")
+    print("[INFO] INPUT: STEP1_soa_text.json")
+    print("[INFO] OUTPUT: STEP4_soa_text_fixed.json")
     success, _ = run_script("soa_postprocess_consolidated.py", ["STEP1_soa_text.json", "STEP4_soa_text_fixed.json"])
     if not success:
         print("[FATAL] STEP1_soa_text.json post-processing failed. Aborting.")
         return
     print("[STEP 7b] Validating STEP4_soa_text_fixed.json against mapping...")
+    print("[INFO] INPUT: STEP4_soa_text_fixed.json, soa_entity_mapping.json")
     success, _ = run_script("soa_extraction_validator.py", ["STEP4_soa_text_fixed.json"])
     if not success:
         print("[FATAL] STEP4_soa_text_fixed.json failed mapping validation. Aborting.")
@@ -147,6 +171,8 @@ def main():
 
     # 8. LLM-based reconciliation
     print("\n[STEP 8] LLM-based reconciliation of text and vision outputs...")
+    print("[INFO] INPUT: STEP4_soa_text_fixed.json, STEP3_soa_vision_fixed.json")
+    print("[INFO] OUTPUT: STEP5_soa_final.json")
     result = subprocess.run([sys.executable, "reconcile_soa_llm.py", "--text", "STEP4_soa_text_fixed.json", "--vision", "STEP3_soa_vision_fixed.json", "--output", "STEP5_soa_final.json"], capture_output=True, text=True)
     if result.returncode != 0:
         print("[FATAL] LLM reconciliation failed:", result.stderr)

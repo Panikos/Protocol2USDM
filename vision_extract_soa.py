@@ -26,15 +26,17 @@ def extract_soa_from_images(image_paths):
         "You are an expert in clinical trial protocol data modeling.\n"
         "Extract the Schedule of Activities (SoA) from the following protocol images and return it as a single JSON object conforming to the CDISC USDM v4.0 OpenAPI schema, specifically the Wrapper-Input object.\n"
         "\n"
-        "Requirements:\n"
-        "- IMPORTANT: Use the table column headers EXACTLY as they appear in the protocol as the timepoint labels. Do NOT infer, canonicalize, or generate visit/week names that are not present in the table. If a header is ambiguous or missing, output it as-is and flag for review.\n"
-        "- Output a 'table_headers' array with the literal table headers for traceability.\n"
-        "IMPORTANT: Output ONLY a valid JSON object. Do not include any commentary, markdown, or explanation.\n"
-        "- The top-level object must have these keys:\n"
-        "  - study: an object conforming to the Study-Input schema, fully populated with all required and as many optional fields as possible.\n"
-        "  - usdmVersion: string, always set to '4.0'.\n"
-        "  - systemName: string, set to 'Protocol2USDMv3'.\n"
-        "  - systemVersion: string, set to '1.0'.\n"
+        "REQUIREMENTS (STRICT):\n"
+        "- For EVERY activity, explicitly assign an activityGroupId. If the activity belongs to Laboratory Tests, Health Outcome Instruments, or any other group, ensure the group is defined in activityGroups and referenced from the activity.\n"
+        "- The activityGroups array MUST include definitions for all groups present in the SoA, including but not limited to Laboratory Tests, Health Outcome Instruments, Safety Assessments, Efficacy Assessments, etc.\n"
+        "- Each activity must have a plannedTimepoints array listing all plannedTimepointIds where it occurs.\n"
+        "- The timeline must include an explicit activityTimepoints array, where each entry maps an activityId to a plannedTimepointId. Create one entry for every tickmark/cell in the SoA table.\n"
+        "- If a matrix or tickmark table is present, ensure all activity-timepoint mappings are captured in activityTimepoints.\n"
+        "- Use table headers verbatim for timepoint labels.\n"
+        "- Output ONLY valid JSON, with no explanations, comments, or markdown.\n"
+        "- Include a 'table_headers' array for traceability.\n"
+        "- If a group is not present, set the group id to null.\n"
+        "- If the output is invalid, output as much as possible.\n"
         "\n"
         "The study object must include:\n"
         "- id: string (use protocol’s unique identifier).\n"
@@ -51,11 +53,24 @@ def extract_soa_from_images(image_paths):
         "- rationale: string or null.\n"
         "- timeline: object, must include:\n"
         "    - plannedTimepoints: array of PlannedTimepoint-Input (each with unique id, name, instanceType, etc.).\n"
-        "    - activities: array of Activity-Input (each with unique id, name, instanceType, etc.).\n"
+        "    - activities: array of Activity-Input (each with unique id, name, activityGroupId, plannedTimepoints, instanceType, etc.).\n"
         "    - activityGroups: array of ActivityGroup-Input (each with unique id, name, instanceType, etc.).\n"
-        "    - activityTimepoints: array of ActivityTimepoint-Input (each mapping an activity to a timepoint).\n"
+        "    - activityTimepoints: array of ActivityTimepoint-Input (each mapping an activity to a timepoint: activityId + plannedTimepointId).\n"
         "- amendments: array (can be empty).\n"
         "- instanceType: string, must be 'StudyVersion'.\n"
+        "\n"
+        "For the Schedule of Activities:\n"
+        "- plannedTimepoints: List all planned visits/timepoints (e.g., Screening, Baseline, Week 1, End of Study). Each must have id, name, and instanceType ('PlannedTimepoint').\n"
+        "- activities: List all activities/procedures (e.g., Informed Consent, Blood Draw, ECG). Each must have id, name, activityGroupId, plannedTimepoints, and instanceType ('Activity').\n"
+        "- activityGroups: If the protocol groups activities (e.g., Labs, Safety Assessments, Laboratory Tests, Health Outcome Instruments), define these here.\n"
+        "- activityTimepoints: For each cell in the SoA table (i.e., each activity at each timepoint), create an object mapping the activity to the timepoint. Each must have activityId, plannedTimepointId, and instanceType ('ActivityTimepoint').\n"
+        "- Use unique IDs for all entities.\n"
+        "\n"
+        "General Instructions:\n"
+        "- Output ONLY valid JSON (no markdown, explanations, or comments).\n"
+        "- If a required field is missing in the protocol, use null or an empty array as appropriate.\n"
+        "- All objects must include their required instanceType property with the correct value.\n"
+        "- Output must be fully USDM v4.0 compliant with grouping and tickmark mappings.\n"
         "\n"
         "For the Schedule of Activities:\n"
         "- plannedTimepoints: List all planned visits/timepoints (e.g., Screening, Baseline, Week 1, End of Study). Each must have id, name, and instanceType ('PlannedTimepoint').\n"
@@ -92,14 +107,14 @@ def extract_soa_from_images(image_paths):
         model_order += ['gpt-4o']
     tried = []
     for model_try in model_order:
-        max_tokens = 90000 if model_try in ['o3', 'o3-mini-high'] else 16384
         print(f"[INFO] Using OpenAI model: {model_try}")
         try:
-            response = client.chat.completions.create(
-                model=model_try,
-                messages=messages,
-                max_tokens=max_tokens
-            )
+            params = dict(model=model_try, messages=messages)
+            if model_try in ['o3', 'o3-mini', 'o3-mini-high']:
+                params['max_completion_tokens'] = 90000
+            else:
+                params['max_tokens'] = 16384
+            response = client.chat.completions.create(**params)
             content = response.choices[0].message.content
             if len(content) > 3800:
                 print("[WARNING] LLM output may be truncated. Consider splitting the task or increasing max_tokens if supported.")
@@ -120,20 +135,7 @@ if __name__ == "__main__":
     parser.add_argument("--output", default="STEP2_soa_vision.json", help="Output JSON file")
     args = parser.parse_args()
     soa_vision = extract_soa_from_images(args.image_paths)
-    def clean_llm_json(raw):
-        raw = raw.strip()
-        # Remove code block markers
-        if raw.startswith('```json'):
-            raw = raw[7:]
-        if raw.startswith('```'):
-            raw = raw[3:]
-        if raw.endswith('```'):
-            raw = raw[:-3]
-        # Remove anything after the last closing brace
-        last_brace = raw.rfind('}')
-        if last_brace != -1:
-            raw = raw[:last_brace+1]
-        return raw
+    from json_utils import clean_llm_json
     if not soa_vision or not soa_vision.strip():
         with open("soa_vision_raw.txt", "w", encoding="utf-8") as f:
             f.write(str(soa_vision))

@@ -106,16 +106,31 @@ def get_activities(timeline):
     return result
 
 def get_activity_timepoints(timeline):
-    # Map (activityId, timepointId)
-    atps = timeline.get('activityTimepoints', [])
+    # Try to extract links from a 'matrix' field if present
     links = set()
+    acts = timeline.get('activities', [])
+    pts = timeline.get('plannedTimepoints', [])
+    matrix = timeline.get('matrix')
+    if matrix and isinstance(matrix, list):
+        # Assume matrix is a 2D array [activity][timepoint] with 1/0 or X/''
+        for i, row in enumerate(matrix):
+            for j, val in enumerate(row):
+                if val and i < len(acts) and j < len(pts):
+                    aid = acts[i].get('activityId') or acts[i].get('id')
+                    ptid = pts[j].get('plannedTimepointId') or pts[j].get('id')
+                    if aid and ptid:
+                        links.add((aid, ptid))
+        if links:
+            return links
+    # Fallback: activityTimepoints
+    atps = timeline.get('activityTimepoints', [])
     for atp in atps:
         aid = atp.get('activityId') or atp.get('id') or atp.get('activityGroupId')
         ptid = atp.get('plannedTimepointId') or atp.get('timepointId') or atp.get('id')
         if aid and ptid:
             links.add((aid, ptid))
-    # Also check activities/plannedTimepoints
-    for act in timeline.get('activities', []):
+    # Fallback: activities with plannedTimepoints
+    for act in acts:
         aid = act.get('activityId') or act.get('id')
         for k in ['plannedTimepoints', 'plannedTimepointIds']:
             if k in act:
@@ -124,6 +139,28 @@ def get_activity_timepoints(timeline):
     return links
 
 import pandas as pd
+
+def _render_soa_table_core(acts, pts, links, pt_groups, file_name):
+    # --- Render table with group headers for both axes ---
+    table_html = ["<table style='border-collapse:collapse;width:100%'>"]
+    # Column group headers (visit groups)
+    if any(g != 'No Group' for g in pt_groups):
+        table_html.append("<tr><th></th><th></th>" + ''.join(f"<th style='border:1px solid #ccc;background:#e9ecef'><b>{g}</b></th>" for g in pt_groups) + "</tr>")
+    # Header row
+    table_html.append("<tr><th>Activity</th><th>Description</th>" + ''.join(f"<th style='border:1px solid #ccc'>{p['label']}</th>" for p in pts) + "</tr>")
+    for idx, act in enumerate(acts):
+        row_color = '#f8fafc' if idx % 2 == 0 else '#fff'
+        tooltip = f" title='{act['desc'].replace("'", "&#39;")}'" if act['desc'] else ''
+        row = [f"<td class='activity' style='border:1px solid #ccc;padding:4px;text-align:left;background:{row_color}'{tooltip}><b>{act['name']}</b></td>",
+               f"<td style='border:1px solid #ccc;padding:4px;text-align:left;background:{row_color}'>{act['desc']}</td>"]
+        for i, pt in enumerate(pts):
+            checked = '✔️' if (act['id'], pt['id']) in links else ''
+            row.append(f"<td style='border:1px solid #ccc;padding:4px;background:{row_color}'>{checked}</td>")
+        table_html.append("<tr>" + ''.join(row) + "</tr>")
+    table_html.append("</table>")
+    import streamlit as st
+    st.markdown(''.join(table_html), unsafe_allow_html=True)
+    st.success('No missing cells!')
 
 def render_soa_table(soa, filter_activity=None, filter_timepoint=None, grouped=True, file_name='soa', m11_mode=False):
     # If m11_mode, soa is already M11-table-aligned dict
@@ -178,59 +215,81 @@ def render_soa_table(soa, filter_activity=None, filter_timepoint=None, grouped=T
             for i, f in enumerate(footnotes, 1):
                 st.markdown(f"<sup>{i}</sup> {f['text']}", unsafe_allow_html=True)
         return
-    # --- USDM mode (original) ---
+
     timeline = get_timeline(soa)
     if not timeline:
-        st.warning('No timeline found in this SoA JSON.')
+        st.error('No timeline found in SoA JSON.')
         return
     pts = get_timepoints(timeline)
     acts = get_activities(timeline)
     ags = get_activity_groups(timeline)
-    links = get_activity_timepoints(timeline)
+    atps = get_activity_timepoints(timeline)
+    # --- Visit group support ---
+    vgs = timeline.get('visitGroups', [])
+    visit_group_map = {v['id']: v['name'] for v in vgs}
+    # Map visits to groups
+    pt_group_ids = [pt['raw'].get('groupId') if isinstance(pt['raw'], dict) else None for pt in pts]
+    pt_groups = [visit_group_map.get(gid, 'No Group') if gid else 'No Group' for gid in pt_group_ids]
+
     # Filtering
     if filter_activity:
         acts = [a for a in acts if filter_activity.lower() in a['name'].lower()]
     if filter_timepoint:
         pts = [p for p in pts if filter_timepoint.lower() in p['label'].lower()]
-    # Milestone detection
-    milestone_cols = set(i for i, pt in enumerate(pts) if pt.get('milestone'))
-    table_html = ["<table style='border-collapse:collapse;width:100%'>"]
-    table_html.append("<tr>" + ''.join([
-        f"<th style='border:1px solid #ccc;padding:4px'>{c}</th>" for c in ['Activity', 'Description'] + [
-            f"<span style='background:#ffeeba'>{p['label']}</span>" if i in milestone_cols else p['label'] for i, p in enumerate(pts)
-        ]
-    ]) + "</tr>")
+        pt_groups = [pt_groups[i] for i, p in enumerate(pts) if filter_timepoint.lower() in p['label'].lower()]
+
+    # Activity group map
     group_map = {}
     for ag in ags:
         for aid in ag['activityIds']:
             group_map[aid] = ag['name']
-    last_group = None
+    # Always use get_activity_timepoints for links
+    links = get_activity_timepoints(timeline)
+    # Use get_activities/get_timepoints for correct ID mapping
     if grouped:
-        acts.sort(key=lambda x: group_map.get(x['id'], 'No Group'))
+        # Prepare groups
+        groups = {}
+        grouped_ids = set()
+        for ag in ags:
+            group_acts = [a for a in acts if a['id'] in ag['activityIds']]
+            if group_acts:
+                groups[ag['name']] = group_acts
+                grouped_ids.update(a['id'] for a in group_acts)
+        # Find ungrouped activities
+        ungrouped = [a for a in acts if a['id'] not in grouped_ids]
+        if ungrouped:
+            groups['Ungrouped'] = ungrouped
+        # Render each group as a collapsible section
+        for group_name, group_acts in groups.items():
+            with st.expander(f"{group_name}", expanded=True):
+                _render_soa_table_core(group_acts, pts, links, pt_groups, file_name)
+        return
+    # --- Render table with group headers for both axes ---
+    table_html = ["<table style='border-collapse:collapse;width:100%'>"]
+    # Column group headers (visit groups)
+    if any(g != 'No Group' for g in pt_groups):
+        table_html.append("<tr><th></th><th></th>" + ''.join(f"<th style='border:1px solid #ccc;background:#e9ecef'><b>{g}</b></th>" for g in pt_groups) + "</tr>")
+    # Header row
+    table_html.append("<tr><th>Activity</th><th>Description</th>" + ''.join(f"<th style='border:1px solid #ccc'>{p['label']}</th>" for p in pts) + "</tr>")
     for idx, act in enumerate(acts):
-        group = group_map.get(act['id'], 'No Group')
-        if grouped and group != last_group:
-            table_html.append(f"<tr class='group-header'><td colspan='{len(pts) + 2}'>{group}</td></tr>")
-            last_group = group
         row_color = '#f8fafc' if idx % 2 == 0 else '#fff'
         tooltip = f" title='{act['desc'].replace("'", "&#39;")}'" if act['desc'] else ''
         row = [f"<td class='activity' style='border:1px solid #ccc;padding:4px;text-align:left;background:{row_color}'{tooltip}><b>{act['name']}</b></td>",
                f"<td style='border:1px solid #ccc;padding:4px;text-align:left;background:{row_color}'>{act['desc']}</td>"]
         for i, pt in enumerate(pts):
             checked = '✔️' if (act['id'], pt['id']) in links else ''
-            cell_bg = '#ffeeba' if i in milestone_cols else row_color
-            row.append(f"<td style='border:1px solid #ccc;padding:4px;background:{cell_bg}'>{checked}</td>")
+            row.append(f"<td style='border:1px solid #ccc;padding:4px;background:{row_color}'>{checked}</td>")
         table_html.append("<tr>" + ''.join(row) + "</tr>")
     table_html.append("</table>")
     st.markdown(''.join(table_html), unsafe_allow_html=True)
-    st.caption('Activity descriptions shown. Hover for full text if truncated.')
+    st.caption('Rows are grouped by Activity Group and columns by Visit Group (if present). Hover for activity descriptions.')
     # Clinical review stats
     st.markdown('---')
     st.subheader('Clinical Review Summary')
     n_acts = len(acts)
     n_pts = len(pts)
     coverage = sum(1 for act in acts for pt in pts if (act['id'], pt['id']) in links)
-    st.markdown(f"**# Activities:** {n_acts}  |  **# Timepoints:** {n_pts}  |  **Coverage:** {coverage} cells with data")
+    st.markdown(f"**# Activities:** {n_acts}  |  **# Visits:** {n_pts}  |  **Coverage:** {coverage} cells with data")
     missing = [(act['name'], pt['label']) for act in acts for pt in pts if (act['id'], pt['id']) not in links]
     if missing:
         st.markdown(f"**Missing cells:** {len(missing)} (first 10 shown)")

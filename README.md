@@ -113,7 +113,48 @@ Visit [http://localhost:8501](http://localhost:8501) in your browser after runni
   - Browse entities, activities, and timepoints in a user-friendly format.
   - See which timepoints were dropped or merged during processing (if any) and review the audit report.
   - Quickly identify extraction issues or missing data.
+  - **NEW:** Automatically displays both row (activity) groupings and column (visit) groupings if present, using group headers for both axes. This enables clear clinical review of grouped milestones and assessments per USDM/M11.
 - Useful for quality control, annotation, and sharing results with non-technical stakeholders.
+
+## SoA JSON Structure: Grouping Support
+
+The pipeline outputs a grouping-aware, USDM/M11-compliant SoA JSON structure. Key fields:
+
+- `activityGroups`: Array of objects, each with `id` and `name` (e.g., "Safety Assessments").
+- `activities`: Array of objects, each with `id`, `name`, and `groupId` (linking to `activityGroups`).
+- `visitGroups`: Array of objects, each with `id` and `name` (e.g., "Screening").
+- `visits` or `plannedTimepoints`: Array of objects, each with `id`, `label`, and `groupId` (linking to `visitGroups`).
+- `matrix`: Array of objects, each linking `activityId` and `visitId` (plus value, e.g., "X").
+
+**Example:**
+```json
+{
+  "activityGroups": [
+    {"id": "AG1", "name": "Safety Assessments"},
+    {"id": "AG2", "name": "Efficacy Assessments"}
+  ],
+  "activities": [
+    {"id": "A1", "name": "Blood Pressure", "groupId": "AG1"},
+    {"id": "A2", "name": "Tumor Measurement", "groupId": "AG2"}
+  ],
+  "visitGroups": [
+    {"id": "VG1", "name": "Screening"},
+    {"id": "VG2", "name": "Treatment"}
+  ],
+  "plannedTimepoints": [
+    {"id": "V1", "label": "Day 1", "groupId": "VG1"},
+    {"id": "V2", "label": "Week 4", "groupId": "VG2"}
+  ],
+  "matrix": [
+    {"activityId": "A1", "visitId": "V1", "value": "X"},
+    {"activityId": "A2", "visitId": "V2", "value": "X"}
+  ]
+}
+```
+
+- The Streamlit viewer will display group headers for both rows and columns if groupings are present.
+- If a group is missing, the groupId is set to `null` and the viewer will show "No Group".
+- The pipeline and viewer are robust to missing or legacy fields and will gracefully fall back to flat rendering if groupings are absent.
 
 ## Notes
 - The workflow is fully automated and robust to both text-based and image-based PDFs.

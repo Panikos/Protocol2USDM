@@ -2,6 +2,7 @@ import os
 from openai import OpenAI
 from dotenv import load_dotenv
 import fitz  # PyMuPDF
+from json_utils import clean_llm_json
 
 # Load environment variables from .env file
 env_path = os.path.join(os.path.dirname(__file__), '.env')
@@ -26,6 +27,8 @@ if 'OPENAI_MODEL' not in os.environ:
 print(f"[INFO] Using OpenAI model: {MODEL_NAME}")
 print(f"[DEBUG] args.model={args.model}, env OPENAI_MODEL={os.environ.get('OPENAI_MODEL')}")
 
+import re
+
 def extract_pdf_text(pdf_path):
     doc = fitz.open(pdf_path)
     text = ""
@@ -33,20 +36,55 @@ def extract_pdf_text(pdf_path):
         text += page.get_text()
     return text
 
+def split_into_sections(text):
+    # Try to split by section headers (e.g., numbered, all-caps, or 'Schedule of Activities')
+    # Fallback: split by double newlines
+    section_pattern = re.compile(r"(^\s*\d+\.\s+.+$|^[A-Z][A-Z\s\-]{6,}$|^Schedule of Activities.*$)", re.MULTILINE)
+    matches = list(section_pattern.finditer(text))
+    if not matches:
+        # fallback: split by paragraphs
+        return [s.strip() for s in text.split('\n\n') if s.strip()]
+    sections = []
+    for i, m in enumerate(matches):
+        start = m.start()
+        end = matches[i+1].start() if i+1 < len(matches) else len(text)
+        section = text[start:end].strip()
+        if section:
+            sections.append(section)
+    return sections
+
+def chunk_sections(sections, max_chars=75000):
+    chunks = []
+    current = []
+    current_len = 0
+    for sec in sections:
+        if current_len + len(sec) > max_chars and current:
+            chunks.append('\n\n'.join(current))
+            current = [sec]
+            current_len = len(sec)
+        else:
+            current.append(sec)
+            current_len += len(sec)
+    if current:
+        chunks.append('\n\n'.join(current))
+    return chunks
+
 def send_text_to_openai(text):
     usdm_prompt = (
         "You are an expert in clinical trial protocol data modeling.\n"
         "Extract the Schedule of Activities (SoA) from the following protocol text and return it as a single JSON object conforming to the CDISC USDM v4.0 OpenAPI schema, specifically the Wrapper-Input object.\n"
         "\n"
-        "Requirements:\n"
-        "- IMPORTANT: Use the table column headers EXACTLY as they appear in the protocol as the timepoint labels. Do NOT infer, canonicalize, or generate visit/week names that are not present in the table. If a header is ambiguous or missing, output it as-is and flag for review.\n"
-        "- Output a 'table_headers' array with the literal table headers for traceability.\n"
-        "IMPORTANT: Output ONLY a valid JSON object. Do not include any commentary, markdown, or explanation.\n"
-        "- The top-level object must have these keys:\n"
-        "  - study: an object conforming to the Study-Input schema, fully populated with all required and as many optional fields as possible.\n"
-        "  - usdmVersion: string, always set to '4.0'.\n"
-        "  - systemName: string, set to 'Protocol2USDMv3'.\n"
-        "  - systemVersion: string, set to '1.0'.\n"
+        "REQUIREMENTS (STRICT):\n"
+        "- For EVERY activity, explicitly assign an activityGroupId. If the activity belongs to Laboratory Tests, Health Outcome Instruments, or any other group, ensure the group is defined in activityGroups and referenced from the activity.\n"
+        "- The activityGroups array MUST include definitions for all groups present in the SoA, including but not limited to Laboratory Tests, Health Outcome Instruments, Safety Assessments, Efficacy Assessments, etc.\n"
+        "- Each activity must have a plannedTimepoints array listing all plannedTimepointIds where it occurs.\n"
+        "- The timeline must include an explicit activityTimepoints array, where each entry maps an activityId to a plannedTimepointId. Create one entry for every tickmark/cell in the SoA table.\n"
+        "- If a matrix or tickmark table is present, ensure all activity-timepoint mappings are captured in activityTimepoints.\n"
+        "- Use table headers verbatim for timepoint labels.\n"
+        "- Output ONLY valid JSON, with no explanations, comments, or markdown.\n"
+        "- Include a 'table_headers' array for traceability.\n"
+        "- If a group is not present, set the group id to null.\n"
+        "- If the output is invalid, output as much as possible.\n"
         "\n"
         "The study object must include:\n"
         "- id: string (use protocol’s unique identifier).\n"
@@ -63,27 +101,31 @@ def send_text_to_openai(text):
         "- rationale: string or null.\n"
         "- timeline: object, must include:\n"
         "    - plannedTimepoints: array of PlannedTimepoint-Input (each with unique id, name, instanceType, etc.).\n"
-        "    - activities: array of Activity-Input (each with unique id, name, instanceType, etc.).\n"
+        "    - activities: array of Activity-Input (each with unique id, name, activityGroupId, plannedTimepoints, instanceType, etc.).\n"
         "    - activityGroups: array of ActivityGroup-Input (each with unique id, name, instanceType, etc.).\n"
-        "    - activityTimepoints: array of ActivityTimepoint-Input (each mapping an activity to a timepoint).\n"
+        "    - activityTimepoints: array of ActivityTimepoint-Input (each mapping an activity to a timepoint: activityId + plannedTimepointId).\n"
         "- amendments: array (can be empty).\n"
         "- instanceType: string, must be 'StudyVersion'.\n"
         "\n"
         "For the Schedule of Activities:\n"
         "- plannedTimepoints: List all planned visits/timepoints (e.g., Screening, Baseline, Week 1, End of Study). Each must have id, name, and instanceType ('PlannedTimepoint').\n"
-        "- activities: List all activities/procedures (e.g., Informed Consent, Blood Draw, ECG). Each must have id, name, and instanceType ('Activity').\n"
-        "- activityGroups: If the protocol groups activities (e.g., Labs, Safety Assessments), define these here.\n"
-        "- activityTimepoints: For each cell in the SoA table (i.e., each activity at each timepoint), create an object mapping the activity to the timepoint. Each must have id, activityId, plannedTimepointId, and instanceType ('ActivityTimepoint').\n"
+        "- activities: List all activities/procedures (e.g., Informed Consent, Blood Draw, ECG). Each must have id, name, activityGroupId, plannedTimepoints, and instanceType ('Activity').\n"
+        "- activityGroups: If the protocol groups activities (e.g., Labs, Safety Assessments, Laboratory Tests, Health Outcome Instruments), define these here.\n"
+        "- activityTimepoints: For each cell in the SoA table (i.e., each activity at each timepoint), create an object mapping the activity to the timepoint. Each must have activityId, plannedTimepointId, and instanceType ('ActivityTimepoint').\n"
         "- Use unique IDs for all entities.\n"
         "\n"
         "General Instructions:\n"
         "- Output ONLY valid JSON (no markdown, explanations, or comments).\n"
         "- If a required field is missing in the protocol, use null or an empty array as appropriate.\n"
         "- All objects must include their required instanceType property with the correct value.\n"
+        "- Output must be fully USDM v4.0 compliant with grouping and tickmark mappings.\n"
         "- Follow the OpenAPI schema exactly for field names, types, and nesting.\n"
         "\n"
         "If you need the full field list for each object, refer to the OpenAPI schema.\n"
     )
+    print(f"[DEBUG] Length of extracted PDF text: {len(text)}")
+    print(f"[DEBUG] Length of prompt: {len(usdm_prompt)}")
+    print(f"[DEBUG] Total prompt+text length: {len(usdm_prompt) + len(text)}")
     messages = [
         {"role": "system", "content": usdm_prompt},
         {"role": "user", "content": text}
@@ -99,16 +141,19 @@ def send_text_to_openai(text):
     for model_try in model_order:
         print(f"[INFO] Using OpenAI model: {model_try}")
         params = dict(model=model_try, messages=messages)
+        # Use 'max_completion_tokens' = 100000 for o3/o3-mini/o3-mini-high, and 'max_tokens' for gpt-4o/others
         if model_try in ['o3', 'o3-mini', 'o3-mini-high']:
-            params['max_completion_tokens'] = 90000
+            params['max_completion_tokens'] = 100000
         else:
             params['max_tokens'] = 16384
         try:
             response = client.chat.completions.create(**params)
-            content = response.choices[0].message.content
-            if len(content) > 3800:
+            result = response.choices[0].message.content
+            # Clean up: remove code block markers, trailing text
+            if len(result) > 3800:
                 print("[WARNING] LLM output may be truncated. Consider splitting the task or increasing max_tokens if supported.")
-            return content
+            print(f"[ACTUAL_MODEL_USED] {model_try}")
+            return result
         except Exception as e:
             err_msg = str(e)
             print(f"[WARNING] Model '{model_try}' failed: {err_msg}")
@@ -117,54 +162,107 @@ def send_text_to_openai(text):
     print(f"[FATAL] All model attempts failed: {', '.join([f'{model}: {err}' for model, err in tried])}")
     raise RuntimeError(f"No available model succeeded: {', '.join([f'{model}: {err}' for model, err in tried])}")
 
-# Path to your PDF file
-pdf_path = 'c:/Users/panik/Documents/GitHub/Protcol2USDMv3/CDISC_Pilot_Study.pdf'
-
-# Extract text and send to GPT-4o
-pdf_text = extract_pdf_text(pdf_path)
+import sys
 import json
 
-def clean_llm_json(raw):
-    raw = raw.strip()
-    # Remove code block markers
-    if raw.startswith('```json'):
-        raw = raw[7:]
-    if raw.startswith('```'):
-        raw = raw[3:]
-    if raw.endswith('```'):
-        raw = raw[:-3]
-    # Remove anything after the last closing brace
-    last_brace = raw.rfind('}')
-    if last_brace != -1:
-        raw = raw[:last_brace+1]
-    return raw
+pdf_path = args.pdf_path if hasattr(args, 'pdf_path') and args.pdf_path else 'c:/Users/panik/Documents/GitHub/Protcol2USDMv3/CDISC_Pilot_Study.pdf'
 
-parsed_content = send_text_to_openai(pdf_text)
-import sys
-sys.stdout.reconfigure(encoding='utf-8')
+pdf_text = extract_pdf_text(pdf_path)
+sections = split_into_sections(pdf_text)
+chunks = chunk_sections(sections, max_chars=75000)
+print(f"[INFO] PDF split into {len(chunks)} chunks for LLM extraction.")
 
-# Output validation: check if empty or not JSON-like
-if not parsed_content or not parsed_content.strip().startswith(('{', '[')):
-    print("[FATAL] LLM output is empty or not valid JSON. Saving raw output to llm_raw_output.txt.")
-    with open("llm_raw_output.txt", "w", encoding="utf-8") as f:
-        f.write(parsed_content or "[EMPTY]")
-    sys.exit(1)
+all_versions = []
+all_timepoints = []
+all_activities = []
+all_groups = []
+all_atps = []
+wrapper_info = None
+study_id = None
+study_name = None
 
-try:
-    parsed_json = json.loads(parsed_content)
-except json.JSONDecodeError:
-    cleaned = clean_llm_json(parsed_content)
+for i, chunk in enumerate(chunks):
+    print(f"[INFO] Sending chunk {i+1}/{len(chunks)} to LLM (length: {len(chunk)})...")
+    parsed_content = send_text_to_openai(chunk)
+    if not parsed_content or not parsed_content.strip().startswith(('{', '[')):
+        print(f"[FATAL] LLM output for chunk {i+1} is empty or not valid JSON. Saving raw output to llm_raw_output_{i+1}.txt.")
+        with open(f"llm_raw_output_{i+1}.txt", "w", encoding="utf-8") as f:
+            f.write(parsed_content or "[EMPTY]")
+        continue
     try:
-        parsed_json = json.loads(cleaned)
+        parsed_json = json.loads(parsed_content)
     except json.JSONDecodeError:
-        print("[FATAL] LLM output could not be parsed as JSON. Saving raw and cleaned output for inspection.")
-        with open("llm_raw_output.txt", "w", encoding="utf-8") as f:
-            f.write(parsed_content)
-        with open("llm_cleaned_output.txt", "w", encoding="utf-8") as f:
-            f.write(cleaned)
-        sys.exit(1)
-print(json.dumps(parsed_json, indent=2, ensure_ascii=False))
+        cleaned = clean_llm_json(parsed_content)
+        try:
+            parsed_json = json.loads(cleaned)
+        except json.JSONDecodeError:
+            print(f"[FATAL] LLM output for chunk {i+1} could not be parsed as JSON. Saving raw and cleaned output.")
+            with open(f"llm_raw_output_{i+1}.txt", "w", encoding="utf-8") as f:
+                f.write(parsed_content)
+            with open(f"llm_cleaned_output_{i+1}.txt", "w", encoding="utf-8") as f:
+                f.write(cleaned)
+            continue
+    # Drill into the USDM structure
+    if isinstance(parsed_json, dict):
+        if not wrapper_info:
+            # Save wrapper info from the first chunk
+            wrapper_info = {k: parsed_json[k] for k in parsed_json if k not in ('study', 'Study')}
+        study = parsed_json.get('study') or parsed_json.get('Study')
+        if study:
+            if not study_id:
+                study_id = study.get('id')
+            if not study_name:
+                study_name = study.get('name')
+            versions = study.get('versions') or study.get('studyVersions') or []
+            if isinstance(versions, dict):
+                versions = [versions]
+            for v in versions:
+                timeline = v.get('timeline') or v.get('studyDesign', {}).get('timeline') or {}
+                # Collect all entities
+                all_versions.append(v)
+                all_timepoints.extend(timeline.get('plannedTimepoints', []))
+                all_activities.extend(timeline.get('activities', []))
+                all_groups.extend(timeline.get('activityGroups', []))
+                all_atps.extend(timeline.get('activityTimepoints', []))
 
-# Optionally, save to file
-with open("STEP1_soa_text.json", "w", encoding="utf-8") as f:
-    json.dump(parsed_json, f, indent=2, ensure_ascii=False)
+# Deduplicate by id
+unique = lambda items, key: list({item.get(key): item for item in items if item.get(key)}.values())
+all_timepoints = unique(all_timepoints, 'id')
+all_activities = unique(all_activities, 'id')
+all_groups = unique(all_groups, 'id')
+all_atps = [dict(t) for t in {json.dumps(atp, sort_keys=True): atp for atp in all_atps}.values()]
+
+# Compose merged timeline
+merged_timeline = {
+    'plannedTimepoints': all_timepoints,
+    'activities': all_activities,
+    'activityGroups': all_groups,
+    'activityTimepoints': all_atps
+}
+# Compose merged version
+merged_version = {
+    'id': study_id or 'merged_version',
+    'versionIdentifier': 'Merged from LLM chunks',
+    'instanceType': 'StudyVersion',
+    'timeline': merged_timeline,
+    'amendments': [],
+}
+# Compose merged study
+merged_study = {
+    'id': study_id or 'merged_study',
+    'name': study_name or 'Merged Study',
+    'instanceType': 'Study',
+    'versions': [merged_version],
+    'documentedBy': [],
+}
+# Compose wrapper
+final_json = {
+    'systemVersion': wrapper_info.get('systemVersion', '1.0') if wrapper_info else '1.0',
+    'systemName': wrapper_info.get('systemName', 'Protocol2USDMv3') if wrapper_info else 'Protocol2USDMv3',
+    'usdmVersion': wrapper_info.get('usdmVersion', '4.0') if wrapper_info else '4.0',
+    'study': merged_study
+}
+
+with open('STEP1_soa_text.json', 'w', encoding='utf-8') as f:
+    json.dump(final_json, f, indent=2, ensure_ascii=False)
+print('[SUCCESS] Merged SoA output from all LLM chunks written to STEP1_soa_text.json')

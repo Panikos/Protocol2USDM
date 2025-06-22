@@ -48,13 +48,41 @@ def consolidate_and_fix_soa(input_path, output_path, ref_metadata_path=None):
         data = wrapped
     study = data['study']
 
-    # Drill to timeline
+    # Robustly drill to timeline, handling old and new grouping structures
     versions = study.get('versions') or study.get('studyVersions')
-    if not versions or not isinstance(versions, list):
-        raise ValueError("Study must contain a non-empty 'versions' or 'studyVersions' array.")
-    timeline = versions[0].get('timeline') or versions[0].get('studyDesign', {}).get('timeline')
+    # Accept single version as dict
+    if versions and isinstance(versions, dict):
+        versions = [versions]
+        study['versions'] = versions
+    # If missing or empty, but study itself looks like a version (has timeline), wrap it
+    if (not versions or not isinstance(versions, list) or len(versions) == 0):
+        # Accept timeline at study, studyDesign, or direct timeline keys
+        timeline_candidate = study.get('timeline') or study.get('studyDesign', {}).get('timeline') or study.get('Timeline')
+        if timeline_candidate:
+            versions = [dict(study)]
+            versions[0]['timeline'] = timeline_candidate
+            study['versions'] = versions
+            print("[INFO] Study missing versions/studyVersions; treating study as a single version.")
+        else:
+            print("[FATAL] Study must contain a non-empty 'versions' or 'studyVersions' array, and no timeline found in study.")
+            print("[DEBUG] Study keys:", list(study.keys()))
+            sys.exit(1)
+    # Accept timeline in various possible locations/names
+    timeline = (
+        versions[0].get('timeline') or
+        versions[0].get('Timeline') or
+        versions[0].get('studyDesign', {}).get('timeline') or
+        versions[0].get('studyDesign', {}).get('Timeline')
+    )
     if not timeline:
-        raise ValueError("No timeline found in study version.")
+        print("[FATAL] No timeline found in study version.")
+        print("[DEBUG] Version keys:", list(versions[0].keys()))
+        sys.exit(1)
+    # Accept timeline as a list (legacy), wrap as dict
+    if isinstance(timeline, list):
+        timeline = {'plannedTimepoints': timeline}
+        versions[0]['timeline'] = timeline
+        print("[INFO] Timeline was a list, wrapped as dict.")
 
     # --- Normalize plannedTimepoints and add milestone support ---
     # --- Strict deduplication: only merge if ALL identifying fields match ---
@@ -62,33 +90,19 @@ def consolidate_and_fix_soa(input_path, output_path, ref_metadata_path=None):
     seen = set()
     norm_timepoints = []
     for pt in pts:
-        pt = deepcopy(pt)
-        pt_id = pt.get('plannedTimepointId') or pt.get('plannedId') or pt.get('id')
-        pt_label = pt.get('label') or pt.get('visit') or pt.get('visitName') or pt.get('name')
-        pt_key = (str(pt_id).strip().lower() if pt_id else None, str(pt_label).strip().lower() if pt_label else None)
-        # Only merge if both id and label match exactly (case-insensitive)
-        if pt_key in seen:
-            continue  # Exact duplicate
-        seen.add(pt_key)
-        if pt_id:
-            pt['plannedTimepointId'] = pt_id
-        # Milestone support: look for milestone or milestoneType
-        if 'milestone' not in pt:
-            if pt.get('milestoneType') or (pt.get('isMilestone') is True):
-                pt['milestone'] = True
-        if 'visit' in pt and 'visitName' not in pt:
-            pt['visitName'] = pt['visit']
-        if 'name' in pt and 'visitName' not in pt:
-            pt['visitName'] = pt['name']
-        # Merge in metadata from reference if available
-        if ref_metadata:
-            ref_pts = ref_metadata.get('plannedTimepoints', [])
-            ref = next((x for x in ref_pts if (x.get('plannedTimepointId') or x.get('id')) == pt_id), None)
-            if ref:
-                for k in ['description', 'code', 'window']:
-                    if k in ref:
-                        pt[k] = ref[k]
-        norm_timepoints.append(pt)
+        pt_tuple = tuple(sorted(pt.items()))
+        if pt_tuple not in seen:
+            # Merge in metadata from reference if available
+            if ref_metadata:
+                pt_id = pt.get('plannedTimepointId') or pt.get('plannedId') or pt.get('id')
+                ref_pts = ref_metadata.get('plannedTimepoints', [])
+                ref = next((x for x in ref_pts if (x.get('plannedTimepointId') or x.get('id')) == pt_id), None)
+                if ref:
+                    for k in ['description', 'code', 'window']:
+                        if k in ref:
+                            pt[k] = ref[k]
+            norm_timepoints.append(pt)
+            seen.add(pt_tuple)
     timeline['plannedTimepoints'] = norm_timepoints
     # Ensure pt_map is available for downstream usage
     pt_map = {pt.get('plannedTimepointId'): pt for pt in norm_timepoints if pt.get('plannedTimepointId')}
@@ -111,16 +125,8 @@ def consolidate_and_fix_soa(input_path, output_path, ref_metadata_path=None):
                 act['activityId'] = act_id
             if 'name' in act and 'activityName' not in act:
                 act['activityName'] = act['name']
-            # Merge in metadata from reference if available
-            if ref_metadata:
-                ref_acts = ref_metadata.get('activities', [])
-                ref = next((x for x in ref_acts if x.get('activityId') == act_id or x.get('id') == act_id), None)
-                if ref:
-                    for k in ['description', 'code']:
-                        if k in ref:
-                            act[k] = ref[k]
-            act_map[act['activityId']] = act
             norm_acts.append(act)
+            act_map[act['activityId']] = act
     timeline['activities'] = norm_acts
 
     # --- Normalize activityGroups ---
@@ -163,6 +169,17 @@ def consolidate_and_fix_soa(input_path, output_path, ref_metadata_path=None):
                 dropped.append({**atp, 'reason': 'invalid activityId or plannedTimepointId'})
         else:
             dropped.append({**atp, 'reason': 'unrecognized format'})
+    # --- Fallback: If no activityTimepoints, try to infer from activities ---
+    if not new_atps:
+        for act in norm_acts:
+            aid = act.get('activityId') or act.get('id')
+            for k in ['plannedTimepoints', 'plannedTimepointIds']:
+                if k in act:
+                    for ptid in act[k]:
+                        if aid and ptid:
+                            new_atps.append({'activityId': aid, 'plannedTimepointId': ptid})
+        if new_atps:
+            fixes.append('Auto-generated activityTimepoints from per-activity plannedTimepoints.')
     timeline['activityTimepoints'] = new_atps
 
     # --- Fill missing fields using entity mapping ---
