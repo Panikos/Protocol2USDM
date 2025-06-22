@@ -80,7 +80,8 @@ def main():
     print("\n[STEP 1] Extracting SoA from PDF text...")
     print("[INFO] INPUT: PDF file:", PDF_PATH)
     print("[INFO] OUTPUT: STEP1_soa_text.json")
-    success, output = run_script("send_pdf_to_openai.py")
+    success, output = run_script("send_pdf_to_openai.py", [PDF_PATH, "--model", MODEL_NAME, "--output", "STEP1_soa_text.json"])
+
     actual_model = None
     if output:
         for line in output.splitlines():

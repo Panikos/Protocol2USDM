@@ -132,14 +132,47 @@ def consolidate_and_fix_soa(input_path, output_path, ref_metadata_path=None):
     # --- Normalize activityGroups ---
     group_map = {}
     norm_groups = []
+    # Build a set of all group names needed based on activities
+    needed_group_names = set()
+    for act in norm_acts:
+        group_name = act.get('activityGroupName') or act.get('groupName')
+        if not group_name and 'activityName' in act:
+            name = act['activityName'].lower()
+            if 'laboratory' in name:
+                group_name = 'Laboratory Tests'
+            elif 'instrument' in name:
+                group_name = 'Health Outcome Instruments'
+            elif 'efficacy' in name:
+                group_name = 'Efficacy Assessments'
+            elif 'safety' in name:
+                group_name = 'Safety Assessments'
+        if not group_name:
+            group_name = 'Ungrouped'
+        act['activityGroupName'] = group_name
+        needed_group_names.add(group_name)
+    # Map group names to group ids
+    group_name_to_id = {g['name']: g.get('activityGroupId') or g.get('groupId') or f'AG{i+1}' for i, g in enumerate(timeline.get('activityGroups', [])) if 'name' in g}
+    # Add missing groups
+    for group_name in needed_group_names:
+        if group_name not in group_name_to_id:
+            group_id = f'AG{len(group_name_to_id)+1}'
+            group_name_to_id[group_name] = group_id
+            norm_groups.append({'activityGroupId': group_id, 'name': group_name, 'activityIds': []})
+    # Assign group ids to activities and collect activity ids for each group
+    group_activities = {gid: [] for gid in group_name_to_id.values()}
+    for act in norm_acts:
+        group_id = group_name_to_id[act['activityGroupName']]
+        act['activityGroupId'] = group_id
+        group_activities[group_id].append(act.get('activityId'))
+    # Update norm_groups with activity ids
+    for g in norm_groups:
+        gid = g['activityGroupId']
+        g['activityIds'] = group_activities.get(gid, [])
+    # Add any remaining groups from the original timeline
     for i, ag in enumerate(timeline.get('activityGroups', [])):
-        ag = deepcopy(ag)
         group_id = ag.get('activityGroupId') or ag.get('groupId') or f'AG{i+1}'
-        ag['activityGroupId'] = group_id
-        aids = ag.get('activityIds') if 'activityIds' in ag else ag.get('activities', [])
-        ag['activityIds'] = aids
-        group_map[group_id] = ag
-        norm_groups.append(ag)
+        if group_id not in [g['activityGroupId'] for g in norm_groups]:
+            norm_groups.append(ag)
     timeline['activityGroups'] = norm_groups
 
     # --- Expand activityTimepoints to explicit pairs ---
@@ -148,7 +181,20 @@ def consolidate_and_fix_soa(input_path, output_path, ref_metadata_path=None):
     for atp in timeline.get('activityTimepoints', []):
         # Group-based
         if 'activityGroup' in atp and ('plannedTimepoint' in atp or 'plannedTimepointId' in atp):
-            group_id = atp['activityGroup']
+            group_id = atp.get('activityGroup')
+            if not group_id:
+                # Try to infer group from activity name or assign 'Ungrouped'
+                name = atp.get('name', '').lower()
+                if 'laboratory' in name:
+                    group_id = 'Laboratory Tests'
+                elif 'instrument' in name or 'questionnaire' in name:
+                    group_id = 'Health Outcome Instruments'
+                elif 'safety' in name:
+                    group_id = 'Safety Assessments'
+                else:
+                    group_id = 'Ungrouped'
+                print(f"[WARN] Activity '{atp.get('name','<unknown>')}' missing activityGroupId. Assigned to '{group_id}'.")
+                atp['activityGroupId'] = group_id
             pt_id = atp.get('plannedTimepoint') or atp.get('plannedTimepointId')
             group = group_map.get(group_id)
             if group and pt_id in pt_map:

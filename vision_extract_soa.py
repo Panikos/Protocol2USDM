@@ -8,14 +8,7 @@ env_path = os.path.join(os.path.dirname(__file__), '.env')
 load_dotenv(env_path)
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
-import argparse
-parser = argparse.ArgumentParser()
-parser.add_argument('--model', default=os.environ.get('OPENAI_MODEL', 'o3'))
-args, _ = parser.parse_known_args()
-MODEL_NAME = args.model
-if 'OPENAI_MODEL' not in os.environ:
-    os.environ['OPENAI_MODEL'] = MODEL_NAME
-print(f"[INFO] Using OpenAI model: {MODEL_NAME}")
+
 
 def encode_image_to_base64(image_path):
     with open(image_path, 'rb') as img_file:
@@ -133,7 +126,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Extract SoA from protocol images.")
     parser.add_argument("image_paths", nargs="+", help="List of image paths to process")
     parser.add_argument("--output", default="STEP2_soa_vision.json", help="Output JSON file")
+    parser.add_argument("--model", default=os.environ.get('OPENAI_MODEL', 'o3'), help="OpenAI model to use")
     args = parser.parse_args()
+    MODEL_NAME = args.model
+    if 'OPENAI_MODEL' not in os.environ:
+        os.environ['OPENAI_MODEL'] = MODEL_NAME
+    print(f"[INFO] Using OpenAI model: {MODEL_NAME}")
     soa_vision = extract_soa_from_images(args.image_paths)
     from json_utils import clean_llm_json
     if not soa_vision or not soa_vision.strip():

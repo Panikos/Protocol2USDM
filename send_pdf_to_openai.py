@@ -1,4 +1,7 @@
 import os
+import sys
+import argparse
+import json
 from openai import OpenAI
 from dotenv import load_dotenv
 import fitz  # PyMuPDF
@@ -12,12 +15,11 @@ load_dotenv(env_path)
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 import argparse
-<<<<<<< HEAD
-parser = argparse.ArgumentParser()
-parser.add_argument('--model', default=os.environ.get('OPENAI_MODEL', 'o3'))
-parser.add_argument('pdf_path', nargs='?')
-parser.add_argument('--output', default='soa_extracted.json')
-args, _ = parser.parse_known_args()
+parser = argparse.ArgumentParser(description="Extract SoA from PDF text with OpenAI")
+parser.add_argument("pdf_path", help="Path to the protocol PDF")
+parser.add_argument("--output", default="STEP1_soa_text.json", help="Output JSON file")
+parser.add_argument("--model", default=os.environ.get("OPENAI_MODEL", "gpt-4o"), help="OpenAI model")
+args = parser.parse_args()
 ALLOWED_MODELS = ['o3', 'o3-mini', 'gpt-4o']
 if args.model not in ALLOWED_MODELS:
     print(f"[FATAL] Model '{args.model}' is not allowed. Choose from: {ALLOWED_MODELS}")
@@ -29,16 +31,6 @@ print(f"[INFO] Using OpenAI model: {MODEL_NAME}")
 print(f"[DEBUG] args.model={args.model}, env OPENAI_MODEL={os.environ.get('OPENAI_MODEL')}")
 
 import re
-=======
-
-
-def parse_args():
-    parser = argparse.ArgumentParser(description="Extract SoA from PDF text with OpenAI")
-    parser.add_argument("pdf_path", help="Path to the protocol PDF")
-    parser.add_argument("--output", default="STEP1_soa_text.json", help="Output JSON file")
-    parser.add_argument("--model", default=os.environ.get("OPENAI_MODEL", "gpt-4o"), help="OpenAI model")
-    return parser.parse_args()
->>>>>>> bfb3f1acff90c078f1b823818f5cdbbaf3c6438f
 
 def extract_pdf_text(pdf_path):
     doc = fitz.open(pdf_path)
@@ -173,38 +165,6 @@ def send_text_to_openai(text):
     print(f"[FATAL] All model attempts failed: {', '.join([f'{model}: {err}' for model, err in tried])}")
     raise RuntimeError(f"No available model succeeded: {', '.join([f'{model}: {err}' for model, err in tried])}")
 
-<<<<<<< HEAD
-import sys
-import json
-
-pdf_path = args.pdf_path if hasattr(args, 'pdf_path') and args.pdf_path else 'c:/Users/panik/Documents/GitHub/Protcol2USDMv3/CDISC_Pilot_Study.pdf'
-
-pdf_text = extract_pdf_text(pdf_path)
-sections = split_into_sections(pdf_text)
-chunks = chunk_sections(sections, max_chars=75000)
-print(f"[INFO] PDF split into {len(chunks)} chunks for LLM extraction.")
-
-all_versions = []
-all_timepoints = []
-all_activities = []
-all_groups = []
-all_atps = []
-wrapper_info = None
-study_id = None
-study_name = None
-
-for i, chunk in enumerate(chunks):
-    print(f"[INFO] Sending chunk {i+1}/{len(chunks)} to LLM (length: {len(chunk)})...")
-    parsed_content = send_text_to_openai(chunk)
-    if not parsed_content or not parsed_content.strip().startswith(('{', '[')):
-        print(f"[FATAL] LLM output for chunk {i+1} is empty or not valid JSON. Saving raw output to llm_raw_output_{i+1}.txt.")
-        with open(f"llm_raw_output_{i+1}.txt", "w", encoding="utf-8") as f:
-            f.write(parsed_content or "[EMPTY]")
-        continue
-=======
-import json
-
-
 def clean_llm_json(raw):
     raw = raw.strip()
     if raw.startswith('```json'):
@@ -218,110 +178,122 @@ def clean_llm_json(raw):
         raw = raw[:last_brace + 1]
     return raw
 
-
 def main():
-    args = parse_args()
-    global MODEL_NAME
+    parser = argparse.ArgumentParser(description="Extract SoA from PDF text with OpenAI")
+    parser.add_argument("pdf_path", help="Path to the protocol PDF")
+    parser.add_argument("--output", default="STEP1_soa_text.json", help="Output JSON file")
+    parser.add_argument("--model", default=os.environ.get("OPENAI_MODEL", "gpt-4o"), help="OpenAI model")
+    args = parser.parse_args()
+    ALLOWED_MODELS = ['o3', 'o3-mini', 'gpt-4o']
+    if args.model not in ALLOWED_MODELS:
+        print(f"[FATAL] Model '{args.model}' is not allowed. Choose from: {ALLOWED_MODELS}")
+        sys.exit(1)
     MODEL_NAME = args.model
     if 'OPENAI_MODEL' not in os.environ:
         os.environ['OPENAI_MODEL'] = MODEL_NAME
     print(f"[INFO] Using OpenAI model: {MODEL_NAME}")
+    print(f"[DEBUG] args.model={args.model}, env OPENAI_MODEL={os.environ.get('OPENAI_MODEL')}")
 
-    pdf_text = extract_pdf_text(args.pdf_path)
-    parsed_content = send_text_to_openai(pdf_text)
+    pdf_path = args.pdf_path
+    pdf_text = extract_pdf_text(pdf_path)
+    sections = split_into_sections(pdf_text)
+    chunks = chunk_sections(sections, max_chars=75000)
+    print(f"[INFO] PDF split into {len(chunks)} chunks for LLM extraction.")
 
-    import sys
-    if hasattr(sys.stdout, 'reconfigure'):
-        sys.stdout.reconfigure(encoding='utf-8')
+    all_versions = []
+    all_timepoints = []
+    all_activities = []
+    all_groups = []
+    all_atps = []
+    wrapper_info = None
+    study_id = None
+    study_name = None
 
->>>>>>> bfb3f1acff90c078f1b823818f5cdbbaf3c6438f
-    try:
-        parsed_json = json.loads(parsed_content)
-    except json.JSONDecodeError:
-        cleaned = clean_llm_json(parsed_content)
-<<<<<<< HEAD
-        try:
-            parsed_json = json.loads(cleaned)
-        except json.JSONDecodeError:
-            print(f"[FATAL] LLM output for chunk {i+1} could not be parsed as JSON. Saving raw and cleaned output.")
+    for i, chunk in enumerate(chunks):
+        print(f"[INFO] Sending chunk {i+1}/{len(chunks)} to LLM (length: {len(chunk)})...")
+        parsed_content = send_text_to_openai(chunk)
+        if not parsed_content or not parsed_content.strip().startswith(('{', '[')):
+            print(f"[FATAL] LLM output for chunk {i+1} is empty or not valid JSON. Saving raw output to llm_raw_output_{i+1}.txt.")
             with open(f"llm_raw_output_{i+1}.txt", "w", encoding="utf-8") as f:
-                f.write(parsed_content)
-            with open(f"llm_cleaned_output_{i+1}.txt", "w", encoding="utf-8") as f:
-                f.write(cleaned)
+                f.write(parsed_content or "[EMPTY]")
             continue
-    # Drill into the USDM structure
-    if isinstance(parsed_json, dict):
-        if not wrapper_info:
-            # Save wrapper info from the first chunk
-            wrapper_info = {k: parsed_json[k] for k in parsed_json if k not in ('study', 'Study')}
-        study = parsed_json.get('study') or parsed_json.get('Study')
-        if study:
-            if not study_id:
-                study_id = study.get('id')
-            if not study_name:
-                study_name = study.get('name')
-            versions = study.get('versions') or study.get('studyVersions') or []
-            if isinstance(versions, dict):
-                versions = [versions]
-            for v in versions:
-                timeline = v.get('timeline') or v.get('studyDesign', {}).get('timeline') or {}
-                # Collect all entities
-                all_versions.append(v)
-                all_timepoints.extend(timeline.get('plannedTimepoints', []))
-                all_activities.extend(timeline.get('activities', []))
-                all_groups.extend(timeline.get('activityGroups', []))
-                all_atps.extend(timeline.get('activityTimepoints', []))
+        try:
+            parsed_json = json.loads(parsed_content)
+        except json.JSONDecodeError:
+            cleaned = clean_llm_json(parsed_content)
+            try:
+                parsed_json = json.loads(cleaned)
+            except json.JSONDecodeError:
+                print(f"[FATAL] LLM output for chunk {i+1} could not be parsed as JSON. Saving raw and cleaned output.")
+                with open(f"llm_raw_output_{i+1}.txt", "w", encoding="utf-8") as f:
+                    f.write(parsed_content)
+                with open(f"llm_cleaned_output_{i+1}.txt", "w", encoding="utf-8") as f:
+                    f.write(cleaned)
+                continue
+        # Drill into the USDM structure
+        if isinstance(parsed_json, dict):
+            if not wrapper_info:
+                # Save wrapper info from the first chunk
+                wrapper_info = {k: parsed_json[k] for k in parsed_json if k not in ('study', 'Study')}
+            study = parsed_json.get('study') or parsed_json.get('Study')
+            if study:
+                if not study_id:
+                    study_id = study.get('id')
+                if not study_name:
+                    study_name = study.get('name')
+                versions = study.get('versions') or study.get('studyVersions') or []
+                if isinstance(versions, dict):
+                    versions = [versions]
+                for v in versions:
+                    timeline = v.get('timeline') or v.get('studyDesign', {}).get('timeline') or {}
+                    # Collect all entities
+                    all_versions.append(v)
+                    all_timepoints.extend(timeline.get('plannedTimepoints', []))
+                    all_activities.extend(timeline.get('activities', []))
+                    all_groups.extend(timeline.get('activityGroups', []))
+                    all_atps.extend(timeline.get('activityTimepoints', []))
 
-# Deduplicate by id
-unique = lambda items, key: list({item.get(key): item for item in items if item.get(key)}.values())
-all_timepoints = unique(all_timepoints, 'id')
-all_activities = unique(all_activities, 'id')
-all_groups = unique(all_groups, 'id')
-all_atps = [dict(t) for t in {json.dumps(atp, sort_keys=True): atp for atp in all_atps}.values()]
+    # Deduplicate by id
+    unique = lambda items, key: list({item.get(key): item for item in items if item.get(key)}.values())
+    all_timepoints = unique(all_timepoints, 'id')
+    all_activities = unique(all_activities, 'id')
+    all_groups = unique(all_groups, 'id')
+    all_atps = [dict(t) for t in {json.dumps(atp, sort_keys=True): atp for atp in all_atps}.values()]
 
-# Compose merged timeline
-merged_timeline = {
-    'plannedTimepoints': all_timepoints,
-    'activities': all_activities,
-    'activityGroups': all_groups,
-    'activityTimepoints': all_atps
-}
-# Compose merged version
-merged_version = {
-    'id': study_id or 'merged_version',
-    'versionIdentifier': 'Merged from LLM chunks',
-    'instanceType': 'StudyVersion',
-    'timeline': merged_timeline,
-    'amendments': [],
-}
-# Compose merged study
-merged_study = {
-    'id': study_id or 'merged_study',
-    'name': study_name or 'Merged Study',
-    'instanceType': 'Study',
-    'versions': [merged_version],
-    'documentedBy': [],
-}
-# Compose wrapper
-final_json = {
-    'systemVersion': wrapper_info.get('systemVersion', '1.0') if wrapper_info else '1.0',
-    'systemName': wrapper_info.get('systemName', 'Protocol2USDMv3') if wrapper_info else 'Protocol2USDMv3',
-    'usdmVersion': wrapper_info.get('usdmVersion', '4.0') if wrapper_info else '4.0',
-    'study': merged_study
-}
+    # Compose merged timeline
+    merged_timeline = {
+        'plannedTimepoints': all_timepoints,
+        'activities': all_activities,
+        'activityGroups': all_groups,
+        'activityTimepoints': all_atps
+    }
+    # Compose merged version
+    merged_version = {
+        'id': study_id or 'merged_version',
+        'versionIdentifier': 'Merged from LLM chunks',
+        'instanceType': 'StudyVersion',
+        'timeline': merged_timeline,
+        'amendments': [],
+    }
+    # Compose merged study
+    merged_study = {
+        'id': study_id or 'merged_study',
+        'name': study_name or 'Merged Study',
+        'instanceType': 'Study',
+        'versions': [merged_version],
+        'documentedBy': [],
+    }
+    # Compose wrapper
+    final_json = {
+        'systemVersion': wrapper_info.get('systemVersion', '1.0') if wrapper_info else '1.0',
+        'systemName': wrapper_info.get('systemName', 'Protocol2USDMv3') if wrapper_info else 'Protocol2USDMv3',
+        'usdmVersion': wrapper_info.get('usdmVersion', '4.0') if wrapper_info else '4.0',
+        'study': merged_study
+    }
 
-with open('STEP1_soa_text.json', 'w', encoding='utf-8') as f:
-    json.dump(final_json, f, indent=2, ensure_ascii=False)
-print('[SUCCESS] Merged SoA output from all LLM chunks written to STEP1_soa_text.json')
-=======
-        parsed_json = json.loads(cleaned)
-
-    print(json.dumps(parsed_json, indent=2, ensure_ascii=False))
-    with open(args.output, 'w', encoding='utf-8') as f:
-        json.dump(parsed_json, f, indent=2, ensure_ascii=False)
-    print(f"[SUCCESS] Wrote SoA text output to {args.output}")
-
+    with open('STEP1_soa_text.json', 'w', encoding='utf-8') as f:
+        json.dump(final_json, f, indent=2, ensure_ascii=False)
+    print('[SUCCESS] Merged SoA output from all LLM chunks written to STEP1_soa_text.json')
 
 if __name__ == "__main__":
     main()
->>>>>>> bfb3f1acff90c078f1b823818f5cdbbaf3c6438f
