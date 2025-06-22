@@ -40,7 +40,7 @@ import shutil
 import subprocess
 
 def cleanup_outputs():
-    # Delete all .json files except requirements.json
+    # Delete all .json files except requirements.json and soa_entity_mapping.json
     for f in glob.glob('*.json'):
         if f not in ['requirements.json', 'soa_entity_mapping.json']:
             try:

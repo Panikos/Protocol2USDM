@@ -116,6 +116,7 @@ Visit [http://localhost:8501](http://localhost:8501) in your browser after runni
   - **NEW:** Automatically displays both row (activity) groupings and column (visit) groupings if present, using group headers for both axes. This enables clear clinical review of grouped milestones and assessments per USDM/M11.
 - Useful for quality control, annotation, and sharing results with non-technical stakeholders.
 
+<<<<<<< HEAD
 ## SoA JSON Structure: Grouping Support
 
 The pipeline outputs a grouping-aware, USDM/M11-compliant SoA JSON structure. Key fields:
@@ -155,6 +156,14 @@ The pipeline outputs a grouping-aware, USDM/M11-compliant SoA JSON structure. Ke
 - The Streamlit viewer will display group headers for both rows and columns if groupings are present.
 - If a group is missing, the groupId is set to `null` and the viewer will show "No Group".
 - The pipeline and viewer are robust to missing or legacy fields and will gracefully fall back to flat rendering if groupings are absent.
+=======
+## Running Tests
+To run the unit tests, install dependencies and execute:
+```bash
+pytest
+```
+
+>>>>>>> bfb3f1acff90c078f1b823818f5cdbbaf3c6438f
 
 ## Notes
 - The workflow is fully automated and robust to both text-based and image-based PDFs.

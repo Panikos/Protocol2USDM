@@ -12,6 +12,7 @@ load_dotenv(env_path)
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 import argparse
+<<<<<<< HEAD
 parser = argparse.ArgumentParser()
 parser.add_argument('--model', default=os.environ.get('OPENAI_MODEL', 'o3'))
 parser.add_argument('pdf_path', nargs='?')
@@ -28,6 +29,16 @@ print(f"[INFO] Using OpenAI model: {MODEL_NAME}")
 print(f"[DEBUG] args.model={args.model}, env OPENAI_MODEL={os.environ.get('OPENAI_MODEL')}")
 
 import re
+=======
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Extract SoA from PDF text with OpenAI")
+    parser.add_argument("pdf_path", help="Path to the protocol PDF")
+    parser.add_argument("--output", default="STEP1_soa_text.json", help="Output JSON file")
+    parser.add_argument("--model", default=os.environ.get("OPENAI_MODEL", "gpt-4o"), help="OpenAI model")
+    return parser.parse_args()
+>>>>>>> bfb3f1acff90c078f1b823818f5cdbbaf3c6438f
 
 def extract_pdf_text(pdf_path):
     doc = fitz.open(pdf_path)
@@ -162,6 +173,7 @@ def send_text_to_openai(text):
     print(f"[FATAL] All model attempts failed: {', '.join([f'{model}: {err}' for model, err in tried])}")
     raise RuntimeError(f"No available model succeeded: {', '.join([f'{model}: {err}' for model, err in tried])}")
 
+<<<<<<< HEAD
 import sys
 import json
 
@@ -189,10 +201,45 @@ for i, chunk in enumerate(chunks):
         with open(f"llm_raw_output_{i+1}.txt", "w", encoding="utf-8") as f:
             f.write(parsed_content or "[EMPTY]")
         continue
+=======
+import json
+
+
+def clean_llm_json(raw):
+    raw = raw.strip()
+    if raw.startswith('```json'):
+        raw = raw[7:]
+    if raw.startswith('```'):
+        raw = raw[3:]
+    if raw.endswith('```'):
+        raw = raw[:-3]
+    last_brace = raw.rfind('}')
+    if last_brace != -1:
+        raw = raw[:last_brace + 1]
+    return raw
+
+
+def main():
+    args = parse_args()
+    global MODEL_NAME
+    MODEL_NAME = args.model
+    if 'OPENAI_MODEL' not in os.environ:
+        os.environ['OPENAI_MODEL'] = MODEL_NAME
+    print(f"[INFO] Using OpenAI model: {MODEL_NAME}")
+
+    pdf_text = extract_pdf_text(args.pdf_path)
+    parsed_content = send_text_to_openai(pdf_text)
+
+    import sys
+    if hasattr(sys.stdout, 'reconfigure'):
+        sys.stdout.reconfigure(encoding='utf-8')
+
+>>>>>>> bfb3f1acff90c078f1b823818f5cdbbaf3c6438f
     try:
         parsed_json = json.loads(parsed_content)
     except json.JSONDecodeError:
         cleaned = clean_llm_json(parsed_content)
+<<<<<<< HEAD
         try:
             parsed_json = json.loads(cleaned)
         except json.JSONDecodeError:
@@ -266,3 +313,15 @@ final_json = {
 with open('STEP1_soa_text.json', 'w', encoding='utf-8') as f:
     json.dump(final_json, f, indent=2, ensure_ascii=False)
 print('[SUCCESS] Merged SoA output from all LLM chunks written to STEP1_soa_text.json')
+=======
+        parsed_json = json.loads(cleaned)
+
+    print(json.dumps(parsed_json, indent=2, ensure_ascii=False))
+    with open(args.output, 'w', encoding='utf-8') as f:
+        json.dump(parsed_json, f, indent=2, ensure_ascii=False)
+    print(f"[SUCCESS] Wrote SoA text output to {args.output}")
+
+
+if __name__ == "__main__":
+    main()
+>>>>>>> bfb3f1acff90c078f1b823818f5cdbbaf3c6438f
