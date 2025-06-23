@@ -14,21 +14,10 @@ load_dotenv(env_path)
 # Set your OpenAI API key using environment variable for security
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
-import argparse
-parser = argparse.ArgumentParser(description="Extract SoA from PDF text with OpenAI")
-parser.add_argument("pdf_path", help="Path to the protocol PDF")
-parser.add_argument("--output", default="STEP1_soa_text.json", help="Output JSON file")
-parser.add_argument("--model", default=os.environ.get("OPENAI_MODEL", "gpt-4o"), help="OpenAI model")
-args = parser.parse_args()
-ALLOWED_MODELS = ['o3', 'o3-mini', 'gpt-4o']
-if args.model not in ALLOWED_MODELS:
-    print(f"[FATAL] Model '{args.model}' is not allowed. Choose from: {ALLOWED_MODELS}")
-    sys.exit(1)
-MODEL_NAME = args.model
-if 'OPENAI_MODEL' not in os.environ:
-    os.environ['OPENAI_MODEL'] = MODEL_NAME
-print(f"[INFO] Using OpenAI model: {MODEL_NAME}")
-print(f"[DEBUG] args.model={args.model}, env OPENAI_MODEL={os.environ.get('OPENAI_MODEL')}")
+# Default model is read from environment variable to avoid parsing
+MODEL_NAME = os.environ.get("OPENAI_MODEL", "gpt-4o")
+ALLOWED_MODELS = ["o3", "o3-mini", "gpt-4o"]
+
 
 import re
 
