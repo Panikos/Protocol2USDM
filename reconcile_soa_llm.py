@@ -8,14 +8,7 @@ env_path = os.path.join(os.path.dirname(__file__), '.env')
 load_dotenv(env_path)
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
-import argparse
-parser = argparse.ArgumentParser()
-parser.add_argument('--model', default=os.environ.get('OPENAI_MODEL', 'o3'))
-args, _ = parser.parse_known_args()
-MODEL_NAME = args.model
-if 'OPENAI_MODEL' not in os.environ:
-    os.environ['OPENAI_MODEL'] = MODEL_NAME
-print(f"[INFO] Using OpenAI model: {MODEL_NAME}")
+# The model name is now passed as a parameter to the main function.
 
 LLM_PROMPT = (
     "You are an expert in clinical trial data curation and CDISC USDM v4.0 standards.\n"
@@ -34,9 +27,28 @@ def load_json(path):
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
 
-def reconcile_soa(text_path, vision_path, output_path):
-    text_soa = load_json(text_path)
+def reconcile_soa(vision_path, output_path, text_path=None, model_name='o3'):
+    # Text SoA is optional. If not provided or invalid, proceed with vision only.
+    text_soa = None
+    if text_path and os.path.exists(text_path):
+        try:
+            text_soa = load_json(text_path)
+        except (json.JSONDecodeError, FileNotFoundError):
+            print(f"[WARN] Could not load or parse text SoA from {text_path}. Proceeding with vision SoA only.")
+            text_soa = None
+
     vision_soa = load_json(vision_path)
+
+    # If no valid text_soa, just pass through the vision_soa as the final output.
+    if not text_soa:
+        print("[INFO] No valid text SoA provided. Passing through vision SoA as final output.")
+        with open(output_path, "w", encoding="utf-8") as f:
+            json.dump(vision_soa, f, indent=2, ensure_ascii=False)
+        print(f"[SUCCESS] Vision SoA written to {output_path}")
+        return
+
+    # If we have both, proceed with LLM-based reconciliation.
+    print("[INFO] Both text and vision SoA found. Reconciling with LLM...")
     user_content = (
         "TEXT-EXTRACTED SoA JSON:\n" + json.dumps(text_soa, ensure_ascii=False, indent=2) +
         "\nVISION-EXTRACTED SoA JSON:\n" + json.dumps(vision_soa, ensure_ascii=False, indent=2)
@@ -46,13 +58,13 @@ def reconcile_soa(text_path, vision_path, output_path):
         {"role": "user", "content": user_content}
     ]
     # Model fallback logic (unchanged)
-    model_order = [MODEL_NAME]
+    model_order = [model_name]
     # Only use models that are available to the user
     # Remove o3-mini-high if not available
     available_models = ['o3', 'gpt-4o']
-    if MODEL_NAME == 'o3':
+    if model_name == 'o3':
         model_order += ['gpt-4o']
-    elif MODEL_NAME == 'gpt-4o':
+    elif model_name == 'gpt-4o':
         pass
     else:
         # fallback to gpt-4o if unknown model
@@ -115,8 +127,16 @@ def reconcile_soa(text_path, vision_path, output_path):
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="LLM-based reconciliation of SoA JSONs.")
-    parser.add_argument("--text", default="soa_text.json", help="Path to text-extracted SoA JSON")
-    parser.add_argument("--vision", default="soa_vision.json", help="Path to vision-extracted SoA JSON")
+    parser.add_argument("--text", default=None, help="Path to text-extracted SoA JSON (optional)")
+    parser.add_argument("--vision", required=True, help="Path to vision-extracted SoA JSON")
     parser.add_argument("--output", default="STEP5_soa_final.json", help="Path to write reconciled SoA JSON")
+    parser.add_argument("--model", default=os.environ.get('OPENAI_MODEL', 'o3'), help="OpenAI model to use")
     args = parser.parse_args()
-    reconcile_soa(args.text, args.vision, args.output)
+
+    # Set the environment variable if it's not already set.
+    # This ensures that if this script were to call another script, the model choice would propagate.
+    if 'OPENAI_MODEL' not in os.environ:
+        os.environ['OPENAI_MODEL'] = args.model
+    print(f"[INFO] Using OpenAI model: {args.model}")
+
+    reconcile_soa(vision_path=args.vision, output_path=args.output, text_path=args.text, model_name=args.model)

@@ -12,7 +12,11 @@ For each entity, use the following fields and allowed values (if specified):
 - Use unique IDs for cross-referencing.
 - Only include objects and fields as described.
 - Use the study name from the protocol for 'name'.
-- Output ONLY valid JSON, with no explanations, comments, or markdown.
+- The output MUST be a single JSON object that exactly matches the **Wrapper-Input** schema used by the USDM OpenAPI (top-level keys: `study`, `usdmVersion`).
+  - `study` → must contain `versions[0].timeline` with `plannedTimepoints`, `activities`, `activityGroups`, and `activityTimepoints` arrays.
+  - Include empty arrays/objects where warranted; do not omit required keys.
+  - `usdmVersion` → always set to `4.0.0`.
+- Output ONLY valid JSON with no explanations, comments, or markdown. The string returned should be directly consumable by `json.loads()`.
 """
 
 def generate_entity_instructions(mapping):

@@ -7,7 +7,7 @@ Protocol2USDMv3 is an automated pipeline for extracting, validating, and structu
 - **Automated SoA Extraction**: Extracts SoA tables from protocol PDFs using both LLM text and vision analysis (GPT-4o recommended).
 - **Full Timepoint Preservation**: Prompts and postprocessing logic ensure that *all* extracted timepoints (including ranges and non-canonical labels) are preserved throughout the workflow. No timepoints are dropped or merged unless their IDs and labels are *exact* duplicates.
 - **Timepoint Audit & Reconciliation**: Includes an audit script (`audit_timepoints.py`) that compares timepoints across extraction steps and reports any discrepancies, helping you identify and restore any lost timepoints.
-- **Robust Dual-Path Workflow**: Parallel extraction from PDF text and images, with downstream LLM-based adjudication and merging.
+- **Robust Dual-Path Workflow**: Parallel extraction from PDF text and images. The text-based extraction is optional and the pipeline can proceed with only the vision-based SoA.
 - **Entity Mapping Regeneration**: Regenerate `soa_entity_mapping.json` from the latest USDM Excel mapping (`USDM_CT.xlsx`) at any time using `generate_soa_entity_mapping.py`. The mapping is automatically preserved during cleanup.
 - **Validation & Error Handling**: Validates all outputs against the USDM OpenAPI schema and mapping. The pipeline is resilient to missing or malformed fields (e.g., missing timepoint IDs) and will warn and continue instead of crashing.
 - **Modular & Extensible**: All steps are modular scripts, easily customizable for your workflow.
@@ -18,6 +18,15 @@ pip install -r requirements.txt
 ```
 
 ## Usage
+
+### Quick start
+```bash
+python main.py CDISC_Pilot_Study.pdf  # uses gpt-4o, single batch, 4 workers
+
+python main.py CDISC_Pilot_Study.pdf --model gpt-4o --batch-size 2 --workers 4
+```
+
+### Full options
 1. Place your protocol PDF in the project directory.
 2. Ensure your `.env` file contains your OpenAI API key:
    ```
@@ -39,27 +48,29 @@ You can specify which OpenAI model (e.g., `gpt-4o`, `gpt-3o`, or any other suppo
 
 **Option 1: Command-line argument**
 ```bash
-python main.py <your_protocol.pdf> --model o3
+python main.py <your_protocol.pdf> --model gpt-4o --batch-size 2 --workers 4
+python main.py <your_protocol.pdf> --model o3 --batch-size 1 --workers 2
 python main.py <your_protocol.pdf> --model o3-mini-high
-python main.py <your_protocol.pdf> --model gpt-4o
 ```
 
 **Option 2: Environment variable**
 ```bash
-set OPENAI_MODEL=o3  # Windows
-export OPENAI_MODEL=o3  # Linux/Mac
+set OPENAI_MODEL=gpt-4o  # Windows
+export OPENAI_MODEL=gpt-4o  # Linux/Mac
 python main.py <your_protocol.pdf>
 ```
 
-If not specified, the default is `o3`. The selected model will be used for both text and vision extraction, as well as reconciliation. If `o3` fails, the pipeline will automatically retry with `o3-mini-high`.
+If not specified, the default is `gpt-4o`. The selected model will be used for both text and vision extraction, as well as reconciliation. If `gpt-4o` is unavailable your account, you can switch to `o3` or `o3-mini-high` via the same mechanisms.
 
-5. Outputs:
-   - `soa_text.json`: SoA extracted from PDF text.
-   - `soa_vision.json`: SoA extracted from images (vision).
-   - `soa_vision_fixed.json` and `soa_text_fixed.json`: Post-processed, normalized outputs.
-   - `soa_final.json`: (If adjudication/merging is enabled) LLM-adjudicated, merged SoA.
-   - `audit_timepoints_report.json`: (Optional) Audit report showing any timepoints lost or altered between extraction and final output.
-   - (Stub) HTML/Markdown rendering for review.
+5. Optional flags:
+   - `--batch-size`  Images per OpenAI Vision call (default: all images in one call).
+   - `--workers`     Parallel threads for vision batches (default: 4).
+
+6. Outputs:
+   - `STEP1_soa_text.json`: SoA extracted from PDF text.
+   - `STEP2_soa_vision.json`: SoA extracted from images (vision).
+   - `STEP3_soa_vision_fixed.json` and `STEP4_soa_text_fixed.json`: Post-processed, normalized outputs.
+   - `STEP5_soa_final.json`: LLM-adjudicated, merged SoA.
 
 ## How to Run the Streamlit SoA Review App
 
@@ -90,14 +101,14 @@ Visit [http://localhost:8501](http://localhost:8501) in your browser after runni
 - `temp/` — Place `USDM_CT.xlsx` here for mapping regeneration.
 
 ## Model & Token Settings
-- **o3** is the default and recommended model for both text and vision extraction. If unavailable, the pipeline will automatically retry with `o3-mini-high`. `gpt-4o` is also supported if available.
+- **gpt-4o** is the default and recommended model for both text and vision extraction. If unavailable to your account, switch to **o3** or **o3-mini-high** which also work (with slightly lower quality for vision extraction).
 - The pipeline automatically sets `max_tokens=90000` for `o3` and `o3-mini-high`, or `16384` for `gpt-4o`.
 - All scripts respect the `--model` command-line argument or `OPENAI_MODEL` environment variable.
 - The pipeline prints which model is being used and if fallback is triggered.
 - If you see truncation warnings, consider splitting large PDFs or reducing prompt size.
 
 ## Troubleshooting
-- **KeyError: 'plannedTimepointId'**: The pipeline now skips and warns on timepoints missing both `plannedTimepointId` and `plannedVisitId`.
+- **KeyError: 'activityGroupId'**: The post-processing script is now robust to missing `activityGroupId` keys in the input JSON. It will fall back to other possible ID keys (`id`, `groupId`) and normalize the group objects before processing.
 - **LLM Output Truncation**: The pipeline uses the maximum allowed tokens for completions, but very large protocols may still require splitting.
 - **Mapping Issues**: Regenerate `soa_entity_mapping.json` anytime the Excel mapping changes.
 - **Validation**: All outputs are validated against both the mapping and USDM schema. Warnings are issued for missing or non-conformant fields.
@@ -116,54 +127,11 @@ Visit [http://localhost:8501](http://localhost:8501) in your browser after runni
   - **NEW:** Automatically displays both row (activity) groupings and column (visit) groupings if present, using group headers for both axes. This enables clear clinical review of grouped milestones and assessments per USDM/M11.
 - Useful for quality control, annotation, and sharing results with non-technical stakeholders.
 
-<<<<<<< HEAD
-## SoA JSON Structure: Grouping Support
-
-The pipeline outputs a grouping-aware, USDM/M11-compliant SoA JSON structure. Key fields:
-
-- `activityGroups`: Array of objects, each with `id` and `name` (e.g., "Safety Assessments").
-- `activities`: Array of objects, each with `id`, `name`, and `groupId` (linking to `activityGroups`).
-- `visitGroups`: Array of objects, each with `id` and `name` (e.g., "Screening").
-- `visits` or `plannedTimepoints`: Array of objects, each with `id`, `label`, and `groupId` (linking to `visitGroups`).
-- `matrix`: Array of objects, each linking `activityId` and `visitId` (plus value, e.g., "X").
-
-**Example:**
-```json
-{
-  "activityGroups": [
-    {"id": "AG1", "name": "Safety Assessments"},
-    {"id": "AG2", "name": "Efficacy Assessments"}
-  ],
-  "activities": [
-    {"id": "A1", "name": "Blood Pressure", "groupId": "AG1"},
-    {"id": "A2", "name": "Tumor Measurement", "groupId": "AG2"}
-  ],
-  "visitGroups": [
-    {"id": "VG1", "name": "Screening"},
-    {"id": "VG2", "name": "Treatment"}
-  ],
-  "plannedTimepoints": [
-    {"id": "V1", "label": "Day 1", "groupId": "VG1"},
-    {"id": "V2", "label": "Week 4", "groupId": "VG2"}
-  ],
-  "matrix": [
-    {"activityId": "A1", "visitId": "V1", "value": "X"},
-    {"activityId": "A2", "visitId": "V2", "value": "X"}
-  ]
-}
-```
-
-- The Streamlit viewer will display group headers for both rows and columns if groupings are present.
-- If a group is missing, the groupId is set to `null` and the viewer will show "No Group".
-- The pipeline and viewer are robust to missing or legacy fields and will gracefully fall back to flat rendering if groupings are absent.
-=======
 ## Running Tests
 To run the unit tests, install dependencies and execute:
 ```bash
 pytest
 ```
-
->>>>>>> bfb3f1acff90c078f1b823818f5cdbbaf3c6438f
 
 ## Notes
 - The workflow is fully automated and robust to both text-based and image-based PDFs.

@@ -3,16 +3,16 @@ info:
   title: DDF USDM API
   description: A simple TransCelerate Digital Data Flow (DDF) Study Definitions Repository
     API.
-  version: 3.11.1
+  version: 4.0.0
 paths:
-  /v3/studyDefinitions:
+  /v4/studyDefinitions:
     post:
       tags:
       - Production
       summary: Create a study
       description: Create an entire study including all child element with a single
         post
-      operationId: create_study_v3_studyDefinitions_post
+      operationId: create_study_v4_studyDefinitions_post
       requestBody:
         content:
           application/json:
@@ -27,7 +27,7 @@ paths:
               schema:
                 type: string
                 format: uuid
-                title: Response Create Study V3 Studydefinitions Post
+                title: Response Create Study V4 Studydefinitions Post
         '400':
           description: Bad Request
           status_code: string
@@ -44,14 +44,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-  /v3/studyDefinitions/{studyId}:
+  /v4/studyDefinitions/{studyId}:
     put:
       tags:
       - Production
       summary: Update a study
       description: Update an entire study including all child element with a single
         put
-      operationId: update_study_v3_studyDefinitions__studyId__put
+      operationId: update_study_v4_studyDefinitions__studyId__put
       parameters:
       - name: studyId
         in: path
@@ -73,7 +73,7 @@ paths:
               schema:
                 type: string
                 format: uuid
-                title: Response Update Study V3 Studydefinitions  Studyid  Put
+                title: Response Update Study V4 Studydefinitions  Studyid  Put
         '400':
           status_code: string
           detail: string
@@ -95,7 +95,7 @@ paths:
       - Production
       summary: Return a study
       description: Return an entire study including all child elements
-      operationId: read_full_study_v3_studyDefinitions__studyId__get
+      operationId: read_full_study_v4_studyDefinitions__studyId__get
       parameters:
       - name: studyId
         in: path
@@ -126,13 +126,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-  /v3/studyDefinitions/{studyId}/history:
+  /v4/studyDefinitions/{studyId}/history:
     get:
       tags:
       - Production
       summary: Returns the study history
       description: Returns the history for the specified study
-      operationId: read_study_history_v3_studyDefinitions__studyId__history_get
+      operationId: read_study_history_v4_studyDefinitions__studyId__history_get
       parameters:
       - name: studyId
         in: path
@@ -149,7 +149,7 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Wrapper-Output'
-                title: Response Read Study History V3 Studydefinitions  Studyid  History
+                title: Response Read Study History V4 Studydefinitions  Studyid  History
                   Get
         '400':
           status_code: string
@@ -167,13 +167,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-  /v3/studyDesigns:
+  /v4/studyDesigns:
     get:
       tags:
       - Production
       summary: Study designs for a study
       description: Returns all the study designs for a specified study.
-      operationId: search_study_design_v3_studyDesigns_get
+      operationId: search_study_design_v4_studyDesigns_get
       parameters:
       - name: studyId
         in: query
@@ -193,7 +193,7 @@ paths:
                   anyOf:
                   - $ref: '#/components/schemas/InterventionalStudyDesign-Output'
                   - $ref: '#/components/schemas/ObservationalStudyDesign-Output'
-                title: Response Search Study Design V3 Studydesigns Get
+                title: Response Search Study Design V4 Studydesigns Get
         '400':
           status_code: string
           detail: string
@@ -903,7 +903,7 @@ components:
           - type: 'null'
           title: Description
         duration:
-          $ref: '#/components/schemas/AdministrationDuration-Input'
+          $ref: '#/components/schemas/Duration-Input'
         dose:
           anyOf:
           - $ref: '#/components/schemas/Quantity-Input'
@@ -972,7 +972,7 @@ components:
           - type: 'null'
           title: Description
         duration:
-          $ref: '#/components/schemas/AdministrationDuration-Output'
+          $ref: '#/components/schemas/Duration-Output'
         dose:
           anyOf:
           - $ref: '#/components/schemas/Quantity-Output'
@@ -1014,88 +1014,6 @@ components:
       - duration
       - instanceType
       title: Administration
-    AdministrationDuration-Input:
-      properties:
-        id:
-          type: string
-          minLength: 1
-          title: Id
-        extensionAttributes:
-          items:
-            $ref: '#/components/schemas/ExtensionAttribute-Input'
-          type: array
-          title: Extensionattributes
-          default: []
-        description:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Description
-        quantity:
-          anyOf:
-          - $ref: '#/components/schemas/Quantity-Input'
-          - type: 'null'
-        durationWillVary:
-          type: boolean
-          title: Durationwillvary
-        reasonDurationWillVary:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Reasondurationwillvary
-        instanceType:
-          type: string
-          enum:
-          - AdministrationDuration
-          const: AdministrationDuration
-          title: Instancetype
-      type: object
-      required:
-      - id
-      - durationWillVary
-      - instanceType
-      title: AdministrationDuration
-    AdministrationDuration-Output:
-      properties:
-        id:
-          type: string
-          minLength: 1
-          title: Id
-        extensionAttributes:
-          items:
-            $ref: '#/components/schemas/ExtensionAttribute-Output'
-          type: array
-          title: Extensionattributes
-          default: []
-        description:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Description
-        quantity:
-          anyOf:
-          - $ref: '#/components/schemas/Quantity-Output'
-          - type: 'null'
-        durationWillVary:
-          type: boolean
-          title: Durationwillvary
-        reasonDurationWillVary:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Reasondurationwillvary
-        instanceType:
-          type: string
-          enum:
-          - AdministrationDuration
-          const: AdministrationDuration
-          title: Instancetype
-      type: object
-      required:
-      - id
-      - durationWillVary
-      - instanceType
-      title: AdministrationDuration
     AliasCode-Input:
       properties:
         id:
@@ -1294,6 +1212,8 @@ components:
           - type: string
           - type: 'null'
           title: Description
+        personName:
+          $ref: '#/components/schemas/PersonName-Input'
         jobTitle:
           type: string
           title: Jobtitle
@@ -1312,6 +1232,7 @@ components:
       required:
       - id
       - name
+      - personName
       - jobTitle
       - instanceType
       title: AssignedPerson
@@ -1341,6 +1262,8 @@ components:
           - type: string
           - type: 'null'
           title: Description
+        personName:
+          $ref: '#/components/schemas/PersonName-Output'
         jobTitle:
           type: string
           title: Jobtitle
@@ -1359,6 +1282,7 @@ components:
       required:
       - id
       - name
+      - personName
       - jobTitle
       - instanceType
       title: AssignedPerson
@@ -2200,12 +2124,6 @@ components:
           type: array
           title: Notes
           default: []
-        instanceType:
-          type: string
-          enum:
-          - Condition
-          const: Condition
-          title: Instancetype
         contextIds:
           items:
             type: string
@@ -2218,6 +2136,12 @@ components:
           type: array
           title: Appliestoids
           default: []
+        instanceType:
+          type: string
+          enum:
+          - Condition
+          const: Condition
+          title: Instancetype
       type: object
       required:
       - id
@@ -2265,12 +2189,6 @@ components:
           type: array
           title: Notes
           default: []
-        instanceType:
-          type: string
-          enum:
-          - Condition
-          const: Condition
-          title: Instancetype
         contextIds:
           items:
             type: string
@@ -2283,6 +2201,12 @@ components:
           type: array
           title: Appliestoids
           default: []
+        instanceType:
+          type: string
+          enum:
+          - Condition
+          const: Condition
+          title: Instancetype
       type: object
       required:
       - id
@@ -2422,6 +2346,92 @@ components:
       - appliesToId
       - instanceType
       title: DocumentContentReference
+    Duration-Input:
+      properties:
+        id:
+          type: string
+          minLength: 1
+          title: Id
+        extensionAttributes:
+          items:
+            $ref: '#/components/schemas/ExtensionAttribute-Input'
+          type: array
+          title: Extensionattributes
+          default: []
+        text:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Text
+        quantity:
+          anyOf:
+          - $ref: '#/components/schemas/Quantity-Input'
+          - $ref: '#/components/schemas/Range-Input'
+          - type: 'null'
+          title: Quantity
+        durationWillVary:
+          type: boolean
+          title: Durationwillvary
+        reasonDurationWillVary:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reasondurationwillvary
+        instanceType:
+          type: string
+          enum:
+          - Duration
+          const: Duration
+          title: Instancetype
+      type: object
+      required:
+      - id
+      - durationWillVary
+      - instanceType
+      title: Duration
+    Duration-Output:
+      properties:
+        id:
+          type: string
+          minLength: 1
+          title: Id
+        extensionAttributes:
+          items:
+            $ref: '#/components/schemas/ExtensionAttribute-Output'
+          type: array
+          title: Extensionattributes
+          default: []
+        text:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Text
+        quantity:
+          anyOf:
+          - $ref: '#/components/schemas/Quantity-Output'
+          - $ref: '#/components/schemas/Range-Output'
+          - type: 'null'
+          title: Quantity
+        durationWillVary:
+          type: boolean
+          title: Durationwillvary
+        reasonDurationWillVary:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reasondurationwillvary
+        instanceType:
+          type: string
+          enum:
+          - Duration
+          const: Duration
+          title: Instancetype
+      type: object
+      required:
+      - id
+      - durationWillVary
+      - instanceType
+      title: Duration
     EligibilityCriterion-Input:
       properties:
         id:
@@ -2862,25 +2872,25 @@ components:
           type: array
           title: Notes
           default: []
+        purpose:
+          type: string
+          title: Purpose
+        level:
+          $ref: '#/components/schemas/Code-Input'
         instanceType:
           type: string
           enum:
           - Endpoint
           const: Endpoint
           title: Instancetype
-        purpose:
-          type: string
-          title: Purpose
-        level:
-          $ref: '#/components/schemas/Code-Input'
       type: object
       required:
       - id
       - name
       - text
-      - instanceType
       - purpose
       - level
+      - instanceType
       title: Endpoint
     Endpoint-Output:
       properties:
@@ -2922,25 +2932,25 @@ components:
           type: array
           title: Notes
           default: []
+        purpose:
+          type: string
+          title: Purpose
+        level:
+          $ref: '#/components/schemas/Code-Output'
         instanceType:
           type: string
           enum:
           - Endpoint
           const: Endpoint
           title: Instancetype
-        purpose:
-          type: string
-          title: Purpose
-        level:
-          $ref: '#/components/schemas/Code-Output'
       type: object
       required:
       - id
       - name
       - text
-      - instanceType
       - purpose
       - level
+      - instanceType
       title: Endpoint
     Estimand-Input:
       properties:
@@ -3645,22 +3655,22 @@ components:
           type: array
           title: Notes
           default: []
+        strategy:
+          type: string
+          title: Strategy
         instanceType:
           type: string
           enum:
           - IntercurrentEvent
           const: IntercurrentEvent
           title: Instancetype
-        strategy:
-          type: string
-          title: Strategy
       type: object
       required:
       - id
       - name
       - text
-      - instanceType
       - strategy
+      - instanceType
       title: IntercurrentEvent
     IntercurrentEvent-Output:
       properties:
@@ -3702,22 +3712,22 @@ components:
           type: array
           title: Notes
           default: []
+        strategy:
+          type: string
+          title: Strategy
         instanceType:
           type: string
           enum:
           - IntercurrentEvent
           const: IntercurrentEvent
           title: Instancetype
-        strategy:
-          type: string
-          title: Strategy
       type: object
       required:
       - id
       - name
       - text
-      - instanceType
       - strategy
+      - instanceType
       title: IntercurrentEvent
     InterventionalStudyDesign-Input:
       properties:
@@ -3850,7 +3860,6 @@ components:
             $ref: '#/components/schemas/EligibilityCriterion-Input'
           type: array
           title: Eligibilitycriteria
-          default: []
         analysisPopulations:
           items:
             $ref: '#/components/schemas/AnalysisPopulation-Input'
@@ -3863,12 +3872,6 @@ components:
           type: array
           title: Notes
           default: []
-        instanceType:
-          type: string
-          enum:
-          - InterventionalStudyDesign
-          const: InterventionalStudyDesign
-          title: Instancetype
         subTypes:
           items:
             $ref: '#/components/schemas/Code-Input'
@@ -3887,6 +3890,12 @@ components:
           anyOf:
           - $ref: '#/components/schemas/AliasCode-Input'
           - type: 'null'
+        instanceType:
+          type: string
+          enum:
+          - InterventionalStudyDesign
+          const: InterventionalStudyDesign
+          title: Instancetype
       type: object
       required:
       - id
@@ -3896,8 +3905,9 @@ components:
       - rationale
       - epochs
       - population
-      - instanceType
+      - eligibilityCriteria
       - model
+      - instanceType
       title: InterventionalStudyDesign
     InterventionalStudyDesign-Output:
       properties:
@@ -4030,7 +4040,6 @@ components:
             $ref: '#/components/schemas/EligibilityCriterion-Output'
           type: array
           title: Eligibilitycriteria
-          default: []
         analysisPopulations:
           items:
             $ref: '#/components/schemas/AnalysisPopulation-Output'
@@ -4043,12 +4052,6 @@ components:
           type: array
           title: Notes
           default: []
-        instanceType:
-          type: string
-          enum:
-          - InterventionalStudyDesign
-          const: InterventionalStudyDesign
-          title: Instancetype
         subTypes:
           items:
             $ref: '#/components/schemas/Code-Output'
@@ -4067,6 +4070,12 @@ components:
           anyOf:
           - $ref: '#/components/schemas/AliasCode-Output'
           - type: 'null'
+        instanceType:
+          type: string
+          enum:
+          - InterventionalStudyDesign
+          const: InterventionalStudyDesign
+          title: Instancetype
       type: object
       required:
       - id
@@ -4076,8 +4085,9 @@ components:
       - rationale
       - epochs
       - population
-      - instanceType
+      - eligibilityCriteria
       - model
+      - instanceType
       title: InterventionalStudyDesign
     Masking-Input:
       properties:
@@ -4297,21 +4307,21 @@ components:
         scopeId:
           type: string
           title: Scopeid
+        type:
+          $ref: '#/components/schemas/Code-Input'
         instanceType:
           type: string
           enum:
           - MedicalDeviceIdentifier
           const: MedicalDeviceIdentifier
           title: Instancetype
-        type:
-          $ref: '#/components/schemas/Code-Input'
       type: object
       required:
       - id
       - text
       - scopeId
-      - instanceType
       - type
+      - instanceType
       title: MedicalDeviceIdentifier
     MedicalDeviceIdentifier-Output:
       properties:
@@ -4331,21 +4341,21 @@ components:
         scopeId:
           type: string
           title: Scopeid
+        type:
+          $ref: '#/components/schemas/Code-Output'
         instanceType:
           type: string
           enum:
           - MedicalDeviceIdentifier
           const: MedicalDeviceIdentifier
           title: Instancetype
-        type:
-          $ref: '#/components/schemas/Code-Output'
       type: object
       required:
       - id
       - text
       - scopeId
-      - instanceType
       - type
+      - instanceType
       title: MedicalDeviceIdentifier
     NarrativeContent-Input:
       properties:
@@ -4585,12 +4595,6 @@ components:
           type: array
           title: Notes
           default: []
-        instanceType:
-          type: string
-          enum:
-          - Objective
-          const: Objective
-          title: Instancetype
         level:
           $ref: '#/components/schemas/Code-Input'
         endpoints:
@@ -4599,13 +4603,19 @@ components:
           type: array
           title: Endpoints
           default: []
+        instanceType:
+          type: string
+          enum:
+          - Objective
+          const: Objective
+          title: Instancetype
       type: object
       required:
       - id
       - name
       - text
-      - instanceType
       - level
+      - instanceType
       title: Objective
     Objective-Output:
       properties:
@@ -4647,12 +4657,6 @@ components:
           type: array
           title: Notes
           default: []
-        instanceType:
-          type: string
-          enum:
-          - Objective
-          const: Objective
-          title: Instancetype
         level:
           $ref: '#/components/schemas/Code-Output'
         endpoints:
@@ -4661,13 +4665,19 @@ components:
           type: array
           title: Endpoints
           default: []
+        instanceType:
+          type: string
+          enum:
+          - Objective
+          const: Objective
+          title: Instancetype
       type: object
       required:
       - id
       - name
       - text
-      - instanceType
       - level
+      - instanceType
       title: Objective
     ObservationalStudyDesign-Input:
       properties:
@@ -4800,7 +4810,6 @@ components:
             $ref: '#/components/schemas/EligibilityCriterion-Input'
           type: array
           title: Eligibilitycriteria
-          default: []
         analysisPopulations:
           items:
             $ref: '#/components/schemas/AnalysisPopulation-Input'
@@ -4813,12 +4822,6 @@ components:
           type: array
           title: Notes
           default: []
-        instanceType:
-          type: string
-          enum:
-          - ObservationalStudyDesign
-          const: ObservationalStudyDesign
-          title: Instancetype
         subTypes:
           items:
             $ref: '#/components/schemas/Code-Input'
@@ -4833,6 +4836,12 @@ components:
           anyOf:
           - $ref: '#/components/schemas/Code-Input'
           - type: 'null'
+        instanceType:
+          type: string
+          enum:
+          - ObservationalStudyDesign
+          const: ObservationalStudyDesign
+          title: Instancetype
       type: object
       required:
       - id
@@ -4842,9 +4851,10 @@ components:
       - rationale
       - epochs
       - population
-      - instanceType
+      - eligibilityCriteria
       - model
       - timePerspective
+      - instanceType
       title: ObservationalStudyDesign
     ObservationalStudyDesign-Output:
       properties:
@@ -4977,7 +4987,6 @@ components:
             $ref: '#/components/schemas/EligibilityCriterion-Output'
           type: array
           title: Eligibilitycriteria
-          default: []
         analysisPopulations:
           items:
             $ref: '#/components/schemas/AnalysisPopulation-Output'
@@ -4990,12 +4999,6 @@ components:
           type: array
           title: Notes
           default: []
-        instanceType:
-          type: string
-          enum:
-          - ObservationalStudyDesign
-          const: ObservationalStudyDesign
-          title: Instancetype
         subTypes:
           items:
             $ref: '#/components/schemas/Code-Output'
@@ -5010,6 +5013,12 @@ components:
           anyOf:
           - $ref: '#/components/schemas/Code-Output'
           - type: 'null'
+        instanceType:
+          type: string
+          enum:
+          - ObservationalStudyDesign
+          const: ObservationalStudyDesign
+          title: Instancetype
       type: object
       required:
       - id
@@ -5019,9 +5028,10 @@ components:
       - rationale
       - epochs
       - population
-      - instanceType
+      - eligibilityCriteria
       - model
       - timePerspective
+      - instanceType
       title: ObservationalStudyDesign
     Organization-Input:
       properties:
@@ -5193,6 +5203,108 @@ components:
       - reference
       - instanceType
       title: ParameterMap
+    PersonName-Input:
+      properties:
+        id:
+          type: string
+          minLength: 1
+          title: Id
+        extensionAttributes:
+          items:
+            $ref: '#/components/schemas/ExtensionAttribute-Input'
+          type: array
+          title: Extensionattributes
+          default: []
+        text:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Text
+        familyName:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Familyname
+        givenNames:
+          items:
+            type: string
+          type: array
+          title: Givennames
+          default: []
+        prefixes:
+          items:
+            type: string
+          type: array
+          title: Prefixes
+          default: []
+        suffixes:
+          items:
+            type: string
+          type: array
+          title: Suffixes
+          default: []
+        instanceType:
+          type: string
+          enum:
+          - PersonName
+          const: PersonName
+          title: Instancetype
+      type: object
+      required:
+      - id
+      - instanceType
+      title: PersonName
+    PersonName-Output:
+      properties:
+        id:
+          type: string
+          minLength: 1
+          title: Id
+        extensionAttributes:
+          items:
+            $ref: '#/components/schemas/ExtensionAttribute-Output'
+          type: array
+          title: Extensionattributes
+          default: []
+        text:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Text
+        familyName:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Familyname
+        givenNames:
+          items:
+            type: string
+          type: array
+          title: Givennames
+          default: []
+        prefixes:
+          items:
+            type: string
+          type: array
+          title: Prefixes
+          default: []
+        suffixes:
+          items:
+            type: string
+          type: array
+          title: Suffixes
+          default: []
+        instanceType:
+          type: string
+          enum:
+          - PersonName
+          const: PersonName
+          title: Instancetype
+      type: object
+      required:
+      - id
+      - instanceType
+      title: PersonName
     Procedure-Input:
       properties:
         id:
@@ -5553,21 +5665,21 @@ components:
         scopeId:
           type: string
           title: Scopeid
+        type:
+          $ref: '#/components/schemas/Code-Input'
         instanceType:
           type: string
           enum:
           - ReferenceIdentifier
           const: ReferenceIdentifier
           title: Instancetype
-        type:
-          $ref: '#/components/schemas/Code-Input'
       type: object
       required:
       - id
       - text
       - scopeId
-      - instanceType
       - type
+      - instanceType
       title: ReferenceIdentifier
     ReferenceIdentifier-Output:
       properties:
@@ -5587,21 +5699,21 @@ components:
         scopeId:
           type: string
           title: Scopeid
+        type:
+          $ref: '#/components/schemas/Code-Output'
         instanceType:
           type: string
           enum:
           - ReferenceIdentifier
           const: ReferenceIdentifier
           title: Instancetype
-        type:
-          $ref: '#/components/schemas/Code-Output'
       type: object
       required:
       - id
       - text
       - scopeId
-      - instanceType
       - type
+      - instanceType
       title: ReferenceIdentifier
     ResponseCode-Input:
       properties:
@@ -5615,6 +5727,15 @@ components:
           type: array
           title: Extensionattributes
           default: []
+        name:
+          type: string
+          minLength: 1
+          title: Name
+        label:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Label
         isEnabled:
           type: boolean
           title: Isenabled
@@ -5629,6 +5750,7 @@ components:
       type: object
       required:
       - id
+      - name
       - isEnabled
       - code
       - instanceType
@@ -5645,6 +5767,15 @@ components:
           type: array
           title: Extensionattributes
           default: []
+        name:
+          type: string
+          minLength: 1
+          title: Name
+        label:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Label
         isEnabled:
           type: boolean
           title: Isenabled
@@ -5659,6 +5790,7 @@ components:
       type: object
       required:
       - id
+      - name
       - isEnabled
       - code
       - instanceType
@@ -5718,6 +5850,10 @@ components:
           type: array
           title: Instances
           default: []
+        plannedDuration:
+          anyOf:
+          - $ref: '#/components/schemas/Duration-Input'
+          - type: 'null'
         instanceType:
           type: string
           enum:
@@ -5788,6 +5924,10 @@ components:
           type: array
           title: Instances
           default: []
+        plannedDuration:
+          anyOf:
+          - $ref: '#/components/schemas/Duration-Output'
+          - type: 'null'
         instanceType:
           type: string
           enum:
@@ -5885,12 +6025,6 @@ components:
           - type: string
           - type: 'null'
           title: Epochid
-        instanceType:
-          type: string
-          enum:
-          - ScheduledActivityInstance
-          const: ScheduledActivityInstance
-          title: Instancetype
         timelineId:
           anyOf:
           - type: string
@@ -5912,6 +6046,12 @@ components:
           - type: string
           - type: 'null'
           title: Encounterid
+        instanceType:
+          type: string
+          enum:
+          - ScheduledActivityInstance
+          const: ScheduledActivityInstance
+          title: Instancetype
       type: object
       required:
       - id
@@ -5954,12 +6094,6 @@ components:
           - type: string
           - type: 'null'
           title: Epochid
-        instanceType:
-          type: string
-          enum:
-          - ScheduledActivityInstance
-          const: ScheduledActivityInstance
-          title: Instancetype
         timelineId:
           anyOf:
           - type: string
@@ -5981,6 +6115,12 @@ components:
           - type: string
           - type: 'null'
           title: Encounterid
+        instanceType:
+          type: string
+          enum:
+          - ScheduledActivityInstance
+          const: ScheduledActivityInstance
+          title: Instancetype
       type: object
       required:
       - id
@@ -6023,23 +6163,23 @@ components:
           - type: string
           - type: 'null'
           title: Epochid
+        conditionAssignments:
+          items:
+            $ref: '#/components/schemas/ConditionAssignment-Input'
+          type: array
+          title: Conditionassignments
         instanceType:
           type: string
           enum:
           - ScheduledDecisionInstance
           const: ScheduledDecisionInstance
           title: Instancetype
-        conditionAssignments:
-          items:
-            $ref: '#/components/schemas/ConditionAssignment-Input'
-          type: array
-          title: Conditionassignments
       type: object
       required:
       - id
       - name
-      - instanceType
       - conditionAssignments
+      - instanceType
       title: ScheduledDecisionInstance
     ScheduledDecisionInstance-Output:
       properties:
@@ -6077,23 +6217,23 @@ components:
           - type: string
           - type: 'null'
           title: Epochid
+        conditionAssignments:
+          items:
+            $ref: '#/components/schemas/ConditionAssignment-Output'
+          type: array
+          title: Conditionassignments
         instanceType:
           type: string
           enum:
           - ScheduledDecisionInstance
           const: ScheduledDecisionInstance
           title: Instancetype
-        conditionAssignments:
-          items:
-            $ref: '#/components/schemas/ConditionAssignment-Output'
-          type: array
-          title: Conditionassignments
       type: object
       required:
       - id
       - name
-      - instanceType
       - conditionAssignments
+      - instanceType
       title: ScheduledDecisionInstance
     Strength-Input:
       properties:
@@ -6121,17 +6261,14 @@ components:
           - type: string
           - type: 'null'
           title: Description
+        numerator:
+          anyOf:
+          - $ref: '#/components/schemas/Quantity-Input'
+          - $ref: '#/components/schemas/Range-Input'
+          title: Numerator
         denominator:
           anyOf:
           - $ref: '#/components/schemas/Quantity-Input'
-          - type: 'null'
-        numeratorQuantity:
-          anyOf:
-          - $ref: '#/components/schemas/Quantity-Input'
-          - type: 'null'
-        numeratorRange:
-          anyOf:
-          - $ref: '#/components/schemas/Range-Input'
           - type: 'null'
         instanceType:
           type: string
@@ -6143,6 +6280,7 @@ components:
       required:
       - id
       - name
+      - numerator
       - instanceType
       title: Strength
     Strength-Output:
@@ -6171,17 +6309,14 @@ components:
           - type: string
           - type: 'null'
           title: Description
+        numerator:
+          anyOf:
+          - $ref: '#/components/schemas/Quantity-Output'
+          - $ref: '#/components/schemas/Range-Output'
+          title: Numerator
         denominator:
           anyOf:
           - $ref: '#/components/schemas/Quantity-Output'
-          - type: 'null'
-        numeratorQuantity:
-          anyOf:
-          - $ref: '#/components/schemas/Quantity-Output'
-          - type: 'null'
-        numeratorRange:
-          anyOf:
-          - $ref: '#/components/schemas/Range-Output'
           - type: 'null'
         instanceType:
           type: string
@@ -6193,6 +6328,7 @@ components:
       required:
       - id
       - name
+      - numerator
       - instanceType
       title: Strength
     Study-Input:
@@ -6203,6 +6339,12 @@ components:
             format: uuid
           - type: 'null'
           title: Id
+        extensionAttributes:
+          items:
+            $ref: '#/components/schemas/ExtensionAttribute-Input'
+          type: array
+          title: Extensionattributes
+          default: []
         name:
           type: string
           minLength: 1
@@ -6248,6 +6390,12 @@ components:
             format: uuid
           - type: 'null'
           title: Id
+        extensionAttributes:
+          items:
+            $ref: '#/components/schemas/ExtensionAttribute-Output'
+          type: array
+          title: Extensionattributes
+          default: []
         name:
           type: string
           minLength: 1
@@ -6297,6 +6445,20 @@ components:
           type: array
           title: Extensionattributes
           default: []
+        name:
+          type: string
+          minLength: 1
+          title: Name
+        label:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Label
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
         number:
           type: string
           title: Number
@@ -6359,6 +6521,7 @@ components:
       type: object
       required:
       - id
+      - name
       - number
       - summary
       - primaryReason
@@ -6378,6 +6541,20 @@ components:
           type: array
           title: Extensionattributes
           default: []
+        name:
+          type: string
+          minLength: 1
+          title: Name
+        label:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Label
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
         number:
           type: string
           title: Number
@@ -6440,6 +6617,7 @@ components:
       type: object
       required:
       - id
+      - name
       - number
       - summary
       - primaryReason
@@ -6916,22 +7094,18 @@ components:
         includesHealthySubjects:
           type: boolean
           title: Includeshealthysubjects
-        plannedEnrollmentNumberRange:
-          anyOf:
-          - $ref: '#/components/schemas/Range-Input'
-          - type: 'null'
-        plannedEnrollmentNumberQuantity:
+        plannedEnrollmentNumber:
           anyOf:
           - $ref: '#/components/schemas/Quantity-Input'
-          - type: 'null'
-        plannedCompletionNumberRange:
-          anyOf:
           - $ref: '#/components/schemas/Range-Input'
           - type: 'null'
-        plannedCompletionNumberQuantity:
+          title: Plannedenrollmentnumber
+        plannedCompletionNumber:
           anyOf:
           - $ref: '#/components/schemas/Quantity-Input'
+          - $ref: '#/components/schemas/Range-Input'
           - type: 'null'
+          title: Plannedcompletionnumber
         plannedSex:
           items:
             $ref: '#/components/schemas/Code-Input'
@@ -6955,12 +7129,6 @@ components:
           type: array
           title: Notes
           default: []
-        instanceType:
-          type: string
-          enum:
-          - StudyCohort
-          const: StudyCohort
-          title: Instancetype
         characteristics:
           items:
             $ref: '#/components/schemas/Characteristic-Input'
@@ -6973,6 +7141,12 @@ components:
           type: array
           title: Indicationids
           default: []
+        instanceType:
+          type: string
+          enum:
+          - StudyCohort
+          const: StudyCohort
+          title: Instancetype
       type: object
       required:
       - id
@@ -7009,22 +7183,18 @@ components:
         includesHealthySubjects:
           type: boolean
           title: Includeshealthysubjects
-        plannedEnrollmentNumberRange:
-          anyOf:
-          - $ref: '#/components/schemas/Range-Output'
-          - type: 'null'
-        plannedEnrollmentNumberQuantity:
+        plannedEnrollmentNumber:
           anyOf:
           - $ref: '#/components/schemas/Quantity-Output'
-          - type: 'null'
-        plannedCompletionNumberRange:
-          anyOf:
           - $ref: '#/components/schemas/Range-Output'
           - type: 'null'
-        plannedCompletionNumberQuantity:
+          title: Plannedenrollmentnumber
+        plannedCompletionNumber:
           anyOf:
           - $ref: '#/components/schemas/Quantity-Output'
+          - $ref: '#/components/schemas/Range-Output'
           - type: 'null'
+          title: Plannedcompletionnumber
         plannedSex:
           items:
             $ref: '#/components/schemas/Code-Output'
@@ -7048,12 +7218,6 @@ components:
           type: array
           title: Notes
           default: []
-        instanceType:
-          type: string
-          enum:
-          - StudyCohort
-          const: StudyCohort
-          title: Instancetype
         characteristics:
           items:
             $ref: '#/components/schemas/Characteristic-Output'
@@ -7066,6 +7230,12 @@ components:
           type: array
           title: Indicationids
           default: []
+        instanceType:
+          type: string
+          enum:
+          - StudyCohort
+          const: StudyCohort
+          title: Instancetype
       type: object
       required:
       - id
@@ -7111,6 +7281,12 @@ components:
             $ref: '#/components/schemas/StudyDefinitionDocumentVersion-Input'
           type: array
           title: Versions
+          default: []
+        childIds:
+          items:
+            type: string
+          type: array
+          title: Childids
           default: []
         notes:
           items:
@@ -7172,6 +7348,12 @@ components:
           type: array
           title: Versions
           default: []
+        childIds:
+          items:
+            type: string
+          type: array
+          title: Childids
+          default: []
         notes:
           items:
             $ref: '#/components/schemas/CommentAnnotation-Output'
@@ -7222,12 +7404,6 @@ components:
           type: array
           title: Contents
           default: []
-        childIds:
-          items:
-            type: string
-          type: array
-          title: Childids
-          default: []
         notes:
           items:
             $ref: '#/components/schemas/CommentAnnotation-Input'
@@ -7275,12 +7451,6 @@ components:
             $ref: '#/components/schemas/NarrativeContent-Output'
           type: array
           title: Contents
-          default: []
-        childIds:
-          items:
-            type: string
-          type: array
-          title: Childids
           default: []
         notes:
           items:
@@ -7330,22 +7500,18 @@ components:
         includesHealthySubjects:
           type: boolean
           title: Includeshealthysubjects
-        plannedEnrollmentNumberRange:
-          anyOf:
-          - $ref: '#/components/schemas/Range-Input'
-          - type: 'null'
-        plannedEnrollmentNumberQuantity:
+        plannedEnrollmentNumber:
           anyOf:
           - $ref: '#/components/schemas/Quantity-Input'
-          - type: 'null'
-        plannedCompletionNumberRange:
-          anyOf:
           - $ref: '#/components/schemas/Range-Input'
           - type: 'null'
-        plannedCompletionNumberQuantity:
+          title: Plannedenrollmentnumber
+        plannedCompletionNumber:
           anyOf:
           - $ref: '#/components/schemas/Quantity-Input'
+          - $ref: '#/components/schemas/Range-Input'
           - type: 'null'
+          title: Plannedcompletionnumber
         plannedSex:
           items:
             $ref: '#/components/schemas/Code-Input'
@@ -7369,18 +7535,18 @@ components:
           type: array
           title: Notes
           default: []
-        instanceType:
-          type: string
-          enum:
-          - StudyDesignPopulation
-          const: StudyDesignPopulation
-          title: Instancetype
         cohorts:
           items:
             $ref: '#/components/schemas/StudyCohort-Input'
           type: array
           title: Cohorts
           default: []
+        instanceType:
+          type: string
+          enum:
+          - StudyDesignPopulation
+          const: StudyDesignPopulation
+          title: Instancetype
       type: object
       required:
       - id
@@ -7417,22 +7583,18 @@ components:
         includesHealthySubjects:
           type: boolean
           title: Includeshealthysubjects
-        plannedEnrollmentNumberRange:
-          anyOf:
-          - $ref: '#/components/schemas/Range-Output'
-          - type: 'null'
-        plannedEnrollmentNumberQuantity:
+        plannedEnrollmentNumber:
           anyOf:
           - $ref: '#/components/schemas/Quantity-Output'
-          - type: 'null'
-        plannedCompletionNumberRange:
-          anyOf:
           - $ref: '#/components/schemas/Range-Output'
           - type: 'null'
-        plannedCompletionNumberQuantity:
+          title: Plannedenrollmentnumber
+        plannedCompletionNumber:
           anyOf:
           - $ref: '#/components/schemas/Quantity-Output'
+          - $ref: '#/components/schemas/Range-Output'
           - type: 'null'
+          title: Plannedcompletionnumber
         plannedSex:
           items:
             $ref: '#/components/schemas/Code-Output'
@@ -7456,18 +7618,18 @@ components:
           type: array
           title: Notes
           default: []
-        instanceType:
-          type: string
-          enum:
-          - StudyDesignPopulation
-          const: StudyDesignPopulation
-          title: Instancetype
         cohorts:
           items:
             $ref: '#/components/schemas/StudyCohort-Output'
           type: array
           title: Cohorts
           default: []
+        instanceType:
+          type: string
+          enum:
+          - StudyDesignPopulation
+          const: StudyDesignPopulation
+          title: Instancetype
       type: object
       required:
       - id
@@ -7949,6 +8111,12 @@ components:
           anyOf:
           - $ref: '#/components/schemas/Masking-Input'
           - type: 'null'
+        notes:
+          items:
+            $ref: '#/components/schemas/CommentAnnotation-Input'
+          type: array
+          title: Notes
+          default: []
         instanceType:
           type: string
           enum:
@@ -8012,6 +8180,12 @@ components:
           anyOf:
           - $ref: '#/components/schemas/Masking-Output'
           - type: 'null'
+        notes:
+          items:
+            $ref: '#/components/schemas/CommentAnnotation-Output'
+          type: array
+          title: Notes
+          default: []
         instanceType:
           type: string
           enum:

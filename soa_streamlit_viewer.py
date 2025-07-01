@@ -10,24 +10,54 @@ def load_json(path):
     with open(path, 'r', encoding='utf-8') as f:
         return json.load(f)
 
-def get_json_candidates():
+def get_file_candidates():
     files = os.listdir('.')
-    candidates = {}
-    for fname in ['soa_text.json', 'soa_vision.json', 'soa_final.json']:
-        if fname in files:
-            candidates[fname] = load_json(fname)
-    # Add any other .json files
-    for f in files:
-        if f.endswith('.json') and f not in candidates:
-            candidates[f] = load_json(f)
-    return candidates
+    outputs = {}
+    configs = {}
+    
+    output_prefixes = ['STEP', 'soa_']
+    config_files = ['soa_entity_mapping.json', 'llm_soa_prompt.txt']
+
+    for f in sorted(files):
+        if f.endswith('.json'):
+            if any(f.startswith(p) for p in output_prefixes) and f not in config_files:
+                try:
+                    outputs[f] = load_json(f)
+                except (json.JSONDecodeError, UnicodeDecodeError):
+                    outputs[f] = {'error': 'Could not decode JSON.'}
+            elif f in config_files:
+                try:
+                    configs[f] = load_json(f)
+                except (json.JSONDecodeError, UnicodeDecodeError):
+                    configs[f] = {'error': 'Could not decode JSON.'}
+        elif f.endswith('.txt') and f in config_files:
+            with open(f, 'r', encoding='utf-8') as file:
+                configs[f] = file.read()
+                
+    return outputs, configs
 
 def extract_soa_metadata(soa):
-    name = soa.get('name')
-    instance_type = soa.get('instanceType')
-    versions = soa.get('studyVersions', [])
-    version_ids = [v.get('studyVersionId') for v in versions]
-    return name, instance_type, version_ids
+    study = soa.get('study', {})
+    study_id = study.get('id', 'N/A')
+    study_name = study.get('name', 'N/A')
+    usdm_version = soa.get('usdmVersion', 'N/A')
+    
+    timeline = get_timeline(soa)
+    if timeline:
+        num_timepoints = len(timeline.get('plannedTimepoints', []))
+        num_activities = len(timeline.get('activities', []))
+        num_groups = len(timeline.get('activityGroups', []))
+    else:
+        num_timepoints, num_activities, num_groups = 0, 0, 0
+        
+    return {
+        'study_id': study_id,
+        'study_name': study_name,
+        'usdm_version': usdm_version,
+        'num_timepoints': num_timepoints,
+        'num_activities': num_activities,
+        'num_groups': num_groups
+    }
 
 def get_timeline(soa):
     # USDM Wrapper-Input
@@ -265,24 +295,32 @@ def render_soa_table(soa, filter_activity=None, filter_timepoint=None, grouped=T
                 _render_soa_table_core(group_acts, pts, links, pt_groups, file_name)
         return
     # --- Render table with group headers for both axes ---
-    table_html = ["<table style='border-collapse:collapse;width:100%'>"]
+    table_html = ["<style>",
+                  "table {border-collapse: collapse; width: 100%;}",
+                  "th, td {border: 1px solid #ddd; padding: 8px; text-align: left;}",
+                  "th {background-color: #f2f2f2;}",
+                  ".activity-name {font-weight: bold;}",
+                  ".even-row {background-color: #f9f9f9;}",
+                  ".odd-row {background-color: #ffffff;}",
+                  "</style>",
+                  "<table>"]
     # Column group headers (visit groups)
     if any(g != 'No Group' for g in pt_groups):
-        table_html.append("<tr><th></th><th></th>" + ''.join(f"<th style='border:1px solid #ccc;background:#e9ecef'><b>{g}</b></th>" for g in pt_groups) + "</tr>")
+        table_html.append("<tr><th></th><th></th>" + ''.join(f"<th><b>{g}</b></th>" for g in pt_groups) + "</tr>")
     # Header row
-    table_html.append("<tr><th>Activity</th><th>Description</th>" + ''.join(f"<th style='border:1px solid #ccc'>{p['label']}</th>" for p in pts) + "</tr>")
+    table_html.append("<tr><th>Activity</th><th>Description</th>" + ''.join(f"<th>{p['label']}</th>" for p in pts) + "</tr>")
     for idx, act in enumerate(acts):
-        row_color = '#f8fafc' if idx % 2 == 0 else '#fff'
+        row_class = 'even-row' if idx % 2 == 0 else 'odd-row'
         tooltip = f" title='{act['desc'].replace("'", "&#39;")}'" if act['desc'] else ''
-        row = [f"<td class='activity' style='border:1px solid #ccc;padding:4px;text-align:left;background:{row_color}'{tooltip}><b>{act['name']}</b></td>",
-               f"<td style='border:1px solid #ccc;padding:4px;text-align:left;background:{row_color}'>{act['desc']}</td>"]
+        row = [f"<td class='activity-name {row_class}'{tooltip}><b>{act['name']}</b></td>",
+               f"<td class='{row_class}'>{act['desc']}</td>"]
         for i, pt in enumerate(pts):
             checked = '✔️' if (act['id'], pt['id']) in links else ''
-            row.append(f"<td style='border:1px solid #ccc;padding:4px;background:{row_color}'>{checked}</td>")
+            row.append(f"<td class='{row_class}'>{checked}</td>")
         table_html.append("<tr>" + ''.join(row) + "</tr>")
     table_html.append("</table>")
     st.markdown(''.join(table_html), unsafe_allow_html=True)
-    st.caption('Rows are grouped by Activity Group and columns by Visit Group (if present). Hover for activity descriptions.')
+    st.caption('Rows are grouped by Activity Group and columns by Visit Group (if present). Hover over activity names for descriptions.')
     # Clinical review stats
     st.markdown('---')
     st.subheader('Clinical Review Summary')
@@ -298,37 +336,59 @@ def render_soa_table(soa, filter_activity=None, filter_timepoint=None, grouped=T
         st.success('No missing cells!')
 
 def render_metadata(soa):
-    name, instance_type, version_ids = extract_soa_metadata(soa)
-    st.markdown(f"**Study Name:** {name}")
-    st.markdown(f"**Instance Type:** {instance_type}")
-    st.markdown(f"**Study Versions:** {', '.join(version_ids) if version_ids else 'N/A'}")
-    timeline = get_timeline(soa)
-    if timeline:
-        pts = get_timepoints(timeline)
-        acts = get_activities(timeline)
-        st.markdown(f"**# Timepoints:** {len(pts)}  |  **# Activities:** {len(acts)}")
+    metadata = extract_soa_metadata(soa)
+    
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric(label="USDM Version", value=metadata['usdm_version'])
+    with col2:
+        st.metric(label="Study ID", value=metadata['study_id'])
+    with col3:
+        st.metric(label="Study Name", value=metadata['study_name'])
+
+    st.markdown(f"**Timeline Contains:** {metadata['num_timepoints']} Timepoints | {metadata['num_activities']} Activities | {metadata['num_groups']} Activity Groups")
+
+# --- Main App Layout ---
+output_files, config_files = get_file_candidates()
 
 # --- Sidebar ---
-json_candidates = get_json_candidates()
-st.sidebar.title('SoA JSON Files')
-file_choice = st.sidebar.radio('Select file/tab:', list(json_candidates.keys()), index=list(json_candidates.keys()).index('soa_final.json') if 'soa_final.json' in json_candidates else 0)
+st.sidebar.title('File Explorer')
 
-# --- Sidebar Filtering & Toggles ---
-st.sidebar.markdown('---')
-st.sidebar.subheader('Table Options')
+# Sidebar Filtering & Toggles
+st.sidebar.subheader('Table Display Options')
 filter_activity = st.sidebar.text_input('Filter activities (by name):', '')
 filter_timepoint = st.sidebar.text_input('Filter timepoints (by label):', '')
 grouped = st.sidebar.checkbox('Group by Activity Group', value=True)
-st.sidebar.caption('Tip: Use filters to focus on specific activities or visits. Toggle grouping for clinical review.')
+st.sidebar.caption('Use filters to focus on specific activities or visits.')
 
-# --- Tabs for text/vision/final ---
-tabs = st.tabs(list(json_candidates.keys()))
-for i, (fname, soa) in enumerate(json_candidates.items()):
-    with tabs[i]:
-        st.header(f'{fname}')
-        render_metadata(soa)
-        st.markdown('---')
-        st.subheader('Schedule of Activities Table')
-        render_soa_table(soa, filter_activity=filter_activity, filter_timepoint=filter_timepoint, grouped=grouped, file_name=fname)
-        with st.expander('Show Full JSON', expanded=False):
-            st.json(soa, expanded=False)
+st.sidebar.markdown('---')
+
+# --- Main Content Area ---
+if not output_files:
+    st.warning('No SoA output files found. Please run the pipeline first.')
+else:
+    tab_titles = list(output_files.keys())
+    tabs = st.tabs(tab_titles)
+    
+    for i, (fname, soa) in enumerate(output_files.items()):
+        with tabs[i]:
+            if 'error' in soa:
+                st.error(f"Could not load or parse {fname}: {soa['error']}")
+                continue
+
+            st.header(f'Analysis of: {fname}')
+            render_metadata(soa)
+            st.markdown('---')
+            st.subheader('Schedule of Activities Table')
+            render_soa_table(soa, filter_activity=filter_activity, filter_timepoint=filter_timepoint, grouped=grouped, file_name=fname)
+            with st.expander('Show Full JSON Output', expanded=False):
+                st.json(soa, expanded=False)
+
+# --- Configuration Files Section ---
+st.sidebar.subheader('Configuration Files')
+for fname, content in config_files.items():
+    with st.sidebar.expander(f'{fname}', expanded=False):
+        if isinstance(content, dict):
+            st.json(content)
+        else:
+            st.text(content)

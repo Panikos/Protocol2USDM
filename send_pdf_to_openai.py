@@ -18,12 +18,8 @@ import argparse
 parser = argparse.ArgumentParser(description="Extract SoA from PDF text with OpenAI")
 parser.add_argument("pdf_path", help="Path to the protocol PDF")
 parser.add_argument("--output", default="STEP1_soa_text.json", help="Output JSON file")
-parser.add_argument("--model", default=os.environ.get("OPENAI_MODEL", "gpt-4o"), help="OpenAI model")
+parser.add_argument("--model", default=os.environ.get("OPENAI_MODEL", "gpt-4o"), help="OpenAI model (e.g., gpt-4o, gpt-3.5-turbo)")
 args = parser.parse_args()
-ALLOWED_MODELS = ['o3', 'o3-mini', 'gpt-4o']
-if args.model not in ALLOWED_MODELS:
-    print(f"[FATAL] Model '{args.model}' is not allowed. Choose from: {ALLOWED_MODELS}")
-    sys.exit(1)
 MODEL_NAME = args.model
 if 'OPENAI_MODEL' not in os.environ:
     os.environ['OPENAI_MODEL'] = MODEL_NAME
@@ -75,36 +71,30 @@ def chunk_sections(sections, max_chars=75000):
 def send_text_to_openai(text):
     usdm_prompt = (
         "You are an expert in clinical trial protocol data modeling.\n"
-        "Extract the Schedule of Activities (SoA) from the following protocol text and return it as a single JSON object conforming to the CDISC USDM v4.0 OpenAPI schema, specifically the Wrapper-Input object.\n"
+        "Extract the Schedule of Activities (SoA) from the protocol text and return a single JSON object conforming to the CDISC USDM v4.0 OpenAPI schema.\n"
         "\n"
         "REQUIREMENTS (STRICT):\n"
-        "- For EVERY activity, explicitly assign an activityGroupId. If the activity belongs to Laboratory Tests, Health Outcome Instruments, or any other group, ensure the group is defined in activityGroups and referenced from the activity.\n"
-        "- The activityGroups array MUST include definitions for all groups present in the SoA, including but not limited to Laboratory Tests, Health Outcome Instruments, Safety Assessments, Efficacy Assessments, etc.\n"
-        "- Each activity must have a plannedTimepoints array listing all plannedTimepointIds where it occurs.\n"
-        "- The timeline must include an explicit activityTimepoints array, where each entry maps an activityId to a plannedTimepointId. Create one entry for every tickmark/cell in the SoA table.\n"
-        "- If a matrix or tickmark table is present, ensure all activity-timepoint mappings are captured in activityTimepoints.\n"
+        "- The root of the JSON object MUST be a Wrapper-Input object.\n"
+        "- The JSON object MUST have a top-level 'study' object and a 'usdmVersion' key set to '4.0.0'.\n"
+        "- For EVERY activity, explicitly assign an 'activityGroupId'. If an activity belongs to a category (e.g., 'Laboratory Tests'), define that category in 'activityGroups' and reference its ID.\n"
+        "- The 'activityGroups' array MUST include definitions for all categories present in the SoA.\n"
+        "- The 'timeline' must include an 'activityTimepoints' array, where each entry maps an 'activityId' to a 'plannedTimepointId', representing every tickmark in the SoA table.\n"
         "- Use table headers verbatim for timepoint labels.\n"
-        "- Output ONLY valid JSON, with no explanations, comments, or markdown.\n"
-        "- Include a 'table_headers' array for traceability.\n"
-        "- If a group is not present, set the group id to null.\n"
-        "- If the output is invalid, output as much as possible.\n"
+        "- Output ONLY valid JSON. Do not include explanations, comments, or markdown.\n"
         "\n"
-        "The study object must include:\n"
-        "- id: string (use protocol’s unique identifier).\n"
-        "- name: string (full study name).\n"
-        "- description: string or null.\n"
-        "- label: string or null.\n"
-        "- versions: array of StudyVersion-Input objects (at least one).\n"
-        "- documentedBy: array (can be empty).\n"
-        "- instanceType: string, must be 'Study'.\n"
-        "\n"
-        "Within each StudyVersion-Input object, include:\n"
-        "- id: string (unique version ID).\n"
-        "- versionIdentifier: string (e.g., protocol version).\n"
-        "- rationale: string or null.\n"
-        "- timeline: object, must include:\n"
-        "    - plannedTimepoints: array of PlannedTimepoint-Input (each with unique id, name, instanceType, etc.).\n"
-        "    - activities: array of Activity-Input (each with unique id, name, activityGroupId, plannedTimepoints, instanceType, etc.).\n"
+        "EXAMPLE WRAPPER STRUCTURE:\n"
+        "{\n"
+        "  \"usdmVersion\": \"4.0.0\",\n"
+        "  \"study\": {\n"
+        "    \"id\": \"<study_id>\",\n"
+        "    \"name\": \"<study_name>\",\n"
+        "    \"versions\": [\n"
+        "      {\n"
+        "        \"timeline\": { ... }\n"
+        "      }\n"
+        "    ]\n"
+        "  }\n"
+        "}\n"
         "    - activityGroups: array of ActivityGroup-Input (each with unique id, name, instanceType, etc.).\n"
         "    - activityTimepoints: array of ActivityTimepoint-Input (each mapping an activity to a timepoint: activityId + plannedTimepointId).\n"
         "- amendments: array (can be empty).\n"
@@ -133,61 +123,93 @@ def send_text_to_openai(text):
         {"role": "system", "content": usdm_prompt},
         {"role": "user", "content": text}
     ]
-    # Model fallback logic
-    model_order = [MODEL_NAME]
-    # Only add fallbacks if not overridden by CLI/env
-    if MODEL_NAME == 'o3':
-        model_order += ['o3-mini-high', 'gpt-4o']
-    elif MODEL_NAME == 'o3-mini-high':
-        model_order += ['gpt-4o']
-    tried = []
-    for model_try in model_order:
-        print(f"[INFO] Using OpenAI model: {model_try}")
-        params = dict(model=model_try, messages=messages)
-        # Use 'max_completion_tokens' = 100000 for o3/o3-mini/o3-mini-high, and 'max_tokens' for gpt-4o/others
-        if model_try in ['o3', 'o3-mini', 'o3-mini-high']:
-            params['max_completion_tokens'] = 100000
-        else:
-            params['max_tokens'] = 16384
-        try:
-            response = client.chat.completions.create(**params)
-            result = response.choices[0].message.content
-            # Clean up: remove code block markers, trailing text
-            if len(result) > 3800:
-                print("[WARNING] LLM output may be truncated. Consider splitting the task or increasing max_tokens if supported.")
-            print(f"[ACTUAL_MODEL_USED] {model_try}")
-            return result
-        except Exception as e:
-            err_msg = str(e)
-            print(f"[WARNING] Model '{model_try}' failed: {err_msg}")
-            tried.append((model_try, err_msg))
-            continue
-    print(f"[FATAL] All model attempts failed: {', '.join([f'{model}: {err}' for model, err in tried])}")
-    raise RuntimeError(f"No available model succeeded: {', '.join([f'{model}: {err}' for model, err in tried])}")
+    try:
+        print(f"[INFO] Using OpenAI model: {MODEL_NAME}")
+        params = {
+            "model": MODEL_NAME,
+            "messages": messages,
+            "response_format": {"type": "json_object"}
+        }
+        # The 'o3' model family does not support temperature=0.0.
+        if MODEL_NAME not in ['o3', 'o3-mini', 'o3-mini-high']:
+            params["temperature"] = 0.0
+        
+        response = client.chat.completions.create(**params)
+        result = response.choices[0].message.content
+        print(f"[ACTUAL_MODEL_USED] {MODEL_NAME}")
+        return result
+    except Exception as e:
+        print(f"[FATAL] Model '{MODEL_NAME}' failed: {e}")
+        raise RuntimeError(f"Model '{MODEL_NAME}' failed: {e}")
 
 def clean_llm_json(raw):
-    raw = raw.strip()
-    if raw.startswith('```json'):
-        raw = raw[7:]
-    if raw.startswith('```'):
-        raw = raw[3:]
-    if raw.endswith('```'):
-        raw = raw[:-3]
-    last_brace = raw.rfind('}')
-    if last_brace != -1:
-        raw = raw[:last_brace + 1]
-    return raw
+    # Remove markdown code block fences
+    cleaned = re.sub(r"^```json\n?", "", raw.strip(), flags=re.MULTILINE)
+    cleaned = re.sub(r"\n?```$", "", cleaned, flags=re.MULTILINE)
+    # Remove leading/trailing whitespace that might affect parsing
+    cleaned = cleaned.strip()
+    # Attempt to fix trailing commas in objects and arrays
+    cleaned = re.sub(r",(\s*[]}])", r"\1", cleaned)
+    return cleaned
+
+def merge_soa_jsons(soa_parts):
+    if not soa_parts:
+        return None
+
+    base_soa = None
+    for part in soa_parts:
+        if 'study' in part and 'versions' in part['study'] and part['study']['versions']:
+            base_soa = part
+            break
+    
+    if not base_soa:
+        print("[ERROR] No valid SoA structure found in any of the parts to merge.")
+        return None
+
+    import copy
+    merged_soa = copy.deepcopy(base_soa)
+
+    timeline = merged_soa['study']['versions'][0]['timeline']
+    timepoints = {tp['id']: tp for tp in timeline.get('plannedTimepoints', []) if tp.get('id')}
+    activities = {act['id']: act for act in timeline.get('activities', []) if act.get('id')}
+    groups = {grp['id']: grp for grp in timeline.get('activityGroups', []) if grp.get('id')}
+    activity_timepoints = {f"{at.get('activityId')}-{at.get('plannedTimepointId')}": at for at in timeline.get('activityTimepoints', []) if at.get('activityId') and at.get('plannedTimepointId')}
+
+    for part in soa_parts:
+        part_timeline = part.get('study', {}).get('versions', [{}])[0].get('timeline', {})
+        
+        for tp in part_timeline.get('plannedTimepoints', []):
+            if tp.get('id') and tp['id'] not in timepoints:
+                timepoints[tp['id']] = tp
+        
+        for act in part_timeline.get('activities', []):
+            if act.get('id') and act['id'] not in activities:
+                activities[act['id']] = act
+
+        for grp in part_timeline.get('activityGroups', []):
+            if grp.get('id') and grp['id'] not in groups:
+                groups[grp['id']] = grp
+
+        for at in part_timeline.get('activityTimepoints', []):
+            key = f"{at.get('activityId')}-{at.get('plannedTimepointId')}"
+            if key not in activity_timepoints:
+                activity_timepoints[key] = at
+
+    timeline['plannedTimepoints'] = list(timepoints.values())
+    timeline['activities'] = list(activities.values())
+    timeline['activityGroups'] = list(groups.values())
+    timeline['activityTimepoints'] = list(activity_timepoints.values())
+    
+    merged_soa['usdmVersion'] = base_soa.get('usdmVersion', '4.0.0')
+
+    return merged_soa
 
 def main():
     parser = argparse.ArgumentParser(description="Extract SoA from PDF text with OpenAI")
     parser.add_argument("pdf_path", help="Path to the protocol PDF")
     parser.add_argument("--output", default="STEP1_soa_text.json", help="Output JSON file")
-    parser.add_argument("--model", default=os.environ.get("OPENAI_MODEL", "gpt-4o"), help="OpenAI model")
+    parser.add_argument("--model", default=os.environ.get("OPENAI_MODEL", "gpt-4o"), help="OpenAI model (e.g., gpt-4o, gpt-3.5-turbo)")
     args = parser.parse_args()
-    ALLOWED_MODELS = ['o3', 'o3-mini', 'gpt-4o']
-    if args.model not in ALLOWED_MODELS:
-        print(f"[FATAL] Model '{args.model}' is not allowed. Choose from: {ALLOWED_MODELS}")
-        sys.exit(1)
     MODEL_NAME = args.model
     if 'OPENAI_MODEL' not in os.environ:
         os.environ['OPENAI_MODEL'] = MODEL_NAME
@@ -197,103 +219,50 @@ def main():
     pdf_path = args.pdf_path
     pdf_text = extract_pdf_text(pdf_path)
     sections = split_into_sections(pdf_text)
-    chunks = chunk_sections(sections, max_chars=75000)
-    print(f"[INFO] PDF split into {len(chunks)} chunks for LLM extraction.")
+    chunks = chunk_sections(sections)
+    print(f"[INFO] Split text into {len(chunks)} chunks to send to LLM.")
 
-    all_versions = []
-    all_timepoints = []
-    all_activities = []
-    all_groups = []
-    all_atps = []
-    wrapper_info = None
-    study_id = None
-    study_name = None
-
+    all_soa_parts = []
     for i, chunk in enumerate(chunks):
-        print(f"[INFO] Sending chunk {i+1}/{len(chunks)} to LLM (length: {len(chunk)})...")
-        parsed_content = send_text_to_openai(chunk)
-        if not parsed_content or not parsed_content.strip().startswith(('{', '[')):
-            print(f"[FATAL] LLM output for chunk {i+1} is empty or not valid JSON. Saving raw output to llm_raw_output_{i+1}.txt.")
-            with open(f"llm_raw_output_{i+1}.txt", "w", encoding="utf-8") as f:
-                f.write(parsed_content or "[EMPTY]")
+        print(f"[INFO] Sending chunk {i+1}/{len(chunks)} to LLM...")
+        raw_output = send_text_to_openai(chunk)
+        if not raw_output or not raw_output.strip().startswith(('{', '[')):
+            print(f"[WARNING] LLM output for chunk {i+1} is empty or not valid JSON. Skipping.")
             continue
         try:
-            parsed_json = json.loads(parsed_content)
+            # First try direct parsing
+            parsed_json = json.loads(raw_output)
+            all_soa_parts.append(parsed_json)
         except json.JSONDecodeError:
-            cleaned = clean_llm_json(parsed_content)
+            # If direct parsing fails, try to clean it
+            cleaned_json = clean_llm_json(raw_output)
             try:
-                parsed_json = json.loads(cleaned)
+                parsed_json = json.loads(cleaned_json)
+                all_soa_parts.append(parsed_json)
             except json.JSONDecodeError:
-                print(f"[FATAL] LLM output for chunk {i+1} could not be parsed as JSON. Saving raw and cleaned output.")
-                with open(f"llm_raw_output_{i+1}.txt", "w", encoding="utf-8") as f:
-                    f.write(parsed_content)
-                with open(f"llm_cleaned_output_{i+1}.txt", "w", encoding="utf-8") as f:
-                    f.write(cleaned)
-                continue
-        # Drill into the USDM structure
-        if isinstance(parsed_json, dict):
-            if not wrapper_info:
-                # Save wrapper info from the first chunk
-                wrapper_info = {k: parsed_json[k] for k in parsed_json if k not in ('study', 'Study')}
-            study = parsed_json.get('study') or parsed_json.get('Study')
-            if study:
-                if not study_id:
-                    study_id = study.get('id')
-                if not study_name:
-                    study_name = study.get('name')
-                versions = study.get('versions') or study.get('studyVersions') or []
-                if isinstance(versions, dict):
-                    versions = [versions]
-                for v in versions:
-                    timeline = v.get('timeline') or v.get('studyDesign', {}).get('timeline') or {}
-                    # Collect all entities
-                    all_versions.append(v)
-                    all_timepoints.extend(timeline.get('plannedTimepoints', []))
-                    all_activities.extend(timeline.get('activities', []))
-                    all_groups.extend(timeline.get('activityGroups', []))
-                    all_atps.extend(timeline.get('activityTimepoints', []))
+                print(f"[ERROR] Failed to parse JSON from chunk {i+1} even after cleaning. Skipping.")
 
-    # Deduplicate by id
-    unique = lambda items, key: list({item.get(key): item for item in items if item.get(key)}.values())
-    all_timepoints = unique(all_timepoints, 'id')
-    all_activities = unique(all_activities, 'id')
-    all_groups = unique(all_groups, 'id')
-    all_atps = [dict(t) for t in {json.dumps(atp, sort_keys=True): atp for atp in all_atps}.values()]
+    if not all_soa_parts:
+        print("[FATAL] No valid SoA JSON could be extracted from any text chunk.")
+        sys.exit(1)
 
-    # Compose merged timeline
-    merged_timeline = {
-        'plannedTimepoints': all_timepoints,
-        'activities': all_activities,
-        'activityGroups': all_groups,
-        'activityTimepoints': all_atps
-    }
-    # Compose merged version
-    merged_version = {
-        'id': study_id or 'merged_version',
-        'versionIdentifier': 'Merged from LLM chunks',
-        'instanceType': 'StudyVersion',
-        'timeline': merged_timeline,
-        'amendments': [],
-    }
-    # Compose merged study
-    merged_study = {
-        'id': study_id or 'merged_study',
-        'name': study_name or 'Merged Study',
-        'instanceType': 'Study',
-        'versions': [merged_version],
-        'documentedBy': [],
-    }
-    # Compose wrapper
-    final_json = {
-        'systemVersion': wrapper_info.get('systemVersion', '1.0') if wrapper_info else '1.0',
-        'systemName': wrapper_info.get('systemName', 'Protocol2USDMv3') if wrapper_info else 'Protocol2USDMv3',
-        'usdmVersion': wrapper_info.get('usdmVersion', '4.0') if wrapper_info else '4.0',
-        'study': merged_study
-    }
+    print(f"[INFO] Successfully extracted SoA data from {len(all_soa_parts)} chunks. Merging...")
+    final_json = merge_soa_jsons(all_soa_parts)
 
-    with open('STEP1_soa_text.json', 'w', encoding='utf-8') as f:
+    if not final_json:
+        print("[FATAL] Merging of SoA chunks failed.")
+        sys.exit(1)
+
+    # Ensure the final study object has the required keys for validation
+    if 'study' in final_json and 'attributes' not in final_json['study']:
+        final_json['study']['attributes'] = {}
+    if 'study' in final_json and 'relationships' not in final_json['study']:
+        final_json['study']['relationships'] = {}
+
+    with open(args.output, 'w', encoding='utf-8') as f:
         json.dump(final_json, f, indent=2, ensure_ascii=False)
-    print('[SUCCESS] Merged SoA output from all LLM chunks written to STEP1_soa_text.json')
+    
+    print(f"[SUCCESS] Merged SoA output from all LLM chunks written to {args.output}")
 
 if __name__ == "__main__":
     main()
