@@ -56,7 +56,7 @@ The SoA is structured around a few core entities. Understanding their relationsh
 *   **PlannedTimepoints:** These are the precise moments or intervals when activities happen. They are often linked to Encounters. (e.g., "Day 1", "Week 4").
 *   **Activities:** These are the individual procedures or assessments performed (e.g., "Physical Exam", "Blood Draw").
 *   **ActivityTimepoints:** This is the mapping that links an Activity to a PlannedTimepoint, indicating *what* happens *when*.
-*   **ActivityGroups:** These are optional groupings for related activities (e.g., "Vital Signs").
+*   **ActivityGroups:** These are optional groupings for related activities (e.g., "Vital Signs"). When an activity belongs to a group, you **MUST** set the `activityGroupId` field on the Activity object to the ID of the corresponding ActivityGroup.
 
 **Your Task:**
 

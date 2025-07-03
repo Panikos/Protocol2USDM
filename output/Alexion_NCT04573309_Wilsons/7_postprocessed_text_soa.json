@@ -1,0 +1,271 @@
+{
+  "study": {
+    "versions": [
+      {
+        "timeline": {
+          "epochs": [
+            {
+              "id": "epoch-1",
+              "name": "Screening",
+              "encounters": [
+                {
+                  "id": "encounter1",
+                  "name": "Screening Visit",
+                  "instanceType": "Visit",
+                  "scheduledAtId": "timepoint1"
+                }
+              ]
+            },
+            {
+              "id": "epoch-2",
+              "name": "Treatment",
+              "encounters": [
+                {
+                  "id": "encounter2",
+                  "name": "Inpatient Period 1",
+                  "instanceType": "Visit",
+                  "scheduledAtId": "timepoint2"
+                },
+                {
+                  "id": "encounter3",
+                  "name": "Outpatient Period",
+                  "instanceType": "Visit",
+                  "scheduledAtId": "timepoint3"
+                },
+                {
+                  "id": "encounter4",
+                  "name": "Inpatient Period 2",
+                  "instanceType": "Visit",
+                  "scheduledAtId": "timepoint4"
+                }
+              ]
+            },
+            {
+              "id": "epoch-3",
+              "name": "Follow-up",
+              "encounters": [
+                {
+                  "id": "encounter5",
+                  "name": "End of Study Visit",
+                  "instanceType": "Visit",
+                  "scheduledAtId": "timepoint5"
+                }
+              ]
+            }
+          ],
+          "plannedTimepoints": [
+            {
+              "id": "plannedTimepoint-1",
+              "name": "Screening Period",
+              "value": "-42 to -9",
+              "valueLabel": "Days",
+              "relativeFromScheduledInstanceId": "encounter1",
+              "instanceType": "Fixed Reference",
+              "type": "Before",
+              "relativeToFrom": "Start to Start",
+              "plannedTimepointId": "plannedTimepoint-1"
+            },
+            {
+              "id": "plannedTimepoint-2",
+              "name": "Inpatient Period 1",
+              "value": "-8 to 9",
+              "valueLabel": "Days",
+              "relativeFromScheduledInstanceId": "encounter2",
+              "instanceType": "Fixed Reference",
+              "type": "After",
+              "relativeToFrom": "Start to Start",
+              "plannedTimepointId": "plannedTimepoint-2"
+            },
+            {
+              "id": "plannedTimepoint-3",
+              "name": "Outpatient Period",
+              "value": "10 to 22",
+              "valueLabel": "Days",
+              "relativeFromScheduledInstanceId": "encounter3",
+              "instanceType": "Fixed Reference",
+              "type": "After",
+              "relativeToFrom": "Start to Start",
+              "plannedTimepointId": "plannedTimepoint-3"
+            },
+            {
+              "id": "plannedTimepoint-4",
+              "name": "Inpatient Period 2",
+              "value": "23 to 40",
+              "valueLabel": "Days",
+              "relativeFromScheduledInstanceId": "encounter4",
+              "instanceType": "Fixed Reference",
+              "type": "After",
+              "relativeToFrom": "Start to Start",
+              "plannedTimepointId": "plannedTimepoint-4"
+            },
+            {
+              "id": "plannedTimepoint-5",
+              "name": "End of Study",
+              "value": "54 +/- 2",
+              "valueLabel": "Days",
+              "relativeFromScheduledInstanceId": "encounter5",
+              "instanceType": "Fixed Reference",
+              "type": "After",
+              "relativeToFrom": "Start to Start",
+              "plannedTimepointId": "plannedTimepoint-5"
+            },
+            {
+              "id": "plannedTimepoint-6",
+              "name": "Day 54",
+              "value": "54",
+              "valueLabel": "Day",
+              "relativeFromScheduledInstanceId": "encounter5",
+              "instanceType": "PlannedTimepoint",
+              "type": {
+                "value": "Fixed Reference"
+              },
+              "relativeToFrom": {
+                "value": "Start to Start"
+              },
+              "plannedTimepointId": "plannedTimepoint-6"
+            }
+          ],
+          "activities": [
+            {
+              "id": "activity-1",
+              "name": "Informed Consent",
+              "instanceType": "Procedure",
+              "activityId": "activity-1",
+              "activityName": "Informed Consent"
+            },
+            {
+              "id": "activity-2",
+              "name": "Physical Examination",
+              "instanceType": "Procedure",
+              "activityId": "activity-2",
+              "activityName": "Physical Examination"
+            },
+            {
+              "id": "activity-3",
+              "name": "Blood Sampling for PK/PD",
+              "instanceType": "Procedure",
+              "activityId": "activity-3",
+              "activityName": "Blood Sampling for PK/PD"
+            },
+            {
+              "id": "activity-4",
+              "name": "Vital Signs Measurement",
+              "instanceType": "Procedure",
+              "activityId": "activity-4",
+              "activityName": "Vital Signs Measurement"
+            },
+            {
+              "id": "activity-5",
+              "name": "12-lead ECG",
+              "instanceType": "Procedure",
+              "activityId": "activity-5",
+              "activityName": "12-lead ECG"
+            },
+            {
+              "id": "activity-6",
+              "name": "Adverse Events Monitoring",
+              "instanceType": "Procedure",
+              "activityId": "activity-6",
+              "activityName": "Adverse Events Monitoring"
+            },
+            {
+              "id": "activity-7",
+              "name": "Copper and Molybdenum Balance Assessment",
+              "instanceType": "Procedure",
+              "activityId": "activity-7",
+              "activityName": "Copper and Molybdenum Balance Assessment"
+            },
+            {
+              "id": "activity-8",
+              "name": "Suicidal Ideation and Behavior Risk Monitoring",
+              "instanceType": "Activity",
+              "activityId": "activity-8",
+              "activityName": "Suicidal Ideation and Behavior Risk Monitoring"
+            },
+            {
+              "id": "activity-9",
+              "name": "Pregnancy Monitoring",
+              "instanceType": "Activity",
+              "activityId": "activity-9",
+              "activityName": "Pregnancy Monitoring"
+            }
+          ],
+          "activityTimepoints": [
+            {
+              "activityId": "activity-1",
+              "plannedTimepointId": "plannedTimepoint-1"
+            },
+            {
+              "activityId": "activity-2",
+              "plannedTimepointId": "plannedTimepoint-1"
+            },
+            {
+              "activityId": "activity-3",
+              "plannedTimepointId": "plannedTimepoint-2"
+            },
+            {
+              "activityId": "activity-4",
+              "plannedTimepointId": "plannedTimepoint-2"
+            },
+            {
+              "activityId": "activity-5",
+              "plannedTimepointId": "plannedTimepoint-2"
+            },
+            {
+              "activityId": "activity-6",
+              "plannedTimepointId": "plannedTimepoint-2"
+            },
+            {
+              "activityId": "activity-7",
+              "plannedTimepointId": "plannedTimepoint-2"
+            },
+            {
+              "activityId": "activity-3",
+              "plannedTimepointId": "plannedTimepoint-4"
+            },
+            {
+              "activityId": "activity-4",
+              "plannedTimepointId": "plannedTimepoint-4"
+            },
+            {
+              "activityId": "activity-5",
+              "plannedTimepointId": "plannedTimepoint-4"
+            },
+            {
+              "activityId": "activity-6",
+              "plannedTimepointId": "plannedTimepoint-4"
+            },
+            {
+              "activityId": "activity-7",
+              "plannedTimepointId": "plannedTimepoint-4"
+            },
+            {
+              "activityId": "activity-2",
+              "plannedTimepointId": "plannedTimepoint-5"
+            },
+            {
+              "activityId": "activity-6",
+              "plannedTimepointId": "plannedTimepoint-5"
+            }
+          ],
+          "activityGroups": []
+        },
+        "id": "autogen-version-id-1",
+        "versionIdentifier": "1.0.0",
+        "rationale": "Version auto-generated by pipeline.",
+        "studyIdentifiers": [],
+        "titles": [],
+        "instanceType": "StudyVersion"
+      }
+    ],
+    "attributes": {},
+    "relationships": {},
+    "name": "Auto-generated Study Name",
+    "instanceType": "Study"
+  },
+  "usdmVersion": "4.0.0",
+  "systemName": "Protocol2USDMv3",
+  "systemVersion": "1.0",
+  "attributes": "",
+  "relationships": ""
+}

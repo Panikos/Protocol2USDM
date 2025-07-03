@@ -1,0 +1,910 @@
+[2025-07-03 10:16:45] [INFO] Processing image: output\Alexion_NCT04573309_Wilsons\3_soa_images\soa_page_14.png
+[2025-07-03 10:16:45] [INFO] Processing 1 images with model 'gpt-4o'.
+[2025-07-03 10:17:52] [INFO] finish_reason=stop, usage=CompletionUsage(completion_tokens=2110, prompt_tokens=2193, total_tokens=4303, completion_tokens_details=CompletionTokensDetails(accepted_prediction_tokens=0, audio_tokens=0, reasoning_tokens=0, rejected_prediction_tokens=0), prompt_tokens_details=PromptTokensDetails(audio_tokens=0, cached_tokens=0))
+[2025-07-03 10:17:52] [DEBUG] Raw LLM output: {
+    "study": {
+        "versions": [
+            {
+                "timeline": {
+                    "epochs": [
+                        {
+                            "id": "epoch-1",
+                            "name": "Screening",
+                            "encounters": [
+                                {
+                                    "id": "enc-1",
+                                    "name": "Screening Visit",
+                                    "scheduledAtId": "tp-1",
+                                    "instanceType": "Visit"
+                                }
+                            ]
+                        },
+                        {
+                            "id": "epoch-2",
+                            "name": "Inpatient Period 1",
+                            "encounters": [
+                                {
+                                    "id": "enc-2",
+                                    "name": "Inpatient Visit 1",
+                                    "scheduledAtId": "tp-2",
+                                    "instanceType": "Visit"
+                                },
+                                {
+                                    "id": "enc-3",
+                                    "name": "Inpatient Visit 2",
+                                    "scheduledAtId": "tp-3",
+                                    "instanceType": "Visit"
+                                }
+                            ]
+                        },
+                        {
+                            "id": "epoch-3",
+                            "name": "Outpatient Period",
+                            "encounters": [
+                                {
+                                    "id": "enc-4",
+                                    "name": "Outpatient Visit",
+                                    "scheduledAtId": "tp-4",
+                                    "instanceType": "Visit"
+                                }
+                            ]
+                        },
+                        {
+                            "id": "epoch-4",
+                            "name": "Inpatient Period 2",
+                            "encounters": [
+                                {
+                                    "id": "enc-5",
+                                    "name": "Inpatient Visit 3",
+                                    "scheduledAtId": "tp-5",
+                                    "instanceType": "Visit"
+                                }
+                            ]
+                        },
+                        {
+                            "id": "epoch-5",
+                            "name": "End of Study",
+                            "encounters": [
+                                {
+                                    "id": "enc-6",
+                                    "name": "End of Study Visit",
+                                    "scheduledAtId": "tp-6",
+                                    "instanceType": "Visit"
+                                }
+                            ]
+                        }
+                    ],
+                    "plannedTimepoints": [
+                        {
+                            "id": "tp-1",
+                            "name": "Day -42 to -1",
+                            "value": "-42 to -1",
+                            "valueLabel": "Days",
+                            "relativeFromScheduledInstanceId": "enc-1",
+                            "instanceType": "Fixed Reference",
+                            "type": "Start to Start"
+                        },
+                        {
+                            "id": "tp-2",
+                            "name": "Day 1",
+                            "value": "1",
+                            "valueLabel": "Day",
+                            "relativeFromScheduledInstanceId": "enc-2",
+                            "instanceType": "Fixed Reference",
+                            "type": "Start to Start"
+                        },
+                        {
+                            "id": "tp-3",
+                            "name": "Day 2-3",
+                            "value": "2-3",
+                            "valueLabel": "Days",
+                            "relativeFromScheduledInstanceId": "enc-3",
+                            "instanceType": "Fixed Reference",
+                            "type": "Start to Start"
+                        },
+                        {
+                            "id": "tp-4",
+                            "name": "Day 10-22",
+                            "value": "10-22",
+                            "valueLabel": "Days",
+                            "relativeFromScheduledInstanceId": "enc-4",
+                            "instanceType": "Fixed Reference",
+                            "type": "Start to Start"
+                        },
+                        {
+                            "id": "tp-5",
+                            "name": "Day 23-35",
+                            "value": "23-35",
+                            "valueLabel": "Days",
+                            "relativeFromScheduledInstanceId": "enc-5",
+                            "instanceType": "Fixed Reference",
+                            "type": "Start to Start"
+                        },
+                        {
+                            "id": "tp-6",
+                            "name": "Day 54",
+                            "value": "54",
+                            "valueLabel": "Day",
+                            "relativeFromScheduledInstanceId": "enc-6",
+                            "instanceType": "Fixed Reference",
+                            "type": "Start to Start"
+                        }
+                    ],
+                    "activities": [
+                        {
+                            "id": "act-1",
+                            "name": "Informed Consent",
+                            "instanceType": "Procedure"
+                        },
+                        {
+                            "id": "act-2",
+                            "name": "Admit to Unit",
+                            "instanceType": "Procedure"
+                        },
+                        {
+                            "id": "act-3",
+                            "name": "Discharge from Unit",
+                            "instanceType": "Procedure"
+                        },
+                        {
+                            "id": "act-4",
+                            "name": "Outpatient Visit or Phone Call",
+                            "instanceType": "Procedure"
+                        },
+                        {
+                            "id": "act-5",
+                            "name": "Inclusion/Exclusion",
+                            "instanceType": "Procedure"
+                        },
+                        {
+                            "id": "act-6",
+                            "name": "Discuss/Document Contraception",
+                            "instanceType": "Procedure"
+                        },
+                        {
+                            "id": "act-7",
+                            "name": "Follicle-Stimulating Hormone",
+                            "instanceType": "Procedure"
+                        },
+                        {
+                            "id": "act-8",
+                            "name": "Alcohol Test",
+                            "instanceType": "Procedure"
+                        },
+                        {
+                            "id": "act-9",
+                            "name": "Urine Drug Screen",
+                            "instanceType": "Procedure"
+                        },
+                        {
+                            "id": "act-10",
+                            "name": "HIV, Hepatitis B and C Screen",
+                            "instanceType": "Procedure"
+                        },
+                        {
+                            "id": "act-11",
+                            "name": "Medical History/Demographics",
+                            "instanceType": "Procedure"
+                        },
+                        {
+                            "id": "act-12",
+                            "name": "WD History",
+                            "instanceType": "Procedure"
+                        },
+                        {
+                            "id": "act-13",
+                            "name": "Prior WD Treatment",
+                            "instanceType": "Procedure"
+                        },
+                        {
+                            "id": "act-14",
+                            "name": "Physical Examination",
+                            "instanceType": "Procedure"
+                        },
+                        {
+                            "id": "act-15",
+                            "name": "Height, Weight, and BMI",
+                            "instanceType": "Procedure"
+                        },
+                        {
+                            "id": "act-16",
+                            "name": "Enrollment/Inclusion",
+                            "instanceType": "Procedure"
+                        },
+                        {
+                            "id": "act-17",
+                            "name": "Discontinue Chelation Therapy",
+                            "instanceType": "Procedure"
+                        },
+                        {
+                            "id": "act-18",
+                            "name": "Discontinue Zinc Therapy",
+                            "instanceType": "Procedure"
+                        },
+                        {
+                            "id": "act-19",
+                            "name": "ALXN1840 15 mg/day",
+                            "instanceType": "Procedure"
+                        },
+                        {
+                            "id": "act-20",
+                            "name": "ALXN1840 30 mg/day",
+                            "instanceType": "Procedure"
+                        },
+                        {
+                            "id": "act-21",
+                            "name": "Study Intervention Compliance",
+                            "instanceType": "Procedure"
+                        },
+                        {
+                            "id": "act-22",
+                            "name": "Blood Sampling for PK: Plasma Total Mo and PUF-Mo",
+                            "instanceType": "Procedure"
+                        }
+                    ],
+                    "activityGroups": [
+                        {
+                            "id": "ag-1",
+                            "name": "Eligibility",
+                            "activities": [
+                                "act-1",
+                                "act-2",
+                                "act-3",
+                                "act-4",
+                                "act-5",
+                                "act-6",
+                                "act-7",
+                                "act-8",
+                                "act-9",
+                                "act-10"
+                            ]
+                        },
+                        {
+                            "id": "ag-2",
+                            "name": "Study Administration",
+                            "activities": [
+                                "act-11",
+                                "act-12",
+                                "act-13",
+                                "act-14",
+                                "act-15"
+                            ]
+                        },
+                        {
+                            "id": "ag-3",
+                            "name": "Enrollment",
+                            "activities": [
+                                "act-16",
+                                "act-17",
+                                "act-18"
+                            ]
+                        },
+                        {
+                            "id": "ag-4",
+                            "name": "Administration of Study Intervention",
+                            "activities": [
+                                "act-19",
+                                "act-20",
+                                "act-21"
+                            ]
+                        },
+                        {
+                            "id": "ag-5",
+                            "name": "PK/PD Analyses",
+                            "activities": [
+                                "act-22"
+                            ]
+                        }
+                    ],
+                    "activityTimepoints": [
+                        {
+                            "id": "atp-1",
+                            "activityId": "act-1",
+                            "plannedTimepointId": "tp-1"
+                        },
+                        {
+                            "id": "atp-2",
+                            "activityId": "act-2",
+                            "plannedTimepointId": "tp-2"
+                        },
+                        {
+                            "id": "atp-3",
+                            "activityId": "act-3",
+                            "plannedTimepointId": "tp-3"
+                        },
+                        {
+                            "id": "atp-4",
+                            "activityId": "act-4",
+                            "plannedTimepointId": "tp-4"
+                        },
+                        {
+                            "id": "atp-5",
+                            "activityId": "act-5",
+                            "plannedTimepointId": "tp-5"
+                        },
+                        {
+                            "id": "atp-6",
+                            "activityId": "act-6",
+                            "plannedTimepointId": "tp-6"
+                        }
+                    ]
+                }
+            }
+        ]
+    },
+    "usdmVersion": "4.0.0"
+}
+[2025-07-03 10:17:52] [INFO] [SUCCESS] Extracted SoA from output\Alexion_NCT04573309_Wilsons\3_soa_images\soa_page_14.png.
+[2025-07-03 10:17:52] [INFO] Processing image: output\Alexion_NCT04573309_Wilsons\3_soa_images\soa_page_15.png
+[2025-07-03 10:17:52] [INFO] Processing 1 images with model 'gpt-4o'.
+[2025-07-03 10:19:14] [INFO] finish_reason=stop, usage=CompletionUsage(completion_tokens=2105, prompt_tokens=2193, total_tokens=4298, completion_tokens_details=CompletionTokensDetails(accepted_prediction_tokens=0, audio_tokens=0, reasoning_tokens=0, rejected_prediction_tokens=0), prompt_tokens_details=PromptTokensDetails(audio_tokens=0, cached_tokens=0))
+[2025-07-03 10:19:14] [DEBUG] Raw LLM output: {
+    "study": {
+        "versions": [
+            {
+                "timeline": {
+                    "epochs": [
+                        {
+                            "id": "epoch-1",
+                            "name": "Screening"
+                        },
+                        {
+                            "id": "epoch-2",
+                            "name": "Inpatient Period 1"
+                        },
+                        {
+                            "id": "epoch-3",
+                            "name": "Inpatient Period 2"
+                        },
+                        {
+                            "id": "epoch-4",
+                            "name": "UNS"
+                        },
+                        {
+                            "id": "epoch-5",
+                            "name": "EOS or ET"
+                        }
+                    ],
+                    "encounters": [
+                        {
+                            "id": "enc-1",
+                            "name": "Screening Visit",
+                            "instanceType": "Visit",
+                            "type": "Visit"
+                        },
+                        {
+                            "id": "enc-2",
+                            "name": "Inpatient Period 1 Visit",
+                            "instanceType": "Visit",
+                            "type": "Visit"
+                        },
+                        {
+                            "id": "enc-3",
+                            "name": "Inpatient Period 2 Visit",
+                            "instanceType": "Visit",
+                            "type": "Visit"
+                        },
+                        {
+                            "id": "enc-4",
+                            "name": "UNS Visit",
+                            "instanceType": "Visit",
+                            "type": "Visit"
+                        },
+                        {
+                            "id": "enc-5",
+                            "name": "EOS or ET Visit",
+                            "instanceType": "Visit",
+                            "type": "Visit"
+                        }
+                    ],
+                    "plannedTimepoints": [
+                        {
+                            "id": "tp-1",
+                            "name": "Day -42 to -9",
+                            "value": "-42 to -9",
+                            "valueLabel": "Day -42 to -9",
+                            "relativeFromScheduledInstanceId": "enc-1",
+                            "instanceType": "PlannedTimepoint",
+                            "type": "Fixed Reference",
+                            "relativeToFrom": "Start to Start"
+                        },
+                        {
+                            "id": "tp-2",
+                            "name": "Day 1",
+                            "value": "1",
+                            "valueLabel": "Day 1",
+                            "relativeFromScheduledInstanceId": "enc-2",
+                            "instanceType": "PlannedTimepoint",
+                            "type": "Fixed Reference",
+                            "relativeToFrom": "Start to Start"
+                        },
+                        {
+                            "id": "tp-3",
+                            "name": "Day 40",
+                            "value": "40",
+                            "valueLabel": "Day 40",
+                            "relativeFromScheduledInstanceId": "enc-3",
+                            "instanceType": "PlannedTimepoint",
+                            "type": "Fixed Reference",
+                            "relativeToFrom": "Start to Start"
+                        },
+                        {
+                            "id": "tp-4",
+                            "name": "EOS Day 54+/-2",
+                            "value": "54",
+                            "valueLabel": "EOS Day 54+/-2",
+                            "relativeFromScheduledInstanceId": "enc-5",
+                            "instanceType": "PlannedTimepoint",
+                            "type": "Fixed Reference",
+                            "relativeToFrom": "Start to Start"
+                        }
+                    ],
+                    "activities": [
+                        {
+                            "id": "act-1",
+                            "name": "Chemistry, hematology, Coagulation",
+                            "instanceType": "Activity"
+                        },
+                        {
+                            "id": "act-2",
+                            "name": "Urinalysis",
+                            "instanceType": "Activity"
+                        },
+                        {
+                            "id": "act-3",
+                            "name": "Urine/serum pregnancy test",
+                            "instanceType": "Activity"
+                        },
+                        {
+                            "id": "act-4",
+                            "name": "Retained serum sample (safety)",
+                            "instanceType": "Activity"
+                        },
+                        {
+                            "id": "act-5",
+                            "name": "Vitals sign measurements",
+                            "instanceType": "Activity"
+                        },
+                        {
+                            "id": "act-6",
+                            "name": "12-lead ECG (triplicate)",
+                            "instanceType": "Activity"
+                        },
+                        {
+                            "id": "act-7",
+                            "name": "Adverse events",
+                            "instanceType": "Activity"
+                        },
+                        {
+                            "id": "act-8",
+                            "name": "Cu/Mo-controlled meals",
+                            "instanceType": "Activity"
+                        },
+                        {
+                            "id": "act-9",
+                            "name": "Light exercise regimen",
+                            "instanceType": "Activity"
+                        },
+                        {
+                            "id": "act-10",
+                            "name": "Urination and bowel movement monitoring, menstruation check",
+                            "instanceType": "Activity"
+                        },
+                        {
+                            "id": "act-11",
+                            "name": "24-hour urine for Cu and Mo",
+                            "instanceType": "Activity"
+                        },
+                        {
+                            "id": "act-12",
+                            "name": "Feces for Cu and Mo",
+                            "instanceType": "Activity"
+                        },
+                        {
+                            "id": "act-13",
+                            "name": "Concomitant medication and non-pharmacologic therapy/procedure",
+                            "instanceType": "Activity"
+                        }
+                    ],
+                    "activityTimepoints": [
+                        {
+                            "id": "atp-1",
+                            "activityId": "act-1",
+                            "plannedTimepointId": "tp-1"
+                        },
+                        {
+                            "id": "atp-2",
+                            "activityId": "act-2",
+                            "plannedTimepointId": "tp-1"
+                        },
+                        {
+                            "id": "atp-3",
+                            "activityId": "act-3",
+                            "plannedTimepointId": "tp-1"
+                        },
+                        {
+                            "id": "atp-4",
+                            "activityId": "act-4",
+                            "plannedTimepointId": "tp-2"
+                        },
+                        {
+                            "id": "atp-5",
+                            "activityId": "act-5",
+                            "plannedTimepointId": "tp-2"
+                        },
+                        {
+                            "id": "atp-6",
+                            "activityId": "act-6",
+                            "plannedTimepointId": "tp-2"
+                        },
+                        {
+                            "id": "atp-7",
+                            "activityId": "act-7",
+                            "plannedTimepointId": "tp-2"
+                        },
+                        {
+                            "id": "atp-8",
+                            "activityId": "act-8",
+                            "plannedTimepointId": "tp-2"
+                        },
+                        {
+                            "id": "atp-9",
+                            "activityId": "act-9",
+                            "plannedTimepointId": "tp-2"
+                        },
+                        {
+                            "id": "atp-10",
+                            "activityId": "act-10",
+                            "plannedTimepointId": "tp-2"
+                        },
+                        {
+                            "id": "atp-11",
+                            "activityId": "act-11",
+                            "plannedTimepointId": "tp-2"
+                        },
+                        {
+                            "id": "atp-12",
+                            "activityId": "act-12",
+                            "plannedTimepointId": "tp-2"
+                        },
+                        {
+                            "id": "atp-13",
+                            "activityId": "act-13",
+                            "plannedTimepointId": "tp-2"
+                        },
+                        {
+                            "id": "atp-14",
+                            "activityId": "act-1",
+                            "plannedTimepointId": "tp-3"
+                        },
+                        {
+                            "id": "atp-15",
+                            "activityId": "act-2",
+                            "plannedTimepointId": "tp-3"
+                        },
+                        {
+                            "id": "atp-16",
+                            "activityId": "act-3",
+                            "plannedTimepointId": "tp-3"
+                        },
+                        {
+                            "id": "atp-17",
+                            "activityId": "act-4",
+                            "plannedTimepointId": "tp-4"
+                        },
+                        {
+                            "id": "atp-18",
+                            "activityId": "act-5",
+                            "plannedTimepointId": "tp-4"
+                        },
+                        {
+                            "id": "atp-19",
+                            "activityId": "act-6",
+                            "plannedTimepointId": "tp-4"
+                        },
+                        {
+                            "id": "atp-20",
+                            "activityId": "act-7",
+                            "plannedTimepointId": "tp-4"
+                        },
+                        {
+                            "id": "atp-21",
+                            "activityId": "act-8",
+                            "plannedTimepointId": "tp-4"
+                        },
+                        {
+                            "id": "atp-22",
+                            "activityId": "act-9",
+                            "plannedTimepointId": "tp-4"
+                        },
+                        {
+                            "id": "atp-23",
+                            "activityId": "act-10",
+                            "plannedTimepointId": "tp-4"
+                        },
+                        {
+                            "id": "atp-24",
+                            "activityId": "act-11",
+                            "plannedTimepointId": "tp-4"
+                        },
+                        {
+                            "id": "atp-25",
+                            "activityId": "act-12",
+                            "plannedTimepointId": "tp-4"
+                        },
+                        {
+                            "id": "atp-26",
+                            "activityId": "act-13",
+                            "plannedTimepointId": "tp-4"
+                        }
+                    ],
+                    "activityGroups": []
+                }
+            }
+        ]
+    },
+    "usdmVersion": "4.0.0"
+}
+[2025-07-03 10:19:14] [INFO] [SUCCESS] Extracted SoA from output\Alexion_NCT04573309_Wilsons\3_soa_images\soa_page_15.png.
+[2025-07-03 10:19:14] [INFO] Processing image: output\Alexion_NCT04573309_Wilsons\3_soa_images\soa_page_16.png
+[2025-07-03 10:19:14] [INFO] Processing 1 images with model 'gpt-4o'.
+[2025-07-03 10:19:17] [INFO] finish_reason=stop, usage=CompletionUsage(completion_tokens=76, prompt_tokens=2193, total_tokens=2269, completion_tokens_details=CompletionTokensDetails(accepted_prediction_tokens=0, audio_tokens=0, reasoning_tokens=0, rejected_prediction_tokens=0), prompt_tokens_details=PromptTokensDetails(audio_tokens=0, cached_tokens=1536))
+[2025-07-03 10:19:17] [DEBUG] Raw LLM output: {
+    "study": {
+        "versions": [
+            {
+                "timeline": {
+                    "epochs": [],
+                    "encounters": [],
+                    "plannedTimepoints": [],
+                    "activities": [],
+                    "activityTimepoints": [],
+                    "activityGroups": []
+                }
+            }
+        ]
+    },
+    "usdmVersion": "4.0.0"
+}
+[2025-07-03 10:19:17] [INFO] [SUCCESS] Extracted SoA from output\Alexion_NCT04573309_Wilsons\3_soa_images\soa_page_16.png.
+[2025-07-03 10:19:17] [INFO] Processing image: output\Alexion_NCT04573309_Wilsons\3_soa_images\soa_page_17.png
+[2025-07-03 10:19:17] [INFO] Processing 1 images with model 'gpt-4o'.
+[2025-07-03 10:20:06] [INFO] finish_reason=stop, usage=CompletionUsage(completion_tokens=1740, prompt_tokens=2193, total_tokens=3933, completion_tokens_details=CompletionTokensDetails(accepted_prediction_tokens=0, audio_tokens=0, reasoning_tokens=0, rejected_prediction_tokens=0), prompt_tokens_details=PromptTokensDetails(audio_tokens=0, cached_tokens=1536))
+[2025-07-03 10:20:06] [DEBUG] Raw LLM output: {
+    "study": {
+        "versions": [
+            {
+                "timeline": {
+                    "epochs": [],
+                    "encounters": [],
+                    "plannedTimepoints": [
+                        {
+                            "id": "tp-1",
+                            "name": "Timepoint -0.5 hours",
+                            "value": "-0.5",
+                            "valueLabel": "-0.5 hours",
+                            "relativeFromScheduledInstanceId": "enc-1",
+                            "instanceType": "PlannedTimepoint",
+                            "type": "Fixed Reference",
+                            "relativeToFrom": "Start to Start"
+                        },
+                        {
+                            "id": "tp-2",
+                            "name": "Timepoint 0 hours",
+                            "value": "0",
+                            "valueLabel": "0 hours",
+                            "relativeFromScheduledInstanceId": "enc-1",
+                            "instanceType": "PlannedTimepoint",
+                            "type": "Fixed Reference",
+                            "relativeToFrom": "Start to Start"
+                        },
+                        {
+                            "id": "tp-3",
+                            "name": "Timepoint 1 hour",
+                            "value": "1",
+                            "valueLabel": "1 hour",
+                            "relativeFromScheduledInstanceId": "enc-1",
+                            "instanceType": "PlannedTimepoint",
+                            "type": "Fixed Reference",
+                            "relativeToFrom": "Start to Start"
+                        },
+                        {
+                            "id": "tp-4",
+                            "name": "Timepoint 2 hours",
+                            "value": "2",
+                            "valueLabel": "2 hours",
+                            "relativeFromScheduledInstanceId": "enc-1",
+                            "instanceType": "PlannedTimepoint",
+                            "type": "Fixed Reference",
+                            "relativeToFrom": "Start to Start"
+                        },
+                        {
+                            "id": "tp-5",
+                            "name": "Timepoint 3 hours",
+                            "value": "3",
+                            "valueLabel": "3 hours",
+                            "relativeFromScheduledInstanceId": "enc-1",
+                            "instanceType": "PlannedTimepoint",
+                            "type": "Fixed Reference",
+                            "relativeToFrom": "Start to Start"
+                        },
+                        {
+                            "id": "tp-6",
+                            "name": "Timepoint 4 hours",
+                            "value": "4",
+                            "valueLabel": "4 hours",
+                            "relativeFromScheduledInstanceId": "enc-1",
+                            "instanceType": "PlannedTimepoint",
+                            "type": "Fixed Reference",
+                            "relativeToFrom": "Start to Start"
+                        },
+                        {
+                            "id": "tp-7",
+                            "name": "Timepoint 5 hours",
+                            "value": "5",
+                            "valueLabel": "5 hours",
+                            "relativeFromScheduledInstanceId": "enc-1",
+                            "instanceType": "PlannedTimepoint",
+                            "type": "Fixed Reference",
+                            "relativeToFrom": "Start to Start"
+                        },
+                        {
+                            "id": "tp-8",
+                            "name": "Timepoint 6 hours",
+                            "value": "6",
+                            "valueLabel": "6 hours",
+                            "relativeFromScheduledInstanceId": "enc-1",
+                            "instanceType": "PlannedTimepoint",
+                            "type": "Fixed Reference",
+                            "relativeToFrom": "Start to Start"
+                        },
+                        {
+                            "id": "tp-9",
+                            "name": "Timepoint 8 hours",
+                            "value": "8",
+                            "valueLabel": "8 hours",
+                            "relativeFromScheduledInstanceId": "enc-1",
+                            "instanceType": "PlannedTimepoint",
+                            "type": "Fixed Reference",
+                            "relativeToFrom": "Start to Start"
+                        },
+                        {
+                            "id": "tp-10",
+                            "name": "Timepoint 12 hours",
+                            "value": "12",
+                            "valueLabel": "12 hours",
+                            "relativeFromScheduledInstanceId": "enc-1",
+                            "instanceType": "PlannedTimepoint",
+                            "type": "Fixed Reference",
+                            "relativeToFrom": "Start to Start"
+                        },
+                        {
+                            "id": "tp-11",
+                            "name": "Timepoint 24 hours",
+                            "value": "24",
+                            "valueLabel": "24 hours",
+                            "relativeFromScheduledInstanceId": "enc-1",
+                            "instanceType": "PlannedTimepoint",
+                            "type": "Fixed Reference",
+                            "relativeToFrom": "Start to Start"
+                        }
+                    ],
+                    "activities": [
+                        {
+                            "id": "act-1",
+                            "name": "Blood sampling for PK: Plasma total Mo and PUF-Mo",
+                            "instanceType": "Activity"
+                        },
+                        {
+                            "id": "act-2",
+                            "name": "PD: Plasma total and PUF-Cu, LBC, ceruloplasmin, ceruloplasmin-bound Cu",
+                            "instanceType": "Activity"
+                        }
+                    ],
+                    "activityTimepoints": [
+                        {
+                            "id": "atp-1",
+                            "activityId": "act-1",
+                            "plannedTimepointId": "tp-2"
+                        },
+                        {
+                            "id": "atp-2",
+                            "activityId": "act-1",
+                            "plannedTimepointId": "tp-3"
+                        },
+                        {
+                            "id": "atp-3",
+                            "activityId": "act-1",
+                            "plannedTimepointId": "tp-5"
+                        },
+                        {
+                            "id": "atp-4",
+                            "activityId": "act-1",
+                            "plannedTimepointId": "tp-6"
+                        },
+                        {
+                            "id": "atp-5",
+                            "activityId": "act-1",
+                            "plannedTimepointId": "tp-7"
+                        },
+                        {
+                            "id": "atp-6",
+                            "activityId": "act-1",
+                            "plannedTimepointId": "tp-8"
+                        },
+                        {
+                            "id": "atp-7",
+                            "activityId": "act-1",
+                            "plannedTimepointId": "tp-9"
+                        },
+                        {
+                            "id": "atp-8",
+                            "activityId": "act-1",
+                            "plannedTimepointId": "tp-10"
+                        },
+                        {
+                            "id": "atp-9",
+                            "activityId": "act-1",
+                            "plannedTimepointId": "tp-11"
+                        },
+                        {
+                            "id": "atp-10",
+                            "activityId": "act-2",
+                            "plannedTimepointId": "tp-2"
+                        },
+                        {
+                            "id": "atp-11",
+                            "activityId": "act-2",
+                            "plannedTimepointId": "tp-3"
+                        },
+                        {
+                            "id": "atp-12",
+                            "activityId": "act-2",
+                            "plannedTimepointId": "tp-5"
+                        },
+                        {
+                            "id": "atp-13",
+                            "activityId": "act-2",
+                            "plannedTimepointId": "tp-6"
+                        },
+                        {
+                            "id": "atp-14",
+                            "activityId": "act-2",
+                            "plannedTimepointId": "tp-7"
+                        },
+                        {
+                            "id": "atp-15",
+                            "activityId": "act-2",
+                            "plannedTimepointId": "tp-8"
+                        },
+                        {
+                            "id": "atp-16",
+                            "activityId": "act-2",
+                            "plannedTimepointId": "tp-9"
+                        },
+                        {
+                            "id": "atp-17",
+                            "activityId": "act-2",
+                            "plannedTimepointId": "tp-10"
+                        },
+                        {
+                            "id": "atp-18",
+                            "activityId": "act-2",
+                            "plannedTimepointId": "tp-11"
+                        }
+                    ],
+                    "activityGroups": []
+                }
+            }
+        ]
+    },
+    "usdmVersion": "4.0.0"
+}
+[2025-07-03 10:20:06] [INFO] [SUCCESS] Extracted SoA from output\Alexion_NCT04573309_Wilsons\3_soa_images\soa_page_17.png.
+[2025-07-03 10:20:06] [INFO] Processing image: output\Alexion_NCT04573309_Wilsons\3_soa_images\soa_page_45.png
+[2025-07-03 10:20:06] [INFO] Processing 1 images with model 'gpt-4o'.
+[2025-07-03 10:20:09] [WARNING] Retrying without response_format due to API error: Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}
+[2025-07-03 10:20:11] [ERROR] OpenAI API error on second attempt: Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}
+[2025-07-03 10:20:11] [WARNING] [FAILURE] No JSON returned from output\Alexion_NCT04573309_Wilsons\3_soa_images\soa_page_45.png.
+[2025-07-03 10:20:11] [INFO] Successfully extracted SoA data from 4 images. Merging...
+[2025-07-03 10:20:11] [INFO] Wrote merged SoA vision output to output\Alexion_NCT04573309_Wilsons\6_raw_vision_soa.json

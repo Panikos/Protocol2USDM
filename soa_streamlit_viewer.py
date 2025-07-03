@@ -19,6 +19,7 @@ def load_file(path):
     except Exception:
         return None, None
 
+@st.cache_data
 def get_file_inventory(base_path):
     """Categorize all relevant pipeline files for a specific run."""
     inventory = {
@@ -120,6 +121,10 @@ def get_timepoints(timeline):
     return timepoints
 
 def get_activity_groups(timeline):
+    # NOTE: The rendering logic in `render_soa_table` is already set up to handle
+    # activity groups by looking for the `activityGroupId` on each activity.
+    # The primary issue is that the pipeline is not yet populating this data.
+
     groups_raw = timeline.get('activityGroups', [])
     return {g['id']: g for g in groups_raw if isinstance(g, dict) and g.get('id')}
 
@@ -233,11 +238,19 @@ if not runs:
     st.error(f"No run directories found in the '{OUTPUT_DIR}' folder. Please run the pipeline first.")
     st.stop()
 
+# Add a placeholder to the list of runs, and default to it.
+runs.insert(0, "-- Select a Run --")
 selected_run = st.sidebar.selectbox(
     "Select a pipeline run:",
     runs,
+    index=0,
     help="Each folder in the 'output' directory represents a single execution of the pipeline."
 )
+
+if selected_run == "-- Select a Run --":
+    st.info("Please select a pipeline run from the sidebar to begin.")
+    st.stop()
+
 
 run_path = os.path.join(OUTPUT_DIR, selected_run)
 inventory = get_file_inventory(run_path)
@@ -249,7 +262,7 @@ filters = {
     'grouped': st.sidebar.checkbox('Group by Activity Group', value=True)
 }
 
-st.sidebar.title("Pipeline Files")
+
 
 # --- Main Content Area ---
 if not inventory['final_soa']:
@@ -263,49 +276,66 @@ else:
 st.markdown("--- ")
 st.header("Intermediate Outputs & Debugging")
 
-with st.expander("Primary Extraction Outputs (Raw)"):
+# Create tabs for the different categories of intermediate files
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    "Raw Outputs", 
+    "Post-Processed", 
+    "Data Files", 
+    "Config Files", 
+    "SoA Images"
+])
+
+with tab1:
+    st.subheader("Primary Extraction Outputs (Raw)")
     if not inventory['primary_outputs']:
         st.info("No raw text or vision output files found.")
     else:
-        tabs = st.tabs(inventory['primary_outputs'].keys())
-        for i, (key, content) in enumerate(inventory['primary_outputs'].items()):
-            with tabs[i]:
-                render_soa_table(content, key, filters)
-                if st.checkbox("Show Full JSON Output", key=f"json_primary_{i}"):
-                    st.json(content)
+        if inventory['primary_outputs']:
+            output_tabs = st.tabs(list(inventory['primary_outputs'].keys()))
+            for i, (key, content) in enumerate(inventory['primary_outputs'].items()):
+                with output_tabs[i]:
+                    render_soa_table(content, key, filters)
+                    if st.checkbox("Show Full JSON Output", key=f"json_primary_{i}"):
+                        st.json(content)
 
-with st.expander("Post-Processed Outputs"):
+with tab2:
+    st.subheader("Post-Processed Outputs")
     if not inventory['post_processed']:
         st.info("No post-processed output files found.")
     else:
-        tabs = st.tabs(inventory['post_processed'].keys())
-        for i, (key, content) in enumerate(inventory['post_processed'].items()):
-            with tabs[i]:
-                render_soa_table(content, key, filters)
-                if st.checkbox("Show Full JSON Output", key=f"json_postprocessed_{i}"):
-                    st.json(content)
+        if inventory['post_processed']:
+            output_tabs = st.tabs(list(inventory['post_processed'].keys()))
+            for i, (key, content) in enumerate(inventory['post_processed'].items()):
+                with output_tabs[i]:
+                    render_soa_table(content, key, filters)
+                    if st.checkbox("Show Full JSON Output", key=f"json_postprocessed_{i}"):
+                        st.json(content)
 
-# --- Sidebar File Viewers ---
-with st.sidebar.expander("Intermediate Data Files", expanded=False):
+with tab3:
+    st.subheader("Intermediate Data Files")
     if not inventory['intermediate_data']:
         st.info("No intermediate data files found.")
     else:
         for key, content in inventory['intermediate_data'].items():
-            with st.container():
-                st.subheader(key)
+            with st.expander(key):
                 st.json(content if isinstance(content, dict) else str(content))
 
-with st.sidebar.expander("Configuration Files", expanded=False):
-    for key, content in inventory['configs'].items():
-        with st.container():
-            st.subheader(key)
-            if isinstance(content, dict):
-                st.json(content)
-            else:
-                st.text(content)
+with tab4:
+    st.subheader("Configuration Files")
+    if not inventory['configs']:
+        st.info("No configuration files found.")
+    else:
+        for key, content in inventory['configs'].items():
+            with st.expander(key):
+                if isinstance(content, dict):
+                    st.json(content)
+                else:
+                    st.text(content)
 
-with st.sidebar.expander("Extracted SoA Images", expanded=False):
+with tab5:
+    st.subheader("Extracted SoA Images")
     if not inventory['images']:
         st.info("No images found in `3_soa_images/`")
-    for img_path in inventory['images']:
-        st.image(img_path, caption=img_path, use_container_width=True)
+    else:
+        for img_path in inventory['images']:
+            st.image(img_path, caption=os.path.basename(img_path), use_container_width=True)
