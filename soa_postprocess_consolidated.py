@@ -284,7 +284,7 @@ def consolidate_and_fix_soa(input_path, output_path, ref_metadata_path=None):
         unhandled_timepoints = []
         for pt in timeline.get('plannedTimepoints', []):
             # Accept both 'plannedTimepointId' and 'plannedVisitId' as equivalent
-            pt_id = pt.get('plannedTimepointId') or pt.get('plannedVisitId')
+            pt_id = pt.get('plannedTimepointId') or pt.get('plannedVisitId') or pt.get('id')
             if pt_id is not None:
                 pt['plannedTimepointId'] = pt_id  # Normalize key
                 pt_map[pt_id] = pt
