@@ -99,19 +99,24 @@ These scripts are not part of the automated pipeline but provide useful function
 - **Mapping Issues**: Regenerate `soa_entity_mapping.json` anytime the Excel mapping changes.
 - **Validation**: All outputs are validated against both the mapping and USDM schema. Warnings are issued for missing or non-conformant fields.
 
-## Streamlit SoA Viewer & Audit
-- `soa_streamlit_viewer.py` provides an interactive web-based interface for visualizing and reviewing SoA extraction results.
-- **How to launch:**
-  ```bash
-  streamlit run soa_streamlit_viewer.py
-  ```
-- The viewer allows you to:
-  - Load and inspect `soa_text.json`, `soa_vision.json`, `soa_final.json`, or any other SoA output file.
-  - Browse entities, activities, and timepoints in a user-friendly format.
-  - See which timepoints were dropped or merged during processing (if any) and review the audit report.
-  - Quickly identify extraction issues or missing data.
-  - **NEW:** Automatically displays both row (activity) groupings and column (visit) groupings if present, using group headers for both axes. This enables clear clinical review of grouped milestones and assessments per USDM/M11.
-- Useful for quality control, annotation, and sharing results with non-technical stakeholders.
+## How to Review Results
+An interactive Streamlit application is provided for reviewing the results.
+
+1.  **Launch the app:**
+    ```bash
+    streamlit run soa_streamlit_viewer.py
+    ```
+2.  **Open in browser:** Navigate to `http://localhost:8501`.
+3.  **Select a run:** Use the sidebar to choose the pipeline run you want to inspect. The app automatically finds and displays the final and intermediate files.
+
+### Viewer Features
+The viewer provides several powerful features for clinical review and quality control:
+
+- **Hierarchical Bands**: The viewer renders **Epoch** and **Encounter** (visit) information as color-coded horizontal bands above the timepoint headers. This provides crucial clinical context, showing how visits roll up into study phases. The visibility of these bands can be toggled in the sidebar.
+- **Activity Grouping**: Activities are grouped under full-width header rows, matching the visual structure of most protocol SoA tables.
+
+- **Filtering**: Reviewers can dynamically filter the displayed activities and timepoints by name.
+- **File Inspection**: Easily switch between the final reconciled SoA and all intermediate raw and post-processed outputs to trace how the data was transformed at each step.
 
 ## Running Tests
 To run the unit tests, install dependencies and execute:

@@ -2,6 +2,10 @@ import streamlit as st
 import json
 import os
 import glob
+import pandas as pd  # for reading the M11 mapping workbook
+import re
+import html
+
 
 st.set_page_config(page_title="SoA Extraction Review", layout="wide")
 st.title('Schedule of Activities (SoA) Extraction Review')
@@ -101,6 +105,36 @@ def get_timeline(soa):
     except (KeyError, IndexError, TypeError):
         return None
 
+def _get_timepoint_sort_key(tp_label):
+    """Creates a sort key for a timepoint label for chronological sorting."""
+    label = tp_label.lower()
+    # Priority 0: Screening
+    if 'screen' in label:
+        return (0, 0)
+    
+    # Priority 1: Visit, Day, Week, Period (numeric)
+    match = re.search(r'(visit|day|week|period)\s*(-?\d+)', label)
+    if match:
+        return (1, int(match.group(2)))
+
+    # Priority 2: Time-based (numeric)
+    match = re.search(r'(-?\d+\.?\d*)\s*hour', label)
+    if match:
+        return (2, float(match.group(1)))
+
+    # Priority 3: Specific keywords
+    if 'end of study' in label or 'eos' in label:
+        return (3, 0)
+    if 'et' in label or 'early term' in label:
+        return (3, 1)
+    if 'unscheduled' in label or 'uns' in label:
+        return (3, 2)
+    if 'rt' in label: # Retreatment
+        return (3, 3)
+
+    # Default priority
+    return (4, label)
+
 def get_timepoints(timeline):
     pts_raw = timeline.get('plannedTimepoints', [])
     timepoints = []
@@ -117,106 +151,196 @@ def get_timepoints(timeline):
         else:
             label = name
             
-        timepoints.append({'id': pt['id'], 'label': label})
+        timepoints.append({'id': pt['id'], 'name': name, 'label': label})
+        
+    # Sort the timepoints using the custom key
+    timepoints.sort(key=lambda tp: _get_timepoint_sort_key(tp['label']))
     return timepoints
 
 def get_activity_groups(timeline):
-    # NOTE: The rendering logic in `render_soa_table` is already set up to handle
-    # activity groups by looking for the `activityGroupId` on each activity.
-    # The primary issue is that the pipeline is not yet populating this data.
-
-    groups_raw = timeline.get('activityGroups', [])
-    return {g['id']: g for g in groups_raw if isinstance(g, dict) and g.get('id')}
+    if not timeline:
+        return []
+    return timeline.get('activityGroups', [])
 
 def get_activities(timeline):
-    acts_raw = timeline.get('activities', [])
     acts = []
-    for act in acts_raw:
-        if isinstance(act, dict) and act.get('id') and act.get('name'):
+    if timeline and 'activities' in timeline:
+        for act in timeline['activities']:
             acts.append({'id': act['id'], 'name': act['name'], 'desc': act.get('description', ''), 'groupId': act.get('activityGroupId')})
     return acts
 
+def get_epochs(timeline):
+    """Robustly extracts epoch definitions from a timeline object."""
+    if not timeline or 'epochs' not in timeline:
+        return []
+    return [e for e in timeline['epochs'] if isinstance(e, dict) and e.get('id')]
+
 def get_activity_timepoints(timeline):
     """Robustly extracts activity-timepoint links from a timeline object."""
-    links = set()
+    if not timeline:
+        return {}  # Explicitly return an empty dict
+    
+    activity_timepoints = {}
     # Check both keys, as raw output might use 'activityTimepoints' and processed uses 'scheduledActivityInstances'
     for key in ['scheduledActivityInstances', 'activityTimepoints']:
-        links_raw = timeline.get(key, [])
-        for link in links_raw:
-            if isinstance(link, dict):
-                act_id = link.get('activityId')
-                # The post-processor normalizes plannedVisitId to plannedTimepointId
-                tp_id = link.get('plannedTimepointId') or link.get('plannedVisitId')
-                if act_id and tp_id:
-                    links.add((act_id, tp_id))
-    return links
+        # Gracefully handle if the key is missing from the timeline
+        for link in timeline.get(key, []):
+            if isinstance(link, dict) and link.get('activityId') and link.get('plannedTimepointId'):
+                activity_timepoints.setdefault(link['activityId'], []).append(link['plannedTimepointId'])
 
-def render_json_file(content, file_key):
-    """Renders a simple display for a JSON file."""
-    st.header(f'Content of: {file_key}')
-    st.json(content)
+    return activity_timepoints
+
+def _generate_band_html(display_timepoints, tp_to_entity_map, band_class):
+    """
+    Generates a single HTML <tr> for a header band (Epoch or Encounter).
+    """
+    if not display_timepoints or not any(tp_to_entity_map.values()):
+        return ""
+
+    html_parts = ['<th class="first-col"></th>'] # Spacer for the activity column
+    current_entity_id = None
+    colspan = 0
+    
+    # Get the entity for the first timepoint
+    first_tp_id = display_timepoints[0]['id']
+    current_entity = tp_to_entity_map.get(first_tp_id)
+    current_entity_id = current_entity['id'] if current_entity else None
+    current_entity_name = current_entity['name'] if current_entity else 'Unassigned'
+    
+    for tp in display_timepoints:
+        entity = tp_to_entity_map.get(tp['id'])
+        entity_id = entity['id'] if entity else None
+
+        if entity_id != current_entity_id:
+            safe_name = html.escape(current_entity_name)
+            html_parts.append(f'<th class="{band_class}" colspan="{colspan}">{safe_name}</th>')
+            current_entity_id = entity_id
+            current_entity_name = entity['name'] if entity else 'Unassigned'
+            colspan = 0
+
+        colspan += 1
+
+    # Add the last cell
+    if colspan > 0:
+        safe_name = html.escape(current_entity_name)
+        html_parts.append(f'<th class="{band_class}" colspan="{colspan}">{safe_name}</th>')
+
+    return f"<tr>{''.join(html_parts)}</tr>"
 
 def render_soa_table(soa_content, file_key, filters):
     """Renders a single SoA table, including metadata and the table itself."""
-    st.header(f'Analysis of: {file_key}')
-    
-    metadata = extract_soa_metadata(soa_content)
-    if metadata:
-        col1, col2, col3 = st.columns(3)
-        col1.metric("Timepoints", metadata.get('num_timepoints', 0))
-        col2.metric("Activities", metadata.get('num_activities', 0))
-        col3.metric("Activity Groups", metadata.get('num_groups', 0))
-    else:
-        st.warning("Could not extract valid metadata from this file.")
-
+    st.subheader(f"SoA from: `{file_key}`")
     timeline = get_timeline(soa_content)
     if not timeline:
-        st.warning(f"Could not find a valid 'timeline' object in this file. Cannot render SoA table.")
-    else:
-        all_pts = get_timepoints(timeline)
-        all_acts = get_activities(timeline)
-        links = get_activity_timepoints(timeline)
-        groups = get_activity_groups(timeline)
+        st.warning(f"Could not extract a valid USDM timeline from '{file_key}'. This file may not be a valid SoA JSON, or it may be empty.")
+        return
 
-        # Apply filters
-        pts = [p for p in all_pts if not filters.get('tp') or filters['tp'].lower() in p['label'].lower()]
-        acts = [a for a in all_acts if not filters.get('act') or filters['act'].lower() in a['name'].lower()]
+    # --- Data Extraction and Filtering ---
+    timepoints = get_timepoints(timeline)
+    epochs = get_epochs(timeline)
+    all_encounters = timeline.get('encounters', []) # Keep for M11 legacy
+    activity_groups = get_activity_groups(timeline)
+    activities = get_activities(timeline)
+    activity_timepoints = get_activity_timepoints(timeline)
 
-        if not acts or not pts:
-            st.info("No activities or timepoints match the current filters.")
-        else:
-            for act in acts:
-                act['group_name'] = groups.get(act['groupId'], {}).get('name', 'Uncategorized')
-            if filters.get('grouped'):
-                acts.sort(key=lambda x: (x['group_name'], x['name']))
+    if not timepoints or not activities:
+        st.info("No timepoints or activities found in the timeline.")
+        return
 
-            # HTML Table Rendering
-            header_row = "<tr><th>Activity</th>" + ''.join(f"<th>{p['label']}</th>" for p in pts) + "</tr>"
-            body_rows = []
-            last_group = None
-            for act in acts:
-                if filters.get('grouped') and act['group_name'] != last_group:
-                    group_header = f"<td colspan='{1 + len(pts)}'>{act['group_name']}</td>"
-                    body_rows.append(f"<tr class='group-header-row'>{group_header}</tr>")
-                    last_group = act['group_name']
+    # Filter activities and timepoints based on sidebar inputs
+    if filters['act']:
+        activities = [a for a in activities if filters['act'].lower() in a.get('name', '').lower()]
+    if filters['tp']:
+        timepoints = [t for t in timepoints if filters['tp'].lower() in t.get('label', '').lower()]
 
-                row = [f"<td class='activity-name' title='ID: {act['id']}'>{act['name']}</td>"]
-                for pt in pts:
-                    checked = '✔️' if (act['id'], pt['id']) in links else ''
-                    row.append(f"<td style='text-align: center;'>{checked}</td>")
-                body_rows.append("<tr>" + ''.join(row) + "</tr>")
+    if not timepoints or not activities:
+        st.info("No activities or timepoints match the current filter.")
+        return
 
-            table_html = f"""
-            <style>
-                table {{ width: 100%; border-collapse: collapse; }}
-                th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
-                th {{ background-color: #f0f2f6; position: sticky; top: 0; z-index: 1; }}
-                .activity-name {{ font-weight: bold; }}
-                .group-header-row {{ background-color: #e0e6ef; font-weight: bold; }}
-            </style>
-            <table>{header_row}{"".join(body_rows)}</table>
-            """
-            st.markdown(table_html, unsafe_allow_html=True)
+    tp_ids = {t['id'] for t in timepoints}
+
+    # --- Build Mappings for Header Bands ---
+    enc_to_epoch_map = {enc['id']: epoch for epoch in epochs for enc in epoch.get('encounters', [])}
+    all_encs_map = {enc['id']: enc for epoch in epochs for enc in epoch.get('encounters', [])}
+    # Add encounters from root if they exist (for older formats)
+    for enc in all_encounters:
+        if enc['id'] not in all_encs_map:
+            all_encs_map[enc['id']] = enc
+
+    tp_to_enc_map = {tp['id']: all_encs_map.get(tp.get('relativeFromScheduledInstanceId')) for tp in timepoints}
+    tp_to_epoch_map = {tp['id']: enc_to_epoch_map.get(tp.get('relativeFromScheduledInstanceId')) for tp in timepoints}
+    
+    # --- HTML Generation ---
+    # Header Rows
+    epoch_band_html = ""
+    if filters.get('epoch_band'):
+        epoch_band_html = _generate_band_html(timepoints, tp_to_epoch_map, 'epoch-band')
+
+    encounter_band_html = ""
+    if filters.get('enc_band'):
+        encounter_band_html = _generate_band_html(timepoints, tp_to_enc_map, 'encounter-band')
+
+    # Standard Header
+    header_html = "".join([f"<th>{html.escape(tp['label'])}</th>" for tp in timepoints])
+
+    # Body Rows
+    body_html = ""
+    if filters.get('grouped') and activity_groups:
+        group_map = {g['id']: g for g in activity_groups}
+        activity_to_group_map = {act_id: g_id for g in activity_groups for act_id in g.get('activityIds', [])}
+        
+        grouped_activities = {}
+        for act in activities:
+            g_id = activity_to_group_map.get(act['id'])
+            grouped_activities.setdefault(g_id, []).append(act)
+
+        for g_id, acts_in_group in sorted(grouped_activities.items(), key=lambda item: group_map.get(item[0], {}).get('name', 'zzzz')):
+            group_name = html.escape(group_map.get(g_id, {}).get('name', 'Ungrouped Activities'))
+            body_html += f'<tr><td colspan="{len(timepoints) + 1}" class="group-header">{group_name}</td></tr>'
+            for act in sorted(acts_in_group, key=lambda x: x.get('name', '')):
+                row_cells = "".join([f"<td>{'X' if t['id'] in activity_timepoints.get(act['id'], []) else ''}</td>" for t in timepoints])
+                safe_act_name = html.escape(act['name'])
+                body_html += f"<tr><td class='activity-name'>{safe_act_name}</td>{row_cells}</tr>"
+
+    else: # Not grouped
+        for act in sorted(activities, key=lambda x: x.get('name', '')):
+            row_cells = "".join([f"<td>{'X' if t['id'] in activity_timepoints.get(act['id'], []) else ''}</td>" for t in timepoints])
+            safe_act_name = html.escape(act['name'])
+            body_html += f"<tr><td class='activity-name'>{safe_act_name}</td>{row_cells}</tr>"
+
+    # --- Final Assembly ---
+    # Define CSS separately to avoid f-string issues with curly braces
+    CSS = """
+    <style>
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #cccccc; text-align: center; padding: 8px; }
+        .first-col, .activity-name { text-align: left; background-color: #f2f2f2; font-weight: bold; position: sticky; left: 0; z-index: 1; }
+        .group-header { text-align: left; font-weight: bold; background-color: #e0e0e0; }
+        thead th { background-color: #f2f2f2; position: sticky; top: 0; z-index: 2; }
+        .epoch-band { background-color: #ADD8E6; }
+        .encounter-band { background-color: #90EE90; }
+    </style>
+    """
+    st.markdown(CSS, unsafe_allow_html=True)
+
+    # Build the HTML table structure robustly to prevent string corruption
+    html_parts = [
+        "<table>",
+        "<thead>",
+        epoch_band_html,
+        encounter_band_html,
+        '<tr><th class="first-col">Activity</th>',
+        header_html,
+        "</tr>",
+        "</thead>",
+        "<tbody>",
+        body_html,
+        "</tbody>",
+        "</table>"
+    ]
+    table_html = "".join(html_parts)
+    
+    st.markdown(table_html, unsafe_allow_html=True)
 
 # --- Main App Layout ---
 
@@ -259,8 +383,11 @@ st.sidebar.title('Display Options')
 filters = {
     'act': st.sidebar.text_input('Filter activities by name:'),
     'tp': st.sidebar.text_input('Filter timepoints by label:'),
-    'grouped': st.sidebar.checkbox('Group by Activity Group', value=True)
+    'grouped': st.sidebar.checkbox('Group by Activity Group', value=True),
+    'epoch_band': st.sidebar.checkbox('Show Epoch band', value=True),
+    'enc_band': st.sidebar.checkbox('Show Encounter band', value=True)
 }
+
 
 
 
