@@ -47,16 +47,6 @@ The `main.py` script orchestrates the pipeline. All outputs are saved in a times
 
 The primary output to review is `9_reconciled_soa.json`.
 
-## How to Review Results
-An interactive Streamlit application is provided for reviewing the results.
-
-1.  **Launch the app:**
-    ```bash
-    streamlit run soa_streamlit_viewer.py
-    ```
-2.  **Open in browser:** Navigate to `http://localhost:8501`.
-3.  **Select a run:** Use the sidebar to choose the pipeline run you want to inspect. The app automatically finds and displays the final and intermediate files.
-
 ## Project Structure
 
 ### Core Pipeline Scripts
@@ -77,10 +67,13 @@ These scripts are executed in sequence by `main.py`.
 These scripts are not part of the automated pipeline but provide useful functionality.
 
 - `soa_streamlit_viewer.py`: The interactive Streamlit review application.
+- `audit_timepoints.py`: A utility to compare the extracted timepoints between two or more SoA JSON files (e.g., text vs. vision vs. reconciled). Useful for debugging extraction discrepancies.
+- `soa_extraction_validator.py`: A utility to validate a single SoA JSON file against the `soa_entity_mapping.json` rules. This provides a more focused validation than the final schema check.
 - `generate_soa_entity_mapping.py`: A manual script to regenerate the `soa_entity_mapping.json` file from the `USDM_CT.xlsx` file (which must be placed in the `temp/` directory). This is useful when the USDM controlled terminology is updated.
 - `json_utils.py`: Provides helper functions for cleaning and processing JSON data returned by the LLM.
 - `evs_client.py`: A client for interacting with the NCI Enterprise Vocabulary Services (EVS) API to validate controlled terminology.
 - `mapping_pre_scan.py`: A utility to pre-scan the entity mapping file and warm the EVS cache, which can speed up pipeline runs.
+- `m11_mapping.py`: **(Deprecated)** Formerly used for the "strict M11 mode" feature, which has been removed. This script is no longer used in the primary workflow.
 
 ### Configuration & Data
 - `requirements.txt`: Python package dependencies.
@@ -112,9 +105,9 @@ An interactive Streamlit application is provided for reviewing the results.
 ### Viewer Features
 The viewer provides several powerful features for clinical review and quality control:
 
+- **Stable & Logical Display**: The viewer now includes robust rendering logic and intelligent chronological sorting of timepoints (e.g., "Screening", "Visit 1", "Week 2"). This ensures complex SoA tables are displayed accurately and in a clinically logical order.
 - **Hierarchical Bands**: The viewer renders **Epoch** and **Encounter** (visit) information as color-coded horizontal bands above the timepoint headers. This provides crucial clinical context, showing how visits roll up into study phases. The visibility of these bands can be toggled in the sidebar.
 - **Activity Grouping**: Activities are grouped under full-width header rows, matching the visual structure of most protocol SoA tables.
-
 - **Filtering**: Reviewers can dynamically filter the displayed activities and timepoints by name.
 - **File Inspection**: Easily switch between the final reconciled SoA and all intermediate raw and post-processed outputs to trace how the data was transformed at each step.
 
