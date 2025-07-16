@@ -1,11 +1,14 @@
 import os
 import sys
+import json
 import base64
 import io
+import time
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
 import fitz  # PyMuPDF
 import textwrap
 from openai import OpenAI
+import google.generativeai as genai
 from dotenv import load_dotenv
 
 # --- CONFIG ---
@@ -26,7 +29,11 @@ KEYWORDS = [k.lower() for k in KEYWORDS]
 # --- ENV SETUP ---
 env_path = os.path.join(os.path.dirname(__file__), '.env')
 load_dotenv(env_path)
-client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+openai_client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+
+google_api_key = os.environ.get("GOOGLE_API_KEY")
+if google_api_key:
+    genai.configure(api_key=google_api_key)
 
 # --- FUNCTIONS ---
 def extract_page_texts(pdf_path):
@@ -43,28 +50,26 @@ def keyword_filter(page_texts):
 
 import time
 
-def llm_is_soa_page(page_text, client, model, prompt_content):
+def llm_is_soa_page(page_text, model, prompt_content):
     """Asks the LLM if a page contains SoA content, using the main prompt for context."""
     unique_run_id = f"RunID:{time.time()}"
     
     if prompt_content:
         system_prompt = textwrap.dedent(f"""
-            You are an expert assistant specializing in clinical trial protocols. Your task is to determine if a given page from a protocol document is relevant to the Schedule of Activities (SoA).
+            You are an expert document analysis assistant for clinical trial protocols. Your task is to determine if the provided text from a single page contains the primary 'Schedule of Activities' (SoA) table.
 
-            A page is considered **relevant** if it contains:
-            1. The main SoA table itself (a grid of visits, timepoints, and procedures).
-            2. **Crucial context for the SoA**, such as detailed descriptions, footnotes, or definitions for the items described in the schema below.
+            **CRITICAL INSTRUCTIONS:**
+            1.  The SoA is a specific, detailed table, often spanning multiple pages, that lists study visits, timepoints, and all procedures performed at each visit.
+            2.  You MUST respond 'yes' if the page contains the title 'Schedule of Activities' (or similar) and the beginning of the main SoA table, or if it contains a clear continuation of that table from a previous page. The page must show a tabular structure with rows and columns for visits and procedures.
+            3.  You MUST respond 'no' if the page only contains mentions of activities, a list of abbreviations, a table of contents, a list of figures, or general descriptions of the study design.
+            4.  A page that only MENTIONS 'Schedule of Activities' but does not SHOW the actual table is NOT the SoA table. You must respond 'no'.
+            5.  Footnotes or definitions pages are NOT the SoA table itself. You must respond 'no'.
+            6.  Your response MUST be a single word: 'yes' or 'no'. Do not provide any other explanation.
 
-            Here is the schema context for the key SoA-related entities to look for:
+            Here is the schema context for the key SoA-related entities, which may appear in the table:
             ---
             {prompt_content}
             ---
-
-            Based on this, analyze the following page text.
-
-            IMPORTANT:
-            - A 'Table of Contents' page is NOT relevant, even if it lists the SoA.
-            - Your response must be a single word: 'yes' or 'no'.
         """)
     else: # Fallback to the old prompt if no context is provided
         system_prompt = textwrap.dedent("""
@@ -92,109 +97,118 @@ def llm_is_soa_page(page_text, client, model, prompt_content):
 
     print(f"[DEBUG] Sending request to {model} for page adjudication...", file=sys.stderr)
     try:
-        response = client.chat.completions.create(**params)
+        if 'gemini' in model.lower():
+            if not google_api_key:
+                raise ValueError("GOOGLE_API_KEY not set for Gemini model")
+            gemini_model = genai.GenerativeModel(model)
+            full_prompt = f"{params['messages'][0]['content']}\n\n{params['messages'][1]['content']}"
+            response = gemini_model.generate_content(full_prompt)
+            answer = response.text.strip().lower()
+        else:
+            response = openai_client.chat.completions.create(**params)
+            answer = response.choices[0].message.content.strip().lower()
+        
         print(f"[DEBUG] Received response from {model}.", file=sys.stderr)
-        answer = response.choices[0].message.content.strip().lower()
         return answer.startswith('yes')
     except Exception as e:
-        print(f"[ERROR] OpenAI API call failed: {e}", file=sys.stderr)
+        print(f"[ERROR] LLM API call failed: {e}", file=sys.stderr)
         return False
 
-def llm_is_soa_page_image(pdf_path, page_num, client, model):
-    """Send image of a PDF page to OpenAI vision API and ask if it contains the SOA table."""
+def llm_is_soa_page_image(pdf_path, page_num, model):
+    """Send image of a PDF page to a vision API and ask if it contains the SOA table."""
     import tempfile
     import fitz
     import time
     import uuid
-    import shutil
+    import mimetypes
+    from pathlib import Path
+
     doc = fitz.open(pdf_path)
     page = doc[page_num]
     pix = page.get_pixmap(dpi=200)
-    # Ensure unique temp file name and that file is closed before pix.save
-    for attempt in range(3):
-        tmp_path = os.path.join(tempfile.gettempdir(), f"soa_page_{uuid.uuid4().hex}.png")
-        try:
-            with open(tmp_path, 'wb') as f:
-                pass  # Just create and close the file
-            pix.save(tmp_path)
-            image_path = tmp_path
-            break
-        except Exception as e:
-            print(f"[WARN] Failed to save pixmap to temp file (attempt {attempt+1}): {e}", file=sys.stderr)
-            try:
-                if os.path.exists(tmp_path):
-                    os.remove(tmp_path)
-            except Exception:
-                pass
-            time.sleep(0.5)
-    else:
-        raise RuntimeError("[FATAL] Could not create/save temp PNG for LLM vision adjudication after 3 attempts.")
-    with open(image_path, 'rb') as imgf:
-        img_b64 = base64.b64encode(imgf.read()).decode('utf-8')
-    image_url = f"data:image/png;base64,{img_b64}"
+    
+    # Create a temporary file to save the image
+    tmp_path = os.path.join(tempfile.gettempdir(), f"soa_page_{uuid.uuid4().hex}.png")
+    try:
+        pix.save(tmp_path)
+        image_path = tmp_path
+    except Exception as e:
+        print(f"[FATAL] Could not create/save temp PNG for LLM vision adjudication: {e}", file=sys.stderr)
+        return False
+
     unique_run_id = f"RunID:{time.time()}"
     system_prompt = (
-        "You are an image classification assistant. Your only task is to determine if the image of a clinical trial protocol page contains the 'Schedule of Activities' (SoA).\n"
-        "The SoA can be a table, a title, or a header.\n"
-        "IMPORTANT: A 'Table of Contents' page is NOT a Schedule of Activities, even if it lists the SoA as a section. If the image shows a Table of Contents, respond 'no'.\n"
-        "If the image contains the text 'Schedule of Activities', 'SoA', 'Schedule of Events', or a similar title, OR if it shows a table with visits, timepoints, and medical procedures, you must respond 'yes'.\n"
-        "Otherwise, respond 'no'.\n"
-        "Your response must be a single word: 'yes' or 'no'. "
-        f"{unique_run_id}"
+        "You are an expert visual analysis assistant for clinical trial documents. Your task is to determine if the provided image of a single page contains the primary 'Schedule of Activities' (SoA) table.\n"
+        "**CRITICAL VISUAL INSTRUCTIONS:**\n"
+        "1.  The SoA is a specific, detailed **grid-like table**, often spanning multiple pages. It has columns for visits/timepoints and rows for specific medical procedures.\n"
+        "2.  You MUST respond 'yes' ONLY if the image shows this characteristic grid structure. Look for a table with headers like 'Visit', 'Week', 'Day', and a list of procedures like 'Physical Exam', 'Blood Sample', 'ECG'.\n"
+        "3.  You MUST respond 'no' if the image shows a flowchart, a study design schematic, a list of objectives, a table of contents, or any other diagram that is not the main SoA grid.\n"
+        "4.  A page that only MENTIONS 'Schedule of Activities' in text but does not SHOW the actual table grid is NOT the SoA. You must respond 'no'.\n"
+        "5.  Your response MUST be a single word: 'yes' or 'no'. Do not provide any other explanation.\n"
+        f"RunID: {unique_run_id}"
     )
+
+    answer = ""
     try:
-        params = dict(
-            model=model,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "image_url",
-                            "image_url": {"url": image_url, "detail": "low"},
-                        },
-                    ],
-                }
-            ],
-        )
-        # o3 does not support temperature=0, so we use the API's default.
-        # For other models, set temperature to 0 for deterministic output.
-        if model != "o3":
-            params["temperature"] = 0
-        if model in ['o3', 'o3-mini', 'o3-mini-high']:
-            params['max_completion_tokens'] = 5
+        if 'gemini' in model.lower():
+            gemini_model = genai.GenerativeModel(model)
+            mime_type, _ = mimetypes.guess_type(image_path)
+            if not mime_type or not mime_type.startswith('image'):
+                 print(f"[ERROR] Invalid mime type for image {image_path}", file=sys.stderr)
+                 return False
+            image_part = {'mime_type': mime_type, 'data': Path(image_path).read_bytes()}
+            response = gemini_model.generate_content([system_prompt, image_part])
+            answer = response.text.strip().lower()
         else:
-            params['max_tokens'] = 5
-        response = client.chat.completions.create(**params)
+            client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+            with open(image_path, 'rb') as imgf:
+                img_b64 = base64.b64encode(imgf.read()).decode('utf-8')
+            image_url = f"data:image/png;base64,{img_b64}"
+            
+            params = dict(
+                model=model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "image_url",
+                                "image_url": {"url": image_url, "detail": "low"},
+                            },
+                        ],
+                    }
+                ],
+                max_tokens=5,
+                temperature=0
+            )
+            response = client.chat.completions.create(**params)
+            answer = response.choices[0].message.content.strip().lower()
+
     except Exception as e:
-        print(f"[ERROR] OpenAI API call failed: {e}", file=sys.stderr)
-        # Fallback or re-raise
-        raise
-    answer = response.choices[0].message.content.strip().lower()
-    import time
-    # Robust temp file cleanup: retry up to 3 times if permission denied
-    for attempt in range(3):
+        print(f"[ERROR] LLM API call failed: {e}", file=sys.stderr)
+        answer = "no" # Default to no on error to avoid false positives
+    finally:
+        # Cleanup the temp file
         try:
             os.remove(image_path)
-            break
-        except PermissionError as e:
-            print(f"[WARN] Temp file removal failed (attempt {attempt+1}): {e}. Retrying...", file=sys.stderr)
-            time.sleep(0.5)
-    else:
-        print(f"[ERROR] Could not remove temp file {image_path} after 3 attempts. Please check for locked files.", file=sys.stderr)
+        except Exception as e:
+            print(f"[WARN] Failed to remove temp file {image_path}: {e}", file=sys.stderr)
+
     return answer.startswith('yes')
 
 
+print("[DEBUG] find_soa_pages.py script execution started.", file=sys.stderr, flush=True)
+
 def main():
-    print("[DEBUG] find_soa_pages.py main() started", file=sys.stderr)
+    print("[DEBUG] find_soa_pages.py main() started", file=sys.stderr, flush=True)
     import argparse
     import textwrap
     parser = argparse.ArgumentParser(description="Find SOA pages in a PDF.")
-    parser.add_argument("pdf_path", help="Path to the PDF file")
+    parser.add_argument("--pdf-path", required=True, help="Path to the PDF file")
     parser.add_argument("--prompt-file", help="Path to the LLM prompt file for context")
     parser.add_argument("--max-pages", type=int, default=30, help="Max pages to check with LLM if keyword filter fails")
-    parser.add_argument("--model", default=os.environ.get('OPENAI_MODEL', 'gpt-4o'), help="OpenAI model to use")
+    parser.add_argument("--model", default=os.environ.get('OPENAI_MODEL', 'gpt-4o'), help="LLM model to use (e.g., gpt-4o, gemini-2.5-pro)")
     args = parser.parse_args()
 
     # Ensure pdf_path is absolute
@@ -204,7 +218,7 @@ def main():
         sys.exit(1)
 
     MODEL_NAME = args.model
-    print(f"[INFO] Using OpenAI model: {MODEL_NAME}", file=sys.stderr)
+    print(f"[INFO] Using LLM model: {MODEL_NAME}", file=sys.stderr)
 
     prompt_content = ""
     if args.prompt_file and os.path.exists(args.prompt_file):
@@ -214,7 +228,9 @@ def main():
     else:
         print("[WARNING] No prompt file provided or found. Using basic SoA detection.", file=sys.stderr)
 
+    print("[DEBUG] Starting PDF text extraction...", file=sys.stderr, flush=True)
     page_texts = extract_page_texts(pdf_path)
+    print(f"[DEBUG] PDF text extraction complete. Extracted {len(page_texts)} pages.", file=sys.stderr, flush=True)
     # Log page text stats for automation/debugging
     empty_or_short = 0
     for i, text in enumerate(page_texts):
@@ -223,7 +239,9 @@ def main():
     if empty_or_short == len(page_texts):
         print("[WARNING] All pages are empty or too short. Consider OCR fallback for this PDF.", file=sys.stderr)
 
+    print("[DEBUG] Starting keyword filtering...", file=sys.stderr, flush=True)
     candidates = keyword_filter(page_texts)
+    print("[DEBUG] Keyword filtering complete.", file=sys.stderr, flush=True)
     print(f"[INFO] Keyword candidate pages: {[p + 1 for p in candidates]}", file=sys.stderr)
     soa_pages = []
     def log_llm(page_idx, answer, mode):
@@ -232,12 +250,17 @@ def main():
     adjudicated = set()
     # 1. Adjudicate keyword candidate pages
     if candidates:
-        print(f"[INFO] Running LLM adjudication on keyword candidate pages...", file=sys.stderr)
+        print(f"[INFO] Running LLM adjudication on keyword candidate pages...", file=sys.stderr, flush=True)
         for i in candidates:
             if i in adjudicated:
                 continue
-            answer = llm_is_soa_page(page_texts[i], client, MODEL_NAME, prompt_content)
+            answer = llm_is_soa_page(page_texts[i], MODEL_NAME, prompt_content)
             log_llm(i, answer, "text")
+            # If text-based check fails, try vision-based as a fallback
+            if not answer:
+                print(f"[INFO] Text-based check failed for page {i+1}. Trying vision-based analysis...", file=sys.stderr)
+                answer = llm_is_soa_page_image(pdf_path, i + 1, MODEL_NAME)
+                log_llm(i, answer, "vision")
             adjudicated.add(i)
             if answer:
                 # Found the start of an SoA block.
@@ -250,7 +273,7 @@ def main():
                     if next_idx in adjudicated:
                         next_idx += 1
                         continue
-                    answer_next = llm_is_soa_page(page_texts[next_idx], client, MODEL_NAME, prompt_content)
+                    answer_next = llm_is_soa_page(page_texts[next_idx], MODEL_NAME, prompt_content)
                     log_llm(next_idx, answer_next, "text (contiguous)")
                     adjudicated.add(next_idx)
                     if answer_next:
@@ -272,7 +295,7 @@ def main():
             if i in adjudicated:
                 continue
             print(f"[INFO] LLM adjudicating page {i+1} (vision)...", file=sys.stderr)
-            answer = llm_is_soa_page_image(pdf_path, i, client, MODEL_NAME)
+            answer = llm_is_soa_page_image(pdf_path, i, MODEL_NAME)
             log_llm(i, answer, "vision")
             adjudicated.add(i)
             if answer:

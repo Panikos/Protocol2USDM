@@ -1,12 +1,26 @@
 import os
 import json
-from openai import OpenAI
 from dotenv import load_dotenv
+
+# --- Optional imports (only if available) ---
+try:
+    from openai import OpenAI
+except ImportError:
+    OpenAI = None
+
+try:
+    import google.generativeai as genai
+except ImportError:
+    genai = None
 
 # --- ENV SETUP ---
 env_path = os.path.join(os.path.dirname(__file__), '.env')
 load_dotenv(env_path)
-client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+openai_api_key = os.environ.get("OPENAI_API_KEY")
+if OpenAI and openai_api_key:
+    client = OpenAI(api_key=openai_api_key)
+else:
+    client = None
 
 # The model name is now passed as a parameter to the main function.
 
@@ -45,6 +59,7 @@ def reconcile_soa(vision_path, output_path, text_path, model_name='o3'):
         raise
 
     # If we have both, proceed with LLM-based reconciliation.
+    is_gemini_requested = 'gemini' in model_name.lower()
     print("[INFO] Both text and vision SoA found. Reconciling with LLM...")
     user_content = (
         "TEXT-EXTRACTED SoA JSON:\n" + json.dumps(text_soa, ensure_ascii=False, indent=2) +
@@ -54,11 +69,103 @@ def reconcile_soa(vision_path, output_path, text_path, model_name='o3'):
         {"role": "system", "content": LLM_PROMPT},
         {"role": "user", "content": user_content}
     ]
-    # Model fallback logic (unchanged)
+    # -------------------- GEMINI PRIMARY PATH --------------------
+    if is_gemini_requested:
+        if not (genai and os.environ.get('GOOGLE_API_KEY')):
+            raise RuntimeError("Gemini model requested but google.generativeai not available or GOOGLE_API_KEY not set.")
+        try:
+            print(f"[INFO] Using Gemini model: {model_name} for reconciliation…")
+            genai.configure(api_key=os.environ['GOOGLE_API_KEY'])
+            gemini_client = genai.GenerativeModel(model_name)
+            gemini_prompt = LLM_PROMPT + "\n\n" + user_content + "\nReturn ONLY the final reconciled JSON."
+            response = gemini_client.generate_content([
+                gemini_prompt
+            ], generation_config=genai.types.GenerationConfig(
+                temperature=0.1,
+                response_mime_type="application/json"
+            ))
+            result = response.text.strip()
+            parsed = json.loads(result)
+            # Ensure required StudyVersion fields
+            if isinstance(parsed, dict):
+                versions = parsed.get('study', {}).get('versions', [])
+                for version in versions:
+                    version.setdefault('rationale', 'Not specified')
+                    version.setdefault('studyIdentifiers', [])
+                    version.setdefault('titles', [])
+                # --- Preserve wrapper-level provenance & QC metadata ---
+                # Deep merge provenance dictionaries so nested maps (e.g., plannedTimepoints, activities) are combined
+                def _merge_prov(dest: dict, src: dict) -> dict:
+                    """Recursively merge provenance dictionaries, preserving all tags."""
+                    for key, val in src.items():
+                        if isinstance(val, dict) and isinstance(dest.get(key), dict):
+                            # Merge inner dicts of IDs -> provenance tags
+                            for inner_id, inner_val in val.items():
+                                existing_val = dest[key].get(inner_id)
+                                if existing_val is None:
+                                    dest[key][inner_id] = inner_val
+                                else:
+                                    # Normalise to sets then union
+                                    if not isinstance(existing_val, (list, set)):
+                                        existing_val_set = {existing_val}
+                                    else:
+                                        existing_val_set = set(existing_val)
+                                    if not isinstance(inner_val, (list, set)):
+                                        inner_val_set = {inner_val}
+                                    else:
+                                        inner_val_set = set(inner_val)
+                                    merged = existing_val_set | inner_val_set
+                                    dest[key][inner_id] = sorted(merged) if len(merged) > 1 else next(iter(merged))
+                        else:
+                            # For scalar or list at top level, prefer union if both are list-like
+                            if key in dest and isinstance(val, (list, set)) and isinstance(dest[key], (list, set)):
+                                dest[key] = sorted(set(dest[key]) | set(val))
+                            else:
+                                dest[key] = val
+                    return dest
+
+                prov_merged: dict = {}
+                for _src in (text_soa, vision_soa, parsed):
+                    if isinstance(_src, dict):
+                        _prov = _src.get('p2uProvenance')
+                        if isinstance(_prov, dict):
+                            prov_merged = _merge_prov(prov_merged, _prov)
+                if prov_merged:
+                    parsed['p2uProvenance'] = prov_merged
+
+                # Ensure activityGroups are not lost during reconciliation.
+                try:
+                    parsed_tl = parsed.get('study', {}).get('versions', [])[0].get('timeline', {})
+                    vision_tl = vision_soa.get('study', {}).get('versions', [])[0].get('timeline', {}) if isinstance(vision_soa, dict) else {}
+                    if not parsed_tl.get('activityGroups') and vision_tl.get('activityGroups'):
+                        parsed_tl['activityGroups'] = vision_tl['activityGroups']
+                except Exception:
+                    pass
+                for _meta_key in (
+                    'p2uProvenance',
+                    'p2uOrphans',
+                    'p2uGroupConflicts',
+                    'p2uTimelineOrderIssues',
+                ):
+                    if _meta_key not in parsed:
+                        if _meta_key in vision_soa:
+                            parsed[_meta_key] = vision_soa[_meta_key]
+                        elif _meta_key in text_soa:
+                            parsed[_meta_key] = text_soa[_meta_key]
+            with open(output_path, "w", encoding="utf-8") as f:
+                json.dump(parsed, f, indent=2, ensure_ascii=False)
+            print(f"[SUCCESS] Gemini-reconciled SoA written to {output_path}")
+            return
+        except Exception as ge:
+            print(f"[WARNING] Gemini reconciliation failed: {ge}. Falling back to OpenAI if available…")
+            # fall through to OpenAI logic if available
+
+    # -------------------- OPENAI PRIMARY PATH (default) --------------------
+    # Model fallback logic (OpenAI first, then Gemini) if Gemini wasn't explicitly requested.
     model_order = [model_name]
     # Only use models that are available to the user
     # Remove o3-mini-high if not available
-    available_models = ['o3', 'gpt-4o']
+    available_models = ['o3', 'gpt-4o']  # OpenAI models
     if model_name == 'o3':
         model_order += ['gpt-4o']
     elif model_name == 'gpt-4o':
@@ -67,7 +174,8 @@ def reconcile_soa(vision_path, output_path, text_path, model_name='o3'):
         # fallback to gpt-4o if unknown model
         model_order += ['gpt-4o']
     tried = []
-    for model_try in model_order:
+    # --- Try OpenAI first if available ---
+    for model_try in model_order if client else []:
         print(f"[INFO] Using OpenAI model: {model_try}")
         params = dict(model=model_try, messages=messages)
         if model_try == 'o3':
@@ -89,6 +197,72 @@ def reconcile_soa(vision_path, output_path, text_path, model_name='o3'):
             if last_brace != -1:
                 result = result[:last_brace+1]
             parsed = json.loads(result)
+            # Ensure required StudyVersion fields
+            if isinstance(parsed, dict):
+                versions = parsed.get('study', {}).get('versions', [])
+                for version in versions:
+                    version.setdefault('rationale', 'Not specified')
+                    version.setdefault('studyIdentifiers', [])
+                    version.setdefault('titles', [])
+                # --- Preserve wrapper-level provenance & QC metadata ---
+                # Deep merge provenance dictionaries so nested maps (e.g., plannedTimepoints, activities) are combined
+                def _merge_prov(dest: dict, src: dict) -> dict:
+                    """Recursively merge provenance dictionaries, preserving all tags."""
+                    for key, val in src.items():
+                        if isinstance(val, dict) and isinstance(dest.get(key), dict):
+                            # Merge inner dicts of IDs -> provenance tags
+                            for inner_id, inner_val in val.items():
+                                existing_val = dest[key].get(inner_id)
+                                if existing_val is None:
+                                    dest[key][inner_id] = inner_val
+                                else:
+                                    # Normalise to sets then union
+                                    if not isinstance(existing_val, (list, set)):
+                                        existing_val_set = {existing_val}
+                                    else:
+                                        existing_val_set = set(existing_val)
+                                    if not isinstance(inner_val, (list, set)):
+                                        inner_val_set = {inner_val}
+                                    else:
+                                        inner_val_set = set(inner_val)
+                                    merged = existing_val_set | inner_val_set
+                                    dest[key][inner_id] = sorted(merged) if len(merged) > 1 else next(iter(merged))
+                        else:
+                            # For scalar or list at top level, prefer union if both are list-like
+                            if key in dest and isinstance(val, (list, set)) and isinstance(dest[key], (list, set)):
+                                dest[key] = sorted(set(dest[key]) | set(val))
+                            else:
+                                dest[key] = val
+                    return dest
+
+                prov_merged: dict = {}
+                for _src in (text_soa, vision_soa, parsed):
+                    if isinstance(_src, dict):
+                        _prov = _src.get('p2uProvenance')
+                        if isinstance(_prov, dict):
+                            prov_merged = _merge_prov(prov_merged, _prov)
+                if prov_merged:
+                    parsed['p2uProvenance'] = prov_merged
+
+                # Ensure activityGroups are not lost during reconciliation.
+                try:
+                    parsed_tl = parsed.get('study', {}).get('versions', [])[0].get('timeline', {})
+                    vision_tl = vision_soa.get('study', {}).get('versions', [])[0].get('timeline', {}) if isinstance(vision_soa, dict) else {}
+                    if not parsed_tl.get('activityGroups') and vision_tl.get('activityGroups'):
+                        parsed_tl['activityGroups'] = vision_tl['activityGroups']
+                except Exception:
+                    pass
+                for _meta_key in (
+                    'p2uProvenance',
+                    'p2uOrphans',
+                    'p2uGroupConflicts',
+                    'p2uTimelineOrderIssues',
+                ):
+                    if _meta_key not in parsed:
+                        if _meta_key in vision_soa:
+                            parsed[_meta_key] = vision_soa[_meta_key]
+                        elif _meta_key in text_soa:
+                            parsed[_meta_key] = text_soa[_meta_key]
 
             # --- NEW GROUPING-AWARE LOGIC ---
             # Validate and handle new structure: activityGroups, activities, visitGroups, visits, matrix
@@ -108,6 +282,72 @@ def reconcile_soa(vision_path, output_path, text_path, model_name='o3'):
                 if vis.get('groupId') not in vg_ids and vis.get('groupId') is not None:
                     print(f"[WARNING] Visit '{vis['name']}' references missing visitGroupId: {vis.get('groupId')}")
 
+            # --- Ensure required StudyVersion fields are present ---
+            if isinstance(parsed, dict):
+                versions = parsed.get('study', {}).get('versions', [])
+                for version in versions:
+                    version.setdefault('rationale', 'Not specified')
+                    version.setdefault('studyIdentifiers', [])
+                    version.setdefault('titles', [])
+                # --- Preserve wrapper-level provenance & QC metadata ---
+                # Deep merge provenance dictionaries so nested maps (e.g., plannedTimepoints, activities) are combined
+                def _merge_prov(dest: dict, src: dict) -> dict:
+                    """Recursively merge provenance dictionaries, preserving all tags."""
+                    for key, val in src.items():
+                        if isinstance(val, dict) and isinstance(dest.get(key), dict):
+                            # Merge inner dicts of IDs -> provenance tags
+                            for inner_id, inner_val in val.items():
+                                existing_val = dest[key].get(inner_id)
+                                if existing_val is None:
+                                    dest[key][inner_id] = inner_val
+                                else:
+                                    # Normalise to sets then union
+                                    if not isinstance(existing_val, (list, set)):
+                                        existing_val_set = {existing_val}
+                                    else:
+                                        existing_val_set = set(existing_val)
+                                    if not isinstance(inner_val, (list, set)):
+                                        inner_val_set = {inner_val}
+                                    else:
+                                        inner_val_set = set(inner_val)
+                                    merged = existing_val_set | inner_val_set
+                                    dest[key][inner_id] = sorted(merged) if len(merged) > 1 else next(iter(merged))
+                        else:
+                            # For scalar or list at top level, prefer union if both are list-like
+                            if key in dest and isinstance(val, (list, set)) and isinstance(dest[key], (list, set)):
+                                dest[key] = sorted(set(dest[key]) | set(val))
+                            else:
+                                dest[key] = val
+                    return dest
+
+                prov_merged: dict = {}
+                for _src in (text_soa, vision_soa, parsed):
+                    if isinstance(_src, dict):
+                        _prov = _src.get('p2uProvenance')
+                        if isinstance(_prov, dict):
+                            prov_merged = _merge_prov(prov_merged, _prov)
+                if prov_merged:
+                    parsed['p2uProvenance'] = prov_merged
+
+                # Ensure activityGroups are not lost during reconciliation.
+                try:
+                    parsed_tl = parsed.get('study', {}).get('versions', [])[0].get('timeline', {})
+                    vision_tl = vision_soa.get('study', {}).get('versions', [])[0].get('timeline', {}) if isinstance(vision_soa, dict) else {}
+                    if not parsed_tl.get('activityGroups') and vision_tl.get('activityGroups'):
+                        parsed_tl['activityGroups'] = vision_tl['activityGroups']
+                except Exception:
+                    pass
+                for _meta_key in (
+                    'p2uProvenance',
+                    'p2uOrphans',
+                    'p2uGroupConflicts',
+                    'p2uTimelineOrderIssues',
+                ):
+                    if _meta_key not in parsed:
+                        if _meta_key in vision_soa:
+                            parsed[_meta_key] = vision_soa[_meta_key]
+                        elif _meta_key in text_soa:
+                            parsed[_meta_key] = text_soa[_meta_key]
             # Write out the reconciled SoA (grouping-aware)
             with open(output_path, "w", encoding="utf-8") as f:
                 json.dump(parsed, f, indent=2, ensure_ascii=False)
@@ -118,8 +358,95 @@ def reconcile_soa(vision_path, output_path, text_path, model_name='o3'):
             print(f"[WARNING] Model '{model_try}' failed: {err_msg}")
             tried.append(model_try)
             continue
-    print(f"[FATAL] All model attempts failed: {tried}")
-    raise RuntimeError(f"No available model succeeded: {tried}")
+    # If OpenAI attempts failed or unavailable, try Gemini as fallback (only if Gemini wasn't the primary request above)
+    if genai and os.environ.get('GOOGLE_API_KEY'):
+        try:
+            print("[INFO] Falling back to Gemini for reconciliation...")
+            genai.configure(api_key=os.environ['GOOGLE_API_KEY'])
+            gemini_client = genai.GenerativeModel('gemini-2.5-pro')
+            gemini_prompt = LLM_PROMPT + "\n\n" + user_content + "\nReturn ONLY the final reconciled JSON."
+            response = gemini_client.generate_content([
+                gemini_prompt
+            ], generation_config=genai.types.GenerationConfig(
+                temperature=0.1,
+                response_mime_type="application/json"
+            ))
+            result = response.text.strip()
+            parsed = json.loads(result)
+            # Ensure required StudyVersion fields
+            if isinstance(parsed, dict):
+                versions = parsed.get('study', {}).get('versions', [])
+                for version in versions:
+                    version.setdefault('rationale', 'Not specified')
+                    version.setdefault('studyIdentifiers', [])
+                    version.setdefault('titles', [])
+                # --- Preserve wrapper-level provenance & QC metadata ---
+                # Deep merge provenance dictionaries so nested maps (e.g., plannedTimepoints, activities) are combined
+                def _merge_prov(dest: dict, src: dict) -> dict:
+                    """Recursively merge provenance dictionaries, preserving all tags."""
+                    for key, val in src.items():
+                        if isinstance(val, dict) and isinstance(dest.get(key), dict):
+                            # Merge inner dicts of IDs -> provenance tags
+                            for inner_id, inner_val in val.items():
+                                existing_val = dest[key].get(inner_id)
+                                if existing_val is None:
+                                    dest[key][inner_id] = inner_val
+                                else:
+                                    # Normalise to sets then union
+                                    if not isinstance(existing_val, (list, set)):
+                                        existing_val_set = {existing_val}
+                                    else:
+                                        existing_val_set = set(existing_val)
+                                    if not isinstance(inner_val, (list, set)):
+                                        inner_val_set = {inner_val}
+                                    else:
+                                        inner_val_set = set(inner_val)
+                                    merged = existing_val_set | inner_val_set
+                                    dest[key][inner_id] = sorted(merged) if len(merged) > 1 else next(iter(merged))
+                        else:
+                            # For scalar or list at top level, prefer union if both are list-like
+                            if key in dest and isinstance(val, (list, set)) and isinstance(dest[key], (list, set)):
+                                dest[key] = sorted(set(dest[key]) | set(val))
+                            else:
+                                dest[key] = val
+                    return dest
+
+                prov_merged: dict = {}
+                for _src in (text_soa, vision_soa, parsed):
+                    if isinstance(_src, dict):
+                        _prov = _src.get('p2uProvenance')
+                        if isinstance(_prov, dict):
+                            prov_merged = _merge_prov(prov_merged, _prov)
+                if prov_merged:
+                    parsed['p2uProvenance'] = prov_merged
+
+                # Ensure activityGroups are not lost during reconciliation.
+                try:
+                    parsed_tl = parsed.get('study', {}).get('versions', [])[0].get('timeline', {})
+                    vision_tl = vision_soa.get('study', {}).get('versions', [])[0].get('timeline', {}) if isinstance(vision_soa, dict) else {}
+                    if not parsed_tl.get('activityGroups') and vision_tl.get('activityGroups'):
+                        parsed_tl['activityGroups'] = vision_tl['activityGroups']
+                except Exception:
+                    pass
+                for _meta_key in (
+                    'p2uProvenance',
+                    'p2uOrphans',
+                    'p2uGroupConflicts',
+                    'p2uTimelineOrderIssues',
+                ):
+                    if _meta_key not in parsed:
+                        if _meta_key in vision_soa:
+                            parsed[_meta_key] = vision_soa[_meta_key]
+                        elif _meta_key in text_soa:
+                            parsed[_meta_key] = text_soa[_meta_key]
+            with open(output_path, "w", encoding="utf-8") as f:
+                json.dump(parsed, f, indent=2, ensure_ascii=False)
+            print(f"[SUCCESS] Gemini-reconciled SoA written to {output_path}")
+            return
+        except Exception as ge:
+            print(f"[WARNING] Gemini reconciliation failed: {ge}")
+    print(f"[FATAL] All model attempts failed: {tried if tried else 'No OpenAI client and Gemini failed'}")
+    raise RuntimeError("Reconciliation failed with both OpenAI and Gemini models")
 
 if __name__ == "__main__":
     import argparse
@@ -127,7 +454,7 @@ if __name__ == "__main__":
     parser.add_argument("--text-input", required=True, help="Path to text-extracted SoA JSON.")
     parser.add_argument("--vision-input", required=True, help="Path to vision-extracted SoA JSON.")
     parser.add_argument("--output", required=True, help="Path to write reconciled SoA JSON.")
-    parser.add_argument("--model", default=os.environ.get('OPENAI_MODEL', 'o3'), help="OpenAI model to use")
+    parser.add_argument("--model", default=os.environ.get('OPENAI_MODEL', 'o3'), help="LLM model to use (e.g., 'o3', 'gpt-4o', or 'gemini-2.5-pro')")
     args = parser.parse_args()
 
     # Set the environment variable if it's not already set.

@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>USDM 4.0 Renderer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --provenance-text: #60a5fa; /* blue-400 */
+            --provenance-vision: #facc15; /* yellow-400 */
+            --provenance-both: #4ade80; /* green-400 */
+            --header-bg: #f3f4f6; /* gray-100 */
+            --border-color: #e5e7eb; /* gray-200 */
+        }
+        .provenance-text { background-color: var(--provenance-text); }
+        .provenance-vision { background-color: var(--provenance-vision); }
+        .provenance-both { background-color: var(--provenance-both); }
+        
+        /* Table styling for clarity and readability */
+        table {
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+        th, td {
+            border: 1px solid var(--border-color);
+            padding: 0.75rem;
+            text-align: left;
+        }
+        
+        /* --- STICKY HEADER & COLUMN STYLES --- */
+
+        /* All sticky elements need a background and a rendering layer */
+        thead th, .sticky-col {
+            background-color: var(--header-bg);
+            /* Force hardware acceleration to fix rendering bugs during scroll */
+            transform: translateZ(0);
+        }
+
+        /* Vertically sticky headers (the timeline) */
+        thead th {
+            position: sticky;
+            top: 0;
+            z-index: 10; /* Above normal cells, but below sticky columns */
+            border-top: none;
+            white-space: nowrap; /* Keep timeline headers on one line */
+        }
+
+        /* Horizontally sticky columns (the activity labels) */
+        .sticky-col {
+            position: sticky;
+            z-index: 15; /* Above the timeline headers */
+        }
+
+        /* Specific positioning for the two sticky columns */
+        .first-col {
+            left: 0;
+            width: 200px; 
+            min-width: 200px;
+            max-width: 200px;
+        }
+        .second-col {
+            left: 200px; /* Must match the width of the first column */
+            width: 300px;
+            min-width: 300px;
+            max-width: 300px;
+            white-space: normal; /* Allow text wrapping for long activity names */
+        }
+        
+        /* The top-left corner cells need the highest z-index to be on top of everything */
+        thead th.sticky-col {
+            z-index: 25;
+        }
+
+        /* Ensure borders are consistent for a clean look */
+        .sticky-col {
+            border-left: none;
+            border-right: 1px solid #d1d5db; /* gray-300 */
+        }
+        thead th.sticky-col {
+             border-bottom: 1px solid #d1d5db; /* gray-300 */
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans">
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+        <div id="legend" class="mb-4 hidden">
+             <h3 class="text-lg font-semibold mb-2">Provenance Legend</h3>
+             <div class="flex items-center space-x-4">
+                 <div class="flex items-center"><div class="w-4 h-4 mr-2 rounded" style="background-color: var(--provenance-text);"></div><span>Text</span></div>
+                 <div class="flex items-center"><div class="w-4 h-4 mr-2 rounded" style="background-color: var(--provenance-vision);"></div><span>Vision</span></div>
+                 <div class="flex items-center"><div class="w-4 h-4 mr-2 rounded" style="background-color: var(--provenance-both);"></div><span>Both</span></div>
+             </div>
+        </div>
+
+        <div id="soa-container" class="overflow-auto bg-white rounded-lg shadow" style="max-height: 80vh;">
+            <table id="soa-table" class="w-full text-sm">
+                <!-- Table will be generated here -->
+            </table>
+        </div>
+         <div id="error-message" class="hidden mt-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+            <strong class="font-bold">Error!</strong>
+            <span class="block sm:inline"></span>
+        </div>
+    </div>
+
+    <script>
+        // Data will be injected here by the Streamlit application
+        const soaData = __SOA_DATA__;
+
+        window.addEventListener('load', () => {
+            const errorMessage = document.getElementById('error-message');
+            const soaContainer = document.getElementById('soa-container');
+            const legend = document.getElementById('legend');
+            const table = document.getElementById('soa-table');
+
+            try {
+                if (!soaData) {
+                    throw new Error("No SoA data was provided.");
+                }
+                if (!soaData.study || !soaData.study.versions?.[0]?.timeline) {
+                    throw new Error("Invalid or unsupported USDM JSON file structure. This tool expects a 'timeline' object within the first study version.");
+                }
+                renderSoATable(soaData);
+                errorMessage.classList.add('hidden');
+                soaContainer.classList.remove('hidden');
+                legend.classList.remove('hidden');
+            } catch (error) {
+                console.error("Error parsing or rendering file:", error);
+                errorMessage.children[1].textContent = " " + error.message;
+                errorMessage.classList.remove('hidden');
+                soaContainer.classList.add('hidden');
+                legend.classList.add('hidden');
+                table.innerHTML = '';
+            }
+        });
+
+        function renderSoATable(data) {
+            const timeline = data.study.versions[0].timeline;
+            const provenance = data.p2uProvenance || {};
+            const table = document.getElementById('soa-table');
+            table.innerHTML = ''; // Clear previous table
+
+            // --- Data Extraction and Mapping ---
+            const {
+                epochs = [], encounters = [], activities = [], activityGroups = [],
+                plannedTimepoints = [], activityTimepoints = []
+            } = timeline;
+
+            const plannedTimepointMap = new Map(plannedTimepoints.map(pt => [pt.id, pt]));
+            const activityEncounterMap = new Map();
+            activityTimepoints.forEach(at => {
+                const pt = plannedTimepointMap.get(at.plannedTimepointId);
+                if (pt && pt.encounterId && at.isPerformed) {
+                    const key = `${at.activityId}_${pt.encounterId}`;
+                    activityEncounterMap.set(key, true);
+                }
+            });
+            
+            const encountersByEpoch = new Map(epochs.map(e => [e.id, []]));
+            encounters.forEach(enc => {
+                if(enc.epochId && encountersByEpoch.has(enc.epochId)) {
+                    encountersByEpoch.get(enc.epochId).push(enc);
+                }
+            });
+
+            const activitiesByGroup = new Map(activityGroups.map(g => [g.id, []]));
+            activities.forEach(act => {
+                if(act.activityGroupId && activitiesByGroup.has(act.activityGroupId)) {
+                    activitiesByGroup.get(act.activityGroupId).push(act);
+                }
+            });
+
+            // --- Table Header Generation ---
+            const thead = document.createElement('thead');
+            const headerRowEpochs = document.createElement('tr');
+            const headerRowEncounters = document.createElement('tr');
+
+            headerRowEpochs.innerHTML = `
+                <th rowspan="2" class="sticky-col first-col">Activity Group</th>
+                <th rowspan="2" class="sticky-col second-col">Activity / Procedure</th>
+            `;
+
+            const orderedEncounters = [];
+            epochs.forEach(epoch => {
+                const currentEncounters = encountersByEpoch.get(epoch.id) || [];
+                if (currentEncounters.length > 0) {
+                    const epochTh = document.createElement('th');
+                    epochTh.textContent = epoch.name;
+                    epochTh.colSpan = currentEncounters.length;
+                    epochTh.className = 'text-center';
+                    headerRowEpochs.appendChild(epochTh);
+                    
+                    currentEncounters.forEach(encounter => {
+                        const encounterTh = document.createElement('th');
+                        encounterTh.textContent = encounter.name;
+                        headerRowEncounters.appendChild(encounterTh);
+                        orderedEncounters.push(encounter); // Maintain column order
+                    });
+                }
+            });
+
+            thead.appendChild(headerRowEpochs);
+            thead.appendChild(headerRowEncounters);
+            table.appendChild(thead);
+
+            // --- Table Body Generation ---
+            const tbody = document.createElement('tbody');
+
+            activityGroups.forEach(group => {
+                const currentActivities = activitiesByGroup.get(group.id) || [];
+                if (currentActivities.length === 0) return;
+
+                currentActivities.forEach((activity, activityIndex) => {
+                    const row = document.createElement('tr');
+                    
+                    if (activityIndex === 0) {
+                        const groupTd = document.createElement('td');
+                        groupTd.textContent = group.name;
+                        groupTd.rowSpan = currentActivities.length;
+                        groupTd.className = 'font-semibold align-top sticky-col first-col';
+                        row.appendChild(groupTd);
+                    }
+
+                    const activityTd = document.createElement('td');
+                    activityTd.textContent = activity.name;
+                    activityTd.className = 'align-top sticky-col second-col';
+                    row.appendChild(activityTd);
+
+                    orderedEncounters.forEach(encounter => {
+                        const cell = document.createElement('td');
+                        const key = `${activity.id}_${encounter.id}`;
+                        if (activityEncounterMap.has(key)) {
+                            cell.textContent = 'X';
+                            cell.className = 'text-center font-bold';
+                            
+                            // --- Apply Provenance Coloring ---
+                            const activityProvSources = getProvenanceSources(provenance, 'activities', activity.id);
+                            const encounterProvSources = getProvenanceSources(provenance, 'encounters', encounter.id);
+
+                            const fromText = activityProvSources.text || encounterProvSources.text;
+                            const fromVision = activityProvSources.vision || encounterProvSources.vision;
+
+                            if (fromText && fromVision) {
+                                cell.classList.add('provenance-both');
+                            } else if (fromText) {
+                                cell.classList.add('provenance-text');
+                            } else if (fromVision) {
+                                cell.classList.add('provenance-vision');
+                            }
+                        }
+                        row.appendChild(cell);
+                    });
+                    tbody.appendChild(row);
+                });
+            });
+            table.appendChild(tbody);
+        }
+
+        function getProvenanceSources(provenance, itemType, itemId) {
+            const sources = { text: false, vision: false };
+            if (!provenance?.[itemType] || !itemId) return sources;
+
+            const idNumMatch = itemId.match(/-(\d+)$/);
+            if (!idNumMatch) return sources;
+            const idNum = idNumMatch[1];
+
+            let textKey, visionKey;
+            // This logic is specific to the key format in 9_reconciled_soa.json
+            if (itemType === 'activities') {
+                textKey = `activity-${idNum}`;
+                visionKey = `act${idNum}`;
+            } else if (itemType === 'encounters') {
+                textKey = `encounter-${idNum}`;
+                visionKey = `enc_${idNum}`;
+            } else {
+                return sources;
+            }
+
+            if (provenance[itemType][textKey] === 'text') sources.text = true;
+            if (provenance[itemType][visionKey] === 'vision') sources.vision = true;
+            
+            return sources;
+        }
+    </script>
+</body>
+</html>

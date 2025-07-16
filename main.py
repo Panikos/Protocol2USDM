@@ -71,7 +71,8 @@ def print_summary(summary_data):
             print(f"| Outputs: {outputs:<67} |")
         print("-"*80)
 
-MODEL_NAME = 'gpt-4o'
+# Default model preference (can be overridden via --model)
+MODEL_NAME = 'gemini-2.5-pro'
 
 def main():
     print("[DEBUG] main.py execution started.", file=sys.stderr)
@@ -79,11 +80,11 @@ def main():
     import argparse
     parser = argparse.ArgumentParser(description="Run the SoA extraction pipeline.")
     parser.add_argument("pdf_path", help="Path to the protocol PDF")
-    parser.add_argument("--model", default=MODEL_NAME, help="OpenAI model to use (default: gpt-4o)")
+    parser.add_argument("--model", default=MODEL_NAME, help="LLM model to use (e.g., 'gemini-2.5-pro', 'gpt-4o'). Default: gemini-2.5-pro")
 
     args = parser.parse_args()
     MODEL_NAME = args.model
-    PDF_PATH = args.pdf_path
+    PDF_PATH = os.path.abspath(args.pdf_path)
     
     # Define output directory and file paths
     protocol_name = os.path.splitext(os.path.basename(PDF_PATH))[0]
@@ -124,7 +125,7 @@ def main():
         step2_info = {"step": "2. Find SoA Pages", "inputs": [PDF_PATH, PATHS["prompt"]], "outputs": [PATHS["soa_pages"]]}
         print("\n[STEP 2] Finding SoA pages...")
         # The updated script prints comma-separated page indices to stdout
-        success, output = run_script("find_soa_pages.py", [PDF_PATH, "--model", MODEL_NAME, "--prompt-file", PATHS["prompt"]])
+        success, output = run_script("find_soa_pages.py", ["--pdf-path", PDF_PATH, "--model", MODEL_NAME, "--prompt-file", PATHS["prompt"]])
         if success:
             try:
                 # Parse the output and save to the JSON file for subsequent steps
@@ -169,15 +170,15 @@ def main():
         # Step 5: Text-based Extraction
         step5_info = {"step": "5. Extract SoA from Text", "inputs": [PDF_PATH, PATHS["prompt"]], "outputs": [PATHS["raw_text"]]}
         print("\n[STEP 5] Extracting SoA from PDF text...")
-        # The --soa-pages-file argument was removed to ensure the full PDF text is processed,
-        # not just the pages identified as the SoA.
-        success, _ = run_script("send_pdf_to_openai.py", [
-            PDF_PATH,
+        text_args = [
+            "--pdf-path", PDF_PATH,
             "--output", PATHS["raw_text"],
             "--model", MODEL_NAME,
             "--prompt-file", PATHS["prompt"],
-            "--header-structure-file", PATHS["header_structure"]
-        ])
+            "--header-structure-file", PATHS["header_structure"],
+            "--soa-pages-file", PATHS["soa_pages"]
+        ]
+        success, _ = run_script("send_pdf_to_llm.py", text_args)
         text_soa_ok = success
         step5_info["status"] = "Success" if text_soa_ok else "Failed"
         summary_data.append(step5_info)
@@ -203,7 +204,10 @@ def main():
         step7_info = {"step": "7. Post-process Text SoA", "inputs": [PATHS["raw_text"]], "outputs": [PATHS["postprocessed_text"]]}
         if text_soa_ok:
             print("\n[STEP 7] Consolidating and normalizing text output...")
-            success, _ = run_script("soa_postprocess_consolidated.py", [PATHS["raw_text"], PATHS["postprocessed_text"]])
+            success, _ = run_script("soa_postprocess_consolidated.py", [PATHS["raw_text"], PATHS["postprocessed_text"], PATHS["header_structure"]])
+            # Validate against header structure
+            if success:
+                run_script("soa_validate_header.py", ["--soa-file", PATHS["postprocessed_text"], "--header-structure", PATHS["header_structure"], "--output", PATHS["postprocessed_text"]])
             step7_info["status"] = "Success" if success else "Warning (Failed)"
         else:
             step7_info["status"] = "Skipped"
@@ -213,7 +217,9 @@ def main():
         step8_info = {"step": "8. Post-process Vision SoA", "inputs": [PATHS["raw_vision"]], "outputs": [PATHS["postprocessed_vision"]]}
         if vision_soa_ok:
             print("\n[STEP 8] Consolidating and normalizing vision output...")
-            success, _ = run_script("soa_postprocess_consolidated.py", [PATHS["raw_vision"], PATHS["postprocessed_vision"]])
+            success, _ = run_script("soa_postprocess_consolidated.py", [PATHS["raw_vision"], PATHS["postprocessed_vision"], PATHS["header_structure"]])
+            if success:
+                run_script("soa_validate_header.py", ["--soa-file", PATHS["postprocessed_vision"], "--header-structure", PATHS["header_structure"], "--output", PATHS["postprocessed_vision"]])
             step8_info["status"] = "Success" if success else "Failed"
         else:
             step8_info["status"] = "Skipped"
@@ -237,7 +243,29 @@ def main():
         else:
             print("\n[STEP 9] Skipping LLM-based reconciliation... One or both inputs missing.")
             if os.path.exists(PATHS["postprocessed_vision"]):
-                shutil.copy(PATHS["postprocessed_vision"], PATHS["final_soa"])
+                # Copy vision file but preserve provenance from text if available
+                try:
+                    with open(PATHS["postprocessed_vision"], "r", encoding="utf-8") as vf:
+                        vision_data = json.load(vf)
+                    with open(PATHS["postprocessed_text"], "r", encoding="utf-8") as tf:
+                        text_data = json.load(tf)
+                    if isinstance(vision_data, dict) and isinstance(text_data, dict):
+                        if 'p2uProvenance' not in vision_data and 'p2uProvenance' in text_data:
+                            vision_data['p2uProvenance'] = text_data['p2uProvenance']
+                        # Also copy other meta keys that drive viewer features
+                        for _meta in (
+                            'p2uOrphans',
+                            'p2uGroupConflicts',
+                            'p2uTimelineOrderIssues',
+                        ):
+                            if _meta not in vision_data and _meta in text_data:
+                                vision_data[_meta] = text_data[_meta]
+                    with open(PATHS["final_soa"], "w", encoding="utf-8") as out_f:
+                        json.dump(vision_data, out_f, indent=2, ensure_ascii=False)
+                except Exception as e:
+                    # Fallback to simple copy if anything goes wrong
+                    shutil.copy(PATHS["postprocessed_vision"], PATHS["final_soa"])
+                    print(f"[WARN] Enhanced copy failed, used simple copy: {e}")
                 step9_info["status"] = "Skipped (Used Vision)"
                 success = True
             else:

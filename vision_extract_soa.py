@@ -6,14 +6,20 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
 import sys
 import argparse
+import google.generativeai as genai
 from openai import OpenAI
 from dotenv import load_dotenv
 from json_utils import clean_llm_json
+import io
+from PIL import Image
 
 # Load environment variables from .env file
 env_path = os.path.join(os.path.dirname(__file__), '.env')
 load_dotenv(env_path)
-client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+
+# API clients are initialized on-demand in the extraction function
+openai_client = None
+gemini_client = None
 
 # Ensure console can print UTF-8 (Windows default codepage causes logging errors)
 if hasattr(sys.stdout, "reconfigure"):
@@ -65,60 +71,109 @@ def extract_soa_from_image_batch(image_paths, model_name, usdm_prompt):
     return the parsed USDM JSON, or None on failure."""
     logger.info(f"Processing {len(image_paths)} images with model '{model_name}'.")
 
-    system_msg = {
-        "role": "system",
-        "content": (
-            "You are an expert medical writer specializing in authoring clinical trial protocols. "
-            "When extracting text from the image, you MUST ignore any single-letter footnote markers (e.g., a, b, c) that are appended to words. "
-            "Return ONLY a single valid JSON object that matches the USDM Wrapper-Input schema. "
-            "To conserve space, use short but unique identifiers for all `id` fields (e.g., `act-1`, `tp-2`). "
-            "Do NOT output any markdown, explanation, or additional text."
-        ),
-    }
+    if 'gemini' in model_name.lower():
+        global gemini_client
+        if not gemini_client:
+            try:
+                google_api_key = os.environ.get("GOOGLE_API_KEY")
+                if not google_api_key:
+                    raise ValueError("GOOGLE_API_KEY environment variable not set.")
+                genai.configure(api_key=google_api_key)
+                gemini_client = genai.GenerativeModel(model_name)
+            except Exception as e:
+                logger.error(f"Failed to configure Gemini client: {e}")
+                return None
 
-    # Build user message: prompt text + each image as a base-64 data URL
-    user_content = [{"type": "text", "text": usdm_prompt}]
-    for img_path in image_paths:
-        user_content.append(
-            {
-                "type": "image_url",
-                "image_url": {"url": encode_image_to_data_url(img_path)},
-            }
-        )
-
-    messages = [system_msg, {"role": "user", "content": user_content}]
-
-    # Try strict JSON enforcement first; if the API refuses, fall back.
-    try:
-        response = client.chat.completions.create(
-            model=model_name,
-            messages=messages,
-            temperature=0.15,
-            max_tokens=8192,
-            response_format={"type": "json_object"},
-        )
-    except Exception as e:
-        logger.warning(f"Retrying without response_format due to API error: {e}")
         try:
-            response = client.chat.completions.create(
+            # For Gemini, construct a list of content parts (system instruction, text prompt, then images)
+            system_instruction = (
+                "You are an expert medical writer specializing in authoring clinical trial protocols. "
+                "Your task is to analyze the provided image(s) of a Schedule of Activities (SoA) table and extract its contents into a structured JSON format that strictly adheres to the provided USDM schema. "
+                "CRITICAL: You MUST return ONLY a single, valid JSON object. Do not include any markdown formatting (like ```json), explanations, or any other text outside of the JSON object itself. "
+                "Pay close attention to the provided header structure and schema definitions to ensure all entities and relationships are mapped correctly."
+            )
+            prompt_parts = [system_instruction, usdm_prompt]
+            for img_path in image_paths:
+                try:
+                    img = Image.open(img_path)
+                    # Convert to a format Gemini can use, like PNG bytes
+                    img_byte_arr = io.BytesIO()
+                    img.save(img_byte_arr, format='PNG')
+                    img_byte_arr = img_byte_arr.getvalue()
+                    prompt_parts.append({'inline_data': {'mime_type': 'image/png', 'data': base64.b64encode(img_byte_arr).decode('utf-8')}})
+                except Exception as e:
+                    logger.error(f"Failed to process image {img_path}: {e}")
+                    return None
+
+            logger.info("Sending request to Gemini API...")
+            response = gemini_client.generate_content(prompt_parts, generation_config=genai.types.GenerationConfig(
+                temperature=0.15,
+                response_mime_type="application/json"
+            ))
+            response_text = response.text
+            return clean_llm_json(response_text)
+
+        except Exception as e:
+            logger.error(f"Gemini API error: {e}")
+            return None
+
+    else: # Assume OpenAI model
+        global openai_client
+        if not openai_client:
+            try:
+                openai_api_key = os.environ.get("OPENAI_API_KEY")
+                if not openai_api_key:
+                    raise ValueError("OPENAI_API_KEY environment variable not set.")
+                openai_client = OpenAI(api_key=openai_api_key)
+            except Exception as e:
+                logger.error(f"Failed to configure OpenAI client: {e}")
+                return None
+
+        system_msg = {
+            "role": "system",
+            "content": (
+                "You are an expert medical writer specializing in authoring clinical trial protocols. "
+                "When extracting text from the image, you MUST ignore any single-letter footnote markers (e.g., a, b, c) that are appended to words. "
+                "Return ONLY a single valid JSON object that matches the USDM Wrapper-Input schema. "
+                "To conserve space, use short but unique identifiers for all `id` fields (e.g., `act-1`, `tp-2`). "
+                "Do NOT output any markdown, explanation, or additional text."
+            ),
+        }
+        user_content = [{"type": "text", "text": usdm_prompt}]
+        for img_path in image_paths:
+            user_content.append({"type": "image_url", "image_url": {"url": encode_image_to_data_url(img_path)}})
+
+        messages = [system_msg, {"role": "user", "content": user_content}]
+
+        try:
+            response = openai_client.chat.completions.create(
                 model=model_name,
                 messages=messages,
                 temperature=0.15,
                 max_tokens=8192,
+                response_format={"type": "json_object"},
             )
-        except Exception as e2:
-            logger.error(f"OpenAI API error on second attempt: {e2}")
+        except Exception as e:
+            logger.warning(f"Retrying without response_format due to API error: {e}")
+            try:
+                response = openai_client.chat.completions.create(
+                    model=model_name,
+                    messages=messages,
+                    temperature=0.15,
+                    max_tokens=8192,
+                )
+            except Exception as e2:
+                logger.error(f"OpenAI API error on second attempt: {e2}")
+                return None
+        
+        try:
+            response_text = response.choices[0].message.content
+            return clean_llm_json(response_text)
+        except (json.JSONDecodeError, IndexError) as e:
+            logger.error(f"Failed to parse JSON from OpenAI response: {e}")
+            logger.debug(f"Raw response content:\n{response.choices[0].message.content if response.choices else 'No response content'}")
             return None
-    except Exception as e:
-        logger.error(f"OpenAI API error: {e}")
-        return None
 
-    # Log finish_reason and token usage for diagnostics
-    finish_reason = response.choices[0].finish_reason if response and response.choices else 'n/a'
-    logger.info(f"finish_reason={finish_reason}, usage={getattr(response, 'usage', {})}")
-
-    content = response.choices[0].message.content if response and response.choices else None
-    if not content:
         logger.warning("Model returned empty content. Attempting fallback with minimal prompt.")
         logger.debug(f"Full response object: {response}")
 
@@ -165,6 +220,59 @@ def extract_soa_from_image_batch(image_paths, model_name, usdm_prompt):
         logger.warning(f"JSON decode error: {e}")
         return None
 
+def repair_json_with_llm(broken_json_str):
+    """Uses a lightweight LLM to repair a broken JSON string."""
+    logger.info("Attempting to repair JSON with a second LLM call...")
+    try:
+        # Use a fast and cheap model for the repair task
+        repair_model = genai.GenerativeModel('gemini-1.5-flash-latest')
+        
+        repair_prompt = (
+            "The following string is a malformed JSON object that was extracted from a document. "
+            "Your task is to correct any syntax errors (e.g., missing commas, quotes, brackets) and return ONLY the valid, corrected JSON object. "
+            "Do not include any explanation, markdown, or other text outside of the JSON object itself. Ensure the corrected output is a single, complete JSON object."
+            f"\n\nMalformed JSON:```json\n{broken_json_str}\n```"
+        )
+
+        response = repair_model.generate_content(
+            repair_prompt,
+            generation_config=genai.types.GenerationConfig(
+                temperature=0.0,
+                response_mime_type="application/json"
+            )
+        )
+        
+        repaired_json = json.loads(response.text)
+        logger.info("[SUCCESS] JSON repaired and parsed successfully.")
+        return repaired_json
+    except Exception as e:
+        logger.error(f"JSON repair failed: {e}")
+        logger.debug(f"Original broken string that failed repair:\n{broken_json_str}")
+        return None
+
+def clean_llm_json(text_response):
+    """Extract a JSON object from a text response that might include markdown."""
+    # Find the start and end of the JSON object
+    start_index = text_response.find('{')
+    end_index = text_response.rfind('}')
+
+    if start_index == -1 or end_index == -1:
+        logger.warning("Could not find a JSON object in the response.")
+        return None
+
+    json_str = text_response[start_index : end_index + 1]
+
+    try:
+        return json.loads(json_str)
+    except json.JSONDecodeError:
+        # If initial parsing fails, try to repair it
+        repaired_json = repair_json_with_llm(json_str)
+        if repaired_json:
+            return repaired_json
+        else:
+            # If repair fails, return the original broken string for robust handling
+            return json_str
+
 def merge_soa_jsons(soa_parts):
     if not soa_parts:
         return None
@@ -177,9 +285,13 @@ def merge_soa_jsons(soa_parts):
     # This will hold tuples of (activity_name, timepoint_name) to represent checkmarks
     unique_activity_timepoint_pairs = set()
 
+    import re
+    split_pattern = re.compile(r"^(.*?)\s*\(([^()]+)\)\s*$")
     # --- PASS 1: Collect all unique entities and relationships by NAME --- 
     for part in soa_parts:
-        if not ('study' in part and 'versions' in part['study'] and part['study']['versions']):
+        # Robustness check: ensure the part has the expected nested structure.
+        if not isinstance(part, dict) or 'study' not in part or not isinstance(part.get('study'), dict) or 'versions' not in part['study'] or not part['study']['versions']:
+            logger.warning(f"Skipping malformed SoA part: {str(part)[:200]}")
             continue
 
         timeline = part['study']['versions'][0].get('timeline', {})
@@ -193,9 +305,29 @@ def merge_soa_jsons(soa_parts):
             if act.get('name'):
                 unique_activities[act['name']] = act
         
+        for enc in timeline.get('encounters', []):
+            # Split concatenated timing in name
+            if isinstance(enc.get('name'), str):
+                m = split_pattern.match(enc['name'])
+                if m:
+                    enc['name'] = m.group(1).strip()
+                    timing_label = m.group(2).strip()
+                    enc['timing'] = enc.get('timing') or {}
+                    if 'windowLabel' not in enc['timing']:
+                        enc['timing']['windowLabel'] = timing_label
+            enc_name = enc.get('name') or enc.get('label')
+            unique_activities[enc_name] = enc
+
         for tp in timeline.get('plannedTimepoints', []):
-            if tp.get('name'):
-                unique_timepoints[tp['name']] = tp
+            # Split concatenated label if needed ("Visit 1 (Week -2)")
+            if isinstance(tp.get('name'), str):
+                m = split_pattern.match(tp['name'])
+                if m:
+                    tp['name'] = m.group(1).strip()
+                    if not tp.get('description'):
+                        tp['description'] = m.group(2).strip()
+            tp_name = tp.get('name') or tp.get('label')
+            unique_timepoints[tp['name']] = tp
 
         # Collect unique (activity, timepoint) checkmark pairs using names
         for at in timeline.get('activityTimepoints', []):
@@ -206,10 +338,11 @@ def merge_soa_jsons(soa_parts):
                 tp_name = part_timepoint_id_to_name[tp_id]
                 unique_activity_timepoint_pairs.add((act_name, tp_name))
 
-    # --- PASS 2: Build the final, merged JSON with new, consistent IDs --- #
+    # --- PASS 2: Build the final, merged_soa JSON with new, consistent IDs --- #
 
     # Find a base structure to copy metadata from (e.g., usdmVersion)
-    base_soa = next((p for p in soa_parts if 'study' in p), None)
+    # Find a base structure, ensuring it has the correct nested dictionary structure.
+    base_soa = next((p for p in soa_parts if isinstance(p, dict) and 'study' in p and isinstance(p.get('study'), dict) and p['study'].get('versions')), None)
     if not base_soa:
         logger.error("No valid SoA structure found in any of the parts to merge.")
         return None
@@ -271,6 +404,19 @@ def extract_and_merge_soa_from_images(image_paths, model_name, usdm_prompt):
 
     logger.info(f"Successfully extracted SoA data from {len(all_soa_parts)} images. Merging...")
     merged_soa = merge_soa_jsons(all_soa_parts)
+    # Tag provenance for downstream auditing
+    prov_map = merged_soa.setdefault('p2uProvenance', {}) if isinstance(merged_soa, dict) else {}
+    def _tag(container_key, items):
+        if not isinstance(merged_soa, dict):
+            return
+        cm = prov_map.setdefault(container_key, {})
+        for obj in items:
+            if isinstance(obj, dict) and obj.get('id'):
+                cm[obj['id']] = 'vision'
+    tl = merged_soa.get('study', {}).get('versions', [{}])[0].get('timeline', {}) if isinstance(merged_soa, dict) else {}
+    _tag('plannedTimepoints', tl.get('plannedTimepoints', []))
+    _tag('activities', tl.get('activities', []))
+    _tag('encounters', tl.get('encounters', []))
     return merged_soa
 
 def get_llm_prompt(prompt_file=None, header_structure_file=None):
@@ -287,21 +433,28 @@ def get_llm_prompt(prompt_file=None, header_structure_file=None):
             with open(header_structure_file, 'r', encoding='utf-8') as f:
                 structure_data = json.load(f)
 
-            # Add timepoint header structure to the prompt
-            header_prompt_part = "\n\nTo guide your extraction, here is the hierarchical structure of the table I have identified:\n"
-            header_prompt_part += "\n--- TIMEPOINT COLUMN HEADERS ---\n"
-            for tp in structure_data.get('timepoints', []):
-                header_prompt_part += f"- Column '{tp.get('id')}' has a primary name of '{tp.get('primary_name')}'"
-                if tp.get('secondary_name'):
-                    header_prompt_part += f" and a secondary name/date of '{tp.get('secondary_name')}'"
-                header_prompt_part += '.\n'
-            
-            # Add activity group structure to the prompt
-            header_prompt_part += "\n--- ACTIVITY ROW GROUPINGS ---\n"
-            for ag in structure_data.get('activity_groups', []):
-                header_prompt_part += f"- The group '{ag.get('group_name')}' contains the following activities: {', '.join(ag.get('activities', []))}\n"
-
-            header_prompt_part += "\nPlease use this structural information to correctly interpret the table's columns, rows, and their relationships during your extraction. Ensure that the 'activityGroupId' in your output correctly references the groups identified here."
+            hints = {
+                "timepoints": [
+                    {
+                        "id": tp.get("id"),
+                        "labelPrimary": tp.get("primary_name"),
+                        "labelSecondary": tp.get("secondary_name")
+                    } for tp in structure_data.get("timepoints", [])
+                ],
+                "activityGroups": [
+                    {
+                        "id": ag.get("id"),
+                        "name": ag.get("group_name"),
+                        "activities": ag.get("activities", [])
+                    } for ag in structure_data.get("activity_groups", [])
+                ]
+            }
+            header_prompt_part = (
+                "\n\nThe following JSON object (headerHints) describes the detected table structure. "
+                "Use the information strictly to assign correct IDs and groupings. "
+                "You may copy values but do NOT invent new IDs.\n" +
+                "```json\n" + json.dumps({"headerHints": hints}, indent=2) + "\n```\n"
+            )
             return base_prompt + header_prompt_part
         except Exception as e:
             print(f"[WARN] Could not read or parse header structure file {header_structure_file}: {e}")
@@ -357,4 +510,4 @@ if __name__ == "__main__":
     with open(args.output, "w", encoding="utf-8") as f:
         json.dump(final_soa_json, f, indent=2, ensure_ascii=False)
     
-    logger.info(f"Wrote merged SoA vision output to {args.output}")
+    logger.info(f"Wrote merged_soa SoA vision output to {args.output}")

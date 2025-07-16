@@ -1,0 +1,49 @@
+{
+  "study": {
+    "versions": [
+      {
+        "timeline": {
+          "epochs": [
+            {
+              "id": "epoch_1",
+              "name": "Screening",
+              "instanceType": "Epoch"
+            }
+          ],
+          "encounters": [
+            {
+              "id": "enc_1",
+              "name": "Screening Visit",
+              "epochId": "epoch_1",
+              "instanceType": "Encounter"
+            }
+          ],
+          "plannedTimepoints": [
+            {
+              "id": "pt_1",
+              "name": "Day -7",
+              "encounterId": "enc_1",
+              "instanceType": "PlannedTimepoint"
+            }
+          ],
+          "activities": [
+            {
+              "id": "act_1",
+              "name": "Informed Consent",
+              "instanceType": "Activity"
+            }
+          ],
+          "activityTimepoints": [
+            {
+              "id": "atp_1",
+              "activityId": "act_1",
+              "plannedTimepointId": "pt_1",
+              "instanceType": "ActivityTimepoint"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "usdmVersion": "4.0.0"
+}

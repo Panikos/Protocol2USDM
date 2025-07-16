@@ -5,9 +5,9 @@ Protocol2USDMv3 is an automated pipeline for extracting, validating, and structu
 
 ## Key Features
 - **Automated SoA Extraction**: Extracts SoA tables from protocol PDFs using both LLM text and vision analysis (GPT-4o recommended).
-- **Context-Aware Dual Extraction**: A vision step first analyzes the SoA table's visual layout and header structure. This structural context is then provided as a textual "cheat sheet" to *both* the vision and text extraction LLMs, dramatically improving semantic accuracy.
+- **Header-Aware Dual Extraction**: The header structure is first analysed visually. A *machine-readable* JSON object (`headerHints`) containing timepoints and activity-group metadata is then injected into *both* the vision and text LLM prompts, boosting accuracy while preventing ID hallucination.
 - **Terminology Validation**: Ensures that extracted activities and other coded values align with controlled terminologies (e.g., NCI EVS), enhancing semantic interoperability and compliance.
-- **Robust Schema-Compliant Output**: A sophisticated post-processing step automatically finds and completes any incomplete `Code` objects in the extracted data. This ensures that all outputs are fully compliant with the USDM v4.0 schema.
+- **Header-Driven Enrichment & Validation**: Post-processing now uses the same header structure to auto-fill missing `activityGroupId`s and group memberships, followed by an explicit validation/repair pass (`soa_validate_header.py`).
 - **Modular & Extensible**: All steps are modular scripts, easily customizable for your workflow.
 
 ## Installation
@@ -24,7 +24,7 @@ Protocol2USDMv3 is an automated pipeline for extracting, validating, and structu
 ## Usage
 Run the entire pipeline with a single command:
 ```bash
-python main.py YOUR_PROTOCOL.pdf --model gpt-4o
+python main.py YOUR_PROTOCOL.pdf  # --model optional (defaults to gemini-2.5-pro)
 ```
 - Replace `YOUR_PROTOCOL.pdf` with the path to your clinical trial protocol.
 - The `--model` argument is optional and defaults to `gpt-4o`.
@@ -38,12 +38,13 @@ The `main.py` script orchestrates the pipeline. All outputs are saved in a times
 | 2 | `find_soa_pages.py`| Locates the pages containing the SoA table. | `2_soa_pages.json` |
 | 3 | `extract_pdf_pages_as_images.py`| Renders the identified pages as PNGs. | `3_soa_images/` |
 | 4 | `analyze_soa_structure.py`| Visually analyzes table headers for context. | `4_soa_header_structure.json` |
-| 5 | `send_pdf_to_openai.py`| Extracts SoA from PDF text, guided by header analysis. | `5_raw_text_soa.json` |
-| 6 | `vision_extract_soa.py`| Extracts SoA from images, catching visual cues. | `6_raw_vision_soa.json` |
-| 7 | `soa_postprocess_consolidated.py`| Cleans and validates the text output. | `7_postprocessed_text_soa.json` |
-| 8 | `soa_postprocess_consolidated.py`| Cleans and validates the vision output. | `8_postprocessed_vision_soa.json` |
-| 9 | `reconcile_soa_llm.py`| Merges text and vision outputs into a single SoA. | `9_reconciled_soa.json` |
-| 10| `validate_usdm_schema.py`| Performs final validation against the USDM schema. | (Validation log) |
+| 5 | `send_pdf_to_llm.py`| Extracts SoA from PDF text, guided by `headerHints`. | `5_raw_text_soa.json` |
+| 6 | `vision_extract_soa.py`| Extracts SoA from images, also using `headerHints`. | `6_raw_vision_soa.json` |
+| 7 | `soa_postprocess_consolidated.py`| Enriches text output using header structure. | `7_postprocessed_text_soa.json` |
+| 8 | `soa_postprocess_consolidated.py`| Enriches vision output using header structure. | `8_postprocessed_vision_soa.json` |
+| 9 | `soa_validate_header.py`| Validates & repairs both outputs against header. | (in-place fix log) |
+| 10 | `reconcile_soa_llm.py`| Merges text and vision outputs into a single SoA. | `10_reconciled_soa.json` |
+| 11 | `validate_usdm_schema.py`| Final validation against the USDM schema. | (Validation log) |
 
 The primary output to review is `9_reconciled_soa.json`.
 
@@ -59,7 +60,8 @@ These scripts are executed in sequence by `main.py`.
 - `analyze_soa_structure.py`: Performs vision-based analysis of the SoA table headers to understand column structure.
 - `send_pdf_to_openai.py`: Extracts SoA data from the raw PDF text, using the header structure as context.
 - `vision_extract_soa.py`: Extracts SoA data from the PNG images, using the header structure as context.
-- `soa_postprocess_consolidated.py`: Cleans, normalizes, and validates the raw JSON outputs from both text and vision extraction.
+- `soa_postprocess_consolidated.py`: Enriches and normalises raw JSON outputs using header structure.
+- `soa_validate_header.py`: Compares post-processed outputs against the header structure, applying any final group/timepoint repairs.
 - `reconcile_soa_llm.py`: Merges the post-processed text and vision outputs into a single, final SoA JSON.
 - `validate_usdm_schema.py`: Validates a given JSON file against the official USDM schema.
 

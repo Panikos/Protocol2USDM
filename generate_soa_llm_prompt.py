@@ -3,7 +3,29 @@ import os
 from pathlib import Path
 import argparse
 
+NAMING_RULE = (
+    "**Naming vs. Timing Rule**\n\n"
+    "For every visit you must output **two linked objects**: an `Encounter` and a `PlannedTimepoint` (PT).\n\n"
+    "1. `Encounter.name` **and** `PlannedTimepoint.name` **must be identical** and contain ONLY the visit label — e.g., `\"Visit 1\"`. **Do NOT** include timing details such as weeks or days.\n"
+    "2. Put timing information (e.g., `\"Week -2\"`, `\"Day 1 ±2\"`) in *exactly one* of these places:\n"
+    "   • Preferred: `Encounter.timing.windowLabel` (and use `timing.windowLower/Upper` if you have numeric bounds).\n"
+    "   • Acceptable fallback: `PlannedTimepoint.description` if a window label is not applicable.\n"
+    "3. Never repeat the timing text inside the `name` field.\n")
+
 MAPPING_PATH = "soa_entity_mapping.json"
+
+MINI_EXAMPLE = (
+    "**Mini Example (correct split):**\n\n"
+    "Encounter snippet\n"
+    "```json\n"
+    "{ \"id\": \"enc-1\", \"name\": \"Visit 1\",\n"
+    "  \"timing\": { \"windowLabel\": \"Week -2\" } }\n"
+    "```\n\n"
+    "Linked PlannedTimepoint snippet\n"
+    "```json\n"
+    "{ \"id\": \"pt-1\", \"encounterId\": \"enc-1\",\n"
+    "  \"name\": \"Visit 1\", \"description\": \"Week -2\" }\n"
+    "```\n")
 
 # Full prompt template (kept for reference / future use)
 FULL_PROMPT_TEMPLATE = """
@@ -30,6 +52,10 @@ Your task is to extract the Schedule of Activities (SoA) and return it as a JSON
 **Schema Definitions:**
 
 {entity_instructions}
+
+{naming_rule}
+
+{mini_example}
 
 **Output Rules:**
 
@@ -58,9 +84,21 @@ The SoA is structured around a few core entities. Understanding their relationsh
 *   **ActivityTimepoints:** This is the mapping that links an Activity to a PlannedTimepoint, indicating *what* happens *when*.
 *   **ActivityGroups:** These are optional groupings for related activities (e.g., "Vital Signs"). When an activity belongs to a group, you **MUST** set the `activityGroupId` field on the Activity object to the ID of the corresponding ActivityGroup.
 
+{naming_rule}
+
+{mini_example}
+
 **Your Task:**
 
 Based on the protocol text, identify all instances of these entities and their relationships.
+
+**Example Output Format:**
+
+To ensure you produce the correct output, here is a small, valid example of the JSON structure. Your output MUST follow this format exactly.
+
+```json
+{json_example}
+```
 
 **Detailed Schema Definitions:**
 
@@ -73,7 +111,7 @@ Below are the specific fields you must use for each entity. Do not invent new fi
 1.  **JSON Only:** Your entire output MUST be a single, valid JSON object. Do not include any explanatory text, markdown formatting, or comments outside of the JSON structure.
 2.  **Schema Conformance:** The JSON must conform to the **Wrapper-Input** schema.
     *   Top-level keys must be `study` and `usdmVersion` (set to "4.0.0").
-    *   The SoA data should be placed inside `study.versions[0]`. The `timeline` object within `versions[0]` should contain the core arrays.
+    *   The `study` object must contain a `versions` array, which in turn contains a `timeline` object.
 3.  **Completeness:** Include all activities, timepoints, and groupings shown in the SoA table. If a piece of information is not present, you may use an empty array (`[]`).
 4.  **Unique IDs:** Ensure all `id` fields are unique within the document so they can be used for cross-referencing.
 """
@@ -133,8 +171,8 @@ def filter_mapping(mapping, allowed_entities):
     """Return a copy of mapping containing only the allowed entities."""
     return {k: v for k, v in mapping.items() if k in allowed_entities}
 
-def write_prompt(path: Path, template: str, entity_instructions: str):
-    path.write_text(template.format(entity_instructions=entity_instructions), encoding="utf-8")
+def write_prompt(path: Path, template: str, **kwargs):
+    path.write_text(template.format(**kwargs), encoding="utf-8")
     print(f"[PROMPT] Wrote {path}")
 
 def main():
@@ -153,14 +191,20 @@ def main():
     with open(MAPPING_PATH, "r", encoding="utf-8") as f:
         mapping = json.load(f)
 
+    # --- Load the one-shot example ---
+    example_path = Path("soa_prompt_example.json")
+    if not example_path.exists():
+        raise FileNotFoundError(f"Could not find the prompt example file at {example_path}")
+    example_json_str = example_path.read_text(encoding="utf-8")
+
     # --- write minimal SoA prompt ---
     minimal_mapping = filter_mapping(mapping, SOA_CORE_ENTITIES)
     minimal_instr = generate_entity_instructions(minimal_mapping)
-    write_prompt(output_path, MINIMAL_PROMPT_TEMPLATE, minimal_instr)
+    write_prompt(output_path, MINIMAL_PROMPT_TEMPLATE, entity_instructions=minimal_instr, json_example=example_json_str, naming_rule=NAMING_RULE, mini_example=MINI_EXAMPLE)
 
-    # --- keep full prompt for future richer extraction steps ---
+    # --- keep full prompt for future richer extraction steps (doesn't need the example) ---
     full_instr = generate_entity_instructions(mapping)
-    write_prompt(full_prompt_path, FULL_PROMPT_TEMPLATE, full_instr)
+    write_prompt(full_prompt_path, FULL_PROMPT_TEMPLATE, entity_instructions=full_instr, naming_rule=NAMING_RULE, mini_example=MINI_EXAMPLE)
 
     # --- write grouped entity catalogue ---
     grouped = {}
