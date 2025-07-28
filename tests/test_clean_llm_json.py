@@ -5,7 +5,7 @@ os.environ.setdefault("OPENAI_API_KEY", "test")
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
-from send_pdf_to_openai import clean_llm_json
+from json_utils import clean_llm_json
 
 
 def test_strip_code_block_markers():

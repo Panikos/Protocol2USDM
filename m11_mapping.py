@@ -1,4 +1,6 @@
-"""Utility functions for loading and working with the USDM⇄M11 mapping workbook.
+"""DEPRECATED – retained for reference only. Use newer mapping utilities.
+
+Utility functions for loading and working with the USDM⇄M11 mapping workbook.
 
 The excel file is maintained by CDISC and publicly hosted on GitHub.  By default we
 load directly from the raw URL and cache the result so repeated calls are fast.

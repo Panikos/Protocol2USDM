@@ -21,7 +21,9 @@ except ImportError:
     raise SystemExit("[FATAL] The 'requests' package is required. Add it to requirements.txt and reinstall.")
 
 
-CACHE_PATH = pathlib.Path("temp/evs_cache.json")
+CACHE_PATH = pathlib.Path("useful_material/evs_cache.json")
+# Ensure cache directory exists
+CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
 CACHE_TTL_SECONDS = 60 * 60 * 24 * 30  # 30 days
 # EVS v1 endpoint requires the terminology (NCIT) in the path
 BASE_URL = "https://api-evsrest.nci.nih.gov/api/v1/concept/ncit/"

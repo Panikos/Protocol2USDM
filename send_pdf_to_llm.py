@@ -5,6 +5,7 @@ import json
 import io
 from openai import OpenAI
 import google.generativeai as genai
+from p2u_constants import USDM_VERSION
 
 # Ensure all output is UTF-8 safe for Windows terminals
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
@@ -176,12 +177,35 @@ def merge_soa_jsons(soa_parts):
                         continue
 
                     # Add entity if its ID hasn't been seen before
-                    if old_id not in id_maps[entity_type]:
-                        # Use a more descriptive new ID format
-                        new_id = f"{entity_type.replace('ies', 'y').rstrip('s')}-{id_counters[entity_type]}"
-                        id_maps[entity_type][old_id] = new_id
+                    def _alt(id_str: str) -> str | None:
+                        m = re.match(r"(encounter|enc)[-_](\d+)", id_str)
+                        if m:
+                            full = f"encounter-{m.group(2)}"
+                            short = f"enc_{m.group(2)}"
+                            return short if id_str == full else full
+                        m2 = re.match(r"epoch[-_](\d+)", id_str)
+                        if m2:
+                            return f"epoch_{m2.group(1)}" if '-' in id_str else f"epoch-{m2.group(1)}"
+                        return None
+                    # Ensure both the original ID and a possible alias (e.g. enc_1 ↔ encounter-1) map to the same canonical new ID
+                    existing_map = id_maps[entity_type]
+                    if old_id not in existing_map:
+                        # Generate canonical new ID (singular entity prefix)
+                        new_prefix = entity_type.replace('ies', 'y').rstrip('s')  # epochs → epoch, activities → activit…
+                        new_id = f"{new_prefix}-{id_counters[entity_type]}"
                         id_counters[entity_type] += 1
+                        existing_map[old_id] = new_id
+
+                        alt = _alt(old_id)
+                        if alt:
+                            existing_map[alt] = new_id
+
                         all_entities[entity_type].append(entity)
+                    else:
+                        # We already assigned a new ID for this entity elsewhere – still register alias if needed
+                        alt = _alt(old_id)
+                        if alt and alt not in existing_map:
+                            existing_map[alt] = existing_map[old_id]
 
     # --- PASS 2: Rewrite IDs and foreign keys in collected entities ---
     final_timeline = {entity_type: [] for entity_type in ENTITY_TYPES}
@@ -194,12 +218,23 @@ def merge_soa_jsons(soa_parts):
                 entity['id'] = id_maps[entity_type][old_id]
 
             # Update foreign key references within the entity based on new schema
-            # Encounter -> PlannedTimepoint
+                        # Encounter -> Epoch and PlannedTimepoint
             if entity_type == 'encounters':
-                fk = 'scheduledAtId'
-                if fk in entity and entity.get(fk) in id_maps.get('plannedTimepoints', {}):
-                    entity[fk] = id_maps['plannedTimepoints'][entity[fk]]
+                # epochId reference
+                fk_epoch = 'epochId'
+                if fk_epoch in entity and entity.get(fk_epoch) in id_maps.get('epochs', {}):
+                    entity[fk_epoch] = id_maps['epochs'][entity[fk_epoch]]
+                # scheduledAtId (legacy naming)
+                fk_sched = 'scheduledAtId'
+                if fk_sched in entity and entity.get(fk_sched) in id_maps.get('plannedTimepoints', {}):
+                    entity[fk_sched] = id_maps['plannedTimepoints'][entity[fk_sched]]
             
+                        # PlannedTimepoint -> Encounter
+            if entity_type == 'plannedTimepoints':
+                fk_enc = 'encounterId'
+                if fk_enc in entity and entity.get(fk_enc) in id_maps.get('encounters', {}):
+                    entity[fk_enc] = id_maps['encounters'][entity[fk_enc]]
+
             # ActivityTimepoint -> Activity and PlannedTimepoint
             if entity_type == 'activityTimepoints':
                 fk_activity = 'activityId'
@@ -226,7 +261,7 @@ def merge_soa_jsons(soa_parts):
                 }
             ]
         },
-        "usdmVersion": "4.0.0" # Carry over version
+        "usdmVersion": USDM_VERSION # Carry over version
     }
 
     return final_json

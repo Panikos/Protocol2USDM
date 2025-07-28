@@ -2,6 +2,9 @@ import json
 import sys
 from copy import deepcopy
 import os
+import logging
+import re
+from p2u_constants import USDM_VERSION, SYSTEM_NAME, SYSTEM_VERSION
 
 # Load entity mapping for required fields and value sets
 def load_entity_mapping(mapping_path="soa_entity_mapping.json"):
@@ -93,16 +96,16 @@ def consolidate_and_fix_soa(input_path, output_path, header_structure_path=None,
             print("[INFO] Assuming input is the study object. Wrapping.")
             data = {
                 'study': data,
-                'usdmVersion': '4.0',
-                'systemName': 'Protocol2USDMv3',
-                'systemVersion': '1.0'
+                'usdmVersion': USDM_VERSION,
+                'systemName': SYSTEM_NAME,
+                'systemVersion': SYSTEM_VERSION,
             }
         # If the input has a 'study' key but is missing other wrapper keys
         else:
             print("[INFO] Found 'study' key. Adding missing wrapper keys.")
-            data.setdefault('usdmVersion', '4.0')
-            data.setdefault('systemName', 'Protocol2USDMv3')
-            data.setdefault('systemVersion', '1.0')
+            data.setdefault('usdmVersion', USDM_VERSION)
+            data.setdefault('systemName', SYSTEM_NAME)
+            data.setdefault('systemVersion', SYSTEM_VERSION)
 
     study = data.get('study')
     if not study:
@@ -329,7 +332,7 @@ def consolidate_and_fix_soa(input_path, output_path, header_structure_path=None,
         timeline = sd.get("timeline", {})
         fill_missing_fields("Timeline", timeline)
         # PlannedTimepoints
-        import re
+        
         pt_pattern = re.compile(r"^(.*?)\s*\(([^()]+)\)\s*$")
         pt_map = {}
         unhandled_timepoints = []
@@ -455,6 +458,15 @@ def consolidate_and_fix_soa(input_path, output_path, header_structure_path=None,
         # --- Save and report ---
     with open(output_path, 'w', encoding='utf-8') as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
+    # --- NEW: Write provenance separately ---
+    prov_path = output_path.replace('.json', '_provenance.json')
+    prov_data = data.get('p2uProvenance', {}) if isinstance(data, dict) else {}
+    try:
+        with open(prov_path, 'w', encoding='utf-8') as pf:
+            json.dump(prov_data, pf, indent=2, ensure_ascii=False)
+        print(f"[INFO] Wrote provenance to {prov_path}")
+    except Exception as e:
+        print(f"[WARN] Could not write provenance file: {e}")
     print(f"[CONSOLIDATE/FIX] {len(new_atps)} valid activityTimepoints. {len(dropped)} dropped. {len(norm_timepoints)} timepoints, {len(norm_acts)} activities, {len(norm_groups)} groups.")
     if fixes:
         print("Fixes applied:")

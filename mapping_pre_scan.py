@@ -1,3 +1,6 @@
+import warnings
+warnings.warn("mapping_pre_scan.py is deprecated and will be removed in a future release.", DeprecationWarning)
+
 """Pre-scan the soa_entity_mapping.json file to identify all NCI c_codes we
 might need in the SoA pipeline and pre-populate the EVS cache. This speeds up
 pipeline runs and surfaces missing codes early in CI.

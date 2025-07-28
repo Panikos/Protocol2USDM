@@ -139,6 +139,20 @@ def get_file_inventory(base_path):
     if os.path.isdir(image_dir):
         inventory['images'] = sorted(glob.glob(os.path.join(image_dir, "*.png")))
     
+        # --- Attach provenance if stored in separate file ---
+    if inventory['final_soa']:
+        final_path = inventory['final_soa']['path'] if isinstance(inventory['final_soa'], dict) and 'path' in inventory['final_soa'] else None
+        if not final_path:
+            # Attempt to reconstruct path based on base_path
+            final_path = os.path.join(base_path, '9_reconciled_soa.json')
+        prov_path = final_path.replace('.json', '_provenance.json')
+        if os.path.exists(prov_path):
+            prov_content, _ = load_file(prov_path)
+            if isinstance(inventory['final_soa']['content'], dict) and prov_content and isinstance(prov_content, dict):
+                # Only merge if p2uProvenance missing
+                if 'p2uProvenance' not in inventory['final_soa']['content']:
+                    inventory['final_soa']['content']['p2uProvenance'] = prov_content
+    
     inventory['file_map'] = file_map
     return inventory
 
@@ -367,47 +381,70 @@ def render_flexible_soa(data):
         
     row_multi_index = pd.MultiIndex.from_tuples(row_index_data, names=['Category / System', 'Activity / Procedure'])
 
-    # 2. Build Column Index (Epochs and Encounters)
+    # 2. Build Column Index (Epoch ▸ Visit Window ▸ Planned Timepoint)
     col_index_data = []
-    ordered_encounters_for_cols = []
-    
-    # Sort epochs based on their order in the original file, if possible
-    sorted_epoch_ids = sorted(epoch_encounter_pairs.keys(), key=lambda eid: list(epoch_map.keys()).index(eid) if eid in epoch_map else -1)
-    
-    for epoch_id in sorted_epoch_ids:
-        epoch_name = epoch_map.get(epoch_id, "Unnamed Epoch")
-        encounter_ids = epoch_encounter_pairs[epoch_id]
-        # Sort encounters based on their order in the original file
-        sorted_encounter_ids = sorted(list(encounter_ids), key=lambda eid: list(encounter_map.keys()).index(eid) if eid in encounter_map else -1)
+    ordered_pt_for_cols = []  # Keep the original objects to speed look-ups
 
-        for enc_id in sorted_encounter_ids:
-            encounter_name = encounter_map.get(enc_id, "Unnamed Encounter")
-            col_index_data.append((epoch_name, encounter_name))
-            ordered_encounters_for_cols.append({'id': enc_id, 'name': encounter_name})
-            
+    # Helper maps
+    epoch_map = {e.get('id'): e.get('name', 'Unnamed Epoch') for e in components['epochs'] if e.get('id')}
+    enc_map_full = {e.get('id'): e for e in components['encounters'] if e.get('id')}
+
+    # Maintain original file order by iterating through plannedTimepoints as they appear
+    for pt in components['plannedTimepoints']:
+        pt_id = pt.get('id')
+        enc_id = pt.get('encounterId')
+        if not (pt_id and enc_id):
+            continue
+
+        # epoch → encounter → pt
+        enc = enc_map_full.get(enc_id, {})
+        epoch_id = enc.get('epochId')
+        epoch_name = epoch_map.get(epoch_id, 'Unnamed Epoch')
+        # Prefer visit-window label from timing; fallback to encounter name
+        encounter_name = enc.get('timing', {}).get('windowLabel') or enc.get('name', 'Unnamed Window')
+        pt_name = pt.get('name', 'Unnamed TP')
+
+        col_index_data.append((epoch_name, encounter_name, pt_name))
+        ordered_pt_for_cols.append({'id': pt_id, 'encounterId': enc_id})
+
     if not col_index_data:
-        st.error("Could not build timeline columns for the table.")
+        st.error("Could not build timeline columns – no planned timepoints available.")
         return
-        
-    col_multi_index = pd.MultiIndex.from_tuples(col_index_data, names=['Epoch', 'Encounter'])
+
+    col_multi_index = pd.MultiIndex.from_tuples(col_index_data, names=['Epoch', 'Visit Window', 'Planned TP'])
 
     # --- Create and Populate DataFrame ---
     df = pd.DataFrame("", index=row_multi_index, columns=col_multi_index)
 
+    # Pre-compute activity ⇢ plannedTimepoint links
+    activity_pt_links = set()
+
+    if components['scheduleTimelines'] and components['scheduleTimelines'][0].get('instances'):
+        # Derive from ScheduledActivityInstance → mark all pts within that encounter
+        enc_to_pt_ids = defaultdict(list)
+        for pt in components['plannedTimepoints']:
+            if pt.get('encounterId'):
+                enc_to_pt_ids[pt['encounterId']].append(pt['id'])
+        for inst in components['scheduleTimelines'][0].get('instances', []):
+            if inst.get('instanceType') != 'ScheduledActivityInstance':
+                continue
+            enc_id = inst.get('encounterId')
+            for act_id in inst.get('activityIds', []):
+                for pid in enc_to_pt_ids.get(enc_id, []):
+                    activity_pt_links.add((act_id, pid))
+    elif components['activityTimepoints']:
+        for at in components['activityTimepoints']:
+            if at.get('activityId') and at.get('plannedTimepointId'):
+                activity_pt_links.add((at['activityId'], at['plannedTimepointId']))
+
+    # populate DataFrame
     for i, activity in enumerate(ordered_activities):
-        activity_id = activity.get('id')
-        # Get the row index tuple we created earlier
         row_label = row_index_data[i]
-        
-        for encounter in ordered_encounters_for_cols:
-            encounter_id = encounter.get('id')
-            col_label = (
-                next((e_name for e_id, e_name in epoch_map.items() if e_id == next((enc.get('epochId') for enc in components['encounters'] if enc.get('id') == encounter_id), None)), "Unnamed Epoch"),
-                encounter.get('name')
-            )
-            if (activity_id, encounter_id) in activity_encounter_links:
-                if row_label in df.index and col_label in df.columns:
-                    df.loc[row_label, col_label] = 'X'
+        act_id = activity.get('id')
+        for col_tuple, pt_info in zip(col_index_data, ordered_pt_for_cols):
+            pt_id = pt_info['id']
+            if (act_id, pt_id) in activity_pt_links:
+                df.loc[row_label, col_tuple] = 'X'
 
     st.dataframe(df)
 

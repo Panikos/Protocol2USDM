@@ -4,6 +4,7 @@ import argparse
 import json
 import io
 from openai import OpenAI
+from p2u_constants import USDM_VERSION
 
 # Ensure all output is UTF-8 safe for Windows terminals
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
@@ -202,7 +203,7 @@ def merge_soa_jsons(soa_parts):
                 }
             ]
         },
-        "usdmVersion": "4.0.0" # Carry over version
+        "usdmVersion": USDM_VERSION # Carry over version
     }
 
     return final_json

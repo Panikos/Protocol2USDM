@@ -3,7 +3,17 @@ import sys
 import os
 import json
 import glob
+import logging
+try:
+    from tqdm import tqdm
+except ImportError:  # Fallback when tqdm not installed
+    def tqdm(iterable, **kwargs):
+        return iterable
 import shutil
+
+# Configure logging
+logging.basicConfig(format='[%(levelname)s] %(message)s', level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Ensure all output is UTF-8 safe for Windows terminals
 if hasattr(sys.stdout, 'reconfigure'):
@@ -52,6 +62,20 @@ def cleanup_outputs(output_dir):
             except Exception as e:
                 print(f'[WARN] Failed to delete {fpath}. Reason: {e}')
 
+def run_struct_validation(json_path, step_label, summary_data):
+    """Run structural linkage validator and append result to summary_data."""
+    print(f"\n[VALIDATE] {step_label} – parent/child linkage check...")
+    success, _ = run_script("validate_soa_structure.py", [json_path])
+    summary_data.append({
+        "step": f"{step_label} Link Validation",
+        "inputs": [json_path],
+        "outputs": [],
+        "status": "Success" if success else "Failed"
+    })
+    if not success:
+        raise RuntimeError(f"{step_label} linkage validation failed.")
+
+
 def print_summary(summary_data):
     """Prints a formatted summary of the pipeline execution."""
     print("\n" + "="*80)
@@ -74,19 +98,19 @@ def print_summary(summary_data):
 # Default model preference (can be overridden via --model)
 MODEL_NAME = 'gemini-2.5-pro'
 
-def main():
-    print("[DEBUG] main.py execution started.", file=sys.stderr)
+def process_single_pdf(pdf_path, model_name):
+    logger.info("Processing %s ...", pdf_path)
     global MODEL_NAME
-    import argparse
-    parser = argparse.ArgumentParser(description="Run the SoA extraction pipeline.")
-    parser.add_argument("pdf_path", help="Path to the protocol PDF")
-    parser.add_argument("--model", default=MODEL_NAME, help="LLM model to use (e.g., 'gemini-2.5-pro', 'gpt-4o'). Default: gemini-2.5-pro")
-
-    args = parser.parse_args()
-    MODEL_NAME = args.model
-    PDF_PATH = os.path.abspath(args.pdf_path)
+    MODEL_NAME = model_name  # Override global model name for this run
+    # Propagate model choice to downstream subprocesses via environment variable used in helper defaults
+    os.environ['OPENAI_MODEL'] = MODEL_NAME
+    PDF_PATH = pdf_path  # Retain legacy variable name for minimal diff
     
-    # Define output directory and file paths
+    
+    
+    
+
+    
     protocol_name = os.path.splitext(os.path.basename(PDF_PATH))[0]
     OUTPUT_DIR = os.path.join("output", protocol_name)
     os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -182,6 +206,8 @@ def main():
         text_soa_ok = success
         step5_info["status"] = "Success" if text_soa_ok else "Failed"
         summary_data.append(step5_info)
+        if text_soa_ok:
+            run_struct_validation(PATHS["raw_text"], "Step 5 Raw Text", summary_data)
         print(f"[DEBUG] Status of text_soa_ok after Step 5: {text_soa_ok}")
 
         # Step 6: Vision-based Extraction
@@ -197,6 +223,8 @@ def main():
         vision_soa_ok, _ = run_script("vision_extract_soa.py", vision_args)
         step6_info["status"] = "Success" if vision_soa_ok else "Failed"
         summary_data.append(step6_info)
+        if vision_soa_ok:
+            run_struct_validation(PATHS["raw_vision"], "Step 6 Raw Vision", summary_data)
         if not vision_soa_ok: raise RuntimeError("Vision SoA extraction failed.")
 
         # Step 7: Text Post-processing
@@ -212,6 +240,8 @@ def main():
         else:
             step7_info["status"] = "Skipped"
         summary_data.append(step7_info)
+        if text_soa_ok and step7_info["status"] == "Success":
+            run_struct_validation(PATHS["postprocessed_text"], "Step 7 Postprocessed Text", summary_data)
 
         # Step 8: Vision Post-processing
         step8_info = {"step": "8. Post-process Vision SoA", "inputs": [PATHS["raw_vision"]], "outputs": [PATHS["postprocessed_vision"]]}
@@ -224,6 +254,8 @@ def main():
         else:
             step8_info["status"] = "Skipped"
         summary_data.append(step8_info)
+        if vision_soa_ok and step8_info["status"] == "Success":
+            run_struct_validation(PATHS["postprocessed_vision"], "Step 8 Postprocessed Vision", summary_data)
         if step8_info["status"] == "Failed": raise RuntimeError("Vision SoA post-processing failed.")
 
         # Step 9: Reconciliation
@@ -272,6 +304,8 @@ def main():
                 step9_info["status"] = "Skipped (No Inputs)"
                 success = False
         summary_data.append(step9_info)
+        if step9_info["status"] == "Success":
+            run_struct_validation(PATHS["final_soa"], "Step 9 Reconciled", summary_data)
         if not success: raise RuntimeError("LLM reconciliation failed or was skipped.")
 
         # Step 10: Final Validation
@@ -298,6 +332,31 @@ def main():
         if any(s.get('status') == 'Failed' for s in summary_data):
             print("\n[FATAL] Pipeline finished with one or more failed steps.")
             sys.exit(1)
+
+def main():
+    import argparse, pathlib
+    parser = argparse.ArgumentParser(description="Run the SoA extraction pipeline on one or more PDFs or directories.")
+    parser.add_argument("inputs", nargs="+", help="PDF file(s) or directory(ies) containing PDFs")
+    parser.add_argument("--model", default=MODEL_NAME, help="LLM model to use (default: gemini-2.5-pro)")
+    args = parser.parse_args()
+
+    pdf_list = []
+    for p in args.inputs:
+        abs_p = os.path.abspath(p)
+        if os.path.isdir(abs_p):
+            pdf_list.extend([str(pathlib.Path(abs_p)/f) for f in os.listdir(abs_p) if f.lower().endswith('.pdf')])
+        else:
+            pdf_list.append(abs_p)
+
+    if not pdf_list:
+        logger.error("No PDF files found in the supplied inputs.")
+        sys.exit(1)
+
+    for pdf in tqdm(pdf_list, desc="Processing PDFs"):
+        try:
+            process_single_pdf(pdf, args.model)
+        except Exception as e:
+            logger.error("Pipeline failed for %s: %s", pdf, e)
 
 if __name__ == "__main__":
     main()

@@ -3,7 +3,7 @@ import json
 from collections import defaultdict
 
 # --- CONFIG ---
-EXCEL_PATH = "temp/USDM_CT.xlsx"
+EXCEL_PATH = "useful_material/USDM_CT.xlsx"
 OUTPUT_PATH = "soa_entity_mapping.json"
 SCHEMA_PATH = "USDM OpenAPI schema/USDM_API.json"
 SHEET_ENTITIES = "DDF Entities&Attributes"
