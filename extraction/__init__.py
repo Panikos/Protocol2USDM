@@ -8,6 +8,7 @@ This module contains the core extraction logic:
 - validator: Vision-based validation of text extraction
 - pipeline: Orchestrates the complete extraction workflow
 - metadata: Study identity & metadata extraction (Phase 2)
+- eligibility: Inclusion/exclusion criteria extraction (Phase 1)
 
 Design Principle:
 - Vision extracts STRUCTURE (column headers, row groups)
@@ -54,6 +55,14 @@ from .metadata import (
     StudyRole,
     Indication,
 )
+from .eligibility import (
+    extract_eligibility_criteria,
+    EligibilityExtractionResult,
+    EligibilityCriterion,
+    EligibilityCriterionItem,
+    StudyDesignPopulation,
+    CriterionCategory,
+)
 
 __all__ = [
     # SoA Finder
@@ -89,4 +98,11 @@ __all__ = [
     "Organization",
     "StudyRole",
     "Indication",
+    # Eligibility (Phase 1)
+    "extract_eligibility_criteria",
+    "EligibilityExtractionResult",
+    "EligibilityCriterion",
+    "EligibilityCriterionItem",
+    "StudyDesignPopulation",
+    "CriterionCategory",
 ]

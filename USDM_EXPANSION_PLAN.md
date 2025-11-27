@@ -193,22 +193,37 @@ Each phase module:
 
 | Date | Phase | Status | Notes |
 |------|-------|--------|-------|
-| 2025-11-26 | Phase 2 | Started | Study Identity & Metadata |
-| 2025-11-26 | Phase 2 | In Progress | Created extraction/metadata/ module, schema, prompts, extractor |
+| 2025-11-26 | Phase 2 | ✅ Complete | Study Identity & Metadata |
+| 2025-11-27 | Phase 1 | ✅ Complete | Eligibility Criteria (8 inclusion, 11 exclusion extracted) |
 
-## Files Created (Phase 2)
+## Files Created
 
+### Phase 2: Study Metadata
 ```
 extraction/metadata/
 ├── __init__.py          # Module exports
-├── schema.py            # Pydantic models for USDM entities
+├── schema.py            # USDM models (StudyTitle, Organization, Indication, etc.)
 ├── prompts.py           # LLM extraction prompts
 └── extractor.py         # Main extraction logic
 
+extract_metadata.py      # CLI entry point
+```
+
+### Phase 1: Eligibility Criteria
+```
+extraction/eligibility/
+├── __init__.py          # Module exports
+├── schema.py            # USDM models (EligibilityCriterion, StudyDesignPopulation)
+├── prompts.py           # LLM extraction prompts  
+└── extractor.py         # Main extraction logic with auto page detection
+
+extract_eligibility.py   # CLI entry point
+```
+
+### Core Utilities
+```
 core/
 ├── pdf_utils.py         # PDF text/image extraction utilities
 └── llm_client.py        # Added call_llm, call_llm_with_image
-
-extract_metadata.py      # CLI entry point
 ```
 
