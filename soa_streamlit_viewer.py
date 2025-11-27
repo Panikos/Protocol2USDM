@@ -36,9 +36,9 @@ def get_activity_timepoints(timeline):
 
     return activity_timepoints
 
-st.set_page_config(page_title="SoA Extraction Review", layout="wide", page_icon="📊")
-st.title('📊 Schedule of Activities (SoA) Extraction Review')
-st.markdown("**Protocol to USDM v4.0 Converter** | Enhanced with USDM-specific metrics")
+st.set_page_config(page_title="Protocol2USDM Viewer", layout="wide", page_icon="📊")
+st.title('📊 Protocol2USDM v6.0 Viewer')
+st.markdown("**Full Protocol Extraction** | USDM v4.0 Format")
 # Placeholder for dynamic file display; will be updated after run selection.
 file_placeholder = st.empty()
 
@@ -181,14 +181,23 @@ def load_file(path):
 
 @st.cache_data
 def get_file_inventory(base_path):
-    """Categorize all relevant pipeline files for a specific run."""
+    """
+    Builds an inventory of available output files for a given run.
+    Returns a dictionary with categorized files for display.
+    """
+    if not os.path.isdir(base_path):
+        st.error(f"The specified path is not a directory: {base_path}")
+        return None
+
     inventory = {
         'final_soa': None,
+        'full_usdm': None,  # Combined full protocol output
+        'expansion': {},     # Expansion phase outputs
         'primary_outputs': {},
         'post_processed': {},
         'intermediate_data': {},
         'configs': {},
-        'images': []
+        'images': [],
     }
     
     # File map supporting both old (main.py) and new (main_v2.py) pipeline outputs
@@ -213,6 +222,29 @@ def get_file_inventory(base_path):
         'step4_text_extraction.json': ('primary_outputs', 'Text Extraction (Step 4)'),
         'step6_final_soa.json': ('final_soa', 'Final SoA (Step 6)'),
     }
+    
+    # USDM Expansion files (v6.0)
+    expansion_map = {
+        'full_usdm.json': ('full_usdm', 'Full Protocol USDM'),
+        '2_study_metadata.json': ('metadata', 'Study Metadata'),
+        '3_eligibility_criteria.json': ('eligibility', 'Eligibility Criteria'),
+        '4_objectives_endpoints.json': ('objectives', 'Objectives & Endpoints'),
+        '5_study_design.json': ('studydesign', 'Study Design'),
+        '6_interventions.json': ('interventions', 'Interventions'),
+        '7_narrative_structure.json': ('narrative', 'Narrative Structure'),
+        '8_advanced_entities.json': ('advanced', 'Advanced Entities'),
+    }
+    
+    # Load expansion files
+    for f_name, (key, display_name) in expansion_map.items():
+        f_path = os.path.join(base_path, f_name)
+        if os.path.exists(f_path):
+            content, _ = load_file(f_path)
+            if content:
+                if key == 'full_usdm':
+                    inventory['full_usdm'] = {'display_name': display_name, 'content': content, 'path': f_path}
+                else:
+                    inventory['expansion'][key] = {'display_name': display_name, 'content': content, 'path': f_path}
 
     for f_name, (category, display_name) in file_map.items():
         f_path = os.path.join(base_path, f_name)
@@ -937,14 +969,160 @@ if inventory['final_soa']:
 
 
 # --- Main Display: Render the final SoA --- 
-st.header("Final Reconciled SoA")
+st.header("Schedule of Activities (SoA)")
 if not inventory['final_soa']:
-    st.warning("The final reconciled SoA (`9_reconciled_soa.json`) was not found for this run.")
+    st.warning("The final SoA (`9_final_soa.json`) was not found for this run.")
 else:
     # Use the flexible renderer which handles missing entities gracefully
     render_flexible_soa(inventory['final_soa']['content'], table_id="final_soa")
     with st.expander("Show Full JSON Output"):
         st.json(inventory['final_soa']['content'])
+
+# --- USDM Expansion Data (v6.0) ---
+if inventory.get('expansion') or inventory.get('full_usdm'):
+    st.markdown("---")
+    st.header("📋 Protocol Expansion Data (v6.0)")
+    
+    if inventory.get('full_usdm'):
+        st.success("✅ Full USDM protocol available (`full_usdm.json`)")
+    
+    # Create tabs for each expansion section
+    expansion_tabs = []
+    expansion_keys = []
+    
+    tab_config = [
+        ('metadata', '📄 Metadata'),
+        ('eligibility', '✅ Eligibility'),
+        ('objectives', '🎯 Objectives'),
+        ('studydesign', '🔬 Design'),
+        ('interventions', '💊 Interventions'),
+        ('narrative', '📖 Narrative'),
+        ('advanced', '🌍 Advanced'),
+    ]
+    
+    available_tabs = [(key, label) for key, label in tab_config if key in inventory.get('expansion', {})]
+    
+    if available_tabs:
+        tab_labels = [label for _, label in available_tabs]
+        tabs = st.tabs(tab_labels)
+        
+        for i, (key, label) in enumerate(available_tabs):
+            with tabs[i]:
+                exp_data = inventory['expansion'][key]
+                content = exp_data['content']
+                
+                if key == 'metadata':
+                    st.subheader("Study Metadata")
+                    if content.get('success') and content.get('metadata'):
+                        md = content['metadata']
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            st.markdown("**Study Titles:**")
+                            for t in md.get('studyTitles', []):
+                                st.write(f"- {t.get('text', 'N/A')}")
+                            st.markdown("**Study Phase:**")
+                            phase = md.get('studyPhase', {})
+                            st.write(phase.get('phase', 'N/A'))
+                        with col2:
+                            st.markdown("**Identifiers:**")
+                            for ident in md.get('studyIdentifiers', []):
+                                st.write(f"- {ident.get('studyIdentifier', 'N/A')}")
+                            st.markdown("**Indication:**")
+                            for ind in md.get('studyIndications', []):
+                                st.write(f"- {ind.get('name', 'N/A')}")
+                
+                elif key == 'eligibility':
+                    st.subheader("Eligibility Criteria")
+                    if content.get('success') and content.get('eligibility'):
+                        elig = content['eligibility']
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            st.markdown(f"**Inclusion Criteria ({elig.get('summary', {}).get('inclusionCount', 0)}):**")
+                            for c in elig.get('eligibilityCriteria', []):
+                                if c.get('category') == 'Inclusion':
+                                    st.write(f"- {c.get('text', 'N/A')[:100]}...")
+                        with col2:
+                            st.markdown(f"**Exclusion Criteria ({elig.get('summary', {}).get('exclusionCount', 0)}):**")
+                            for c in elig.get('eligibilityCriteria', []):
+                                if c.get('category') == 'Exclusion':
+                                    st.write(f"- {c.get('text', 'N/A')[:100]}...")
+                
+                elif key == 'objectives':
+                    st.subheader("Objectives & Endpoints")
+                    if content.get('success') and content.get('objectivesEndpoints'):
+                        obj = content['objectivesEndpoints']
+                        summary = obj.get('summary', {})
+                        col1, col2, col3 = st.columns(3)
+                        col1.metric("Primary", summary.get('primaryObjectivesCount', 0))
+                        col2.metric("Secondary", summary.get('secondaryObjectivesCount', 0))
+                        col3.metric("Endpoints", len(obj.get('endpoints', [])))
+                        
+                        st.markdown("**Objectives:**")
+                        for o in obj.get('objectives', []):
+                            level = o.get('level', 'Unknown')
+                            st.write(f"- [{level}] {o.get('text', 'N/A')[:100]}...")
+                
+                elif key == 'studydesign':
+                    st.subheader("Study Design Structure")
+                    if content.get('success') and content.get('studyDesign'):
+                        sd = content['studyDesign']
+                        design = sd.get('studyDesign', {})
+                        col1, col2, col3 = st.columns(3)
+                        col1.metric("Arms", len(sd.get('studyArms', [])))
+                        col2.metric("Cohorts", len(sd.get('studyCohorts', [])))
+                        col3.metric("Blinding", design.get('blindingSchema', {}).get('code', 'N/A'))
+                        
+                        st.markdown("**Study Arms:**")
+                        for arm in sd.get('studyArms', []):
+                            st.write(f"- {arm.get('name', 'N/A')}: {arm.get('description', 'N/A')[:80]}...")
+                
+                elif key == 'interventions':
+                    st.subheader("Interventions & Products")
+                    if content.get('success') and content.get('interventions'):
+                        iv = content['interventions']
+                        col1, col2, col3 = st.columns(3)
+                        col1.metric("Interventions", len(iv.get('interventions', [])))
+                        col2.metric("Products", len(iv.get('products', [])))
+                        col3.metric("Administrations", len(iv.get('administrations', [])))
+                        
+                        st.markdown("**Interventions:**")
+                        for inter in iv.get('interventions', []):
+                            st.write(f"- {inter.get('name', 'N/A')}")
+                
+                elif key == 'narrative':
+                    st.subheader("Narrative Structure")
+                    if content.get('success') and content.get('narrative'):
+                        narr = content['narrative']
+                        col1, col2 = st.columns(2)
+                        col1.metric("Sections", len(narr.get('narrativeContents', [])))
+                        col2.metric("Abbreviations", len(narr.get('abbreviations', [])))
+                        
+                        st.markdown("**Sections:**")
+                        for sec in narr.get('narrativeContents', [])[:10]:
+                            st.write(f"- {sec.get('sectionNumber', '')} {sec.get('sectionTitle', sec.get('name', 'N/A'))}")
+                        
+                        st.markdown("**Abbreviations:**")
+                        abbr_text = ", ".join([f"{a.get('abbreviatedText', '')}={a.get('expandedText', '')}" 
+                                              for a in narr.get('abbreviations', [])[:10]])
+                        st.write(abbr_text)
+                
+                elif key == 'advanced':
+                    st.subheader("Advanced Entities")
+                    if content.get('success') and content.get('advanced'):
+                        adv = content['advanced']
+                        col1, col2, col3 = st.columns(3)
+                        col1.metric("Amendments", len(adv.get('studyAmendments', [])))
+                        col2.metric("Countries", len(adv.get('countries', [])))
+                        col3.metric("Sites", len(adv.get('studySites', [])))
+                        
+                        st.markdown("**Amendments:**")
+                        for amend in adv.get('studyAmendments', []):
+                            st.write(f"- Amendment {amend.get('number', 'N/A')}: {amend.get('summary', 'N/A')[:60]}...")
+                
+                with st.expander("Show Raw JSON"):
+                    st.json(content)
+    else:
+        st.info("No expansion data found. Run `main_v2.py --full-protocol` to extract.")
 
 # --- Debugging / Intermediate Files Section ---
 st.markdown("--- ")
