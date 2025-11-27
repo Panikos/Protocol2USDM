@@ -9,12 +9,13 @@
 1. [Quick Start](#quick-start)
 2. [Installation](#installation)
 3. [Running the Pipeline](#running-the-pipeline)
-4. [Standalone Extractors](#standalone-extractors)
-5. [Understanding the Output](#understanding-the-output)
-6. [Using the Viewer](#using-the-viewer)
-7. [Post-Processing Steps](#post-processing-steps)
-8. [Model Selection](#model-selection)
-9. [Troubleshooting](#troubleshooting)
+4. [Full Protocol Extraction](#full-protocol-extraction)
+5. [Standalone Extractors](#standalone-extractors)
+6. [Understanding the Output](#understanding-the-output)
+7. [Using the Viewer](#using-the-viewer)
+8. [Post-Processing Steps](#post-processing-steps)
+9. [Model Selection](#model-selection)
+10. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -136,9 +137,62 @@ python main_v2.py protocol.pdf --full
 
 ---
 
+## Full Protocol Extraction
+
+Extract everything from a protocol with a single command:
+
+```bash
+# Full protocol extraction (SoA + all expansion phases)
+python main_v2.py protocol.pdf --full-protocol
+```
+
+### Selective Extraction
+
+Run specific phases alongside SoA:
+
+```bash
+# SoA + metadata + eligibility
+python main_v2.py protocol.pdf --metadata --eligibility
+
+# SoA + objectives + interventions
+python main_v2.py protocol.pdf --objectives --interventions
+```
+
+### Expansion-Only Mode
+
+Skip SoA extraction and run only expansion phases:
+
+```bash
+# All expansion phases, no SoA
+python main_v2.py protocol.pdf --expansion-only --metadata --eligibility --objectives --studydesign --interventions --narrative --advanced
+
+# Just metadata and eligibility
+python main_v2.py protocol.pdf --expansion-only --metadata --eligibility
+```
+
+### Available Flags
+
+| Flag | Phase | Description |
+|------|-------|-------------|
+| `--metadata` | 2 | Study titles, identifiers, organizations |
+| `--eligibility` | 1 | Inclusion/exclusion criteria |
+| `--objectives` | 3 | Objectives, endpoints, estimands |
+| `--studydesign` | 4 | Arms, cohorts, blinding |
+| `--interventions` | 5 | Products, dosing, substances |
+| `--narrative` | 7 | Sections, abbreviations |
+| `--advanced` | 8 | Amendments, geography |
+| `--full-protocol` | All | Everything (SoA + all phases) |
+| `--expansion-only` | - | Skip SoA extraction |
+
+### Combined Output
+
+When running multiple phases, a combined `full_usdm.json` is generated containing all extracted data in a single USDM-compliant structure.
+
+---
+
 ## Standalone Extractors
 
-In addition to the SoA pipeline, Protocol2USDM provides standalone extractors for other protocol sections.
+For individual phase extraction without the main pipeline:
 
 ### Study Metadata (Phase 2)
 Extracts study identity from title page and synopsis.
@@ -306,7 +360,19 @@ Opens at: http://localhost:8504
 - Linkage accuracy score
 - Activity-visit mappings count
 
-**4. Tabs**
+**4. Protocol Expansion Data (v6.0)**
+- Automatically shows when expansion files are present
+- Tabbed navigation for each section:
+  - 📄 **Metadata**: Study titles, identifiers, phase, indication
+  - ✅ **Eligibility**: Inclusion/exclusion criteria with counts
+  - 🎯 **Objectives**: Primary/secondary objectives and endpoints
+  - 🔬 **Design**: Arms, cohorts, blinding schema
+  - 💊 **Interventions**: Products, administrations, substances
+  - 📖 **Narrative**: Document sections, abbreviations
+  - 🌍 **Advanced**: Amendments, countries, sites
+- Each tab shows key metrics and expandable raw JSON
+
+**5. Intermediate Tabs**
 - **Text Extraction**: Raw extraction results
 - **Data Files**: Intermediate outputs
 - **Config Files**: Pipeline configuration

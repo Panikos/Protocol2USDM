@@ -6,11 +6,43 @@ All notable changes documented here. Dates in ISO-8601.
 
 ## [6.0] – 2025-11-27
 
-### USDM Expansion - Beyond SoA
+### USDM Expansion - Full Protocol Extraction
 
-Major expansion to extract full protocol content beyond Schedule of Activities.
+Major expansion to extract full protocol content beyond Schedule of Activities, with integrated pipeline and enhanced viewer.
 
-#### New Extraction Modules (Phases 1-5)
+#### Integrated Pipeline
+
+The main pipeline now supports full protocol extraction with a single command:
+
+```bash
+python main_v2.py protocol.pdf                    # SoA only (default)
+python main_v2.py protocol.pdf --metadata         # SoA + metadata
+python main_v2.py protocol.pdf --full-protocol    # Everything
+python main_v2.py protocol.pdf --expansion-only   # Expansions only, skip SoA
+```
+
+New flags:
+* `--metadata` – Extract study metadata (Phase 2)
+* `--eligibility` – Extract eligibility criteria (Phase 1)
+* `--objectives` – Extract objectives & endpoints (Phase 3)
+* `--studydesign` – Extract study design structure (Phase 4)
+* `--interventions` – Extract interventions & products (Phase 5)
+* `--narrative` – Extract narrative structure (Phase 7)
+* `--advanced` – Extract amendments & geography (Phase 8)
+* `--full-protocol` – Extract everything (SoA + all phases)
+* `--expansion-only` – Skip SoA, run only expansion phases
+
+Combined output saved to `full_usdm.json` when multiple phases are run.
+
+#### Enhanced Streamlit Viewer
+
+* New "Protocol Expansion Data" section with tabbed navigation
+* Tabs: Metadata, Eligibility, Objectives, Design, Interventions, Narrative, Advanced
+* Auto-detects available expansion data files
+* Shows key metrics and expandable raw JSON for each section
+* Full backward compatibility with SoA-only viewing
+
+#### New Extraction Modules (Phases 1-5, 7-8)
 
 * **Phase 1: Eligibility Criteria** (`extraction/eligibility/`)
   - Extracts inclusion and exclusion criteria

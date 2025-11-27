@@ -17,6 +17,28 @@ streamlit run soa_streamlit_viewer.py
 
 ## Common Commands
 
+### Basic Usage
+
+```bash
+# SoA only (default)
+python main_v2.py protocol.pdf
+
+# Full protocol extraction (SoA + all phases)
+python main_v2.py protocol.pdf --full-protocol
+
+# Select specific phases
+python main_v2.py protocol.pdf --metadata --eligibility --objectives
+
+# Expansion only (skip SoA)
+python main_v2.py protocol.pdf --expansion-only --metadata --eligibility
+
+# With specific model
+python main_v2.py protocol.pdf --model gemini-2.5-pro
+
+# Specify SoA pages
+python main_v2.py protocol.pdf --pages 45,46,47
+```
+
 ### SoA Pipeline
 ```bash
 python main_v2.py protocol.pdf                      # Default extraction
@@ -55,16 +77,30 @@ streamlit run soa_streamlit_viewer.py
 
 ### Options
 ```bash
---model, -m         Model to use (default: gpt-5.1)
+# Core options
+--model, -m         Model to use (default: gemini-2.5-pro)
 --output-dir, -o    Output directory
 --pages, -p         Specific SoA pages (comma-separated)
 --no-validate       Skip vision validation
 --view              Launch viewer after
 --verbose, -v       Detailed logging
+
+# Post-processing
 --full              Run all post-processing steps
 --enrich            Step 7: NCI terminology
 --validate-schema   Step 8: Schema validation
 --conformance       Step 9: CORE conformance
+
+# Expansion phases (v6.0)
+--full-protocol     Extract everything (SoA + all phases)
+--expansion-only    Skip SoA, run only expansion phases
+--metadata          Phase 2: Study metadata
+--eligibility       Phase 1: I/E criteria
+--objectives        Phase 3: Objectives & endpoints
+--studydesign       Phase 4: Study design structure
+--interventions     Phase 5: Interventions & products
+--narrative         Phase 7: Sections & abbreviations
+--advanced          Phase 8: Amendments & geography
 ```
 
 ---
@@ -84,6 +120,7 @@ streamlit run soa_streamlit_viewer.py
 
 ```
 output/<protocol>/
+├── full_usdm.json                ⭐ Combined full protocol (--full-protocol)
 ├── 2_study_metadata.json          # Study identity (Phase 2)
 ├── 3_eligibility_criteria.json    # I/E criteria (Phase 1)
 ├── 4_objectives_endpoints.json    # Objectives (Phase 3)

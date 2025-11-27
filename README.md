@@ -31,6 +31,25 @@ Protocol2USDM is an automated pipeline that extracts, validates, and structures 
 
 ---
 
+## Full Protocol Extraction
+
+Extract everything with a single command:
+
+```bash
+python main_v2.py protocol.pdf --full-protocol
+```
+
+Or select specific sections:
+
+```bash
+python main_v2.py protocol.pdf --metadata --eligibility --objectives
+python main_v2.py protocol.pdf --expansion-only --metadata  # Skip SoA
+```
+
+Output: Individual JSONs + combined `full_usdm.json`
+
+---
+
 ## Quick Start
 
 ```bash

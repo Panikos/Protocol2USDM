@@ -201,6 +201,7 @@ Each phase module:
 | 2025-11-27 | Phase 6 | ⏸️ Parked | Biomedical Concepts (will integrate from related project) |
 | 2025-11-27 | Phase 7 | ✅ Complete | Narrative Structure (8 sections, 9 abbreviations) |
 | 2025-11-27 | Phase 8 | ✅ Complete | Advanced Entities (4 amendments, 1 country, geographic scope) |
+| 2025-11-27 | Integration | ✅ Complete | Pipeline integration + Streamlit viewer expansion |
 
 ## Files Created
 
@@ -286,5 +287,16 @@ extract_advanced.py      # CLI entry point
 core/
 ├── pdf_utils.py         # PDF text/image extraction utilities
 └── llm_client.py        # Added call_llm, call_llm_with_image
+```
+
+### Pipeline Integration
+```
+main_v2.py               # Updated with expansion flags
+                         # --full-protocol, --expansion-only
+                         # --metadata, --eligibility, --objectives, etc.
+                         # Combined output: full_usdm.json
+
+soa_streamlit_viewer.py  # Updated with Protocol Expansion Data section
+                         # Tabbed viewing for all expansion phases
 ```
 
