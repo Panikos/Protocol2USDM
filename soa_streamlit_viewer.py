@@ -8,6 +8,82 @@ import html
 from pathlib import Path
 from datetime import datetime
 
+
+def calculate_expansion_confidence(key: str, content: dict) -> float:
+    """Calculate confidence score for expansion data from JSON content."""
+    if not content or not content.get('success'):
+        return 0.0
+    
+    if key == 'metadata':
+        md = content.get('metadata', {})
+        scores = [
+            1.0 if md.get('studyTitles') else 0.0,
+            1.0 if md.get('studyIdentifiers') and len(md.get('studyIdentifiers', [])) >= 2 else 0.5,
+            1.0 if md.get('organizations') else 0.0,
+            1.0 if md.get('studyPhase') else 0.0,
+            1.0 if md.get('studyIndications') else 0.0,
+        ]
+        return sum(scores) / len(scores)
+    
+    elif key == 'eligibility':
+        elig = content.get('eligibility', {})
+        summary = elig.get('summary', {})
+        inc = summary.get('inclusionCount', 0)
+        exc = summary.get('exclusionCount', 0)
+        scores = [
+            1.0 if 3 <= inc <= 20 else 0.5 if inc > 0 else 0.0,
+            1.0 if 5 <= exc <= 40 else 0.5 if exc > 0 else 0.0,
+            1.0 if elig.get('population') else 0.0,
+        ]
+        return sum(scores) / len(scores)
+    
+    elif key == 'objectives':
+        obj = content.get('objectivesEndpoints', {})
+        summary = obj.get('summary', {})
+        scores = [
+            1.0 if summary.get('primaryObjectivesCount', 0) >= 1 else 0.0,
+            1.0 if summary.get('secondaryObjectivesCount', 0) >= 1 else 0.5,
+            1.0 if len(obj.get('endpoints', [])) > 0 else 0.0,
+        ]
+        return sum(scores) / len(scores)
+    
+    elif key == 'studydesign':
+        sd = content.get('studyDesign', {})
+        scores = [
+            1.0 if sd.get('studyDesign') else 0.0,
+            1.0 if sd.get('studyArms') else 0.0,
+            1.0 if sd.get('studyCohorts') else 0.5,
+        ]
+        return sum(scores) / len(scores)
+    
+    elif key == 'interventions':
+        iv = content.get('interventions', {})
+        scores = [
+            1.0 if iv.get('interventions') else 0.0,
+            1.0 if iv.get('products') else 0.5,
+            1.0 if iv.get('administrations') else 0.5,
+        ]
+        return sum(scores) / len(scores)
+    
+    elif key == 'narrative':
+        narr = content.get('narrative', {})
+        scores = [
+            1.0 if len(narr.get('narrativeContents', [])) >= 5 else 0.5,
+            1.0 if len(narr.get('abbreviations', [])) >= 3 else 0.5,
+            1.0 if narr.get('document') else 0.5,
+        ]
+        return sum(scores) / len(scores)
+    
+    elif key == 'advanced':
+        adv = content.get('advanced', {})
+        scores = [
+            1.0 if adv.get('studyAmendments') else 0.5,
+            1.0 if adv.get('countries') else 0.5,
+        ]
+        return sum(scores) / len(scores)
+    
+    return 0.5
+
 # --- Data Access Functions --------------------------------------------------
 
 def get_timeline(soa_content):
@@ -1002,6 +1078,19 @@ if inventory.get('expansion') or inventory.get('full_usdm'):
     
     available_tabs = [(key, label) for key, label in tab_config if key in inventory.get('expansion', {})]
     
+    # Calculate overall confidence
+    if available_tabs:
+        confidences = []
+        for key, _ in available_tabs:
+            exp_data = inventory['expansion'].get(key, {})
+            conf = calculate_expansion_confidence(key, exp_data.get('content', {}))
+            confidences.append(conf)
+        avg_confidence = sum(confidences) / len(confidences) if confidences else 0
+        
+        # Show overall confidence badge
+        conf_color = '#4caf50' if avg_confidence >= 0.8 else '#ff9800' if avg_confidence >= 0.5 else '#f44336'
+        st.markdown(f"**Overall Extraction Confidence:** <span style='background:{conf_color};color:white;padding:4px 12px;border-radius:12px;font-weight:bold;'>{avg_confidence:.0%}</span>", unsafe_allow_html=True)
+    
     if available_tabs:
         tab_labels = [label for _, label in available_tabs]
         tabs = st.tabs(tab_labels)
@@ -1011,8 +1100,13 @@ if inventory.get('expansion') or inventory.get('full_usdm'):
                 exp_data = inventory['expansion'][key]
                 content = exp_data['content']
                 
+                # Show confidence for this tab
+                tab_conf = calculate_expansion_confidence(key, content)
+                conf_color = '#4caf50' if tab_conf >= 0.8 else '#ff9800' if tab_conf >= 0.5 else '#f44336'
+                
                 if key == 'metadata':
-                    st.subheader("Study Metadata")
+                    st.subheader(f"Study Metadata")
+                    st.markdown(f"<span style='background:{conf_color};color:white;padding:2px 8px;border-radius:8px;font-size:0.9em;'>📊 {tab_conf:.0%}</span>", unsafe_allow_html=True)
                     if content.get('success') and content.get('metadata'):
                         md = content['metadata']
                         col1, col2 = st.columns(2)
@@ -1033,6 +1127,7 @@ if inventory.get('expansion') or inventory.get('full_usdm'):
                 
                 elif key == 'eligibility':
                     st.subheader("Eligibility Criteria")
+                    st.markdown(f"<span style='background:{conf_color};color:white;padding:2px 8px;border-radius:8px;font-size:0.9em;'>📊 {tab_conf:.0%}</span>", unsafe_allow_html=True)
                     if content.get('success') and content.get('eligibility'):
                         elig = content['eligibility']
                         col1, col2 = st.columns(2)
@@ -1049,6 +1144,7 @@ if inventory.get('expansion') or inventory.get('full_usdm'):
                 
                 elif key == 'objectives':
                     st.subheader("Objectives & Endpoints")
+                    st.markdown(f"<span style='background:{conf_color};color:white;padding:2px 8px;border-radius:8px;font-size:0.9em;'>📊 {tab_conf:.0%}</span>", unsafe_allow_html=True)
                     if content.get('success') and content.get('objectivesEndpoints'):
                         obj = content['objectivesEndpoints']
                         summary = obj.get('summary', {})
@@ -1064,6 +1160,7 @@ if inventory.get('expansion') or inventory.get('full_usdm'):
                 
                 elif key == 'studydesign':
                     st.subheader("Study Design Structure")
+                    st.markdown(f"<span style='background:{conf_color};color:white;padding:2px 8px;border-radius:8px;font-size:0.9em;'>📊 {tab_conf:.0%}</span>", unsafe_allow_html=True)
                     if content.get('success') and content.get('studyDesign'):
                         sd = content['studyDesign']
                         design = sd.get('studyDesign', {})
@@ -1078,6 +1175,7 @@ if inventory.get('expansion') or inventory.get('full_usdm'):
                 
                 elif key == 'interventions':
                     st.subheader("Interventions & Products")
+                    st.markdown(f"<span style='background:{conf_color};color:white;padding:2px 8px;border-radius:8px;font-size:0.9em;'>📊 {tab_conf:.0%}</span>", unsafe_allow_html=True)
                     if content.get('success') and content.get('interventions'):
                         iv = content['interventions']
                         col1, col2, col3 = st.columns(3)
@@ -1091,6 +1189,7 @@ if inventory.get('expansion') or inventory.get('full_usdm'):
                 
                 elif key == 'narrative':
                     st.subheader("Narrative Structure")
+                    st.markdown(f"<span style='background:{conf_color};color:white;padding:2px 8px;border-radius:8px;font-size:0.9em;'>📊 {tab_conf:.0%}</span>", unsafe_allow_html=True)
                     if content.get('success') and content.get('narrative'):
                         narr = content['narrative']
                         col1, col2 = st.columns(2)
@@ -1108,6 +1207,7 @@ if inventory.get('expansion') or inventory.get('full_usdm'):
                 
                 elif key == 'advanced':
                     st.subheader("Advanced Entities")
+                    st.markdown(f"<span style='background:{conf_color};color:white;padding:2px 8px;border-radius:8px;font-size:0.9em;'>📊 {tab_conf:.0%}</span>", unsafe_allow_html=True)
                     if content.get('success') and content.get('advanced'):
                         adv = content['advanced']
                         col1, col2, col3 = st.columns(3)

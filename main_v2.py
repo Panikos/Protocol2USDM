@@ -57,6 +57,15 @@ from extraction.narrative import extract_narrative_structure
 from extraction.narrative.extractor import save_narrative_result
 from extraction.advanced import extract_advanced_entities
 from extraction.advanced.extractor import save_advanced_result
+from extraction.confidence import (
+    calculate_metadata_confidence,
+    calculate_eligibility_confidence,
+    calculate_objectives_confidence,
+    calculate_studydesign_confidence,
+    calculate_interventions_confidence,
+    calculate_narrative_confidence,
+    calculate_advanced_confidence,
+)
 
 
 def run_expansion_phases(
@@ -84,49 +93,77 @@ def run_expansion_phases(
         result = extract_study_metadata(pdf_path, model_name=model)
         save_metadata_result(result, os.path.join(output_dir, "2_study_metadata.json"))
         results['metadata'] = result
-        logger.info(f"  {'✓' if result.success else '✗'} Metadata extraction")
+        if result.success and result.metadata:
+            conf = calculate_metadata_confidence(result.metadata)
+            logger.info(f"  ✓ Metadata extraction (📊 {conf.overall:.0%})")
+        else:
+            logger.info(f"  ✗ Metadata extraction failed")
     
     if phases.get('eligibility'):
         logger.info("\n--- Expansion: Eligibility Criteria (Phase 1) ---")
         result = extract_eligibility_criteria(pdf_path, model_name=model)
         save_eligibility_result(result, os.path.join(output_dir, "3_eligibility_criteria.json"))
         results['eligibility'] = result
-        logger.info(f"  {'✓' if result.success else '✗'} Eligibility extraction")
+        if result.success and result.data:
+            conf = calculate_eligibility_confidence(result.data)
+            logger.info(f"  ✓ Eligibility extraction (📊 {conf.overall:.0%})")
+        else:
+            logger.info(f"  ✗ Eligibility extraction failed")
     
     if phases.get('objectives'):
         logger.info("\n--- Expansion: Objectives & Endpoints (Phase 3) ---")
         result = extract_objectives_endpoints(pdf_path, model_name=model)
         save_objectives_result(result, os.path.join(output_dir, "4_objectives_endpoints.json"))
         results['objectives'] = result
-        logger.info(f"  {'✓' if result.success else '✗'} Objectives extraction")
+        if result.success and result.data:
+            conf = calculate_objectives_confidence(result.data)
+            logger.info(f"  ✓ Objectives extraction (📊 {conf.overall:.0%})")
+        else:
+            logger.info(f"  ✗ Objectives extraction failed")
     
     if phases.get('studydesign'):
         logger.info("\n--- Expansion: Study Design (Phase 4) ---")
         result = extract_study_design(pdf_path, model_name=model)
         save_study_design_result(result, os.path.join(output_dir, "5_study_design.json"))
         results['studydesign'] = result
-        logger.info(f"  {'✓' if result.success else '✗'} Study design extraction")
+        if result.success and result.data:
+            conf = calculate_studydesign_confidence(result.data)
+            logger.info(f"  ✓ Study design extraction (📊 {conf.overall:.0%})")
+        else:
+            logger.info(f"  ✗ Study design extraction failed")
     
     if phases.get('interventions'):
         logger.info("\n--- Expansion: Interventions (Phase 5) ---")
         result = extract_interventions(pdf_path, model_name=model)
         save_interventions_result(result, os.path.join(output_dir, "6_interventions.json"))
         results['interventions'] = result
-        logger.info(f"  {'✓' if result.success else '✗'} Interventions extraction")
+        if result.success and result.data:
+            conf = calculate_interventions_confidence(result.data)
+            logger.info(f"  ✓ Interventions extraction (📊 {conf.overall:.0%})")
+        else:
+            logger.info(f"  ✗ Interventions extraction failed")
     
     if phases.get('narrative'):
         logger.info("\n--- Expansion: Narrative Structure (Phase 7) ---")
         result = extract_narrative_structure(pdf_path, model_name=model)
         save_narrative_result(result, os.path.join(output_dir, "7_narrative_structure.json"))
         results['narrative'] = result
-        logger.info(f"  {'✓' if result.success else '✗'} Narrative extraction")
+        if result.success and result.data:
+            conf = calculate_narrative_confidence(result.data)
+            logger.info(f"  ✓ Narrative extraction (📊 {conf.overall:.0%})")
+        else:
+            logger.info(f"  ✗ Narrative extraction failed")
     
     if phases.get('advanced'):
         logger.info("\n--- Expansion: Advanced Entities (Phase 8) ---")
         result = extract_advanced_entities(pdf_path, model_name=model)
         save_advanced_result(result, os.path.join(output_dir, "8_advanced_entities.json"))
         results['advanced'] = result
-        logger.info(f"  {'✓' if result.success else '✗'} Advanced extraction")
+        if result.success and result.data:
+            conf = calculate_advanced_confidence(result.data)
+            logger.info(f"  ✓ Advanced extraction (📊 {conf.overall:.0%})")
+        else:
+            logger.info(f"  ✗ Advanced extraction failed")
     
     return results
 
