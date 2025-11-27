@@ -39,7 +39,6 @@ logger = logging.getLogger(__name__)
 
 # Import from new modular structure
 from extraction import run_from_files, PipelineConfig, PipelineResult
-from extraction.pipeline import enrich_terminology, validate_schema, run_cdisc_conformance
 from core.constants import DEFAULT_MODEL
 
 # Import expansion modules
@@ -274,13 +273,20 @@ def combine_to_full_usdm(
             if r.data.countries:
                 combined["countries"] = [c.to_dict() for c in r.data.countries]
     
-    # Save combined output
-    output_path = os.path.join(output_dir, "full_usdm.json")
+    # Add computational execution metadata
+    combined["computationalExecution"] = {
+        "ready": True,
+        "supportedSystems": ["EDC", "ePRO", "CTMS", "RTSM"],
+        "validationStatus": "pending",
+    }
+    
+    # Save combined output as protocol_usdm.json (golden standard)
+    output_path = os.path.join(output_dir, "protocol_usdm.json")
     with open(output_path, 'w', encoding='utf-8') as f:
         json.dump(combined, f, indent=2, ensure_ascii=False)
     
     logger.info(f"\n✓ Combined USDM saved to: {output_path}")
-    return combined
+    return combined, output_path
 
 
 def main():
@@ -569,51 +575,66 @@ Examples:
             logger.info(f"\n✓ Expansion phases: {success_count}/{total_count} successful")
         
         # Combine outputs if full-protocol
+        combined_usdm_path = None
         if args.full_protocol or (run_any_expansion and soa_data):
             logger.info("\n" + "="*60)
             logger.info("COMBINING OUTPUTS")
             logger.info("="*60)
-            combine_to_full_usdm(output_dir, soa_data, expansion_results)
+            combined_data, combined_usdm_path = combine_to_full_usdm(output_dir, soa_data, expansion_results)
         
-        # Run post-processing steps if requested (SoA only)
-        if result and result.success and result.output_path:
-            run_enrich = args.enrich or args.full
-            run_validate = args.validate_schema or args.full
-            run_conform = args.conformance or args.full
+        # Determine which output to validate
+        # For full-protocol: validate combined output
+        # For SoA-only: validate SoA output
+        validation_target = combined_usdm_path if combined_usdm_path else (result.output_path if result else None)
+        
+        # Run post-processing steps if requested
+        if validation_target:
+            run_enrich = args.enrich or args.full or args.full_protocol
+            run_validate = args.validate_schema or args.full or args.full_protocol
+            run_conform = args.conformance or args.full or args.full_protocol
             
             if run_enrich:
                 logger.info("\n--- Step 7: Terminology Enrichment ---")
-                enrich_result = enrich_terminology(result.output_path)
-                logger.info(f"Enriched {enrich_result.get('enriched', 0)}/{enrich_result.get('total', 0)} activities")
+                from enrichment.terminology import enrich_terminology as enrich_fn
+                enrich_result = enrich_fn(validation_target)
+                logger.info(f"  Enriched {enrich_result.get('enriched', 0)} entities")
             
             if run_validate:
                 logger.info("\n--- Step 8: Schema Validation ---")
-                schema_result = validate_schema(result.output_path)
+                from validation.schema_validator import validate_schema as validate_fn
+                schema_result = validate_fn(validation_target)
                 if schema_result.get('valid'):
-                    logger.info("✓ Schema validation PASSED")
+                    logger.info(f"  ✓ Schema validation PASSED ({schema_result.get('entityCount', 0)} entities)")
                 else:
-                    logger.warning(f"Schema validation found {len(schema_result.get('issues', []))} issues")
+                    logger.warning(f"  Schema validation found {len(schema_result.get('issues', []))} issues")
                 # Save result
-                schema_path = os.path.join(output_dir, "step8_schema_validation.json")
+                schema_path = os.path.join(output_dir, "schema_validation.json")
                 with open(schema_path, 'w') as f:
                     json.dump(schema_result, f, indent=2)
             
             if run_conform:
                 logger.info("\n--- Step 9: CDISC Conformance ---")
-                conform_result = run_cdisc_conformance(result.output_path, output_dir)
+                from validation.cdisc_conformance import run_cdisc_conformance as conform_fn
+                conform_result = conform_fn(validation_target, output_dir)
                 if conform_result.get('success'):
-                    logger.info(f"✓ Conformance report: {conform_result.get('output')}")
+                    logger.info(f"  ✓ Conformance report: {conform_result.get('output')}")
                 elif conform_result.get('error'):
-                    logger.warning(f"Conformance check skipped: {conform_result.get('error')}")
+                    logger.warning(f"  Conformance check skipped: {conform_result.get('error')}")
+            
+            # Update computational execution status if full protocol
+            if combined_usdm_path and run_validate:
+                with open(combined_usdm_path, 'r') as f:
+                    final_data = json.load(f)
+                final_data["computationalExecution"]["validationStatus"] = "complete" if schema_result.get('valid') else "issues_found"
+                with open(combined_usdm_path, 'w') as f:
+                    json.dump(final_data, f, indent=2, ensure_ascii=False)
         
         # Launch Streamlit viewer if requested
         if args.view:
-            if result and result.success and result.output_path:
+            if combined_usdm_path and os.path.exists(combined_usdm_path):
+                launch_viewer(combined_usdm_path)
+            elif result and result.success and result.output_path:
                 launch_viewer(result.output_path)
-            elif run_any_expansion:
-                full_usdm_path = os.path.join(output_dir, "full_usdm.json")
-                if os.path.exists(full_usdm_path):
-                    launch_viewer(full_usdm_path)
         
         # Determine overall success
         soa_success = result.success if result else True  # If no SoA, consider it OK
@@ -629,8 +650,8 @@ Examples:
         if run_any_expansion:
             exp_success = sum(1 for r in expansion_results.values() if r.success)
             logger.info(f"Expansion: {exp_success}/{len(expansion_results)} phases successful")
-        if args.full_protocol:
-            logger.info(f"Combined output: {output_dir}/full_usdm.json")
+        if combined_usdm_path:
+            logger.info(f"Golden Standard Output: {combined_usdm_path}")
         logger.info("="*60)
         
         sys.exit(0 if overall_success else 1)
