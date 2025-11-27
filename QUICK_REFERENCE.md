@@ -1,6 +1,6 @@
 # Protocol2USDM Quick Reference
 
-**v5.0** | One-page command reference
+**v6.0** | One-page command reference
 
 ---
 
@@ -17,20 +17,33 @@ streamlit run soa_streamlit_viewer.py
 
 ## Common Commands
 
-### Run Pipeline
+### SoA Pipeline
 ```bash
-# Default (GPT-5.1)
-python main_v2.py protocol.pdf
-
-# Specify model
-python main_v2.py protocol.pdf --model gpt-5.1
-python main_v2.py protocol.pdf --model gemini-3-pro-preview
+python main_v2.py protocol.pdf                      # Default extraction
 python main_v2.py protocol.pdf --model gemini-2.5-pro
+python main_v2.py protocol.pdf --full               # With post-processing
+```
 
-# Full pipeline with post-processing
-python main_v2.py protocol.pdf --full
+### Standalone Extractors (v6.0)
+```bash
+# Study Metadata (title, identifiers, sponsor)
+python extract_metadata.py protocol.pdf
 
-# View results
+# Eligibility Criteria (inclusion/exclusion)
+python extract_eligibility.py protocol.pdf
+
+# Objectives & Endpoints
+python extract_objectives.py protocol.pdf
+
+# Study Design (arms, cohorts, blinding)
+python extract_studydesign.py protocol.pdf
+
+# Interventions & Products
+python extract_interventions.py protocol.pdf
+```
+
+### View Results
+```bash
 streamlit run soa_streamlit_viewer.py
 ```
 
@@ -65,11 +78,16 @@ streamlit run soa_streamlit_viewer.py
 
 ```
 output/<protocol>/
-├── 4_header_structure.json    # Table structure
-├── 6_validation_result.json   # Validation details
-├── 9_final_soa.json          ⭐ Main output
-├── 9_final_soa_provenance.json # Source tracking
-└── conformance_report.json    # CORE results
+├── 2_study_metadata.json          # Study identity (Phase 2)
+├── 3_eligibility_criteria.json    # I/E criteria (Phase 1)
+├── 4_objectives_endpoints.json    # Objectives (Phase 3)
+├── 5_study_design.json            # Design structure (Phase 4)
+├── 6_interventions.json           # Products (Phase 5)
+├── 4_header_structure.json        # SoA table structure
+├── 6_validation_result.json       # SoA validation details
+├── 9_final_soa.json              ⭐ Main SoA output
+├── 9_final_soa_provenance.json    # Source tracking
+└── conformance_report.json        # CORE results
 ```
 
 ---
@@ -91,11 +109,19 @@ pytest                              # All tests
 pytest tests/test_pipeline_api.py   # Pipeline tests
 pytest tests/test_llm_providers.py  # Provider tests
 
-# Step-by-step debugging
+# SoA step-by-step debugging
 python test_pipeline_steps.py protocol.pdf --step 3  # Header
 python test_pipeline_steps.py protocol.pdf --step 4  # Text
 python test_pipeline_steps.py protocol.pdf --step 5  # Vision
 python test_pipeline_steps.py protocol.pdf --step 6  # Output
+
+# USDM Expansion steps
+python test_pipeline_steps.py protocol.pdf --step M  # Metadata
+python test_pipeline_steps.py protocol.pdf --step E  # Eligibility
+python test_pipeline_steps.py protocol.pdf --step O  # Objectives
+python test_pipeline_steps.py protocol.pdf --step D  # Study Design
+python test_pipeline_steps.py protocol.pdf --step I  # Interventions
+python test_pipeline_steps.py protocol.pdf --step expand  # All phases
 ```
 
 ---
@@ -130,14 +156,18 @@ CDISC_API_KEY=...            # For CORE (optional)
 
 | File | Purpose |
 |------|---------|
-| `main_v2.py` | Main entry point |
+| `main_v2.py` | SoA extraction pipeline |
+| `extract_metadata.py` | Study metadata extraction |
+| `extract_eligibility.py` | I/E criteria extraction |
+| `extract_objectives.py` | Objectives extraction |
+| `extract_studydesign.py` | Study design extraction |
+| `extract_interventions.py` | Interventions extraction |
 | `soa_streamlit_viewer.py` | Interactive viewer |
 | `test_pipeline_steps.py` | Step-by-step testing |
-| `benchmark_models.py` | Model comparison |
 | `extraction/` | Core extraction modules |
 
 ---
 
-**Docs:** [README.md](README.md) | [USER_GUIDE.md](USER_GUIDE.md)
+**Docs:** [README.md](README.md) | [USER_GUIDE.md](USER_GUIDE.md) | [USDM_EXPANSION_PLAN.md](USDM_EXPANSION_PLAN.md)
 
-**Last Updated:** 2025-11-26
+**Last Updated:** 2025-11-27

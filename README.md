@@ -1,8 +1,8 @@
 # Protocol2USDM
 
-**Extract Schedule of Activities (SoA) from clinical protocol PDFs into USDM v4.0 format**
+**Extract clinical protocol content into USDM v4.0 format**
 
-Protocol2USDM is an automated pipeline that extracts, validates, and structures Schedule of Activities tables from clinical trial protocol PDFs, outputting data conformant to the [CDISC USDM v4.0](https://www.cdisc.org/standards/foundational/usdm) model.
+Protocol2USDM is an automated pipeline that extracts, validates, and structures clinical trial protocol content into data conformant to the [CDISC USDM v4.0](https://www.cdisc.org/standards/foundational/usdm) model.
 
 ---
 
@@ -15,6 +15,17 @@ Protocol2USDM is an automated pipeline that extracts, validates, and structures 
 - **Terminology Enrichment**: Activities enriched with NCI EVS codes
 - **CDISC CORE Validation**: Built-in conformance checking
 - **Interactive Viewer**: Streamlit-based SoA review interface
+
+### Extraction Capabilities (v6.0)
+
+| Module | Entities | CLI Tool |
+|--------|----------|----------|
+| **SoA** | Activity, PlannedTimepoint, Epoch, Encounter | `main_v2.py` |
+| **Metadata** | StudyTitle, StudyIdentifier, Organization, Indication | `extract_metadata.py` |
+| **Eligibility** | EligibilityCriterion, StudyDesignPopulation | `extract_eligibility.py` |
+| **Objectives** | Objective, Endpoint, Estimand | `extract_objectives.py` |
+| **Study Design** | StudyArm, StudyCell, StudyCohort | `extract_studydesign.py` |
+| **Interventions** | StudyIntervention, AdministrableProduct, Substance | `extract_interventions.py` |
 
 ---
 

@@ -1,7 +1,7 @@
 # Protocol2USDM User Guide
 
-**Version:** 5.0  
-**Last Updated:** 2025-11-26
+**Version:** 6.0  
+**Last Updated:** 2025-11-27
 
 ---
 
@@ -9,11 +9,12 @@
 1. [Quick Start](#quick-start)
 2. [Installation](#installation)
 3. [Running the Pipeline](#running-the-pipeline)
-4. [Understanding the Output](#understanding-the-output)
-5. [Using the Viewer](#using-the-viewer)
-6. [Post-Processing Steps](#post-processing-steps)
-7. [Model Selection](#model-selection)
-8. [Troubleshooting](#troubleshooting)
+4. [Standalone Extractors](#standalone-extractors)
+5. [Understanding the Output](#understanding-the-output)
+6. [Using the Viewer](#using-the-viewer)
+7. [Post-Processing Steps](#post-processing-steps)
+8. [Model Selection](#model-selection)
+9. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -135,18 +136,72 @@ python main_v2.py protocol.pdf --full
 
 ---
 
+## Standalone Extractors
+
+In addition to the SoA pipeline, Protocol2USDM provides standalone extractors for other protocol sections.
+
+### Study Metadata (Phase 2)
+Extracts study identity from title page and synopsis.
+```bash
+python extract_metadata.py protocol.pdf
+```
+**Entities:** `StudyTitle`, `StudyIdentifier`, `Organization`, `StudyRole`, `Indication`
+
+### Eligibility Criteria (Phase 1)
+Extracts inclusion and exclusion criteria.
+```bash
+python extract_eligibility.py protocol.pdf
+```
+**Entities:** `EligibilityCriterion`, `EligibilityCriterionItem`, `StudyDesignPopulation`
+
+### Objectives & Endpoints (Phase 3)
+Extracts primary, secondary, exploratory objectives with linked endpoints.
+```bash
+python extract_objectives.py protocol.pdf
+```
+**Entities:** `Objective`, `Endpoint`, `Estimand`, `IntercurrentEvent`
+
+### Study Design Structure (Phase 4)
+Extracts design type, blinding, randomization, arms, cohorts.
+```bash
+python extract_studydesign.py protocol.pdf
+```
+**Entities:** `InterventionalStudyDesign`, `StudyArm`, `StudyCell`, `StudyCohort`
+
+### Interventions & Products (Phase 5)
+Extracts investigational products, dosing regimens, substances.
+```bash
+python extract_interventions.py protocol.pdf
+```
+**Entities:** `StudyIntervention`, `AdministrableProduct`, `Administration`, `Substance`
+
+### Common Options
+All standalone extractors support:
+```bash
+--model, -m        Model to use (default: gemini-2.5-pro)
+--pages, -p        Specific pages to extract from (auto-detected if not specified)
+--output-dir, -o   Output directory
+--verbose, -v      Verbose output
+```
+
+---
+
 ## Understanding the Output
 
 ### Output Directory Structure
 ```
 output/<protocol_name>/
-├── 3_soa_images/                 # Page images
+├── 2_study_metadata.json         # Study identity (Phase 2)
+├── 3_eligibility_criteria.json   # I/E criteria (Phase 1)
+├── 4_objectives_endpoints.json   # Objectives (Phase 3)
+├── 5_study_design.json           # Design structure (Phase 4)
+├── 6_interventions.json          # Products (Phase 5)
+├── 3_soa_images/                 # SoA page images
 │   ├── soa_page_010.png
 │   └── ...
-├── 4_header_structure.json       # Extracted table structure
-├── 5_raw_text_soa.json          # Raw text extraction (internal)
-├── 6_validation_result.json      # Validation details
-├── 9_final_soa.json             # ⭐ FINAL OUTPUT
+├── 4_header_structure.json       # SoA table structure
+├── 6_validation_result.json      # SoA validation details
+├── 9_final_soa.json             # ⭐ FINAL SoA OUTPUT
 ├── 9_final_soa_provenance.json   # Source tracking
 ├── step8_schema_validation.json  # Schema validation results
 └── conformance_report.json       # CORE conformance report

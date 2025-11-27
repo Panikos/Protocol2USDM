@@ -5,10 +5,18 @@ Step-by-Step Pipeline Testing Script
 Tests each module of the extraction pipeline independently,
 allowing quality inspection at each stage.
 
-Usage:
-    python test_pipeline_steps.py input/EliLilly_NCT03421379_Diabetes.pdf --step 1
-    python test_pipeline_steps.py input/EliLilly_NCT03421379_Diabetes.pdf --step 2 --pages 45,46,47
-    python test_pipeline_steps.py input/EliLilly_NCT03421379_Diabetes.pdf --step all
+Usage - SoA Pipeline (Steps 1-9):
+    python test_pipeline_steps.py protocol.pdf --step 1        # Find SoA pages
+    python test_pipeline_steps.py protocol.pdf --step 3        # Header analysis
+    python test_pipeline_steps.py protocol.pdf --step all      # All SoA steps
+
+Usage - USDM Expansion (Steps M/E/O/D/I):
+    python test_pipeline_steps.py protocol.pdf --step M        # Metadata
+    python test_pipeline_steps.py protocol.pdf --step E        # Eligibility
+    python test_pipeline_steps.py protocol.pdf --step O        # Objectives
+    python test_pipeline_steps.py protocol.pdf --step D        # Study Design
+    python test_pipeline_steps.py protocol.pdf --step I        # Interventions
+    python test_pipeline_steps.py protocol.pdf --step expand   # All expansion phases
 """
 
 import argparse
@@ -873,10 +881,224 @@ def step9_cdisc_conformance(pdf_path: str, output_dir: str) -> dict:
         return {"step": 9, "error": str(e)}
 
 
+# ============================================================================
+# USDM EXPANSION STEPS (v6.0)
+# ============================================================================
+
+def step_metadata(pdf_path: str, output_dir: str, model: str = "gemini-2.5-pro") -> dict:
+    """
+    STEP M: Extract Study Metadata
+    
+    Tests: extraction/metadata/extractor.py
+    Extracts: StudyTitle, StudyIdentifier, Organization, StudyRole, Indication
+    """
+    print("\n" + "=" * 60)
+    print("STEP M: Study Metadata Extraction (Phase 2)")
+    print("=" * 60)
+    
+    from extraction.metadata import extract_study_metadata
+    from extraction.metadata.extractor import save_metadata_result
+    
+    print(f"Extracting metadata with {model}...")
+    result = extract_study_metadata(pdf_path, model_name=model)
+    
+    output_path = Path(output_dir) / "2_study_metadata.json"
+    save_metadata_result(result, str(output_path))
+    
+    if result.success and result.metadata:
+        md = result.metadata
+        print(f"\n✓ Titles: {len(md.titles)}")
+        print(f"✓ Identifiers: {len(md.identifiers)}")
+        print(f"✓ Organizations: {len(md.organizations)}")
+        if md.study_phase:
+            print(f"✓ Phase: {md.study_phase.phase}")
+        if md.indications:
+            print(f"✓ Indication: {md.indications[0].name}")
+    else:
+        print(f"❌ Failed: {result.error}")
+    
+    print(f"\n✓ Saved to: {output_path}")
+    return {"step": "M", "success": result.success}
+
+
+def step_eligibility(pdf_path: str, output_dir: str, model: str = "gemini-2.5-pro") -> dict:
+    """
+    STEP E: Extract Eligibility Criteria
+    
+    Tests: extraction/eligibility/extractor.py
+    Extracts: EligibilityCriterion, EligibilityCriterionItem, StudyDesignPopulation
+    """
+    print("\n" + "=" * 60)
+    print("STEP E: Eligibility Criteria Extraction (Phase 1)")
+    print("=" * 60)
+    
+    from extraction.eligibility import extract_eligibility_criteria
+    from extraction.eligibility.extractor import save_eligibility_result
+    
+    print(f"Extracting eligibility criteria with {model}...")
+    result = extract_eligibility_criteria(pdf_path, model_name=model)
+    
+    output_path = Path(output_dir) / "3_eligibility_criteria.json"
+    save_eligibility_result(result, str(output_path))
+    
+    if result.success and result.data:
+        data = result.data
+        print(f"\n✓ Inclusion Criteria: {data.inclusion_count}")
+        print(f"✓ Exclusion Criteria: {data.exclusion_count}")
+        if data.population:
+            print(f"✓ Population defined: Yes")
+    else:
+        print(f"❌ Failed: {result.error}")
+    
+    print(f"\n✓ Saved to: {output_path}")
+    return {"step": "E", "success": result.success}
+
+
+def step_objectives(pdf_path: str, output_dir: str, model: str = "gemini-2.5-pro") -> dict:
+    """
+    STEP O: Extract Objectives & Endpoints
+    
+    Tests: extraction/objectives/extractor.py
+    Extracts: Objective, Endpoint, Estimand, IntercurrentEvent
+    """
+    print("\n" + "=" * 60)
+    print("STEP O: Objectives & Endpoints Extraction (Phase 3)")
+    print("=" * 60)
+    
+    from extraction.objectives import extract_objectives_endpoints
+    from extraction.objectives.extractor import save_objectives_result
+    
+    print(f"Extracting objectives with {model}...")
+    result = extract_objectives_endpoints(pdf_path, model_name=model)
+    
+    output_path = Path(output_dir) / "4_objectives_endpoints.json"
+    save_objectives_result(result, str(output_path))
+    
+    if result.success and result.data:
+        data = result.data
+        print(f"\n✓ Primary Objectives: {data.primary_objectives_count}")
+        print(f"✓ Secondary Objectives: {data.secondary_objectives_count}")
+        print(f"✓ Exploratory Objectives: {data.exploratory_objectives_count}")
+        print(f"✓ Total Endpoints: {len(data.endpoints)}")
+    else:
+        print(f"❌ Failed: {result.error}")
+    
+    print(f"\n✓ Saved to: {output_path}")
+    return {"step": "O", "success": result.success}
+
+
+def step_studydesign(pdf_path: str, output_dir: str, model: str = "gemini-2.5-pro") -> dict:
+    """
+    STEP D: Extract Study Design Structure
+    
+    Tests: extraction/studydesign/extractor.py
+    Extracts: InterventionalStudyDesign, StudyArm, StudyCell, StudyCohort
+    """
+    print("\n" + "=" * 60)
+    print("STEP D: Study Design Extraction (Phase 4)")
+    print("=" * 60)
+    
+    from extraction.studydesign import extract_study_design
+    from extraction.studydesign.extractor import save_study_design_result
+    
+    print(f"Extracting study design with {model}...")
+    result = extract_study_design(pdf_path, model_name=model)
+    
+    output_path = Path(output_dir) / "5_study_design.json"
+    save_study_design_result(result, str(output_path))
+    
+    if result.success and result.data:
+        data = result.data
+        print(f"\n✓ Study Arms: {len(data.arms)}")
+        print(f"✓ Study Cohorts: {len(data.cohorts)}")
+        if data.study_design:
+            sd = data.study_design
+            if sd.blinding_schema:
+                print(f"✓ Blinding: {sd.blinding_schema.value}")
+            if sd.randomization_type:
+                print(f"✓ Randomization: {sd.randomization_type.value}")
+    else:
+        print(f"❌ Failed: {result.error}")
+    
+    print(f"\n✓ Saved to: {output_path}")
+    return {"step": "D", "success": result.success}
+
+
+def step_interventions(pdf_path: str, output_dir: str, model: str = "gemini-2.5-pro") -> dict:
+    """
+    STEP I: Extract Interventions & Products
+    
+    Tests: extraction/interventions/extractor.py
+    Extracts: StudyIntervention, AdministrableProduct, Administration, Substance
+    """
+    print("\n" + "=" * 60)
+    print("STEP I: Interventions & Products Extraction (Phase 5)")
+    print("=" * 60)
+    
+    from extraction.interventions import extract_interventions
+    from extraction.interventions.extractor import save_interventions_result
+    
+    print(f"Extracting interventions with {model}...")
+    result = extract_interventions(pdf_path, model_name=model)
+    
+    output_path = Path(output_dir) / "6_interventions.json"
+    save_interventions_result(result, str(output_path))
+    
+    if result.success and result.data:
+        data = result.data
+        print(f"\n✓ Interventions: {len(data.interventions)}")
+        print(f"✓ Products: {len(data.products)}")
+        print(f"✓ Administrations: {len(data.administrations)}")
+        print(f"✓ Substances: {len(data.substances)}")
+    else:
+        print(f"❌ Failed: {result.error}")
+    
+    print(f"\n✓ Saved to: {output_path}")
+    return {"step": "I", "success": result.success}
+
+
+def step_all_expansion(pdf_path: str, output_dir: str, model: str = "gemini-2.5-pro") -> dict:
+    """
+    Run all USDM expansion steps (Phases 1-5).
+    """
+    print("\n" + "=" * 60)
+    print("RUNNING ALL USDM EXPANSION STEPS")
+    print("=" * 60)
+    
+    results = {}
+    results["metadata"] = step_metadata(pdf_path, output_dir, model)
+    results["eligibility"] = step_eligibility(pdf_path, output_dir, model)
+    results["objectives"] = step_objectives(pdf_path, output_dir, model)
+    results["studydesign"] = step_studydesign(pdf_path, output_dir, model)
+    results["interventions"] = step_interventions(pdf_path, output_dir, model)
+    
+    success_count = sum(1 for r in results.values() if r.get("success"))
+    print(f"\n{'='*60}")
+    print(f"EXPANSION COMPLETE: {success_count}/5 steps successful")
+    print(f"{'='*60}")
+    
+    return results
+
+
 def main():
-    parser = argparse.ArgumentParser(description="Step-by-step pipeline testing")
+    parser = argparse.ArgumentParser(
+        description="Step-by-step pipeline testing",
+        epilog="""
+Step Options:
+  SoA Pipeline: 1-9 (or 'all' for all SoA steps)
+  USDM Expansion: M (metadata), E (eligibility), O (objectives), D (design), I (interventions)
+  Run all expansion: 'expand'
+  
+Examples:
+  python test_pipeline_steps.py protocol.pdf --step 3        # Header analysis
+  python test_pipeline_steps.py protocol.pdf --step E        # Eligibility
+  python test_pipeline_steps.py protocol.pdf --step expand   # All expansion phases
+        """,
+        formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     parser.add_argument("pdf", help="Path to protocol PDF")
-    parser.add_argument("--step", default="all", help="Step to run (1-9 or 'all')")
+    parser.add_argument("--step", default="all", 
+                        help="Step: 1-9 (SoA), M/E/O/D/I (expansion), 'all', or 'expand'")
     parser.add_argument("--pages", help="Comma-separated page numbers (1-indexed)")
     parser.add_argument("--model", default="gemini-2.5-pro", help="Model to use")
     parser.add_argument("--output", help="Output directory")
@@ -907,10 +1129,15 @@ def main():
         print(f"Pages: {[p+1 for p in pages]} (1-indexed)")
     
     # Run requested steps
-    if args.step == "all":
+    step_arg = args.step.upper()
+    
+    if step_arg == "ALL":
         steps = ["1", "2", "3", "4", "5", "6", "7", "8", "9"]
+    elif step_arg == "EXPAND":
+        step_all_expansion(args.pdf, output_dir, args.model)
+        return
     else:
-        steps = [args.step]
+        steps = [step_arg]
     
     for step in steps:
         if step == "1":
@@ -931,8 +1158,23 @@ def main():
             step8_validate_schema(args.pdf, output_dir)
         elif step == "9":
             step9_cdisc_conformance(args.pdf, output_dir)
+        # USDM Expansion steps
+        elif step == "M":
+            step_metadata(args.pdf, output_dir, args.model)
+        elif step == "E":
+            step_eligibility(args.pdf, output_dir, args.model)
+        elif step == "O":
+            step_objectives(args.pdf, output_dir, args.model)
+        elif step == "D":
+            step_studydesign(args.pdf, output_dir, args.model)
+        elif step == "I":
+            step_interventions(args.pdf, output_dir, args.model)
+        else:
+            print(f"Unknown step: {step}")
+            print("Valid steps: 1-9 (SoA), M/E/O/D/I (expansion), 'all', 'expand'")
+            continue
         
-        if args.step != "all":
+        if args.step.upper() not in ["ALL", "EXPAND"]:
             print("\n" + "="*60)
             print("Step complete. Review output before proceeding to next step.")
             print("="*60)

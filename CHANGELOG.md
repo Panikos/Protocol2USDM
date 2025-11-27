@@ -4,6 +4,76 @@ All notable changes documented here. Dates in ISO-8601.
 
 ---
 
+## [6.0] – 2025-11-27
+
+### USDM Expansion - Beyond SoA
+
+Major expansion to extract full protocol content beyond Schedule of Activities.
+
+#### New Extraction Modules (Phases 1-5)
+
+* **Phase 1: Eligibility Criteria** (`extraction/eligibility/`)
+  - Extracts inclusion and exclusion criteria
+  - Auto-detects eligibility pages using keyword heuristics
+  - USDM entities: `EligibilityCriterion`, `EligibilityCriterionItem`, `StudyDesignPopulation`
+  - CLI: `python extract_eligibility.py protocol.pdf`
+
+* **Phase 2: Study Metadata** (`extraction/metadata/`)
+  - Extracts study identity from title page and synopsis
+  - USDM entities: `StudyTitle`, `StudyIdentifier`, `Organization`, `StudyRole`, `Indication`
+  - CLI: `python extract_metadata.py protocol.pdf`
+
+* **Phase 3: Objectives & Endpoints** (`extraction/objectives/`)
+  - Extracts primary, secondary, exploratory objectives with linked endpoints
+  - Supports ICH E9(R1) Estimand framework
+  - USDM entities: `Objective`, `Endpoint`, `Estimand`, `IntercurrentEvent`
+  - CLI: `python extract_objectives.py protocol.pdf`
+
+* **Phase 4: Study Design Structure** (`extraction/studydesign/`)
+  - Extracts design type, blinding, randomization, arms, cohorts
+  - USDM entities: `InterventionalStudyDesign`, `StudyArm`, `StudyCell`, `StudyCohort`
+  - CLI: `python extract_studydesign.py protocol.pdf`
+
+* **Phase 5: Interventions & Products** (`extraction/interventions/`)
+  - Extracts investigational products, dosing regimens, substances
+  - USDM entities: `StudyIntervention`, `AdministrableProduct`, `Administration`, `Substance`
+  - CLI: `python extract_interventions.py protocol.pdf`
+
+#### New Core Utilities
+
+* `core/pdf_utils.py` – PDF text/image extraction utilities
+* `core/llm_client.py` – Added `call_llm()` and `call_llm_with_image()` convenience functions
+
+#### Output Files
+
+New standalone extraction outputs:
+```
+output/<protocol>/
+├── 2_study_metadata.json          # Phase 2
+├── 3_eligibility_criteria.json    # Phase 1  
+├── 4_objectives_endpoints.json    # Phase 3
+├── 5_study_design.json            # Phase 4
+├── 6_interventions.json           # Phase 5
+└── 9_final_soa.json              # Existing SoA
+```
+
+#### Documentation
+
+* `USDM_EXPANSION_PLAN.md` – 8-phase roadmap for full USDM v4.0 coverage
+* Updated README, USER_GUIDE, QUICK_REFERENCE with new capabilities
+
+---
+
+## [5.1] – 2025-11-26
+
+### Orphan Activity Recovery & Hierarchical Output
+
+* Added orphan activity detection and vision-assisted recovery
+* Added hierarchical USDM output (`9_final_soa_hierarchical.json`)
+* Simplified provenance colors (consolidated `vision_suggested` into `needs_review`)
+
+---
+
 ## [5.0] – 2025-11-26
 
 ### Major Refactor
