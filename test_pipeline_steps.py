@@ -900,6 +900,7 @@ def step_metadata(pdf_path: str, output_dir: str, model: str = "gemini-2.5-pro")
     
     from extraction.metadata import extract_study_metadata
     from extraction.metadata.extractor import save_metadata_result
+    from extraction.confidence import calculate_metadata_confidence
     
     print(f"Extracting metadata with {model}...")
     result = extract_study_metadata(pdf_path, model_name=model)
@@ -916,6 +917,10 @@ def step_metadata(pdf_path: str, output_dir: str, model: str = "gemini-2.5-pro")
             print(f"✓ Phase: {md.study_phase.phase}")
         if md.indications:
             print(f"✓ Indication: {md.indications[0].name}")
+        
+        # Calculate confidence
+        confidence = calculate_metadata_confidence(md)
+        print(f"📊 Confidence: {confidence.overall:.0%}")
     else:
         print(f"❌ Failed: {result.error}")
     
@@ -936,6 +941,7 @@ def step_eligibility(pdf_path: str, output_dir: str, model: str = "gemini-2.5-pr
     
     from extraction.eligibility import extract_eligibility_criteria
     from extraction.eligibility.extractor import save_eligibility_result
+    from extraction.confidence import calculate_eligibility_confidence
     
     print(f"Extracting eligibility criteria with {model}...")
     result = extract_eligibility_criteria(pdf_path, model_name=model)
@@ -949,6 +955,10 @@ def step_eligibility(pdf_path: str, output_dir: str, model: str = "gemini-2.5-pr
         print(f"✓ Exclusion Criteria: {data.exclusion_count}")
         if data.population:
             print(f"✓ Population defined: Yes")
+        
+        # Calculate confidence
+        confidence = calculate_eligibility_confidence(data)
+        print(f"📊 Confidence: {confidence.overall:.0%}")
     else:
         print(f"❌ Failed: {result.error}")
     
@@ -982,6 +992,11 @@ def step_objectives(pdf_path: str, output_dir: str, model: str = "gemini-2.5-pro
         print(f"✓ Secondary Objectives: {data.secondary_objectives_count}")
         print(f"✓ Exploratory Objectives: {data.exploratory_objectives_count}")
         print(f"✓ Total Endpoints: {len(data.endpoints)}")
+        
+        # Calculate confidence
+        from extraction.confidence import calculate_objectives_confidence
+        confidence = calculate_objectives_confidence(data)
+        print(f"📊 Confidence: {confidence.overall:.0%}")
     else:
         print(f"❌ Failed: {result.error}")
     
@@ -1002,6 +1017,7 @@ def step_studydesign(pdf_path: str, output_dir: str, model: str = "gemini-2.5-pr
     
     from extraction.studydesign import extract_study_design
     from extraction.studydesign.extractor import save_study_design_result
+    from extraction.confidence import calculate_studydesign_confidence
     
     print(f"Extracting study design with {model}...")
     result = extract_study_design(pdf_path, model_name=model)
@@ -1019,6 +1035,10 @@ def step_studydesign(pdf_path: str, output_dir: str, model: str = "gemini-2.5-pr
                 print(f"✓ Blinding: {sd.blinding_schema.value}")
             if sd.randomization_type:
                 print(f"✓ Randomization: {sd.randomization_type.value}")
+        
+        # Calculate confidence
+        confidence = calculate_studydesign_confidence(data)
+        print(f"📊 Confidence: {confidence.overall:.0%}")
     else:
         print(f"❌ Failed: {result.error}")
     
@@ -1039,6 +1059,7 @@ def step_interventions(pdf_path: str, output_dir: str, model: str = "gemini-2.5-
     
     from extraction.interventions import extract_interventions
     from extraction.interventions.extractor import save_interventions_result
+    from extraction.confidence import calculate_interventions_confidence
     
     print(f"Extracting interventions with {model}...")
     result = extract_interventions(pdf_path, model_name=model)
@@ -1052,6 +1073,10 @@ def step_interventions(pdf_path: str, output_dir: str, model: str = "gemini-2.5-
         print(f"✓ Products: {len(data.products)}")
         print(f"✓ Administrations: {len(data.administrations)}")
         print(f"✓ Substances: {len(data.substances)}")
+        
+        # Calculate confidence
+        confidence = calculate_interventions_confidence(data)
+        print(f"📊 Confidence: {confidence.overall:.0%}")
     else:
         print(f"❌ Failed: {result.error}")
     
@@ -1072,6 +1097,7 @@ def step_narrative(pdf_path: str, output_dir: str, model: str = "gemini-2.5-pro"
     
     from extraction.narrative import extract_narrative_structure
     from extraction.narrative.extractor import save_narrative_result
+    from extraction.confidence import calculate_narrative_confidence
     
     print(f"Extracting narrative structure with {model}...")
     result = extract_narrative_structure(pdf_path, model_name=model)
@@ -1085,6 +1111,10 @@ def step_narrative(pdf_path: str, output_dir: str, model: str = "gemini-2.5-pro"
         print(f"✓ Abbreviations: {len(data.abbreviations)}")
         if data.document:
             print(f"✓ Document: {data.document.name[:50]}...")
+        
+        # Calculate confidence
+        confidence = calculate_narrative_confidence(data)
+        print(f"📊 Confidence: {confidence.overall:.0%}")
     else:
         print(f"❌ Failed: {result.error}")
     
@@ -1105,6 +1135,7 @@ def step_advanced(pdf_path: str, output_dir: str, model: str = "gemini-2.5-pro")
     
     from extraction.advanced import extract_advanced_entities
     from extraction.advanced.extractor import save_advanced_result
+    from extraction.confidence import calculate_advanced_confidence
     
     print(f"Extracting advanced entities with {model}...")
     result = extract_advanced_entities(pdf_path, model_name=model)
@@ -1117,6 +1148,10 @@ def step_advanced(pdf_path: str, output_dir: str, model: str = "gemini-2.5-pro")
         print(f"\n✓ Amendments: {len(data.amendments)}")
         print(f"✓ Countries: {len(data.countries)}")
         print(f"✓ Sites: {len(data.sites)}")
+        
+        # Calculate confidence
+        confidence = calculate_advanced_confidence(data)
+        print(f"📊 Confidence: {confidence.overall:.0%}")
     else:
         print(f"❌ Failed: {result.error}")
     

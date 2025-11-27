@@ -284,7 +284,9 @@ def _parse_metadata_response(raw: Dict[str, Any]) -> Optional[StudyMetadata]:
 
 def _map_title_type(type_str: str) -> TitleType:
     """Map string to TitleType enum."""
-    type_lower = type_str.lower()
+    if not type_str:
+        return TitleType.OFFICIAL
+    type_lower = str(type_str).lower()
     if 'brief' in type_lower or 'short' in type_lower:
         return TitleType.BRIEF
     elif 'acronym' in type_lower:
@@ -298,7 +300,9 @@ def _map_title_type(type_str: str) -> TitleType:
 
 def _map_org_type(type_str: str) -> OrganizationType:
     """Map string to OrganizationType enum."""
-    type_lower = type_str.lower()
+    if not type_str:
+        return OrganizationType.PHARMACEUTICAL_COMPANY
+    type_lower = str(type_str).lower()
     if 'cro' in type_lower or 'contract' in type_lower:
         return OrganizationType.CRO
     elif 'academ' in type_lower or 'university' in type_lower:
@@ -320,7 +324,9 @@ def _map_org_type(type_str: str) -> OrganizationType:
 
 def _map_role_code(role_str: str) -> StudyRoleCode:
     """Map string to StudyRoleCode enum."""
-    role_lower = role_str.lower()
+    if not role_str:
+        return StudyRoleCode.SPONSOR
+    role_lower = str(role_str).lower()
     if 'co-sponsor' in role_lower or 'cosponsor' in role_lower:
         return StudyRoleCode.CO_SPONSOR
     elif 'local sponsor' in role_lower:
