@@ -43,20 +43,20 @@
       {
         "id": "pop_1",
         "name": "Screened Set",
-        "populationType": "Disposition",
+        "populationType": "All Subjects",
         "instanceType": "AnalysisPopulation",
         "label": "SCR",
-        "description": "Population defined in Section 6.1 of the SAP",
-        "criteria": "Defined in Section 6.1"
+        "description": "Population defined in Section 6.1 of the SAP.",
+        "criteria": "Referenced in Table of Contents Section 6.1"
       },
       {
         "id": "pop_2",
         "name": "Enrolled Set",
-        "populationType": "Disposition",
+        "populationType": "Enrolled",
         "instanceType": "AnalysisPopulation",
         "label": "ENR",
-        "description": "Population defined in Section 6.2 of the SAP",
-        "criteria": "Defined in Section 6.2"
+        "description": "Population defined in Section 6.2 of the SAP.",
+        "criteria": "Referenced in Table of Contents Section 6.2"
       },
       {
         "id": "pop_3",
@@ -64,17 +64,17 @@
         "populationType": "Efficacy",
         "instanceType": "AnalysisPopulation",
         "label": "FAS",
-        "description": "Population defined in Section 6.3 of the SAP",
-        "criteria": "Defined in Section 6.3"
+        "description": "Population defined in Section 6.3 of the SAP.",
+        "criteria": "Referenced in Table of Contents Section 6.3"
       },
       {
         "id": "pop_4",
         "name": "Per Protocol Set",
         "populationType": "Efficacy",
         "instanceType": "AnalysisPopulation",
-        "label": "PP",
-        "description": "Population defined in Section 6.4 of the SAP",
-        "criteria": "Defined in Section 6.4"
+        "label": "PPS",
+        "description": "Population defined in Section 6.4 of the SAP. Sensitivity analysis performed if N >= 3.",
+        "criteria": "Referenced in Table of Contents Section 6.4 and Section 4.2"
       },
       {
         "id": "pop_5",
@@ -82,8 +82,8 @@
         "populationType": "Safety",
         "instanceType": "AnalysisPopulation",
         "label": "SAF",
-        "description": "Population defined in Section 6.5 of the SAP",
-        "criteria": "Defined in Section 6.5"
+        "description": "Population defined in Section 6.5 of the SAP.",
+        "criteria": "Referenced in Table of Contents Section 6.5"
       },
       {
         "id": "pop_6",
@@ -91,8 +91,8 @@
         "populationType": "PK",
         "instanceType": "AnalysisPopulation",
         "label": "PK",
-        "description": "Population defined in Section 6.6 of the SAP",
-        "criteria": "Defined in Section 6.6"
+        "description": "Population defined in Section 6.6 of the SAP.",
+        "criteria": "Referenced in Table of Contents Section 6.6"
       },
       {
         "id": "pop_7",
@@ -100,8 +100,8 @@
         "populationType": "PD",
         "instanceType": "AnalysisPopulation",
         "label": "PD",
-        "description": "Population defined in Section 6.7 of the SAP",
-        "criteria": "Defined in Section 6.7"
+        "description": "Population defined in Section 6.7 of the SAP.",
+        "criteria": "Referenced in Table of Contents Section 6.7"
       }
     ],
     "characteristics": [
@@ -110,35 +110,35 @@
         "name": "Demographics",
         "dataType": "Categorical/Numeric",
         "instanceType": "Characteristic",
-        "description": "Demographic characteristics as defined in Section 7.1.3.1"
+        "description": "Demographic data as referenced in Section 7.1.3.1"
       },
       {
         "id": "char_2",
-        "name": "Age",
-        "dataType": "Numeric",
+        "name": "Baseline Disease Characteristics",
+        "dataType": "Categorical/Numeric",
         "instanceType": "Characteristic",
-        "description": "Participant age (referenced in Table 2)"
+        "description": "Disease characteristics at baseline as referenced in Section 7.1.3.2"
       },
       {
         "id": "char_3",
-        "name": "Baseline Disease Characteristics",
-        "dataType": "Categorical",
-        "instanceType": "Characteristic",
-        "description": "Disease characteristics including Wilson Disease history"
-      },
-      {
-        "id": "char_4",
         "name": "Medical/Surgical History",
         "dataType": "Categorical",
         "instanceType": "Characteristic",
-        "description": "General medical and surgical history"
+        "description": "Medical and surgical history as referenced in Section 7.1.3.3"
+      },
+      {
+        "id": "char_4",
+        "name": "Wilson Disease History",
+        "dataType": "Categorical",
+        "instanceType": "Characteristic",
+        "description": "Specific history regarding Wilson Disease diagnosis and status"
       },
       {
         "id": "char_5",
-        "name": "Prior medications used to treat WD",
+        "name": "Prior Medications",
         "dataType": "Categorical",
         "instanceType": "Characteristic",
-        "description": "Prior medications specifically used to treat Wilson Disease"
+        "description": "Prior medications/therapies, including those used to treat WD"
       },
       {
         "id": "char_6",
@@ -153,11 +153,18 @@
         "dataType": "Numeric",
         "instanceType": "Characteristic",
         "description": "Pretreatment molybdenum balance measured Day -4 through Day -1"
+      },
+      {
+        "id": "char_8",
+        "name": "Treatment Cohort Status",
+        "dataType": "Categorical",
+        "instanceType": "Characteristic",
+        "description": "Classification as Cohort 1 (Treatment experienced > 28 days) or Cohort 2 (Treatment naïve <= 28 days)"
       }
     ],
     "summary": {
       "populationCount": 7,
-      "characteristicCount": 7
+      "characteristicCount": 8
     }
   }
 }

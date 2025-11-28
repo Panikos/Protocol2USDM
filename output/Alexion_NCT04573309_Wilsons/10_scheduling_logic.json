@@ -30,7 +30,9 @@
         "unit": "days",
         "instanceType": "Timing",
         "value": 21,
-        "relativeTo": "First Dose"
+        "relativeTo": "First Dose",
+        "windowLower": 0,
+        "windowUpper": 0
       },
       {
         "id": "timing_exp_washout",
@@ -39,7 +41,9 @@
         "unit": "days",
         "instanceType": "Timing",
         "value": 90,
-        "relativeTo": "Screening"
+        "relativeTo": "Screening",
+        "windowLower": 0,
+        "windowUpper": 0
       },
       {
         "id": "timing_rx_washout",
@@ -48,20 +52,31 @@
         "unit": "days",
         "instanceType": "Timing",
         "value": 14,
-        "relativeTo": "Randomization"
+        "relativeTo": "Study Start",
+        "windowLower": 0,
+        "windowUpper": 0
       },
       {
-        "id": "timing_otc_washout",
-        "name": "OTC Medication Washout",
-        "type": "Before",
+        "id": "timing_run_in",
+        "name": "Run-in Period",
+        "type": "Between",
         "unit": "days",
         "instanceType": "Timing",
-        "value": 7,
-        "relativeTo": "Randomization"
+        "value": 3,
+        "relativeTo": "Study Start"
+      },
+      {
+        "id": "timing_baseline_coll",
+        "name": "Baseline Collection Period",
+        "type": "Between",
+        "unit": "days",
+        "instanceType": "Timing",
+        "value": 4,
+        "relativeTo": "Study Start"
       },
       {
         "id": "timing_eos_visit",
-        "name": "End of Study Visit Window",
+        "name": "End of Study Visit",
         "type": "At",
         "unit": "days",
         "instanceType": "Timing",
@@ -71,7 +86,7 @@
         "windowUpper": 2
       },
       {
-        "id": "timing_outpatient_dosing",
+        "id": "timing_dosing_window",
         "name": "Outpatient Dosing Window",
         "type": "At",
         "unit": "hours",
@@ -82,17 +97,26 @@
         "windowUpper": 1
       },
       {
+        "id": "timing_fasting",
+        "name": "Dosing Fasting Requirement",
+        "type": "Before",
+        "unit": "hours",
+        "instanceType": "Timing",
+        "value": 10,
+        "relativeTo": "First Dose"
+      },
+      {
         "id": "timing_meal_delay",
-        "name": "Post-Dose Fasting",
+        "name": "Post-Dose Meal Delay",
         "type": "After",
         "unit": "hours",
         "instanceType": "Timing",
         "value": 2,
-        "relativeTo": "Last Dose"
+        "relativeTo": "First Dose"
       },
       {
-        "id": "timing_preg_test_freq",
-        "name": "Pregnancy Testing Frequency",
+        "id": "timing_preg_test",
+        "name": "Urine Pregnancy Test Interval",
         "type": "Within",
         "unit": "weeks",
         "instanceType": "Timing",
@@ -102,46 +126,39 @@
     ],
     "conditions": [
       {
-        "id": "cond_renal_exclusion",
-        "name": "Renal Failure Exclusion",
+        "id": "cond_renal_excl",
+        "name": "Renal Exclusion",
         "instanceType": "Condition",
-        "description": "Exclusion criteria based on renal function",
-        "text": "End-stage renal disease on dialysis (chronic kidney disease [CKD] stage 5) or creatinine clearance < 30 mL/min"
+        "description": "Exclusion criteria for renal function",
+        "text": "Creatinine clearance < 30 mL/min or end-stage renal disease"
       },
       {
-        "id": "cond_alcohol_abuse",
-        "name": "Alcohol Abuse Exclusion",
+        "id": "cond_alcohol_limit",
+        "name": "Alcohol Limit",
         "instanceType": "Condition",
-        "description": "Exclusion criteria based on alcohol consumption",
+        "description": "Exclusion criteria for alcohol consumption",
         "text": "Regular weekly intake of more than 14 units"
       },
       {
-        "id": "cond_neutrophil_safety",
-        "name": "Neutrophil Safety Threshold",
+        "id": "cond_safety_heme",
+        "name": "Hematology Safety Trigger",
         "instanceType": "Condition",
-        "description": "Safety trigger for dose interruption",
-        "text": "Neutrophils < 1.0 x 10^9/L"
-      },
-      {
-        "id": "cond_liver_safety",
-        "name": "Liver Safety Threshold",
-        "instanceType": "Condition",
-        "description": "Safety trigger for dose interruption (Hy's Law indicators)",
-        "text": "Bilirubin > 2 x ULN Accompanied by ALT > 3 x ULN"
-      },
-      {
-        "id": "cond_heme_drop",
-        "name": "Hematology Drop Threshold",
-        "instanceType": "Condition",
-        "description": "Safety trigger for dose reduction",
+        "description": "Trigger for dose reduction based on hematology",
         "text": "Hemoglobin or Platelets > 30% decrease from baseline"
       },
       {
-        "id": "cond_src_review",
-        "name": "SRC Review Requirement",
+        "id": "cond_safety_liver",
+        "name": "Liver Safety Trigger",
         "instanceType": "Condition",
-        "description": "Condition for dose titration",
-        "text": "Safety Review Committee (SRC) will review available safety data through Day 23 for each participant"
+        "description": "Trigger for dosing interruption based on liver function",
+        "text": "Bilirubin > 2x ULN AND ALT > 3x ULN"
+      },
+      {
+        "id": "cond_safety_neuro",
+        "name": "Neurologic Worsening",
+        "instanceType": "Condition",
+        "description": "Trigger for dose evaluation",
+        "text": "Evidence of neurologic worsening by AEs or physical exam"
       }
     ],
     "conditionAssignments": [],
@@ -151,117 +168,85 @@
         "name": "Dose Titration to 30mg",
         "instanceType": "TransitionRule",
         "transitionType": "Dose Modification",
-        "fromElementId": "dose_15mg",
-        "toElementId": "dose_30mg",
-        "text": "Titration up to 30 mg/day on Day 29. Before titration to 30 mg/day, the Safety Review Committee (SRC) will review available safety data"
+        "text": "Increase to 30 mg/day on Day 29 following SRC review of safety data through Day 23"
       },
       {
-        "id": "trans_dose_reduction_heme",
-        "name": "Dose Reduction for Hematology",
+        "id": "trans_dose_reduce_heme",
+        "name": "Hematology Dose Reduction",
         "instanceType": "TransitionRule",
         "transitionType": "Dose Modification",
-        "text": "Reduce dose to previous dose level if up-titration has occurred or reduce dose to 15 mg QOD if on 15 mg QD. No further dose increase until resolution."
-      },
-      {
-        "id": "trans_interrupt_neutro",
-        "name": "Dose Interruption for Neutropenia",
-        "instanceType": "TransitionRule",
-        "transitionType": "Dose Modification",
-        "text": "Temporary interruption if Neutrophils < 1.0 x 10^9/L"
+        "text": "Reduce dose to previous level or 15 mg QOD if Hemoglobin/Platelets decrease > 30% from baseline"
       },
       {
         "id": "trans_interrupt_liver",
-        "name": "Dose Interruption for Liver Injury",
+        "name": "Liver Safety Interruption",
         "instanceType": "TransitionRule",
         "transitionType": "Dose Modification",
-        "text": "Temporary interruption if Bilirubin > 2x ULN accompanied by ALT > 3x ULN"
+        "text": "Temporary interruption if Bilirubin > 2x ULN and ALT > 3x ULN"
       },
       {
-        "id": "trans_outpatient_extension",
+        "id": "trans_discon_preg",
+        "name": "Pregnancy Discontinuation",
+        "instanceType": "TransitionRule",
+        "transitionType": "Discontinuation",
+        "text": "Participants must be considered for discontinuation if pregnancy occurs"
+      },
+      {
+        "id": "trans_outpatient_ext",
         "name": "Outpatient Period Extension",
         "instanceType": "TransitionRule",
         "transitionType": "Epoch Transition",
-        "text": "Outpatient Period during Treatment Period 1 may be extended up to an additional 14 days with Investigator approval"
-      },
-      {
-        "id": "trans_post_study_care",
-        "name": "Post-Study Transition",
-        "instanceType": "TransitionRule",
-        "transitionType": "Epoch Transition",
-        "text": "Transition to therapy that was discontinued before enrollment, or transition to other standard of care therapy, or continuation of ALXN1840"
+        "text": "Outpatient Period may be extended up to an additional 14 days with Investigator approval"
       }
     ],
     "scheduleTimelineExits": [
       {
-        "id": "exit_completion",
+        "id": "exit_eos",
         "name": "Study Completion",
         "exitType": "Completion",
         "instanceType": "ScheduleTimelineExit",
-        "description": "Participant completes all phases including last scheduled procedure"
+        "description": "Completion of all phases including Day 54 (+/- 2 days) visit"
       },
       {
-        "id": "exit_hypersensitivity",
-        "name": "Discontinuation for Hypersensitivity",
+        "id": "exit_withdrawal",
+        "name": "Participant Withdrawal",
         "exitType": "Early Termination",
         "instanceType": "ScheduleTimelineExit",
-        "description": "Safety discontinuation"
-      },
-      {
-        "id": "exit_infection",
-        "name": "Discontinuation for Infection",
-        "exitType": "Early Termination",
-        "instanceType": "ScheduleTimelineExit",
-        "description": "Safety discontinuation"
-      },
-      {
-        "id": "exit_pregnancy",
-        "name": "Discontinuation for Pregnancy",
-        "exitType": "Early Termination",
-        "instanceType": "ScheduleTimelineExit",
-        "description": "Safety discontinuation"
+        "description": "Participant request or Investigator discretion for safety/compliance"
       },
       {
         "id": "exit_lost_followup",
         "name": "Lost to Follow-up",
         "exitType": "Early Termination",
         "instanceType": "ScheduleTimelineExit",
-        "description": "Administrative discontinuation"
+        "description": "Failure to return after 3 telephone calls and certified letter"
       }
     ],
     "scheduledDecisionInstances": [
       {
-        "id": "dec_titration_review",
-        "name": "Titration Safety Review",
-        "timepointId": "day_23_approx",
+        "id": "dec_src_titration",
+        "name": "SRC Titration Review",
+        "timepointId": "Day 23",
         "instanceType": "ScheduledDecisionInstance",
-        "description": "SRC review of safety data through Day 23 to authorize titration to 30mg on Day 29",
+        "description": "Safety Review Committee review of data through Day 23 to authorize titration to 30 mg on Day 29",
         "conditionIds": [
-          "cond_src_review"
+          "cond_safety_heme",
+          "cond_safety_liver"
         ]
       },
       {
         "id": "dec_outpatient_ext",
         "name": "Outpatient Extension Decision",
-        "timepointId": "day_22_approx",
+        "timepointId": "Day 22",
         "instanceType": "ScheduledDecisionInstance",
         "description": "Investigator approval to extend Outpatient Period up to 14 days"
-      },
-      {
-        "id": "dec_rechallenge",
-        "name": "Rechallenge Decision",
-        "timepointId": "unscheduled",
-        "instanceType": "ScheduledDecisionInstance",
-        "description": "Decision to rechallenge after dose interruption (Max 3 rechallenges allowed)",
-        "conditionIds": [
-          "cond_neutrophil_safety"
-        ]
       }
     ],
     "summary": {
-      "timingCount": 8,
-      "conditionCount": 6,
-      "transitionRuleCount": 6,
-      "exitCount": 5
+      "timingCount": 10,
+      "conditionCount": 5,
+      "transitionRuleCount": 5,
+      "exitCount": 3
     }
   }
 }

@@ -23,10 +23,10 @@
     "procedures": [
       {
         "id": "proc_1",
-        "name": "Blood Sampling for PK/PD",
+        "name": "Blood Sampling",
         "instanceType": "Procedure",
-        "label": "PK/PD Blood Draw",
-        "description": "Collection of blood samples for pharmacokinetic (Plasma total Mo and PUF-Mo) and pharmacodynamic (Plasma total and PUF-Cu, LBC, ceruloplasmin) analysis",
+        "label": "Venipuncture/Blood Draw",
+        "description": "Collection of blood samples for PK, PD, and safety assessments (chemistry, hematology, coagulation)",
         "procedureType": {
           "code": "Sample Collection",
           "codeSystem": "USDM",
@@ -40,10 +40,10 @@
       },
       {
         "id": "proc_2",
-        "name": "24-hour Urine Collection",
+        "name": "Urine Collection",
         "instanceType": "Procedure",
-        "label": "Urine Collection",
-        "description": "Collection of urine over a 24-hour period for measurement of copper and molybdenum content",
+        "label": "24-hour Urine Collection",
+        "description": "Collection of urine for measurement of copper and molybdenum content, urinalysis, and pregnancy testing",
         "procedureType": {
           "code": "Sample Collection",
           "codeSystem": "USDM",
@@ -52,7 +52,7 @@
         "code": {
           "code": "81050",
           "codeSystem": "CPT",
-          "decode": "Volume measurement for timed collection, each 24 hours"
+          "decode": "Volume measurement for timed collection, each"
         }
       },
       {
@@ -60,7 +60,7 @@
         "name": "Fecal Collection",
         "instanceType": "Procedure",
         "label": "Stool Collection",
-        "description": "Individual collection of fecal samples with record of date, time, and weight for measurement of copper and molybdenum content",
+        "description": "Collection of fecal samples for measurement of copper and molybdenum content",
         "procedureType": {
           "code": "Sample Collection",
           "codeSystem": "USDM",
@@ -74,44 +74,10 @@
       },
       {
         "id": "proc_4",
-        "name": "Physical Examination",
+        "name": "Electrocardiogram",
         "instanceType": "Procedure",
-        "label": "Physical Exam",
-        "description": "Complete physical examination including assessments of cardiovascular, respiratory, gastrointestinal, and neurological systems",
-        "procedureType": {
-          "code": "Assessment",
-          "codeSystem": "USDM",
-          "decode": "Assessment"
-        },
-        "code": {
-          "code": "99203",
-          "codeSystem": "CPT",
-          "decode": "Office or other outpatient visit for the evaluation and management of a new patient"
-        }
-      },
-      {
-        "id": "proc_5",
-        "name": "Vital Signs Assessment",
-        "instanceType": "Procedure",
-        "label": "Vitals",
-        "description": "Measurement of body temperature, heart rate, respiratory rate, and systolic and diastolic blood pressure",
-        "procedureType": {
-          "code": "Monitoring",
-          "codeSystem": "USDM",
-          "decode": "Monitoring"
-        },
-        "code": {
-          "code": "8716-3",
-          "codeSystem": "LOINC",
-          "decode": "Vital signs"
-        }
-      },
-      {
-        "id": "proc_6",
-        "name": "12-Lead Electrocardiogram",
-        "instanceType": "Procedure",
-        "label": "ECG",
-        "description": "Triplicate 12-lead ECG to assess heart rate, intervals (PR, QRS, QT and QTc), and clinically significant findings",
+        "label": "12-lead ECG",
+        "description": "Triplicate 12-lead ECG recordings to assess heart rate, PR, QRS, QT, and QTc intervals",
         "procedureType": {
           "code": "Diagnostic",
           "codeSystem": "USDM",
@@ -124,23 +90,52 @@
         }
       },
       {
-        "id": "proc_7",
-        "name": "Food and Fluid Collection",
+        "id": "proc_5",
+        "name": "Vital Signs Assessment",
         "instanceType": "Procedure",
-        "label": "Dietary Collection",
-        "description": "Collection of samples of all meal and fluid batches for analysis of copper and molybdenum content",
+        "label": "Vital Signs",
+        "description": "Measurement of body temperature, heart rate, respiratory rate, and systolic and diastolic blood pressure",
         "procedureType": {
-          "code": "Sample Collection",
+          "code": "Monitoring",
           "codeSystem": "USDM",
-          "decode": "Sample Collection"
+          "decode": "Monitoring"
+        }
+      },
+      {
+        "id": "proc_6",
+        "name": "Physical Examination",
+        "instanceType": "Procedure",
+        "label": "Physical Exam",
+        "description": "Full physical examination including cardiovascular, respiratory, gastrointestinal, and neurological systems",
+        "procedureType": {
+          "code": "Assessment",
+          "codeSystem": "USDM",
+          "decode": "Assessment"
+        },
+        "code": {
+          "code": "99203",
+          "codeSystem": "CPT",
+          "decode": "Office or other outpatient visit for the evaluation and management of a new patient"
+        }
+      },
+      {
+        "id": "proc_7",
+        "name": "Inductively Coupled Plasma Mass Spectrometry",
+        "instanceType": "Procedure",
+        "label": "ICP-MS",
+        "description": "Analytical method used to determine copper and molybdenum concentration in samples",
+        "procedureType": {
+          "code": "Diagnostic",
+          "codeSystem": "USDM",
+          "decode": "Diagnostic"
         }
       },
       {
         "id": "proc_8",
         "name": "Pregnancy Test",
         "instanceType": "Procedure",
-        "label": "Pregnancy Screen",
-        "description": "Serum or urine pregnancy testing for females of childbearing potential",
+        "label": "Serum/Urine Pregnancy Test",
+        "description": "Testing for pregnancy in females of childbearing potential",
         "procedureType": {
           "code": "Diagnostic",
           "codeSystem": "USDM",
@@ -154,26 +149,60 @@
       },
       {
         "id": "proc_9",
-        "name": "Neurological Assessment",
+        "name": "Follicle-Stimulating Hormone Test",
         "instanceType": "Procedure",
-        "label": "Neuro Exam",
-        "description": "Assessment of neurological systems as part of the physical examination",
+        "label": "FSH Test",
+        "description": "Blood test to confirm menopause in post-menopausal females",
         "procedureType": {
-          "code": "Assessment",
+          "code": "Diagnostic",
           "codeSystem": "USDM",
-          "decode": "Assessment"
+          "decode": "Diagnostic"
+        },
+        "code": {
+          "code": "83001",
+          "codeSystem": "CPT",
+          "decode": "Gonadotropin; follicle stimulating hormone (FSH)"
         }
       },
       {
         "id": "proc_10",
-        "name": "Bowel and Urine Monitoring",
+        "name": "Viral Screen",
         "instanceType": "Procedure",
-        "label": "Output Monitoring",
-        "description": "Monitoring of urination and bowel movements",
+        "label": "HIV, Hep B, Hep C Screen",
+        "description": "Screening for HIV, Hepatitis B, and Hepatitis C",
         "procedureType": {
-          "code": "Monitoring",
+          "code": "Diagnostic",
           "codeSystem": "USDM",
-          "decode": "Monitoring"
+          "decode": "Diagnostic"
+        }
+      },
+      {
+        "id": "proc_11",
+        "name": "Urine Drug Screen",
+        "instanceType": "Procedure",
+        "label": "UDS",
+        "description": "Screening for drugs of abuse",
+        "procedureType": {
+          "code": "Diagnostic",
+          "codeSystem": "USDM",
+          "decode": "Diagnostic"
+        },
+        "code": {
+          "code": "80305",
+          "codeSystem": "CPT",
+          "decode": "Drug test(s), presumptive, any number of drug classes, any number of devices or procedures; capable of being read by direct optical observation only"
+        }
+      },
+      {
+        "id": "proc_12",
+        "name": "Copper and Molybdenum Balance Assessment",
+        "instanceType": "Procedure",
+        "label": "Metabolic Balance Study",
+        "description": "Calculation of difference between copper/molybdenum intake (food/drink) and output (feces/urine)",
+        "procedureType": {
+          "code": "Assessment",
+          "codeSystem": "USDM",
+          "decode": "Assessment"
         }
       }
     ],
@@ -182,7 +211,7 @@
         "id": "dev_1",
         "name": "Automated Blood Pressure Device",
         "instanceType": "MedicalDevice",
-        "label": "BP Monitor",
+        "label": "Automated BP Monitor",
         "description": "Automated device for assessing blood pressure and heart rate",
         "deviceType": {
           "code": "Monitoring Device",
@@ -192,10 +221,10 @@
       },
       {
         "id": "dev_2",
-        "name": "12-Lead ECG Machine",
+        "name": "Cannula",
         "instanceType": "MedicalDevice",
-        "label": "ECG Device",
-        "description": "Device used for recording triplicate 12-lead electrocardiograms",
+        "label": "IV Cannula",
+        "description": "Placed to minimize needle sticks for repeated blood draws",
         "deviceType": {
           "code": "Diagnostic Device",
           "codeSystem": "USDM",
@@ -204,14 +233,14 @@
       },
       {
         "id": "dev_3",
-        "name": "Cannula",
+        "name": "Catheter",
         "instanceType": "MedicalDevice",
-        "label": "Cannula",
-        "description": "Placed to minimize needle sticks for repeated blood draws",
+        "label": "Venous Catheter",
+        "description": "Used for blood sampling, not left in place longer than 72 hours",
         "deviceType": {
-          "code": "Drug Delivery Device",
+          "code": "Diagnostic Device",
           "codeSystem": "USDM",
-          "decode": "Drug Delivery Device"
+          "decode": "Diagnostic Device"
         }
       },
       {
@@ -219,11 +248,11 @@
         "name": "Male Condom",
         "instanceType": "MedicalDevice",
         "label": "Condom",
-        "description": "Barrier contraception required for male participants",
+        "description": "Barrier contraception method required for male participants",
         "deviceType": {
-          "code": "Wearable Device",
+          "code": "Drug Delivery Device",
           "codeSystem": "USDM",
-          "decode": "Wearable Device"
+          "decode": "Drug Delivery Device"
         }
       }
     ],
@@ -238,24 +267,38 @@
       },
       {
         "id": "ing_2",
+        "name": "Zinc",
+        "role": "Active",
+        "instanceType": "Ingredient",
+        "substanceId": "subst_zinc"
+      },
+      {
+        "id": "ing_3",
         "name": "Paracetamol",
         "role": "Active",
         "instanceType": "Ingredient",
         "substanceId": "subst_paracetamol"
       },
       {
-        "id": "ing_3",
+        "id": "ing_4",
         "name": "Acetaminophen",
         "role": "Active",
         "instanceType": "Ingredient",
         "substanceId": "subst_acetaminophen"
       },
       {
-        "id": "ing_4",
+        "id": "ing_5",
         "name": "Ibuprofen",
         "role": "Active",
         "instanceType": "Ingredient",
         "substanceId": "subst_ibuprofen"
+      },
+      {
+        "id": "ing_6",
+        "name": "Ammonium tetrathiomolybdate",
+        "role": "Active",
+        "instanceType": "Ingredient",
+        "substanceId": "subst_ttm"
       }
     ],
     "strengths": [
@@ -311,15 +354,15 @@
           "unit": "mg"
         },
         "denominator": {
-          "value": 24,
-          "unit": "hour"
+          "value": 1,
+          "unit": "day"
         }
       }
     ],
     "summary": {
-      "procedureCount": 10,
+      "procedureCount": 12,
       "deviceCount": 4,
-      "ingredientCount": 4
+      "ingredientCount": 6
     }
   }
 }
