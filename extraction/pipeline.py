@@ -38,7 +38,7 @@ class PipelineConfig:
     """Configuration for the extraction pipeline."""
     model_name: str = "gemini-2.5-pro"
     validate_with_vision: bool = True
-    remove_hallucinations: bool = True
+    remove_hallucinations: bool = False  # Keep all text-extracted cells; use provenance for confidence
     hallucination_confidence_threshold: float = 0.7
     save_intermediate: bool = True
 
@@ -280,7 +280,7 @@ def run_from_files(
         PipelineResult
     """
     import fitz  # PyMuPDF
-    from .soa_finder import find_soa_pages, find_soa_pages_heuristic
+    from .soa_finder import find_soa_pages
     
     if config is None:
         config = PipelineConfig()
@@ -296,14 +296,15 @@ def run_from_files(
     # Find SoA pages if not provided
     if soa_pages is None:
         logger.info("Finding SoA pages...")
-        # Use heuristic first (fast), then optionally LLM refinement
-        soa_pages = find_soa_pages_heuristic(pdf_path, top_n=5)
+        # Use enhanced finder with title detection and adjacent page expansion
+        soa_pages = find_soa_pages(pdf_path, model_name=config.model_name, use_llm=True)
         
         if not soa_pages:
             logger.warning("Could not find SoA pages. Using first 10 pages as fallback.")
             soa_pages = list(range(min(10, len(doc))))
         else:
-            logger.info(f"Found likely SoA pages: {soa_pages}")
+            # Log pages in human-readable format (1-indexed)
+            logger.info(f"Found SoA pages: {[p+1 for p in sorted(soa_pages)]} (PDF viewer numbering)")
     
     # Extract text from SoA pages
     text = "\n\n--- PAGE BREAK ---\n\n".join(
@@ -319,7 +320,7 @@ def run_from_files(
         if 0 <= page_num < len(doc):
             page = doc[page_num]
             pix = page.get_pixmap(dpi=150)
-            img_path = os.path.join(images_dir, f"soa_page_{page_num:03d}.png")
+            img_path = os.path.join(images_dir, f"soa_page_{page_num + 1:03d}.png")  # 1-indexed for human readability
             pix.save(img_path)
             image_paths.append(img_path)
             logger.debug(f"Extracted page {page_num} as image")

@@ -344,7 +344,7 @@ def _validate_with_openai(prompt: str, image_paths: List[str], model_name: str) 
 def apply_validation_fixes(
     text_ticks: List[dict],
     validation: ValidationResult,
-    remove_hallucinations: bool = True,
+    remove_hallucinations: bool = False,
     add_missed: bool = False,
     confidence_threshold: float = 0.7,
 ) -> Tuple[List[dict], ProvenanceTracker]:
@@ -354,7 +354,7 @@ def apply_validation_fixes(
     Args:
         text_ticks: Original ticks from text extraction
         validation: Validation result
-        remove_hallucinations: Remove ticks flagged as hallucinations
+        remove_hallucinations: Remove ticks flagged as hallucinations (default False to keep all)
         add_missed: Add ticks that were missed
         confidence_threshold: Only act on issues above this confidence
         
@@ -364,24 +364,44 @@ def apply_validation_fixes(
     provenance = ProvenanceTracker()
     fixed_ticks = text_ticks.copy()
     
-    # Remove hallucinations
+    # Identify possible hallucinations (text found, vision didn't confirm)
+    hallucination_keys = {
+        (i.activity_id, i.timepoint_id)
+        for i in validation.issues
+        if i.issue_type == IssueType.POSSIBLE_HALLUCINATION
+        and i.confidence >= confidence_threshold
+    }
+    
     if remove_hallucinations:
-        hallucinations_to_remove = {
-            (i.activity_id, i.timepoint_id)
-            for i in validation.issues
-            if i.issue_type == IssueType.POSSIBLE_HALLUCINATION
-            and i.confidence >= confidence_threshold
-        }
-        
+        # Remove hallucinations from output
         fixed_ticks = [
             t for t in fixed_ticks
-            if (t.get('activityId'), t.get('plannedTimepointId')) not in hallucinations_to_remove
+            if (t.get('activityId'), t.get('plannedTimepointId')) not in hallucination_keys
         ]
+        logger.info(f"Removed {len(hallucination_keys)} probable hallucinations")
         
-        logger.info(f"Removed {len(hallucinations_to_remove)} probable hallucinations")
-    
-    # Tag remaining ticks as validated
-    provenance.tag_cells_from_timepoints(fixed_ticks, ProvenanceSource.BOTH)
+        # Tag remaining ticks as confirmed (both sources agree)
+        provenance.tag_cells_from_timepoints(fixed_ticks, ProvenanceSource.BOTH)
+    else:
+        # Keep all ticks but tag appropriately based on validation
+        confirmed_ticks = []
+        unconfirmed_ticks = []
+        
+        for tick in fixed_ticks:
+            key = (tick.get('activityId'), tick.get('plannedTimepointId'))
+            if key in hallucination_keys:
+                unconfirmed_ticks.append(tick)
+            else:
+                confirmed_ticks.append(tick)
+        
+        # Tag confirmed ticks as BOTH (text + vision agree)
+        provenance.tag_cells_from_timepoints(confirmed_ticks, ProvenanceSource.BOTH)
+        
+        # Tag unconfirmed ticks as TEXT (text found, vision didn't confirm)
+        # These stay as TEXT (not overwritten) to indicate they need review
+        # Note: They were already tagged as TEXT during text extraction
+        logger.info(f"Kept {len(unconfirmed_ticks)} unconfirmed ticks (text-only, marked for review)")
+        logger.info(f"Confirmed {len(confirmed_ticks)} ticks (text + vision agree)")
     
     return fixed_ticks, provenance
 

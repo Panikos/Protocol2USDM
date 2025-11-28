@@ -2,14 +2,20 @@
 CDISC CORE Conformance Checker
 
 Validates USDM output against CDISC conformance rules.
+Uses local CDISC CORE engine when available.
 """
 
 import json
 import logging
 import os
+import subprocess
+from pathlib import Path
 from typing import Dict, Any, Optional, List
 
 logger = logging.getLogger(__name__)
+
+# Path to local CDISC CORE engine
+CORE_ENGINE_PATH = Path(__file__).parent.parent / "tools" / "core" / "core" / "core.exe"
 
 
 def run_cdisc_conformance(
@@ -20,6 +26,11 @@ def run_cdisc_conformance(
     """
     Run CDISC CORE conformance validation.
     
+    Priority:
+    1. Local CDISC CORE engine (if available)
+    2. CDISC API (if key configured and reachable)
+    3. Local validation rules (fallback)
+    
     Args:
         json_path: Path to USDM JSON file
         output_dir: Directory for output report
@@ -28,19 +39,93 @@ def run_cdisc_conformance(
     Returns:
         Dict with conformance results
     """
+    # Try local CORE engine first
+    if CORE_ENGINE_PATH.exists():
+        try:
+            return _run_local_core_engine(json_path, output_dir)
+        except Exception as e:
+            logger.warning(f"Local CORE engine failed: {e}")
+    
+    # Try CDISC API if key available
     if api_key is None:
         api_key = os.environ.get('CDISC_API_KEY')
     
-    # Try to use CDISC CORE if available
+    if api_key and _check_cdisc_api_available():
+        try:
+            return _run_cdisc_api(json_path, output_dir, api_key)
+        except Exception as e:
+            logger.warning(f"CDISC API call failed: {e}")
+    
+    # Fall back to local validation rules
+    logger.info("Using local validation rules")
+    return _run_local_conformance(json_path, output_dir)
+
+
+def _run_local_core_engine(json_path: str, output_dir: str) -> Dict[str, Any]:
+    """
+    Run local CDISC CORE engine executable.
+    """
+    logger.info(f"Running local CDISC CORE engine...")
+    
+    output_path = os.path.join(output_dir, "conformance_report.json")
+    
     try:
-        return _run_cdisc_core(json_path, output_dir, api_key)
-    except Exception as e:
-        logger.warning(f"CDISC CORE not available: {e}")
-        # Fall back to local validation
-        return _run_local_conformance(json_path, output_dir)
+        # Run CORE engine
+        result = subprocess.run(
+            [
+                str(CORE_ENGINE_PATH),
+                "validate",
+                "-s", "usdm",  # Standard: USDM
+                "-v", "4.0",  # USDM version
+                "-d", json_path,  # Data file
+                "-o", output_path,  # Output
+                "-of", "JSON",  # Output format
+            ],
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+        
+        if result.returncode == 0 and os.path.exists(output_path):
+            with open(output_path, 'r', encoding='utf-8') as f:
+                report = json.load(f)
+            
+            issues = report.get('issues', [])
+            warnings = [i for i in issues if i.get('severity') == 'Warning']
+            errors = [i for i in issues if i.get('severity') == 'Error']
+            
+            logger.info(f"Conformance check: {len(errors)} errors, {len(warnings)} warnings")
+            
+            return {
+                'success': True,
+                'output': output_path,
+                'issues': len(errors),
+                'warnings': len(warnings),
+                'engine': 'local_core',
+            }
+        else:
+            # CORE engine ran but may have reported issues
+            logger.warning(f"CORE engine output: {result.stderr or result.stdout}")
+            raise Exception(f"CORE engine returned code {result.returncode}")
+            
+    except subprocess.TimeoutExpired:
+        raise Exception("CORE engine timed out")
+    except FileNotFoundError:
+        raise Exception("CORE engine not found")
 
 
-def _run_cdisc_core(
+def _check_cdisc_api_available(timeout: float = 3.0) -> bool:
+    """Check if CDISC API is reachable."""
+    import socket
+    try:
+        socket.setdefaulttimeout(timeout)
+        socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect(("api.cdisc.org", 443))
+        return True
+    except (socket.timeout, socket.error, OSError):
+        return False
+
+
+def _run_cdisc_api(
     json_path: str,
     output_dir: str,
     api_key: str,

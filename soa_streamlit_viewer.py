@@ -8,6 +8,49 @@ import html
 from pathlib import Path
 from datetime import datetime
 
+# ============================================================================
+# CUSTOM CSS FOR UX IMPROVEMENTS
+# ============================================================================
+CUSTOM_CSS = """
+<style>
+/* No data message styling */
+.no-data-message {
+    background-color: #f0f4f8;
+    border: 2px dashed #94a3b8;
+    border-radius: 12px;
+    padding: 40px;
+    text-align: center;
+    color: #64748b;
+    margin: 20px 0;
+}
+.no-data-message .icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+}
+.no-data-message .title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #475569;
+    margin-bottom: 8px;
+}
+.no-data-message .subtitle {
+    font-size: 14px;
+    color: #94a3b8;
+}
+</style>
+"""
+
+def render_no_data_message(section_name: str, hint: str = None):
+    """Render a clear 'No Data' system message that cannot be confused with real data."""
+    hint_html = f'<div class="subtitle">{hint}</div>' if hint else ''
+    st.markdown(f'''
+    <div class="no-data-message">
+        <div class="icon">📭</div>
+        <div class="title">No {section_name} Data Available</div>
+        {hint_html}
+    </div>
+    ''', unsafe_allow_html=True)
+
 
 def calculate_expansion_confidence(key: str, content: dict) -> float:
     """Calculate confidence score for expansion data from JSON content."""
@@ -82,6 +125,58 @@ def calculate_expansion_confidence(key: str, content: dict) -> float:
         ]
         return sum(scores) / len(scores)
     
+    elif key == 'procedures':
+        proc = content.get('proceduresDevices', content)
+        scores = [
+            1.0 if len(proc.get('procedures', [])) >= 5 else 0.5 if proc.get('procedures') else 0.0,
+            1.0 if proc.get('medicalDevices') else 0.5,
+            1.0 if proc.get('ingredients') else 0.5,
+        ]
+        return sum(scores) / len(scores)
+    
+    elif key == 'scheduling':
+        sched = content.get('scheduling', content)
+        scores = [
+            1.0 if len(sched.get('timings', [])) >= 5 else 0.5 if sched.get('timings') else 0.0,
+            1.0 if sched.get('conditions') else 0.5,
+            1.0 if sched.get('transitionRules') else 0.5,
+        ]
+        return sum(scores) / len(scores)
+    
+    elif key == 'sap':
+        sap = content.get('sapData', content)
+        scores = [
+            1.0 if len(sap.get('analysisPopulations', [])) >= 3 else 0.5 if sap.get('analysisPopulations') else 0.0,
+            1.0 if len(sap.get('characteristics', [])) >= 5 else 0.5 if sap.get('characteristics') else 0.0,
+        ]
+        return sum(scores) / len(scores)
+    
+    elif key == 'sites':
+        sites = content.get('sitesData', content)
+        scores = [
+            1.0 if len(sites.get('studySites', [])) >= 3 else 0.5 if sites.get('studySites') else 0.0,
+            1.0 if sites.get('studyRoles') else 0.5,
+        ]
+        return sum(scores) / len(scores)
+    
+    elif key == 'docstructure':
+        doc = content.get('documentStructure', content)
+        scores = [
+            1.0 if doc.get('documentContentReferences') else 0.5,
+            1.0 if doc.get('commentAnnotations') else 0.5,
+            1.0 if doc.get('studyDefinitionDocumentVersions') else 0.5,
+        ]
+        return sum(scores) / len(scores)
+    
+    elif key == 'amendmentdetails':
+        amend = content.get('amendmentDetails', content)
+        scores = [
+            1.0 if amend.get('studyAmendmentImpacts') else 0.5,
+            1.0 if amend.get('studyAmendmentReasons') else 0.5,
+            1.0 if amend.get('studyChanges') else 0.5,
+        ]
+        return sum(scores) / len(scores)
+    
     return 0.5
 
 # --- Data Access Functions --------------------------------------------------
@@ -113,6 +208,10 @@ def get_activity_timepoints(timeline):
     return activity_timepoints
 
 st.set_page_config(page_title="Protocol2USDM Viewer", layout="wide", page_icon="📊")
+
+# Inject custom CSS
+st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
+
 st.title('📊 Protocol2USDM v6.0 Viewer')
 st.markdown("**Full Protocol Extraction** | USDM v4.0 Format")
 # Placeholder for dynamic file display; will be updated after run selection.
@@ -299,8 +398,9 @@ def get_file_inventory(base_path):
         'step6_final_soa.json': ('final_soa', 'Final SoA (Step 6)'),
     }
     
-    # USDM Expansion files (v6.0)
+    # USDM Expansion files (v6.1)
     expansion_map = {
+        'protocol_usdm.json': ('full_usdm', 'Protocol USDM (Golden Standard)'),
         'full_usdm.json': ('full_usdm', 'Full Protocol USDM'),
         '2_study_metadata.json': ('metadata', 'Study Metadata'),
         '3_eligibility_criteria.json': ('eligibility', 'Eligibility Criteria'),
@@ -309,6 +409,12 @@ def get_file_inventory(base_path):
         '6_interventions.json': ('interventions', 'Interventions'),
         '7_narrative_structure.json': ('narrative', 'Narrative Structure'),
         '8_advanced_entities.json': ('advanced', 'Advanced Entities'),
+        '9_procedures_devices.json': ('procedures', 'Procedures & Devices'),
+        '10_scheduling_logic.json': ('scheduling', 'Scheduling Logic'),
+        '11_sap_populations.json': ('sap', 'Analysis Populations (SAP)'),
+        '12_study_sites.json': ('sites', 'Study Sites'),
+        '13_document_structure.json': ('docstructure', 'Document Structure'),
+        '14_amendment_details.json': ('amendmentdetails', 'Amendment Details'),
     }
     
     # Load expansion files
@@ -346,44 +452,69 @@ def get_file_inventory(base_path):
             inventory['images'] = sorted(glob.glob(os.path.join(image_dir, "*.png")))
             break
     
-    # --- Attach provenance if stored in separate file ---
-    if inventory['final_soa']:
-        # Try multiple possible provenance file patterns
-        possible_prov_files = [
-            '9_final_soa_provenance.json',      # New pipeline
-            '9_reconciled_soa_provenance.json', # Legacy pipeline
-            'step6_provenance.json',            # Step-by-step test
-        ]
-        
-        for prov_file in possible_prov_files:
-            prov_path = os.path.join(base_path, prov_file)
-            if os.path.exists(prov_path):
-                prov_content, _ = load_file(prov_path)
-                if isinstance(inventory['final_soa']['content'], dict) and prov_content and isinstance(prov_content, dict):
-                    # Convert provenance format if needed (new format has 'entities' and 'cells')
-                    if 'entities' in prov_content:
-                        # New format - merge entities into p2uProvenance format
-                        merged_prov = dict(prov_content.get('entities', {}))
-                        
-                        # Convert cells from flat "actId|ptId" -> nested {actId: {ptId: source}}
-                        cells = prov_content.get('cells', {})
-                        nested_cells = {}
-                        for key, source in cells.items():
-                            if '|' in key:
-                                act_id, pt_id = key.split('|', 1)
-                                if act_id not in nested_cells:
-                                    nested_cells[act_id] = {}
-                                if pt_id:  # Only add if pt_id is not empty
-                                    nested_cells[act_id][pt_id] = source
-                        merged_prov['activityTimepoints'] = nested_cells
-                        inventory['final_soa']['content']['p2uProvenance'] = merged_prov
-                    elif 'p2uProvenance' not in inventory['final_soa']['content']:
-                        # Legacy format - use directly
-                        inventory['final_soa']['content']['p2uProvenance'] = prov_content
-                break
+    # Store provenance path for later attachment (outside cache)
+    possible_prov_files = [
+        '9_final_soa_provenance.json',      # New pipeline
+        '9_reconciled_soa_provenance.json', # Legacy pipeline
+        'step6_provenance.json',            # Step-by-step test
+    ]
+    
+    for prov_file in possible_prov_files:
+        prov_path = os.path.join(base_path, prov_file)
+        if os.path.exists(prov_path):
+            inventory['provenance_path'] = prov_path
+            break
     
     inventory['file_map'] = file_map
     return inventory
+
+
+def attach_provenance_to_inventory(inventory):
+    """Attach provenance data to inventory items (must be called outside cache)."""
+    if not inventory or 'provenance_path' not in inventory:
+        return
+    
+    prov_path = inventory['provenance_path']
+    if not os.path.exists(prov_path):
+        return
+    
+    prov_content, _ = load_file(prov_path)
+    if not prov_content:
+        return
+    
+    def attach_provenance(target_content, prov_data):
+        """Convert and attach provenance data to target content."""
+        if not isinstance(target_content, dict) or not prov_data or not isinstance(prov_data, dict):
+            return
+        # Convert provenance format if needed (new format has 'entities' and 'cells')
+        if 'entities' in prov_data:
+            # New format - merge entities into p2uProvenance format
+            merged_prov = dict(prov_data.get('entities', {}))
+            
+            # Convert cells from flat "actId|ptId" -> nested {actId: {ptId: source}}
+            cells = prov_data.get('cells', {})
+            nested_cells = {}
+            for key, source in cells.items():
+                if '|' in key:
+                    act_id, pt_id = key.split('|', 1)
+                    if act_id not in nested_cells:
+                        nested_cells[act_id] = {}
+                    if pt_id:  # Only add if pt_id is not empty
+                        nested_cells[act_id][pt_id] = source
+            merged_prov['activityTimepoints'] = nested_cells
+            target_content['p2uProvenance'] = merged_prov
+        elif 'p2uProvenance' not in target_content:
+            # Legacy format - use directly
+            target_content['p2uProvenance'] = prov_data
+    
+    # Attach provenance to final_soa
+    if inventory.get('final_soa'):
+        attach_provenance(inventory['final_soa']['content'], prov_content)
+    
+    # Attach provenance to full_usdm (protocol_usdm.json)
+    if inventory.get('full_usdm'):
+        attach_provenance(inventory['full_usdm']['content'], prov_content)
+
 
 def extract_soa_metadata(soa):
     if not isinstance(soa, dict):
@@ -451,24 +582,29 @@ from collections import defaultdict
 def get_schedule_components(data):
     """
     Flexibly extracts schedule-related components from the JSON data.
-    It checks for data in both the standard `studyDesigns` path and a custom `timeline` path.
+    It checks for data in multiple possible locations for maximum compatibility.
     """
     schedule_data = {}
     
-    # Try the standard USDM 4.0 path first
-    try:
-        study_design = data['study']['versions'][0]['studyDesigns'][0]
-        # st.info("Found data in the standard `studyDesigns` location.")
-        schedule_data = study_design
-    except (KeyError, IndexError):
-        # Fallback to the custom/intermediary `timeline` path
+    # Try 1: Top-level studyDesigns (protocol_usdm.json golden standard format)
+    if 'studyDesigns' in data and data['studyDesigns']:
+        schedule_data = data['studyDesigns'][0]
+    # Try 2: Standard USDM 4.0 path (study.versions[0].studyDesigns[0])
+    elif 'study' in data:
         try:
-            timeline = data['study']['versions'][0]['timeline']
-            # st.info("Could not find `studyDesigns`. Found data in the non-standard `timeline` location instead.")
-            schedule_data = timeline
-        except (KeyError, IndexError):
-            # If neither path works, return empty
-            return None
+            study_design = data['study']['versions'][0]['studyDesigns'][0]
+            schedule_data = study_design
+        except (KeyError, IndexError, TypeError):
+            # Try 3: Custom/intermediary timeline path (study.versions[0].timeline)
+            try:
+                timeline = data['study']['versions'][0]['timeline']
+                schedule_data = timeline
+            except (KeyError, IndexError, TypeError):
+                pass
+    
+    # If no schedule data found in any path
+    if not schedule_data:
+        return None
             
     # Use .get() for graceful extraction of each component
     return {
@@ -658,7 +794,7 @@ def render_flexible_soa(data, table_id: str = "main"):
             if at.get('activityId') and at.get('plannedTimepointId'):
                 activity_pt_links.add((at['activityId'], at['plannedTimepointId']))
 
-    # populate DataFrame
+    # populate DataFrame from USDM activity-timepoint links
     for i, activity in enumerate(ordered_activities):
         row_label = row_index_data[i]
         act_id = activity.get('id')
@@ -674,10 +810,72 @@ def render_flexible_soa(data, table_id: str = "main"):
 
     # Add provenance styling if available
     provenance = data.get('p2uProvenance', {})
+    
+    # DEBUG: Show provenance status
+    with st.expander("🔍 Debug: Provenance Status", expanded=False):
+        if provenance:
+            st.success(f"✅ Provenance data loaded. Keys: {list(provenance.keys())}")
+            at_debug = provenance.get('activityTimepoints', {})
+            st.write(f"activityTimepoints entries: {len(at_debug)}")
+            if at_debug:
+                # Show sample
+                sample_act = list(at_debug.keys())[0] if at_debug else None
+                if sample_act:
+                    st.write(f"Sample activity '{sample_act}': {at_debug[sample_act]}")
+                # Count by source type
+                all_sources = [src for act_cells in at_debug.values() for src in act_cells.values()]
+                from collections import Counter
+                st.write(f"Source counts: {dict(Counter(all_sources))}")
+            
+            # Debug ID matching
+            st.markdown("---")
+            st.markdown("**ID Matching Debug:**")
+            
+            # Get the first activity and first timepoint from the DataFrame mapping
+            if row_index_data and ordered_activities:
+                first_row = row_index_data[0]
+                first_act = ordered_activities[0]
+                first_act_id = first_act.get('id')
+                st.write(f"First row index: `{first_row}`")
+                st.write(f"First activity ID from data: `{first_act_id}`")
+                st.write(f"Activity name: `{first_act.get('name')}`")
+                
+                # Check if this ID exists in provenance
+                if first_act_id in at_debug:
+                    st.success(f"✅ Activity ID '{first_act_id}' found in provenance")
+                    st.write(f"Provenance data: {at_debug[first_act_id]}")
+                else:
+                    st.error(f"❌ Activity ID '{first_act_id}' NOT in provenance keys: {list(at_debug.keys())}")
+            
+            if col_index_data and ordered_pt_for_cols:
+                first_col = col_index_data[0]
+                first_pt = ordered_pt_for_cols[0]
+                first_pt_id = first_pt.get('id')
+                st.write(f"First col index: `{first_col}`")
+                st.write(f"First timepoint ID from data: `{first_pt_id}`")
+                st.write(f"Timepoint label: `{first_pt.get('label')}`")
+                
+                # Check provenance keys for first activity
+                if at_debug and first_act_id:
+                    act_cells = at_debug.get(first_act_id, {})
+                    if first_pt_id in act_cells:
+                        st.success(f"✅ Cell [{first_act_id}][{first_pt_id}] = '{act_cells[first_pt_id]}'")
+                    else:
+                        st.error(f"❌ Timepoint '{first_pt_id}' NOT in activity cells. Keys: {list(act_cells.keys())}")
+        else:
+            st.error("❌ No p2uProvenance found in data!")
+            st.write(f"Data top-level keys: {list(data.keys())[:10]}")
+    
     if provenance:
-        at_prov_map = provenance.get('activityTimepoints', {}) if isinstance(provenance, dict) else {}
-        tick_counts = {'text': 0, 'confirmed': 0, 'needs_review': 0}
+        # Get cell-level provenance map (already converted to nested format during load)
+        at_prov_map = provenance.get('activityTimepoints', {})
+        
+        tick_counts = {'text': 0, 'confirmed': 0, 'needs_review': 0, 'orphaned': 0}
         rows_with_review = set()
+        
+        # Build set of timepoint IDs for lookup
+        pt_id_map = {pt['id']: True for pt in ordered_pt_for_cols if pt.get('id')}
+        
         if isinstance(at_prov_map, dict):
             for idx, activity in zip(row_index_data_display, ordered_activities_display):
                 aid = activity.get('id')
@@ -685,34 +883,61 @@ def render_flexible_soa(data, table_id: str = "main"):
                     continue
                 cell_map = at_prov_map.get(aid, {})
                 if not isinstance(cell_map, dict):
-                    continue
+                    cell_map = {}
                 has_row_review = False
-                for src in cell_map.values():
+                
+                # Count ticks that have provenance
+                for pt_id, src in cell_map.items():
                     if src == 'text':
                         tick_counts['text'] += 1
+                        has_row_review = True
                     elif src == 'both':
                         tick_counts['confirmed'] += 1
                     elif src in ('vision', 'needs_review'):
-                        # Vision-only and needs_review both count as needing review
                         tick_counts['needs_review'] += 1
                         has_row_review = True
+                
+                # Check for orphaned ticks (X in matrix but no provenance)
+                # Get row data from dataframe
+                if idx in df.index:
+                    row_data = df.loc[idx]
+                    for col_idx in df.columns:
+                        if row_data[col_idx] == 'X':
+                            # Find timepoint ID for this column
+                            pt_id = None
+                            for ct, pt_info in zip(col_index_data, ordered_pt_for_cols):
+                                if ct == col_idx:
+                                    pt_id = pt_info.get('id')
+                                    break
+                            if pt_id and pt_id not in cell_map:
+                                tick_counts['orphaned'] += 1
+                                has_row_review = True
+                
                 if has_row_review:
                     rows_with_review.add(idx)
 
-        total_ticks = tick_counts['text'] + tick_counts['confirmed'] + tick_counts['needs_review']
-        has_validation = tick_counts['confirmed'] > 0 or tick_counts['needs_review'] > 0
+        total_ticks = tick_counts['text'] + tick_counts['confirmed'] + tick_counts['needs_review'] + tick_counts['orphaned']
+        has_validation = tick_counts['confirmed'] > 0 or tick_counts['needs_review'] > 0 or tick_counts['text'] > 0 or tick_counts['orphaned'] > 0
 
         if total_ticks:
+            review_count = tick_counts['text'] + tick_counts['needs_review'] + tick_counts['orphaned']
             summary_text = (
                 f"**Tick provenance:** {total_ticks} total - "
                 f"{tick_counts['confirmed']} ✓ confirmed, "
-                f"{tick_counts['text']} unvalidated, "
-                f"{tick_counts['needs_review']} ⚠️ need review."
+                f"{review_count} ⚠️ need review "
+                f"({tick_counts['text']} text-only, {tick_counts['needs_review']} vision-only, {tick_counts['orphaned']} orphaned)."
             )
             st.markdown(summary_text)
 
-        if rows_with_review:
-            st.warning(f"⚠️ **{tick_counts['needs_review']} ticks need human review** (possible hallucinations or vision-only detections)")
+        if tick_counts['text'] > 0 or tick_counts['needs_review'] > 0 or tick_counts['orphaned'] > 0:
+            review_msg = []
+            if tick_counts['text'] > 0:
+                review_msg.append(f"{tick_counts['text']} text-only (not confirmed by vision)")
+            if tick_counts['needs_review'] > 0:
+                review_msg.append(f"{tick_counts['needs_review']} vision-only (possible hallucinations)")
+            if tick_counts['orphaned'] > 0:
+                review_msg.append(f"{tick_counts['orphaned']} orphaned (no provenance data)")
+            st.warning(f"⚠️ **Review needed:** " + "; ".join(review_msg))
             only_review_rows = st.checkbox(
                 "Show only rows needing review",
                 value=False,
@@ -736,14 +961,23 @@ def render_flexible_soa(data, table_id: str = "main"):
         # Display provenance legend
         st.markdown("""
         <h3 style="font-weight: 600;">Provenance Legend</h3>
-        <div style="display: flex; align-items: center; gap: 1.5rem; margin-bottom: 1rem;">
-            <div style="display: flex; align-items: center;"><div style="width: 1rem; height: 1rem; margin-right: 0.5rem; border-radius: 0.25rem; background-color: #60a5fa;"></div><span>Text (unvalidated)</span></div>
-            <div style="display: flex; align-items: center;"><div style="width: 1rem; height: 1rem; margin-right: 0.5rem; border-radius: 0.25rem; background-color: #4ade80;"></div><span>✓ Confirmed</span></div>
-            <div style="display: flex; align-items: center;"><div style="width: 1rem; height: 1rem; margin-right: 0.5rem; border-radius: 0.25rem; background-color: #fb923c;"></div><span>⚠️ Needs Review</span></div>
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+            <div style="display: flex; align-items: center;"><div style="width: 1rem; height: 1rem; margin-right: 0.5rem; border-radius: 0.25rem; background-color: #4ade80;"></div><span><strong>Green:</strong> Confirmed (text + vision agree)</span></div>
+            <div style="display: flex; align-items: center;"><div style="width: 1rem; height: 1rem; margin-right: 0.5rem; border-radius: 0.25rem; background-color: #60a5fa;"></div><span><strong>Blue:</strong> Text-only (NOT confirmed by vision)</span></div>
+            <div style="display: flex; align-items: center;"><div style="width: 1rem; height: 1rem; margin-right: 0.5rem; border-radius: 0.25rem; background-color: #fb923c;"></div><span><strong>Orange:</strong> Vision-only (possible hallucination, needs review)</span></div>
+            <div style="display: flex; align-items: center;"><div style="width: 1rem; height: 1rem; margin-right: 0.5rem; border-radius: 0.25rem; background-color: #f87171;"></div><span><strong>Red:</strong> Orphaned (no provenance data)</span></div>
         </div>
         """, unsafe_allow_html=True)
         
+        # Build lookup dicts for faster ID resolution
+        row_to_act_id = {row_tuple: ordered_activities_display[i].get('id') 
+                         for i, row_tuple in enumerate(row_index_data_display)}
+        col_to_pt_id = {col_tuple: pt_info.get('id') 
+                        for col_tuple, pt_info in zip(col_index_data, ordered_pt_for_cols)}
+        
         # Apply provenance styling
+        first_cell_debug = [True]  # Use list to allow mutation in closure
+        
         def apply_provenance_style(row, col):
             """Apply provenance color to cells with 'X', preferring cell-level provenance when available."""
             try:
@@ -760,27 +994,22 @@ def render_flexible_soa(data, table_id: str = "main"):
             except (KeyError, IndexError, ValueError):
                 return ''
             
-            # Get activity ID from row
-            act_id = None
-            for i, row_tuple in enumerate(row_index_data_display):
-                if row_tuple == row:
-                    act_id = ordered_activities_display[i].get('id')
-                    break
-            
-            # Get timepoint ID from column  
-            pt_id = None
-            for col_tuple, pt_info in zip(col_index_data, ordered_pt_for_cols):
-                if col_tuple == col:
-                    pt_id = pt_info['id']
-                    break
+            # Get activity ID and timepoint ID using lookup dicts
+            act_id = row_to_act_id.get(row)
+            pt_id = col_to_pt_id.get(col)
             
             if not act_id or not pt_id:
                 return ''
 
-            # 1) Prefer cell-level provenance if available
-            at_prov_map = provenance.get('activityTimepoints', {}) if isinstance(provenance, dict) else {}
+            # 1) Prefer cell-level provenance if available (using the at_prov_map built earlier)
             if at_prov_map and isinstance(at_prov_map, dict):
                 cell_src = at_prov_map.get(act_id, {}).get(pt_id)
+                
+                # Debug first text cell
+                if first_cell_debug[0] and cell_src == 'text':
+                    st.warning(f"🔵 First BLUE cell found: act_id={act_id}, pt_id={pt_id}, cell_src={cell_src}")
+                    first_cell_debug[0] = False
+                
                 if cell_src in ('needs_review', 'vision'):
                     return 'background-color: #fb923c'  # orange - needs review (includes vision-only)
                 elif cell_src == 'both':
@@ -800,92 +1029,101 @@ def render_flexible_soa(data, table_id: str = "main"):
             elif from_text:
                 return 'background-color: #60a5fa'  # blue - text
             elif from_vision:
-                return 'background-color: #facc15'  # yellow - vision
-            return ''
+                return 'background-color: #fb923c'  # orange - vision-only
+            
+            # No provenance found - orphaned item, needs review
+            return 'background-color: #f87171'  # red - orphaned (no provenance)
         
-        # Apply styling directly - bypass Styler to avoid multi-index issues
-        # Build a style map with integer positions instead of labels
+        # Build a style map with integer positions
         style_map = {}
+        debug_styles = {'green': 0, 'blue': 0, 'orange': 0, 'red': 0, 'none': 0}
         for i, row_idx in enumerate(df_display.index):
             for j, col_idx in enumerate(df_display.columns):
                 style = apply_provenance_style(row_idx, col_idx)
                 if style:
                     style_map[(i, j)] = style
+                    if '#4ade80' in style:
+                        debug_styles['green'] += 1
+                    elif '#60a5fa' in style:
+                        debug_styles['blue'] += 1
+                    elif '#fb923c' in style:
+                        debug_styles['orange'] += 1
+                    elif '#f87171' in style:
+                        debug_styles['red'] += 1
         
-        # Convert DataFrame to HTML manually with styles
+        # Show style distribution in debug
+        st.info(f"🎨 Style map: {debug_styles} (Total styled cells: {len(style_map)})")
+        
+        # Render HTML table with hierarchical headers and provenance colors
         html_parts = ['<style>']
-        html_parts.append('.soa-table { border-collapse: collapse; width: 100%; }')
-        html_parts.append('.soa-table th, .soa-table td { border: 1px solid #ddd; padding: 8px; text-align: center; }')
-        html_parts.append('.soa-table th { background-color: #f2f2f2; font-weight: bold; }')
+        html_parts.append('.soa-table { border-collapse: collapse; width: 100%; font-size: 13px; }')
+        html_parts.append('.soa-table th, .soa-table td { border: 1px solid #d1d5db; padding: 6px 8px; text-align: center; white-space: normal; word-wrap: break-word; max-width: 120px; }')
+        html_parts.append('.soa-table th { background-color: #f3f4f6; font-weight: 600; }')
+        html_parts.append('.soa-table tbody tr:hover { background-color: #f9fafb; }')
         html_parts.append('</style>')
+        html_parts.append('<div style="overflow-x: auto; max-height: 700px; overflow-y: auto;">')
         html_parts.append('<table class="soa-table">')
         
-        # Header - with proper column structure for activity groups
+        # Build header rows
         has_groups = isinstance(df_display.index, pd.MultiIndex) and df_display.index.nlevels >= 2
         html_parts.append('<thead>')
+        
         if isinstance(df.columns, pd.MultiIndex):
-            # Check if Visit Window (level 1) and Planned TP (level 2) are duplicates
-            # If so, skip one level to avoid redundant rows
             level_values = [df.columns.get_level_values(i).tolist() for i in range(df.columns.nlevels)]
+            # Check for duplicate levels
             skip_levels = set()
-            if df.columns.nlevels >= 3:
-                # Check if level 1 and level 2 are mostly identical
-                if level_values[1] == level_values[2]:
-                    skip_levels.add(2)  # Skip the duplicate level
+            if df.columns.nlevels >= 3 and level_values[1] == level_values[2]:
+                skip_levels.add(2)
             
             active_levels = [i for i in range(df.columns.nlevels) if i not in skip_levels]
             num_header_rows = len(active_levels)
+            level_names = ['Epoch', 'Visit', 'Day']
             
-            # Multi-level column headers with colspan merging
             for level_idx, level in enumerate(active_levels):
                 html_parts.append('<tr>')
                 if level_idx == 0:
-                    # Two header columns: Activity Group + Activity Name
                     if has_groups:
-                        html_parts.append(f'<th rowspan="{num_header_rows}" style="background-color: #d1d5db; min-width: 120px;">Category</th>')
-                        html_parts.append(f'<th rowspan="{num_header_rows}" style="background-color: #d1d5db; min-width: 200px;">Activity</th>')
+                        html_parts.append(f'<th rowspan="{num_header_rows}" style="background-color: #e5e7eb; min-width: 100px; position: sticky; left: 0; z-index: 2;">Category</th>')
+                        html_parts.append(f'<th rowspan="{num_header_rows}" style="background-color: #e5e7eb; min-width: 150px; position: sticky; left: 100px; z-index: 2;">Activity</th>')
                     else:
-                        html_parts.append(f'<th rowspan="{num_header_rows}" style="background-color: #d1d5db;">Activity</th>')
+                        html_parts.append(f'<th rowspan="{num_header_rows}" style="background-color: #e5e7eb;">Activity</th>')
                 
-                # Build merged cells with colspan for this level
+                # Merged cells with colspan
                 values = level_values[level]
                 i = 0
                 while i < len(values):
                     val = values[i]
                     colspan = 1
-                    # Count consecutive identical values
                     while i + colspan < len(values) and values[i + colspan] == val:
                         colspan += 1
                     
-                    # Different styling for epoch row (level 0)
-                    if level == 0:
-                        style = 'background-color: #e5e7eb; font-weight: bold;'
-                    else:
-                        style = ''
+                    level_name = level_names[level] if level < len(level_names) else ''
+                    style = 'background-color: #dbeafe; font-weight: bold;' if level == 0 else 'background-color: #f3f4f6;'
+                    
+                    # Show level name as prefix for first row only
+                    display_val = html.escape(str(val)) if val else ''
                     
                     if colspan > 1:
-                        html_parts.append(f'<th colspan="{colspan}" style="{style}">{html.escape(str(val))}</th>')
+                        html_parts.append(f'<th colspan="{colspan}" style="{style}">{display_val}</th>')
                     else:
-                        html_parts.append(f'<th style="{style}">{html.escape(str(val))}</th>')
+                        html_parts.append(f'<th style="{style}">{display_val}</th>')
                     i += colspan
                 html_parts.append('</tr>')
         else:
             html_parts.append('<tr>')
             if has_groups:
-                html_parts.append('<th style="background-color: #d1d5db;">Category</th>')
-                html_parts.append('<th style="background-color: #d1d5db;">Activity</th>')
+                html_parts.append('<th style="background-color: #e5e7eb;">Category</th>')
+                html_parts.append('<th style="background-color: #e5e7eb;">Activity</th>')
             else:
-                html_parts.append('<th style="background-color: #d1d5db;">Activity</th>')
+                html_parts.append('<th style="background-color: #e5e7eb;">Activity</th>')
             for col in df.columns:
-                html_parts.append(f'<th>{col}</th>')
+                html_parts.append(f'<th>{html.escape(str(col))}</th>')
             html_parts.append('</tr>')
         html_parts.append('</thead>')
         
-        # Body - with proper activity group visual structure
+        # Build body with rowspan grouping
         html_parts.append('<tbody>')
-        
-        # Pre-calculate group spans for proper rowspan rendering
-        group_spans = {}  # group_name -> (start_row, count)
+        group_spans = {}
         prev_group = None
         for i, row_idx in enumerate(df_display.index):
             if isinstance(row_idx, tuple) and len(row_idx) >= 2:
@@ -903,34 +1141,63 @@ def render_flexible_soa(data, table_id: str = "main"):
             if isinstance(row_idx, tuple) and len(row_idx) >= 2:
                 group_name, activity_name = row_idx[0], row_idx[1]
                 
-                # Render group header cell with rowspan (only for first row of group)
                 if group_name not in rendered_groups:
                     rendered_groups.add(group_name)
                     span = group_spans.get(group_name, {}).get('count', 1)
                     html_parts.append(
-                        f'<th rowspan="{span}" style="background-color: #e5e7eb; '
-                        f'font-weight: 600; text-align: left; vertical-align: top; '
-                        f'border-right: 2px solid #9ca3af; padding: 8px 12px;">{group_name}</th>'
+                        f'<th rowspan="{span}" style="background-color: #f3f4f6; font-weight: 600; '
+                        f'text-align: left; vertical-align: top; border-right: 2px solid #9ca3af; '
+                        f'position: sticky; left: 0; z-index: 1;">{html.escape(str(group_name))}</th>'
                     )
                 
-                # Activity name cell
-                html_parts.append(f'<th style="text-align: left; font-weight: normal; padding-left: 8px;">{activity_name}</th>')
+                html_parts.append(f'<th style="text-align: left; font-weight: normal; background-color: #fafafa; position: sticky; left: 100px; z-index: 1;">{html.escape(str(activity_name))}</th>')
             else:
-                # Flat structure - no grouping
-                html_parts.append(f'<th style="text-align: left;">{row_idx}</th>')
+                html_parts.append(f'<th style="text-align: left; background-color: #fafafa;">{html.escape(str(row_idx))}</th>')
             
-            # Data cells with provenance styling
             for j, (col_idx, value) in enumerate(row.items()):
-                style_attr = f' style="{style_map.get((i, j), "")}"' if (i, j) in style_map else ''
-                html_parts.append(f'<td{style_attr}>{value}</td>')
+                cell_style = style_map.get((i, j), '')
+                style_attr = f' style="{cell_style}"' if cell_style else ''
+                html_parts.append(f'<td{style_attr}>{html.escape(str(value))}</td>')
             html_parts.append('</tr>')
-        html_parts.append('</tbody></table>')
         
-        table_html = ''.join(html_parts)
-        st.markdown(table_html, unsafe_allow_html=True)
+        html_parts.append('</tbody></table></div>')
+        
+        st.markdown(''.join(html_parts), unsafe_allow_html=True)
+        
+        # Add interactive export option
+        with st.expander("📥 Export & Search Data"):
+            # Create flat export dataframe
+            export_data = []
+            for row_idx, row in df_display.iterrows():
+                if isinstance(row_idx, tuple):
+                    row_dict = {'Category': row_idx[0], 'Activity': row_idx[1]}
+                else:
+                    row_dict = {'Activity': row_idx}
+                for col_idx, val in row.items():
+                    col_name = ' | '.join(str(c) for c in col_idx) if isinstance(col_idx, tuple) else str(col_idx)
+                    row_dict[col_name] = val
+                export_data.append(row_dict)
+            export_df = pd.DataFrame(export_data)
+            
+            # Search filter
+            search = st.text_input("🔍 Search activities:", key=f"search_{table_id}")
+            if search:
+                mask = export_df.apply(lambda r: r.astype(str).str.contains(search, case=False).any(), axis=1)
+                export_df = export_df[mask]
+            
+            st.dataframe(export_df, use_container_width=True, height=300)
+            
+            # CSV download
+            csv = export_df.to_csv(index=False)
+            st.download_button("📥 Download CSV", csv, f"soa_export_{table_id}.csv", "text/csv")
+            
+            # JSON viewer
+            st.markdown("---")
+            if st.checkbox("📄 Show JSON (protocol_usdm.json)", key=f"json_{table_id}"):
+                st.json(data, expanded=False)
     else:
-        # No provenance available, just show the dataframe (with any applied row filtering)
-        st.dataframe(df_display)
+        # No provenance - simple dataframe display
+        st.dataframe(df_display, use_container_width=True, height=600)
 
 def get_provenance_sources(provenance, item_type, item_id):
     """
@@ -1003,6 +1270,11 @@ selected_run = st.sidebar.selectbox(
     help="Each folder in the 'output' directory represents a single execution of the pipeline."
 )
 
+# Add cache clear button
+if st.sidebar.button("🔄 Refresh Data", help="Clear cached data and reload"):
+    st.cache_data.clear()
+    st.rerun()
+
 if selected_run == "-- Select a Run --":
     st.info("Please select a pipeline run from the sidebar to begin.")
     st.stop()
@@ -1012,6 +1284,9 @@ run_path = os.path.join(OUTPUT_DIR, selected_run)
 # Update header subtitle displaying the source PDF/protocol directory
 file_placeholder.markdown(f"**SoA from:** `{selected_run}`")
 inventory = get_file_inventory(run_path)
+
+# Attach provenance data (must be done outside cached function)
+attach_provenance_to_inventory(inventory)
 
 # --- USDM Metrics Dashboard in Sidebar ---
 if inventory['final_soa']:
@@ -1046,21 +1321,81 @@ if inventory['final_soa']:
 
 # --- Main Display: Render the final SoA --- 
 st.header("Schedule of Activities (SoA)")
-if not inventory['final_soa']:
-    st.warning("The final SoA (`9_final_soa.json`) was not found for this run.")
+
+# Prefer protocol_usdm.json (golden standard) for SoA display, fallback to 9_final_soa.json
+soa_source = None
+soa_source_name = None
+
+if inventory.get('full_usdm') and inventory['full_usdm'].get('content'):
+    full_usdm = inventory['full_usdm']['content']
+    # Check if protocol_usdm.json has SoA data in studyDesigns
+    if 'studyDesigns' in full_usdm and full_usdm['studyDesigns']:
+        sd = full_usdm['studyDesigns'][0]
+        if sd.get('activities') or sd.get('scheduleTimelines'):
+            soa_source = full_usdm
+            soa_source_name = "protocol_usdm.json (Golden Standard)"
+
+if not soa_source and inventory['final_soa']:
+    soa_source = inventory['final_soa']['content']
+    soa_source_name = "9_final_soa.json"
+
+if not soa_source:
+    render_no_data_message(
+        "Schedule of Activities", 
+        "Run the pipeline with a protocol PDF to extract the SoA table."
+    )
 else:
+    st.info(f"📄 Source: **{soa_source_name}**")
+    
     # Use the flexible renderer which handles missing entities gracefully
-    render_flexible_soa(inventory['final_soa']['content'], table_id="final_soa")
-    with st.expander("Show Full JSON Output"):
-        st.json(inventory['final_soa']['content'])
+    render_flexible_soa(soa_source, table_id="final_soa")
 
 # --- USDM Expansion Data (v6.0) ---
 if inventory.get('expansion') or inventory.get('full_usdm'):
     st.markdown("---")
     st.header("📋 Protocol Expansion Data (v6.0)")
     
+    # Helper: Get data from protocol_usdm.json (preferred) or fallback to expansion files
+    def get_expansion_data(key: str, full_usdm: dict, expansion_inv: dict):
+        """Get expansion data, preferring protocol_usdm.json as source."""
+        # Map of expansion keys to their location in protocol_usdm.json
+        usdm_paths = {
+            'eligibility': lambda u: {'eligibilityCriteria': u.get('studyDesigns', [{}])[0].get('eligibilityCriteria', []),
+                                      'population': u.get('studyDesigns', [{}])[0].get('studyDesignPopulation')},
+            'objectives': lambda u: {'objectives': u.get('studyDesigns', [{}])[0].get('objectives', []),
+                                     'endpoints': u.get('studyDesigns', [{}])[0].get('endpoints', [])},
+            'studydesign': lambda u: {'studyArms': u.get('studyDesigns', [{}])[0].get('studyArms', []),
+                                      'epochs': u.get('studyDesigns', [{}])[0].get('epochs', [])},
+            'interventions': lambda u: {'studyInterventions': u.get('studyDesigns', [{}])[0].get('studyInterventions', []),
+                                        'products': u.get('administrableProducts', [])},
+            'narrative': lambda u: {'abbreviations': u.get('abbreviations', []),
+                                    'narrativeContents': u.get('narrativeContents', [])},
+            'advanced': lambda u: {'studyAmendments': u.get('studyAmendments', []),
+                                   'countries': u.get('countries', [])},
+            'procedures': lambda u: {'procedures': u.get('procedures', [])},
+            'sap': lambda u: {'analysisPopulations': u.get('analysisPopulations', [])},
+        }
+        
+        # Try to get from protocol_usdm.json first
+        if full_usdm and key in usdm_paths:
+            data = usdm_paths[key](full_usdm)
+            # Check if data is non-empty
+            has_data = any(v for v in data.values() if v)
+            if has_data:
+                return {'source': 'protocol_usdm.json', 'data': data, 'from_usdm': True}
+        
+        # Fallback to expansion files
+        if expansion_inv and key in expansion_inv:
+            return {'source': expansion_inv[key].get('display_name', key), 
+                    'data': expansion_inv[key].get('content', {}), 
+                    'from_usdm': False}
+        
+        return None
+    
+    full_usdm_content = inventory.get('full_usdm', {}).get('content', {})
+    
     if inventory.get('full_usdm'):
-        st.success("✅ Full USDM protocol available (`full_usdm.json`)")
+        st.success("✅ Full USDM protocol available (`protocol_usdm.json`) - Data sourced from combined output")
     
     # Create tabs for each expansion section
     expansion_tabs = []
@@ -1074,6 +1409,12 @@ if inventory.get('expansion') or inventory.get('full_usdm'):
         ('interventions', '💊 Interventions'),
         ('narrative', '📖 Narrative'),
         ('advanced', '🌍 Advanced'),
+        ('procedures', '🔬 Procedures'),
+        ('scheduling', '⏱️ Scheduling'),
+        ('sap', '📊 SAP'),
+        ('sites', '🏥 Sites'),
+        ('docstructure', '📑 Doc Structure'),
+        ('amendmentdetails', '📝 Amendments'),
     ]
     
     available_tabs = [(key, label) for key, label in tab_config if key in inventory.get('expansion', {})]
@@ -1112,35 +1453,53 @@ if inventory.get('expansion') or inventory.get('full_usdm'):
                         col1, col2 = st.columns(2)
                         with col1:
                             st.markdown("**Study Titles:**")
-                            for t in md.get('studyTitles', []):
-                                st.write(f"- {t.get('text', 'N/A')}")
+                            for t in md.get('titles', []):
+                                title_text = t.get('text', 'N/A')
+                                title_type = t.get('type', {})
+                                type_label = title_type.get('decode', '') if isinstance(title_type, dict) else title_type
+                                st.write(f"- [{type_label}] {title_text}")
                             st.markdown("**Study Phase:**")
                             phase = md.get('studyPhase', {})
-                            st.write(phase.get('phase', 'N/A'))
+                            phase_text = phase.get('code', phase.get('decode', 'N/A')) if isinstance(phase, dict) else phase
+                            st.write(phase_text or 'N/A')
                         with col2:
                             st.markdown("**Identifiers:**")
-                            for ident in md.get('studyIdentifiers', []):
-                                st.write(f"- {ident.get('studyIdentifier', 'N/A')}")
+                            for ident in md.get('identifiers', []):
+                                st.write(f"- {ident.get('text', 'N/A')}")
                             st.markdown("**Indication:**")
-                            for ind in md.get('studyIndications', []):
+                            for ind in md.get('indications', []):
                                 st.write(f"- {ind.get('name', 'N/A')}")
+                    else:
+                        render_no_data_message("Study Metadata", "Run --metadata or --full-protocol to extract")
                 
                 elif key == 'eligibility':
                     st.subheader("Eligibility Criteria")
                     st.markdown(f"<span style='background:{conf_color};color:white;padding:2px 8px;border-radius:8px;font-size:0.9em;'>📊 {tab_conf:.0%}</span>", unsafe_allow_html=True)
                     if content.get('success') and content.get('eligibility'):
                         elig = content['eligibility']
+                        # Build lookup from criterionItemId -> text
+                        items_map = {item.get('id'): item.get('text', item.get('name', 'N/A')) 
+                                     for item in elig.get('eligibilityCriterionItems', [])}
+                        
                         col1, col2 = st.columns(2)
                         with col1:
                             st.markdown(f"**Inclusion Criteria ({elig.get('summary', {}).get('inclusionCount', 0)}):**")
                             for c in elig.get('eligibilityCriteria', []):
-                                if c.get('category') == 'Inclusion':
-                                    st.write(f"- {c.get('text', 'N/A')[:100]}...")
+                                cat = c.get('category', {})
+                                cat_code = cat.get('code', cat) if isinstance(cat, dict) else cat
+                                if cat_code == 'Inclusion':
+                                    text = items_map.get(c.get('criterionItemId'), c.get('name', 'N/A'))
+                                    st.write(f"- [{c.get('identifier', '')}] {text[:100]}...")
                         with col2:
                             st.markdown(f"**Exclusion Criteria ({elig.get('summary', {}).get('exclusionCount', 0)}):**")
                             for c in elig.get('eligibilityCriteria', []):
-                                if c.get('category') == 'Exclusion':
-                                    st.write(f"- {c.get('text', 'N/A')[:100]}...")
+                                cat = c.get('category', {})
+                                cat_code = cat.get('code', cat) if isinstance(cat, dict) else cat
+                                if cat_code == 'Exclusion':
+                                    text = items_map.get(c.get('criterionItemId'), c.get('name', 'N/A'))
+                                    st.write(f"- [{c.get('identifier', '')}] {text[:100]}...")
+                    else:
+                        render_no_data_message("Eligibility Criteria", "Run --eligibility or --full-protocol to extract")
                 
                 elif key == 'objectives':
                     st.subheader("Objectives & Endpoints")
@@ -1155,23 +1514,31 @@ if inventory.get('expansion') or inventory.get('full_usdm'):
                         
                         st.markdown("**Objectives:**")
                         for o in obj.get('objectives', []):
-                            level = o.get('level', 'Unknown')
-                            st.write(f"- [{level}] {o.get('text', 'N/A')[:100]}...")
+                            level = o.get('level', {})
+                            level_text = level.get('code', level) if isinstance(level, dict) else level
+                            st.write(f"- [{level_text}] {o.get('text', 'N/A')[:100]}...")
+                    else:
+                        render_no_data_message("Objectives & Endpoints", "Run --objectives or --full-protocol to extract")
                 
                 elif key == 'studydesign':
                     st.subheader("Study Design Structure")
                     st.markdown(f"<span style='background:{conf_color};color:white;padding:2px 8px;border-radius:8px;font-size:0.9em;'>📊 {tab_conf:.0%}</span>", unsafe_allow_html=True)
-                    if content.get('success') and content.get('studyDesign'):
-                        sd = content['studyDesign']
-                        design = sd.get('studyDesign', {})
+                    # Handle both 'studyDesign' and 'studyDesignStructure' keys
+                    sd = content.get('studyDesignStructure') or content.get('studyDesign')
+                    if content.get('success') and sd:
+                        summary = sd.get('summary', {})
                         col1, col2, col3 = st.columns(3)
-                        col1.metric("Arms", len(sd.get('studyArms', [])))
-                        col2.metric("Cohorts", len(sd.get('studyCohorts', [])))
-                        col3.metric("Blinding", design.get('blindingSchema', {}).get('code', 'N/A'))
+                        col1.metric("Arms", summary.get('armCount', len(sd.get('studyArms', []))))
+                        col2.metric("Cohorts", summary.get('cohortCount', len(sd.get('studyCohorts', []))))
+                        blinding = sd.get('blindingSchema', {})
+                        blinding_text = blinding.get('code', 'N/A') if isinstance(blinding, dict) else blinding
+                        col3.metric("Blinding", blinding_text or 'N/A')
                         
                         st.markdown("**Study Arms:**")
                         for arm in sd.get('studyArms', []):
                             st.write(f"- {arm.get('name', 'N/A')}: {arm.get('description', 'N/A')[:80]}...")
+                    else:
+                        render_no_data_message("Study Design", "Run --studydesign or --full-protocol to extract")
                 
                 elif key == 'interventions':
                     st.subheader("Interventions & Products")
@@ -1179,13 +1546,17 @@ if inventory.get('expansion') or inventory.get('full_usdm'):
                     if content.get('success') and content.get('interventions'):
                         iv = content['interventions']
                         col1, col2, col3 = st.columns(3)
-                        col1.metric("Interventions", len(iv.get('interventions', [])))
-                        col2.metric("Products", len(iv.get('products', [])))
-                        col3.metric("Administrations", len(iv.get('administrations', [])))
+                        col1.metric("Interventions", len(iv.get('studyInterventions', iv.get('interventions', []))))
+                        col2.metric("Products", len(iv.get('investigationalProducts', iv.get('products', []))))
+                        col3.metric("Regimens", len(iv.get('administrationRegimens', iv.get('administrations', []))))
                         
                         st.markdown("**Interventions:**")
-                        for inter in iv.get('interventions', []):
-                            st.write(f"- {inter.get('name', 'N/A')}")
+                        for inter in iv.get('studyInterventions', iv.get('interventions', [])):
+                            role = inter.get('role', {})
+                            role_text = role.get('decode', role) if isinstance(role, dict) else role
+                            st.write(f"- {inter.get('name', 'N/A')} ({role_text})")
+                    else:
+                        render_no_data_message("Interventions", "Run --interventions or --full-protocol to extract")
                 
                 elif key == 'narrative':
                     st.subheader("Narrative Structure")
@@ -1204,6 +1575,8 @@ if inventory.get('expansion') or inventory.get('full_usdm'):
                         abbr_text = ", ".join([f"{a.get('abbreviatedText', '')}={a.get('expandedText', '')}" 
                                               for a in narr.get('abbreviations', [])[:10]])
                         st.write(abbr_text)
+                    else:
+                        render_no_data_message("Narrative Structure", "Run --narrative or --full-protocol to extract")
                 
                 elif key == 'advanced':
                     st.subheader("Advanced Entities")
@@ -1218,6 +1591,136 @@ if inventory.get('expansion') or inventory.get('full_usdm'):
                         st.markdown("**Amendments:**")
                         for amend in adv.get('studyAmendments', []):
                             st.write(f"- Amendment {amend.get('number', 'N/A')}: {amend.get('summary', 'N/A')[:60]}...")
+                    else:
+                        render_no_data_message("Advanced Entities", "Run --advanced or --full-protocol to extract")
+                
+                elif key == 'procedures':
+                    st.subheader("🔬 Procedures & Devices")
+                    st.markdown(f"<span style='background:{conf_color};color:white;padding:2px 8px;border-radius:8px;font-size:0.9em;'>📊 {tab_conf:.0%}</span>", unsafe_allow_html=True)
+                    proc_data = content.get('proceduresDevices', content)
+                    if proc_data:
+                        col1, col2, col3 = st.columns(3)
+                        col1.metric("Procedures", len(proc_data.get('procedures', [])))
+                        col2.metric("Medical Devices", len(proc_data.get('medicalDevices', [])))
+                        col3.metric("Ingredients", len(proc_data.get('ingredients', [])))
+                        
+                        st.markdown("**Procedures:**")
+                        for proc in proc_data.get('procedures', [])[:10]:
+                            proc_type = proc.get('procedureType', {})
+                            type_text = proc_type.get('decode', proc_type) if isinstance(proc_type, dict) else (proc_type or '')
+                            st.write(f"- {proc.get('name', 'N/A')} ({type_text})")
+                        
+                        if proc_data.get('medicalDevices'):
+                            st.markdown("**Medical Devices:**")
+                            for dev in proc_data.get('medicalDevices', [])[:5]:
+                                st.write(f"- {dev.get('name', 'N/A')} ({dev.get('manufacturer', 'N/A')})")
+                    else:
+                        render_no_data_message("Procedures & Devices", "Run --procedures or --full-protocol to extract")
+                
+                elif key == 'scheduling':
+                    st.subheader("⏱️ Scheduling Logic")
+                    st.markdown(f"<span style='background:{conf_color};color:white;padding:2px 8px;border-radius:8px;font-size:0.9em;'>📊 {tab_conf:.0%}</span>", unsafe_allow_html=True)
+                    sched_data = content.get('scheduling', content)
+                    if sched_data:
+                        col1, col2, col3 = st.columns(3)
+                        col1.metric("Timings", len(sched_data.get('timings', [])))
+                        col2.metric("Conditions", len(sched_data.get('conditions', [])))
+                        col3.metric("Transition Rules", len(sched_data.get('transitionRules', [])))
+                        
+                        st.markdown("**Visit Timings:**")
+                        for timing in sched_data.get('timings', [])[:8]:
+                            window = ""
+                            if timing.get('windowLower') is not None or timing.get('windowUpper') is not None:
+                                window = f" (window: {timing.get('windowLower', 0):+d}/{timing.get('windowUpper', 0):+d} {timing.get('unit', 'days')})"
+                            st.write(f"- {timing.get('name', 'N/A')}: {timing.get('value', 'N/A')} {timing.get('unit', 'days')}{window}")
+                        
+                        if sched_data.get('transitionRules'):
+                            st.markdown("**Transition Rules:**")
+                            for rule in sched_data.get('transitionRules', [])[:5]:
+                                st.write(f"- {rule.get('name', 'N/A')}: {rule.get('text', rule.get('description', 'N/A'))[:80]}...")
+                    else:
+                        render_no_data_message("Scheduling Logic", "Run --scheduling or --full-protocol to extract")
+                
+                elif key == 'sap':
+                    st.subheader("📊 Analysis Populations (SAP)")
+                    st.markdown(f"<span style='background:{conf_color};color:white;padding:2px 8px;border-radius:8px;font-size:0.9em;'>📊 {tab_conf:.0%}</span>", unsafe_allow_html=True)
+                    sap_data = content.get('sapData', content)
+                    if sap_data:
+                        col1, col2 = st.columns(2)
+                        col1.metric("Analysis Populations", len(sap_data.get('analysisPopulations', [])))
+                        col2.metric("Baseline Characteristics", len(sap_data.get('characteristics', [])))
+                        
+                        st.markdown("**Analysis Populations:**")
+                        for pop in sap_data.get('analysisPopulations', []):
+                            st.write(f"- **{pop.get('label', pop.get('name', 'N/A'))}** ({pop.get('populationType', 'N/A')}): {pop.get('description', 'N/A')[:100]}...")
+                        
+                        st.markdown("**Baseline Characteristics:**")
+                        char_names = [c.get('name', 'N/A') for c in sap_data.get('characteristics', [])[:15]]
+                        st.write(", ".join(char_names))
+                    else:
+                        render_no_data_message("Analysis Populations", "Provide --sap <path> with a SAP document to extract")
+                
+                elif key == 'sites':
+                    st.subheader("🏥 Study Sites")
+                    st.markdown(f"<span style='background:{conf_color};color:white;padding:2px 8px;border-radius:8px;font-size:0.9em;'>📊 {tab_conf:.0%}</span>", unsafe_allow_html=True)
+                    sites_data = content.get('sitesData', content)
+                    if sites_data:
+                        col1, col2, col3 = st.columns(3)
+                        col1.metric("Sites", len(sites_data.get('studySites', [])))
+                        col2.metric("Roles", len(sites_data.get('studyRoles', [])))
+                        col3.metric("Personnel", len(sites_data.get('assignedPersons', [])))
+                        
+                        st.markdown("**Study Sites:**")
+                        for site in sites_data.get('studySites', [])[:10]:
+                            st.write(f"- {site.get('siteNumber', 'N/A')}: {site.get('name', 'N/A')} ({site.get('country', 'N/A')}) - {site.get('status', 'Active')}")
+                    else:
+                        render_no_data_message("Study Sites", "Provide --sites <path> with a sites file to extract")
+                
+                elif key == 'docstructure':
+                    st.subheader("📑 Document Structure")
+                    st.markdown(f"<span style='background:{conf_color};color:white;padding:2px 8px;border-radius:8px;font-size:0.9em;'>📊 {tab_conf:.0%}</span>", unsafe_allow_html=True)
+                    doc_data = content.get('documentStructure', content)
+                    if doc_data:
+                        col1, col2, col3 = st.columns(3)
+                        col1.metric("References", len(doc_data.get('documentContentReferences', [])))
+                        col2.metric("Annotations", len(doc_data.get('commentAnnotations', [])))
+                        col3.metric("Versions", len(doc_data.get('studyDefinitionDocumentVersions', [])))
+                        
+                        if doc_data.get('studyDefinitionDocumentVersions'):
+                            st.markdown("**Document Versions:**")
+                            for ver in doc_data.get('studyDefinitionDocumentVersions', []):
+                                amend = f" ({ver.get('amendmentNumber', '')})" if ver.get('amendmentNumber') else ""
+                                st.write(f"- Version {ver.get('versionNumber', 'N/A')}{amend} - {ver.get('status', 'N/A')} ({ver.get('versionDate', 'N/A')})")
+                        
+                        if doc_data.get('commentAnnotations'):
+                            st.markdown("**Annotations/Footnotes:**")
+                            for annot in doc_data.get('commentAnnotations', [])[:5]:
+                                st.write(f"- [{annot.get('annotationType', 'Note')}] {annot.get('text', 'N/A')[:80]}...")
+                    else:
+                        render_no_data_message("Document Structure", "Run --docstructure or --full-protocol to extract")
+                
+                elif key == 'amendmentdetails':
+                    st.subheader("📝 Amendment Details")
+                    st.markdown(f"<span style='background:{conf_color};color:white;padding:2px 8px;border-radius:8px;font-size:0.9em;'>📊 {tab_conf:.0%}</span>", unsafe_allow_html=True)
+                    amend_data = content.get('amendmentDetails', content)
+                    if amend_data:
+                        col1, col2, col3 = st.columns(3)
+                        col1.metric("Impacts", len(amend_data.get('studyAmendmentImpacts', [])))
+                        col2.metric("Reasons", len(amend_data.get('studyAmendmentReasons', [])))
+                        col3.metric("Changes", len(amend_data.get('studyChanges', [])))
+                        
+                        if amend_data.get('studyAmendmentReasons'):
+                            st.markdown("**Amendment Reasons:**")
+                            for reason in amend_data.get('studyAmendmentReasons', []):
+                                primary = " ⭐" if reason.get('isPrimary') else ""
+                                st.write(f"- [{reason.get('category', 'N/A')}]{primary} {reason.get('reasonText', 'N/A')[:80]}...")
+                        
+                        if amend_data.get('studyChanges'):
+                            st.markdown("**Key Changes:**")
+                            for change in amend_data.get('studyChanges', [])[:5]:
+                                st.write(f"- [{change.get('changeType', 'Modification')}] {change.get('summary', change.get('sectionNumber', 'N/A'))[:60]}...")
+                    else:
+                        render_no_data_message("Amendment Details", "Run --amendmentdetails or --full-protocol to extract")
                 
                 with st.expander("Show Raw JSON"):
                     st.json(content)
@@ -1241,7 +1744,7 @@ tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
 with tab1:
     st.subheader("Text Extraction Output")
     if not inventory['primary_outputs']:
-        st.info("No text extraction output found. Run the pipeline to generate.")
+        render_no_data_message("Text Extraction Output", "Run the pipeline to generate SoA extraction")
     else:
         for i, (key, content) in enumerate(inventory['primary_outputs'].items()):
             st.markdown(f"**{key}**")
@@ -1252,7 +1755,7 @@ with tab1:
 with tab2:
     st.subheader("Intermediate Data Files")
     if not inventory['intermediate_data']:
-        st.info("No intermediate data files found.")
+        render_no_data_message("Intermediate Data Files", "Run the pipeline to generate intermediate outputs")
     else:
         for key, content in inventory['intermediate_data'].items():
             with st.expander(key):
@@ -1261,7 +1764,7 @@ with tab2:
 with tab3:
     st.subheader("Configuration Files")
     if not inventory['configs']:
-        st.info("No configuration files found.")
+        render_no_data_message("Configuration Files", "Configuration files are created during pipeline execution")
     else:
         for key, content in inventory['configs'].items():
             with st.expander(key):
@@ -1273,7 +1776,7 @@ with tab3:
 with tab4:
     st.subheader("Extracted SoA Images")
     if not inventory['images']:
-        st.info("No images found.")
+        render_no_data_message("SoA Images", "SoA page images are extracted during pipeline execution")
     else:
         cols = st.columns(2)
         for i, img_path in enumerate(inventory['images']):
@@ -1288,7 +1791,7 @@ with tab4:
 with tab5:
     st.subheader("Quality Metrics")
     if not inventory['final_soa']:
-        st.info("Run a pipeline to generate a final SoA first.")
+        render_no_data_message("Quality Metrics", "Run the pipeline to generate a final SoA for quality analysis")
     else:
         # Entity counts and quality metrics
         metrics = compute_usdm_metrics(inventory['final_soa']['content'])

@@ -165,17 +165,22 @@ An SoA table typically has:
 - Row headers with procedure/activity names
 - Checkmarks or X marks indicating which activities occur at which visits
 
+IMPORTANT: SoA tables often span MULTIPLE PAGES. Include:
+- Pages with the "Schedule of Activities" title/header (even if the table starts on that page)
+- Continuation pages that have table content but no title
+- All pages that are part of the same table
+
 PAGES TO ANALYZE:
 {pages}
 
 Return a JSON object with:
 {{
-  "soa_pages": [list of page numbers that contain SoA tables],
+  "soa_pages": [list of page numbers that contain SoA tables - include ALL pages of multi-page tables],
   "confidence": "high" or "medium" or "low",
   "notes": "brief explanation"
 }}
 
-Only include pages that clearly contain SoA table content.""".format(
+Include any page that has SoA table content, even if it's a continuation page.""".format(
         pages="\n\n---\n\n".join(page_texts)
     )
     
@@ -226,17 +231,121 @@ def find_soa_pages(
     heuristic_pages = find_soa_pages_heuristic(pdf_path, top_n=10)
     logger.info(f"Heuristic candidates: {heuristic_pages}")
     
+    # Find pages with SoA title (these are anchor pages)
+    title_pages = _find_soa_title_pages(pdf_path)
+    logger.info(f"Title pages: {title_pages}")
+    
+    # Combine heuristic and title pages
+    all_candidates = list(set(heuristic_pages + title_pages))
+    
     if not use_llm or not model_name:
-        return heuristic_pages[:5]
+        final_pages = _expand_adjacent_pages(all_candidates, pdf_path)
+        return sorted(final_pages)[:10]
     
     # Second pass: LLM refinement
-    llm_pages = find_soa_pages_llm(pdf_path, model_name, heuristic_pages)
+    llm_pages = find_soa_pages_llm(pdf_path, model_name, all_candidates)
     
     if llm_pages:
-        return llm_pages
+        # Expand to include adjacent pages (tables often span pages)
+        final_pages = _expand_adjacent_pages(llm_pages, pdf_path)
+        if set(final_pages) != set(llm_pages):
+            logger.info(f"Expanded pages from {sorted(llm_pages)} to {sorted(final_pages)} (adjacent page detection)")
+        return sorted(final_pages)
     
     # Fallback to heuristics if LLM fails
-    return heuristic_pages[:5]
+    final_pages = _expand_adjacent_pages(all_candidates, pdf_path)
+    return sorted(final_pages)[:10]
+
+
+def _find_soa_title_pages(pdf_path: str) -> List[int]:
+    """
+    Find pages that contain actual SoA table (not just mentions of it).
+    
+    Looks for:
+    - "Table X: Schedule of Activities" pattern (actual table title)
+    - Combined presence of title AND table structure (column headers like Day, Visit)
+    """
+    doc = fitz.open(pdf_path)
+    title_pages = []
+    
+    # Patterns for actual table titles (not TOC or references)
+    # Requires "Table X:" format which indicates actual table caption
+    table_title_patterns = [
+        r'table\s+\d+[:\.]?\s*schedule\s+of\s+(activities|assessments)',  # "Table 1: Schedule of..."
+    ]
+    
+    # Patterns for table structure (columns/headers)
+    structure_patterns = [
+        r'\bday\s*[-+]?\d+',
+        r'\bweek\s*[-+]?\d+', 
+        r'\bvisit\s*\d+',
+        r'\bscreening\b.*\btreatment\b',  # Multiple epochs on same page
+        r'\binpatient\b',
+        r'\boutpatient\b',
+    ]
+    
+    for page_num in range(len(doc)):
+        text = doc[page_num].get_text().lower()
+        
+        # Method 1: Explicit table title pattern
+        for pattern in table_title_patterns:
+            if re.search(pattern, text):
+                title_pages.append(page_num)
+                logger.debug(f"Page {page_num + 1}: Found table title pattern")
+                break
+        else:
+            # Method 2: "Schedule of Activities" + significant table structure
+            if re.search(r'schedule\s+of\s+(activities|assessments)', text):
+                structure_count = sum(
+                    1 for p in structure_patterns if re.search(p, text)
+                )
+                # Need both the title AND substantial table structure
+                if structure_count >= 3:
+                    title_pages.append(page_num)
+                    logger.debug(f"Page {page_num + 1}: Found title + {structure_count} structure indicators")
+    
+    doc.close()
+    return title_pages
+
+
+def _expand_adjacent_pages(pages: List[int], pdf_path: str) -> List[int]:
+    """
+    Expand page list to include adjacent pages.
+    
+    SoA tables often span multiple pages, so if we find page N,
+    we should also check page N+1 (and potentially N-1) for table continuation.
+    """
+    if not pages:
+        return pages
+    
+    doc = fitz.open(pdf_path)
+    total_pages = len(doc)
+    
+    expanded = set(pages)
+    
+    for page_num in pages:
+        # Always include the next page (table continuation)
+        if page_num + 1 < total_pages:
+            next_text = doc[page_num + 1].get_text().lower()
+            # Check if next page looks like a table continuation
+            # (has table-like content but maybe not the title)
+            has_table_content = any(
+                re.search(pattern, next_text)
+                for pattern in [r'\bday\s*[-+]?\d+', r'\bweek\s*[-+]?\d+', r'\bvisit\s*\d+', r'screening', r'baseline']
+            )
+            if has_table_content:
+                expanded.add(page_num + 1)
+                logger.debug(f"Added adjacent page {page_num + 1} (continuation of {page_num})")
+        
+        # Check previous page if current page looks like a continuation
+        if page_num - 1 >= 0 and page_num - 1 not in expanded:
+            prev_text = doc[page_num - 1].get_text().lower()
+            if re.search(r'schedule\s+of\s+(activities|assessments)', prev_text):
+                expanded.add(page_num - 1)
+                logger.info(f"Added page {page_num} (1-indexed) - title page preceding page {page_num + 1}")
+    
+    doc.close()
+    return list(expanded)
 
 
 def extract_soa_text(pdf_path: str, page_numbers: List[int]) -> str:
@@ -287,7 +396,7 @@ def extract_soa_images(
         if 0 <= page_num < len(doc):
             page = doc[page_num]
             pix = page.get_pixmap(dpi=dpi)
-            img_path = os.path.join(output_dir, f"soa_page_{page_num:03d}.png")
+            img_path = os.path.join(output_dir, f"soa_page_{page_num + 1:03d}.png")  # 1-indexed for human readability
             pix.save(img_path)
             image_paths.append(img_path)
             logger.debug(f"Saved page {page_num} to {img_path}")

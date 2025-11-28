@@ -4,6 +4,69 @@ All notable changes documented here. Dates in ISO-8601.
 
 ---
 
+## [6.1.1] – 2025-11-28
+
+### SoA Page Detection & USDM Structure Fixes
+
+#### SoA Page Detection
+* **Fixed multi-page SoA detection**: Added title page detection and adjacent page expansion
+* Pages with "Table X: Schedule of Activities" are now anchor pages
+* Adjacent continuation pages automatically included
+* Pipeline now calls `find_soa_pages()` instead of bypassing to heuristic-only detection
+
+#### USDM v4.0 Structure Compliance
+* **Fixed schema validation error**: "Study must have at least one version"
+* Changed output structure from flat `studyDesigns[]` to proper `study.versions[0].studyDesigns[]`
+* Added `study_version` wrapper with proper USDM v4.0 nesting
+
+#### CDISC CORE Engine
+* Fixed CORE engine invocation by adding required `-v 4.0` version parameter
+
+#### Documentation
+* Updated README, USER_GUIDE, QUICK_REFERENCE with new default example command
+* Added Roadmap/TODO section with planned features
+
+---
+
+## [6.1] – 2025-11-28
+
+### Provenance-Based Cell Retention
+
+Changed default behavior to **keep all text-extracted cells** in the final USDM output, using provenance to indicate confidence level rather than removing unconfirmed cells.
+
+#### Key Changes
+
+* **Default: Keep all text-extracted cells**
+  - Changed `remove_hallucinations` default from `True` to `False` in `PipelineConfig`
+  - All cells found by text extraction are now included in `protocol_usdm.json`
+  - Downstream computable systems receive complete data and can filter by provenance
+
+* **Enhanced validation tagging**
+  - Confirmed cells (text + vision agree): tagged as `"both"` (🟩 green)
+  - Unconfirmed cells (text only): tagged as `"text"` (🟦 blue)
+  - Vision-only cells: tagged as `"vision"` or `"needs_review"` (🟧 orange)
+
+* **New CLI flag**
+  - Added `--remove-hallucinations` flag to restore old behavior (exclude unconfirmed cells)
+
+#### Files Changed
+
+* `extraction/pipeline.py` – Changed default config
+* `extraction/validator.py` – Updated `apply_validation_fixes()` to properly tag confirmed vs unconfirmed cells
+
+#### Viewer Improvements
+
+* Added debug expander showing provenance status and ID matching
+* Added style map debug showing color distribution
+* Fixed provenance color application in SoA table
+
+#### Documentation
+
+* Updated README.md, USER_GUIDE.md, QUICK_REFERENCE.md with new provenance behavior
+* Added provenance source table explaining colors and meanings
+
+---
+
 ## [6.0] – 2025-11-27
 
 ### USDM Expansion - Full Protocol Extraction

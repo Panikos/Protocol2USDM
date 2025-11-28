@@ -40,50 +40,73 @@ class AdvancedExtractionResult:
 
 def find_advanced_pages(
     pdf_path: str,
-    max_pages: int = 30,
+    max_pages: int = 100,  # Increased to search more of the document
 ) -> List[int]:
     """
     Find pages containing amendment history, geographic scope, or sites.
+    
+    Amendment history is often near the END of protocols, so we search
+    the entire document, not just the first 30 pages.
     """
     import fitz
     
-    keywords = [
+    # Keywords to find amendment-related pages
+    amendment_keywords = [
         r'amendment\s+history',
+        r'protocol\s+amendment\s+history',
+        r'overall\s+rationale\s+for\s+the\s+amendment',
+        r'changes\s+to\s+the\s+protocol',
+        r'summary\s+of\s+changes',
+        r'document\s+history',
+    ]
+    
+    other_keywords = [
         r'protocol\s+amendment',
         r'version\s+history',
         r'participating\s+countries',
         r'geographic\s+scope',
         r'study\s+sites?',
         r'investigator\s+sites?',
-        r'investigational\s+sites?',
     ]
     
-    pattern = re.compile('|'.join(keywords), re.IGNORECASE)
+    amendment_pattern = re.compile('|'.join(amendment_keywords), re.IGNORECASE)
+    other_pattern = re.compile('|'.join(other_keywords), re.IGNORECASE)
     
     found_pages = []
+    amendment_pages = []
     
     try:
         doc = fitz.open(pdf_path)
-        total_pages = min(len(doc), max_pages)
+        total_pages = len(doc)
         
-        # Always include first few pages (title, amendment info often there)
-        found_pages = [0, 1, 2]
+        # Always include first few pages (title, current amendment summary often there)
+        found_pages = [0, 1, 2, 3]
         
+        # Search ENTIRE document for amendment history (often at end)
         for page_num in range(total_pages):
             page = doc[page_num]
             text = page.get_text().lower()
             
-            if pattern.search(text) and page_num not in found_pages:
-                found_pages.append(page_num)
+            # Priority: amendment history pages
+            if amendment_pattern.search(text):
+                amendment_pages.append(page_num)
+            # Also include other relevant pages (limited)
+            elif other_pattern.search(text) and page_num < 30:
+                if page_num not in found_pages:
+                    found_pages.append(page_num)
+        
+        # Add all amendment history pages (these contain the detailed summaries)
+        found_pages.extend(amendment_pages)
         
         doc.close()
         found_pages = sorted(set(found_pages))
         
-        logger.info(f"Found {len(found_pages)} advanced entity pages")
+        logger.info(f"Found {len(found_pages)} advanced entity pages "
+                   f"(including {len(amendment_pages)} amendment history pages)")
         
     except Exception as e:
         logger.error(f"Error scanning PDF: {e}")
-        found_pages = list(range(min(10, max_pages)))
+        found_pages = list(range(min(10, 30)))
         
     return found_pages
 
@@ -182,15 +205,24 @@ def _build_advanced_data(raw: Dict[str, Any]) -> AdvancedData:
     
     # Process amendments
     amendments_raw = raw.get('amendments') or []
-    for i, amend in enumerate(amendments_raw):
+    amend_idx = 0
+    for amend in amendments_raw:
         if not isinstance(amend, dict):
             continue
+        
+        amend_number = str(amend.get('number', ''))
+        
+        # Skip "Original Protocol" - it's not an amendment
+        if 'original' in amend_number.lower():
+            continue
+        
+        amend_idx += 1
         
         # Process reasons
         reason_ids = []
         reasons_raw = amend.get('reasons') or []
         for j, reason in enumerate(reasons_raw):
-            reason_id = f"ar_{i+1}_{j+1}"
+            reason_id = f"ar_{amend_idx}_{j+1}"
             reason_ids.append(reason_id)
             amendment_reasons.append(AmendmentReason(
                 id=reason_id,
@@ -199,8 +231,8 @@ def _build_advanced_data(raw: Dict[str, Any]) -> AdvancedData:
             ))
         
         amendments.append(StudyAmendment(
-            id=f"amend_{i+1}",
-            number=str(amend.get('number', i+1)),
+            id=f"amend_{amend_idx}",
+            number=amend_number,
             summary=amend.get('summary'),
             effective_date=amend.get('effectiveDate'),
             previous_version=amend.get('previousVersion'),

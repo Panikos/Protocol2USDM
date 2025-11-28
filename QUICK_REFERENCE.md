@@ -1,6 +1,8 @@
 # Protocol2USDM Quick Reference
 
-**v6.0** | One-page command reference
+**v6.1** | One-page command reference
+
+> **New:** Full protocol extraction now available (metadata, eligibility, objectives, study design, interventions, procedures, scheduling, and more).
 
 ---
 
@@ -8,9 +10,10 @@
 
 ```bash
 pip install -r requirements.txt
-echo "OPENAI_API_KEY=sk-..." > .env
-python main_v2.py input/protocol.pdf
-streamlit run soa_streamlit_viewer.py
+echo "GOOGLE_API_KEY=AIza..." > .env
+
+# Recommended: Full protocol extraction with viewer
+python main_v2.py .\input\Alexion_NCT04573309_Wilsons.pdf --full-protocol --sap .\input\Alexion_NCT04573309_Wilsons_SAP.pdf --model gemini-3-pro-preview --view
 ```
 
 ---
@@ -82,6 +85,7 @@ streamlit run soa_streamlit_viewer.py
 --output-dir, -o    Output directory
 --pages, -p         Specific SoA pages (comma-separated)
 --no-validate       Skip vision validation
+--remove-hallucinations  Remove cells not confirmed by vision
 --view              Launch viewer after
 --verbose, -v       Detailed logging
 
@@ -138,11 +142,14 @@ output/<protocol>/
 
 ## Provenance Colors (Viewer)
 
-| Color | Meaning |
-|-------|---------|
-| 🟦 Blue | Text extraction only |
-| 🟩 Green | Vision confirmed |
-| 🟧 Orange | Needs review |
+| Color | Source | Meaning |
+|-------|--------|--------|
+| 🟩 Green | `both` | Confirmed by text AND vision (high confidence) |
+| 🟦 Blue | `text` | Text only (not vision-confirmed, review recommended) |
+| 🟧 Orange | `vision` | Vision only or needs review |
+| 🔴 Red | (none) | Orphaned (no provenance) |
+
+**Note:** All text-extracted cells are kept by default. Use `--remove-hallucinations` to exclude unconfirmed cells.
 
 ---
 
@@ -218,4 +225,4 @@ CDISC_API_KEY=...            # For CORE (optional)
 
 **Docs:** [README.md](README.md) | [USER_GUIDE.md](USER_GUIDE.md) | [USDM_EXPANSION_PLAN.md](USDM_EXPANSION_PLAN.md)
 
-**Last Updated:** 2025-11-27
+**Last Updated:** 2025-11-28

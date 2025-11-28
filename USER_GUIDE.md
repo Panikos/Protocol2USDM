@@ -1,7 +1,9 @@
 # Protocol2USDM User Guide
 
-**Version:** 6.0  
-**Last Updated:** 2025-11-27
+**Version:** 6.1  
+**Last Updated:** 2025-11-28
+
+> **📢 What's New in v6.1:** The pipeline now extracts the **full protocol** into USDM v4.0 format—not just the Schedule of Activities. This includes metadata, eligibility criteria, objectives, study design, interventions, procedures, scheduling logic, narrative content, and more. Biomedical Concepts are coming in a future release.
 
 ---
 
@@ -29,14 +31,11 @@ pip install -r requirements.txt
 echo "OPENAI_API_KEY=sk-..." > .env
 echo "GOOGLE_API_KEY=AIza..." >> .env
 
-# Run
-python main_v2.py input/your_protocol.pdf
-
-# View results
-streamlit run soa_streamlit_viewer.py
+# Run full protocol extraction with viewer
+python main_v2.py .\input\Alexion_NCT04573309_Wilsons.pdf --full-protocol --sap .\input\Alexion_NCT04573309_Wilsons_SAP.pdf --model gemini-3-pro-preview --view
 ```
 
-**Expected runtime:** 2-5 minutes per protocol
+**Expected runtime:** 3-8 minutes for full protocol extraction
 
 ---
 
@@ -323,12 +322,25 @@ The `9_final_soa_provenance.json` tracks the source of each entity:
       "act_2": "both"       // Confirmed by vision
     }
   },
-  "cells": {
-    "act_1|pt_1": "both",   // Activity-timepoint confirmed
-    "act_1|pt_2": "text"    // Text only (not vision-confirmed)
+  "activityTimepoints": {
+    "act_1": {
+      "pt_1": "both",       // Activity-timepoint confirmed by both sources
+      "pt_2": "text"        // Text only (not vision-confirmed)
+    }
   }
 }
 ```
+
+### Provenance Sources
+
+| Source | Meaning | Action |
+|--------|---------|--------|
+| `both` | Text extraction confirmed by vision | High confidence |
+| `text` | Text extraction only (vision didn't find it) | Review recommended |
+| `vision` | Vision only (text didn't find it) | Possible scan artifact |
+| `needs_review` | Ambiguous result | Manual review needed |
+
+**Default behavior:** All text-extracted cells are kept in the final USDM output. Use `--remove-hallucinations` flag to exclude cells not confirmed by vision.
 
 ---
 
@@ -349,11 +361,13 @@ Opens at: http://localhost:8504
 
 **2. SoA Table Display**
 - Color-coded cells by provenance:
-  - 🟦 Blue: Text extraction only
-  - 🟩 Green: Vision confirmed
-  - 🟧 Orange: Needs review
+  - 🟩 **Green**: Confirmed by both text AND vision (high confidence)
+  - 🟦 **Blue**: Text extraction only (not vision-confirmed, review recommended)
+  - 🟧 **Orange**: Vision only or needs review (possible hallucination)
+  - 🔴 **Red**: Orphaned (no provenance data)
 - Epoch groupings with colspan merge
 - Activity groupings by category
+- Export & search functionality with CSV download
 
 **3. Quality Metrics Sidebar**
 - Entity counts (activities, timepoints, etc.)
@@ -513,4 +527,4 @@ A: Check logs in `output/<protocol>/`, capture error messages, report to maintai
 
 ---
 
-**Last Updated:** 2025-11-26
+**Last Updated:** 2025-11-28

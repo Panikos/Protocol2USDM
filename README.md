@@ -4,6 +4,18 @@
 
 Protocol2USDM is an automated pipeline that extracts, validates, and structures clinical trial protocol content into data conformant to the [CDISC USDM v4.0](https://www.cdisc.org/standards/foundational/usdm) model.
 
+> **📢 v6.1 Update:** The pipeline now extracts the **full protocol** (not just SoA), covering metadata, eligibility, objectives, study design, interventions, procedures, scheduling logic, and more. Biomedical Concepts are planned for a future release via a separate comprehensive canonical model.
+
+---
+
+## 🚀 Try It Now
+
+```bash
+python main_v2.py .\input\Alexion_NCT04573309_Wilsons.pdf --full-protocol --sap .\input\Alexion_NCT04573309_Wilsons_SAP.pdf --model gemini-3-pro-preview --view
+```
+
+This extracts the full protocol, includes SAP analysis populations, and launches the interactive viewer.
+
 ---
 
 ## Features
@@ -11,23 +23,32 @@ Protocol2USDM is an automated pipeline that extracts, validates, and structures 
 - **Multi-Model Support**: GPT-5.1, GPT-4o, Gemini 2.5/3.x via unified provider interface
 - **Vision-Validated Extraction**: Text extraction validated against actual PDF images
 - **USDM v4.0 Compliant**: Outputs follow official CDISC schema
-- **Rich Provenance**: Every cell tagged with source (text/vision/both)
+- **Rich Provenance**: Every cell tagged with source (text/vision/both) for confidence tracking
 - **Terminology Enrichment**: Activities enriched with NCI EVS codes
 - **CDISC CORE Validation**: Built-in conformance checking
 - **Interactive Viewer**: Streamlit-based SoA review interface
 
-### Extraction Capabilities (v6.0)
+### Extraction Capabilities (v6.1)
 
-| Module | Entities | CLI Tool |
+| Module | Entities | CLI Flag |
 |--------|----------|----------|
-| **SoA** | Activity, PlannedTimepoint, Epoch, Encounter | `main_v2.py` |
-| **Metadata** | StudyTitle, StudyIdentifier, Organization, Indication | `extract_metadata.py` |
-| **Eligibility** | EligibilityCriterion, StudyDesignPopulation | `extract_eligibility.py` |
-| **Objectives** | Objective, Endpoint, Estimand | `extract_objectives.py` |
-| **Study Design** | StudyArm, StudyCell, StudyCohort | `extract_studydesign.py` |
-| **Interventions** | StudyIntervention, AdministrableProduct, Substance | `extract_interventions.py` |
-| **Narrative** | NarrativeContent, Abbreviation, StudyDefinitionDocument | `extract_narrative.py` |
-| **Advanced** | StudyAmendment, GeographicScope, Country | `extract_advanced.py` |
+| **SoA** | Activity, PlannedTimepoint, Epoch, Encounter | (default) |
+| **Metadata** | StudyTitle, StudyIdentifier, Organization, Indication | `--metadata` |
+| **Eligibility** | EligibilityCriterion, StudyDesignPopulation | `--eligibility` |
+| **Objectives** | Objective, Endpoint, Estimand | `--objectives` |
+| **Study Design** | StudyArm, StudyCell, StudyCohort | `--studydesign` |
+| **Interventions** | StudyIntervention, AdministrableProduct, Substance | `--interventions` |
+| **Narrative** | NarrativeContent, Abbreviation, StudyDefinitionDocument | `--narrative` |
+| **Advanced** | StudyAmendment, GeographicScope, Country | `--advanced` |
+| **Procedures** | Procedure, MedicalDevice, Ingredient, Strength | `--procedures` |
+| **Scheduling** | Timing, Condition, TransitionRule, ScheduleTimelineExit | `--scheduling` |
+
+#### Conditional Sources (Additional Documents)
+
+| Source | Entities | CLI Flag |
+|--------|----------|----------|
+| **SAP** | AnalysisPopulation, Characteristic | `--sap <path>` |
+| **Site List** | StudySite, StudyRole, AssignedPerson | `--sites <path>` |
 
 ---
 
@@ -44,9 +65,16 @@ Or select specific sections:
 ```bash
 python main_v2.py protocol.pdf --metadata --eligibility --objectives
 python main_v2.py protocol.pdf --expansion-only --metadata  # Skip SoA
+python main_v2.py protocol.pdf --procedures --scheduling   # New phases
 ```
 
-Output: Individual JSONs + combined `full_usdm.json`
+With additional source documents:
+
+```bash
+python main_v2.py protocol.pdf --full-protocol --sap sap.pdf --sites sites.xlsx
+```
+
+Output: Individual JSONs + combined `protocol_usdm.json` (Golden Standard)
 
 ---
 
@@ -148,7 +176,7 @@ python main_v2.py protocol.pdf --conformance         # Step 9: CORE conformance
 --output-dir, -o    Output directory (default: output/<protocol_name>)
 --pages, -p         Specific SoA page numbers (comma-separated)
 --no-validate       Skip vision validation
---keep-hallucinations  Don't remove probable hallucinations
+--remove-hallucinations  Remove cells not confirmed by vision (default: keep all)
 --view              Launch Streamlit viewer after extraction
 --verbose, -v       Enable verbose output
 ```
@@ -198,7 +226,18 @@ The output follows USDM v4.0 Wrapper-Input format:
 }
 ```
 
-Provenance metadata (which extraction method found each entity) is stored in a separate file: `9_final_soa_provenance.json`
+### Provenance Tracking
+
+Provenance metadata is stored separately in `9_final_soa_provenance.json`:
+
+| Source | Color | Meaning |
+|--------|-------|--------|
+| `both` | 🟩 Green | Confirmed by text AND vision |
+| `text` | 🟦 Blue | Text extraction only (not vision-confirmed) |
+| `vision` | 🟧 Orange | Vision only (needs review) |
+| (none) | 🔴 Red | Orphaned (no provenance data) |
+
+**Note:** By default, all text-extracted cells are kept in the output. Use `--remove-hallucinations` to exclude cells not confirmed by vision.
 
 ---
 
@@ -306,6 +345,18 @@ CDISC_API_KEY=...           # For CORE rules cache (get from library.cdisc.org)
 | Missing visits | Verify correct SoA pages found (check `4_header_structure.json`) |
 | Parse errors | Try different model, check verbose logs |
 | Schema errors | Post-processing auto-fixes most issues |
+
+---
+
+## Roadmap / TODO
+
+The following items are planned for upcoming releases:
+
+- [ ] **Biomedical Concepts**: Add extraction via a separate comprehensive canonical model for standardized concept mapping
+- [ ] **Dynamic Terminology Enrichment**: Replace static NCI EVS lookup with real-time terminology service integration
+- [ ] **Streamlit Viewer Extensions**: Complete debugging of new viewer features (provenance drilldown, entity linking)
+- [ ] **Repository Cleanup**: Remove redundant/legacy code, consolidate workaround scripts, improve module organization
+- [ ] **CDISC CORE Integration**: Full integration with local CORE engine for conformance validation
 
 ---
 

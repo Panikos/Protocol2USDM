@@ -1,0 +1,239 @@
+"""
+USDM Schema definitions for Procedure and Medical Device entities.
+
+Based on USDM v4.0 specification.
+"""
+
+from dataclasses import dataclass, field
+from typing import List, Optional, Dict, Any
+from enum import Enum
+
+
+class ProcedureType(Enum):
+    """Types of clinical procedures."""
+    DIAGNOSTIC = "Diagnostic"
+    THERAPEUTIC = "Therapeutic"
+    SURGICAL = "Surgical"
+    SAMPLING = "Sample Collection"
+    IMAGING = "Imaging"
+    MONITORING = "Monitoring"
+    ASSESSMENT = "Assessment"
+
+
+class DeviceType(Enum):
+    """Types of medical devices."""
+    DRUG_DELIVERY = "Drug Delivery Device"
+    DIAGNOSTIC = "Diagnostic Device"
+    MONITORING = "Monitoring Device"
+    IMPLANTABLE = "Implantable Device"
+    WEARABLE = "Wearable Device"
+    IMAGING = "Imaging Equipment"
+    LABORATORY = "Laboratory Equipment"
+
+
+@dataclass
+class Procedure:
+    """
+    USDM Procedure entity.
+    Represents a clinical procedure performed during the study.
+    """
+    id: str
+    name: str
+    label: Optional[str] = None
+    description: Optional[str] = None
+    procedure_type: Optional[ProcedureType] = None
+    code: Optional[Dict[str, str]] = None  # CPT, SNOMED, etc.
+    instance_type: str = "Procedure"
+    
+    def to_dict(self) -> Dict[str, Any]:
+        result = {
+            "id": self.id,
+            "name": self.name,
+            "instanceType": self.instance_type,
+        }
+        if self.label:
+            result["label"] = self.label
+        if self.description:
+            result["description"] = self.description
+        if self.procedure_type:
+            result["procedureType"] = {
+                "code": self.procedure_type.value,
+                "codeSystem": "USDM",
+                "decode": self.procedure_type.value
+            }
+        if self.code:
+            result["code"] = self.code
+        return result
+
+
+@dataclass
+class MedicalDeviceIdentifier:
+    """
+    USDM MedicalDeviceIdentifier entity.
+    Identifier for a medical device (UDI, catalog number, etc.)
+    """
+    id: str
+    text: str
+    scope_id: Optional[str] = None
+    instance_type: str = "MedicalDeviceIdentifier"
+    
+    def to_dict(self) -> Dict[str, Any]:
+        result = {
+            "id": self.id,
+            "text": self.text,
+            "instanceType": self.instance_type,
+        }
+        if self.scope_id:
+            result["scopeId"] = self.scope_id
+        return result
+
+
+@dataclass
+class MedicalDevice:
+    """
+    USDM MedicalDevice entity.
+    Represents a medical device used in the study.
+    """
+    id: str
+    name: str
+    label: Optional[str] = None
+    description: Optional[str] = None
+    device_type: Optional[DeviceType] = None
+    manufacturer: Optional[str] = None
+    model_number: Optional[str] = None
+    identifier_ids: List[str] = field(default_factory=list)
+    instance_type: str = "MedicalDevice"
+    
+    def to_dict(self) -> Dict[str, Any]:
+        result = {
+            "id": self.id,
+            "name": self.name,
+            "instanceType": self.instance_type,
+        }
+        if self.label:
+            result["label"] = self.label
+        if self.description:
+            result["description"] = self.description
+        if self.device_type:
+            result["deviceType"] = {
+                "code": self.device_type.value,
+                "codeSystem": "USDM",
+                "decode": self.device_type.value
+            }
+        if self.manufacturer:
+            result["manufacturer"] = self.manufacturer
+        if self.model_number:
+            result["modelNumber"] = self.model_number
+        if self.identifier_ids:
+            result["identifierIds"] = self.identifier_ids
+        return result
+
+
+@dataclass
+class Ingredient:
+    """
+    USDM Ingredient entity.
+    Represents an ingredient of an administrable product.
+    """
+    id: str
+    name: str
+    role: str  # "Active", "Inactive", "Adjuvant"
+    substance_id: Optional[str] = None
+    instance_type: str = "Ingredient"
+    
+    def to_dict(self) -> Dict[str, Any]:
+        result = {
+            "id": self.id,
+            "name": self.name,
+            "role": self.role,
+            "instanceType": self.instance_type,
+        }
+        if self.substance_id:
+            result["substanceId"] = self.substance_id
+        return result
+
+
+@dataclass
+class Strength:
+    """
+    USDM Strength entity.
+    Represents the strength/concentration of an ingredient.
+    """
+    id: str
+    value: float
+    unit: str
+    numerator_value: Optional[float] = None
+    numerator_unit: Optional[str] = None
+    denominator_value: Optional[float] = None
+    denominator_unit: Optional[str] = None
+    instance_type: str = "Strength"
+    
+    def to_dict(self) -> Dict[str, Any]:
+        result = {
+            "id": self.id,
+            "instanceType": self.instance_type,
+        }
+        # Simple strength
+        if self.value and self.unit:
+            result["value"] = self.value
+            result["unit"] = self.unit
+        # Ratio strength (e.g., mg/mL)
+        if self.numerator_value:
+            result["numerator"] = {
+                "value": self.numerator_value,
+                "unit": self.numerator_unit or ""
+            }
+        if self.denominator_value:
+            result["denominator"] = {
+                "value": self.denominator_value,
+                "unit": self.denominator_unit or ""
+            }
+        return result
+
+
+@dataclass
+class ProceduresDevicesData:
+    """Container for procedures and devices extraction results."""
+    procedures: List[Procedure] = field(default_factory=list)
+    devices: List[MedicalDevice] = field(default_factory=list)
+    device_identifiers: List[MedicalDeviceIdentifier] = field(default_factory=list)
+    ingredients: List[Ingredient] = field(default_factory=list)
+    strengths: List[Strength] = field(default_factory=list)
+    
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "procedures": [p.to_dict() for p in self.procedures],
+            "medicalDevices": [d.to_dict() for d in self.devices],
+            "medicalDeviceIdentifiers": [i.to_dict() for i in self.device_identifiers],
+            "ingredients": [i.to_dict() for i in self.ingredients],
+            "strengths": [s.to_dict() for s in self.strengths],
+            "summary": {
+                "procedureCount": len(self.procedures),
+                "deviceCount": len(self.devices),
+                "ingredientCount": len(self.ingredients),
+            }
+        }
+
+
+@dataclass
+class ProceduresDevicesResult:
+    """Result container for procedures and devices extraction."""
+    success: bool
+    data: Optional[ProceduresDevicesData] = None
+    error: Optional[str] = None
+    pages_used: List[int] = field(default_factory=list)
+    model_used: Optional[str] = None
+    confidence: float = 0.0
+    
+    def to_dict(self) -> Dict[str, Any]:
+        result = {
+            "success": self.success,
+            "pagesUsed": self.pages_used,
+            "modelUsed": self.model_used,
+            "confidence": self.confidence,
+        }
+        if self.data:
+            result["proceduresDevices"] = self.data.to_dict()
+        if self.error:
+            result["error"] = self.error
+        return result

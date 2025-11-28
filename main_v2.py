@@ -164,6 +164,60 @@ def run_expansion_phases(
         else:
             logger.info(f"  ✗ Advanced extraction failed")
     
+    if phases.get('procedures'):
+        logger.info("\n--- Expansion: Procedures & Devices (Phase 10) ---")
+        try:
+            from extraction.procedures import extract_procedures_devices
+            result = extract_procedures_devices(pdf_path, model=model, output_dir=output_dir)
+            results['procedures'] = result
+            if result.success and result.data:
+                logger.info(f"  ✓ Procedures extraction ({result.data.to_dict()['summary']['procedureCount']} procedures)")
+            else:
+                logger.info(f"  ✗ Procedures extraction failed: {result.error}")
+        except ImportError as e:
+            logger.warning(f"  ✗ Procedures module not available: {e}")
+    
+    if phases.get('scheduling'):
+        logger.info("\n--- Expansion: Scheduling Logic (Phase 11) ---")
+        try:
+            from extraction.scheduling import extract_scheduling
+            result = extract_scheduling(pdf_path, model=model, output_dir=output_dir)
+            results['scheduling'] = result
+            if result.success and result.data:
+                logger.info(f"  ✓ Scheduling extraction ({result.data.to_dict()['summary']['timingCount']} timings)")
+            else:
+                logger.info(f"  ✗ Scheduling extraction failed: {result.error}")
+        except ImportError as e:
+            logger.warning(f"  ✗ Scheduling module not available: {e}")
+    
+    if phases.get('docstructure'):
+        logger.info("\n--- Expansion: Document Structure (Phase 12) ---")
+        try:
+            from extraction.document_structure import extract_document_structure
+            result = extract_document_structure(pdf_path, model=model, output_dir=output_dir)
+            results['docstructure'] = result
+            if result.success and result.data:
+                summary = result.data.to_dict()['summary']
+                logger.info(f"  ✓ Document structure ({summary['referenceCount']} refs, {summary['annotationCount']} annotations)")
+            else:
+                logger.info(f"  ✗ Document structure extraction failed: {result.error}")
+        except ImportError as e:
+            logger.warning(f"  ✗ Document structure module not available: {e}")
+    
+    if phases.get('amendmentdetails'):
+        logger.info("\n--- Expansion: Amendment Details (Phase 13) ---")
+        try:
+            from extraction.amendments import extract_amendment_details
+            result = extract_amendment_details(pdf_path, model=model, output_dir=output_dir)
+            results['amendmentdetails'] = result
+            if result.success and result.data:
+                summary = result.data.to_dict()['summary']
+                logger.info(f"  ✓ Amendment details ({summary['impactCount']} impacts, {summary['changeCount']} changes)")
+            else:
+                logger.info(f"  ✗ Amendment details extraction failed: {result.error}")
+        except ImportError as e:
+            logger.warning(f"  ✗ Amendment details module not available: {e}")
+    
     return results
 
 
@@ -177,26 +231,37 @@ def combine_to_full_usdm(
     """
     from datetime import datetime
     
+    # USDM v4.0 compliant structure:
+    # study.versions[0].studyDesigns[] contains the actual data
     combined = {
         "usdmVersion": "4.0",
         "generatedAt": datetime.now().isoformat(),
-        "generator": "Protocol2USDM v6.0",
-        "study": {},
+        "generator": "Protocol2USDM v6.1",
+        "study": {
+            "id": "study_1",
+            "instanceType": "Study",
+            "versions": []  # Will be populated with study version containing studyDesigns
+        },
+    }
+    
+    # Temporary container for study version data
+    study_version = {
+        "id": "sv_1",
+        "instanceType": "StudyVersion",
+        "versionIdentifier": "1.0",
         "studyDesigns": [],
     }
     
-    # Add Study Metadata
+    # Add Study Metadata to study_version (USDM v4.0 compliant)
     if expansion_results and expansion_results.get('metadata'):
         r = expansion_results['metadata']
         if r.success and r.metadata:
             md = r.metadata
-            combined["study"] = {
-                "studyTitles": [t.to_dict() for t in md.titles],
-                "studyIdentifiers": [i.to_dict() for i in md.identifiers],
-                "organizations": [o.to_dict() for o in md.organizations],
-            }
+            study_version["titles"] = [t.to_dict() for t in md.titles]
+            study_version["studyIdentifiers"] = [i.to_dict() for i in md.identifiers]
+            combined["study"]["organizations"] = [o.to_dict() for o in md.organizations]
             if md.study_phase:
-                combined["study"]["studyPhase"] = md.study_phase.to_dict()
+                study_version["studyPhase"] = md.study_phase.to_dict()
             if md.indications:
                 combined["study"]["indications"] = [i.to_dict() for i in md.indications]
     
@@ -243,15 +308,29 @@ def combine_to_full_usdm(
             combined["administrations"] = [a.to_dict() for a in r.data.administrations]
             combined["substances"] = [s.to_dict() for s in r.data.substances]
     
-    # Add SoA data
+    # Add SoA data - check multiple possible locations
     if soa_data:
+        soa_timeline = None
+        # Try standard studyDesigns path first
         if "studyDesigns" in soa_data and soa_data["studyDesigns"]:
-            soa_design = soa_data["studyDesigns"][0]
-            for key in ["scheduleTimelines", "encounters", "activities"]:
-                if key in soa_design:
-                    study_design[key] = soa_design[key]
+            soa_timeline = soa_data["studyDesigns"][0]
+        # Fallback to timeline path (intermediary format from 9_final_soa.json)
+        elif "study" in soa_data:
+            try:
+                soa_timeline = soa_data["study"]["versions"][0]["timeline"]
+            except (KeyError, IndexError):
+                pass
+        
+        if soa_timeline:
+            # Copy all SoA-related keys
+            soa_keys = ["scheduleTimelines", "encounters", "activities", "epochs", 
+                        "plannedTimepoints", "activityTimepoints", "activityGroups"]
+            for key in soa_keys:
+                if key in soa_timeline:
+                    study_design[key] = soa_timeline[key]
     
-    combined["studyDesigns"] = [study_design]
+    # Add studyDesign to study_version (not to root)
+    study_version["studyDesigns"] = [study_design]
     
     # Add Narrative Content
     if expansion_results and expansion_results.get('narrative'):
@@ -273,12 +352,89 @@ def combine_to_full_usdm(
             if r.data.countries:
                 combined["countries"] = [c.to_dict() for c in r.data.countries]
     
+    # Add Procedures & Devices (Phase 10)
+    if expansion_results and expansion_results.get('procedures'):
+        r = expansion_results['procedures']
+        if r.success and r.data:
+            data_dict = r.data.to_dict()
+            if data_dict.get('procedures'):
+                combined["procedures"] = data_dict['procedures']
+            if data_dict.get('medicalDevices'):
+                combined["medicalDevices"] = data_dict['medicalDevices']
+            if data_dict.get('ingredients'):
+                combined["ingredients"] = data_dict['ingredients']
+            if data_dict.get('strengths'):
+                combined["strengths"] = data_dict['strengths']
+    
+    # Add Scheduling Logic (Phase 11)
+    if expansion_results and expansion_results.get('scheduling'):
+        r = expansion_results['scheduling']
+        if r.success and r.data:
+            data_dict = r.data.to_dict()
+            if data_dict.get('timings'):
+                combined["timings"] = data_dict['timings']
+            if data_dict.get('conditions'):
+                combined["conditions"] = data_dict['conditions']
+            if data_dict.get('transitionRules'):
+                combined["transitionRules"] = data_dict['transitionRules']
+            if data_dict.get('scheduleTimelineExits'):
+                combined["scheduleTimelineExits"] = data_dict['scheduleTimelineExits']
+    
+    # Add SAP data (from --sap extraction)
+    if expansion_results and expansion_results.get('sap'):
+        r = expansion_results['sap']
+        if r.success and r.data:
+            data_dict = r.data.to_dict()
+            if data_dict.get('analysisPopulations'):
+                combined["analysisPopulations"] = data_dict['analysisPopulations']
+            if data_dict.get('characteristics'):
+                combined["characteristics"] = data_dict['characteristics']
+    
+    # Add Sites data (conditional)
+    if expansion_results and expansion_results.get('sites'):
+        r = expansion_results['sites']
+        if r.success and r.data:
+            data_dict = r.data.to_dict()
+            if data_dict.get('studySites'):
+                combined["studySites"] = data_dict['studySites']
+            if data_dict.get('studyRoles'):
+                combined["studyRoles"] = data_dict['studyRoles']
+            if data_dict.get('assignedPersons'):
+                combined["assignedPersons"] = data_dict['assignedPersons']
+    
+    # Add Document Structure (Phase 12)
+    if expansion_results and expansion_results.get('docstructure'):
+        r = expansion_results['docstructure']
+        if r.success and r.data:
+            data_dict = r.data.to_dict()
+            if data_dict.get('documentContentReferences'):
+                combined["documentContentReferences"] = data_dict['documentContentReferences']
+            if data_dict.get('commentAnnotations'):
+                combined["commentAnnotations"] = data_dict['commentAnnotations']
+            if data_dict.get('studyDefinitionDocumentVersions'):
+                combined["studyDefinitionDocumentVersions"] = data_dict['studyDefinitionDocumentVersions']
+    
+    # Add Amendment Details (Phase 13)
+    if expansion_results and expansion_results.get('amendmentdetails'):
+        r = expansion_results['amendmentdetails']
+        if r.success and r.data:
+            data_dict = r.data.to_dict()
+            if data_dict.get('studyAmendmentImpacts'):
+                combined["studyAmendmentImpacts"] = data_dict['studyAmendmentImpacts']
+            if data_dict.get('studyAmendmentReasons'):
+                combined["studyAmendmentReasons"] = data_dict['studyAmendmentReasons']
+            if data_dict.get('studyChanges'):
+                combined["studyChanges"] = data_dict['studyChanges']
+    
     # Add computational execution metadata
     combined["computationalExecution"] = {
         "ready": True,
         "supportedSystems": ["EDC", "ePRO", "CTMS", "RTSM"],
         "validationStatus": "pending",
     }
+    
+    # Assemble final USDM v4.0 structure: study.versions[0] contains all data
+    combined["study"]["versions"] = [study_version]
     
     # Save combined output as protocol_usdm.json (golden standard)
     output_path = os.path.join(output_dir, "protocol_usdm.json")
@@ -295,10 +451,10 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-    python main_v2.py protocol.pdf                    # SoA only (default)
-    python main_v2.py protocol.pdf --metadata         # SoA + study metadata
-    python main_v2.py protocol.pdf --full-protocol    # Everything (SoA + all expansions)
-    python main_v2.py protocol.pdf --expansion-only   # All expansions, no SoA
+    python main_v2.py protocol.pdf                    # SoA extraction only
+    python main_v2.py protocol.pdf --soa              # SoA + validation + conformance
+    python main_v2.py protocol.pdf --full-protocol    # Everything (SoA + all expansions + validation)
+    python main_v2.py protocol.pdf --expansion-only --full-protocol  # Expansions only, no SoA
     python main_v2.py protocol.pdf --eligibility --objectives  # SoA + selected phases
         """
     )
@@ -321,7 +477,7 @@ Examples:
     
     parser.add_argument(
         "--pages", "-p",
-        help="Comma-separated SoA page numbers (0-indexed). If not provided, will analyze all pages."
+        help="Comma-separated SoA page numbers (1-indexed, matching PDF viewer). If not provided, will auto-detect."
     )
     
     parser.add_argument(
@@ -331,9 +487,9 @@ Examples:
     )
     
     parser.add_argument(
-        "--keep-hallucinations",
+        "--remove-hallucinations",
         action="store_true",
-        help="Don't remove probable hallucinations from output"
+        help="Remove cells not confirmed by vision (default: keep all text-extracted cells)"
     )
     
     parser.add_argument(
@@ -380,9 +536,9 @@ Examples:
     )
     
     parser.add_argument(
-        "--full",
+        "--soa",
         action="store_true",
-        help="Run full pipeline including enrichment, validation, and conformance (Steps 7-9)"
+        help="Run full SoA pipeline including enrichment, validation, and conformance (Steps 7-9)"
     )
     
     # USDM Expansion flags (v6.0)
@@ -432,6 +588,41 @@ Examples:
         action="store_true",
         help="Run expansion phases only, skip SoA extraction"
     )
+    expansion_group.add_argument(
+        "--procedures",
+        action="store_true",
+        help="Extract procedures & medical devices (Phase 10)"
+    )
+    expansion_group.add_argument(
+        "--scheduling",
+        action="store_true",
+        help="Extract scheduling logic & timing (Phase 11)"
+    )
+    expansion_group.add_argument(
+        "--docstructure",
+        action="store_true",
+        help="Extract document structure & references (Phase 12)"
+    )
+    expansion_group.add_argument(
+        "--amendmentdetails",
+        action="store_true",
+        help="Extract amendment details & changes (Phase 13)"
+    )
+    
+    # Conditional source arguments
+    conditional_group = parser.add_argument_group('Conditional Sources (additional documents)')
+    conditional_group.add_argument(
+        "--sap",
+        type=str,
+        metavar="PATH",
+        help="Path to SAP PDF for analysis population extraction"
+    )
+    conditional_group.add_argument(
+        "--sites",
+        type=str,
+        metavar="PATH",
+        help="Path to site list (CSV/Excel) for site extraction"
+    )
     
     args = parser.parse_args()
     
@@ -444,12 +635,13 @@ Examples:
     protocol_name = Path(args.pdf_path).stem
     output_dir = args.output_dir or os.path.join("output", protocol_name)
     
-    # Parse page numbers if provided
+    # Parse page numbers if provided (user gives 1-indexed, convert to 0-indexed)
     soa_pages = None
     if args.pages:
         try:
-            soa_pages = [int(p.strip()) for p in args.pages.split(",")]
-            logger.info(f"Using specified SoA pages: {soa_pages}")
+            # User provides 1-indexed pages (matching PDF viewer), convert to 0-indexed
+            soa_pages = [int(p.strip()) - 1 for p in args.pages.split(",")]
+            logger.info(f"Using specified SoA pages: {[p+1 for p in soa_pages]} (PDF viewer numbering)")
         except ValueError:
             logger.error(f"Invalid page numbers: {args.pages}")
             sys.exit(1)
@@ -458,7 +650,7 @@ Examples:
     config = PipelineConfig(
         model_name=args.model,
         validate_with_vision=not args.no_validate,
-        remove_hallucinations=not args.keep_hallucinations,
+        remove_hallucinations=args.remove_hallucinations,  # Default False (keep all cells)
         hallucination_confidence_threshold=args.confidence_threshold,
         save_intermediate=True,
     )
@@ -466,7 +658,9 @@ Examples:
     # Determine which expansion phases to run
     run_any_expansion = (args.full_protocol or args.expansion_only or 
                          args.metadata or args.eligibility or args.objectives or
-                         args.studydesign or args.interventions or args.narrative or args.advanced)
+                         args.studydesign or args.interventions or args.narrative or 
+                         args.advanced or args.procedures or args.scheduling or
+                         args.docstructure or args.amendmentdetails)
     
     expansion_phases = {
         'metadata': args.full_protocol or args.metadata,
@@ -476,6 +670,16 @@ Examples:
         'interventions': args.full_protocol or args.interventions,
         'narrative': args.full_protocol or args.narrative,
         'advanced': args.full_protocol or args.advanced,
+        'procedures': args.full_protocol or args.procedures,
+        'scheduling': args.full_protocol or args.scheduling,
+        'docstructure': args.full_protocol or args.docstructure,
+        'amendmentdetails': args.full_protocol or args.amendmentdetails,
+    }
+    
+    # Conditional source phases (only run if source file provided)
+    conditional_sources = {
+        'sap': args.sap,  # Path to SAP PDF
+        'sites': args.sites,  # Path to sites file
     }
     
     run_soa = not args.expansion_only
@@ -574,6 +778,33 @@ Examples:
             total_count = len(expansion_results)
             logger.info(f"\n✓ Expansion phases: {success_count}/{total_count} successful")
         
+        # Run conditional source extraction if files provided
+        if conditional_sources.get('sap'):
+            logger.info("\n--- Conditional: SAP Analysis Populations ---")
+            try:
+                from extraction.conditional import extract_from_sap
+                sap_result = extract_from_sap(conditional_sources['sap'], model=config.model_name, output_dir=output_dir)
+                if sap_result.success:
+                    expansion_results['sap'] = sap_result
+                    logger.info(f"  ✓ SAP extraction ({sap_result.data.to_dict()['summary']['populationCount']} populations)")
+                else:
+                    logger.warning(f"  ✗ SAP extraction failed: {sap_result.error}")
+            except Exception as e:
+                logger.warning(f"  ✗ SAP extraction error: {e}")
+        
+        if conditional_sources.get('sites'):
+            logger.info("\n--- Conditional: Study Sites ---")
+            try:
+                from extraction.conditional import extract_from_sites
+                sites_result = extract_from_sites(conditional_sources['sites'], output_dir=output_dir)
+                if sites_result.success:
+                    expansion_results['sites'] = sites_result
+                    logger.info(f"  ✓ Sites extraction ({sites_result.data.to_dict()['summary']['siteCount']} sites)")
+                else:
+                    logger.warning(f"  ✗ Sites extraction failed: {sites_result.error}")
+            except Exception as e:
+                logger.warning(f"  ✗ Sites extraction error: {e}")
+        
         # Combine outputs if full-protocol
         combined_usdm_path = None
         if args.full_protocol or (run_any_expansion and soa_data):
@@ -589,9 +820,9 @@ Examples:
         
         # Run post-processing steps if requested
         if validation_target:
-            run_enrich = args.enrich or args.full or args.full_protocol
-            run_validate = args.validate_schema or args.full or args.full_protocol
-            run_conform = args.conformance or args.full or args.full_protocol
+            run_enrich = args.enrich or args.soa or args.full_protocol
+            run_validate = args.validate_schema or args.soa or args.full_protocol
+            run_conform = args.conformance or args.soa or args.full_protocol
             
             if run_enrich:
                 logger.info("\n--- Step 7: Terminology Enrichment ---")
