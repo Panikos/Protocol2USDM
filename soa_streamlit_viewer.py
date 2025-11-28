@@ -618,7 +618,7 @@ def get_schedule_components(data):
     }
 
 
-def render_flexible_soa(data, table_id: str = "main"):
+def render_flexible_soa(data, table_id: str = "main", source_name: str = "SoA data"):
     """
     Parses a potentially incomplete or non-standard USDM file and renders the best possible SoA table.
     """
@@ -811,61 +811,6 @@ def render_flexible_soa(data, table_id: str = "main"):
     # Add provenance styling if available
     provenance = data.get('p2uProvenance', {})
     
-    # DEBUG: Show provenance status
-    with st.expander("🔍 Debug: Provenance Status", expanded=False):
-        if provenance:
-            st.success(f"✅ Provenance data loaded. Keys: {list(provenance.keys())}")
-            at_debug = provenance.get('activityTimepoints', {})
-            st.write(f"activityTimepoints entries: {len(at_debug)}")
-            if at_debug:
-                # Show sample
-                sample_act = list(at_debug.keys())[0] if at_debug else None
-                if sample_act:
-                    st.write(f"Sample activity '{sample_act}': {at_debug[sample_act]}")
-                # Count by source type
-                all_sources = [src for act_cells in at_debug.values() for src in act_cells.values()]
-                from collections import Counter
-                st.write(f"Source counts: {dict(Counter(all_sources))}")
-            
-            # Debug ID matching
-            st.markdown("---")
-            st.markdown("**ID Matching Debug:**")
-            
-            # Get the first activity and first timepoint from the DataFrame mapping
-            if row_index_data and ordered_activities:
-                first_row = row_index_data[0]
-                first_act = ordered_activities[0]
-                first_act_id = first_act.get('id')
-                st.write(f"First row index: `{first_row}`")
-                st.write(f"First activity ID from data: `{first_act_id}`")
-                st.write(f"Activity name: `{first_act.get('name')}`")
-                
-                # Check if this ID exists in provenance
-                if first_act_id in at_debug:
-                    st.success(f"✅ Activity ID '{first_act_id}' found in provenance")
-                    st.write(f"Provenance data: {at_debug[first_act_id]}")
-                else:
-                    st.error(f"❌ Activity ID '{first_act_id}' NOT in provenance keys: {list(at_debug.keys())}")
-            
-            if col_index_data and ordered_pt_for_cols:
-                first_col = col_index_data[0]
-                first_pt = ordered_pt_for_cols[0]
-                first_pt_id = first_pt.get('id')
-                st.write(f"First col index: `{first_col}`")
-                st.write(f"First timepoint ID from data: `{first_pt_id}`")
-                st.write(f"Timepoint label: `{first_pt.get('label')}`")
-                
-                # Check provenance keys for first activity
-                if at_debug and first_act_id:
-                    act_cells = at_debug.get(first_act_id, {})
-                    if first_pt_id in act_cells:
-                        st.success(f"✅ Cell [{first_act_id}][{first_pt_id}] = '{act_cells[first_pt_id]}'")
-                    else:
-                        st.error(f"❌ Timepoint '{first_pt_id}' NOT in activity cells. Keys: {list(act_cells.keys())}")
-        else:
-            st.error("❌ No p2uProvenance found in data!")
-            st.write(f"Data top-level keys: {list(data.keys())[:10]}")
-    
     if provenance:
         # Get cell-level provenance map (already converted to nested format during load)
         at_prov_map = provenance.get('activityTimepoints', {})
@@ -976,8 +921,6 @@ def render_flexible_soa(data, table_id: str = "main"):
                         for col_tuple, pt_info in zip(col_index_data, ordered_pt_for_cols)}
         
         # Apply provenance styling
-        first_cell_debug = [True]  # Use list to allow mutation in closure
-        
         def apply_provenance_style(row, col):
             """Apply provenance color to cells with 'X', preferring cell-level provenance when available."""
             try:
@@ -1004,12 +947,6 @@ def render_flexible_soa(data, table_id: str = "main"):
             # 1) Prefer cell-level provenance if available (using the at_prov_map built earlier)
             if at_prov_map and isinstance(at_prov_map, dict):
                 cell_src = at_prov_map.get(act_id, {}).get(pt_id)
-                
-                # Debug first text cell
-                if first_cell_debug[0] and cell_src == 'text':
-                    st.warning(f"🔵 First BLUE cell found: act_id={act_id}, pt_id={pt_id}, cell_src={cell_src}")
-                    first_cell_debug[0] = False
-                
                 if cell_src in ('needs_review', 'vision'):
                     return 'background-color: #fb923c'  # orange - needs review (includes vision-only)
                 elif cell_src == 'both':
@@ -1036,23 +973,11 @@ def render_flexible_soa(data, table_id: str = "main"):
         
         # Build a style map with integer positions
         style_map = {}
-        debug_styles = {'green': 0, 'blue': 0, 'orange': 0, 'red': 0, 'none': 0}
         for i, row_idx in enumerate(df_display.index):
             for j, col_idx in enumerate(df_display.columns):
                 style = apply_provenance_style(row_idx, col_idx)
                 if style:
                     style_map[(i, j)] = style
-                    if '#4ade80' in style:
-                        debug_styles['green'] += 1
-                    elif '#60a5fa' in style:
-                        debug_styles['blue'] += 1
-                    elif '#fb923c' in style:
-                        debug_styles['orange'] += 1
-                    elif '#f87171' in style:
-                        debug_styles['red'] += 1
-        
-        # Show style distribution in debug
-        st.info(f"🎨 Style map: {debug_styles} (Total styled cells: {len(style_map)})")
         
         # Render HTML table with hierarchical headers and provenance colors
         html_parts = ['<style>']
@@ -1190,11 +1115,10 @@ def render_flexible_soa(data, table_id: str = "main"):
             # CSV download
             csv = export_df.to_csv(index=False)
             st.download_button("📥 Download CSV", csv, f"soa_export_{table_id}.csv", "text/csv")
-            
-            # JSON viewer
-            st.markdown("---")
-            if st.checkbox("📄 Show JSON (protocol_usdm.json)", key=f"json_{table_id}"):
-                st.json(data, expanded=False)
+        
+        # JSON viewer (outside expander)
+        if st.checkbox(f"📄 Show JSON ({source_name})", key=f"json_{table_id}"):
+            st.json(data, expanded=False)
     else:
         # No provenance - simple dataframe display
         st.dataframe(df_display, use_container_width=True, height=600)
@@ -1328,12 +1252,20 @@ soa_source_name = None
 
 if inventory.get('full_usdm') and inventory['full_usdm'].get('content'):
     full_usdm = inventory['full_usdm']['content']
-    # Check if protocol_usdm.json has SoA data in studyDesigns
+    # Check if protocol_usdm.json has SoA data
+    # Try 1: Top-level studyDesigns (legacy format)
+    sd = None
     if 'studyDesigns' in full_usdm and full_usdm['studyDesigns']:
         sd = full_usdm['studyDesigns'][0]
-        if sd.get('activities') or sd.get('scheduleTimelines'):
-            soa_source = full_usdm
-            soa_source_name = "protocol_usdm.json (Golden Standard)"
+    # Try 2: USDM v4.0 path (study.versions[0].studyDesigns[0])
+    elif full_usdm.get('study', {}).get('versions'):
+        versions = full_usdm['study']['versions']
+        if versions and versions[0].get('studyDesigns'):
+            sd = versions[0]['studyDesigns'][0]
+    
+    if sd and (sd.get('activities') or sd.get('scheduleTimelines')):
+        soa_source = full_usdm
+        soa_source_name = "protocol_usdm.json (Golden Standard)"
 
 if not soa_source and inventory['final_soa']:
     soa_source = inventory['final_soa']['content']
@@ -1348,7 +1280,7 @@ else:
     st.info(f"📄 Source: **{soa_source_name}**")
     
     # Use the flexible renderer which handles missing entities gracefully
-    render_flexible_soa(soa_source, table_id="final_soa")
+    render_flexible_soa(soa_source, table_id="final_soa", source_name=soa_source_name)
 
 # --- USDM Expansion Data (v6.0) ---
 if inventory.get('expansion') or inventory.get('full_usdm'):
@@ -1507,10 +1439,11 @@ if inventory.get('expansion') or inventory.get('full_usdm'):
                     if content.get('success') and content.get('objectivesEndpoints'):
                         obj = content['objectivesEndpoints']
                         summary = obj.get('summary', {})
-                        col1, col2, col3 = st.columns(3)
-                        col1.metric("Primary", summary.get('primaryObjectivesCount', 0))
-                        col2.metric("Secondary", summary.get('secondaryObjectivesCount', 0))
-                        col3.metric("Endpoints", len(obj.get('endpoints', [])))
+                        col1, col2, col3, col4 = st.columns(4)
+                        col1.metric("Primary", summary.get('primaryObjectives', 0))
+                        col2.metric("Secondary", summary.get('secondaryObjectives', 0))
+                        col3.metric("Exploratory", summary.get('exploratoryObjectives', 0))
+                        col4.metric("Endpoints", summary.get('totalEndpoints', len(obj.get('endpoints', []))))
                         
                         st.markdown("**Objectives:**")
                         for o in obj.get('objectives', []):
@@ -1534,9 +1467,19 @@ if inventory.get('expansion') or inventory.get('full_usdm'):
                         blinding_text = blinding.get('code', 'N/A') if isinstance(blinding, dict) else blinding
                         col3.metric("Blinding", blinding_text or 'N/A')
                         
-                        st.markdown("**Study Arms:**")
-                        for arm in sd.get('studyArms', []):
-                            st.write(f"- {arm.get('name', 'N/A')}: {arm.get('description', 'N/A')[:80]}...")
+                        if sd.get('studyArms'):
+                            st.markdown("**Study Arms:**")
+                            for arm in sd.get('studyArms', []):
+                                desc = arm.get('description', 'N/A')
+                                desc_text = desc[:80] + '...' if len(str(desc)) > 80 else desc
+                                st.write(f"- {arm.get('name', 'N/A')}: {desc_text}")
+                        
+                        if sd.get('studyCohorts'):
+                            st.markdown("**Study Cohorts:**")
+                            for cohort in sd.get('studyCohorts', []):
+                                desc = cohort.get('description', 'N/A')
+                                desc_text = desc[:80] + '...' if len(str(desc)) > 80 else desc
+                                st.write(f"- {cohort.get('name', 'N/A')}: {desc_text}")
                     else:
                         render_no_data_message("Study Design", "Run --studydesign or --full-protocol to extract")
                 
@@ -1550,11 +1493,29 @@ if inventory.get('expansion') or inventory.get('full_usdm'):
                         col2.metric("Products", len(iv.get('investigationalProducts', iv.get('products', []))))
                         col3.metric("Regimens", len(iv.get('administrationRegimens', iv.get('administrations', []))))
                         
-                        st.markdown("**Interventions:**")
-                        for inter in iv.get('studyInterventions', iv.get('interventions', [])):
-                            role = inter.get('role', {})
-                            role_text = role.get('decode', role) if isinstance(role, dict) else role
-                            st.write(f"- {inter.get('name', 'N/A')} ({role_text})")
+                        interventions_list = iv.get('studyInterventions', iv.get('interventions', []))
+                        if interventions_list:
+                            st.markdown("**Interventions:**")
+                            for inter in interventions_list:
+                                role = inter.get('role', {})
+                                role_text = role.get('decode', role) if isinstance(role, dict) else role
+                                st.write(f"- {inter.get('name', 'N/A')} ({role_text})")
+                        
+                        products_list = iv.get('investigationalProducts', iv.get('products', []))
+                        if products_list:
+                            st.markdown("**Products:**")
+                            for prod in products_list:
+                                st.write(f"- {prod.get('name', 'N/A')}: {prod.get('description', 'N/A')[:60]}...")
+                        
+                        regimens_list = iv.get('administrationRegimens', iv.get('administrations', []))
+                        if regimens_list:
+                            st.markdown("**Administration Regimens:**")
+                            for reg in regimens_list:
+                                dose = reg.get('dose', {})
+                                dose_text = f"{dose.get('value', '')} {dose.get('unit', '')}" if isinstance(dose, dict) else str(dose)
+                                route = reg.get('route', {})
+                                route_text = route.get('decode', route) if isinstance(route, dict) else route
+                                st.write(f"- {reg.get('name', 'N/A')}: {dose_text} ({route_text})")
                     else:
                         render_no_data_message("Interventions", "Run --interventions or --full-protocol to extract")
                 
@@ -1588,9 +1549,25 @@ if inventory.get('expansion') or inventory.get('full_usdm'):
                         col2.metric("Countries", len(adv.get('countries', [])))
                         col3.metric("Sites", len(adv.get('studySites', [])))
                         
-                        st.markdown("**Amendments:**")
-                        for amend in adv.get('studyAmendments', []):
-                            st.write(f"- Amendment {amend.get('number', 'N/A')}: {amend.get('summary', 'N/A')[:60]}...")
+                        amendments_list = adv.get('studyAmendments', [])
+                        if amendments_list:
+                            st.markdown("**Amendments:**")
+                            for amend in amendments_list:
+                                st.write(f"- Amendment {amend.get('number', 'N/A')}: {amend.get('summary', 'N/A')[:60]}...")
+                        
+                        countries_list = adv.get('countries', [])
+                        if countries_list:
+                            st.markdown("**Countries:**")
+                            country_names = [c.get('name', c) if isinstance(c, dict) else str(c) for c in countries_list]
+                            st.write(", ".join(country_names))
+                        
+                        sites_list = adv.get('studySites', [])
+                        if sites_list:
+                            st.markdown("**Study Sites:**")
+                            for site in sites_list[:10]:  # Limit to first 10
+                                st.write(f"- {site.get('name', 'N/A')}: {site.get('location', 'N/A')}")
+                            if len(sites_list) > 10:
+                                st.write(f"... and {len(sites_list) - 10} more sites")
                     else:
                         render_no_data_message("Advanced Entities", "Run --advanced or --full-protocol to extract")
                 
@@ -1614,6 +1591,15 @@ if inventory.get('expansion') or inventory.get('full_usdm'):
                             st.markdown("**Medical Devices:**")
                             for dev in proc_data.get('medicalDevices', [])[:5]:
                                 st.write(f"- {dev.get('name', 'N/A')} ({dev.get('manufacturer', 'N/A')})")
+                        
+                        if proc_data.get('ingredients'):
+                            st.markdown("**Ingredients:**")
+                            for ing in proc_data.get('ingredients', [])[:10]:
+                                role = ing.get('role', {})
+                                role_text = role.get('decode', role) if isinstance(role, dict) else (role or 'N/A')
+                                st.write(f"- {ing.get('name', 'N/A')} ({role_text})")
+                            if len(proc_data.get('ingredients', [])) > 10:
+                                st.write(f"... and {len(proc_data.get('ingredients', [])) - 10} more ingredients")
                     else:
                         render_no_data_message("Procedures & Devices", "Run --procedures or --full-protocol to extract")
                 
@@ -1627,12 +1613,20 @@ if inventory.get('expansion') or inventory.get('full_usdm'):
                         col2.metric("Conditions", len(sched_data.get('conditions', [])))
                         col3.metric("Transition Rules", len(sched_data.get('transitionRules', [])))
                         
-                        st.markdown("**Visit Timings:**")
-                        for timing in sched_data.get('timings', [])[:8]:
-                            window = ""
-                            if timing.get('windowLower') is not None or timing.get('windowUpper') is not None:
-                                window = f" (window: {timing.get('windowLower', 0):+d}/{timing.get('windowUpper', 0):+d} {timing.get('unit', 'days')})"
-                            st.write(f"- {timing.get('name', 'N/A')}: {timing.get('value', 'N/A')} {timing.get('unit', 'days')}{window}")
+                        if sched_data.get('timings'):
+                            st.markdown("**Visit Timings:**")
+                            for timing in sched_data.get('timings', [])[:8]:
+                                window = ""
+                                if timing.get('windowLower') is not None or timing.get('windowUpper') is not None:
+                                    window = f" (window: {timing.get('windowLower', 0):+d}/{timing.get('windowUpper', 0):+d} {timing.get('unit', 'days')})"
+                                st.write(f"- {timing.get('name', 'N/A')}: {timing.get('value', 'N/A')} {timing.get('unit', 'days')}{window}")
+                        
+                        if sched_data.get('conditions'):
+                            st.markdown("**Conditions:**")
+                            for cond in sched_data.get('conditions', [])[:8]:
+                                cond_text = cond.get('text', cond.get('description', 'N/A'))
+                                cond_text = cond_text[:80] + '...' if len(str(cond_text)) > 80 else cond_text
+                                st.write(f"- {cond.get('name', 'N/A')}: {cond_text}")
                         
                         if sched_data.get('transitionRules'):
                             st.markdown("**Transition Rules:**")
@@ -1686,6 +1680,13 @@ if inventory.get('expansion') or inventory.get('full_usdm'):
                         col2.metric("Annotations", len(doc_data.get('commentAnnotations', [])))
                         col3.metric("Versions", len(doc_data.get('studyDefinitionDocumentVersions', [])))
                         
+                        if doc_data.get('documentContentReferences'):
+                            st.markdown("**Document References:**")
+                            for ref in doc_data.get('documentContentReferences', [])[:8]:
+                                ref_type = ref.get('referenceType', {})
+                                ref_type_text = ref_type.get('decode', ref_type) if isinstance(ref_type, dict) else (ref_type or 'N/A')
+                                st.write(f"- {ref.get('name', 'N/A')} ({ref_type_text})")
+                        
                         if doc_data.get('studyDefinitionDocumentVersions'):
                             st.markdown("**Document Versions:**")
                             for ver in doc_data.get('studyDefinitionDocumentVersions', []):
@@ -1708,6 +1709,15 @@ if inventory.get('expansion') or inventory.get('full_usdm'):
                         col1.metric("Impacts", len(amend_data.get('studyAmendmentImpacts', [])))
                         col2.metric("Reasons", len(amend_data.get('studyAmendmentReasons', [])))
                         col3.metric("Changes", len(amend_data.get('studyChanges', [])))
+                        
+                        if amend_data.get('studyAmendmentImpacts'):
+                            st.markdown("**Amendment Impacts:**")
+                            for impact in amend_data.get('studyAmendmentImpacts', [])[:8]:
+                                impact_type = impact.get('impactType', {})
+                                impact_type_text = impact_type.get('decode', impact_type) if isinstance(impact_type, dict) else (impact_type or 'N/A')
+                                desc = impact.get('description', 'N/A')
+                                desc_text = desc[:60] + '...' if len(str(desc)) > 60 else desc
+                                st.write(f"- [{impact_type_text}] {desc_text}")
                         
                         if amend_data.get('studyAmendmentReasons'):
                             st.markdown("**Amendment Reasons:**")
@@ -1845,9 +1855,9 @@ with tab6:
         # --- Terminology Enrichment ---
         st.markdown("### 🏷️ Terminology Enrichment (Step 7)")
         
-        # Check both test pipeline and main pipeline output for enrichment
+        # Check multiple files for enrichment data
         enriched_data = None
-        for fname in ["step7_enriched_soa.json", "9_final_soa.json"]:
+        for fname in ["step7_enriched_soa.json", "protocol_usdm.json", "9_final_soa.json"]:
             f = output_dir / fname
             if f.exists():
                 with open(f) as fp:
@@ -1855,31 +1865,57 @@ with tab6:
                 break
         
         if enriched_data:
-            timeline = get_timeline(enriched_data)
-            if timeline:
-                activities = timeline.get('activities', [])
-                enriched_activities = [a for a in activities if a.get('definedProcedures')]
+            # Count enriched entities (study phase, objectives, eligibility, blinding, etc.)
+            def count_enriched(obj, counts=None):
+                if counts is None:
+                    counts = {'total': 0, 'by_type': {}}
+                if not isinstance(obj, dict):
+                    return counts
                 
-                if enriched_activities:
-                    st.success(f"✅ Enriched {len(enriched_activities)}/{len(activities)} activities with NCI terminology codes")
-                    
-                    with st.expander("View Enriched Activities"):
-                        for act in enriched_activities:
-                            procs = act.get('definedProcedures', [])
-                            if procs and procs[0].get('code'):
-                                code_info = procs[0]['code']
-                                st.markdown(f"- **{act.get('name', 'Unknown')}** → `{code_info.get('code')}` ({code_info.get('decode', '')})")
-                else:
-                    st.info("No activities enriched with terminology codes yet.")
+                # Check for enrichment indicators (standardCode, code objects with terminology codes)
+                for field in ['standardCode', 'code', 'category', 'level']:
+                    code_obj = obj.get(field)
+                    if isinstance(code_obj, dict) and code_obj.get('codeSystem') in ['NCI', 'CDISC', 'MedDRA', 'SNOMED', 'USDM']:
+                        counts['total'] += 1
+                        entity_type = obj.get('instanceType', 'Unknown')
+                        counts['by_type'][entity_type] = counts['by_type'].get(entity_type, 0) + 1
+                
+                # Recurse
+                for key, value in obj.items():
+                    if isinstance(value, dict):
+                        count_enriched(value, counts)
+                    elif isinstance(value, list):
+                        for item in value:
+                            if isinstance(item, dict):
+                                count_enriched(item, counts)
+                return counts
+            
+            counts = count_enriched(enriched_data)
+            
+            if counts['total'] > 0:
+                st.success(f"✅ Enriched {counts['total']} entities with terminology codes")
+                
+                with st.expander("View Enriched Entities by Type"):
+                    for entity_type, count in sorted(counts['by_type'].items(), key=lambda x: -x[1]):
+                        st.markdown(f"- **{entity_type}**: {count} entities")
+            else:
+                st.info("No entities enriched with terminology codes. Enrichment may use different data paths.")
         else:
-            st.info("Terminology enrichment not run. Use `--enrich` or `--full` flag.")
+            st.info("Terminology enrichment data not found.")
         
         st.markdown("---")
         
         # --- Schema Validation ---
         st.markdown("### 📋 Schema Validation (Step 8)")
-        schema_file = output_dir / "step8_schema_validation.json"
-        if schema_file.exists():
+        # Check multiple possible filenames
+        schema_file = None
+        for fname in ["schema_validation.json", "step8_schema_validation.json"]:
+            f = output_dir / fname
+            if f.exists():
+                schema_file = f
+                break
+        
+        if schema_file and schema_file.exists():
             with open(schema_file) as f:
                 schema_result = json.load(f)
             
@@ -1920,46 +1956,87 @@ with tab6:
             with open(conformance_file) as f:
                 conformance_data = json.load(f)
             
-            # Parse CORE report structure (handle both naming conventions)
-            details = conformance_data.get('Conformance_Details', {})
-            rules_report = conformance_data.get('Rules_Report', conformance_data.get('rules_report', []))
-            issues = conformance_data.get('Issue_Details', conformance_data.get('issues', []))
+            # Handle both CORE engine format and local validation format
+            # CORE format: Conformance_Details, Rules_Report, Issue_Details
+            # Local format: timestamp, validator, version, issues, warnings, summary
+            is_local_format = 'validator' in conformance_data or 'summary' in conformance_data
             
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.metric("CORE Version", details.get('CORE_Engine_Version', 'N/A'))
-            with col2:
-                st.metric("Standard", f"{details.get('Standard', 'USDM')} {details.get('Version', '')}")
-            with col3:
-                st.metric("Rules Executed", len(rules_report))
-            
-            if not issues:
-                st.success("✅ No conformance issues found!")
+            if is_local_format:
+                # Local validation format
+                summary = conformance_data.get('summary', {})
+                issues = conformance_data.get('issues', [])
+                warnings = conformance_data.get('warnings', [])
+                
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("Validator", conformance_data.get('validator', 'Local'))
+                with col2:
+                    st.metric("Errors", summary.get('errors', len(issues)))
+                with col3:
+                    st.metric("Warnings", summary.get('warnings', len(warnings)))
+                
+                if not issues and not warnings:
+                    st.success("✅ No conformance issues found!")
+                elif not issues:
+                    st.success(f"✅ Validation passed with {len(warnings)} warnings")
+                else:
+                    st.error(f"❌ Found {len(issues)} errors, {len(warnings)} warnings")
+                    
+                    with st.expander("View Errors"):
+                        for issue in issues[:20]:
+                            if isinstance(issue, dict):
+                                st.markdown(f"- ❌ {issue.get('message', issue)}")
+                            else:
+                                st.markdown(f"- ❌ {issue}")
+                
+                if warnings:
+                    with st.expander(f"View Warnings ({len(warnings)})"):
+                        for warn in warnings[:20]:
+                            if isinstance(warn, dict):
+                                st.markdown(f"- ⚠️ {warn.get('message', warn)}")
+                            else:
+                                st.markdown(f"- ⚠️ {warn}")
             else:
-                # Group issues by severity
-                by_severity = {}
-                for issue in issues:
-                    sev = issue.get('severity', 'Unknown')
-                    by_severity[sev] = by_severity.get(sev, 0) + 1
+                # CORE engine format
+                details = conformance_data.get('Conformance_Details', {})
+                rules_report = conformance_data.get('Rules_Report', conformance_data.get('rules_report', []))
+                issues = conformance_data.get('Issue_Details', conformance_data.get('issues', []))
                 
-                st.warning(f"⚠️ Found {len(issues)} conformance issues")
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("CORE Version", details.get('CORE_Engine_Version', 'N/A'))
+                with col2:
+                    st.metric("Standard", f"{details.get('Standard', 'USDM')} {details.get('Version', '')}")
+                with col3:
+                    st.metric("Rules Executed", len(rules_report))
                 
-                for sev, count in sorted(by_severity.items()):
-                    if sev.lower() == 'error':
-                        st.markdown(f"- ❌ **{sev}**: {count}")
-                    elif sev.lower() == 'warning':
-                        st.markdown(f"- ⚠️ **{sev}**: {count}")
-                    else:
-                        st.markdown(f"- ℹ️ **{sev}**: {count}")
-                
-                with st.expander("View Issue Details"):
-                    for issue in issues[:20]:  # Limit to first 20
-                        st.markdown(f"**{issue.get('rule_id', 'Unknown')}**: {issue.get('message', '')}")
-                    if len(issues) > 20:
-                        st.info(f"... and {len(issues) - 20} more issues")
+                if not issues:
+                    st.success("✅ No conformance issues found!")
+                else:
+                    # Group issues by severity
+                    by_severity = {}
+                    for issue in issues:
+                        sev = issue.get('severity', 'Unknown')
+                        by_severity[sev] = by_severity.get(sev, 0) + 1
+                    
+                    st.warning(f"⚠️ Found {len(issues)} conformance issues")
+                    
+                    for sev, count in sorted(by_severity.items()):
+                        if sev.lower() == 'error':
+                            st.markdown(f"- ❌ **{sev}**: {count}")
+                        elif sev.lower() == 'warning':
+                            st.markdown(f"- ⚠️ **{sev}**: {count}")
+                        else:
+                            st.markdown(f"- ℹ️ **{sev}**: {count}")
+                    
+                    with st.expander("View Issue Details"):
+                        for issue in issues[:20]:
+                            st.markdown(f"**{issue.get('rule_id', 'Unknown')}**: {issue.get('message', '')}")
+                        if len(issues) > 20:
+                            st.info(f"... and {len(issues) - 20} more issues")
             
-            # Show runtime info
+            # Show report details
             with st.expander("Report Details"):
-                st.json(details)
+                st.json(conformance_data)
         else:
             st.info("CDISC conformance check not run. Use `--conformance` or `--full` flag.")

@@ -71,19 +71,23 @@ def _run_local_core_engine(json_path: str, output_dir: str) -> Dict[str, Any]:
     
     try:
         # Run CORE engine
+        # Use -dp (dataset-path) for single file, not -d (directory)
+        # Must run from CORE engine directory to find resources/schema/USDM.yaml
+        core_dir = CORE_ENGINE_PATH.parent
         result = subprocess.run(
             [
                 str(CORE_ENGINE_PATH),
                 "validate",
                 "-s", "usdm",  # Standard: USDM
                 "-v", "4.0",  # USDM version
-                "-d", json_path,  # Data file
-                "-o", output_path,  # Output
+                "-dp", os.path.abspath(json_path),  # Dataset file path (absolute)
+                "-o", os.path.abspath(output_path),  # Output (absolute)
                 "-of", "JSON",  # Output format
             ],
             capture_output=True,
             text=True,
             timeout=120,
+            cwd=str(core_dir),  # Run from CORE directory to find schema files
         )
         
         if result.returncode == 0 and os.path.exists(output_path):
