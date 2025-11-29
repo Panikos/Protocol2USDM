@@ -1,8 +1,8 @@
 # Protocol2USDM Quick Reference
 
-**v6.1** | One-page command reference
+**v6.3.0** | One-page command reference
 
-> **New:** Full protocol extraction now available (metadata, eligibility, objectives, study design, interventions, procedures, scheduling, and more).
+> **New in v6.3.0:** NCI EVS terminology enrichment (`--enrich`), CDISC CORE integration (`--conformance`), provenance ID sync for accurate viewer display. Schema-driven architecture with 86+ auto-generated entity types.
 
 ---
 
@@ -13,7 +13,7 @@ pip install -r requirements.txt
 echo "GOOGLE_API_KEY=AIza..." > .env
 
 # Recommended: Full protocol extraction with viewer
-python main_v2.py .\input\Alexion_NCT04573309_Wilsons.pdf --full-protocol --sap .\input\Alexion_NCT04573309_Wilsons_SAP.pdf --model gemini-3-pro-preview --view
+python main_v2.py .\input\Alexion_NCT04573309_Wilsons.pdf --full-protocol --sap .\input\Alexion_NCT04573309_Wilsons_SAP.pdf --model gemini-2.5-pro --view
 ```
 
 ---
@@ -124,7 +124,9 @@ streamlit run soa_streamlit_viewer.py
 
 ```
 output/<protocol>/
-├── full_usdm.json                ⭐ Combined full protocol (--full-protocol)
+├── protocol_usdm.json            ⭐ Combined full protocol output
+├── 9_final_soa.json              ⭐ SoA extraction
+├── 9_final_soa_provenance.json    # Source tracking (text/vision/both)
 ├── 2_study_metadata.json          # Study identity (Phase 2)
 ├── 3_eligibility_criteria.json    # I/E criteria (Phase 1)
 ├── 4_objectives_endpoints.json    # Objectives (Phase 3)
@@ -132,10 +134,10 @@ output/<protocol>/
 ├── 6_interventions.json           # Products (Phase 5)
 ├── 7_narrative_structure.json     # Sections/abbreviations (Phase 7)
 ├── 8_advanced_entities.json       # Amendments/geography (Phase 8)
-├── 4_header_structure.json        # SoA table structure
-├── 9_final_soa.json              ⭐ Main SoA output
-├── 9_final_soa_provenance.json    # Source tracking
-└── conformance_report.json        # CORE results
+├── 4_header_structure.json        # SoA table structure (vision)
+├── terminology_enrichment.json    # NCI EVS codes (--enrich)
+├── schema_validation.json         # Schema validation results
+└── conformance_report.json        # CDISC CORE results (--conformance)
 ```
 
 ---
@@ -209,20 +211,30 @@ CDISC_API_KEY=...            # For CORE (optional)
 
 | File | Purpose |
 |------|---------|
-| `main_v2.py` | SoA extraction pipeline |
-| `extract_metadata.py` | Study metadata extraction |
-| `extract_eligibility.py` | I/E criteria extraction |
-| `extract_objectives.py` | Objectives extraction |
-| `extract_studydesign.py` | Study design extraction |
-| `extract_interventions.py` | Interventions extraction |
-| `extract_narrative.py` | Narrative/abbreviations extraction |
-| `extract_advanced.py` | Amendments/geography extraction |
+| `main_v2.py` | Main pipeline (SoA + expansions) |
 | `soa_streamlit_viewer.py` | Interactive viewer |
-| `test_pipeline_steps.py` | Step-by-step testing |
-| `extraction/` | Core extraction modules |
+| `core/usdm_types_generated.py` | 86+ auto-generated USDM types |
+| `core/evs_client.py` | NCI EVS API client with caching |
+| `extraction/pipeline.py` | SoA extraction pipeline |
+| `extraction/*/extractor.py` | Domain-specific extractors |
+| `enrichment/terminology.py` | NCI terminology enrichment |
+| `validation/cdisc_conformance.py` | CDISC CORE validation |
+
+### Standalone CLI Tools
+
+| File | Purpose |
+|------|---------|
+| `extract_metadata.py` | Study metadata only |
+| `extract_eligibility.py` | I/E criteria only |
+| `extract_objectives.py` | Objectives only |
+| `extract_studydesign.py` | Study design only |
+| `extract_interventions.py` | Interventions only |
+| `extract_narrative.py` | Narrative only |
+| `extract_advanced.py` | Amendments/geography only |
 
 ---
 
-**Docs:** [README.md](README.md) | [USER_GUIDE.md](USER_GUIDE.md) | [USDM_EXPANSION_PLAN.md](USDM_EXPANSION_PLAN.md)
+**Docs:** [README.md](README.md) | [USER_GUIDE.md](USER_GUIDE.md) | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
-**Last Updated:** 2025-11-28
+**Last Updated:** 2025-11-29  
+**Version:** 6.3.0

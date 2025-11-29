@@ -310,10 +310,11 @@ def _find_soa_title_pages(pdf_path: str) -> List[int]:
 
 def _expand_adjacent_pages(pages: List[int], pdf_path: str) -> List[int]:
     """
-    Expand page list to include adjacent pages.
+    Expand page list to include adjacent pages and fill gaps.
     
     SoA tables often span multiple pages, so if we find page N,
     we should also check page N+1 (and potentially N-1) for table continuation.
+    Also fills in any gaps between detected pages (e.g., if 13 and 15 are detected, include 14).
     """
     if not pages:
         return pages
@@ -323,26 +324,51 @@ def _expand_adjacent_pages(pages: List[int], pdf_path: str) -> List[int]:
     
     expanded = set(pages)
     
-    for page_num in pages:
-        # Always include the next page (table continuation)
-        if page_num + 1 < total_pages:
-            next_text = doc[page_num + 1].get_text().lower()
-            # Check if next page looks like a table continuation
-            # (has table-like content but maybe not the title)
-            has_table_content = any(
-                re.search(pattern, next_text)
-                for pattern in [r'\bday\s*[-+]?\d+', r'\bweek\s*[-+]?\d+', r'\bvisit\s*\d+', r'screening', r'baseline']
-            )
-            if has_table_content:
-                expanded.add(page_num + 1)
-                logger.debug(f"Added adjacent page {page_num + 1} (continuation of {page_num})")
+    # Step 1: Fill in gaps between detected pages
+    # If pages 13 and 15 are detected, page 14 is definitely part of the table
+    if len(pages) >= 2:
+        sorted_pages = sorted(pages)
+        for i in range(len(sorted_pages) - 1):
+            start, end = sorted_pages[i], sorted_pages[i + 1]
+            # Fill gaps of up to 2 pages (handles single-page gaps like 13->15)
+            if end - start <= 3:
+                for gap_page in range(start + 1, end):
+                    if gap_page not in expanded:
+                        expanded.add(gap_page)
+                        logger.info(f"Filled gap: added page {gap_page + 1} (1-indexed) between pages {start + 1} and {end + 1}")
+    
+    # Step 2: Iteratively expand to adjacent pages until no more additions
+    prev_size = 0
+    while len(expanded) > prev_size:
+        prev_size = len(expanded)
+        new_pages = set()
         
-        # Check previous page if current page looks like a continuation
-        if page_num - 1 >= 0 and page_num - 1 not in expanded:
-            prev_text = doc[page_num - 1].get_text().lower()
-            if re.search(r'schedule\s+of\s+(activities|assessments)', prev_text):
-                expanded.add(page_num - 1)
-                logger.info(f"Added page {page_num} (1-indexed) - title page preceding page {page_num + 1}")
+        for page_num in list(expanded):
+            # Check next page (table continuation)
+            if page_num + 1 < total_pages and page_num + 1 not in expanded:
+                next_text = doc[page_num + 1].get_text().lower()
+                # Check if next page looks like a table continuation
+                has_table_content = any(
+                    re.search(pattern, next_text)
+                    for pattern in [r'\bday\s*[-+]?\d+', r'\bweek\s*[-+]?\d+', r'\bvisit\s*\d+', r'screening', r'baseline', r'\bx\b']
+                )
+                if has_table_content:
+                    new_pages.add(page_num + 1)
+                    logger.debug(f"Added adjacent page {page_num + 2} (1-indexed) - continuation of page {page_num + 1}")
+            
+            # Check previous page (table may start earlier)
+            if page_num - 1 >= 0 and page_num - 1 not in expanded:
+                prev_text = doc[page_num - 1].get_text().lower()
+                # More permissive check - any table content or SoA title
+                has_table_content = (
+                    re.search(r'schedule\s+of\s+(activities|assessments)', prev_text) or
+                    any(re.search(pattern, prev_text) for pattern in [r'\bday\s*[-+]?\d+', r'\bweek\s*[-+]?\d+', r'\bvisit\s*\d+'])
+                )
+                if has_table_content:
+                    new_pages.add(page_num - 1)
+                    logger.debug(f"Added page {page_num} (1-indexed) - precedes page {page_num + 1}")
+        
+        expanded.update(new_pages)
     
     doc.close()
     return list(expanded)

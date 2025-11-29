@@ -244,9 +244,15 @@ def _parse_metadata_response(raw: Dict[str, Any]) -> Optional[StudyMetadata]:
         
         # Extract study phase
         study_phase = None
-        phase_str = raw.get('studyPhase')
-        if phase_str and phase_str.lower() != 'null':
-            study_phase = StudyPhase(phase=phase_str)
+        phase_data = raw.get('studyPhase')
+        if phase_data:
+            # Handle both string and dict formats
+            if isinstance(phase_data, str) and phase_data.lower() != 'null':
+                study_phase = StudyPhase(phase=phase_data)
+            elif isinstance(phase_data, dict):
+                phase_str = phase_data.get('phase') or phase_data.get('code') or phase_data.get('decode')
+                if phase_str:
+                    study_phase = StudyPhase(phase=str(phase_str))
         
         # Extract protocol version
         version_data = raw.get('protocolVersion', {})

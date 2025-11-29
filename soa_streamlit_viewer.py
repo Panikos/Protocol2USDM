@@ -52,158 +52,70 @@ def render_no_data_message(section_name: str, hint: str = None):
     ''', unsafe_allow_html=True)
 
 
-def calculate_expansion_confidence(key: str, content: dict) -> float:
-    """Calculate confidence score for expansion data from JSON content."""
-    if not content or not content.get('success'):
-        return 0.0
-    
-    if key == 'metadata':
-        md = content.get('metadata', {})
-        scores = [
-            1.0 if md.get('studyTitles') else 0.0,
-            1.0 if md.get('studyIdentifiers') and len(md.get('studyIdentifiers', [])) >= 2 else 0.5,
-            1.0 if md.get('organizations') else 0.0,
-            1.0 if md.get('studyPhase') else 0.0,
-            1.0 if md.get('studyIndications') else 0.0,
-        ]
-        return sum(scores) / len(scores)
-    
-    elif key == 'eligibility':
-        elig = content.get('eligibility', {})
-        summary = elig.get('summary', {})
-        inc = summary.get('inclusionCount', 0)
-        exc = summary.get('exclusionCount', 0)
-        scores = [
-            1.0 if 3 <= inc <= 20 else 0.5 if inc > 0 else 0.0,
-            1.0 if 5 <= exc <= 40 else 0.5 if exc > 0 else 0.0,
-            1.0 if elig.get('population') else 0.0,
-        ]
-        return sum(scores) / len(scores)
-    
-    elif key == 'objectives':
-        obj = content.get('objectivesEndpoints', {})
-        summary = obj.get('summary', {})
-        scores = [
-            1.0 if summary.get('primaryObjectivesCount', 0) >= 1 else 0.0,
-            1.0 if summary.get('secondaryObjectivesCount', 0) >= 1 else 0.5,
-            1.0 if len(obj.get('endpoints', [])) > 0 else 0.0,
-        ]
-        return sum(scores) / len(scores)
-    
-    elif key == 'studydesign':
-        sd = content.get('studyDesign', {})
-        scores = [
-            1.0 if sd.get('studyDesign') else 0.0,
-            1.0 if sd.get('studyArms') else 0.0,
-            1.0 if sd.get('studyCohorts') else 0.5,
-        ]
-        return sum(scores) / len(scores)
-    
-    elif key == 'interventions':
-        iv = content.get('interventions', {})
-        scores = [
-            1.0 if iv.get('interventions') else 0.0,
-            1.0 if iv.get('products') else 0.5,
-            1.0 if iv.get('administrations') else 0.5,
-        ]
-        return sum(scores) / len(scores)
-    
-    elif key == 'narrative':
-        narr = content.get('narrative', {})
-        scores = [
-            1.0 if len(narr.get('narrativeContents', [])) >= 5 else 0.5,
-            1.0 if len(narr.get('abbreviations', [])) >= 3 else 0.5,
-            1.0 if narr.get('document') else 0.5,
-        ]
-        return sum(scores) / len(scores)
-    
-    elif key == 'advanced':
-        adv = content.get('advanced', {})
-        scores = [
-            1.0 if adv.get('studyAmendments') else 0.5,
-            1.0 if adv.get('countries') else 0.5,
-        ]
-        return sum(scores) / len(scores)
-    
-    elif key == 'procedures':
-        proc = content.get('proceduresDevices', content)
-        scores = [
-            1.0 if len(proc.get('procedures', [])) >= 5 else 0.5 if proc.get('procedures') else 0.0,
-            1.0 if proc.get('medicalDevices') else 0.5,
-            1.0 if proc.get('ingredients') else 0.5,
-        ]
-        return sum(scores) / len(scores)
-    
-    elif key == 'scheduling':
-        sched = content.get('scheduling', content)
-        scores = [
-            1.0 if len(sched.get('timings', [])) >= 5 else 0.5 if sched.get('timings') else 0.0,
-            1.0 if sched.get('conditions') else 0.5,
-            1.0 if sched.get('transitionRules') else 0.5,
-        ]
-        return sum(scores) / len(scores)
-    
-    elif key == 'sap':
-        sap = content.get('sapData', content)
-        scores = [
-            1.0 if len(sap.get('analysisPopulations', [])) >= 3 else 0.5 if sap.get('analysisPopulations') else 0.0,
-            1.0 if len(sap.get('characteristics', [])) >= 5 else 0.5 if sap.get('characteristics') else 0.0,
-        ]
-        return sum(scores) / len(scores)
-    
-    elif key == 'sites':
-        sites = content.get('sitesData', content)
-        scores = [
-            1.0 if len(sites.get('studySites', [])) >= 3 else 0.5 if sites.get('studySites') else 0.0,
-            1.0 if sites.get('studyRoles') else 0.5,
-        ]
-        return sum(scores) / len(scores)
-    
-    elif key == 'docstructure':
-        doc = content.get('documentStructure', content)
-        scores = [
-            1.0 if doc.get('documentContentReferences') else 0.5,
-            1.0 if doc.get('commentAnnotations') else 0.5,
-            1.0 if doc.get('studyDefinitionDocumentVersions') else 0.5,
-        ]
-        return sum(scores) / len(scores)
-    
-    elif key == 'amendmentdetails':
-        amend = content.get('amendmentDetails', content)
-        scores = [
-            1.0 if amend.get('studyAmendmentImpacts') else 0.5,
-            1.0 if amend.get('studyAmendmentReasons') else 0.5,
-            1.0 if amend.get('studyChanges') else 0.5,
-        ]
-        return sum(scores) / len(scores)
-    
-    return 0.5
-
 # --- Data Access Functions --------------------------------------------------
 
 def get_timeline(soa_content):
-    """Safely retrieves the 'timeline' object from the SoA content."""
-    if isinstance(soa_content, dict):
-        # Standard USDM v4 location
-        study = soa_content.get('study', {})
-        if study and isinstance(study.get('versions'), list) and study['versions']:
-            return study['versions'][0].get('timeline')
-        # Fallback for flattened/reconciled format
-        return soa_content.get('timeline')
-    return None
+    """
+    Safely retrieves schedule data from USDM content.
+    Handles both legacy 'timeline' format and USDM v4.0 'studyDesigns' format.
+    """
+    if not isinstance(soa_content, dict):
+        return None
+    
+    study = soa_content.get('study', {})
+    if study and isinstance(study.get('versions'), list) and study['versions']:
+        version = study['versions'][0]
+        
+        # USDM v4.0: Check studyDesigns first (preferred)
+        study_designs = version.get('studyDesigns', [])
+        if study_designs and isinstance(study_designs, list) and len(study_designs) > 0:
+            sd = study_designs[0]
+            # Return studyDesign as timeline-like object if it has SoA data
+            if sd.get('activities') or sd.get('scheduleTimelines') or sd.get('encounters'):
+                return sd
+        
+        # Legacy: Check timeline
+        if version.get('timeline'):
+            return version['timeline']
+    
+    # Top-level studyDesigns (some formats)
+    if soa_content.get('studyDesigns'):
+        sd = soa_content['studyDesigns'][0] if soa_content['studyDesigns'] else None
+        if sd and (sd.get('activities') or sd.get('scheduleTimelines')):
+            return sd
+    
+    # Fallback for flattened/reconciled format
+    return soa_content.get('timeline')
 
 def get_activity_timepoints(timeline):
-    """Robustly extracts activity-timepoint links from a timeline object."""
+    """
+    Robustly extracts activity-timepoint links from a timeline or studyDesign object.
+    Handles both legacy 'activityTimepoints' and USDM v4.0 'scheduleTimelines.instances'.
+    """
     if not timeline:
-        return {}  # Explicitly return an empty dict
+        return {}
     
     activity_timepoints = {}
-    # Check both keys, as raw output might use 'activityTimepoints' and processed uses 'scheduledActivityInstances'
+    
+    # USDM v4.0: Check scheduleTimelines first
+    schedule_timelines = timeline.get('scheduleTimelines', [])
+    if schedule_timelines:
+        for st in schedule_timelines:
+            for instance in st.get('instances', []):
+                if instance.get('instanceType') == 'ScheduledActivityInstance':
+                    act_id = instance.get('activityId')
+                    enc_id = instance.get('encounterId')
+                    if act_id and enc_id:
+                        activity_timepoints.setdefault(act_id, []).append(enc_id)
+    
+    # Legacy: Check activityTimepoints and scheduledActivityInstances
     for key in ['scheduledActivityInstances', 'activityTimepoints']:
-        # Gracefully handle if the key is missing from the timeline
         for link in timeline.get(key, []):
-            if isinstance(link, dict) and link.get('activityId') and link.get('plannedTimepointId'):
-                activity_timepoints.setdefault(link['activityId'], []).append(link['plannedTimepointId'])
+            if isinstance(link, dict):
+                act_id = link.get('activityId')
+                pt_id = link.get('plannedTimepointId') or link.get('encounterId')
+                if act_id and pt_id:
+                    activity_timepoints.setdefault(act_id, []).append(pt_id)
 
     return activity_timepoints
 
@@ -229,10 +141,17 @@ def compute_usdm_metrics(soa, gold_standard=None):
     
     metrics = {}
     
-    # Entity counts
-    metrics['visits'] = len(timeline.get('plannedTimepoints', []))
+    # Entity counts - handle both legacy and USDM v4.0 structures
+    metrics['visits'] = len(timeline.get('plannedTimepoints', timeline.get('encounters', [])))
     metrics['activities'] = len(timeline.get('activities', []))
-    metrics['activityTimepoints'] = len(timeline.get('activityTimepoints', []))
+    
+    # Count activityTimepoints from multiple sources
+    at_count = len(timeline.get('activityTimepoints', []))
+    # Also count from scheduleTimelines if present
+    for st in timeline.get('scheduleTimelines', []):
+        at_count += len([i for i in st.get('instances', []) if i.get('instanceType') == 'ScheduledActivityInstance'])
+    metrics['activityTimepoints'] = at_count
+    
     metrics['encounters'] = len(timeline.get('encounters', []))
     metrics['epochs'] = len(timeline.get('epochs', []))
     
@@ -310,8 +229,9 @@ def compute_completeness_metrics(soa):
     if not timeline:
         return []
 
+    # Handle both legacy and USDM v4.0 field names
     metrics_config = {
-        'activities': ['description', 'activityGroupId'],
+        'activities': ['description', 'childIds'],  # USDM v4.0 uses childIds instead of activityGroupId
         'plannedTimepoints': ['description'],
         'activityGroups': ['description'],
         'encounters': ['description', 'timing'],
@@ -400,7 +320,7 @@ def get_file_inventory(base_path):
     
     # USDM Expansion files (v6.1)
     expansion_map = {
-        'protocol_usdm.json': ('full_usdm', 'Protocol USDM (Golden Standard)'),
+        'protocol_usdm.json': ('full_usdm', 'Protocol USDM'),
         'full_usdm.json': ('full_usdm', 'Full Protocol USDM'),
         '2_study_metadata.json': ('metadata', 'Study Metadata'),
         '3_eligibility_criteria.json': ('eligibility', 'Eligibility Criteria'),
@@ -516,18 +436,48 @@ def attach_provenance_to_inventory(inventory):
         attach_provenance(inventory['full_usdm']['content'], prov_content)
 
 
+def attach_footnotes_to_inventory(inventory):
+    """Attach SoA footnotes from header structure to inventory items."""
+    if not inventory:
+        return
+    
+    # Get footnotes from header structure in intermediate_data
+    header_structure = inventory.get('intermediate_data', {}).get('SoA Header Structure')
+    if not header_structure or not isinstance(header_structure, dict):
+        return
+    
+    footnotes = header_structure.get('footnotes', [])
+    if not footnotes:
+        return
+    
+    def attach_footnotes(target_content, fn_list):
+        """Attach footnotes to target content if not already present."""
+        if not isinstance(target_content, dict):
+            return
+        # Add footnotes at top level for fallback lookup
+        if 'footnotes' not in target_content:
+            target_content['footnotes'] = fn_list
+    
+    # Attach footnotes to final_soa
+    if inventory.get('final_soa'):
+        attach_footnotes(inventory['final_soa']['content'], footnotes)
+    
+    # Attach footnotes to full_usdm (protocol_usdm.json)
+    if inventory.get('full_usdm'):
+        attach_footnotes(inventory['full_usdm']['content'], footnotes)
+
+
 def extract_soa_metadata(soa):
     if not isinstance(soa, dict):
         return {}
-    study = soa.get('study', {})
     usdm_version = soa.get('usdmVersion', 'N/A')
     
-    # Handle both pre and post-processed formats
-    versions = study.get('versions') or study.get('studyVersions')
-    timeline = versions[0].get('timeline') if versions else None
+    # Use get_timeline() to handle both legacy and USDM v4.0 formats
+    timeline = get_timeline(soa)
 
     if timeline:
-        num_timepoints = len(timeline.get('plannedTimepoints', []))
+        # Handle both plannedTimepoints (legacy) and encounters (USDM v4.0)
+        num_timepoints = len(timeline.get('plannedTimepoints', timeline.get('encounters', [])))
         num_activities = len(timeline.get('activities', []))
         num_groups = len(timeline.get('activityGroups', []))
     else:
@@ -583,29 +533,58 @@ def get_schedule_components(data):
     """
     Flexibly extracts schedule-related components from the JSON data.
     It checks for data in multiple possible locations for maximum compatibility.
+    Handles both legacy 'timeline' format and USDM v4.0 'studyDesigns' format.
     """
     schedule_data = {}
     
-    # Try 1: Top-level studyDesigns (protocol_usdm.json golden standard format)
-    if 'studyDesigns' in data and data['studyDesigns']:
-        schedule_data = data['studyDesigns'][0]
-    # Try 2: Standard USDM 4.0 path (study.versions[0].studyDesigns[0])
-    elif 'study' in data:
+    # Try 1: Standard USDM 4.0 path (study.versions[0].studyDesigns[0]) - PREFERRED
+    if 'study' in data:
         try:
             study_design = data['study']['versions'][0]['studyDesigns'][0]
-            schedule_data = study_design
+            if study_design.get('activities') or study_design.get('scheduleTimelines') or study_design.get('encounters'):
+                schedule_data = study_design
         except (KeyError, IndexError, TypeError):
-            # Try 3: Custom/intermediary timeline path (study.versions[0].timeline)
+            pass
+        
+        # Try legacy timeline path if studyDesigns didn't have data
+        if not schedule_data:
             try:
                 timeline = data['study']['versions'][0]['timeline']
-                schedule_data = timeline
+                if timeline and (timeline.get('activities') or timeline.get('activityTimepoints')):
+                    schedule_data = timeline
             except (KeyError, IndexError, TypeError):
                 pass
+    
+    # Try 2: Top-level studyDesigns (some formats)
+    if not schedule_data and 'studyDesigns' in data and data['studyDesigns']:
+        schedule_data = data['studyDesigns'][0]
     
     # If no schedule data found in any path
     if not schedule_data:
         return None
+    
+    # Extract plannedTimepoints - use encounters as fallback for USDM v4.0
+    planned_timepoints = schedule_data.get('plannedTimepoints', [])
+    
+    # USDM v4.0: If no plannedTimepoints, create pseudo-timepoints from encounters
+    # This allows the SoA grid to render using encounters as columns
+    if not planned_timepoints and schedule_data.get('encounters'):
+        planned_timepoints = [
+            {
+                'id': enc.get('id'),
+                'name': enc.get('name', 'Unnamed'),
+                'encounterId': enc.get('id'),  # Self-reference for compatibility
+                'instanceType': 'PlannedTimepoint'
+            }
+            for enc in schedule_data.get('encounters', [])
+        ]
             
+    # Extract SoA footnotes from notes (CommentAnnotation objects)
+    soa_footnotes = []
+    for note in schedule_data.get('notes', []):
+        if isinstance(note, dict) and note.get('text'):
+            soa_footnotes.append(note['text'])
+    
     # Use .get() for graceful extraction of each component
     return {
         'activities': schedule_data.get('activities', []),
@@ -613,8 +592,10 @@ def get_schedule_components(data):
         'epochs': schedule_data.get('epochs', []),
         'encounters': schedule_data.get('encounters', []),
         'scheduleTimelines': schedule_data.get('scheduleTimelines', []),
-        'plannedTimepoints': schedule_data.get('plannedTimepoints', []),
-        'activityTimepoints': schedule_data.get('activityTimepoints', [])
+        'plannedTimepoints': planned_timepoints,
+        'activityTimepoints': schedule_data.get('activityTimepoints', []),
+        'footnotes': soa_footnotes,
+        '_raw_study_design': schedule_data,  # Keep raw for additional lookups
     }
 
 
@@ -773,23 +754,38 @@ def render_flexible_soa(data, table_id: str = "main", source_name: str = "SoA da
     # --- Create and Populate DataFrame ---
     df = pd.DataFrame("", index=row_multi_index, columns=col_multi_index)
 
-    # Pre-compute activity ⇢ plannedTimepoint links
+    # Pre-compute activity ⇢ plannedTimepoint/encounter links
     activity_pt_links = set()
+    
+    # Build a mapping from pt_* IDs to enc_* IDs (for ID mismatch handling)
+    # The ScheduledActivityInstance may use pt_* IDs for encounterId
+    pt_to_enc_map = {}
+    for i, enc in enumerate(components['encounters']):
+        pt_to_enc_map[f"pt_{i+1}"] = enc.get('id')  # Map pt_1 -> enc_1, etc.
 
     if components['scheduleTimelines'] and components['scheduleTimelines'][0].get('instances'):
-        # Derive from ScheduledActivityInstance → mark all pts within that encounter
-        enc_to_pt_ids = defaultdict(list)
-        for pt in components['plannedTimepoints']:
-            if pt.get('encounterId'):
-                enc_to_pt_ids[pt['encounterId']].append(pt['id'])
+        # USDM v4.0: Derive from ScheduledActivityInstance
         for inst in components['scheduleTimelines'][0].get('instances', []):
             if inst.get('instanceType') != 'ScheduledActivityInstance':
                 continue
+            
+            # Get activity ID (handles both singular and plural)
+            act_ids = inst.get('activityIds', [])
+            if not act_ids and inst.get('activityId'):
+                act_ids = [inst.get('activityId')]
+            
+            # Get encounter/timepoint ID and normalize to enc_* format
             enc_id = inst.get('encounterId')
-            for act_id in inst.get('activityIds', []):
-                for pid in enc_to_pt_ids.get(enc_id, []):
-                    activity_pt_links.add((act_id, pid))
+            # Map pt_* to enc_* if needed
+            if enc_id and enc_id.startswith('pt_'):
+                enc_id = pt_to_enc_map.get(enc_id, enc_id)
+            
+            for act_id in act_ids:
+                if act_id and enc_id:
+                    activity_pt_links.add((act_id, enc_id))
+    
     elif components['activityTimepoints']:
+        # Legacy format
         for at in components['activityTimepoints']:
             if at.get('activityId') and at.get('plannedTimepointId'):
                 activity_pt_links.add((at['activityId'], at['plannedTimepointId']))
@@ -818,6 +814,14 @@ def render_flexible_soa(data, table_id: str = "main", source_name: str = "SoA da
         tick_counts = {'text': 0, 'confirmed': 0, 'needs_review': 0, 'orphaned': 0}
         rows_with_review = set()
         
+        # Build enc_* to pt_* mapping for provenance lookup
+        # Provenance uses pt_* IDs but columns may use enc_* IDs
+        enc_to_pt_map = {}
+        for i, enc in enumerate(components['encounters']):
+            enc_id = enc.get('id')
+            if enc_id:
+                enc_to_pt_map[enc_id] = f"pt_{i+1}"
+        
         # Build set of timepoint IDs for lookup
         pt_id_map = {pt['id']: True for pt in ordered_pt_for_cols if pt.get('id')}
         
@@ -843,18 +847,22 @@ def render_flexible_soa(data, table_id: str = "main", source_name: str = "SoA da
                         has_row_review = True
                 
                 # Check for orphaned ticks (X in matrix but no provenance)
-                # Get row data from dataframe
+                # Get row data from dataframe using iloc for positional access (handles duplicate column names)
                 if idx in df.index:
-                    row_data = df.loc[idx]
-                    for col_idx in df.columns:
-                        if row_data[col_idx] == 'X':
-                            # Find timepoint ID for this column
-                            pt_id = None
-                            for ct, pt_info in zip(col_index_data, ordered_pt_for_cols):
-                                if ct == col_idx:
-                                    pt_id = pt_info.get('id')
-                                    break
-                            if pt_id and pt_id not in cell_map:
+                    row_idx_pos = df.index.get_loc(idx)
+                    # Handle potential slice (from duplicate index labels)
+                    if isinstance(row_idx_pos, slice):
+                        row_idx_pos = row_idx_pos.start
+                    row_data = df.iloc[row_idx_pos]
+                    
+                    for col_pos in range(len(df.columns)):
+                        cell_value = row_data.iloc[col_pos]
+                        if cell_value == 'X':
+                            # Get timepoint ID by position (handles duplicate column names)
+                            pt_id = ordered_pt_for_cols[col_pos].get('id') if col_pos < len(ordered_pt_for_cols) else None
+                            # Map enc_* ID to pt_* ID for provenance lookup
+                            prov_pt_id = enc_to_pt_map.get(pt_id, pt_id) if pt_id else None
+                            if prov_pt_id and prov_pt_id not in cell_map:
                                 tick_counts['orphaned'] += 1
                                 has_row_review = True
                 
@@ -914,39 +922,38 @@ def render_flexible_soa(data, table_id: str = "main", source_name: str = "SoA da
         </div>
         """, unsafe_allow_html=True)
         
-        # Build lookup dicts for faster ID resolution
+        # Build lookup dicts for faster ID resolution (row uses tuple->id, col uses position)
         row_to_act_id = {row_tuple: ordered_activities_display[i].get('id') 
                          for i, row_tuple in enumerate(row_index_data_display)}
-        col_to_pt_id = {col_tuple: pt_info.get('id') 
-                        for col_tuple, pt_info in zip(col_index_data, ordered_pt_for_cols)}
+        # Column lookup by position (handles duplicate column names)
+        col_pos_to_pt_id = {i: pt_info.get('id') for i, pt_info in enumerate(ordered_pt_for_cols)}
         
         # Apply provenance styling
-        def apply_provenance_style(row, col):
+        def apply_provenance_style(row_pos, col_pos):
             """Apply provenance color to cells with 'X', preferring cell-level provenance when available."""
             try:
-                # Safely get cell value - handle multi-index
-                cell_value = df_display.loc[row, col]
-                # If it's a Series (multi-index edge case), get the first value
-                if hasattr(cell_value, 'item'):
-                    cell_value = cell_value.item()
-                elif hasattr(cell_value, 'iloc'):
-                    cell_value = cell_value.iloc[0]
+                # Use positional access to handle duplicate column names
+                cell_value = df_display.iloc[row_pos, col_pos]
                 
                 if cell_value != 'X':
                     return ''
             except (KeyError, IndexError, ValueError):
                 return ''
             
-            # Get activity ID and timepoint ID using lookup dicts
-            act_id = row_to_act_id.get(row)
-            pt_id = col_to_pt_id.get(col)
+            # Get activity ID by row tuple, timepoint ID by column position
+            row_tuple = df_display.index[row_pos]
+            act_id = row_to_act_id.get(row_tuple)
+            pt_id = col_pos_to_pt_id.get(col_pos)
             
             if not act_id or not pt_id:
                 return ''
+            
+            # Map enc_* ID to pt_* ID for provenance lookup
+            prov_pt_id = enc_to_pt_map.get(pt_id, pt_id)
 
             # 1) Prefer cell-level provenance if available (using the at_prov_map built earlier)
             if at_prov_map and isinstance(at_prov_map, dict):
-                cell_src = at_prov_map.get(act_id, {}).get(pt_id)
+                cell_src = at_prov_map.get(act_id, {}).get(prov_pt_id)
                 if cell_src in ('needs_review', 'vision'):
                     return 'background-color: #fb923c'  # orange - needs review (includes vision-only)
                 elif cell_src == 'both':
@@ -956,7 +963,7 @@ def render_flexible_soa(data, table_id: str = "main", source_name: str = "SoA da
             
             # 2) Fallback to entity-level provenance
             act_prov = get_provenance_sources(provenance, 'activities', act_id)
-            pt_prov = get_provenance_sources(provenance, 'plannedTimepoints', pt_id)
+            pt_prov = get_provenance_sources(provenance, 'plannedTimepoints', prov_pt_id)
             
             from_text = act_prov['text'] or pt_prov['text']
             from_vision = act_prov['vision'] or pt_prov['vision']
@@ -973,9 +980,9 @@ def render_flexible_soa(data, table_id: str = "main", source_name: str = "SoA da
         
         # Build a style map with integer positions
         style_map = {}
-        for i, row_idx in enumerate(df_display.index):
-            for j, col_idx in enumerate(df_display.columns):
-                style = apply_provenance_style(row_idx, col_idx)
+        for i in range(len(df_display.index)):
+            for j in range(len(df_display.columns)):
+                style = apply_provenance_style(i, j)
                 if style:
                     style_map[(i, j)] = style
         
@@ -1089,6 +1096,24 @@ def render_flexible_soa(data, table_id: str = "main", source_name: str = "SoA da
         
         st.markdown(''.join(html_parts), unsafe_allow_html=True)
         
+        # Display SoA footnotes if available
+        footnotes = components.get('footnotes', [])
+        # Fallback: check for footnotes in header structure data or provenance
+        if not footnotes and 'footnotes' in data:
+            footnotes = data.get('footnotes', [])
+        if not footnotes and 'p2uProvenance' in data:
+            prov_footnotes = data.get('p2uProvenance', {}).get('footnotes', [])
+            if prov_footnotes:
+                footnotes = prov_footnotes
+        
+        if footnotes:
+            with st.expander(f"📝 Schedule of Activities Footnotes ({len(footnotes)})"):
+                footnote_html = ['<div style="font-size: 0.9em; color: #374151; background-color: #f9fafb; padding: 1rem; border-radius: 0.5rem; border-left: 4px solid #3b82f6;">']
+                for fn in footnotes:
+                    footnote_html.append(f'<p style="margin: 0.5rem 0;">{html.escape(str(fn))}</p>')
+                footnote_html.append('</div>')
+                st.markdown(''.join(footnote_html), unsafe_allow_html=True)
+        
         # Add interactive export option
         with st.expander("📥 Export & Search Data"):
             # Create flat export dataframe
@@ -1116,8 +1141,8 @@ def render_flexible_soa(data, table_id: str = "main", source_name: str = "SoA da
             csv = export_df.to_csv(index=False)
             st.download_button("📥 Download CSV", csv, f"soa_export_{table_id}.csv", "text/csv")
         
-        # JSON viewer (outside expander)
-        if st.checkbox(f"📄 Show JSON ({source_name})", key=f"json_{table_id}"):
+        # JSON viewer (collapsible)
+        with st.expander(f"📄 Show JSON ({source_name})"):
             st.json(data, expanded=False)
     else:
         # No provenance - simple dataframe display
@@ -1212,6 +1237,9 @@ inventory = get_file_inventory(run_path)
 # Attach provenance data (must be done outside cached function)
 attach_provenance_to_inventory(inventory)
 
+# Attach footnotes from header structure (fallback if not in final output)
+attach_footnotes_to_inventory(inventory)
+
 # --- USDM Metrics Dashboard in Sidebar ---
 if inventory['final_soa']:
     st.sidebar.markdown("---")
@@ -1246,30 +1274,18 @@ if inventory['final_soa']:
 # --- Main Display: Render the final SoA --- 
 st.header("Schedule of Activities (SoA)")
 
-# Prefer protocol_usdm.json (golden standard) for SoA display, fallback to 9_final_soa.json
+# Use 9_final_soa.json for SoA display (has matching provenance)
+# protocol_usdm.json has different activities from expansion phases
 soa_source = None
 soa_source_name = None
 
-if inventory.get('full_usdm') and inventory['full_usdm'].get('content'):
-    full_usdm = inventory['full_usdm']['content']
-    # Check if protocol_usdm.json has SoA data
-    # Try 1: Top-level studyDesigns (legacy format)
-    sd = None
-    if 'studyDesigns' in full_usdm and full_usdm['studyDesigns']:
-        sd = full_usdm['studyDesigns'][0]
-    # Try 2: USDM v4.0 path (study.versions[0].studyDesigns[0])
-    elif full_usdm.get('study', {}).get('versions'):
-        versions = full_usdm['study']['versions']
-        if versions and versions[0].get('studyDesigns'):
-            sd = versions[0]['studyDesigns'][0]
-    
-    if sd and (sd.get('activities') or sd.get('scheduleTimelines')):
-        soa_source = full_usdm
-        soa_source_name = "protocol_usdm.json (Golden Standard)"
-
-if not soa_source and inventory['final_soa']:
+if inventory.get('final_soa') and inventory['final_soa'].get('content'):
     soa_source = inventory['final_soa']['content']
     soa_source_name = "9_final_soa.json"
+elif inventory.get('full_usdm') and inventory['full_usdm'].get('content'):
+    # Fallback to protocol_usdm.json if no SoA file
+    soa_source = inventory['full_usdm']['content']
+    soa_source_name = "protocol_usdm.json"
 
 if not soa_source:
     render_no_data_message(
@@ -1293,10 +1309,10 @@ if inventory.get('expansion') or inventory.get('full_usdm'):
         # Map of expansion keys to their location in protocol_usdm.json
         usdm_paths = {
             'eligibility': lambda u: {'eligibilityCriteria': u.get('studyDesigns', [{}])[0].get('eligibilityCriteria', []),
-                                      'population': u.get('studyDesigns', [{}])[0].get('studyDesignPopulation')},
+                                      'population': u.get('studyDesigns', [{}])[0].get('population') or u.get('studyDesigns', [{}])[0].get('studyDesignPopulation')},
             'objectives': lambda u: {'objectives': u.get('studyDesigns', [{}])[0].get('objectives', []),
                                      'endpoints': u.get('studyDesigns', [{}])[0].get('endpoints', [])},
-            'studydesign': lambda u: {'studyArms': u.get('studyDesigns', [{}])[0].get('studyArms', []),
+            'studydesign': lambda u: {'arms': u.get('studyDesigns', [{}])[0].get('arms') or u.get('studyDesigns', [{}])[0].get('studyArms', []),
                                       'epochs': u.get('studyDesigns', [{}])[0].get('epochs', [])},
             'interventions': lambda u: {'studyInterventions': u.get('studyDesigns', [{}])[0].get('studyInterventions', []),
                                         'products': u.get('administrableProducts', [])},
@@ -1351,19 +1367,6 @@ if inventory.get('expansion') or inventory.get('full_usdm'):
     
     available_tabs = [(key, label) for key, label in tab_config if key in inventory.get('expansion', {})]
     
-    # Calculate overall confidence
-    if available_tabs:
-        confidences = []
-        for key, _ in available_tabs:
-            exp_data = inventory['expansion'].get(key, {})
-            conf = calculate_expansion_confidence(key, exp_data.get('content', {}))
-            confidences.append(conf)
-        avg_confidence = sum(confidences) / len(confidences) if confidences else 0
-        
-        # Show overall confidence badge
-        conf_color = '#4caf50' if avg_confidence >= 0.8 else '#ff9800' if avg_confidence >= 0.5 else '#f44336'
-        st.markdown(f"**Overall Extraction Confidence:** <span style='background:{conf_color};color:white;padding:4px 12px;border-radius:12px;font-weight:bold;'>{avg_confidence:.0%}</span>", unsafe_allow_html=True)
-    
     if available_tabs:
         tab_labels = [label for _, label in available_tabs]
         tabs = st.tabs(tab_labels)
@@ -1373,13 +1376,8 @@ if inventory.get('expansion') or inventory.get('full_usdm'):
                 exp_data = inventory['expansion'][key]
                 content = exp_data['content']
                 
-                # Show confidence for this tab
-                tab_conf = calculate_expansion_confidence(key, content)
-                conf_color = '#4caf50' if tab_conf >= 0.8 else '#ff9800' if tab_conf >= 0.5 else '#f44336'
-                
                 if key == 'metadata':
-                    st.subheader(f"Study Metadata")
-                    st.markdown(f"<span style='background:{conf_color};color:white;padding:2px 8px;border-radius:8px;font-size:0.9em;'>📊 {tab_conf:.0%}</span>", unsafe_allow_html=True)
+                    st.subheader("Study Metadata")
                     if content.get('success') and content.get('metadata'):
                         md = content['metadata']
                         col1, col2 = st.columns(2)
@@ -1406,7 +1404,6 @@ if inventory.get('expansion') or inventory.get('full_usdm'):
                 
                 elif key == 'eligibility':
                     st.subheader("Eligibility Criteria")
-                    st.markdown(f"<span style='background:{conf_color};color:white;padding:2px 8px;border-radius:8px;font-size:0.9em;'>📊 {tab_conf:.0%}</span>", unsafe_allow_html=True)
                     if content.get('success') and content.get('eligibility'):
                         elig = content['eligibility']
                         # Build lookup from criterionItemId -> text
@@ -1435,7 +1432,6 @@ if inventory.get('expansion') or inventory.get('full_usdm'):
                 
                 elif key == 'objectives':
                     st.subheader("Objectives & Endpoints")
-                    st.markdown(f"<span style='background:{conf_color};color:white;padding:2px 8px;border-radius:8px;font-size:0.9em;'>📊 {tab_conf:.0%}</span>", unsafe_allow_html=True)
                     if content.get('success') and content.get('objectivesEndpoints'):
                         obj = content['objectivesEndpoints']
                         summary = obj.get('summary', {})
@@ -1455,21 +1451,21 @@ if inventory.get('expansion') or inventory.get('full_usdm'):
                 
                 elif key == 'studydesign':
                     st.subheader("Study Design Structure")
-                    st.markdown(f"<span style='background:{conf_color};color:white;padding:2px 8px;border-radius:8px;font-size:0.9em;'>📊 {tab_conf:.0%}</span>", unsafe_allow_html=True)
                     # Handle both 'studyDesign' and 'studyDesignStructure' keys
                     sd = content.get('studyDesignStructure') or content.get('studyDesign')
                     if content.get('success') and sd:
                         summary = sd.get('summary', {})
                         col1, col2, col3 = st.columns(3)
-                        col1.metric("Arms", summary.get('armCount', len(sd.get('studyArms', []))))
+                        arms = sd.get('arms') or sd.get('studyArms', [])
+                        col1.metric("Arms", summary.get('armCount', len(arms)))
                         col2.metric("Cohorts", summary.get('cohortCount', len(sd.get('studyCohorts', []))))
                         blinding = sd.get('blindingSchema', {})
                         blinding_text = blinding.get('code', 'N/A') if isinstance(blinding, dict) else blinding
                         col3.metric("Blinding", blinding_text or 'N/A')
                         
-                        if sd.get('studyArms'):
+                        if arms:
                             st.markdown("**Study Arms:**")
-                            for arm in sd.get('studyArms', []):
+                            for arm in arms:
                                 desc = arm.get('description', 'N/A')
                                 desc_text = desc[:80] + '...' if len(str(desc)) > 80 else desc
                                 st.write(f"- {arm.get('name', 'N/A')}: {desc_text}")
@@ -1485,7 +1481,6 @@ if inventory.get('expansion') or inventory.get('full_usdm'):
                 
                 elif key == 'interventions':
                     st.subheader("Interventions & Products")
-                    st.markdown(f"<span style='background:{conf_color};color:white;padding:2px 8px;border-radius:8px;font-size:0.9em;'>📊 {tab_conf:.0%}</span>", unsafe_allow_html=True)
                     if content.get('success') and content.get('interventions'):
                         iv = content['interventions']
                         col1, col2, col3 = st.columns(3)
@@ -1521,7 +1516,6 @@ if inventory.get('expansion') or inventory.get('full_usdm'):
                 
                 elif key == 'narrative':
                     st.subheader("Narrative Structure")
-                    st.markdown(f"<span style='background:{conf_color};color:white;padding:2px 8px;border-radius:8px;font-size:0.9em;'>📊 {tab_conf:.0%}</span>", unsafe_allow_html=True)
                     if content.get('success') and content.get('narrative'):
                         narr = content['narrative']
                         col1, col2 = st.columns(2)
@@ -1541,7 +1535,6 @@ if inventory.get('expansion') or inventory.get('full_usdm'):
                 
                 elif key == 'advanced':
                     st.subheader("Advanced Entities")
-                    st.markdown(f"<span style='background:{conf_color};color:white;padding:2px 8px;border-radius:8px;font-size:0.9em;'>📊 {tab_conf:.0%}</span>", unsafe_allow_html=True)
                     if content.get('success') and content.get('advanced'):
                         adv = content['advanced']
                         col1, col2, col3 = st.columns(3)
@@ -1573,7 +1566,6 @@ if inventory.get('expansion') or inventory.get('full_usdm'):
                 
                 elif key == 'procedures':
                     st.subheader("🔬 Procedures & Devices")
-                    st.markdown(f"<span style='background:{conf_color};color:white;padding:2px 8px;border-radius:8px;font-size:0.9em;'>📊 {tab_conf:.0%}</span>", unsafe_allow_html=True)
                     proc_data = content.get('proceduresDevices', content)
                     if proc_data:
                         col1, col2, col3 = st.columns(3)
@@ -1605,7 +1597,6 @@ if inventory.get('expansion') or inventory.get('full_usdm'):
                 
                 elif key == 'scheduling':
                     st.subheader("⏱️ Scheduling Logic")
-                    st.markdown(f"<span style='background:{conf_color};color:white;padding:2px 8px;border-radius:8px;font-size:0.9em;'>📊 {tab_conf:.0%}</span>", unsafe_allow_html=True)
                     sched_data = content.get('scheduling', content)
                     if sched_data:
                         col1, col2, col3 = st.columns(3)
@@ -1637,7 +1628,6 @@ if inventory.get('expansion') or inventory.get('full_usdm'):
                 
                 elif key == 'sap':
                     st.subheader("📊 Analysis Populations (SAP)")
-                    st.markdown(f"<span style='background:{conf_color};color:white;padding:2px 8px;border-radius:8px;font-size:0.9em;'>📊 {tab_conf:.0%}</span>", unsafe_allow_html=True)
                     sap_data = content.get('sapData', content)
                     if sap_data:
                         col1, col2 = st.columns(2)
@@ -1656,7 +1646,6 @@ if inventory.get('expansion') or inventory.get('full_usdm'):
                 
                 elif key == 'sites':
                     st.subheader("🏥 Study Sites")
-                    st.markdown(f"<span style='background:{conf_color};color:white;padding:2px 8px;border-radius:8px;font-size:0.9em;'>📊 {tab_conf:.0%}</span>", unsafe_allow_html=True)
                     sites_data = content.get('sitesData', content)
                     if sites_data:
                         col1, col2, col3 = st.columns(3)
@@ -1672,7 +1661,6 @@ if inventory.get('expansion') or inventory.get('full_usdm'):
                 
                 elif key == 'docstructure':
                     st.subheader("📑 Document Structure")
-                    st.markdown(f"<span style='background:{conf_color};color:white;padding:2px 8px;border-radius:8px;font-size:0.9em;'>📊 {tab_conf:.0%}</span>", unsafe_allow_html=True)
                     doc_data = content.get('documentStructure', content)
                     if doc_data:
                         col1, col2, col3 = st.columns(3)
@@ -1702,7 +1690,6 @@ if inventory.get('expansion') or inventory.get('full_usdm'):
                 
                 elif key == 'amendmentdetails':
                     st.subheader("📝 Amendment Details")
-                    st.markdown(f"<span style='background:{conf_color};color:white;padding:2px 8px;border-radius:8px;font-size:0.9em;'>📊 {tab_conf:.0%}</span>", unsafe_allow_html=True)
                     amend_data = content.get('amendmentDetails', content)
                     if amend_data:
                         col1, col2, col3 = st.columns(3)
@@ -1741,11 +1728,10 @@ if inventory.get('expansion') or inventory.get('full_usdm'):
 st.markdown("--- ")
 st.header("Intermediate Outputs & Debugging")
 
-# Create tabs for intermediate files (simplified - removed legacy Post-Processed tab)
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+# Create tabs for intermediate files
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "Text Extraction", 
     "Data Files", 
-    "Config Files", 
     "SoA Images",
     "Quality Metrics",
     "Validation & Conformance",
@@ -1772,18 +1758,6 @@ with tab2:
                 st.json(content if isinstance(content, dict) else str(content))
 
 with tab3:
-    st.subheader("Configuration Files")
-    if not inventory['configs']:
-        render_no_data_message("Configuration Files", "Configuration files are created during pipeline execution")
-    else:
-        for key, content in inventory['configs'].items():
-            with st.expander(key):
-                if isinstance(content, dict):
-                    st.json(content)
-                else:
-                    st.text(content)
-
-with tab4:
     st.subheader("Extracted SoA Images")
     if not inventory['images']:
         render_no_data_message("SoA Images", "SoA page images are extracted during pipeline execution")
@@ -1798,7 +1772,7 @@ with tab4:
             except Exception as e:
                 st.warning(f"Could not load image {img_path}: {e}")
 
-with tab5:
+with tab4:
     st.subheader("Quality Metrics")
     if not inventory['final_soa']:
         render_no_data_message("Quality Metrics", "Run the pipeline to generate a final SoA for quality analysis")
@@ -1840,7 +1814,7 @@ with tab5:
         else:
             st.error("Could not compute metrics")
 
-with tab6:
+with tab5:
     st.subheader("Validation & Conformance Results")
     
     # Get the output directory from the current file path
@@ -1855,53 +1829,33 @@ with tab6:
         # --- Terminology Enrichment ---
         st.markdown("### 🏷️ Terminology Enrichment (Step 7)")
         
-        # Check multiple files for enrichment data
-        enriched_data = None
-        for fname in ["step7_enriched_soa.json", "protocol_usdm.json", "9_final_soa.json"]:
-            f = output_dir / fname
-            if f.exists():
-                with open(f) as fp:
-                    enriched_data = json.load(fp)
-                break
-        
-        if enriched_data:
-            # Count enriched entities (study phase, objectives, eligibility, blinding, etc.)
-            def count_enriched(obj, counts=None):
-                if counts is None:
-                    counts = {'total': 0, 'by_type': {}}
-                if not isinstance(obj, dict):
-                    return counts
-                
-                # Check for enrichment indicators (standardCode, code objects with terminology codes)
-                for field in ['standardCode', 'code', 'category', 'level']:
-                    code_obj = obj.get(field)
-                    if isinstance(code_obj, dict) and code_obj.get('codeSystem') in ['NCI', 'CDISC', 'MedDRA', 'SNOMED', 'USDM']:
-                        counts['total'] += 1
-                        entity_type = obj.get('instanceType', 'Unknown')
-                        counts['by_type'][entity_type] = counts['by_type'].get(entity_type, 0) + 1
-                
-                # Recurse
-                for key, value in obj.items():
-                    if isinstance(value, dict):
-                        count_enriched(value, counts)
-                    elif isinstance(value, list):
-                        for item in value:
-                            if isinstance(item, dict):
-                                count_enriched(item, counts)
-                return counts
+        # Check for enrichment report
+        enrichment_file = output_dir / "terminology_enrichment.json"
+        if enrichment_file.exists():
+            with open(enrichment_file) as f:
+                enrichment_result = json.load(f)
             
-            counts = count_enriched(enriched_data)
+            enriched = enrichment_result.get('enriched', 0)
+            total = enrichment_result.get('total_entities', 0)
             
-            if counts['total'] > 0:
-                st.success(f"✅ Enriched {counts['total']} entities with terminology codes")
+            if enriched > 0:
+                st.success(f"✅ Enriched {enriched}/{total} entities with NCI terminology codes")
                 
-                with st.expander("View Enriched Entities by Type"):
-                    for entity_type, count in sorted(counts['by_type'].items(), key=lambda x: -x[1]):
+                with st.expander("View Enrichment Details"):
+                    by_type = enrichment_result.get('by_type', {})
+                    for entity_type, count in sorted(by_type.items(), key=lambda x: -x[1]):
                         st.markdown(f"- **{entity_type}**: {count} entities")
+                    
+                    if enrichment_result.get('cache_stats'):
+                        st.markdown("---")
+                        st.markdown("**Cache Stats:**")
+                        stats = enrichment_result['cache_stats']
+                        st.markdown(f"- Cached codes: {stats.get('total_entries', 0)}")
+                        st.markdown(f"- Fresh entries: {stats.get('fresh_entries', 0)}")
             else:
-                st.info("No entities enriched with terminology codes. Enrichment may use different data paths.")
+                st.info("No entities required terminology enrichment.")
         else:
-            st.info("Terminology enrichment data not found.")
+            st.info("Terminology enrichment not run. Use `--enrich` flag to enable.")
         
         st.markdown("---")
         
@@ -1909,7 +1863,7 @@ with tab6:
         st.markdown("### 📋 Schema Validation (Step 8)")
         # Check multiple possible filenames
         schema_file = None
-        for fname in ["schema_validation.json", "step8_schema_validation.json"]:
+        for fname in ["schema_validation.json", "usdm_validation.json", "step8_schema_validation.json"]:
             f = output_dir / fname
             if f.exists():
                 schema_file = f
@@ -1919,23 +1873,52 @@ with tab6:
             with open(schema_file) as f:
                 schema_result = json.load(f)
             
+            # Display validator type
+            validator_type = schema_result.get('validator', 'unknown')
+            validator_badge = "🔷 Official USDM Package" if "usdm" in validator_type else "🔶 OpenAPI Custom"
+            
             if schema_result.get('valid'):
-                st.success("✅ Schema validation PASSED")
+                st.success(f"✅ Schema validation PASSED ({validator_badge})")
             else:
-                st.error("❌ Schema validation FAILED")
-                
+                st.error(f"❌ Schema validation FAILED ({validator_badge})")
+            
+            # Show summary metrics
+            summary = schema_result.get('summary', {})
+            col1, col2 = st.columns(2)
+            col1.metric("Errors", summary.get('errorsCount', summary.get('error_count', 0)))
+            col2.metric("Warnings", summary.get('warningsCount', summary.get('warning_count', 0)))
+            
+            # Show issues
             issues = schema_result.get('issues', [])
-            warnings = schema_result.get('warnings', [])
-            
             if issues:
-                st.markdown("**Issues:**")
-                for issue in issues:
-                    st.markdown(f"- ❌ {issue}")
+                with st.expander(f"Validation Issues ({len(issues)})", expanded=not schema_result.get('valid')):
+                    # Group by error type
+                    by_type = {}
+                    for issue in issues:
+                        etype = issue.get('type', 'unknown') if isinstance(issue, dict) else 'unknown'
+                        if etype not in by_type:
+                            by_type[etype] = []
+                        by_type[etype].append(issue)
+                    
+                    for etype, type_issues in sorted(by_type.items(), key=lambda x: -len(x[1])):
+                        st.markdown(f"**{etype}** ({len(type_issues)}x)")
+                        for issue in type_issues[:5]:  # Show first 5
+                            if isinstance(issue, dict):
+                                loc = issue.get('location', issue.get('path', ''))
+                                msg = issue.get('message', '')
+                                st.markdown(f"- `{loc}`: {msg[:80]}")
+                            else:
+                                st.markdown(f"- ❌ {issue}")
+                        if len(type_issues) > 5:
+                            st.caption(f"... and {len(type_issues) - 5} more")
             
-            if warnings:
-                with st.expander(f"Warnings ({len(warnings)})"):
-                    for warn in warnings:
-                        st.markdown(f"- ⚠️ {warn}")
+            # Show fixer summary if available
+            fixer = schema_result.get('fixerSummary')
+            if fixer:
+                with st.expander("Auto-Fixer Summary"):
+                    st.markdown(f"- Original issues: {fixer.get('originalIssues', 0)}")
+                    st.markdown(f"- Fixed issues: {fixer.get('fixedIssues', 0)}")
+                    st.markdown(f"- Remaining issues: {fixer.get('remainingIssues', 0)}")
         else:
             st.info("Schema validation not run. Use `--validate-schema` or `--full` flag.")
         
@@ -1956,12 +1939,29 @@ with tab6:
             with open(conformance_file) as f:
                 conformance_data = json.load(f)
             
-            # Handle both CORE engine format and local validation format
-            # CORE format: Conformance_Details, Rules_Report, Issue_Details
-            # Local format: timestamp, validator, version, issues, warnings, summary
-            is_local_format = 'validator' in conformance_data or 'summary' in conformance_data
+            # Check if CORE engine failed
+            if conformance_data.get('success') == False and conformance_data.get('error'):
+                # CORE engine error - display the error
+                engine = conformance_data.get('engine', 'unknown')
+                error_msg = conformance_data.get('error', 'Unknown error')
+                error_summary = conformance_data.get('error_summary', '')
+                
+                st.error(f"❌ CDISC CORE Engine Failed ({engine})")
+                st.markdown(f"**Error:** {error_msg}")
+                
+                if error_summary:
+                    st.markdown(f"**Details:** `{error_summary}`")
+                
+                # Show full error details in expander
+                error_details = conformance_data.get('error_details')
+                if error_details:
+                    with st.expander("View Full Error Output"):
+                        st.code(error_details, language="text")
+                
+                st.info("💡 This may be a bug in the CORE engine. The extraction was successful, but conformance checking failed.")
             
-            if is_local_format:
+            # Handle both CORE engine format and local validation format
+            elif 'validator' in conformance_data or 'summary' in conformance_data:
                 # Local validation format
                 summary = conformance_data.get('summary', {})
                 issues = conformance_data.get('issues', [])
@@ -1996,44 +1996,65 @@ with tab6:
                                 st.markdown(f"- ⚠️ {warn.get('message', warn)}")
                             else:
                                 st.markdown(f"- ⚠️ {warn}")
-            else:
-                # CORE engine format
+            
+            elif conformance_data.get('success') == True:
+                # CORE engine success - new or old format
+                engine = conformance_data.get('engine', 'local_core')
+                issues_count = conformance_data.get('issues', 0)
+                warnings_count = conformance_data.get('warnings', 0)
+                issues_list = conformance_data.get('issues_list', [])
+                
+                # Check for old CORE format
                 details = conformance_data.get('Conformance_Details', {})
-                rules_report = conformance_data.get('Rules_Report', conformance_data.get('rules_report', []))
-                issues = conformance_data.get('Issue_Details', conformance_data.get('issues', []))
-                
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    st.metric("CORE Version", details.get('CORE_Engine_Version', 'N/A'))
-                with col2:
-                    st.metric("Standard", f"{details.get('Standard', 'USDM')} {details.get('Version', '')}")
-                with col3:
-                    st.metric("Rules Executed", len(rules_report))
-                
-                if not issues:
-                    st.success("✅ No conformance issues found!")
+                if details:
+                    # Old CORE format
+                    rules_report = conformance_data.get('Rules_Report', [])
+                    issues_list = conformance_data.get('Issue_Details', issues_list)
+                    
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        st.metric("CORE Version", details.get('CORE_Engine_Version', 'N/A'))
+                    with col2:
+                        st.metric("Standard", f"{details.get('Standard', 'USDM')} {details.get('Version', '')}")
+                    with col3:
+                        st.metric("Rules Executed", len(rules_report))
                 else:
-                    # Group issues by severity
-                    by_severity = {}
-                    for issue in issues:
-                        sev = issue.get('severity', 'Unknown')
-                        by_severity[sev] = by_severity.get(sev, 0) + 1
+                    # New format
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        st.metric("Engine", engine)
+                    with col2:
+                        st.metric("Errors", issues_count)
+                    with col3:
+                        st.metric("Warnings", warnings_count)
+                
+                if not issues_list and issues_count == 0 and warnings_count == 0:
+                    st.success("✅ No conformance issues found!")
+                elif issues_count == 0:
+                    st.success(f"✅ Conformance passed with {warnings_count} warnings")
+                else:
+                    st.warning(f"⚠️ Found {issues_count} errors, {warnings_count} warnings")
                     
-                    st.warning(f"⚠️ Found {len(issues)} conformance issues")
-                    
-                    for sev, count in sorted(by_severity.items()):
-                        if sev.lower() == 'error':
-                            st.markdown(f"- ❌ **{sev}**: {count}")
-                        elif sev.lower() == 'warning':
-                            st.markdown(f"- ⚠️ **{sev}**: {count}")
-                        else:
-                            st.markdown(f"- ℹ️ **{sev}**: {count}")
-                    
-                    with st.expander("View Issue Details"):
-                        for issue in issues[:20]:
-                            st.markdown(f"**{issue.get('rule_id', 'Unknown')}**: {issue.get('message', '')}")
-                        if len(issues) > 20:
-                            st.info(f"... and {len(issues) - 20} more issues")
+                    if issues_list:
+                        # Group issues by severity
+                        by_severity = {}
+                        for issue in issues_list:
+                            sev = issue.get('severity', 'Unknown')
+                            by_severity[sev] = by_severity.get(sev, 0) + 1
+                        
+                        for sev, count in sorted(by_severity.items()):
+                            if sev.lower() == 'error':
+                                st.markdown(f"- ❌ **{sev}**: {count}")
+                            elif sev.lower() == 'warning':
+                                st.markdown(f"- ⚠️ **{sev}**: {count}")
+                            else:
+                                st.markdown(f"- ℹ️ **{sev}**: {count}")
+                        
+                        with st.expander("View Issue Details"):
+                            for issue in issues_list[:20]:
+                                st.markdown(f"**{issue.get('rule_id', 'Unknown')}**: {issue.get('message', '')}")
+                            if len(issues_list) > 20:
+                                st.info(f"... and {len(issues_list) - 20} more issues")
             
             # Show report details
             with st.expander("Report Details"):

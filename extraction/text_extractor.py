@@ -45,12 +45,30 @@ def build_extraction_prompt(header_structure: HeaderStructure) -> str:
     - Exact IDs to use for timepoints and encounters
     - Column structure (which visits exist)
     - Row groups (how activities should be grouped)
+    
+    Output format follows USDM v4.0 OpenAPI schema requirements.
     """
     header_json = json.dumps(header_structure.to_dict(), indent=2)
     
+    # Build a clear list of group names and their activities for the LLM
+    group_lines = []
+    for g in header_structure.activityGroups:
+        activity_names = getattr(g, 'activity_names', []) or []
+        if activity_names:
+            # Show group with its expected activities (from header analyzer)
+            activities_str = ", ".join(f'"{a}"' for a in activity_names[:5])
+            if len(activity_names) > 5:
+                activities_str += f" ... (+{len(activity_names) - 5} more)"
+            group_lines.append(f"  - `{g.id}`: \"{g.name}\" → activities: [{activities_str}]")
+        else:
+            group_lines.append(f"  - `{g.id}`: \"{g.name}\"")
+    
+    group_list = "\n".join(group_lines) if group_lines else "  (No groups detected)"
+    
     return f"""You are extracting Schedule of Activities (SoA) data from a clinical trial protocol.
+Your output must conform to USDM v4.0 schema specifications.
 
-HEADER STRUCTURE (from visual analysis):
+## HEADER STRUCTURE (from visual analysis)
 The following structure has been extracted from the SoA table images. 
 You MUST use these EXACT IDs when referencing timepoints and encounters.
 
@@ -58,32 +76,55 @@ You MUST use these EXACT IDs when referencing timepoints and encounters.
 {header_json}
 ```
 
-YOUR TASK:
+## ACTIVITY GROUPS (row section headers)
+The following activity groups (section headers) were identified in the SoA table:
+{group_list}
+
+**IMPORTANT:** If activity names are shown after "→ activities:", these are the expected activities
+under that group (detected visually). Use this as a HINT for assigning `activityGroupId`.
+
+These are CATEGORY HEADERS that group related activities. They are typically:
+- Bold or highlighted rows
+- Spanning the full table width
+- Have NO tick marks (they are headers, not activities)
+
+## YOUR TASK
 Extract the ACTIVITIES and TICK MATRIX from the protocol text.
 
 For each activity row in the SoA table:
-1. Extract the activity name and description
-2. Identify which timepoints have a tick (X, ✓, or similar marker)
-3. Create an activityTimepoint entry for EACH tick
+1. Extract the activity name and description  
+2. Assign it to its parent group using `activityGroupId`
+3. Identify which timepoints have a tick (X, ✓, or similar marker)
+4. Create an ActivityTimepoint entry for EACH tick
 
-CRITICAL RULES:
-1. Use EXACT IDs from the header structure above for plannedTimepointId
-2. Generate new sequential IDs for activities (act_1, act_2, etc.)
-3. ONLY create activityTimepoints where you see an explicit tick mark
-4. Do NOT infer ticks from clinical logic or "at every visit" text
-5. If unsure about a tick, OMIT it (false negatives are better than false positives)
-6. Preserve the activity grouping using activityGroupId from header structure
+## USDM v4.0 Output Format (MUST follow exactly)
 
-OUTPUT FORMAT:
-Return a JSON object with this structure:
+Every entity MUST have `id` and `instanceType` fields.
+Every activity MUST have `activityGroupId` linking it to its parent group.
+
+```json
 {{
   "activities": [
     {{
       "id": "act_1",
       "name": "Informed Consent",
-      "instanceType": "Activity",
-      "description": "Obtain written informed consent",
-      "activityGroupId": "grp_1"
+      "description": "Obtain written informed consent from participant",
+      "activityGroupId": "grp_1",
+      "instanceType": "Activity"
+    }},
+    {{
+      "id": "act_2",
+      "name": "Physical Examination",
+      "description": "Complete physical examination",
+      "activityGroupId": "grp_2",
+      "instanceType": "Activity"
+    }},
+    {{
+      "id": "act_3",
+      "name": "Blood Sampling for PK",
+      "description": "PK blood samples",
+      "activityGroupId": "grp_3",
+      "instanceType": "Activity"
     }}
   ],
   "activityTimepoints": [
@@ -92,17 +133,66 @@ Return a JSON object with this structure:
       "activityId": "act_1",
       "plannedTimepointId": "pt_1",
       "instanceType": "ActivityTimepoint"
+    }},
+    {{
+      "id": "at_2",
+      "activityId": "act_2",
+      "plannedTimepointId": "pt_1",
+      "instanceType": "ActivityTimepoint"
     }}
   ]
 }}
+```
 
-IMPORTANT:
-- The plannedTimepointId values MUST match IDs from the header structure
-- Do not create new timepoint IDs - only reference existing ones
-- Include ALL activities from the SoA table
-- Include ALL visible tick marks
+## CRITICAL RULES
 
-Output ONLY the JSON object, no explanations or markdown."""
+1. **Every entity MUST have `id` and `instanceType`** - mandatory for USDM compliance
+2. **Use sequential IDs** - act_1, act_2 for activities; at_1, at_2 for timepoints
+3. **Use EXACT IDs from header structure** for plannedTimepointId - do not create new ones
+4. **ONLY create ActivityTimepoints where you see explicit tick marks** (X, ✓, •)
+5. **Do NOT infer ticks** from clinical logic or "at every visit" text
+6. **If unsure about a tick, OMIT it** - false negatives are better than false positives
+7. **DO NOT include group headers as activities** - only extract the individual activities UNDER each group
+8. **Include ALL activities** from the SoA table with their descriptions
+9. **Every activity MUST have `activityGroupId`** - MANDATORY, see rules below
+
+## HOW TO ASSIGN activityGroupId (MANDATORY)
+
+Look at the header structure's rowGroups. Each activity belongs to the group whose header row appears ABOVE it in the table.
+
+Example: If the header structure has:
+- grp_1: "Eligibility" 
+- grp_2: "Safety Assessments"
+- grp_3: "PK/PD Analyses"
+
+And the table shows:
+```
+Eligibility              <- group header (grp_1)
+  Informed Consent       <- activityGroupId: "grp_1"
+  Demographics           <- activityGroupId: "grp_1"
+Safety Assessments       <- group header (grp_2)
+  Vital Signs            <- activityGroupId: "grp_2"
+  Physical Exam          <- activityGroupId: "grp_2"
+PK/PD Analyses           <- group header (grp_3)
+  Blood Sampling for PK  <- activityGroupId: "grp_3"
+```
+
+**If no groups exist, use "grp_default" for all activities.**
+
+## Activity Fields
+- `id`: Unique identifier (act_1, act_2, etc.)
+- `name`: Activity name exactly as shown in SoA
+- `description`: Expanded description if available (can be same as name)
+- `activityGroupId`: The ID of the parent group (grp_1, grp_2, etc.) - REQUIRED
+- `instanceType`: Must be "Activity"
+
+## ActivityTimepoint Fields  
+- `id`: Unique identifier (at_1, at_2, etc.)
+- `activityId`: Reference to the activity (must match an activity's id)
+- `plannedTimepointId`: Reference to timepoint from header (must match exactly)
+- `instanceType`: Must be "ActivityTimepoint"
+
+Output ONLY the JSON object, no explanations or markdown fences."""
 
 
 @dataclass
@@ -187,6 +277,14 @@ def extract_soa_from_text(
         activities = [
             Activity.from_dict(a) for a in data.get('activities', [])
         ]
+        
+        # Safety filter: remove any activities matching group header names
+        group_names = {g.name.lower() for g in header_structure.activityGroups}
+        original_count = len(activities)
+        activities = [a for a in activities if a.name.lower() not in group_names]
+        if len(activities) < original_count:
+            removed = original_count - len(activities)
+            logger.info(f"  Filtered out {removed} group headers that were incorrectly extracted as activities")
         
         # Extract activity timepoints
         activity_timepoints = [

@@ -134,16 +134,17 @@ class ProvenanceTracker:
         source: ProvenanceSource
     ) -> None:
         """
-        Tag cells from an activityTimepoints list.
+        Tag cells from an activityTimepoints/scheduledActivityInstances list.
         
         Args:
-            activity_timepoints: List of {activityId, plannedTimepointId} dicts
+            activity_timepoints: List of {activityId, plannedTimepointId/encounterId} dicts
             source: Source for all cells
         """
         for at in activity_timepoints:
             if isinstance(at, dict):
                 act_id = at.get('activityId')
-                tp_id = at.get('plannedTimepointId') or at.get('timepointId')
+                # Handle both legacy (plannedTimepointId) and USDM v4.0 (encounterId) formats
+                tp_id = at.get('plannedTimepointId') or at.get('timepointId') or at.get('encounterId')
                 if act_id and tp_id:
                     self.tag_cell(act_id, tp_id, source)
     

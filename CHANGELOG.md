@@ -4,6 +4,207 @@ All notable changes documented here. Dates in ISO-8601.
 
 ---
 
+## [6.3.0] – 2025-11-29
+
+### NCI EVS Terminology Enrichment
+
+#### New Feature: Real-time NCI EVS API Integration
+* **`core/evs_client.py`**: NCI EVS API client with local caching
+  - Connects to EVS CT API (`evs.nci.nih.gov/ctapi/v1/ct/term`)
+  - Connects to EVS REST API (`api-evsrest.nci.nih.gov`)
+  - 30-day cache TTL for offline operation
+  - Pre-defined 33 USDM-relevant NCI codes
+* **`enrichment/terminology.py`**: Rewrote to use EVS client
+  - Enriches: StudyPhase, BlindingSchema, Objectives, Endpoints, Eligibility, StudyArms
+  - Generates `terminology_enrichment.json` report
+
+#### New CLI Options
+* `--enrich`: Run NCI terminology enrichment (Step 7)
+* `--update-evs-cache`: Force refresh of EVS terminology cache
+* `--update-cache`: Update CDISC CORE rules cache
+
+#### Pipeline Improvements
+* **Provenance ID conversion**: Provenance IDs now converted to UUIDs to match data
+* **Simplified validation pipeline**: Removed redundant `llm_schema_fixer`, normalization now handles type inference
+* **CDISC CORE integration**: Local CORE engine with automatic cache management
+
+#### Documentation Updates
+* Updated README.md with `--enrich` in example command
+* Updated docs/ARCHITECTURE.md with EVS client documentation
+* Added NCI EVS to acknowledgments
+
+---
+
+## [6.2.0] – 2025-11-29
+
+### Schema-Driven Architecture Consolidation
+
+#### Single Source of Truth
+* **Consolidated on official CDISC schema**: All types, prompts, and validation now derive from `dataStructure.yml`
+* **Removed manual type maintenance**: Archived `usdm_types_v4.py` - no longer maintained
+* **Removed manual entity mapping**: Archived `soa_entity_mapping.json` - generated from schema
+* **New architecture documentation**: See `docs/ARCHITECTURE.md` for complete overview
+
+#### New Schema-Driven Modules
+* **`core/usdm_schema_loader.py`**: Downloads, caches, and parses official CDISC schema
+  - 86+ entity definitions with NCI codes, definitions, cardinality
+  - Auto-updates: `USDMSchemaLoader().ensure_schema_cached(force_download=True)`
+* **`core/usdm_types_generated.py`**: Official USDM types with all required fields
+  - Auto-generated UUIDs for `id` fields
+  - Intelligent defaults for Code fields (type inference from names)
+* **`core/schema_prompt_generator.py`**: Generates LLM prompts from schema
+  - Prompts include NCI codes and official definitions
+  - Entity groups categorized by function (soa_core, study_design, etc.)
+* **`core/usdm_types.py`**: Unified interface
+  - Official types from `usdm_types_generated.py`
+  - Internal extraction types (Timeline, HeaderStructure, PlannedTimepoint, etc.)
+
+#### Archived Legacy Files (in `archive/legacy_pipeline/`)
+* `usdm_types_v4.py` - Manual type definitions
+* `soa_entity_mapping.json` - Manual entity mapping
+* `generate_soa_llm_prompt.py` - Manual prompt generation
+* `usdm_types_old.py` - Previous usdm_types.py
+
+#### Benefits
+* **Future-proof**: Schema updates automatic with `force_download=True`
+* **Accurate prompts**: LLM prompts reflect exact schema requirements
+* **Consistent validation**: Types enforce same rules as validator
+* **Reduced maintenance**: No manual sync between types/prompts/validation
+
+### Repository Cleanup
+
+#### New Directory Structure
+* **`testing/`**: Benchmarking and integration tests
+  - `benchmark_models.py`, `compare_golden_vs_extracted.py`
+  - `test_pipeline_steps.py`, `test_golden_comparison.py`
+* **`utilities/`**: Setup and utility scripts
+  - `setup_google_cloud.ps1`
+
+#### Files Archived
+* `json_utils.py` (root) → `archive/legacy_pipeline/` (duplicate of core/)
+* `soa_prompt_example.json` → `archive/legacy_pipeline/`
+* `usdm_examples.py` → `archive/legacy_pipeline/`
+* Non-optimized prompts → `archive/prompts_legacy/`
+
+#### Files Deleted
+* `Protocol2USDM Review.pdf` - Obsolete
+* `debug_provenance.py` - Debug utility
+* `archive/logs/*` - 201 old log files
+
+#### Prompts Consolidated
+* Removed `_optimized` suffix from prompts (archived originals)
+* `find_soa_pages.yaml`, `soa_extraction.yaml`, `soa_reconciliation.yaml`, `vision_soa_extraction.yaml`
+
+#### Extraction Schema Files Updated
+* All 11 extraction modules now import utilities from `core/usdm_types`
+* Added clear documentation about extraction types vs official USDM types
+
+---
+
+## [6.1.3] – 2025-11-29
+
+### Header Structure & Viewer Robustness
+
+#### Improved Header Analyzer Prompt
+* **Strengthened encounter naming requirements**: Prompt now explicitly requires unique encounter names with timing info from sub-headers
+* Added detailed examples showing proper naming patterns (e.g., "Screening (-42 to -9)", "Day -6 through -4")
+* Added CRITICAL section emphasizing unique naming requirement
+* Models should now extract distinct column names that include Day/Week/Visit timing
+
+#### Post-Processing Safety Net
+* **Added encounter name uniqueness enforcement**: If LLM produces duplicate encounter names, they are automatically made unique by appending column numbers
+* Logs warning when duplicates are detected and fixed
+* Ensures viewer always receives unique column identifiers
+
+#### Fixed Duplicate Column Handling in Viewer
+* **Fixed duplicate column handling**: Viewer now uses positional indexing for columns, fixing false "orphaned" counts when encounter names repeat
+* Orphaned tick counting and provenance styling now work correctly even if duplicate names slip through
+
+#### SoA Page Detection Improvements
+* **Fixed gap filling in page detection**: Now fills gaps between detected pages (e.g., if pages 13 and 15 detected, page 14 is automatically included)
+* **Iterative expansion**: Adjacent page detection now continues until no more pages added
+* **More permissive previous page check**: Checks for table content, not just "Schedule of Activities" title
+
+#### USDM v4.0 Schema Compliance (Source Fixes)
+* **Code objects now include all required fields**: `id`, `codeSystem`, `codeSystemVersion`, `decode`, `instanceType`
+* **StudyDesign property names fixed at source**: `studyArms` → `arms`, `studyDesignPopulation` → `population`
+* **StudyDesign required fields added**: `name`, `rationale`, `model` now populated by default
+* **ScheduledActivityInstance.name**: Now auto-generated as `{activityId}@{encounterId}`
+* **Schema fixer enhanced**: Added programmatic fixes for all these issues as safety net
+* **Viewer backward compatible**: Handles both old and new property names
+
+#### Schema-Generated Types from Official CDISC Source
+* **New source of truth**: Types generated from official `dataStructure.yml`:
+  - URL: https://github.com/cdisc-org/DDF-RA/blob/main/Deliverables/UML/dataStructure.yml
+  - Contains 86+ USDM entities with NCI codes, definitions, and cardinality
+* **New files**:
+  - `core/usdm_schema_loader.py` - Downloads/caches schema, parses entities
+  - `core/usdm_types_generated.py` - Python types with all required fields
+  - `core/schema_cache/dataStructure.yml` - Cached official schema
+* **Automatic required fields**: Types now auto-populate all required fields:
+  - Code: `id`, `codeSystem`, `codeSystemVersion`, `decode`
+  - StudyArm: `type`, `dataOriginType`, `dataOriginDescription`
+  - Encounter/StudyEpoch: `type` (with intelligent defaults)
+  - ScheduleTimeline: `entryCondition`, `entryId`
+  - AliasCode (blindingSchema): `standardCode`
+* **Future-proofing**: Run `USDMSchemaLoader().ensure_schema_cached(force_download=True)` when new USDM versions release
+* **Backward compatible**: Existing imports from `core.usdm_types` continue to work
+
+#### Official USDM Package Validation (Refactored Pipeline)
+* **Replaced custom validator with official `usdm` package**: Uses CDISC's Pydantic models for authoritative validation
+* **UUID ID conversion**: All simple IDs (e.g., `study_1`, `act_1`) now converted to proper UUIDs (saved in `id_mapping.json`)
+* **Three-stage validation pipeline**:
+  1. UUID conversion (required by USDM 4.0)
+  2. Comprehensive schema fixes (Code objects, StudyArm, AliasCode, etc.)
+  3. Final validation via official `usdm` Pydantic package
+* **Comprehensive Code object fixer**: Recursively finds and fixes all Code objects to include:
+  - `id` (UUID), `codeSystem`, `codeSystemVersion`, `instanceType`
+  - StudyArm: `type`, `dataOriginDescription`, `dataOriginType`
+  - AliasCode (blindingSchema): `id`, `standardCode`, `instanceType`
+* **New exports from `validation` package**:
+  - `validate_usdm_dict()`, `validate_usdm_file()` - Primary validation functions
+  - `HAS_USDM`, `USDM_VERSION` - Check if package is installed
+  - `USDMValidator` - Class for advanced usage
+* **Updated viewer**: Shows validator type (Official vs Custom), groups errors by type
+* **Output files**: `usdm_validation.json` (detailed), `schema_validation.json` (summary)
+* **Install with**: `pip install usdm` (added to requirements.txt)
+* **OpenAPI validator deprecated**: Still used for issue detection, but official package is authoritative
+
+---
+
+## [6.1.2] – 2025-11-28
+
+### Activity Groups & SoA Footnotes
+
+#### Activity Group Hierarchy (USDM v4.0 Compliant)
+* **Fixed activity group handling**: Groups now correctly represented as parent Activities with `childIds`
+* Activities linked to groups via `activityGroupId` field during extraction
+* `Timeline.to_study_design()` converts groups to USDM v4.0 compliant structure
+* Vision verification extracts visual properties (bold, merged cells) for groups
+* Viewer correctly displays hierarchical grouping with rowspan
+
+#### SoA Footnotes Support
+* **Added SoA footnote storage**: Footnotes from header structure now stored in `StudyDesign.notes`
+* Uses USDM v4.0 `CommentAnnotation` objects for CDISC compliance
+* Viewer displays footnotes in collapsible expander below SoA table
+* Fallback loading from `4_header_structure.json` when not in final output
+
+#### Provenance Fixes
+* **Fixed provenance ID mismatch**: Viewer now correctly maps `enc_*` IDs to `pt_*` IDs
+* Orphaned tick counting fixed to use same ID mapping as styling
+* Provenance statistics now accurate (was showing false "orphaned" counts)
+
+#### Metadata Extraction Fix
+* **Fixed `studyPhase` parsing**: Now handles both string and dict formats from LLM response
+* Prevents "Failed to parse metadata response" errors
+
+#### Viewer Improvements
+* Footnotes section now collapsible (expander)
+* JSON viewer now collapsible (expander instead of checkbox)
+* Cleaner UI with consistent expander styling
+
+---
+
 ## [6.1.1] – 2025-11-28
 
 ### SoA Page Detection & USDM Structure Fixes

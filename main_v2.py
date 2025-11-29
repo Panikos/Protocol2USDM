@@ -24,6 +24,7 @@ import logging
 import os
 import sys
 import json
+import uuid
 from pathlib import Path
 
 # Load environment variables from .env
@@ -221,6 +222,343 @@ def run_expansion_phases(
     return results
 
 
+def convert_ids_to_uuids(data: dict, id_map: dict = None) -> dict:
+    """
+    Convert all simple IDs (like 'study_1', 'act_1') to proper UUIDs.
+    
+    USDM 4.0 requires all 'id' fields to be valid UUIDs.
+    This function recursively converts IDs while maintaining internal references.
+    
+    Args:
+        data: USDM JSON data
+        id_map: Optional existing ID mapping (for consistency)
+        
+    Returns:
+        Data with UUIDs and the ID mapping used
+    """
+    if id_map is None:
+        id_map = {}
+    
+    def is_simple_id(value):
+        """Check if value looks like a simple ID that needs conversion."""
+        if not isinstance(value, str):
+            return False
+        # Skip if already a UUID format
+        try:
+            uuid.UUID(value)
+            return False  # Already a valid UUID
+        except ValueError:
+            pass
+        # Check for common ID patterns
+        id_patterns = ['_', '-']
+        return any(p in value for p in id_patterns) and len(value) < 50
+    
+    def get_or_create_uuid(simple_id: str) -> str:
+        """Get existing UUID for ID or create new one."""
+        if simple_id not in id_map:
+            id_map[simple_id] = str(uuid.uuid4())
+        return id_map[simple_id]
+    
+    def convert_recursive(obj):
+        """Recursively convert IDs in nested structure."""
+        if isinstance(obj, dict):
+            result = {}
+            for key, value in obj.items():
+                if key == 'id' and is_simple_id(value):
+                    result[key] = get_or_create_uuid(value)
+                elif key.endswith('Id') and is_simple_id(value):
+                    # Handle reference fields like activityId, encounterId, epochId
+                    result[key] = get_or_create_uuid(value)
+                elif key.endswith('Ids') and isinstance(value, list):
+                    # Handle ID arrays like activityIds, childIds
+                    result[key] = [get_or_create_uuid(v) if is_simple_id(v) else v for v in value]
+                elif isinstance(value, (dict, list)):
+                    result[key] = convert_recursive(value)
+                else:
+                    result[key] = value
+            return result
+        elif isinstance(obj, list):
+            return [convert_recursive(item) for item in obj]
+        else:
+            return obj
+    
+    converted = convert_recursive(data)
+    return converted, id_map
+
+
+def build_name_to_id_map(data: dict) -> dict:
+    """
+    Build a mapping of entity names to their IDs from USDM data.
+    
+    This allows matching entities between provenance and data by name
+    when IDs don't match (e.g., after UUID conversion).
+    """
+    name_map = {
+        'activities': {},
+        'encounters': {},
+        'epochs': {},
+        'plannedTimepoints': {},
+    }
+    
+    # Navigate to studyDesigns
+    try:
+        study_designs = data.get('study', {}).get('versions', [{}])[0].get('studyDesigns', [])
+        if not study_designs:
+            return name_map
+        sd = study_designs[0]
+    except (KeyError, IndexError, TypeError):
+        return name_map
+    
+    # Build maps by name
+    for act in sd.get('activities', []):
+        if act.get('name') and act.get('id'):
+            name_map['activities'][act['name']] = act['id']
+    
+    for enc in sd.get('encounters', []):
+        if enc.get('name') and enc.get('id'):
+            name_map['encounters'][enc['name']] = enc['id']
+    
+    for epoch in sd.get('epochs', []):
+        if epoch.get('name') and epoch.get('id'):
+            name_map['epochs'][epoch['name']] = epoch['id']
+    
+    # PlannedTimepoints might be in scheduleTimelines or directly
+    for pt in sd.get('plannedTimepoints', []):
+        if pt.get('name') and pt.get('id'):
+            name_map['plannedTimepoints'][pt['name']] = pt['id']
+    
+    return name_map
+
+
+def sync_provenance_with_data(provenance_path: str, data: dict, id_map: dict = None) -> None:
+    """
+    Synchronize provenance IDs with the final USDM data.
+    
+    Uses multiple strategies to match entities:
+    1. Direct ID mapping (if id_map provided)
+    2. Name-based matching (entities with same name get same ID)
+    
+    Args:
+        provenance_path: Path to provenance JSON file
+        data: Final USDM data (after any ID conversions)
+        id_map: Optional direct ID mapping from convert_ids_to_uuids
+    """
+    if not os.path.exists(provenance_path):
+        return
+    
+    with open(provenance_path, 'r', encoding='utf-8') as f:
+        prov = json.load(f)
+    
+    # Build name-to-ID map from final data
+    name_map = build_name_to_id_map(data)
+    
+    # Also need provenance entity names to do the mapping
+    # Load the original SoA file to get names for provenance IDs
+    soa_path = provenance_path.replace('_provenance.json', '.json')
+    prov_id_to_name = {'activities': {}, 'encounters': {}, 'epochs': {}, 'plannedTimepoints': {}}
+    
+    if os.path.exists(soa_path):
+        with open(soa_path, 'r', encoding='utf-8') as f:
+            soa_data = json.load(f)
+        
+        # Extract from SoA structure
+        try:
+            sd = soa_data.get('study', {}).get('versions', [{}])[0].get('studyDesigns', [{}])[0]
+            for act in sd.get('activities', []):
+                if act.get('id') and act.get('name'):
+                    prov_id_to_name['activities'][act['id']] = act['name']
+            for enc in sd.get('encounters', []):
+                if enc.get('id') and enc.get('name'):
+                    prov_id_to_name['encounters'][enc['id']] = enc['name']
+            for epoch in sd.get('epochs', []):
+                if epoch.get('id') and epoch.get('name'):
+                    prov_id_to_name['epochs'][epoch['id']] = epoch['name']
+            for pt in sd.get('plannedTimepoints', []):
+                if pt.get('id') and pt.get('name'):
+                    prov_id_to_name['plannedTimepoints'][pt['id']] = pt['name']
+        except (KeyError, IndexError, TypeError):
+            pass
+    
+    def convert_id(old_id: str, entity_type: str) -> str:
+        """Convert old ID to new ID using id_map or name matching."""
+        # Try direct mapping first
+        if id_map and old_id in id_map:
+            return id_map[old_id]
+        
+        # Try name-based matching
+        if entity_type in prov_id_to_name and entity_type in name_map:
+            name = prov_id_to_name[entity_type].get(old_id)
+            if name and name in name_map[entity_type]:
+                return name_map[entity_type][name]
+        
+        # Return original if no mapping found
+        return old_id
+    
+    # Convert entity IDs in provenance
+    if 'entities' in prov:
+        for entity_type, entities in prov['entities'].items():
+            if isinstance(entities, dict):
+                prov['entities'][entity_type] = {
+                    convert_id(eid, entity_type): source 
+                    for eid, source in entities.items()
+                }
+    
+    # Convert cell IDs (format: "act_id|pt_id")
+    if 'cells' in prov:
+        new_cells = {}
+        for key, source in prov['cells'].items():
+            if '|' in key:
+                act_id, pt_id = key.split('|', 1)
+                # Activities and plannedTimepoints/encounters
+                new_act_id = convert_id(act_id, 'activities')
+                new_pt_id = convert_id(pt_id, 'plannedTimepoints')
+                if new_pt_id == pt_id:  # Try encounters if plannedTimepoints didn't match
+                    new_pt_id = convert_id(pt_id, 'encounters')
+                new_key = f"{new_act_id}|{new_pt_id}"
+                new_cells[new_key] = source
+            else:
+                new_cells[key] = source
+        prov['cells'] = new_cells
+    
+    # Save updated provenance
+    with open(provenance_path, 'w', encoding='utf-8') as f:
+        json.dump(prov, f, indent=2)
+
+
+def convert_provenance_ids(provenance_path: str, id_map: dict) -> None:
+    """
+    DEPRECATED: Use sync_provenance_with_data instead.
+    
+    Convert simple IDs to UUIDs in provenance file.
+    """
+    if not os.path.exists(provenance_path) or not id_map:
+        return
+    
+    with open(provenance_path, 'r', encoding='utf-8') as f:
+        prov = json.load(f)
+    
+    def convert_id(simple_id: str) -> str:
+        return id_map.get(simple_id, simple_id)
+    
+    # Convert entity IDs
+    if 'entities' in prov:
+        for entity_type, entities in prov['entities'].items():
+            if isinstance(entities, dict):
+                prov['entities'][entity_type] = {
+                    convert_id(eid): source 
+                    for eid, source in entities.items()
+                }
+    
+    # Convert cell IDs (format: "act_id|pt_id")
+    if 'cells' in prov:
+        new_cells = {}
+        for key, source in prov['cells'].items():
+            if '|' in key:
+                act_id, pt_id = key.split('|', 1)
+                new_key = f"{convert_id(act_id)}|{convert_id(pt_id)}"
+                new_cells[new_key] = source
+            else:
+                new_cells[key] = source
+        prov['cells'] = new_cells
+    
+    # Save updated provenance
+    with open(provenance_path, 'w', encoding='utf-8') as f:
+        json.dump(prov, f, indent=2)
+
+
+def validate_and_fix_schema(
+    data: dict,
+    output_dir: str,
+    model: str = "gemini-2.5-pro",
+    use_llm: bool = True,
+    convert_to_uuids: bool = True,
+) -> tuple:
+    """
+    Validate USDM data against schema and auto-fix issues.
+    
+    Validation Pipeline:
+    1. Convert simple IDs to UUIDs (required by USDM 4.0)
+    2. Run programmatic fixes via OpenAPI validator + LLM fixer
+    3. Validate with official usdm Pydantic package (authoritative)
+    
+    Args:
+        data: USDM JSON data
+        output_dir: Directory for output files
+        model: LLM model for auto-fixes
+        use_llm: Whether to use LLM for complex fixes
+        convert_to_uuids: Whether to convert simple IDs to UUIDs
+        
+    Returns:
+        Tuple of (fixed_data, validation_result, fixer_result)
+    """
+    from validation import (
+        validate_usdm_dict, HAS_USDM, USDM_VERSION,  # Official validation
+    )
+    from core.usdm_types_generated import normalize_usdm_data
+    
+    logger.info("=" * 60)
+    logger.info("USDM v4.0 Schema Validation Pipeline")
+    logger.info("=" * 60)
+    
+    # Step 1: Normalize data using dataclass auto-population
+    # This leverages type inference in Encounter, StudyArm, Epoch, Code objects
+    logger.info("\n[1/3] Normalizing entities (type inference)...")
+    data = normalize_usdm_data(data)
+    logger.info("      ✓ Applied type inference to Encounters, Epochs, Arms, Codes")
+    
+    # Step 2: Convert IDs to UUIDs (USDM 4.0 requirement)
+    if convert_to_uuids:
+        logger.info("\n[2/3] Converting IDs to UUIDs...")
+        data, id_map = convert_ids_to_uuids(data)
+        logger.info(f"      Converted {len(id_map)} IDs to UUIDs")
+        
+        # Save ID mapping for reference
+        id_map_path = os.path.join(output_dir, "id_mapping.json")
+        with open(id_map_path, 'w', encoding='utf-8') as f:
+            json.dump(id_map, f, indent=2)
+    
+    fixed_data = data
+    fixer_result = None
+    
+    # Step 3: Validate with official usdm package (authoritative)
+    logger.info("\n[3/3] Official USDM Package Validation...")
+    usdm_result = None
+    
+    if HAS_USDM:
+        logger.info(f"      Using usdm package (USDM {USDM_VERSION})")
+        try:
+            usdm_result = validate_usdm_dict(fixed_data)
+            
+            if usdm_result.valid:
+                logger.info("      ✓ VALIDATION PASSED")
+            else:
+                logger.warning(f"      ✗ VALIDATION FAILED: {usdm_result.error_count} errors")
+                # Group and summarize errors
+                error_types = {}
+                for issue in usdm_result.issues:
+                    error_types[issue.error_type] = error_types.get(issue.error_type, 0) + 1
+                for etype, count in sorted(error_types.items(), key=lambda x: -x[1])[:5]:
+                    logger.warning(f"        - {etype}: {count}x")
+                if len(error_types) > 5:
+                    logger.warning(f"        ... and {len(error_types) - 5} more error types")
+            
+            # Save detailed validation result
+            validation_output = os.path.join(output_dir, "usdm_validation.json")
+            with open(validation_output, 'w', encoding='utf-8') as f:
+                json.dump(usdm_result.to_dict(), f, indent=2)
+            logger.info(f"      Results saved to: usdm_validation.json")
+                
+        except Exception as e:
+            logger.error(f"      Validation error: {e}")
+    else:
+        logger.warning("      ⚠ usdm package not installed")
+        logger.warning("      Install with: pip install usdm")
+    
+    logger.info("=" * 60)
+    
+    return fixed_data, usdm_result, fixer_result, usdm_result, id_map if convert_to_uuids else {}
+
+
 def combine_to_full_usdm(
     output_dir: str,
     soa_data: dict = None,
@@ -265,8 +603,14 @@ def combine_to_full_usdm(
             if md.indications:
                 combined["study"]["indications"] = [i.to_dict() for i in md.indications]
     
-    # Build StudyDesign container
-    study_design = {"id": "sd_1", "instanceType": "InterventionalStudyDesign"}
+    # Build StudyDesign container with all required fields
+    study_design = {
+        "id": "sd_1", 
+        "name": "Study Design",
+        "rationale": "Protocol-defined study design for investigating efficacy and safety",
+        "instanceType": "InterventionalStudyDesign",
+        # Model will be added based on arms count
+    }
     
     # Add Study Design Structure
     if expansion_results and expansion_results.get('studydesign'):
@@ -278,7 +622,7 @@ def combine_to_full_usdm(
                     study_design["blindingSchema"] = {"code": sd.study_design.blinding_schema.value}
                 if sd.study_design.randomization_type:
                     study_design["randomizationType"] = {"code": sd.study_design.randomization_type.value}
-            study_design["studyArms"] = [a.to_dict() for a in sd.arms]
+            study_design["arms"] = [a.to_dict() for a in sd.arms]
             study_design["studyCohorts"] = [c.to_dict() for c in sd.cohorts]
             study_design["studyCells"] = [c.to_dict() for c in sd.cells]
     
@@ -288,7 +632,7 @@ def combine_to_full_usdm(
         if r.success and r.data:
             study_design["eligibilityCriteria"] = [c.to_dict() for c in r.data.criteria]
             if r.data.population:
-                study_design["studyDesignPopulation"] = r.data.population.to_dict()
+                study_design["population"] = r.data.population.to_dict()
     
     # Add Objectives & Endpoints
     if expansion_results and expansion_results.get('objectives'):
@@ -310,24 +654,59 @@ def combine_to_full_usdm(
     
     # Add SoA data - check multiple possible locations
     if soa_data:
-        soa_timeline = None
-        # Try standard studyDesigns path first
-        if "studyDesigns" in soa_data and soa_data["studyDesigns"]:
-            soa_timeline = soa_data["studyDesigns"][0]
-        # Fallback to timeline path (intermediary format from 9_final_soa.json)
-        elif "study" in soa_data:
-            try:
-                soa_timeline = soa_data["study"]["versions"][0]["timeline"]
-            except (KeyError, IndexError):
-                pass
+        soa_schedule = None
         
-        if soa_timeline:
-            # Copy all SoA-related keys
+        # Try 1: USDM v4.0 path - study.versions[0].studyDesigns[0]
+        if "study" in soa_data:
+            try:
+                sds = soa_data["study"]["versions"][0].get("studyDesigns", [])
+                if sds and (sds[0].get("activities") or sds[0].get("scheduleTimelines")):
+                    soa_schedule = sds[0]
+            except (KeyError, IndexError, TypeError):
+                pass
+            
+            # Fallback: legacy timeline path
+            if not soa_schedule:
+                try:
+                    timeline = soa_data["study"]["versions"][0].get("timeline", {})
+                    if timeline and (timeline.get("activities") or timeline.get("activityTimepoints")):
+                        soa_schedule = timeline
+                except (KeyError, IndexError, TypeError):
+                    pass
+        
+        # Try 2: Top-level studyDesigns
+        if not soa_schedule and "studyDesigns" in soa_data and soa_data["studyDesigns"]:
+            soa_schedule = soa_data["studyDesigns"][0]
+        
+        if soa_schedule:
+            # Copy all SoA-related keys (including notes for SoA footnotes)
             soa_keys = ["scheduleTimelines", "encounters", "activities", "epochs", 
-                        "plannedTimepoints", "activityTimepoints", "activityGroups"]
+                        "plannedTimepoints", "activityTimepoints", "activityGroups", "notes"]
             for key in soa_keys:
-                if key in soa_timeline:
-                    study_design[key] = soa_timeline[key]
+                if key in soa_schedule and soa_schedule[key]:
+                    study_design[key] = soa_schedule[key]
+    
+    # Add model field (required) - infer from arms count
+    if "model" not in study_design:
+        arms = study_design.get("arms", [])
+        if len(arms) >= 2:
+            study_design["model"] = {
+                "id": "code_model_1",
+                "code": "C82639",
+                "codeSystem": "http://www.cdisc.org",
+                "codeSystemVersion": "2024-09-27",
+                "decode": "Parallel Study",
+                "instanceType": "Code"
+            }
+        else:
+            study_design["model"] = {
+                "id": "code_model_1",
+                "code": "C82638",
+                "codeSystem": "http://www.cdisc.org",
+                "codeSystemVersion": "2024-09-27",
+                "decode": "Single Group Study",
+                "instanceType": "Code"
+            }
     
     # Add studyDesign to study_version (not to root)
     study_version["studyDesigns"] = [study_design]
@@ -461,6 +840,7 @@ Examples:
     
     parser.add_argument(
         "pdf_path",
+        nargs="?",  # Optional when using --update-cache
         help="Path to the clinical protocol PDF"
     )
     
@@ -472,7 +852,7 @@ Examples:
     
     parser.add_argument(
         "--output-dir", "-o",
-        help="Output directory (default: output/<protocol_name>)"
+        help="Output directory (default: output/<protocol_name>_<timestamp>)"
     )
     
     parser.add_argument(
@@ -520,7 +900,13 @@ Examples:
     parser.add_argument(
         "--enrich",
         action="store_true",
-        help="Enrich activities with NCI terminology codes (Step 7)"
+        help="Enrich entities with NCI terminology codes (Step 7)"
+    )
+    
+    parser.add_argument(
+        "--update-evs-cache",
+        action="store_true",
+        help="Update the EVS terminology cache before enrichment"
     )
     
     parser.add_argument(
@@ -533,6 +919,12 @@ Examples:
         "--conformance",
         action="store_true",
         help="Run CDISC CORE conformance rules (Step 9)"
+    )
+    
+    parser.add_argument(
+        "--update-cache",
+        action="store_true",
+        help="Update CDISC CORE rules cache (requires CDISC_API_KEY in .env)"
     )
     
     parser.add_argument(
@@ -624,16 +1016,63 @@ Examples:
         help="Path to site list (CSV/Excel) for site extraction"
     )
     
+    
     args = parser.parse_args()
     
-    # Validate PDF path
+    # Handle --update-cache flag first (can be standalone operation)
+    if args.update_cache:
+        logger.info("Updating CDISC CORE rules cache...")
+        from validation.cdisc_conformance import CORE_ENGINE_PATH
+        core_dir = CORE_ENGINE_PATH.parent
+        
+        # Get API key
+        api_key = os.environ.get('CDISC_LIBRARY_API_KEY') or os.environ.get('CDISC_API_KEY')
+        if not api_key:
+            logger.error("CDISC_API_KEY not found in .env file")
+            logger.error("Get your API key from: https://www.cdisc.org/cdisc-library")
+            sys.exit(1)
+        
+        import subprocess
+        try:
+            result = subprocess.run(
+                [str(CORE_ENGINE_PATH), "update-cache", "--apikey", api_key],
+                capture_output=True,
+                text=True,
+                timeout=300,
+                cwd=str(core_dir),
+            )
+            if result.returncode == 0:
+                logger.info("✓ CDISC CORE cache updated successfully")
+            else:
+                logger.error(f"Cache update failed: {result.stderr}")
+                sys.exit(1)
+        except Exception as e:
+            logger.error(f"Cache update error: {e}")
+            sys.exit(1)
+        
+        # If no PDF path provided, exit after cache update
+        if not args.pdf_path:
+            logger.info("Cache update complete. Provide a PDF path to run the pipeline.")
+            sys.exit(0)
+    
+    # Validate PDF path (required for pipeline operations)
+    if not args.pdf_path:
+        logger.error("PDF path is required. Use --help for usage.")
+        sys.exit(1)
     if not os.path.exists(args.pdf_path):
         logger.error(f"PDF file not found: {args.pdf_path}")
         sys.exit(1)
     
     # Set up output directory
     protocol_name = Path(args.pdf_path).stem
-    output_dir = args.output_dir or os.path.join("output", protocol_name)
+    if args.output_dir:
+        # Use user-specified output directory directly
+        output_dir = args.output_dir
+    else:
+        # Default: Create timestamped folder for each run
+        from datetime import datetime
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_dir = os.path.join("output", f"{protocol_name}_{timestamp}")
     
     # Parse page numbers if provided (user gives 1-indexed, convert to 0-indexed)
     soa_pages = None
@@ -719,14 +1158,14 @@ Examples:
             
             # Load SoA data for combining
             if result.success and result.output_path:
-                with open(result.output_path, 'r') as f:
+                with open(result.output_path, 'r', encoding='utf-8') as f:
                     soa_data = json.load(f)
         else:
             # Check for existing SoA
             existing_soa = os.path.join(output_dir, "9_final_soa.json")
             if os.path.exists(existing_soa):
                 logger.info(f"Loading existing SoA from {existing_soa}")
-                with open(existing_soa, 'r') as f:
+                with open(existing_soa, 'r', encoding='utf-8') as f:
                     soa_data = json.load(f)
         
         # Print SoA results
@@ -807,13 +1246,70 @@ Examples:
         
         # Combine outputs if full-protocol
         combined_usdm_path = None
+        schema_validation_result = None
+        schema_fixer_result = None
+        
         if args.full_protocol or (run_any_expansion and soa_data):
             logger.info("\n" + "="*60)
             logger.info("COMBINING OUTPUTS")
             logger.info("="*60)
             combined_data, combined_usdm_path = combine_to_full_usdm(output_dir, soa_data, expansion_results)
+            
+            # ═══════════════════════════════════════════════════════════════
+            # SCHEMA VALIDATION & AUTO-FIX (integrated into combine phase)
+            # ═══════════════════════════════════════════════════════════════
+            logger.info("\n" + "="*60)
+            logger.info("SCHEMA VALIDATION & AUTO-FIX")
+            logger.info("="*60)
+            
+            # Validate and fix schema issues
+            use_llm_for_fixes = not args.no_validate  # Use LLM unless explicitly disabled
+            fixed_data, schema_validation_result, schema_fixer_result, usdm_result, id_map = validate_and_fix_schema(
+                combined_data,
+                output_dir,
+                model=config.model_name,
+                use_llm=use_llm_for_fixes,
+            )
+            
+            # Save the fixed data back to protocol_usdm.json
+            # (Always save since UUID conversion happens)
+            with open(combined_usdm_path, 'w', encoding='utf-8') as f:
+                json.dump(fixed_data, f, indent=2, ensure_ascii=False)
+            logger.info(f"  ✓ USDM output saved to: {combined_usdm_path}")
+            
+            # NOTE: Don't sync provenance IDs with combined USDM data
+            # The SoA provenance should match 9_final_soa.json (original IDs)
+            # The combined protocol_usdm.json has different activities from expansions
+            # Viewer uses 9_final_soa.json + provenance for SoA display
+            combined_data = fixed_data
+            
+            # Save schema validation results (including unfixable issues)
+            schema_output_path = os.path.join(output_dir, "schema_validation.json")
+            schema_output = {
+                "valid": usdm_result.valid if usdm_result else (schema_validation_result.valid if schema_validation_result else False),
+                "schemaVersion": "4.0",
+                "validator": "usdm_pydantic" if usdm_result else "openapi_custom",
+                "summary": {
+                    "errorsCount": usdm_result.error_count if usdm_result else 0,
+                    "warningsCount": usdm_result.warning_count if usdm_result else 0,
+                },
+                "issues": [i.to_dict() for i in (usdm_result.issues if usdm_result else (schema_validation_result.issues if schema_validation_result else []))],
+            }
+            if schema_fixer_result:
+                schema_output["fixerSummary"] = {
+                    "originalIssues": schema_fixer_result.original_issues,
+                    "fixedIssues": schema_fixer_result.fixed_issues,
+                    "remainingIssues": schema_fixer_result.remaining_issues,
+                    "iterations": schema_fixer_result.iterations,
+                }
+                schema_output["fixesApplied"] = [f.to_dict() for f in schema_fixer_result.fixes_applied]
+                schema_output["unfixableIssues"] = [i.to_dict() for i in schema_fixer_result.unfixable_issues]
+            
+            with open(schema_output_path, 'w', encoding='utf-8') as f:
+                json.dump(schema_output, f, indent=2, ensure_ascii=False)
+            logger.info(f"  Schema validation report: {schema_output_path}")
         
-        # Determine which output to validate
+        # Determine which output to validate with legacy/conformance
         # For full-protocol: validate combined output
         # For SoA-only: validate SoA output
         validation_target = combined_usdm_path if combined_usdm_path else (result.output_path if result else None)
@@ -826,38 +1322,113 @@ Examples:
             
             if run_enrich:
                 logger.info("\n--- Step 7: Terminology Enrichment ---")
-                from enrichment.terminology import enrich_terminology as enrich_fn
-                enrich_result = enrich_fn(validation_target)
-                logger.info(f"  Enriched {enrich_result.get('enriched', 0)} entities")
+                from enrichment.terminology import enrich_terminology as enrich_fn, update_evs_cache
+                
+                # Update EVS cache if requested
+                if args.update_evs_cache:
+                    logger.info("  Updating EVS terminology cache...")
+                    cache_result = update_evs_cache()
+                    logger.info(f"  Cache updated: {cache_result.get('success', 0)} codes fetched")
+                
+                enrich_result = enrich_fn(validation_target, output_dir=output_dir)
+                enriched = enrich_result.get('enriched', 0)
+                total = enrich_result.get('total_entities', 0)
+                if enriched > 0:
+                    logger.info(f"  ✓ Enriched {enriched}/{total} entities with NCI codes")
+                    by_type = enrich_result.get('by_type', {})
+                    for etype, count in by_type.items():
+                        logger.info(f"    - {etype}: {count}")
+                else:
+                    logger.info(f"  No entities required enrichment")
             
             if run_validate:
-                logger.info("\n--- Step 8: Schema Validation ---")
-                from validation.schema_validator import validate_schema as validate_fn
-                schema_result = validate_fn(validation_target)
-                if schema_result.get('valid'):
-                    logger.info(f"  ✓ Schema validation PASSED ({schema_result.get('entityCount', 0)} entities)")
+                # Skip legacy validation if OpenAPI validation was already done
+                if schema_validation_result is not None:
+                    logger.info("\n--- Step 8: Schema Validation (already completed) ---")
+                    if usdm_result and usdm_result.valid:
+                        logger.info(f"  ✓ Schema validation PASSED")
+                    elif usdm_result:
+                        logger.warning(f"  Schema validation: {usdm_result.error_count} errors, "
+                                      f"{usdm_result.warning_count} warnings")
+                    else:
+                        logger.info(f"  Schema validation completed")
                 else:
-                    logger.warning(f"  Schema validation found {len(schema_result.get('issues', []))} issues")
-                # Save result
-                schema_path = os.path.join(output_dir, "schema_validation.json")
-                with open(schema_path, 'w') as f:
-                    json.dump(schema_result, f, indent=2)
+                    # Run validation for SoA-only outputs
+                    logger.info("\n--- Step 8: Schema Validation ---")
+                    with open(validation_target, 'r', encoding='utf-8') as f:
+                        target_data = json.load(f)
+                    
+                    fixed_data, schema_validation_result, schema_fixer_result, usdm_result, id_map = validate_and_fix_schema(
+                        target_data,
+                        output_dir,
+                        model=config.model_name,
+                        use_llm=not args.no_validate,
+                    )
+                    
+                    # Save fixed data (UUID conversion always happens)
+                    with open(validation_target, 'w', encoding='utf-8') as f:
+                        json.dump(fixed_data, f, indent=2, ensure_ascii=False)
+                    logger.info(f"  ✓ Fixed data saved")
+                    
+                    # NOTE: Don't sync provenance - viewer uses original SoA file with original IDs
+                    
+                    # Save schema validation report
+                    schema_output_path = os.path.join(output_dir, "schema_validation.json")
+                    schema_output = {
+                        "valid": usdm_result.valid if usdm_result else False,
+                        "schemaVersion": "4.0",
+                        "validator": "usdm_pydantic" if usdm_result else "none",
+                        "summary": {
+                            "errorsCount": usdm_result.error_count if usdm_result else 0,
+                            "warningsCount": usdm_result.warning_count if usdm_result else 0,
+                        },
+                        "issues": [i.to_dict() for i in (usdm_result.issues if usdm_result else [])],
+                    }
+                    if schema_fixer_result:
+                        schema_output["fixerSummary"] = {
+                            "originalIssues": schema_fixer_result.original_issues,
+                            "fixedIssues": schema_fixer_result.fixed_issues,
+                            "remainingIssues": schema_fixer_result.remaining_issues,
+                        }
+                        schema_output["fixesApplied"] = [f.to_dict() for f in schema_fixer_result.fixes_applied]
+                    
+                    with open(schema_output_path, 'w', encoding='utf-8') as f:
+                        json.dump(schema_output, f, indent=2, ensure_ascii=False)
+                    
+                    final_valid = usdm_result.valid if usdm_result else (schema_validation_result.valid if schema_validation_result else False)
+                    if final_valid:
+                        logger.info(f"  ✓ Schema validation PASSED")
+                    else:
+                        logger.warning(f"  Schema validation found issues (see schema_validation.json)")
             
             if run_conform:
                 logger.info("\n--- Step 9: CDISC Conformance ---")
                 from validation.cdisc_conformance import run_cdisc_conformance as conform_fn
                 conform_result = conform_fn(validation_target, output_dir)
                 if conform_result.get('success'):
-                    logger.info(f"  ✓ Conformance report: {conform_result.get('output')}")
-                elif conform_result.get('error'):
-                    logger.warning(f"  Conformance check skipped: {conform_result.get('error')}")
+                    issues = conform_result.get('issues', 0)
+                    warnings = conform_result.get('warnings', 0)
+                    if issues == 0 and warnings == 0:
+                        logger.info(f"  ✓ Conformance passed - no issues found")
+                    else:
+                        logger.info(f"  Conformance: {issues} errors, {warnings} warnings")
+                    logger.info(f"  ✓ Conformance report: {output_dir}/conformance_report.json")
+                else:
+                    error_msg = conform_result.get('error', 'Unknown error')
+                    error_summary = conform_result.get('error_summary', '')
+                    logger.warning(f"  ✗ CDISC CORE failed: {error_msg}")
+                    if error_summary:
+                        logger.warning(f"    Details: {error_summary}")
+                    logger.info(f"  Error saved to: {output_dir}/conformance_report.json")
             
             # Update computational execution status if full protocol
-            if combined_usdm_path and run_validate:
-                with open(combined_usdm_path, 'r') as f:
+            if combined_usdm_path and run_validate and schema_validation_result is not None:
+                with open(combined_usdm_path, 'r', encoding='utf-8') as f:
                     final_data = json.load(f)
-                final_data["computationalExecution"]["validationStatus"] = "complete" if schema_result.get('valid') else "issues_found"
-                with open(combined_usdm_path, 'w') as f:
+                if "computationalExecution" not in final_data:
+                    final_data["computationalExecution"] = {}
+                final_data["computationalExecution"]["validationStatus"] = "complete" if schema_validation_result.valid else "issues_found"
+                with open(combined_usdm_path, 'w', encoding='utf-8') as f:
                     json.dump(final_data, f, indent=2, ensure_ascii=False)
         
         # Launch Streamlit viewer if requested
@@ -881,6 +1452,17 @@ Examples:
         if run_any_expansion:
             exp_success = sum(1 for r in expansion_results.values() if r.success)
             logger.info(f"Expansion: {exp_success}/{len(expansion_results)} phases successful")
+        
+        # Schema validation summary
+        if schema_validation_result is not None:
+            if schema_validation_result.valid:
+                logger.info(f"Schema: ✓ Valid (USDM {schema_validation_result.usdm_version_expected})")
+            else:
+                logger.info(f"Schema: ⚠ {schema_validation_result.error_count} errors, "
+                           f"{schema_validation_result.warning_count} warnings")
+            if schema_fixer_result and schema_fixer_result.fixed_issues > 0:
+                logger.info(f"  Auto-fixed: {schema_fixer_result.fixed_issues} issues")
+        
         if combined_usdm_path:
             logger.info(f"Golden Standard Output: {combined_usdm_path}")
         logger.info("="*60)

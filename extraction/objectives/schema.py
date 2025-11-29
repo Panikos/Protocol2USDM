@@ -1,12 +1,18 @@
 """
-USDM Schema definitions for Objectives & Endpoints entities.
+Objectives Extraction Schema - Internal types for extraction pipeline.
 
-Based on USDM v4.0 specification and ICH E9(R1) framework.
+These types are used during extraction and convert to official USDM types
+(from core.usdm_types) when generating final output.
+
+For official USDM types, see: core/usdm_types.py
+Schema source: https://github.com/cdisc-org/DDF-RA/blob/main/Deliverables/UML/dataStructure.yml
 """
 
 from dataclasses import dataclass, field
 from typing import List, Optional, Dict, Any
 from enum import Enum
+
+from core.usdm_types import generate_uuid, Code
 
 
 class ObjectiveLevel(Enum):

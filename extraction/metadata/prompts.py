@@ -3,9 +3,12 @@ LLM Prompts for Study Metadata Extraction.
 
 These prompts guide the LLM to extract study identity and metadata
 from protocol title pages and synopsis sections.
+
+Output format follows USDM v4.0 OpenAPI schema requirements.
 """
 
 METADATA_EXTRACTION_PROMPT = """You are an expert at extracting study metadata from clinical trial protocols.
+Your output must conform to USDM v4.0 schema specifications.
 
 Analyze the provided protocol pages (title page, synopsis, or first few pages) and extract the following information:
 
@@ -24,74 +27,110 @@ Extract ALL identifier numbers:
 - **Sponsor Protocol Number**: Company internal ID
 - **EudraCT Number**: European registry (format: ####-######-##)
 - **IND/IDE Number**: FDA application numbers
-- **Any other registry IDs**
 
 ### 3. Organizations
 Identify organizations involved:
 - **Sponsor**: Company/institution funding the study
-- **Co-Sponsors**: If any
 - **CRO**: Contract Research Organization if mentioned
-- **Regulatory references**: FDA, EMA, etc.
 
-### 4. Study Phase
-- Phase 1, Phase 2, Phase 3, Phase 4
-- Combined phases: Phase 1/2, Phase 2/3
-- Or "Not Applicable" for observational studies
+### 4. Study Phase & Type
+- Phase (1, 2, 3, 4 or combinations)
+- Interventional or Observational
 
 ### 5. Indication/Disease
 - Primary disease or condition being studied
-- Is it a rare/orphan disease?
-- Medical coding if present (ICD, MedDRA)
 
-### 6. Study Type
-- Interventional or Observational
+## USDM v4.0 Output Format (MUST follow exactly)
 
-### 7. Protocol Version
-- Version number (e.g., "1.0", "2.0", "Amendment 3")
-- Protocol date
-- Amendment information if applicable
-
-## Output Format
-
-Return a JSON object with this exact structure:
+Every entity MUST have `id` and `instanceType` fields.
+Code fields MUST use the {"code": "...", "codeSystem": "...", "decode": "..."} structure.
 
 ```json
 {
   "titles": [
-    {"type": "Official Study Title", "text": "..."},
-    {"type": "Brief Study Title", "text": "..."},
-    {"type": "Study Acronym", "text": "..."}
+    {
+      "id": "title_1",
+      "text": "A Phase 2, Randomized Study of Drug X in Patients with Condition Y",
+      "type": {
+        "code": "OfficialStudyTitle",
+        "codeSystem": "http://www.cdisc.org/USDM/titleType",
+        "decode": "Official Study Title"
+      },
+      "instanceType": "StudyTitle"
+    },
+    {
+      "id": "title_2",
+      "text": "Drug X Phase 2 Study",
+      "type": {
+        "code": "BriefStudyTitle",
+        "codeSystem": "http://www.cdisc.org/USDM/titleType",
+        "decode": "Brief Study Title"
+      },
+      "instanceType": "StudyTitle"
+    }
   ],
   "identifiers": [
-    {"type": "NCT Number", "value": "NCT########", "registry": "ClinicalTrials.gov"},
-    {"type": "Sponsor Protocol Number", "value": "...", "registry": "Sponsor"}
+    {
+      "id": "sid_1",
+      "text": "NCT04123456",
+      "instanceType": "StudyIdentifier"
+    },
+    {
+      "id": "sid_2",
+      "text": "SPONSOR-2020-001",
+      "instanceType": "StudyIdentifier"
+    }
   ],
   "organizations": [
-    {"name": "...", "role": "Sponsor", "type": "Pharmaceutical Company"},
-    {"name": "...", "role": "CRO", "type": "Contract Research Organization"}
+    {
+      "id": "org_1",
+      "name": "Acme Pharmaceuticals, Inc.",
+      "type": {
+        "code": "Sponsor",
+        "codeSystem": "http://www.cdisc.org/USDM/organizationType",
+        "decode": "Sponsor"
+      },
+      "instanceType": "Organization"
+    }
   ],
-  "studyPhase": "Phase 2",
-  "indication": {
-    "name": "...",
-    "description": "...",
-    "isRareDisease": false
+  "studyPhase": {
+    "code": "Phase2",
+    "codeSystem": "http://www.cdisc.org/USDM/studyPhase",
+    "decode": "Phase 2"
   },
   "studyType": "Interventional",
-  "protocolVersion": {
-    "version": "1.0",
-    "date": "2020-01-15",
-    "amendment": null
+  "indication": {
+    "id": "ind_1",
+    "name": "Type 2 Diabetes Mellitus",
+    "description": "Patients with inadequately controlled T2DM",
+    "instanceType": "Indication"
   }
 }
 ```
 
+## Title Type Codes
+- OfficialStudyTitle = Official Study Title (full formal title)
+- BriefStudyTitle = Brief Study Title (short registry version)
+- StudyAcronym = Study Acronym (e.g., KEYNOTE-001)
+- ScientificStudyTitle = Scientific Study Title
+
+## Organization Type Codes
+- Sponsor = Study Sponsor
+- CRO = Contract Research Organization
+- RegulatoryAuthority = Regulatory Authority
+
+## Study Phase Codes
+- Phase1, Phase2, Phase3, Phase4
+- Phase1Phase2 (combined), Phase2Phase3 (combined)
+- NotApplicable (for observational)
+
 ## Rules
 
-1. **Extract exactly what you see** - do not infer or guess information not present
-2. **Use null** for fields where information is not found
-3. **Preserve exact text** for titles and identifiers
-4. **Be case-sensitive** for identifiers (NCT numbers, protocol IDs)
-5. **Return ONLY valid JSON** - no markdown, no explanations
+1. **Every entity must have `id` and `instanceType`** - this is mandatory
+2. **Use sequential IDs** - title_1, title_2, sid_1, sid_2, org_1, etc.
+3. **Extract exactly what you see** - do not infer information
+4. **Use null** for optional fields where information is not found
+5. **Return ONLY valid JSON** - no markdown fences, no explanations
 
 Now analyze the protocol content and extract the metadata:
 """

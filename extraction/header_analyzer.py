@@ -42,18 +42,32 @@ Your task is to extract ONLY the STRUCTURE of the table - the column headers and
 Do NOT extract the activity details or tick marks - only the structural elements.
 
 EXTRACT:
-1. **Epochs** - Study phases (e.g., "Screening", "Treatment", "Follow-up") 
-   - These typically span multiple columns as merged header cells
+1. **Epochs** - Study phases from the TOP-LEVEL merged header row
+   - These span multiple columns (e.g., "Screening", "Treatment", "Follow-up")
+   - Usually in the first header row with merged cells
    
-2. **Encounters** - Visit names (e.g., "Visit 1", "Baseline", "Week 4")
-   - These are individual column headers representing visits
+2. **Encounters** - One per COLUMN, from SUB-HEADER rows below the epoch row
+   - CRITICAL: Each encounter MUST have a UNIQUE name
+   - Include timing info from sub-headers (e.g., "Screening (-42 to -9)", "Day -6 through -4", "Week 4")
+   - If multiple columns are under the same epoch, use the sub-header text to make names unique
+   - Pattern: "{Epoch} ({Timing})" or just "{Timing}" if timing is descriptive enough
+   - NEVER use the same name for multiple encounters - look for day numbers, week numbers, or visit numbers
    
-3. **PlannedTimepoints** - Timing information for each encounter
-   - Include timing details like "Day -14", "Week 0", "Day 28"
-   - Link each timepoint to its encounter
+3. **PlannedTimepoints** - Timing information for each encounter (one per encounter)
+   - The valueLabel should have the specific timing (e.g., "Day -14", "Week 0", "Day 28")
+   - Link each timepoint to its encounter via encounterId
    
 4. **ActivityGroups** - Row section headers (e.g., "Safety Assessments", "Efficacy", "Labs")
    - These are the bold/highlighted rows that group related activities
+   - They typically have NO tick marks (empty cells across the row)
+   - They may have merged cells spanning the activity column
+   - IMPORTANT: Report visual properties for each group
+   - CRITICAL: Include `activityNames` - a list of activity names that appear UNDER this group header
+   - Read the activity names from the rows between this group header and the next group header
+
+5. **Footnotes** - Any footnotes or notes at the bottom of the SoA table
+   - These explain conditional activities, special timing, or exceptions
+   - Look for superscript letters (a, b, c) or symbols (*, †, ‡) referenced in cells
 
 OUTPUT FORMAT:
 Return a JSON object with this exact structure:
@@ -64,18 +78,53 @@ Return a JSON object with this exact structure:
       {"id": "epoch_2", "name": "Treatment", "position": 2}
     ],
     "encounters": [
-      {"id": "enc_1", "name": "Visit 1", "epochId": "epoch_1"},
-      {"id": "enc_2", "name": "Visit 2", "epochId": "epoch_2"}
+      {"id": "enc_1", "name": "Screening (-42 to -9)", "epochId": "epoch_1"},
+      {"id": "enc_2", "name": "Screening (-21)", "epochId": "epoch_1"},
+      {"id": "enc_3", "name": "Day 1 (Baseline)", "epochId": "epoch_2"},
+      {"id": "enc_4", "name": "Week 4", "epochId": "epoch_2"},
+      {"id": "enc_5", "name": "Week 8", "epochId": "epoch_2"}
     ],
     "plannedTimepoints": [
-      {"id": "pt_1", "name": "Visit 1", "encounterId": "enc_1", "valueLabel": "Day -14", "description": "Screening visit"},
-      {"id": "pt_2", "name": "Visit 2", "encounterId": "enc_2", "valueLabel": "Day 1", "description": "Baseline"}
+      {"id": "pt_1", "name": "Screening (-42 to -9)", "encounterId": "enc_1", "valueLabel": "Day -42 to -9", "description": "Initial screening"},
+      {"id": "pt_2", "name": "Screening (-21)", "encounterId": "enc_2", "valueLabel": "Day -21", "description": "Final screening"},
+      {"id": "pt_3", "name": "Day 1 (Baseline)", "encounterId": "enc_3", "valueLabel": "Day 1", "description": "Baseline visit"},
+      {"id": "pt_4", "name": "Week 4", "encounterId": "enc_4", "valueLabel": "Week 4", "description": "Treatment visit"},
+      {"id": "pt_5", "name": "Week 8", "encounterId": "enc_5", "valueLabel": "Week 8", "description": "Treatment visit"}
     ]
   },
   "rowGroups": [
-    {"id": "grp_1", "name": "Informed Consent"},
-    {"id": "grp_2", "name": "Safety Assessments"},
-    {"id": "grp_3", "name": "Efficacy Assessments"}
+    {
+      "id": "grp_1", 
+      "name": "Eligibility",
+      "isBold": true,
+      "hasMergedCells": true,
+      "spansFullWidth": true,
+      "visualConfidence": 0.95,
+      "activityNames": ["Informed Consent", "Demographics", "Medical History"]
+    },
+    {
+      "id": "grp_2", 
+      "name": "Safety Assessments",
+      "isBold": true,
+      "hasMergedCells": false,
+      "spansFullWidth": true,
+      "visualConfidence": 0.9,
+      "activityNames": ["Vital Signs", "Physical Examination", "ECG", "Adverse Events"]
+    },
+    {
+      "id": "grp_3", 
+      "name": "PK/PD Analyses",
+      "isBold": true,
+      "hasMergedCells": true,
+      "spansFullWidth": true,
+      "visualConfidence": 0.95,
+      "activityNames": ["Blood Sampling for PK", "PD Biomarkers"]
+    }
+  ],
+  "footnotes": [
+    "a. Only for subjects in Cohort A",
+    "b. Performed at screening and at early termination only",
+    "c. Within 30 minutes of dosing"
   ]
 }
 
@@ -87,6 +136,21 @@ RULES:
 - Include ALL columns and row groups visible in the table
 - For multi-page tables, combine all pages into one unified structure
 - If epochs are not explicitly shown, create a single "Study Period" epoch
+
+CRITICAL - UNIQUE ENCOUNTER NAMES:
+- EVERY encounter MUST have a unique name (never duplicate names)
+- Look at ALL header rows to find differentiating info: Day numbers, Week numbers, Visit numbers
+- If columns are labeled "Day -6", "Day -5", "Day -4" under "Inpatient Period", use those as encounter names
+- Pattern examples: "Day -6 through -4", "Inpatient Period (Day 1)", "Week 4 Visit"
+- If you cannot find unique timing, number them: "Inpatient Day 1", "Inpatient Day 2", etc.
+- The viewer needs unique names to distinguish columns - duplicates break the display
+
+ROW GROUP VISUAL PROPERTIES (required for each group):
+- `isBold`: true if the text appears bold/emphasized
+- `hasMergedCells`: true if cells span across columns
+- `spansFullWidth`: true if the row spans the full table width
+- `visualConfidence`: 0.0-1.0 confidence this is truly a category header (not an activity)
+- `activityNames`: REQUIRED - list of activity names that appear UNDER this group header (read from the rows between this group and the next)
 
 Output ONLY the JSON object, no explanations or markdown."""
 
@@ -235,6 +299,9 @@ def _analyze_with_gemini(
     data = parse_llm_json(raw_response, fallback={})
     structure = HeaderStructure.from_dict(data)
     
+    # Enforce unique encounter names
+    structure = _enforce_unique_encounter_names(structure)
+    
     return HeaderAnalysisResult(
         structure=structure,
         raw_response=raw_response,
@@ -295,6 +362,9 @@ def _analyze_with_openai(
     data = parse_llm_json(raw_response, fallback={})
     structure = HeaderStructure.from_dict(data)
     
+    # Enforce unique encounter names
+    structure = _enforce_unique_encounter_names(structure)
+    
     return HeaderAnalysisResult(
         structure=structure,
         raw_response=raw_response,
@@ -302,6 +372,64 @@ def _analyze_with_openai(
         image_count=len(image_paths),
         success=True
     )
+
+
+def _enforce_unique_encounter_names(structure: HeaderStructure) -> HeaderStructure:
+    """
+    Post-process to ensure all encounter names are unique.
+    If duplicates are found, append sequential numbers.
+    
+    Args:
+        structure: HeaderStructure to process
+        
+    Returns:
+        HeaderStructure with unique encounter names
+    """
+    if not structure or not structure.encounters:
+        return structure
+    
+    # Count name occurrences
+    name_counts = {}
+    for enc in structure.encounters:
+        name = enc.name
+        name_counts[name] = name_counts.get(name, 0) + 1
+    
+    # Check if any duplicates exist
+    has_duplicates = any(count > 1 for count in name_counts.values())
+    if not has_duplicates:
+        return structure
+    
+    logger.warning(f"Found duplicate encounter names, adding sequence numbers: {[n for n, c in name_counts.items() if c > 1]}")
+    
+    # Build epoch lookup for context
+    epoch_map = {e.id: e.name for e in structure.epochs} if structure.epochs else {}
+    
+    # Assign unique names by appending sequential numbers
+    name_seq = {}
+    for enc in structure.encounters:
+        original_name = enc.name
+        if name_counts[original_name] > 1:
+            seq = name_seq.get(original_name, 1)
+            name_seq[original_name] = seq + 1
+            
+            # Try to create a meaningful name with epoch context
+            epoch_name = epoch_map.get(enc.epochId, "")
+            if epoch_name and epoch_name != original_name:
+                enc.name = f"{epoch_name} - Column {seq}"
+            else:
+                enc.name = f"{original_name} (Column {seq})"
+    
+    # Also update matching plannedTimepoints
+    if structure.plannedTimepoints:
+        enc_name_map = {e.id: e.name for e in structure.encounters}
+        for pt in structure.plannedTimepoints:
+            if pt.encounterId and pt.encounterId in enc_name_map:
+                # Keep timepoint name in sync with encounter if they matched
+                enc_name = enc_name_map[pt.encounterId]
+                if pt.name == original_name or not pt.name:
+                    pt.name = enc_name
+    
+    return structure
 
 
 def save_header_structure(structure: HeaderStructure, output_path: str) -> None:

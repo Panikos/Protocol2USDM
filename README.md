@@ -4,17 +4,17 @@
 
 Protocol2USDM is an automated pipeline that extracts, validates, and structures clinical trial protocol content into data conformant to the [CDISC USDM v4.0](https://www.cdisc.org/standards/foundational/usdm) model.
 
-> **📢 v6.1 Update:** The pipeline now extracts the **full protocol** (not just SoA), covering metadata, eligibility, objectives, study design, interventions, procedures, scheduling logic, and more. Biomedical Concepts are planned for a future release via a separate comprehensive canonical model.
+> **📢 v6.3.0 Update:** NCI EVS terminology enrichment! Entities are now enriched with official NCI codes via the EVS API with local caching. Use `--enrich` to enable. Also includes CDISC CORE integration with `--update-cache` for rule management. Schema-driven architecture with 86+ auto-generated entity types from `dataStructure.yml`.
 
 ---
 
 ## 🚀 Try It Now
 
 ```bash
-python main_v2.py .\input\Alexion_NCT04573309_Wilsons.pdf --full-protocol --sap .\input\Alexion_NCT04573309_Wilsons_SAP.pdf --model gemini-3-pro-preview --view
+python main_v2.py .\input\Alexion_NCT04573309_Wilsons.pdf --full-protocol --enrich --sap .\input\Alexion_NCT04573309_Wilsons_SAP.pdf --model gemini-3-pro-preview --view
 ```
 
-This extracts the full protocol, includes SAP analysis populations, and launches the interactive viewer.
+This extracts the full protocol, enriches entities with NCI terminology codes, includes SAP analysis populations, and launches the interactive viewer.
 
 ---
 
@@ -22,17 +22,19 @@ This extracts the full protocol, includes SAP analysis populations, and launches
 
 - **Multi-Model Support**: GPT-5.1, GPT-4o, Gemini 2.5/3.x via unified provider interface
 - **Vision-Validated Extraction**: Text extraction validated against actual PDF images
-- **USDM v4.0 Compliant**: Outputs follow official CDISC schema
+- **USDM v4.0 Compliant**: Outputs follow official CDISC schema with proper entity hierarchy
+- **NCI Terminology Enrichment**: Automatic enrichment with official NCI codes via EVS API
+- **Activity Group Hierarchy**: Groups represented as parent Activities with `childIds` (USDM v4.0 pattern)
+- **SoA Footnotes**: Captured and stored as `CommentAnnotation` objects in `StudyDesign.notes`
 - **Rich Provenance**: Every cell tagged with source (text/vision/both) for confidence tracking
-- **Terminology Enrichment**: Activities enriched with NCI EVS codes
-- **CDISC CORE Validation**: Built-in conformance checking
-- **Interactive Viewer**: Streamlit-based SoA review interface
+- **CDISC CORE Validation**: Built-in conformance checking with local engine
+- **Interactive Viewer**: Streamlit-based SoA review interface with collapsible sections
 
-### Extraction Capabilities (v6.1)
+### Extraction Capabilities (v6.2)
 
 | Module | Entities | CLI Flag |
 |--------|----------|----------|
-| **SoA** | Activity, PlannedTimepoint, Epoch, Encounter | (default) |
+| **SoA** | Activity, PlannedTimepoint, Epoch, Encounter, CommentAnnotation | (default) |
 | **Metadata** | StudyTitle, StudyIdentifier, Organization, Indication | `--metadata` |
 | **Eligibility** | EligibilityCriterion, StudyDesignPopulation | `--eligibility` |
 | **Objectives** | Objective, Endpoint, Estimand | `--objectives` |
@@ -74,7 +76,7 @@ With additional source documents:
 python main_v2.py protocol.pdf --full-protocol --sap sap.pdf --sites sites.xlsx
 ```
 
-Output: Individual JSONs + combined `protocol_usdm.json` (Golden Standard)
+Output: Individual JSONs + combined `protocol_usdm.json`
 
 ---
 
@@ -185,59 +187,76 @@ python main_v2.py protocol.pdf --conformance         # Step 9: CORE conformance
 
 ## Pipeline Steps
 
-The pipeline executes the following steps:
+### SoA Extraction (Steps 1-4)
 
 | Step | Description | Output File |
 |------|-------------|-------------|
-| 1 | Find SoA pages in PDF | (internal) |
-| 2 | Extract page images | `3_soa_images/` |
-| 3 | Analyze header structure (vision) | `4_header_structure.json` |
-| 4 | Extract SoA data (text) | `5_text_extraction.json` |
-| 5 | Validate extraction (vision) | `6_validation_result.json` |
-| 6 | Build final USDM output | `9_final_soa.json` ⭐ |
-| 7 | Enrich terminology (optional) | `step7_enriched_soa.json` |
-| 8 | Schema validation (optional) | `step8_schema_validation.json` |
-| 9 | CORE conformance (optional) | `conformance_report.json` |
+| 1 | Find SoA pages & analyze header structure (vision) | `4_header_structure.json` |
+| 2 | Extract SoA data from text | `5_text_extraction.json` |
+| 3 | Validate extraction against images | `6_validation_result.json` |
+| 4 | Build final SoA output | `9_final_soa.json` |
 
-**Primary output:** `output/<protocol>/9_final_soa.json`
+### Expansion Phases (with `--full-protocol`)
+
+| Phase | Entities | Output File |
+|-------|----------|-------------|
+| Metadata | StudyTitle, Organization, Indication | `2_study_metadata.json` |
+| Eligibility | EligibilityCriterion, Population | `3_eligibility_criteria.json` |
+| Objectives | Objective, Endpoint, Estimand | `4_objectives_endpoints.json` |
+| Study Design | StudyArm, StudyCell, StudyCohort | `5_study_design.json` |
+| Interventions | StudyIntervention, Product | `6_interventions.json` |
+| Narrative | Abbreviation, NarrativeContent | `7_narrative_structure.json` |
+| Advanced | StudyAmendment, Country | `8_advanced_entities.json` |
+| Procedures | Procedure, MedicalDevice | `9_procedures_devices.json` |
+| Scheduling | Timing, Condition, TransitionRule | `10_scheduling_logic.json` |
+
+### Post-Processing (Steps 7-9)
+
+| Step | Description | Output File |
+|------|-------------|-------------|
+| Combine | Merge all extractions | `protocol_usdm.json` ⭐ |
+| Terminology | NCI EVS code enrichment | `terminology_enrichment.json` |
+| Schema Fix | Auto-fix schema issues (UUIDs, Codes) | `schema_validation.json` |
+| Conformance | CDISC CORE validation | `conformance_report.json` |
+
+**Primary output:** `output/<protocol>/protocol_usdm.json`
 
 ---
 
 ## Output Structure
 
-The output follows USDM v4.0 Wrapper-Input format:
+The output follows the USDM v4.0 schema with proper `Study → StudyVersion → StudyDesign` hierarchy.
 
-```json
-{
-  "usdmVersion": "4.0",
-  "systemName": "Protocol2USDMv3",
-  "study": {
-    "versions": [{
-      "timeline": {
-        "epochs": [...],              // Study phases
-        "encounters": [...],          // Visits
-        "plannedTimepoints": [...],   // Timepoints
-        "activities": [...],          // Procedures/assessments
-        "activityTimepoints": [...],  // Activity-timepoint mappings
-        "activityGroups": [...]       // Activity categories
-      }
-    }]
-  }
-}
-```
+For detailed output structure and entity relationships, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#output-structure).
 
 ### Provenance Tracking
 
-Provenance metadata is stored separately in `9_final_soa_provenance.json`:
+Provenance metadata is stored separately in `9_final_soa_provenance.json` and visualized in the Streamlit viewer:
 
 | Source | Color | Meaning |
-|--------|-------|--------|
-| `both` | 🟩 Green | Confirmed by text AND vision |
-| `text` | 🟦 Blue | Text extraction only (not vision-confirmed) |
-| `vision` | 🟧 Orange | Vision only (needs review) |
+|--------|-------|---------|
+| `both` | 🟩 Green | Confirmed (text + vision agree) |
+| `text` | 🟦 Blue | Text-only (NOT confirmed by vision) |
+| `vision` | 🟧 Orange | Vision-only (possible hallucination, needs review) |
 | (none) | 🔴 Red | Orphaned (no provenance data) |
 
+View provenance in the interactive viewer:
+```bash
+streamlit run soa_streamlit_viewer.py
+```
+
 **Note:** By default, all text-extracted cells are kept in the output. Use `--remove-hallucinations` to exclude cells not confirmed by vision.
+
+### SoA Footnotes
+
+Footnotes extracted from SoA tables are stored in `StudyDesign.notes` as USDM v4.0 `CommentAnnotation` objects:
+
+```json
+"notes": [
+  {"id": "soa_fn_1", "text": "a. Within 32 days of administration", "instanceType": "CommentAnnotation"},
+  {"id": "soa_fn_2", "text": "b. Participants admitted 10 hours prior", "instanceType": "CommentAnnotation"}
+]
+```
 
 ---
 
@@ -274,37 +293,53 @@ Based on testing across 4 protocols:
 
 ```
 Protocol2USDMv3/
-├── main_v2.py              # Main pipeline entry point
-├── extraction/             # Core extraction modules
-│   ├── __init__.py
-│   ├── pipeline.py         # Pipeline orchestration
-│   ├── structure.py        # Header structure analysis
-│   ├── text.py             # Text extraction
-│   └── validator.py        # Vision validation
-├── core/                   # Shared utilities
-├── processing/             # Post-processing modules
-├── prompts/                # YAML prompt templates
-├── soa_streamlit_viewer.py # Interactive viewer
-├── llm_providers.py        # Multi-model provider layer
-├── benchmark_models.py     # Model benchmarking utility
-├── test_pipeline_steps.py  # Step-by-step testing
-├── tools/
-│   └── core/               # CDISC CORE engine
-└── output/                 # Pipeline outputs
+├── main_v2.py                # Main pipeline entry point
+├── core/                     # Core modules
+│   ├── usdm_schema_loader.py # Official CDISC schema parser + USDMEntity base
+│   ├── usdm_types_generated.py # 86+ auto-generated USDM types
+│   ├── usdm_types.py         # Unified type interface
+│   ├── evs_client.py         # NCI EVS API client with caching
+│   ├── provenance.py         # ProvenanceTracker for source tracking
+│   ├── llm_client.py         # LLM client
+│   └── json_utils.py         # JSON utilities
+├── extraction/               # Extraction modules
+│   ├── header_analyzer.py    # Vision-based structure
+│   ├── text_extractor.py     # Text-based extraction
+│   ├── pipeline.py           # SoA extraction pipeline
+│   ├── validator.py          # Extraction validation
+│   └── */                    # Domain extractors (11 modules)
+├── enrichment/               # Terminology enrichment
+│   └── terminology.py        # NCI EVS enrichment
+├── validation/               # Validation package
+│   ├── usdm_validator.py     # Official USDM validation
+│   └── cdisc_conformance.py  # CDISC CORE conformance
+├── prompts/                  # YAML prompt templates
+├── testing/                  # Benchmarking & integration tests
+├── utilities/                # Setup scripts
+├── docs/                     # Architecture documentation
+├── soa_streamlit_viewer.py   # Interactive viewer
+├── tools/core/               # CDISC CORE engine
+└── output/                   # Pipeline outputs
 ```
+
+For detailed architecture, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ---
 
 ## Testing
 
 ```bash
-# Run all tests
-pytest
+# Run unit tests
+pytest tests/
 
-# Run specific test suites
-pytest tests/test_pipeline_api.py -v    # Pipeline tests
-pytest tests/test_llm_providers.py -v   # Provider tests
-pytest tests/test_processing.py -v      # Processing tests
+# Run integration tests
+python testing/test_pipeline_steps.py
+
+# Run golden standard comparison
+python testing/compare_golden_vs_extracted.py
+
+# Benchmark models
+python testing/benchmark_models.py
 ```
 
 ---
@@ -353,10 +388,13 @@ CDISC_API_KEY=...           # For CORE rules cache (get from library.cdisc.org)
 The following items are planned for upcoming releases:
 
 - [ ] **Biomedical Concepts**: Add extraction via a separate comprehensive canonical model for standardized concept mapping
-- [ ] **Dynamic Terminology Enrichment**: Replace static NCI EVS lookup with real-time terminology service integration
-- [ ] **Streamlit Viewer Extensions**: Complete debugging of new viewer features (provenance drilldown, entity linking)
-- [ ] **Repository Cleanup**: Remove redundant/legacy code, consolidate workaround scripts, improve module organization
-- [ ] **CDISC CORE Integration**: Full integration with local CORE engine for conformance validation
+- [x] **Provenance ID Consistency**: Idempotent UUID generation ensures provenance IDs match data *(completed v6.3.0)*
+- [x] **NCI EVS Terminology Enrichment**: Real-time EVS API integration with local caching *(completed v6.3.0)*
+- [x] **CDISC CORE Integration**: Local CORE engine for conformance validation with cache update *(completed v6.3.0)*
+- [x] **Schema-Driven Architecture**: All types from official `dataStructure.yml` *(completed v6.2.0)*
+- [x] **Repository Cleanup**: Cleaned codebase, archived orphaned files *(completed v6.3.0)*
+- [x] **Activity Group Hierarchy**: Groups now use USDM v4.0 `childIds` pattern *(completed v6.1.2)*
+- [x] **SoA Footnotes**: Stored as `CommentAnnotation` in `StudyDesign.notes` *(completed v6.1.2)*
 
 ---
 
@@ -370,3 +408,4 @@ Contact author for permission to use.
 
 - [CDISC](https://www.cdisc.org/) for USDM specification
 - [CDISC CORE Engine](https://github.com/cdisc-org/cdisc-rules-engine) for conformance validation
+- [NCI EVS](https://evs.nci.nih.gov/) for terminology services

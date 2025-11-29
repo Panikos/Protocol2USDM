@@ -29,7 +29,8 @@ def run_cdisc_conformance(
     Priority:
     1. Local CDISC CORE engine (if available)
     2. CDISC API (if key configured and reachable)
-    3. Local validation rules (fallback)
+    
+    If validation fails, the error is captured and returned (no fallback).
     
     Args:
         json_path: Path to USDM JSON file
@@ -37,57 +38,129 @@ def run_cdisc_conformance(
         api_key: Optional CDISC API key (from env if not provided)
         
     Returns:
-        Dict with conformance results
+        Dict with conformance results (including errors if engine failed)
     """
+    output_path = os.path.join(output_dir, "conformance_report.json")
+    
     # Try local CORE engine first
     if CORE_ENGINE_PATH.exists():
-        try:
-            return _run_local_core_engine(json_path, output_dir)
-        except Exception as e:
-            logger.warning(f"Local CORE engine failed: {e}")
+        result = _run_local_core_engine(json_path, output_dir)
+        # Save result to file (success or error)
+        _save_conformance_report(result, output_path)
+        return result
     
     # Try CDISC API if key available
     if api_key is None:
         api_key = os.environ.get('CDISC_API_KEY')
     
     if api_key and _check_cdisc_api_available():
-        try:
-            return _run_cdisc_api(json_path, output_dir, api_key)
-        except Exception as e:
-            logger.warning(f"CDISC API call failed: {e}")
+        result = _run_cdisc_api(json_path, output_dir, api_key)
+        _save_conformance_report(result, output_path)
+        return result
     
-    # Fall back to local validation rules
-    logger.info("Using local validation rules")
-    return _run_local_conformance(json_path, output_dir)
+    # No validation method available
+    result = {
+        'success': False,
+        'engine': 'none',
+        'error': 'CDISC CORE engine not available. Download with: python tools/core/download_core.py',
+        'error_details': None,
+        'issues': 0,
+        'warnings': 0,
+    }
+    _save_conformance_report(result, output_path)
+    return result
+
+
+def _save_conformance_report(result: Dict[str, Any], output_path: str) -> None:
+    """Save conformance result to JSON file."""
+    with open(output_path, 'w', encoding='utf-8') as f:
+        json.dump(result, f, indent=2)
+
+
+def _ensure_core_cache(core_dir: Path) -> bool:
+    """
+    Ensure CORE engine cache is up to date.
+    Runs update-cache if rules_dictionary.pkl is missing.
+    
+    Requires CDISC_LIBRARY_API_KEY environment variable.
+    """
+    cache_file = core_dir / "resources" / "cache" / "rules_dictionary.pkl"
+    if cache_file.exists():
+        return True
+    
+    # Check for API key (support both naming conventions)
+    api_key = os.environ.get('CDISC_LIBRARY_API_KEY') or os.environ.get('CDISC_API_KEY')
+    if not api_key:
+        logger.warning("CDISC CORE requires CDISC_LIBRARY_API_KEY or CDISC_API_KEY environment variable")
+        logger.warning("Get your API key from: https://www.cdisc.org/cdisc-library")
+        return False
+    
+    logger.info("Updating CDISC CORE cache (first run, may take a few minutes)...")
+    try:
+        result = subprocess.run(
+            [str(CORE_ENGINE_PATH), "update-cache", "--apikey", api_key],
+            capture_output=True,
+            text=True,
+            timeout=300,  # Cache update can take a while
+            cwd=str(core_dir),
+        )
+        if result.returncode == 0:
+            logger.info("CORE cache updated successfully")
+            return True
+        else:
+            logger.warning(f"CORE cache update failed: {result.stderr}")
+            return False
+    except Exception as e:
+        logger.warning(f"CORE cache update error: {e}")
+        return False
 
 
 def _run_local_core_engine(json_path: str, output_dir: str) -> Dict[str, Any]:
     """
     Run local CDISC CORE engine executable.
-    """
-    logger.info(f"Running local CDISC CORE engine...")
     
-    output_path = os.path.join(output_dir, "conformance_report.json")
+    Returns result dict with success/error status (never raises).
+    """
+    core_dir = CORE_ENGINE_PATH.parent
+    
+    # Ensure cache is available
+    if not _ensure_core_cache(core_dir):
+        return {
+            'success': False,
+            'engine': 'local_core',
+            'error': 'CORE cache not available. Set CDISC_API_KEY and run: python main_v2.py --update-cache',
+            'error_details': None,
+            'issues': 0,
+            'warnings': 0,
+        }
+    
+    logger.info(f"Running CDISC CORE engine (local)...")
+    
+    # CORE engine appends .json to output path, so use base name without extension
+    output_base = os.path.join(output_dir, "conformance_report")
+    output_path = output_base + ".json"  # The actual file CORE will create
     
     try:
         # Run CORE engine
-        # Use -dp (dataset-path) for single file, not -d (directory)
-        # Must run from CORE engine directory to find resources/schema/USDM.yaml
-        core_dir = CORE_ENGINE_PATH.parent
+        # Note: Exclude CORE-000955 and CORE-000956 due to JSONata bugs in CORE engine
+        # when processing certain USDM data structures (causes NoneType errors)
         result = subprocess.run(
             [
                 str(CORE_ENGINE_PATH),
                 "validate",
                 "-s", "usdm",  # Standard: USDM
-                "-v", "4.0",  # USDM version
+                "-v", "4-0",  # USDM version (format: X-Y not X.Y)
                 "-dp", os.path.abspath(json_path),  # Dataset file path (absolute)
-                "-o", os.path.abspath(output_path),  # Output (absolute)
+                "-o", os.path.abspath(output_base),  # Output base (CORE appends .json)
                 "-of", "JSON",  # Output format
+                "-er", "CORE-000955",  # Exclude buggy rule
+                "-er", "CORE-000956",  # Exclude buggy rule
+                "-p", "disabled",  # Disable progress bar for cleaner logs
             ],
             capture_output=True,
             text=True,
             timeout=120,
-            cwd=str(core_dir),  # Run from CORE directory to find schema files
+            cwd=str(core_dir),
         )
         
         if result.returncode == 0 and os.path.exists(output_path):
@@ -102,20 +175,65 @@ def _run_local_core_engine(json_path: str, output_dir: str) -> Dict[str, Any]:
             
             return {
                 'success': True,
+                'engine': 'local_core',
                 'output': output_path,
                 'issues': len(errors),
                 'warnings': len(warnings),
-                'engine': 'local_core',
+                'issues_list': issues,
             }
         else:
-            # CORE engine ran but may have reported issues
-            logger.warning(f"CORE engine output: {result.stderr or result.stdout}")
-            raise Exception(f"CORE engine returned code {result.returncode}")
+            # CORE engine failed - capture error details
+            error_output = result.stderr or result.stdout or "Unknown error"
+            
+            # Extract the key error message (often buried in traceback)
+            error_lines = error_output.strip().split('\n')
+            error_summary = None
+            for line in reversed(error_lines):
+                if 'Error' in line or 'Exception' in line or 'TypeError' in line:
+                    error_summary = line.strip()
+                    break
+            if not error_summary and error_lines:
+                error_summary = error_lines[-1].strip()
+            
+            logger.warning(f"CORE engine failed: {error_summary}")
+            
+            return {
+                'success': False,
+                'engine': 'local_core',
+                'error': f"CORE engine failed (exit code {result.returncode})",
+                'error_summary': error_summary,
+                'error_details': error_output,
+                'issues': 0,
+                'warnings': 0,
+            }
             
     except subprocess.TimeoutExpired:
-        raise Exception("CORE engine timed out")
+        return {
+            'success': False,
+            'engine': 'local_core',
+            'error': 'CORE engine timed out (>120s)',
+            'error_details': None,
+            'issues': 0,
+            'warnings': 0,
+        }
     except FileNotFoundError:
-        raise Exception("CORE engine not found")
+        return {
+            'success': False,
+            'engine': 'local_core',
+            'error': 'CORE engine executable not found',
+            'error_details': None,
+            'issues': 0,
+            'warnings': 0,
+        }
+    except Exception as e:
+        return {
+            'success': False,
+            'engine': 'local_core',
+            'error': f'CORE engine error: {str(e)}',
+            'error_details': None,
+            'issues': 0,
+            'warnings': 0,
+        }
 
 
 def _check_cdisc_api_available(timeout: float = 3.0) -> bool:

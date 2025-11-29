@@ -1,9 +1,9 @@
 # Protocol2USDM User Guide
 
-**Version:** 6.1  
+**Version:** 6.1.2  
 **Last Updated:** 2025-11-28
 
-> **📢 What's New in v6.1:** The pipeline now extracts the **full protocol** into USDM v4.0 format—not just the Schedule of Activities. This includes metadata, eligibility criteria, objectives, study design, interventions, procedures, scheduling logic, narrative content, and more. Biomedical Concepts are coming in a future release.
+> **📢 What's New in v6.1.2:** Enhanced SoA with proper activity group hierarchy (`childIds`), SoA footnotes stored as `CommentAnnotation`, and fixed provenance tracking. The pipeline extracts the **full protocol** including metadata, eligibility, objectives, study design, interventions, and more.
 
 ---
 
@@ -32,7 +32,7 @@ echo "OPENAI_API_KEY=sk-..." > .env
 echo "GOOGLE_API_KEY=AIza..." >> .env
 
 # Run full protocol extraction with viewer
-python main_v2.py .\input\Alexion_NCT04573309_Wilsons.pdf --full-protocol --sap .\input\Alexion_NCT04573309_Wilsons_SAP.pdf --model gemini-3-pro-preview --view
+python main_v2.py .\input\Alexion_NCT04573309_Wilsons.pdf --full-protocol --sap .\input\Alexion_NCT04573309_Wilsons_SAP.pdf --model gemini-2.5-pro --view
 ```
 
 **Expected runtime:** 3-8 minutes for full protocol extraction
@@ -366,8 +366,10 @@ Opens at: http://localhost:8504
   - 🟧 **Orange**: Vision only or needs review (possible hallucination)
   - 🔴 **Red**: Orphaned (no provenance data)
 - Epoch groupings with colspan merge
-- Activity groupings by category
+- Activity groupings by category with proper hierarchy
+- SoA footnotes in collapsible section below table
 - Export & search functionality with CSV download
+- JSON viewer in collapsible expander
 
 **3. Quality Metrics Sidebar**
 - Entity counts (activities, timepoints, etc.)

@@ -1,7 +1,8 @@
 # USDM v4.0 Entity Coverage Status
 
-**Last Updated:** November 2025  
-**Coverage:** 61/87 entities (70.1%)
+**Last Updated:** 2025-11-29  
+**Version:** 6.3.0  
+**Coverage:** 62/87 entities (71.3%)
 
 ---
 
@@ -11,7 +12,7 @@
 
 | Phase | Entities | CLI Flag | Status |
 |-------|----------|----------|--------|
-| **SoA Extraction** | Activity, PlannedTimepoint, ActivityTimepoint, Encounter, Epoch, ActivityGroup | `--soa` | ✅ |
+| **SoA Extraction** | Activity, ScheduledActivityInstance, Encounter, StudyEpoch, ScheduleTimeline, CommentAnnotation | `--soa` | ✅ |
 | **Phase 1: Eligibility** | EligibilityCriterion, EligibilityCriterionItem, StudyDesignPopulation | `--eligibility` | ✅ |
 | **Phase 2: Metadata** | StudyTitle, StudyIdentifier, Organization, Indication, StudyPhase | `--metadata` | ✅ |
 | **Phase 3: Objectives** | Objective, Endpoint, Estimand, IntercurrentEvent | `--objectives` | ✅ |
@@ -110,6 +111,14 @@ These are structural containers used implicitly:
 
 ## Next Steps
 
-1. **Phase 12/13** - Can be added if document authoring features needed
-2. **Phase 16** - Implement when eCOA spec integration required
-3. **Phase 9** - Biomedical concepts pending special integration approach
+1. **Phase 9: Biomedical Concepts** - Pending special integration with CDISC BC library
+2. **Phase 16: eCOA/CDASH** - Implement when eCOA spec integration required
+
+## Recent Additions (v6.3.0)
+
+- **NCI EVS Enrichment**: Entities enriched with official NCI codes via EVS API (`--enrich`)
+- **CDISC CORE Integration**: Local conformance engine with cache management (`--conformance`)
+- **Provenance ID Sync**: IDs now consistent between data and provenance for accurate viewer display
+- **Idempotent UUID Generation**: Entity IDs generated once and reused for consistency
+- **CommentAnnotation**: SoA footnotes stored in `StudyDesign.notes`
+- **Activity hierarchy**: Groups use USDM v4.0 `childIds` pattern

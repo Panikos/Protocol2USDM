@@ -104,7 +104,7 @@ VALIDATION_PROMPT = """You are validating a Schedule of Activities (SoA) extract
 
 I will provide:
 1. A list of activities with their IDs
-2. A list of timepoints with their IDs
+2. A list of timepoints with their IDs  
 3. A list of activity-timepoint ticks (from text extraction)
 4. Image(s) of the actual SoA table
 
@@ -118,6 +118,8 @@ TIMEPOINTS:
 
 TICKS TO VERIFY:
 {ticks_json}
+
+{context_section}
 
 For each tick, check if you can see a mark (X, ✓, •, or similar) in the corresponding cell.
 
@@ -133,7 +135,9 @@ Return a JSON object:
   ]
 }}
 
-RULES:
+CRITICAL RULES:
+- You MUST include BOTH activity_id AND timepoint_id for EVERY tick
+- Use the EXACT IDs provided (act_*, pt_*)
 - Set visible=true if you can see a tick mark in that cell
 - Set visible=false if the cell appears empty
 - Confidence should reflect your certainty (0-1)
@@ -142,6 +146,15 @@ RULES:
 
 Output ONLY the JSON object."""
 
+# Context section for additional inference help
+CONTEXT_SECTION_TEMPLATE = """
+ADDITIONAL CONTEXT (use when uncertain):
+Footnotes from the SoA table:
+{footnotes}
+
+Use footnotes to understand conditional ticks (marked with a, b, c or *, †, ‡).
+"""
+
 
 def validate_extraction(
     text_activities: List[dict],
@@ -149,6 +162,8 @@ def validate_extraction(
     header_structure: HeaderStructure,
     image_paths: List[str],
     model_name: str = "gemini-2.5-pro",
+    protocol_text: str = "",
+    footnotes: str = "",
 ) -> ValidationResult:
     """
     Validate text extraction against SoA images.
@@ -159,6 +174,8 @@ def validate_extraction(
         header_structure: Header structure with timepoint info
         image_paths: Paths to SoA table images
         model_name: Vision model to use
+        protocol_text: Full protocol text for context (optional, unused)
+        footnotes: SoA footnotes for context (optional)
         
     Returns:
         ValidationResult with issues found
@@ -195,15 +212,22 @@ def validate_extraction(
             indent=2
         )
         ticks_json = json.dumps(
-            [{'activity_id': t.get('activityId'), 'timepoint_id': t.get('plannedTimepointId')} 
+            [{'activity_id': t.get('activityId'), 
+              'timepoint_id': t.get('plannedTimepointId') or t.get('encounterId')} 
              for t in text_ticks],
             indent=2
         )
+        
+        # Build context section if we have footnotes
+        context_section = ""
+        if footnotes:
+            context_section = CONTEXT_SECTION_TEMPLATE.format(footnotes=footnotes)
         
         prompt = VALIDATION_PROMPT.format(
             activities_json=activities_json,
             timepoints_json=timepoints_json,
             ticks_json=ticks_json,
+            context_section=context_section,
         )
         
         # Call vision model
@@ -223,25 +247,29 @@ def validate_extraction(
                 confirmed += 1
             else:
                 # Potential hallucination
+                act_id = tick.get('activity_id', '')
+                tp_id = tick.get('timepoint_id', '')
                 issues.append(ValidationIssue(
                     issue_type=IssueType.POSSIBLE_HALLUCINATION,
-                    activity_id=tick.get('activity_id', ''),
-                    activity_name=activity_names.get(tick.get('activity_id', ''), ''),
-                    timepoint_id=tick.get('timepoint_id', ''),
-                    timepoint_name=tp_names.get(tick.get('timepoint_id', ''), ''),
+                    activity_id=act_id,
+                    activity_name=activity_names.get(act_id, ''),
+                    timepoint_id=tp_id,
+                    timepoint_name=tp_names.get(tp_id, ''),
                     confidence=tick.get('confidence', 0.5),
                     details=tick.get('reason', 'Tick not visible in image'),
                 ))
         
         for missed in data.get('possible_missed_ticks', []):
+            act_id = missed.get('activity_id', '')
+            tp_id = missed.get('timepoint_id', '')
             issues.append(ValidationIssue(
                 issue_type=IssueType.MISSED_TICK,
-                activity_id=missed.get('activity_id', ''),
-                activity_name=activity_names.get(missed.get('activity_id', ''), ''),
-                timepoint_id=missed.get('timepoint_id', ''),
-                timepoint_name=tp_names.get(missed.get('timepoint_id', ''), ''),
+                activity_id=act_id,
+                activity_name=activity_names.get(act_id, ''),
+                timepoint_id=tp_id,
+                timepoint_name=tp_names.get(tp_id, ''),
                 confidence=missed.get('confidence', 0.5),
-                details=missed.get('reason', 'Tick visible but not in text extraction'),
+                details=missed.get('reason', 'Visible in image but not in text'),
             ))
         
         return ValidationResult(
@@ -372,11 +400,15 @@ def apply_validation_fixes(
         and i.confidence >= confidence_threshold
     }
     
+    # Helper to get timepoint ID from tick (handles both legacy and v4.0 formats)
+    def get_tp_id(tick):
+        return tick.get('plannedTimepointId') or tick.get('encounterId')
+    
     if remove_hallucinations:
         # Remove hallucinations from output
         fixed_ticks = [
             t for t in fixed_ticks
-            if (t.get('activityId'), t.get('plannedTimepointId')) not in hallucination_keys
+            if (t.get('activityId'), get_tp_id(t)) not in hallucination_keys
         ]
         logger.info(f"Removed {len(hallucination_keys)} probable hallucinations")
         
@@ -388,7 +420,7 @@ def apply_validation_fixes(
         unconfirmed_ticks = []
         
         for tick in fixed_ticks:
-            key = (tick.get('activityId'), tick.get('plannedTimepointId'))
+            key = (tick.get('activityId'), get_tp_id(tick))
             if key in hallucination_keys:
                 unconfirmed_ticks.append(tick)
             else:

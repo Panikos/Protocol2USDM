@@ -3,9 +3,12 @@ LLM Prompts for Eligibility Criteria Extraction.
 
 These prompts guide the LLM to extract inclusion and exclusion criteria
 from protocol Section 4-5.
+
+Output format follows USDM v4.0 OpenAPI schema requirements.
 """
 
 ELIGIBILITY_EXTRACTION_PROMPT = """You are an expert at extracting eligibility criteria from clinical trial protocols.
+Your output must conform to USDM v4.0 schema specifications.
 
 Analyze the provided protocol section and extract ALL inclusion and exclusion criteria.
 
@@ -17,7 +20,7 @@ Extract every inclusion criterion. These typically:
 - Are numbered (1, 2, 3... or I1, I2, I3...)
 - Define who CAN participate in the study
 
-### 2. Exclusion Criteria
+### 2. Exclusion Criteria  
 Extract every exclusion criterion. These typically:
 - Start with "Participants must not..." or "Excluded if..."
 - Are numbered (1, 2, 3... or E1, E2, E3...)
@@ -27,52 +30,98 @@ Extract every exclusion criterion. These typically:
 - Target enrollment number
 - Age range (minimum/maximum)
 - Sex/Gender requirements
-- Whether healthy volunteers are included
 
-## Output Format
+## USDM v4.0 Output Format (MUST follow exactly)
 
-Return a JSON object with this exact structure:
+USDM separates criteria into two linked entities:
+1. **EligibilityCriterion** - The criterion with category (Inclusion/Exclusion)
+2. **EligibilityCriterionItem** - The reusable text content
+
+Every entity MUST have `id` and `instanceType` fields.
 
 ```json
 {
-  "inclusionCriteria": [
+  "eligibilityCriteria": [
     {
+      "id": "ec_1",
+      "name": "Age requirement",
       "identifier": "I1",
-      "text": "Full text of the criterion exactly as written",
-      "name": "Short descriptive name (optional)"
+      "category": {
+        "code": "Inclusion",
+        "codeSystem": "http://www.cdisc.org/USDM/criterionCategory",
+        "decode": "Inclusion Criterion"
+      },
+      "criterionItemId": "eci_1",
+      "instanceType": "EligibilityCriterion"
     },
     {
-      "identifier": "I2",
-      "text": "..."
+      "id": "ec_2",
+      "name": "Prior therapy exclusion",
+      "identifier": "E1",
+      "category": {
+        "code": "Exclusion",
+        "codeSystem": "http://www.cdisc.org/USDM/criterionCategory",
+        "decode": "Exclusion Criterion"
+      },
+      "criterionItemId": "eci_2",
+      "instanceType": "EligibilityCriterion"
     }
   ],
-  "exclusionCriteria": [
+  "eligibilityCriterionItems": [
     {
-      "identifier": "E1",
-      "text": "Full text of the criterion exactly as written",
-      "name": "Short descriptive name (optional)"
+      "id": "eci_1",
+      "name": "Age requirement",
+      "text": "Age ≥ 18 years at the time of signing informed consent",
+      "instanceType": "EligibilityCriterionItem"
+    },
+    {
+      "id": "eci_2",
+      "name": "Prior therapy exclusion",
+      "text": "Prior treatment with any investigational agent within 30 days",
+      "instanceType": "EligibilityCriterionItem"
     }
   ],
   "population": {
-    "plannedEnrollment": 100,
-    "minimumAge": "18 years",
-    "maximumAge": "75 years",
-    "sex": ["Male", "Female"],
-    "includesHealthySubjects": false
+    "id": "pop_1",
+    "name": "Study Population",
+    "includesHealthySubjects": false,
+    "plannedEnrollmentNumber": {
+      "maxValue": 200,
+      "instanceType": "Range"
+    },
+    "plannedMinimumAge": "P18Y",
+    "plannedMaximumAge": "P75Y",
+    "plannedSex": [
+      {"code": "Male", "codeSystem": "http://www.cdisc.org/USDM/sex", "decode": "Male"},
+      {"code": "Female", "codeSystem": "http://www.cdisc.org/USDM/sex", "decode": "Female"}
+    ],
+    "criterionIds": ["ec_1", "ec_2"],
+    "instanceType": "StudyDesignPopulation"
   }
 }
 ```
 
+## Category Codes
+- Inclusion = Inclusion Criterion (who CAN participate)
+- Exclusion = Exclusion Criterion (who CANNOT participate)
+
+## ID Linking Pattern
+- Each EligibilityCriterion has a `criterionItemId` pointing to its EligibilityCriterionItem
+- Use matching IDs: ec_1 → eci_1, ec_2 → eci_2, etc.
+
+## Age Format
+- Use ISO 8601 duration: P18Y = 18 years, P6M = 6 months
+
 ## Rules
 
-1. **Extract exact text** - Copy criterion text verbatim, preserving numbering and formatting
-2. **Maintain order** - Keep criteria in the order they appear in the protocol
-3. **Be complete** - Extract ALL criteria, including sub-criteria (e.g., 1a, 1b)
-4. **Use identifiers** - Use "I1", "I2" for inclusion; "E1", "E2" for exclusion
-5. **Preserve sub-items** - If a criterion has sub-parts, include them all in the text
-6. **Handle notes** - Include any notes or clarifications that are part of a criterion
-7. **Age format** - Use natural language like "18 years", "6 months", etc.
-8. **Return ONLY valid JSON** - no markdown, no explanations
+1. **Every entity must have `id` and `instanceType`** - mandatory
+2. **Use sequential IDs** - ec_1, ec_2 for criteria; eci_1, eci_2 for items
+3. **Link criteria to items** - criterionItemId must match an item's id
+4. **Extract exact text** - Copy criterion text verbatim in the item
+5. **Use identifier** - Preserve original numbering (I1, E1, 1, 2, etc.)
+6. **Maintain order** - Keep criteria in protocol order
+7. **Be complete** - Include sub-criteria in the text
+8. **Return ONLY valid JSON** - no markdown fences, no explanations
 
 Now analyze the protocol content and extract the eligibility criteria:
 """

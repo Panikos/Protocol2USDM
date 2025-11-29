@@ -3,117 +3,132 @@ LLM Prompts for Objectives & Endpoints Extraction.
 
 These prompts guide the LLM to extract study objectives and endpoints
 from protocol synopsis and objectives sections.
+
+Output format follows USDM v4.0 OpenAPI schema requirements.
 """
 
 OBJECTIVES_EXTRACTION_PROMPT = """You are an expert at extracting study objectives and endpoints from clinical trial protocols.
+Your output must conform to USDM v4.0 schema specifications.
 
 Analyze the provided protocol section and extract ALL objectives and their associated endpoints.
 
 ## Required Information
 
-### 1. Study Objectives
-Extract objectives organized by level:
+### 1. Study Objectives (by level)
+- **Primary**: Main purpose of the study
+- **Secondary**: Additional goals (safety, tolerability, etc.)
+- **Exploratory**: Hypothesis-generating objectives
 
-**Primary Objective(s)**
-- The main purpose of the study
-- What the study is designed to evaluate
+### 2. Endpoints (matched to objectives)
+- **Primary**: Main outcome measures
+- **Secondary**: Supporting outcome measures  
+- **Exploratory**: Additional measures
 
-**Secondary Objective(s)**
-- Additional goals beyond the primary objective
-- Often related to safety, tolerability, or additional efficacy measures
+### 3. Estimands (if ICH E9(R1) format described)
 
-**Exploratory Objective(s)** (if present)
-- Hypothesis-generating objectives
-- Biomarker or mechanistic objectives
+## USDM v4.0 Output Format (MUST follow exactly)
 
-### 2. Endpoints
-For each objective, identify the associated endpoint(s):
-
-**Primary Endpoint(s)**
-- The main outcome measure
-- Used to determine study success
-
-**Secondary Endpoint(s)**
-- Supporting outcome measures
-- May address safety, tolerability, PK, PD
-
-**Exploratory Endpoint(s)** (if present)
-- Additional measures for hypothesis generation
-
-### 3. Estimands (if described, ICH E9(R1))
-If the protocol describes estimands, extract:
-- Population
-- Treatment condition
-- Variable (endpoint)
-- Intercurrent events and their handling strategies
-- Summary measure
-
-## Output Format
-
-Return a JSON object with this exact structure:
+Every entity MUST have `id` and `instanceType` fields.
+Use Code objects for level/purpose fields.
 
 ```json
 {
-  "primaryObjectives": [
+  "objectives": [
     {
-      "text": "Full text of the primary objective",
-      "endpoints": [
-        {
-          "text": "Full text of the primary endpoint",
-          "purpose": "Efficacy"
-        }
-      ]
+      "id": "obj_1",
+      "name": "Primary Efficacy Objective",
+      "text": "To evaluate the efficacy of Drug X compared to placebo in reducing disease severity",
+      "level": {
+        "code": "Primary",
+        "codeSystem": "http://www.cdisc.org/USDM/objectiveLevel",
+        "decode": "Primary Objective"
+      },
+      "endpointIds": ["ep_1"],
+      "instanceType": "Objective"
+    },
+    {
+      "id": "obj_2",
+      "name": "Safety Objective",
+      "text": "To evaluate the safety and tolerability of Drug X",
+      "level": {
+        "code": "Secondary",
+        "codeSystem": "http://www.cdisc.org/USDM/objectiveLevel",
+        "decode": "Secondary Objective"
+      },
+      "endpointIds": ["ep_2", "ep_3"],
+      "instanceType": "Objective"
     }
   ],
-  "secondaryObjectives": [
+  "endpoints": [
     {
-      "text": "Full text of the secondary objective",
-      "endpoints": [
-        {
-          "text": "Full text of the secondary endpoint",
-          "purpose": "Safety"
-        }
-      ]
-    }
-  ],
-  "exploratoryObjectives": [
+      "id": "ep_1",
+      "name": "Primary Efficacy Endpoint",
+      "text": "Change from baseline in disease severity score at Week 12",
+      "level": {
+        "code": "Primary",
+        "codeSystem": "http://www.cdisc.org/USDM/endpointLevel",
+        "decode": "Primary Endpoint"
+      },
+      "purpose": "Efficacy",
+      "instanceType": "Endpoint"
+    },
     {
-      "text": "Full text of the exploratory objective",
-      "endpoints": [
-        {
-          "text": "Full text of the exploratory endpoint",
-          "purpose": "Pharmacodynamic"
-        }
-      ]
+      "id": "ep_2",
+      "name": "Adverse Events",
+      "text": "Incidence and severity of treatment-emergent adverse events",
+      "level": {
+        "code": "Secondary",
+        "codeSystem": "http://www.cdisc.org/USDM/endpointLevel",
+        "decode": "Secondary Endpoint"
+      },
+      "purpose": "Safety",
+      "instanceType": "Endpoint"
     }
   ],
   "estimands": [
     {
+      "id": "est_1",
       "name": "Primary Estimand",
-      "population": "ITT population",
-      "treatment": "ALXN1840 vs placebo",
-      "variable": "Change from baseline in copper balance",
+      "text": "Treatment effect on disease severity in ITT population",
       "intercurrentEvents": [
         {
-          "event": "Treatment discontinuation",
-          "strategy": "Treatment Policy"
+          "id": "ice_1",
+          "name": "Treatment discontinuation",
+          "strategy": {
+            "code": "TreatmentPolicy",
+            "codeSystem": "http://www.cdisc.org/USDM/strategy",
+            "decode": "Treatment Policy"
+          },
+          "instanceType": "IntercurrentEvent"
         }
       ],
-      "summaryMeasure": "Difference in means"
+      "instanceType": "Estimand"
     }
   ]
 }
 ```
 
+## Level Codes
+- Primary = Primary (main objective/endpoint)
+- Secondary = Secondary (supporting)
+- Exploratory = Exploratory (hypothesis-generating)
+
+## Purpose Values
+- Efficacy, Safety, Tolerability, Pharmacokinetic, Pharmacodynamic, Biomarker, QualityOfLife
+
+## ID Linking Pattern
+- Objectives reference endpoints via `endpointIds` array
+- Use matching patterns: obj_1 → ep_1, obj_2 → ep_2, ep_3
+
 ## Rules
 
-1. **Extract exact text** - Copy objective and endpoint text verbatim
-2. **Match endpoints to objectives** - Associate each endpoint with its parent objective
-3. **Classify correctly** - Primary, Secondary, Exploratory based on protocol labeling
-4. **Purpose categories** - Use: Efficacy, Safety, Tolerability, Pharmacokinetic, Pharmacodynamic, Biomarker, Quality of Life
-5. **Be complete** - Extract ALL objectives and endpoints mentioned
-6. **Handle variations** - "Primary efficacy objective" = Primary, "Key secondary" = Secondary
-7. **Return ONLY valid JSON** - no markdown, no explanations
+1. **Every entity must have `id` and `instanceType`** - mandatory
+2. **Use sequential IDs** - obj_1, obj_2; ep_1, ep_2; est_1, etc.
+3. **Link objectives to endpoints** - endpointIds must match endpoint ids
+4. **Extract exact text** - Copy verbatim from protocol
+5. **Classify by level** - Primary, Secondary, Exploratory
+6. **Be complete** - Extract ALL objectives and endpoints
+7. **Return ONLY valid JSON** - no markdown fences, no explanations
 
 Now analyze the protocol content and extract the objectives and endpoints:
 """

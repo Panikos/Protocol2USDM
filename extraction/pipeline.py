@@ -82,6 +82,65 @@ class PipelineResult:
         }
 
 
+def _resolve_activity_group_links(activities, activity_groups):
+    """
+    Post-process activity groups to link activities by various strategies.
+    
+    Strategy 1: Use activityGroupId from text extraction (if present)
+    Strategy 2: Use activity_names from header analyzer (name matching)
+    Strategy 3: Keep empty (let viewer handle flat display)
+    
+    Args:
+        activities: List of Activity objects from text extraction
+        activity_groups: List of ActivityGroup objects from header analyzer
+        
+    Returns:
+        Updated activity_groups with activity_ids populated
+    """
+    if not activity_groups:
+        return activity_groups
+    
+    # Build activity name -> id mapping
+    activity_name_to_id = {}
+    activity_id_to_group = {}
+    
+    for act in activities:
+        act_dict = act.to_dict() if hasattr(act, 'to_dict') else act
+        act_id = act_dict.get('id') or (act.id if hasattr(act, 'id') else None)
+        act_name = act_dict.get('name') or (act.name if hasattr(act, 'name') else '')
+        
+        if act_id and act_name:
+            activity_name_to_id[act_name.lower().strip()] = act_id
+        
+        # Track existing activityGroupId assignments
+        group_id = act_dict.get('activityGroupId')
+        if group_id:
+            activity_id_to_group[act_id] = group_id
+    
+    # Update each group's activity_ids
+    for group in activity_groups:
+        child_ids = []
+        
+        # Strategy 1: Find activities that reference this group via activityGroupId
+        for act_id, grp_id in activity_id_to_group.items():
+            if grp_id == group.id:
+                child_ids.append(act_id)
+        
+        # Strategy 2: Match by activity_names from header analyzer
+        if not child_ids and hasattr(group, 'activity_names') and group.activity_names:
+            for act_name in group.activity_names:
+                act_name_lower = act_name.lower().strip()
+                if act_name_lower in activity_name_to_id:
+                    child_ids.append(activity_name_to_id[act_name_lower])
+        
+        # Update the group's activity_ids
+        if child_ids:
+            group.activity_ids = child_ids
+            logger.debug(f"Group '{group.name}' linked to {len(child_ids)} activities")
+    
+    return activity_groups
+
+
 def run_extraction_pipeline(
     protocol_text: str,
     soa_images: List[str],
@@ -180,12 +239,19 @@ def run_extraction_pipeline(
         if config.validate_with_vision and soa_images:
             logger.info("Step 3: Validating extraction against images...")
             
+            # Extract footnotes from header structure if available
+            footnotes_text = ""
+            if hasattr(header_structure, 'footnotes') and header_structure.footnotes:
+                footnotes_text = "\n".join(header_structure.footnotes)
+            
             validation = validate_extraction(
                 text_activities=[a.to_dict() for a in text_result.activities],
                 text_ticks=final_ticks,
                 header_structure=header_structure,
                 image_paths=soa_images,
                 model_name=config.model_name,
+                protocol_text=protocol_text,
+                footnotes=footnotes_text,
             )
             
             if validation.success:
@@ -222,13 +288,20 @@ def run_extraction_pipeline(
         # Rebuild timeline with validated ticks
         from core.usdm_types import Timeline, ActivityTimepoint, create_wrapper_input
         
+        # Post-process: Link activities to groups if not already linked
+        activity_groups = _resolve_activity_group_links(
+            text_result.activities, 
+            header_structure.activityGroups
+        )
+        
         final_timeline = Timeline(
             activities=text_result.activities,
             plannedTimepoints=header_structure.plannedTimepoints,
             encounters=header_structure.encounters,
             epochs=header_structure.epochs,
-            activityGroups=header_structure.activityGroups,
+            activityGroups=activity_groups,
             activityTimepoints=[ActivityTimepoint.from_dict(t) for t in final_ticks],
+            footnotes=header_structure.footnotes,  # SoA table footnotes
         )
         
         final_output = create_wrapper_input(final_timeline)

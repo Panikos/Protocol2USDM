@@ -2,147 +2,261 @@
 Terminology Enrichment
 
 Enriches USDM entities with standardized terminology codes from:
-- NCI Thesaurus
+- NCI Thesaurus (via EVS API)
 - CDISC Controlled Terminology
-- MedDRA
-- SNOMED CT
+
+Uses the EVS client with local caching for offline operation.
+Based on the approach from https://github.com/Panikos/AIBC
 """
 
 import json
 import logging
 import os
-from typing import Dict, Any, Optional
+from pathlib import Path
+from typing import Dict, Any, Optional, List
+
+from core.evs_client import (
+    EVSClient, 
+    get_client, 
+    fetch_code, 
+    find_ct_entry,
+    ensure_usdm_codes_cached,
+    USDM_CODES,
+)
 
 logger = logging.getLogger(__name__)
 
-
-# Common mappings for study phase
-STUDY_PHASE_CODES = {
-    'Phase 1': {'code': 'C15600', 'codeSystem': 'NCI', 'decode': 'Phase I Trial'},
-    'Phase 2': {'code': 'C15601', 'codeSystem': 'NCI', 'decode': 'Phase II Trial'},
-    'Phase 3': {'code': 'C15602', 'codeSystem': 'NCI', 'decode': 'Phase III Trial'},
-    'Phase 4': {'code': 'C15603', 'codeSystem': 'NCI', 'decode': 'Phase IV Trial'},
-    'Phase 1/2': {'code': 'C15693', 'codeSystem': 'NCI', 'decode': 'Phase I/II Trial'},
-    'Phase 2/3': {'code': 'C15694', 'codeSystem': 'NCI', 'decode': 'Phase II/III Trial'},
+# Term-to-code mappings for common USDM entities
+# These map text values to NCI codes for quick lookup
+STUDY_PHASE_MAPPINGS = {
+    'phase 1': 'C15600',
+    'phase i': 'C15600',
+    'phase 2': 'C15601',
+    'phase ii': 'C15601',
+    'phase 3': 'C15602',
+    'phase iii': 'C15602',
+    'phase 4': 'C15603',
+    'phase iv': 'C15603',
+    'phase 1/2': 'C15693',
+    'phase i/ii': 'C15693',
+    'phase 2/3': 'C15694',
+    'phase ii/iii': 'C15694',
 }
 
-# Blinding schema codes
-BLINDING_CODES = {
-    'Open Label': {'code': 'C82639', 'codeSystem': 'NCI', 'decode': 'Open Label Study'},
-    'Single Blind': {'code': 'C15228', 'codeSystem': 'NCI', 'decode': 'Single Blind Study'},
-    'Double Blind': {'code': 'C15227', 'codeSystem': 'NCI', 'decode': 'Double Blind Study'},
-    'Triple Blind': {'code': 'C156397', 'codeSystem': 'NCI', 'decode': 'Triple Blind Study'},
+BLINDING_MAPPINGS = {
+    'open label': 'C82639',
+    'open-label': 'C82639',
+    'single blind': 'C15228',
+    'single-blind': 'C15228',
+    'double blind': 'C15227',
+    'double-blind': 'C15227',
+    'triple blind': 'C156397',
+    'triple-blind': 'C156397',
 }
 
-# Objective level codes
-OBJECTIVE_LEVEL_CODES = {
-    'Primary': {'code': 'C98772', 'codeSystem': 'NCI', 'decode': 'Primary Objective'},
-    'Secondary': {'code': 'C98781', 'codeSystem': 'NCI', 'decode': 'Secondary Objective'},
-    'Exploratory': {'code': 'C98724', 'codeSystem': 'NCI', 'decode': 'Exploratory Objective'},
+OBJECTIVE_LEVEL_MAPPINGS = {
+    'primary': 'C98772',
+    'secondary': 'C98781',
+    'exploratory': 'C98724',
 }
 
-# Eligibility category codes
-ELIGIBILITY_CODES = {
-    'Inclusion': {'code': 'C25532', 'codeSystem': 'NCI', 'decode': 'Inclusion Criteria'},
-    'Exclusion': {'code': 'C25370', 'codeSystem': 'NCI', 'decode': 'Exclusion Criteria'},
+ELIGIBILITY_MAPPINGS = {
+    'inclusion': 'C25532',
+    'exclusion': 'C25370',
+}
+
+ENDPOINT_LEVEL_MAPPINGS = {
+    'primary': 'C98770',
+    'secondary': 'C98784',
+    'exploratory': 'C157551',
+}
+
+ARM_TYPE_MAPPINGS = {
+    'experimental': 'C174266',
+    'treatment': 'C174266',
+    'placebo': 'C49648',
+    'active comparator': 'C49649',
+    'comparator': 'C49649',
+    'no intervention': 'C174269',
+    'control': 'C49649',
 }
 
 
-def enrich_terminology(json_path: str) -> Dict[str, Any]:
+def _get_code_object(nci_code: str, client: EVSClient) -> Optional[Dict[str, Any]]:
+    """Get a USDM Code object for an NCI code, using cache."""
+    code_obj = client.fetch_ncit_code(nci_code)
+    if code_obj:
+        return code_obj
+    
+    # Fallback: return minimal code object from USDM_CODES
+    if nci_code in USDM_CODES:
+        return {
+            "id": nci_code,
+            "code": nci_code,
+            "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+            "codeSystemVersion": "unknown",
+            "decode": USDM_CODES[nci_code],
+            "instanceType": "Code",
+        }
+    return None
+
+
+def _find_mapping(text: str, mappings: Dict[str, str]) -> Optional[str]:
+    """Find NCI code for text in mappings."""
+    if not text:
+        return None
+    text_lower = text.lower().strip()
+    
+    # Exact match
+    if text_lower in mappings:
+        return mappings[text_lower]
+    
+    # Partial match
+    for key, code in mappings.items():
+        if key in text_lower or text_lower in key:
+            return code
+    
+    return None
+
+
+def enrich_terminology(json_path: str, output_dir: str = None) -> Dict[str, Any]:
     """
-    Enrich USDM entities with standardized terminology.
+    Enrich USDM entities with standardized NCI terminology codes.
+    
+    Uses the EVS API with local caching for efficient lookups.
     
     Args:
         json_path: Path to USDM JSON file (modified in place)
+        output_dir: Optional output directory for enrichment report
         
     Returns:
         Dict with enrichment results
     """
     try:
+        # Initialize EVS client and ensure USDM codes are cached
+        client = get_client()
+        ensure_usdm_codes_cached(client)
+        
         with open(json_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
         
         enriched_count = 0
+        total_entities = 0
+        by_type: Dict[str, int] = {}
         
-        # Enrich recursively
         def enrich_entity(obj: Dict, path: str = "") -> None:
-            nonlocal enriched_count
+            nonlocal enriched_count, total_entities
             
             if not isinstance(obj, dict):
                 return
             
             instance_type = obj.get('instanceType')
+            if instance_type:
+                total_entities += 1
             
             # Enrich study phase
-            if instance_type == 'StudyPhase' or 'studyPhase' in obj:
-                phase_obj = obj if instance_type == 'StudyPhase' else obj.get('studyPhase', {})
+            if 'studyPhase' in obj or instance_type == 'StudyPhase':
+                phase_obj = obj.get('studyPhase', obj) if 'studyPhase' in obj else obj
                 if isinstance(phase_obj, dict):
-                    phase = phase_obj.get('phase') or phase_obj.get('standardCode', {}).get('decode')
-                    if phase:
-                        for key, code_obj in STUDY_PHASE_CODES.items():
-                            if key.lower() in phase.lower():
-                                phase_obj['standardCode'] = code_obj.copy()
-                                enriched_count += 1
-                                break
+                    phase_text = (
+                        phase_obj.get('phase') or 
+                        phase_obj.get('standardCode', {}).get('decode') or
+                        phase_obj.get('decode', '')
+                    )
+                    nci_code = _find_mapping(phase_text, STUDY_PHASE_MAPPINGS)
+                    if nci_code:
+                        code_obj = _get_code_object(nci_code, client)
+                        if code_obj:
+                            phase_obj['standardCode'] = code_obj
+                            enriched_count += 1
+                            by_type['StudyPhase'] = by_type.get('StudyPhase', 0) + 1
             
             # Enrich blinding schema
             if 'blindingSchema' in obj:
                 blinding = obj['blindingSchema']
+                blinding_text = ''
                 if isinstance(blinding, dict):
-                    blinding_text = blinding.get('code') or blinding.get('decode') or ''
+                    blinding_text = blinding.get('decode') or blinding.get('code', '')
                 elif isinstance(blinding, str):
                     blinding_text = blinding
-                else:
-                    blinding_text = ''
                 
-                for key, code_obj in BLINDING_CODES.items():
-                    if key.lower() in blinding_text.lower():
-                        if isinstance(obj['blindingSchema'], dict):
-                            obj['blindingSchema'].update(code_obj)
-                        else:
-                            obj['blindingSchema'] = code_obj.copy()
+                nci_code = _find_mapping(blinding_text, BLINDING_MAPPINGS)
+                if nci_code:
+                    code_obj = _get_code_object(nci_code, client)
+                    if code_obj:
+                        obj['blindingSchema'] = code_obj
                         enriched_count += 1
-                        break
+                        by_type['BlindingSchema'] = by_type.get('BlindingSchema', 0) + 1
             
             # Enrich objective level
-            if instance_type in ('Objective', 'Endpoint') and 'level' in obj:
+            if instance_type == 'Objective' and 'level' in obj:
                 level = obj['level']
+                level_text = ''
                 if isinstance(level, dict):
-                    level_text = level.get('code') or level.get('decode') or ''
+                    level_text = level.get('decode') or level.get('code', '')
                 elif isinstance(level, str):
                     level_text = level
-                else:
-                    level_text = ''
                 
-                for key, code_obj in OBJECTIVE_LEVEL_CODES.items():
-                    if key.lower() == level_text.lower():
-                        if isinstance(obj['level'], dict):
-                            obj['level'].update(code_obj)
-                        else:
-                            obj['level'] = code_obj.copy()
+                nci_code = _find_mapping(level_text, OBJECTIVE_LEVEL_MAPPINGS)
+                if nci_code:
+                    code_obj = _get_code_object(nci_code, client)
+                    if code_obj:
+                        obj['level'] = code_obj
                         enriched_count += 1
-                        break
+                        by_type['Objective'] = by_type.get('Objective', 0) + 1
+            
+            # Enrich endpoint level
+            if instance_type == 'Endpoint' and 'level' in obj:
+                level = obj['level']
+                level_text = ''
+                if isinstance(level, dict):
+                    level_text = level.get('decode') or level.get('code', '')
+                elif isinstance(level, str):
+                    level_text = level
+                
+                nci_code = _find_mapping(level_text, ENDPOINT_LEVEL_MAPPINGS)
+                if nci_code:
+                    code_obj = _get_code_object(nci_code, client)
+                    if code_obj:
+                        obj['level'] = code_obj
+                        enriched_count += 1
+                        by_type['Endpoint'] = by_type.get('Endpoint', 0) + 1
             
             # Enrich eligibility category
             if instance_type == 'EligibilityCriterion' and 'category' in obj:
                 category = obj['category']
+                cat_text = ''
                 if isinstance(category, dict):
-                    cat_text = category.get('code') or category.get('decode') or ''
+                    cat_text = category.get('decode') or category.get('code', '')
                 elif isinstance(category, str):
                     cat_text = category
-                else:
-                    cat_text = ''
                 
-                for key, code_obj in ELIGIBILITY_CODES.items():
-                    if key.lower() == cat_text.lower():
-                        if isinstance(obj['category'], dict):
-                            obj['category'].update(code_obj)
-                        else:
-                            obj['category'] = code_obj.copy()
+                nci_code = _find_mapping(cat_text, ELIGIBILITY_MAPPINGS)
+                if nci_code:
+                    code_obj = _get_code_object(nci_code, client)
+                    if code_obj:
+                        obj['category'] = code_obj
                         enriched_count += 1
-                        break
+                        by_type['EligibilityCriterion'] = by_type.get('EligibilityCriterion', 0) + 1
             
-            # Recurse
+            # Enrich study arm type
+            if instance_type == 'StudyArm' and 'type' in obj:
+                arm_type = obj['type']
+                type_text = ''
+                if isinstance(arm_type, dict):
+                    type_text = arm_type.get('decode') or arm_type.get('code', '')
+                elif isinstance(arm_type, str):
+                    type_text = arm_type
+                
+                nci_code = _find_mapping(type_text, ARM_TYPE_MAPPINGS)
+                if nci_code:
+                    code_obj = _get_code_object(nci_code, client)
+                    if code_obj:
+                        obj['type'] = code_obj
+                        enriched_count += 1
+                        by_type['StudyArm'] = by_type.get('StudyArm', 0) + 1
+            
+            # Recurse into nested objects
             for key, value in obj.items():
                 if isinstance(value, dict):
                     enrich_entity(value, f"{path}/{key}")
@@ -151,21 +265,37 @@ def enrich_terminology(json_path: str) -> Dict[str, Any]:
                         if isinstance(item, dict):
                             enrich_entity(item, f"{path}/{key}[{i}]")
         
+        # Run enrichment
         enrich_entity(data)
         
         # Save enriched data
         with open(json_path, 'w', encoding='utf-8') as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
         
-        logger.info(f"Enriched {enriched_count} entities with terminology codes")
+        logger.info(f"Enriched {enriched_count} entities with NCI terminology codes")
         
-        return {
+        # Build result
+        result = {
             'success': True,
             'enriched': enriched_count,
+            'total_entities': total_entities,
+            'by_type': by_type,
+            'cache_stats': client.get_cache_stats(),
         }
+        
+        # Save enrichment report if output_dir provided
+        if output_dir:
+            report_path = Path(output_dir) / "terminology_enrichment.json"
+            with open(report_path, 'w', encoding='utf-8') as f:
+                json.dump(result, f, indent=2)
+            logger.info(f"Enrichment report saved to: {report_path}")
+        
+        return result
         
     except Exception as e:
         logger.error(f"Terminology enrichment failed: {e}")
+        import traceback
+        traceback.print_exc()
         return {
             'success': False,
             'error': str(e),
@@ -173,21 +303,54 @@ def enrich_terminology(json_path: str) -> Dict[str, Any]:
         }
 
 
-def lookup_nci_code(term: str) -> Optional[Dict[str, str]]:
+def lookup_nci_code(term: str) -> Optional[Dict[str, Any]]:
     """
-    Look up NCI Thesaurus code for a term.
+    Look up NCI Thesaurus code for a term using the EVS API.
     
-    In production, this would call the NCI EVS API.
+    Args:
+        term: Term to search for
+        
+    Returns:
+        USDM Code object or None if not found
     """
-    # Placeholder - would call NCI EVS API
+    entry = find_ct_entry(term)
+    if entry:
+        return {
+            "id": entry.get("code"),
+            "code": entry.get("code"),
+            "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+            "codeSystemVersion": "unknown",
+            "decode": entry.get("preferredName") or entry.get("name", term),
+            "instanceType": "Code",
+        }
     return None
 
 
-def lookup_meddra_code(term: str) -> Optional[Dict[str, str]]:
+def update_evs_cache() -> Dict[str, int]:
     """
-    Look up MedDRA code for a medical term.
+    Update the EVS cache with all USDM-relevant NCI codes.
     
-    In production, this would call MedDRA API.
+    Call this to refresh the cache or on first run.
+    
+    Returns:
+        Dict with success/failed/skipped counts
     """
-    # Placeholder - would call MedDRA API
-    return None
+    client = get_client()
+    return ensure_usdm_codes_cached(client)
+
+
+def get_evs_cache_stats() -> Dict[str, Any]:
+    """
+    Get statistics about the EVS cache.
+    
+    Returns:
+        Dict with cache statistics
+    """
+    return get_client().get_cache_stats()
+
+
+def clear_evs_cache() -> None:
+    """
+    Clear the EVS cache.
+    """
+    get_client().clear_cache()

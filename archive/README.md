@@ -9,7 +9,8 @@ archive/
 ├── legacy_pipeline/       # Old multi-step pipeline scripts
 ├── optimization/          # Prompt optimization experiments
 ├── tests_legacy/          # Old test files
-├── fix_*.py               # Workaround scripts (already moved)
+├── docs_legacy/           # Outdated documentation
+├── fix_*.py               # Workaround scripts
 └── README.md              # This file
 ```
 
@@ -63,12 +64,32 @@ Old test files that may need updating:
 | `regenerate_instances.py` | Transform flat timeline | Correct structure from start |
 | `audit_timepoints.py` | Debug timepoint issues | Integrated into validation |
 
+### Documentation (`docs_legacy/`)
+
+Outdated documentation files:
+
+| File | Original Purpose | Status |
+|------|------------------|--------|
+| `MIGRATION_GUIDE.md` | Migration from main.py | Archived (main.py deprecated) |
+| `USDM_EXPANSION_PLAN.md` | Original expansion plan | Superseded by USDM_COVERAGE_STATUS.md |
+| Various *.md | Old design docs | Historical reference only |
+
+---
+
 ## Recovery
 
 If you need to restore any of these files:
 1. Copy from this directory back to root
 2. Or recover from git history
 
-## New Architecture
+## Current Architecture
 
-See `docs/MIGRATION_GUIDE.md` for the new modular architecture.
+See main project documentation:
+- `README.md` - Project overview
+- `USER_GUIDE.md` - Detailed usage guide
+- `QUICK_REFERENCE.md` - Command reference
+- `USDM_COVERAGE_STATUS.md` - Entity coverage
+
+---
+
+**Last Updated:** 2025-11-28

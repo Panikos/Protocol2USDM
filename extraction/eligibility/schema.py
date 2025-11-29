@@ -1,5 +1,11 @@
 """
-USDM Schema definitions for Eligibility Criteria entities.
+Eligibility Extraction Schema - Internal types for extraction pipeline.
+
+These types are used during extraction and convert to official USDM types
+(from core.usdm_types) when generating final output.
+
+For official USDM types, see: core/usdm_types.py
+For schema source: https://github.com/cdisc-org/DDF-RA/blob/main/Deliverables/UML/dataStructure.yml
 
 Based on USDM v4.0 specification.
 """
@@ -7,6 +13,9 @@ Based on USDM v4.0 specification.
 from dataclasses import dataclass, field
 from typing import List, Optional, Dict, Any
 from enum import Enum
+
+# Import utilities from central types module
+from core.usdm_types import generate_uuid, Code
 
 
 class CriterionCategory(Enum):

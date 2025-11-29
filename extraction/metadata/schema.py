@@ -1,12 +1,18 @@
 """
-USDM Schema definitions for Study Metadata entities.
+Metadata Extraction Schema - Internal types for extraction pipeline.
 
-Based on USDM v4.0 specification.
+These types are used during extraction and convert to official USDM types
+(from core.usdm_types) when generating final output.
+
+For official USDM types, see: core/usdm_types.py
+Schema source: https://github.com/cdisc-org/DDF-RA/blob/main/Deliverables/UML/dataStructure.yml
 """
 
 from dataclasses import dataclass, field
 from typing import List, Optional, Dict, Any
 from enum import Enum
+
+from core.usdm_types import generate_uuid, Code
 
 
 class TitleType(Enum):

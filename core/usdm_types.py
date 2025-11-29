@@ -1,268 +1,257 @@
 """
-USDM Type Definitions - Typed dataclasses for USDM v4.0 entities.
+USDM Type Definitions - Official CDISC USDM v4.0 Entities
 
-These types provide:
-- Type safety and IDE autocompletion
-- Validation of required fields
-- Easy serialization to/from JSON
-- Documentation of USDM structure
+This module provides Python dataclasses for all USDM entities, generated from
+the official CDISC dataStructure.yml schema.
+
+Source of Truth: https://github.com/cdisc-org/DDF-RA/blob/main/Deliverables/UML/dataStructure.yml
+
+All types include:
+- Correct required fields per schema
+- NCI codes where defined
+- Auto-generated UUIDs for id fields
+- Intelligent defaults for required Code fields (type, dataOriginType, etc.)
 
 Usage:
-    from core.usdm_types import Activity, PlannedTimepoint, HeaderStructure
+    from core.usdm_types import Activity, Encounter, Code
     
-    activity = Activity(id="act_1", name="Vital Signs")
-    data = activity.to_dict()
+    activity = Activity(name="Blood Draw")
+    print(activity.to_dict())  # All required fields automatically included
 """
 
-from dataclasses import dataclass, field, asdict
-from typing import List, Optional, Dict, Any
 from enum import Enum
+from dataclasses import dataclass, field
+from typing import Dict, List, Optional, Any
 
-
-class EntityType(Enum):
-    """USDM entity instance types."""
-    ACTIVITY = "Activity"
-    PLANNED_TIMEPOINT = "PlannedTimepoint"
-    ENCOUNTER = "Encounter"
-    EPOCH = "Epoch"
-    ACTIVITY_GROUP = "ActivityGroup"
-    ACTIVITY_TIMEPOINT = "ActivityTimepoint"
-
-
-@dataclass
-class Code:
-    """CDISC-style coded value."""
-    code: str
-    decode: str
-    codeSystem: Optional[str] = None
-    codeSystemVersion: Optional[str] = None
+# Import all official USDM types from schema-generated module
+from core.usdm_types_generated import (
+    # Core types
+    Code,
+    AliasCode,
+    CommentAnnotation,
+    Range,
+    Quantity,
+    Duration,
     
-    def to_dict(self) -> Dict[str, Any]:
-        return {k: v for k, v in asdict(self).items() if v is not None}
+    # Study structure
+    Study,
+    StudyVersion,
+    StudyDesign,
+    StudyArm,
+    StudyCell,
+    StudyCohort,
     
-    @classmethod
-    def from_dict(cls, data: Dict) -> 'Code':
-        if not data:
-            return None
-        return cls(
-            code=data.get('code', ''),
-            decode=data.get('decode', ''),
-            codeSystem=data.get('codeSystem'),
-            codeSystemVersion=data.get('codeSystemVersion'),
-        )
-
-
-@dataclass
-class Timing:
-    """Encounter timing information."""
-    windowLabel: Optional[str] = None
-    windowLower: Optional[int] = None
-    windowUpper: Optional[int] = None
-    unit: Optional[str] = None
-    anchorEvent: Optional[str] = None
+    # Metadata
+    StudyTitle,
+    StudyIdentifier,
+    Organization,
+    Indication,
+    Abbreviation,
+    NarrativeContent,
+    StudyAmendment,
     
-    def to_dict(self) -> Dict[str, Any]:
-        return {k: v for k, v in asdict(self).items() if v is not None}
-
-
-@dataclass
-class Activity:
-    """USDM Activity entity - a procedure or assessment."""
-    id: str
-    name: str
-    instanceType: str = "Activity"
-    description: Optional[str] = None
-    activityGroupId: Optional[str] = None
-    biomedicalConceptId: Optional[str] = None
+    # SoA entities
+    Activity,
+    Encounter,
+    StudyEpoch,
+    Epoch,  # Alias for StudyEpoch
+    ScheduleTimeline,
+    ScheduledActivityInstance,
+    ScheduleTimelineExit,
+    Timing,
     
-    def to_dict(self) -> Dict[str, Any]:
-        return {k: v for k, v in asdict(self).items() if v is not None}
+    # Eligibility
+    EligibilityCriterion,
+    EligibilityCriterionItem,
+    StudyDesignPopulation,
     
-    @classmethod
-    def from_dict(cls, data: Dict) -> 'Activity':
-        return cls(
-            id=data.get('id', ''),
-            name=data.get('name', ''),
-            instanceType=data.get('instanceType', 'Activity'),
-            description=data.get('description'),
-            activityGroupId=data.get('activityGroupId'),
-            biomedicalConceptId=data.get('biomedicalConceptId'),
-        )
+    # Objectives
+    Objective,
+    Endpoint,
+    Estimand,
+    IntercurrentEvent,
+    
+    # Interventions
+    StudyIntervention,
+    AdministrableProduct,
+    Administration,
+    Procedure,
+    
+    # Scheduling
+    Condition,
+    TransitionRule,
+    
+    # Helpers
+    generate_uuid,
+    create_wrapper_input,
+    USDMEntity,
+)
 
+
+# =============================================================================
+# Internal Extraction Types
+# =============================================================================
+# These types are used ONLY during the extraction pipeline and are NOT official
+# USDM entities. They serve as intermediate containers before conversion.
 
 @dataclass
 class PlannedTimepoint:
-    """USDM PlannedTimepoint entity - a scheduled moment."""
-    id: str
-    name: str
-    instanceType: str = "PlannedTimepoint"
-    description: Optional[str] = None
-    encounterId: Optional[str] = None
-    value: Optional[int] = None
-    valueLabel: Optional[str] = None
-    windowLabel: Optional[str] = None
-    windowLower: Optional[int] = None
-    windowUpper: Optional[int] = None
-    unit: Optional[str] = None
-    type: Optional[Code] = None
-    relativeToFrom: Optional[Code] = None
-    relativeFromScheduledInstanceId: Optional[str] = None
+    """
+    Internal extraction type - represents a column in the SoA table.
+    Maps to Encounter + Timing in USDM 4.0.
+    """
+    id: str = ""
+    visit: str = ""
+    epoch: str = ""
+    epochId: str = ""
+    day: str = ""
+    window: Optional[str] = None
+    encounterId: str = ""
+    valueLabel: str = ""  # Alias for visit
+    
+    @property
+    def name(self) -> str:
+        """Alias for visit - for backward compatibility."""
+        return self.visit or self.valueLabel
     
     def to_dict(self) -> Dict[str, Any]:
-        result = {}
-        for k, v in asdict(self).items():
-            if v is not None:
-                if isinstance(v, dict):
-                    result[k] = v
-                else:
-                    result[k] = v
-        return result
+        return {
+            "id": self.id or generate_uuid(),
+            "visit": self.visit,
+            "epoch": self.epoch,
+            "epochId": self.epochId,
+            "day": self.day,
+            "window": self.window,
+            "encounterId": self.encounterId,
+            "instanceType": "Timing",
+        }
     
     @classmethod
     def from_dict(cls, data: Dict) -> 'PlannedTimepoint':
+        if not data:
+            return cls()
         return cls(
             id=data.get('id', ''),
-            name=data.get('name', ''),
-            instanceType=data.get('instanceType', 'PlannedTimepoint'),
-            description=data.get('description'),
-            encounterId=data.get('encounterId'),
-            value=data.get('value'),
-            valueLabel=data.get('valueLabel'),
-            windowLabel=data.get('windowLabel'),
-            windowLower=data.get('windowLower'),
-            windowUpper=data.get('windowUpper'),
-            unit=data.get('unit'),
-            type=Code.from_dict(data.get('type')) if data.get('type') else None,
-            relativeToFrom=Code.from_dict(data.get('relativeToFrom')) if data.get('relativeToFrom') else None,
-            relativeFromScheduledInstanceId=data.get('relativeFromScheduledInstanceId'),
+            visit=data.get('visit', data.get('valueLabel', data.get('name', ''))),
+            epoch=data.get('epoch', ''),
+            epochId=data.get('epochId', ''),
+            day=data.get('day', data.get('value', '')),
+            window=data.get('window'),
+            encounterId=data.get('encounterId', ''),
         )
+    
+    def to_timing(self) -> Timing:
+        """Convert to official USDM Timing."""
+        return Timing(id=self.id or generate_uuid(), value=self.day, valueLabel=self.visit)
 
 
 @dataclass
-class Encounter:
-    """USDM Encounter entity - a visit."""
-    id: str
-    name: str
-    instanceType: str = "Encounter"
-    description: Optional[str] = None
-    epochId: Optional[str] = None
-    type: Optional[Code] = None
-    timing: Optional[Timing] = None
+class ActivityTimepoint:
+    """
+    Internal extraction type - represents a tick in the SoA matrix.
+    Maps to ScheduledActivityInstance in USDM 4.0.
+    """
+    activity_id: str = ""
+    timepoint_id: str = ""
+    is_performed: bool = True
+    condition: Optional[str] = None
+    activityId: str = ""  # Alternative field name
+    plannedTimepointId: str = ""  # Alternative field name
+    encounterId: str = ""  # Alternative field name
+    
+    def __post_init__(self):
+        if not self.activity_id and self.activityId:
+            self.activity_id = self.activityId
+        if not self.timepoint_id:
+            self.timepoint_id = self.plannedTimepointId or self.encounterId
     
     def to_dict(self) -> Dict[str, Any]:
-        result = {'id': self.id, 'name': self.name, 'instanceType': self.instanceType}
-        if self.description:
-            result['description'] = self.description
-        if self.epochId:
-            result['epochId'] = self.epochId
-        if self.type:
-            result['type'] = self.type.to_dict() if isinstance(self.type, Code) else self.type
-        if self.timing:
-            result['timing'] = self.timing.to_dict() if isinstance(self.timing, Timing) else self.timing
-        return result
+        return {
+            "activityId": self.activity_id or self.activityId,
+            "encounterId": self.timepoint_id or self.plannedTimepointId or self.encounterId,
+            "instanceType": "ScheduledActivityInstance",
+        }
     
     @classmethod
-    def from_dict(cls, data: Dict) -> 'Encounter':
-        timing_data = data.get('timing')
-        timing = None
-        if timing_data and isinstance(timing_data, dict):
-            timing = Timing(**{k: v for k, v in timing_data.items() if k in Timing.__dataclass_fields__})
-        
+    def from_dict(cls, data: Dict) -> 'ActivityTimepoint':
+        if not data:
+            return cls()
         return cls(
-            id=data.get('id', ''),
-            name=data.get('name', ''),
-            instanceType=data.get('instanceType', 'Encounter'),
-            description=data.get('description'),
-            epochId=data.get('epochId'),
-            type=Code.from_dict(data.get('type')) if data.get('type') else None,
-            timing=timing,
+            activity_id=data.get('activity_id', data.get('activityId', '')),
+            timepoint_id=data.get('timepoint_id', data.get('plannedTimepointId', data.get('encounterId', ''))),
+            is_performed=data.get('is_performed', data.get('isPerformed', True)),
+            condition=data.get('condition'),
         )
-
-
-@dataclass
-class Epoch:
-    """USDM Epoch entity - a study phase."""
-    id: str
-    name: str
-    instanceType: str = "Epoch"
-    description: Optional[str] = None
-    position: Optional[int] = None
     
-    def to_dict(self) -> Dict[str, Any]:
-        return {k: v for k, v in asdict(self).items() if v is not None}
-    
-    @classmethod
-    def from_dict(cls, data: Dict) -> 'Epoch':
-        return cls(
-            id=data.get('id', ''),
-            name=data.get('name', ''),
-            instanceType=data.get('instanceType', 'Epoch'),
-            description=data.get('description'),
-            position=data.get('position'),
+    def to_scheduled_instance(self) -> ScheduledActivityInstance:
+        """Convert to official USDM ScheduledActivityInstance."""
+        return ScheduledActivityInstance(
+            id=generate_uuid(),
+            activityId=self.activity_id or self.activityId,
+            encounterId=self.timepoint_id or self.plannedTimepointId or self.encounterId,
         )
 
 
 @dataclass
 class ActivityGroup:
-    """USDM ActivityGroup entity - groups related activities."""
-    id: str
-    name: str
-    instanceType: str = "ActivityGroup"
+    """
+    Internal extraction type - represents a row section header in SoA.
+    Maps to Activity with childIds in USDM 4.0.
+    """
+    id: str = ""
+    name: str = ""
     description: Optional[str] = None
-    activities: List[str] = field(default_factory=list)  # List of activity names or IDs
+    activity_ids: List[str] = field(default_factory=list)  # Activity IDs (populated during post-processing)
+    activity_names: List[str] = field(default_factory=list)  # Activity names from header analyzer (for matching)
+    is_bold: bool = False
+    is_merged: bool = False
+    row_index: Optional[int] = None
     
     def to_dict(self) -> Dict[str, Any]:
-        result = {'id': self.id, 'name': self.name, 'instanceType': self.instanceType}
-        if self.description:
-            result['description'] = self.description
-        if self.activities:
-            result['activities'] = self.activities
+        result = {
+            "id": self.id or generate_uuid(),
+            "name": self.name,
+            "description": self.description,
+            "childIds": self.activity_ids,
+            "instanceType": "Activity",
+        }
+        # Include activity_names if present (for text extraction prompt)
+        if self.activity_names:
+            result["activityNames"] = self.activity_names
         return result
     
     @classmethod
     def from_dict(cls, data: Dict) -> 'ActivityGroup':
+        if not data:
+            return cls()
         return cls(
             id=data.get('id', ''),
             name=data.get('name', ''),
-            instanceType=data.get('instanceType', 'ActivityGroup'),
             description=data.get('description'),
-            activities=data.get('activities', []),
+            activity_ids=data.get('activity_ids', data.get('childIds', [])),
+            activity_names=data.get('activityNames', data.get('activity_names', [])),  # From header analyzer
+            is_bold=data.get('is_bold', data.get('isBold', False)),
+            is_merged=data.get('is_merged', data.get('isMerged', data.get('hasMergedCells', False))),
+            row_index=data.get('row_index', data.get('rowIndex')),
         )
-
-
-@dataclass
-class ActivityTimepoint:
-    """USDM ActivityTimepoint - maps activity to timepoint (a tick)."""
-    id: str
-    activityId: str
-    plannedTimepointId: str
-    instanceType: str = "ActivityTimepoint"
     
-    def to_dict(self) -> Dict[str, Any]:
-        return asdict(self)
-    
-    @classmethod
-    def from_dict(cls, data: Dict) -> 'ActivityTimepoint':
-        return cls(
-            id=data.get('id', ''),
-            activityId=data.get('activityId', ''),
-            plannedTimepointId=data.get('plannedTimepointId') or data.get('timepointId', ''),
-            instanceType=data.get('instanceType', 'ActivityTimepoint'),
-        )
+    def to_activity(self) -> Activity:
+        """Convert to official USDM Activity with childIds."""
+        return Activity(id=self.id or generate_uuid(), name=self.name, 
+                       description=self.description, childIds=self.activity_ids)
 
 
 @dataclass
 class HeaderStructure:
     """
-    Structure extracted from SoA table headers by vision analysis.
-    
-    This is the OUTPUT of vision analysis and INPUT to text extraction.
-    It provides the structural anchor that text extraction must follow.
+    Internal extraction type - container for SoA table structure from vision analysis.
+    Used as an anchor for text extraction to ensure consistent IDs.
     """
-    epochs: List[Epoch] = field(default_factory=list)
+    epochs: List[StudyEpoch] = field(default_factory=list)
     encounters: List[Encounter] = field(default_factory=list)
     plannedTimepoints: List[PlannedTimepoint] = field(default_factory=list)
     activityGroups: List[ActivityGroup] = field(default_factory=list)
+    footnotes: List[str] = field(default_factory=list)
     
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -272,40 +261,64 @@ class HeaderStructure:
                 'plannedTimepoints': [pt.to_dict() for pt in self.plannedTimepoints],
             },
             'rowGroups': [g.to_dict() for g in self.activityGroups],
+            'footnotes': self.footnotes,
         }
     
     @classmethod
     def from_dict(cls, data: Dict) -> 'HeaderStructure':
+        if not data:
+            return cls()
         col_h = data.get('columnHierarchy', {})
+        
+        # Parse epochs
+        epochs = []
+        for e in col_h.get('epochs', []):
+            epochs.append(StudyEpoch(
+                id=e.get('id', generate_uuid()),
+                name=e.get('name', ''),
+                description=e.get('description'),
+            ))
+        
+        # Parse encounters
+        encounters = []
+        for e in col_h.get('encounters', []):
+            encounters.append(Encounter(
+                id=e.get('id', generate_uuid()),
+                name=e.get('name', ''),
+                epochId=e.get('epochId'),
+            ))
+        
         return cls(
-            epochs=[Epoch.from_dict(e) for e in col_h.get('epochs', [])],
-            encounters=[Encounter.from_dict(e) for e in col_h.get('encounters', [])],
+            epochs=epochs,
+            encounters=encounters,
             plannedTimepoints=[PlannedTimepoint.from_dict(pt) for pt in col_h.get('plannedTimepoints', [])],
             activityGroups=[ActivityGroup.from_dict(g) for g in data.get('rowGroups', [])],
+            footnotes=data.get('footnotes', []),
         )
     
     def get_timepoint_ids(self) -> List[str]:
-        """Get ordered list of timepoint IDs."""
         return [pt.id for pt in self.plannedTimepoints]
     
     def get_encounter_ids(self) -> List[str]:
-        """Get ordered list of encounter IDs."""
         return [enc.id for enc in self.encounters]
     
     def get_group_ids(self) -> List[str]:
-        """Get ordered list of activity group IDs."""
         return [g.id for g in self.activityGroups]
 
 
 @dataclass
 class Timeline:
-    """USDM Timeline containing all SoA entities."""
+    """
+    Internal extraction type - container for SoA data during extraction.
+    Convert to StudyDesign via to_study_design() for USDM compliance.
+    """
     activities: List[Activity] = field(default_factory=list)
     plannedTimepoints: List[PlannedTimepoint] = field(default_factory=list)
     encounters: List[Encounter] = field(default_factory=list)
-    epochs: List[Epoch] = field(default_factory=list)
+    epochs: List[StudyEpoch] = field(default_factory=list)
     activityGroups: List[ActivityGroup] = field(default_factory=list)
     activityTimepoints: List[ActivityTimepoint] = field(default_factory=list)
+    footnotes: List[str] = field(default_factory=list)
     
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -315,42 +328,167 @@ class Timeline:
             'epochs': [e.to_dict() for e in self.epochs],
             'activityGroups': [g.to_dict() for g in self.activityGroups],
             'activityTimepoints': [at.to_dict() for at in self.activityTimepoints],
+            'footnotes': self.footnotes,
         }
     
     @classmethod
     def from_dict(cls, data: Dict) -> 'Timeline':
+        if not data:
+            return cls()
+        
+        # Parse activities
+        activities = []
+        for a in data.get('activities', []):
+            activities.append(Activity(
+                id=a.get('id', generate_uuid()),
+                name=a.get('name', ''),
+                description=a.get('description'),
+                label=a.get('label'),
+            ))
+        
+        # Parse encounters
+        encounters = []
+        for e in data.get('encounters', []):
+            encounters.append(Encounter(
+                id=e.get('id', generate_uuid()),
+                name=e.get('name', ''),
+                epochId=e.get('epochId'),
+            ))
+        
+        # Parse epochs
+        epochs = []
+        for e in data.get('epochs', []):
+            epochs.append(StudyEpoch(
+                id=e.get('id', generate_uuid()),
+                name=e.get('name', ''),
+                description=e.get('description'),
+            ))
+        
         return cls(
-            activities=[Activity.from_dict(a) for a in data.get('activities', [])],
+            activities=activities,
             plannedTimepoints=[PlannedTimepoint.from_dict(pt) for pt in data.get('plannedTimepoints', [])],
-            encounters=[Encounter.from_dict(e) for e in data.get('encounters', [])],
-            epochs=[Epoch.from_dict(e) for e in data.get('epochs', [])],
+            encounters=encounters,
+            epochs=epochs,
             activityGroups=[ActivityGroup.from_dict(g) for g in data.get('activityGroups', [])],
             activityTimepoints=[ActivityTimepoint.from_dict(at) for at in data.get('activityTimepoints', [])],
+            footnotes=data.get('footnotes', []),
+        )
+    
+    def to_study_design(self, design_id: str = "sd_1") -> StudyDesign:
+        """Convert Timeline to proper USDM StudyDesign."""
+        all_activities = []
+        
+        # Convert activity groups to parent Activities with childIds
+        if self.activityGroups:
+            for group in self.activityGroups:
+                # 1. Check if ActivityGroup already has activity_ids (from post-processing)
+                child_ids = getattr(group, 'activity_ids', []) or []
+                
+                # 2. Fallback: match by activityGroupId on activities
+                if not child_ids:
+                    for act in self.activities:
+                        act_dict = act.to_dict() if hasattr(act, 'to_dict') else act
+                        if act_dict.get('activityGroupId') == group.id:
+                            child_ids.append(act.id)
+                
+                # 3. Fallback: match by activity_names from header analyzer (fuzzy name matching)
+                if not child_ids:
+                    activity_names = getattr(group, 'activity_names', []) or []
+                    if activity_names:
+                        activity_names_lower = [n.lower().strip() for n in activity_names]
+                        for act in self.activities:
+                            act_name = (act.name if hasattr(act, 'name') else act.get('name', '')).lower().strip()
+                            if act_name in activity_names_lower:
+                                child_ids.append(act.id if hasattr(act, 'id') else act.get('id'))
+                
+                # Only add parent activity if it has children
+                if child_ids:
+                    parent_activity = Activity(
+                        id=group.id,
+                        name=group.name,
+                        description=group.description,
+                        childIds=child_ids,
+                    )
+                    all_activities.append(parent_activity)
+        
+        all_activities.extend(self.activities)
+        
+        # Convert footnotes to CommentAnnotations
+        soa_notes = [
+            CommentAnnotation(id=f"soa_fn_{i+1}", text=fn)
+            for i, fn in enumerate(self.footnotes)
+        ]
+        
+        return StudyDesign(
+            id=design_id,
+            activities=all_activities,
+            encounters=self.encounters,
+            epochs=self.epochs,
+            scheduleTimelines=[
+                ScheduleTimeline(
+                    id="timeline_1",
+                    name="Main Schedule Timeline",
+                    mainTimeline=True,
+                    instances=[at.to_scheduled_instance() for at in self.activityTimepoints],
+                )
+            ],
+            notes=soa_notes,
         )
 
 
-def create_wrapper_input(timeline: Timeline, usdm_version: str = "4.0", 
-                         system_name: str = "Protocol2USDM", 
-                         system_version: str = "0.1.0") -> Dict[str, Any]:
-    """
-    Create a complete USDM Wrapper-Input structure.
-    
-    Args:
-        timeline: Timeline containing all SoA entities
-        usdm_version: USDM schema version
-        system_name: Name of the generating system
-        system_version: Version of the generating system
-    
-    Returns:
-        Complete Wrapper-Input dict ready for JSON serialization
-    """
-    return {
-        'usdmVersion': usdm_version,
-        'systemName': system_name,
-        'systemVersion': system_version,
-        'study': {
-            'versions': [{
-                'timeline': timeline.to_dict()
-            }]
-        }
-    }
+# =============================================================================
+# Enums and Constants
+# =============================================================================
+
+class EntityType(Enum):
+    """USDM entity instance types."""
+    ACTIVITY = "Activity"
+    SCHEDULED_ACTIVITY_INSTANCE = "ScheduledActivityInstance"
+    ENCOUNTER = "Encounter"
+    STUDY_EPOCH = "StudyEpoch"
+    SCHEDULE_TIMELINE = "ScheduleTimeline"
+    TIMING = "Timing"
+    # Deprecated names (backward compatibility)
+    PLANNED_TIMEPOINT = "Timing"
+    EPOCH = "StudyEpoch"
+    ACTIVITY_GROUP = "Activity"
+    ACTIVITY_TIMEPOINT = "ScheduledActivityInstance"
+
+
+# Flag indicating we're using schema-generated types
+USING_GENERATED_TYPES = True
+
+
+# =============================================================================
+# Exports
+# =============================================================================
+
+__all__ = [
+    # Core types
+    'Code', 'AliasCode', 'CommentAnnotation', 'Range', 'Quantity', 'Duration',
+    # Study structure
+    'Study', 'StudyVersion', 'StudyDesign', 'StudyArm', 'StudyCell', 'StudyCohort',
+    # Metadata
+    'StudyTitle', 'StudyIdentifier', 'Organization', 'Indication',
+    'Abbreviation', 'NarrativeContent', 'StudyAmendment',
+    # SoA entities
+    'Activity', 'Encounter', 'StudyEpoch', 'Epoch', 'ScheduleTimeline',
+    'ScheduledActivityInstance', 'ScheduleTimelineExit', 'Timing',
+    # Eligibility
+    'EligibilityCriterion', 'EligibilityCriterionItem', 'StudyDesignPopulation',
+    # Objectives
+    'Objective', 'Endpoint', 'Estimand', 'IntercurrentEvent',
+    # Interventions
+    'StudyIntervention', 'AdministrableProduct', 'Administration', 'Procedure',
+    # Scheduling
+    'Condition', 'TransitionRule',
+    # Internal extraction types (not official USDM)
+    'PlannedTimepoint', 'ActivityTimepoint', 'ActivityGroup',
+    'HeaderStructure', 'Timeline',
+    # Helpers
+    'generate_uuid', 'create_wrapper_input', 'USDMEntity',
+    # Enums
+    'EntityType',
+    # Flags
+    'USING_GENERATED_TYPES',
+]

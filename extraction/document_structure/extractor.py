@@ -130,11 +130,29 @@ def extract_document_structure(
         )
         response = result.get('response', '')
         
+        if not response or not response.strip():
+            logger.warning("LLM returned empty response for document structure")
+            return DocumentStructureResult(
+                success=False,
+                error="LLM returned empty response",
+                pages_used=pages,
+                model_used=model,
+            )
+        
         json_match = re.search(r'```json\s*(.*?)\s*```', response, re.DOTALL)
         if json_match:
             json_str = json_match.group(1)
         else:
-            json_str = response
+            json_str = response.strip()
+        
+        if not json_str or json_str == '':
+            logger.warning("No JSON content found in LLM response")
+            return DocumentStructureResult(
+                success=False,
+                error="No JSON content in response",
+                pages_used=pages,
+                model_used=model,
+            )
         
         raw_data = json.loads(json_str)
         
