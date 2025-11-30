@@ -25,7 +25,7 @@ import json
 import base64
 import logging
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from dataclasses import dataclass
 
 from core.llm_client import get_llm_client, LLMConfig
@@ -327,43 +327,54 @@ def _analyze_with_openai(
     
     client = OpenAI(api_key=api_key)
     
-    # Build message content with images
-    content = [{"type": "text", "text": prompt}]
+    def call_api(images: List[str]) -> Tuple[str, HeaderStructure]:
+        """Make API call with given images."""
+        content = [{"type": "text", "text": prompt}]
+        for img_path in images:
+            data_url = encode_image(img_path)
+            content.append({
+                "type": "image_url",
+                "image_url": {"url": data_url}
+            })
+        
+        is_reasoning = any(rm in model_name.lower() for rm in ['o1', 'o3', 'gpt-5'])
+        params = {
+            "model": model_name,
+            "messages": [{"role": "user", "content": content}],
+            "response_format": {"type": "json_object"},
+        }
+        if is_reasoning:
+            params["max_completion_tokens"] = 4096
+        else:
+            params["max_tokens"] = 4096
+            params["temperature"] = 0.1
+        
+        response = client.chat.completions.create(**params)
+        raw = response.choices[0].message.content or ""
+        data = parse_llm_json(raw, fallback={})
+        struct = HeaderStructure.from_dict(data)
+        return raw, struct
     
-    for img_path in image_paths:
-        data_url = encode_image(img_path)
-        content.append({
-            "type": "image_url",
-            "image_url": {"url": data_url}
-        })
-    
-    # Build parameters - handle reasoning models differently
-    is_reasoning = any(rm in model_name.lower() for rm in ['o1', 'o3', 'gpt-5'])
-    
-    params = {
-        "model": model_name,
-        "messages": [{"role": "user", "content": content}],
-        "response_format": {"type": "json_object"},
-    }
-    
-    if is_reasoning:
-        params["max_completion_tokens"] = 4096
-        # Reasoning models don't support temperature
-    else:
-        params["max_tokens"] = 4096
-        params["temperature"] = 0.1
-    
-    # Generate response
-    response = client.chat.completions.create(**params)
-    
-    raw_response = response.choices[0].message.content or ""
-    
-    # Parse response
-    data = parse_llm_json(raw_response, fallback={})
-    structure = HeaderStructure.from_dict(data)
-    
-    # Enforce unique encounter names
+    # Try with all images first
+    raw_response, structure = call_api(image_paths)
     structure = _enforce_unique_encounter_names(structure)
+    
+    # If result is empty and we have multiple images, try with later images only
+    # (Early pages often contain SoA title/text, actual table is on later pages)
+    if len(image_paths) > 3 and not structure.encounters:
+        logger.info(f"Empty result with all images, retrying with later images only...")
+        later_images = image_paths[len(image_paths)//2:]  # Use second half of images
+        raw_response, structure = call_api(later_images)
+        structure = _enforce_unique_encounter_names(structure)
+        
+        # If still empty, try middle images
+        if not structure.encounters and len(image_paths) > 4:
+            logger.info(f"Still empty, trying middle images...")
+            mid_start = len(image_paths) // 3
+            mid_end = 2 * len(image_paths) // 3
+            mid_images = image_paths[mid_start:mid_end]
+            raw_response, structure = call_api(mid_images)
+            structure = _enforce_unique_encounter_names(structure)
     
     return HeaderAnalysisResult(
         structure=structure,
