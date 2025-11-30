@@ -355,6 +355,7 @@ def extract_tables_from_pages(doc, page_nums: List[int]) -> str:
         # Try to find tables on this page
         try:
             tables = page.find_tables()
+            raw_text = page.get_text()
             
             if tables and len(tables.tables) > 0:
                 # Found tables - extract as structured markdown
@@ -375,17 +376,12 @@ def extract_tables_from_pages(doc, page_nums: List[int]) -> str:
                     if md_rows:
                         page_text_parts.append("\n".join(md_rows))
                 
-                # Also get any non-table text
-                non_table_text = page.get_text().strip()
-                if non_table_text:
-                    # Add context text that's not part of tables
-                    page_text_parts.append(f"\n[Additional text from page {page_num + 1}:]\n{non_table_text[:500]}...")
-                    
                 logger.debug(f"Page {page_num + 1}: Extracted {len(tables.tables)} table(s)")
-            else:
-                # No tables found - use raw text
-                page_text_parts.append(page.get_text())
-                logger.debug(f"Page {page_num + 1}: No tables found, using raw text")
+            
+            # ALWAYS include raw text as well - table detection is imperfect
+            # This ensures we don't miss content when tables aren't detected
+            if raw_text.strip():
+                page_text_parts.append(f"\n[Raw text from page {page_num + 1}:]\n{raw_text}")
                 
         except Exception as e:
             # Fallback to raw text if table extraction fails
