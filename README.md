@@ -11,16 +11,15 @@ Protocol2USDM is an automated pipeline that extracts, validates, and structures 
 ## 🚀 Try It Now
 
 ```bash
-python main_v2.py .\input\Alexion_NCT04573309_Wilsons.pdf --full-protocol --enrich --sap .\input\Alexion_NCT04573309_Wilsons_SAP.pdf --model gemini-3-pro-preview --view
-```
-
-```bash
 python main_v2.py .\input\Alexion_NCT04573309_Wilsons.pdf --full-protocol --enrich --sap .\input\Alexion_NCT04573309_Wilsons_SAP.pdf --model claude-opus-4-5 --view
 ```
 
+Or with Gemini:
 ```bash
-python main_v2.py .\input\Alexion_NCT04573309_Wilsons.pdf --full-protocol --enrich --sap .\input\Alexion_NCT04573309_Wilsons_SAP.pdf --model gpt-5.1 --view
+python main_v2.py .\input\Alexion_NCT04573309_Wilsons.pdf --full-protocol --enrich --sap .\input\Alexion_NCT04573309_Wilsons_SAP.pdf --model gemini-3-pro-preview --view
 ```
+
+> **💡 Recommended Models:** `claude-opus-4-5` or `gemini-3-pro-preview` produce the best results. GPT-5.1 is currently not recommended due to inconsistent output quality.
 
 This extracts the full protocol, enriches entities with NCI terminology codes, includes SAP analysis populations, and launches the interactive viewer.
 
@@ -28,7 +27,7 @@ This extracts the full protocol, enriches entities with NCI terminology codes, i
 
 ## Features
 
-- **Multi-Model Support**: GPT-5.1, GPT-4o, Gemini 2.5/3.x via unified provider interface
+- **Multi-Model Support**: Claude Opus 4.5, Gemini 3.x (recommended), GPT-5.1, GPT-4o via unified provider interface
 - **Vision-Validated Extraction**: Text extraction validated against actual PDF images
 - **USDM v4.0 Compliant**: Outputs follow official CDISC schema with proper entity hierarchy
 - **NCI Terminology Enrichment**: Automatic enrichment with official NCI codes via EVS API
