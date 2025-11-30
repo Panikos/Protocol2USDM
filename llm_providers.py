@@ -143,40 +143,17 @@ class OpenAIProvider(LLMProvider):
             config = LLMConfig()
         
         # Convert messages to Responses API input format
-        # Responses API uses 'input' instead of 'messages'
+        # Responses API uses 'input' with role-based messages
         input_items = []
         for msg in messages:
             role = msg.get('role', 'user')
             content = msg.get('content', '')
             
-            if role == 'system':
-                # System messages become instructions
-                input_items.append({
-                    "type": "message",
-                    "role": "system", 
-                    "content": content
-                })
-            elif role == 'user':
-                # User messages
-                if isinstance(content, str):
-                    input_items.append({
-                        "type": "message",
-                        "role": "user",
-                        "content": content
-                    })
-                elif isinstance(content, list):
-                    # Multi-part content (text + images)
-                    input_items.append({
-                        "type": "message",
-                        "role": "user",
-                        "content": content
-                    })
-            elif role == 'assistant':
-                input_items.append({
-                    "type": "message",
-                    "role": "assistant",
-                    "content": content
-                })
+            # Build message in Responses API format
+            input_items.append({
+                "role": role,
+                "content": content
+            })
         
         # Build parameters for Responses API
         params = {
@@ -184,17 +161,13 @@ class OpenAIProvider(LLMProvider):
             "input": input_items,
         }
         
-        # Add temperature if supported (via text config)
-        text_config = {}
+        # Add temperature if supported
         if self.model not in self.NO_TEMP_MODELS:
-            text_config["temperature"] = config.temperature
+            params["temperature"] = config.temperature
         
-        # Add JSON mode if requested
+        # Add JSON mode if requested (via text config)
         if config.json_mode and self.supports_json_mode():
-            text_config["format"] = {"type": "json_object"}
-        
-        if text_config:
-            params["text"] = text_config
+            params["text"] = {"format": {"type": "json_object"}}
         
         # Add optional parameters
         if config.max_tokens:
@@ -213,9 +186,11 @@ class OpenAIProvider(LLMProvider):
                     "total_tokens": getattr(response.usage, 'total_tokens', 0)
                 }
             
-            # Extract content from response
+            # Extract content from response - try output_text first (simpler)
             content = ""
-            if hasattr(response, 'output') and response.output:
+            if hasattr(response, 'output_text'):
+                content = response.output_text
+            elif hasattr(response, 'output') and response.output:
                 for item in response.output:
                     if hasattr(item, 'content'):
                         for content_item in item.content:

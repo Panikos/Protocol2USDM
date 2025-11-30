@@ -15,27 +15,29 @@ def test_model_vision(model_name: str, client: OpenAI, data_url: str, prompt: st
         # Handle reasoning models differently
         is_reasoning = any(rm in model_name.lower() for rm in ['o1', 'o3', 'gpt-5'])
         
-        # Build input for Responses API
-        content = [
-            {'type': 'input_text', 'text': prompt},
-            {'type': 'input_image', 'image_url': data_url}
+        # Build input for Responses API - use input_text and input_image types
+        input_content = [
+            {"type": "input_text", "text": prompt},
+            {"type": "input_image", "image_url": data_url}
         ]
         
         params = {
             "model": model_name,
-            "input": content,
+            "input": [{"role": "user", "content": input_content}],
             "text": {"format": {"type": "json_object"}},
             "max_output_tokens": 2048,
         }
         
         if not is_reasoning:
-            params["text"]["temperature"] = 0.1
+            params["temperature"] = 0.1
         
         response = client.responses.create(**params)
         
         # Extract content from Responses API response
         result = ""
-        if hasattr(response, 'output') and response.output:
+        if hasattr(response, 'output_text'):
+            result = response.output_text
+        elif hasattr(response, 'output') and response.output:
             for item in response.output:
                 if hasattr(item, 'content'):
                     for content_item in item.content:
@@ -170,12 +172,12 @@ IMPORTANT:
 - Include ALL visits you can see in the column headers
 """
     
-    # Build input for Responses API
-    content = [{'type': 'input_text', 'text': prompt}]
+    # Build input for Responses API - use input_text and input_image types
+    input_content = [{'type': 'input_text', 'text': prompt}]
     for img_path in table_pages:
         with open(img_path, 'rb') as f:
             img_data = base64.b64encode(f.read()).decode('utf-8')
-        content.append({
+        input_content.append({
             'type': 'input_image',
             'image_url': f'data:image/png;base64,{img_data}'
         })
@@ -183,14 +185,16 @@ IMPORTANT:
     print(f'\nCalling GPT-5.1 with {len(table_pages)} images (Responses API)...')
     response = client.responses.create(
         model='gpt-5.1',
-        input=content,
+        input=[{"role": "user", "content": input_content}],
         text={"format": {"type": "json_object"}},
         max_output_tokens=8192,
     )
     
     # Extract content from Responses API response
     result = ""
-    if hasattr(response, 'output') and response.output:
+    if hasattr(response, 'output_text'):
+        result = response.output_text
+    elif hasattr(response, 'output') and response.output:
         for item in response.output:
             if hasattr(item, 'content'):
                 for content_item in item.content:

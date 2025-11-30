@@ -1,0 +1,1835 @@
+{
+  "usdmVersion": "4.0",
+  "systemName": "Protocol2USDM",
+  "systemVersion": "6.2.0",
+  "study": {
+    "id": "592f069c-af0a-46a1-bc41-d0c776c20b50",
+    "name": "",
+    "instanceType": "Study",
+    "versions": [
+      {
+        "id": "7de3dfda-4107-4607-87e4-7fc47d509ea9",
+        "versionIdentifier": "1.0",
+        "rationale": "Initial protocol version",
+        "instanceType": "StudyVersion",
+        "studyDesigns": [
+          {
+            "id": "sd_1",
+            "name": "Study Design",
+            "rationale": "Protocol-defined study design",
+            "instanceType": "InterventionalStudyDesign",
+            "blindingSchema": {
+              "id": "2e4600ec-d30e-483c-8358-9fd7a1fb10da",
+              "instanceType": "AliasCode",
+              "standardCode": {
+                "id": "535a1ba8-21bf-421a-8a64-c4fbe7b3c9f2",
+                "code": "C49656",
+                "codeSystem": "http://www.cdisc.org",
+                "codeSystemVersion": "2024-09-27",
+                "decode": "Open Label",
+                "instanceType": "Code"
+              }
+            },
+            "model": {
+              "id": "486e2846-df87-4cc3-af0e-b8f01f6d9bde",
+              "code": "C82638",
+              "codeSystem": "http://www.cdisc.org",
+              "codeSystemVersion": "2024-09-27",
+              "decode": "Single Group Study",
+              "instanceType": "Code"
+            },
+            "epochs": [
+              {
+                "id": "epoch_1",
+                "name": "Screening",
+                "instanceType": "StudyEpoch",
+                "type": {
+                  "id": "a3157ef0-bb66-42a6-a697-986d4b72d0a6",
+                  "code": "C98779",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Screening Epoch",
+                  "instanceType": "Code"
+                }
+              },
+              {
+                "id": "epoch_2",
+                "name": "C-1b",
+                "instanceType": "StudyEpoch",
+                "type": {
+                  "id": "6bd8fe43-a50d-424d-8f80-6617aba6c3bb",
+                  "code": "C98780",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Treatment Epoch",
+                  "instanceType": "Code"
+                }
+              },
+              {
+                "id": "epoch_3",
+                "name": "Inpatient Period 1",
+                "instanceType": "StudyEpoch",
+                "type": {
+                  "id": "2e58e5c2-733d-404c-a93c-876c9150f4ce",
+                  "code": "C98780",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Treatment Epoch",
+                  "instanceType": "Code"
+                }
+              },
+              {
+                "id": "epoch_4",
+                "name": "OPc",
+                "instanceType": "StudyEpoch",
+                "type": {
+                  "id": "95ca1bff-4f59-49da-8ff1-2daee2c356a8",
+                  "code": "C98780",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Treatment Epoch",
+                  "instanceType": "Code"
+                }
+              },
+              {
+                "id": "epoch_5",
+                "name": "Inpatient Period 2",
+                "instanceType": "StudyEpoch",
+                "type": {
+                  "id": "a7292f25-b74d-4e01-a596-628aae3b0141",
+                  "code": "C98780",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Treatment Epoch",
+                  "instanceType": "Code"
+                }
+              },
+              {
+                "id": "epoch_6",
+                "name": "UNSd",
+                "instanceType": "StudyEpoch",
+                "type": {
+                  "id": "d8735663-7bcf-4335-b1cc-7e9438eb066c",
+                  "code": "C98780",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Treatment Epoch",
+                  "instanceType": "Code"
+                }
+              },
+              {
+                "id": "epoch_7",
+                "name": "EOS or ETe",
+                "instanceType": "StudyEpoch",
+                "type": {
+                  "id": "06935c56-e756-40e9-8030-92494675b728",
+                  "code": "C98780",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Treatment Epoch",
+                  "instanceType": "Code"
+                }
+              }
+            ],
+            "activities": [
+              {
+                "id": "grp_1",
+                "name": "Safety Assessments / Laboratory Analyses",
+                "instanceType": "Activity",
+                "childIds": [
+                  "act_2",
+                  "act_6"
+                ]
+              },
+              {
+                "id": "grp_2",
+                "name": "Balance assessments",
+                "instanceType": "Activity",
+                "childIds": [
+                  "act_9"
+                ]
+              },
+              {
+                "id": "grp_3",
+                "name": "Other",
+                "instanceType": "Activity",
+                "childIds": [
+                  "act_13"
+                ]
+              },
+              {
+                "id": "act_1",
+                "name": "Chemistryq, hematology, Coagulation",
+                "instanceType": "Activity",
+                "description": "Clinical laboratory assessments including serum chemistry, hematology, and coagulation parameters"
+              },
+              {
+                "id": "act_2",
+                "name": "Urinalysis",
+                "instanceType": "Activity",
+                "description": "Clinical laboratory urinalysis"
+              },
+              {
+                "id": "act_3",
+                "name": "Urine/serum pregnancy tests",
+                "instanceType": "Activity",
+                "description": "Urine or serum pregnancy testing"
+              },
+              {
+                "id": "act_4",
+                "name": "Retained serum sample (safety)t",
+                "instanceType": "Activity",
+                "description": "Retained serum sample for safety evaluation"
+              },
+              {
+                "id": "act_5",
+                "name": "Vitals sign measurementsu",
+                "instanceType": "Activity",
+                "description": "Vital signs measurements including body temperature, heart rate, respiratory rate, and blood pressure"
+              },
+              {
+                "id": "act_6",
+                "name": "12-lead ECG (triplicate)",
+                "instanceType": "Activity",
+                "description": "Triplicate 12-lead electrocardiogram"
+              },
+              {
+                "id": "act_7",
+                "name": "Adverse events",
+                "instanceType": "Activity",
+                "description": "Assessment and recording of adverse events"
+              },
+              {
+                "id": "act_8",
+                "name": "Cu/Mo-controlled mealsv",
+                "instanceType": "Activity",
+                "description": "Copper- and molybdenum-controlled meals"
+              },
+              {
+                "id": "act_9",
+                "name": "Light exercise regimen",
+                "instanceType": "Activity",
+                "description": "Light exercise regimen"
+              },
+              {
+                "id": "act_10",
+                "name": "Urination and bowel movement monitoring, menstruation checks",
+                "instanceType": "Activity",
+                "description": "Monitoring of urination and bowel movements, and menstruation checks"
+              },
+              {
+                "id": "act_11",
+                "name": "24-hour urine for Cu and Mow",
+                "instanceType": "Activity",
+                "description": "24-hour urine collection for copper and molybdenum"
+              },
+              {
+                "id": "act_12",
+                "name": "Feces for Cu and Mox",
+                "instanceType": "Activity",
+                "description": "Fecal collection for copper and molybdenum"
+              },
+              {
+                "id": "act_13",
+                "name": "Concomitant medication and non-pharmacologic therapy/procedure",
+                "instanceType": "Activity",
+                "description": "Documentation of concomitant medication and non-pharmacologic therapy or procedure"
+              }
+            ],
+            "encounters": [
+              {
+                "id": "enc_1",
+                "name": "Screening (Screening -42 to -9)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "780a5980-cab7-4696-8496-f61f6ca3167a",
+                  "code": "C48262",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Screening",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_1"
+              },
+              {
+                "id": "enc_2",
+                "name": "Screening (C-1 -21)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "31dcf0a1-8eda-46d2-a63b-6c0a89b8577e",
+                  "code": "C48262",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Screening",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_2"
+              },
+              {
+                "id": "enc_3",
+                "name": "Inpatient Period 1 (Day -8)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "1e603056-1cd5-471f-85ed-56f85f375332",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_3"
+              },
+              {
+                "id": "enc_4",
+                "name": "Inpatient Period 1 (Day -7)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "59ede5e7-d716-441e-83b7-2174dad386d0",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_3"
+              },
+              {
+                "id": "enc_5",
+                "name": "Inpatient Period 1 (Day -6 through -5)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "3599fa46-fb4a-434b-847e-a9004c70ca6d",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_3"
+              },
+              {
+                "id": "enc_6",
+                "name": "Inpatient Period 1 (Day -4 through -1)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "0e8f014b-186e-406b-959b-9895edcb8b3e",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_3"
+              },
+              {
+                "id": "enc_7",
+                "name": "Inpatient Period 1 (Day 1)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "54a7464a-7c13-4579-8f17-fbfac58b464f",
+                  "code": "C82517",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Baseline",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_3"
+              },
+              {
+                "id": "enc_8",
+                "name": "Inpatient Period 1 (Days 2-3)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "c0845154-800a-4f2a-a635-7ba39651cc1d",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_3"
+              },
+              {
+                "id": "enc_9",
+                "name": "Inpatient Period 1 (Days 4-7)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "c26549ef-9686-4b48-86bd-9d3f1b29d6de",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_3"
+              },
+              {
+                "id": "enc_10",
+                "name": "OP (Day 8)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "c1069330-adfe-4ef8-b1b5-14e1cfdf696a",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_4"
+              },
+              {
+                "id": "enc_11",
+                "name": "OP (Day 9)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "1f554634-362b-46ad-bd10-76c3a6648cbb",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_4"
+              },
+              {
+                "id": "enc_12",
+                "name": "OP (Days 10-22)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "c1ccc530-9ef4-4bae-a9c7-a7d38f7c8c80",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_4"
+              },
+              {
+                "id": "enc_13",
+                "name": "Inpatient Period 2 (Day 23)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "250ef1fd-fd22-4315-ba34-245b87517f29",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_5"
+              },
+              {
+                "id": "enc_14",
+                "name": "Inpatient Period 2 (Day 24)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "06d83bc7-b688-4efb-955e-a254979bb599",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_5"
+              },
+              {
+                "id": "enc_15",
+                "name": "Inpatient Period 2 (Day 25)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "0709b271-247c-46ff-b518-2aec13b189a6",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_5"
+              },
+              {
+                "id": "enc_16",
+                "name": "Inpatient Period 2 (Days 26-28)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "de069732-e749-4928-a8dc-c455bc17f77c",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_5"
+              },
+              {
+                "id": "enc_17",
+                "name": "Inpatient Period 2 (Day 29)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "d06ffb8f-0ffe-481e-9202-3ac324aba024",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_5"
+              },
+              {
+                "id": "enc_18",
+                "name": "Inpatient Period 2 (Days 30-35)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "dd6f3c62-4868-47e7-b533-d4167d558e41",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_5"
+              },
+              {
+                "id": "enc_19",
+                "name": "Inpatient Period 2 (Day 36)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "abb1b5ad-66af-4af9-92f3-35cf0863f934",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_5"
+              },
+              {
+                "id": "enc_20",
+                "name": "Inpatient Period 2 (Days 37-38)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "faf00723-191a-40b6-b9c8-fc2f3aa29b64",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_5"
+              },
+              {
+                "id": "enc_21",
+                "name": "Inpatient Period 2 (Day 39)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "277d6e77-b9b5-4edb-9926-9d4487979978",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_5"
+              },
+              {
+                "id": "enc_22",
+                "name": "Inpatient Period 2 (Day 40)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "ca7f73bd-4bc7-45ea-91ab-06bd233f91c8",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_5"
+              },
+              {
+                "id": "enc_23",
+                "name": "UNS (UNS column)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "8d3c6887-f3f2-45c7-9520-cb16dd49658d",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_6"
+              },
+              {
+                "id": "enc_24",
+                "name": "EOS or ET (EOS Day 54+/−2)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "7a91fddf-7684-4d48-a158-a628e37570b8",
+                  "code": "C126070",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "End of Study",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_7"
+              }
+            ],
+            "scheduleTimelines": [
+              {
+                "id": "timeline_1",
+                "name": "Main Schedule Timeline",
+                "mainTimeline": true,
+                "instanceType": "ScheduleTimeline",
+                "entryCondition": "Subject enrolled in study",
+                "entryId": "b9664a67-9d64-4ef7-aae7-6d6e3d2c766f",
+                "instances": [
+                  {
+                    "id": "b9664a67-9d64-4ef7-aae7-6d6e3d2c766f",
+                    "activityId": "act_1",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_1@pt_1",
+                    "encounterId": "pt_1"
+                  },
+                  {
+                    "id": "f100f794-94e5-4046-b6c7-56d6ed8a274e",
+                    "activityId": "act_1",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_1@pt_3",
+                    "encounterId": "pt_3"
+                  },
+                  {
+                    "id": "89107f1d-1a53-4a0a-846f-efbb3e10d326",
+                    "activityId": "act_1",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_1@pt_6",
+                    "encounterId": "pt_6"
+                  },
+                  {
+                    "id": "420d78ea-f311-4c1e-9859-7e36be8b816c",
+                    "activityId": "act_1",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_1@pt_10",
+                    "encounterId": "pt_10"
+                  },
+                  {
+                    "id": "db4771be-4718-4090-95bb-c30d85eee69b",
+                    "activityId": "act_1",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_1@pt_12",
+                    "encounterId": "pt_12"
+                  },
+                  {
+                    "id": "1ea6c26d-bf07-435b-af03-98a8c4daaea9",
+                    "activityId": "act_1",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_1@pt_13",
+                    "encounterId": "pt_13"
+                  },
+                  {
+                    "id": "b629333f-4574-4527-abb8-ec4bad538f78",
+                    "activityId": "act_1",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_1@pt_16",
+                    "encounterId": "pt_16"
+                  },
+                  {
+                    "id": "17796e3e-c101-4476-8eb8-a4527dcf801a",
+                    "activityId": "act_1",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_1@pt_18",
+                    "encounterId": "pt_18"
+                  },
+                  {
+                    "id": "cde78325-dacd-4d5d-a7f7-c214f6f53930",
+                    "activityId": "act_1",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_1@pt_22",
+                    "encounterId": "pt_22"
+                  },
+                  {
+                    "id": "5488f7fb-d68b-4438-8f6e-5e8dd595e1b7",
+                    "activityId": "act_2",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_2@pt_1",
+                    "encounterId": "pt_1"
+                  },
+                  {
+                    "id": "70762a71-1e55-4110-a211-f72772b37012",
+                    "activityId": "act_2",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_2@pt_3",
+                    "encounterId": "pt_3"
+                  },
+                  {
+                    "id": "f0303601-24c7-4a56-b226-810c505329a8",
+                    "activityId": "act_2",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_2@pt_7",
+                    "encounterId": "pt_7"
+                  },
+                  {
+                    "id": "40cf2a29-4e69-46ac-b972-932436fa11de",
+                    "activityId": "act_2",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_2@pt_10",
+                    "encounterId": "pt_10"
+                  },
+                  {
+                    "id": "d663dc19-c8e7-4675-904a-85e234f4b771",
+                    "activityId": "act_2",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_2@pt_12",
+                    "encounterId": "pt_12"
+                  },
+                  {
+                    "id": "17cdb4b4-35b8-47a4-a74c-a45fba3d0c8a",
+                    "activityId": "act_2",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_2@pt_19",
+                    "encounterId": "pt_19"
+                  },
+                  {
+                    "id": "b575000e-4c5c-49de-96f2-b36cd41bbf66",
+                    "activityId": "act_2",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_2@pt_22",
+                    "encounterId": "pt_22"
+                  },
+                  {
+                    "id": "d63de9d3-83ea-4f05-b83d-92502bfdc061",
+                    "activityId": "act_3",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_3@pt_1",
+                    "encounterId": "pt_1"
+                  },
+                  {
+                    "id": "9a7659ba-4e93-46f2-b02f-9b59ae3a19f3",
+                    "activityId": "act_3",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_3@pt_3",
+                    "encounterId": "pt_3"
+                  },
+                  {
+                    "id": "31471c80-a09f-42ce-8bc4-80366122a277",
+                    "activityId": "act_3",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_3@pt_11",
+                    "encounterId": "pt_11"
+                  },
+                  {
+                    "id": "3130bbf4-f95a-4ed1-a5a6-64bfe8668d0f",
+                    "activityId": "act_3",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_3@pt_24",
+                    "encounterId": "pt_24"
+                  },
+                  {
+                    "id": "77ad923d-4e14-4c19-9882-6d47417e3c46",
+                    "activityId": "act_4",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_4@pt_3",
+                    "encounterId": "pt_3"
+                  },
+                  {
+                    "id": "8c2e68c7-518d-4eeb-b8c7-8fe1c399fe92",
+                    "activityId": "act_5",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_5@pt_1",
+                    "encounterId": "pt_1"
+                  },
+                  {
+                    "id": "4adc7524-25f2-401c-ab80-de6f36ba8333",
+                    "activityId": "act_5",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_5@pt_4",
+                    "encounterId": "pt_4"
+                  },
+                  {
+                    "id": "69d161b8-0547-4efc-8876-9839d38deaac",
+                    "activityId": "act_5",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_5@pt_6",
+                    "encounterId": "pt_6"
+                  },
+                  {
+                    "id": "611328a1-89ea-486d-a9da-c0dbe3bd5599",
+                    "activityId": "act_5",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_5@pt_10",
+                    "encounterId": "pt_10"
+                  },
+                  {
+                    "id": "453b1158-70f5-4688-af05-e3c6206a8ccc",
+                    "activityId": "act_5",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_5@pt_11",
+                    "encounterId": "pt_11"
+                  },
+                  {
+                    "id": "7fa77131-1f24-484e-b273-97b7408fbfb7",
+                    "activityId": "act_5",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_5@pt_24",
+                    "encounterId": "pt_24"
+                  },
+                  {
+                    "id": "5ccda423-02c2-4863-9e14-da3c1d7520cf",
+                    "activityId": "act_6",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_6@pt_1",
+                    "encounterId": "pt_1"
+                  },
+                  {
+                    "id": "7b5fc68f-48ff-4f9e-b740-cf845aa3d63d",
+                    "activityId": "act_6",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_6@pt_4",
+                    "encounterId": "pt_4"
+                  },
+                  {
+                    "id": "2127a9c9-a875-4683-a5bb-585c92faa6e2",
+                    "activityId": "act_6",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_6@pt_6",
+                    "encounterId": "pt_6"
+                  },
+                  {
+                    "id": "8538dc00-d66b-47ce-a605-7fc437a1ffa3",
+                    "activityId": "act_6",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_6@pt_10",
+                    "encounterId": "pt_10"
+                  },
+                  {
+                    "id": "792a4766-3d79-4c6b-8813-88de9f103445",
+                    "activityId": "act_6",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_6@pt_11",
+                    "encounterId": "pt_11"
+                  },
+                  {
+                    "id": "b69bcd45-12c2-4759-956f-685ba3bd3ae8",
+                    "activityId": "act_6",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_6@pt_21",
+                    "encounterId": "pt_21"
+                  },
+                  {
+                    "id": "a04ff4cd-c07b-4942-a99d-9862255d11df",
+                    "activityId": "act_6",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_6@pt_24",
+                    "encounterId": "pt_24"
+                  },
+                  {
+                    "id": "5e7b9e81-eeb9-49ed-806e-7baae0353e9d",
+                    "activityId": "act_7",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_7@pt_1",
+                    "encounterId": "pt_1"
+                  },
+                  {
+                    "id": "7960dc7e-9df2-4f56-af63-8de6494c4270",
+                    "activityId": "act_7",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_7@pt_2",
+                    "encounterId": "pt_2"
+                  },
+                  {
+                    "id": "c3d264b5-9a5c-48f2-afb7-a4f2b217dfb3",
+                    "activityId": "act_7",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_7@pt_3",
+                    "encounterId": "pt_3"
+                  },
+                  {
+                    "id": "4b755496-8267-4778-940f-22043d104810",
+                    "activityId": "act_7",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_7@pt_4",
+                    "encounterId": "pt_4"
+                  },
+                  {
+                    "id": "f5a49c96-29ee-4270-97fd-769a689fc638",
+                    "activityId": "act_7",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_7@pt_5",
+                    "encounterId": "pt_5"
+                  },
+                  {
+                    "id": "790fa2cd-d56b-44f6-9e7c-e4c584d16c90",
+                    "activityId": "act_7",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_7@pt_6",
+                    "encounterId": "pt_6"
+                  },
+                  {
+                    "id": "7e432166-dfcc-460f-8908-831c9fd52e7d",
+                    "activityId": "act_7",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_7@pt_7",
+                    "encounterId": "pt_7"
+                  },
+                  {
+                    "id": "b692e337-c24e-4956-88a9-2cb927096516",
+                    "activityId": "act_7",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_7@pt_8",
+                    "encounterId": "pt_8"
+                  },
+                  {
+                    "id": "05d7df96-4cf7-4b92-bc7b-9c61c8258c72",
+                    "activityId": "act_7",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_7@pt_9",
+                    "encounterId": "pt_9"
+                  },
+                  {
+                    "id": "0caf34da-3178-43ec-81f2-e8d2d6bd4717",
+                    "activityId": "act_7",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_7@pt_10",
+                    "encounterId": "pt_10"
+                  },
+                  {
+                    "id": "39c3e4e0-4062-4c1a-b8ae-f8969ea84c0d",
+                    "activityId": "act_7",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_7@pt_11",
+                    "encounterId": "pt_11"
+                  },
+                  {
+                    "id": "829b548a-8f86-4e46-b97e-633469da66cf",
+                    "activityId": "act_7",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_7@pt_12",
+                    "encounterId": "pt_12"
+                  },
+                  {
+                    "id": "b160c8c7-4007-4f09-b67e-1c1900b29abb",
+                    "activityId": "act_7",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_7@pt_13",
+                    "encounterId": "pt_13"
+                  },
+                  {
+                    "id": "ccfefd16-30f2-4e3f-a812-91ef05c5d0a8",
+                    "activityId": "act_7",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_7@pt_14",
+                    "encounterId": "pt_14"
+                  },
+                  {
+                    "id": "978f1a86-4506-4319-8c6d-483d0d182466",
+                    "activityId": "act_7",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_7@pt_15",
+                    "encounterId": "pt_15"
+                  },
+                  {
+                    "id": "ba896faa-d04a-408e-9376-fa313de12d5b",
+                    "activityId": "act_7",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_7@pt_16",
+                    "encounterId": "pt_16"
+                  },
+                  {
+                    "id": "ec99d377-1fc9-4e2f-a30e-398ab1a0da21",
+                    "activityId": "act_7",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_7@pt_17",
+                    "encounterId": "pt_17"
+                  },
+                  {
+                    "id": "d55cea8b-f063-4676-a55c-f696494dcbad",
+                    "activityId": "act_7",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_7@pt_18",
+                    "encounterId": "pt_18"
+                  },
+                  {
+                    "id": "42b5ec07-e2a2-4eac-82b4-a3ad253fa64d",
+                    "activityId": "act_7",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_7@pt_19",
+                    "encounterId": "pt_19"
+                  },
+                  {
+                    "id": "c9dc98c8-407b-4a4f-90b5-e54e3d410d6e",
+                    "activityId": "act_7",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_7@pt_20",
+                    "encounterId": "pt_20"
+                  },
+                  {
+                    "id": "b266f333-d57a-49af-acb7-39534fd7d5e9",
+                    "activityId": "act_7",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_7@pt_21",
+                    "encounterId": "pt_21"
+                  },
+                  {
+                    "id": "c471b371-2cc8-4064-adb2-debdd58220f2",
+                    "activityId": "act_7",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_7@pt_22",
+                    "encounterId": "pt_22"
+                  },
+                  {
+                    "id": "984d2ce1-81b8-44d7-a18b-aa36f4d0be8b",
+                    "activityId": "act_7",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_7@pt_24",
+                    "encounterId": "pt_24"
+                  },
+                  {
+                    "id": "d42686ca-023f-40df-9335-689862f201c1",
+                    "activityId": "act_8",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_8@pt_4",
+                    "encounterId": "pt_4"
+                  },
+                  {
+                    "id": "15bfd099-bb64-4cbf-bb3a-bce2859d2aa2",
+                    "activityId": "act_8",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_8@pt_5",
+                    "encounterId": "pt_5"
+                  },
+                  {
+                    "id": "177a474f-fb23-4890-a291-3a1df3e3a7dd",
+                    "activityId": "act_8",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_8@pt_6",
+                    "encounterId": "pt_6"
+                  },
+                  {
+                    "id": "0eb04a1c-5fd0-4ca8-97e9-53e40d13b6f2",
+                    "activityId": "act_8",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_8@pt_7",
+                    "encounterId": "pt_7"
+                  },
+                  {
+                    "id": "a10aa8b1-5fb4-42a1-abd5-6b4bca6e7745",
+                    "activityId": "act_8",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_8@pt_8",
+                    "encounterId": "pt_8"
+                  },
+                  {
+                    "id": "b90c7620-ec87-4db2-8e06-239db47e1f6d",
+                    "activityId": "act_8",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_8@pt_9",
+                    "encounterId": "pt_9"
+                  },
+                  {
+                    "id": "63617db7-a913-4625-8f44-741603db2677",
+                    "activityId": "act_8",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_8@pt_13",
+                    "encounterId": "pt_13"
+                  },
+                  {
+                    "id": "ce5c98cf-80d6-4a06-804f-662e68a0b3ab",
+                    "activityId": "act_8",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_8@pt_14",
+                    "encounterId": "pt_14"
+                  },
+                  {
+                    "id": "4af91465-b151-427c-8fff-b2007464aaf2",
+                    "activityId": "act_8",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_8@pt_15",
+                    "encounterId": "pt_15"
+                  },
+                  {
+                    "id": "a4db1d91-c369-4fef-9cd1-d40713fe3870",
+                    "activityId": "act_8",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_8@pt_16",
+                    "encounterId": "pt_16"
+                  },
+                  {
+                    "id": "7db9f8b4-2448-40e7-822d-4f1b57830db2",
+                    "activityId": "act_8",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_8@pt_17",
+                    "encounterId": "pt_17"
+                  },
+                  {
+                    "id": "f8c6920d-a68f-4a2b-8827-2b02b0985af8",
+                    "activityId": "act_8",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_8@pt_18",
+                    "encounterId": "pt_18"
+                  },
+                  {
+                    "id": "1ee95853-fc30-42b3-b11d-0a6548f7ed84",
+                    "activityId": "act_8",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_8@pt_19",
+                    "encounterId": "pt_19"
+                  },
+                  {
+                    "id": "2f526ff8-1eb9-4072-89e8-f33334658588",
+                    "activityId": "act_8",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_8@pt_20",
+                    "encounterId": "pt_20"
+                  },
+                  {
+                    "id": "d229f555-5aec-437e-ae79-bc19288808c5",
+                    "activityId": "act_8",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_8@pt_21",
+                    "encounterId": "pt_21"
+                  },
+                  {
+                    "id": "f73dead1-2c06-4944-8948-be2a4cdf3b29",
+                    "activityId": "act_8",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_8@pt_22",
+                    "encounterId": "pt_22"
+                  },
+                  {
+                    "id": "03772686-ecfa-4978-a1f0-59e3f4a03e55",
+                    "activityId": "act9",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act9@pt_4",
+                    "encounterId": "pt_4"
+                  },
+                  {
+                    "id": "b225f608-2d7c-4e83-9485-8fc0cbda6ab2",
+                    "activityId": "act9",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act9@pt_5",
+                    "encounterId": "pt_5"
+                  },
+                  {
+                    "id": "6d857264-46da-472a-a4be-c604da1ab838",
+                    "activityId": "act9",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act9@pt_6",
+                    "encounterId": "pt_6"
+                  },
+                  {
+                    "id": "4bc63402-590f-4a8f-b394-5a8755d1efba",
+                    "activityId": "act9",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act9@pt_7",
+                    "encounterId": "pt_7"
+                  },
+                  {
+                    "id": "ca91a129-e969-46eb-9817-2aebc7e8ae6b",
+                    "activityId": "act9",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act9@pt_8",
+                    "encounterId": "pt_8"
+                  },
+                  {
+                    "id": "2f1804fd-ecd5-44fd-a3f0-dd018e51c885",
+                    "activityId": "act9",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act9@pt_9",
+                    "encounterId": "pt_9"
+                  },
+                  {
+                    "id": "002dced3-5015-48ff-aa31-b536bb5d2749",
+                    "activityId": "act9",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act9@pt_10",
+                    "encounterId": "pt_10"
+                  },
+                  {
+                    "id": "a2bcfd34-9e03-4e87-bae1-5b6012e13070",
+                    "activityId": "act9",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act9@pt_11",
+                    "encounterId": "pt_11"
+                  },
+                  {
+                    "id": "d6c35cb7-909a-458d-bda9-c05c73822357",
+                    "activityId": "act9",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act9@pt_12",
+                    "encounterId": "pt_12"
+                  },
+                  {
+                    "id": "0324645c-c6e8-4659-bfe0-f7c001b83b38",
+                    "activityId": "act9",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act9@pt_13",
+                    "encounterId": "pt_13"
+                  },
+                  {
+                    "id": "449dc984-597d-48c6-8ef7-ccf69a958fb4",
+                    "activityId": "act9",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act9@pt_14",
+                    "encounterId": "pt_14"
+                  },
+                  {
+                    "id": "3741ef7d-2f20-47ed-a92f-6952f8d51c99",
+                    "activityId": "act9",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act9@pt_15",
+                    "encounterId": "pt_15"
+                  },
+                  {
+                    "id": "600ebec6-2424-4328-86bc-b48aaab6316d",
+                    "activityId": "act9",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act9@pt_16",
+                    "encounterId": "pt_16"
+                  },
+                  {
+                    "id": "f59ab20d-e122-4405-b650-8e82cc95755d",
+                    "activityId": "act9",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act9@pt_17",
+                    "encounterId": "pt_17"
+                  },
+                  {
+                    "id": "e70471b4-e1d4-4ecc-b2e8-677287d81b84",
+                    "activityId": "act9",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act9@pt_18",
+                    "encounterId": "pt_18"
+                  },
+                  {
+                    "id": "705e7b16-ec7a-441c-a654-8bbe0fdc55e8",
+                    "activityId": "act9",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act9@pt_19",
+                    "encounterId": "pt_19"
+                  },
+                  {
+                    "id": "60d025a1-c66e-47bc-9bc5-e3448a746c70",
+                    "activityId": "act9",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act9@pt_20",
+                    "encounterId": "pt_20"
+                  },
+                  {
+                    "id": "7f229e48-2ece-46e5-af10-e6c88e812b59",
+                    "activityId": "act9",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act9@pt_21",
+                    "encounterId": "pt_21"
+                  },
+                  {
+                    "id": "3cfe3e6a-a9f0-46e3-ba20-eb77b2cc7660",
+                    "activityId": "act9",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act9@pt_22",
+                    "encounterId": "pt_22"
+                  },
+                  {
+                    "id": "30a749ce-4df2-4828-8713-21def2407062",
+                    "activityId": "act10",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act10@pt_6",
+                    "encounterId": "pt_6"
+                  },
+                  {
+                    "id": "f2bcac65-95ae-4eef-b86e-6677d7ea4ed8",
+                    "activityId": "act10",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act10@pt_7",
+                    "encounterId": "pt_7"
+                  },
+                  {
+                    "id": "c9365103-d699-479e-9ad7-29436c7fd779",
+                    "activityId": "act10",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act10@pt_8",
+                    "encounterId": "pt_8"
+                  },
+                  {
+                    "id": "6659880c-8113-4e63-8977-de967724c4b5",
+                    "activityId": "act10",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act10@pt_9",
+                    "encounterId": "pt_9"
+                  },
+                  {
+                    "id": "9cb90815-805b-4279-a7c1-ffc75f967e3c",
+                    "activityId": "act10",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act10@pt_13",
+                    "encounterId": "pt_13"
+                  },
+                  {
+                    "id": "8a4e01c2-ffed-4815-9640-cbe4725681a9",
+                    "activityId": "act10",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act10@pt_14",
+                    "encounterId": "pt_14"
+                  },
+                  {
+                    "id": "c4b68fbf-95c3-4f38-812f-cc62a1388e21",
+                    "activityId": "act10",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act10@pt_15",
+                    "encounterId": "pt_15"
+                  },
+                  {
+                    "id": "7cf25fd1-82dd-4745-8789-d6f170905173",
+                    "activityId": "act10",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act10@pt_16",
+                    "encounterId": "pt_16"
+                  },
+                  {
+                    "id": "2f517458-b262-4410-8db8-04aba2a52936",
+                    "activityId": "act10",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act10@pt_17",
+                    "encounterId": "pt_17"
+                  },
+                  {
+                    "id": "22a49e12-a4ad-448d-9201-b6b6c285ff84",
+                    "activityId": "act10",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act10@pt_18",
+                    "encounterId": "pt_18"
+                  },
+                  {
+                    "id": "71aac9f9-f339-4c63-ae3f-4ff8375ce897",
+                    "activityId": "act10",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act10@pt_19",
+                    "encounterId": "pt_19"
+                  },
+                  {
+                    "id": "429e8bb2-ae01-44e0-9431-b51dd5531f3b",
+                    "activityId": "act10",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act10@pt_20",
+                    "encounterId": "pt_20"
+                  },
+                  {
+                    "id": "cd75124d-b6e1-42bb-9b72-27acbf43370b",
+                    "activityId": "act10",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act10@pt_21",
+                    "encounterId": "pt_21"
+                  },
+                  {
+                    "id": "a300da8e-1ea1-4bcf-9d21-7d43975d3335",
+                    "activityId": "act10",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act10@pt_22",
+                    "encounterId": "pt_22"
+                  },
+                  {
+                    "id": "fe94f548-4530-4eea-aea4-d3ab91abff44",
+                    "activityId": "act11",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act11@pt_6",
+                    "encounterId": "pt_6"
+                  },
+                  {
+                    "id": "a46f264d-b72e-490f-8517-d204c596b284",
+                    "activityId": "act11",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act11@pt_7",
+                    "encounterId": "pt_7"
+                  },
+                  {
+                    "id": "640b9673-434a-4649-87eb-5634793a0b0d",
+                    "activityId": "act11",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act11@pt_8",
+                    "encounterId": "pt_8"
+                  },
+                  {
+                    "id": "ac630398-8d9a-4cc4-8ed2-2ec9ecea0fab",
+                    "activityId": "act11",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act11@pt_9",
+                    "encounterId": "pt_9"
+                  },
+                  {
+                    "id": "eeea61a6-67c0-41f1-8aa3-345cced103a8",
+                    "activityId": "act11",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act11@pt_13",
+                    "encounterId": "pt_13"
+                  },
+                  {
+                    "id": "417e1090-7c87-4159-8a97-fafe20979cf7",
+                    "activityId": "act11",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act11@pt_14",
+                    "encounterId": "pt_14"
+                  },
+                  {
+                    "id": "eae20c15-4293-455a-a183-a90fd660cb3a",
+                    "activityId": "act11",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act11@pt_15",
+                    "encounterId": "pt_15"
+                  },
+                  {
+                    "id": "a724e417-4029-4fc2-9540-3e5a636a6068",
+                    "activityId": "act11",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act11@pt_16",
+                    "encounterId": "pt_16"
+                  },
+                  {
+                    "id": "08a64ebd-e7ca-4954-9685-8655a2eb68e0",
+                    "activityId": "act11",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act11@pt_17",
+                    "encounterId": "pt_17"
+                  },
+                  {
+                    "id": "7cd0dc6a-9c23-47ba-8f69-41fe612870a9",
+                    "activityId": "act11",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act11@pt_18",
+                    "encounterId": "pt_18"
+                  },
+                  {
+                    "id": "218aeb44-62b5-46ff-98f0-5cb5cb59a333",
+                    "activityId": "act11",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act11@pt_19",
+                    "encounterId": "pt_19"
+                  },
+                  {
+                    "id": "baab5111-0024-4b88-bf79-070db1b604b2",
+                    "activityId": "act11",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act11@pt_20",
+                    "encounterId": "pt_20"
+                  },
+                  {
+                    "id": "2166ffef-ec14-49c6-9d1b-6c14a4bbb82e",
+                    "activityId": "act11",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act11@pt_21",
+                    "encounterId": "pt_21"
+                  },
+                  {
+                    "id": "f0728362-1b14-481f-bba1-90e6b10b58f5",
+                    "activityId": "act11",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act11@pt_22",
+                    "encounterId": "pt_22"
+                  },
+                  {
+                    "id": "cba96f17-f885-426d-907d-f92ce64e3cf4",
+                    "activityId": "act12",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act12@pt_6",
+                    "encounterId": "pt_6"
+                  },
+                  {
+                    "id": "18534b3c-76da-4fb0-8816-84fade93059e",
+                    "activityId": "act12",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act12@pt_7",
+                    "encounterId": "pt_7"
+                  },
+                  {
+                    "id": "aa22b416-d529-427f-a779-199ac3626d1f",
+                    "activityId": "act12",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act12@pt_8",
+                    "encounterId": "pt_8"
+                  },
+                  {
+                    "id": "148047a0-e919-4f86-b1bb-e21bc6e9ed52",
+                    "activityId": "act12",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act12@pt_9",
+                    "encounterId": "pt_9"
+                  },
+                  {
+                    "id": "aa06fb42-7bf2-4b3a-8ff4-f8c2ede5230e",
+                    "activityId": "act12",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act12@pt_13",
+                    "encounterId": "pt_13"
+                  },
+                  {
+                    "id": "dc23d9db-ea0c-4aba-bc50-44c94f447991",
+                    "activityId": "act12",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act12@pt_14",
+                    "encounterId": "pt_14"
+                  },
+                  {
+                    "id": "454f358d-2cab-4d82-a2d5-aaaa5d83ca47",
+                    "activityId": "act12",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act12@pt_15",
+                    "encounterId": "pt_15"
+                  },
+                  {
+                    "id": "673e25c7-9954-4d4c-83a2-5fb7c5f55382",
+                    "activityId": "act12",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act12@pt_16",
+                    "encounterId": "pt_16"
+                  },
+                  {
+                    "id": "ee7d5344-0884-442a-b5ff-55fd1a0de481",
+                    "activityId": "act12",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act12@pt_17",
+                    "encounterId": "pt_17"
+                  },
+                  {
+                    "id": "78ba3727-7545-4fdf-9ca5-3fbe4e7c36a4",
+                    "activityId": "act12",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act12@pt_18",
+                    "encounterId": "pt_18"
+                  },
+                  {
+                    "id": "bf7b77a6-bbd9-4a01-a9c0-16435686d866",
+                    "activityId": "act12",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act12@pt_19",
+                    "encounterId": "pt_19"
+                  },
+                  {
+                    "id": "7ea2b1e8-564e-45a4-9fbc-456c3d2bb8bb",
+                    "activityId": "act12",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act12@pt_20",
+                    "encounterId": "pt_20"
+                  },
+                  {
+                    "id": "e909c3e3-bc43-4614-8f21-6eb2f26f3da3",
+                    "activityId": "act12",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act12@pt_21",
+                    "encounterId": "pt_21"
+                  },
+                  {
+                    "id": "3dde3dce-5413-4f3e-b292-9409e7da9c94",
+                    "activityId": "act12",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act12@pt_22",
+                    "encounterId": "pt_22"
+                  },
+                  {
+                    "id": "dd01776b-4505-4c6a-8ffb-0fcea40f47ee",
+                    "activityId": "act13",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act13@pt_1",
+                    "encounterId": "pt_1"
+                  },
+                  {
+                    "id": "4c105030-c9c1-482c-8f23-88b367fbdeec",
+                    "activityId": "act13",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act13@pt_2",
+                    "encounterId": "pt_2"
+                  },
+                  {
+                    "id": "a5a0f033-59e9-4d30-b9c0-fff37392467a",
+                    "activityId": "act13",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act13@pt_3",
+                    "encounterId": "pt_3"
+                  },
+                  {
+                    "id": "16b620e3-21d4-4bfe-83f6-d0b6af7cad90",
+                    "activityId": "act13",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act13@pt_4",
+                    "encounterId": "pt_4"
+                  },
+                  {
+                    "id": "f106a36f-78a6-4c3d-b232-3c9da19c1ae5",
+                    "activityId": "act13",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act13@pt_5",
+                    "encounterId": "pt_5"
+                  },
+                  {
+                    "id": "4b8d0fc4-2360-40ee-935f-0c5cbd141a0f",
+                    "activityId": "act13",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act13@pt_6",
+                    "encounterId": "pt_6"
+                  },
+                  {
+                    "id": "aa763567-7e3e-4682-b396-949856d4d991",
+                    "activityId": "act13",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act13@pt_7",
+                    "encounterId": "pt_7"
+                  },
+                  {
+                    "id": "ff9dd4e9-50f0-45d1-b880-08467aae69cc",
+                    "activityId": "act13",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act13@pt_8",
+                    "encounterId": "pt_8"
+                  },
+                  {
+                    "id": "87c2f5f9-08d3-405c-963b-b7175be0f325",
+                    "activityId": "act13",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act13@pt_9",
+                    "encounterId": "pt_9"
+                  },
+                  {
+                    "id": "dd09dde3-5557-4760-abb2-6ecb4be9d8a1",
+                    "activityId": "act13",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act13@pt_10",
+                    "encounterId": "pt_10"
+                  },
+                  {
+                    "id": "37a8e14d-a174-4a61-b18d-a87782f7173a",
+                    "activityId": "act13",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act13@pt_11",
+                    "encounterId": "pt_11"
+                  },
+                  {
+                    "id": "f0140546-d235-4e27-8b90-fe8bf96d4a9b",
+                    "activityId": "act13",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act13@pt_12",
+                    "encounterId": "pt_12"
+                  },
+                  {
+                    "id": "3e89da01-f68b-4d56-bad6-b754041fd867",
+                    "activityId": "act13",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act13@pt_13",
+                    "encounterId": "pt_13"
+                  },
+                  {
+                    "id": "90ceefa5-1402-498a-a748-052bceb518fc",
+                    "activityId": "act13",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act13@pt_14",
+                    "encounterId": "pt_14"
+                  },
+                  {
+                    "id": "309f9549-b537-42af-adf7-8361e5bc2f65",
+                    "activityId": "act13",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act13@pt_15",
+                    "encounterId": "pt_15"
+                  },
+                  {
+                    "id": "93e4c81e-44cd-4dcd-99d7-3810c9b017a9",
+                    "activityId": "act13",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act13@pt_16",
+                    "encounterId": "pt_16"
+                  },
+                  {
+                    "id": "9eeb73dc-074c-4dc3-9818-1a6e57f6c00c",
+                    "activityId": "act13",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act13@pt_17",
+                    "encounterId": "pt_17"
+                  },
+                  {
+                    "id": "c0892d7e-4ab7-4380-ab1c-874a359d6f86",
+                    "activityId": "act13",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act13@pt_18",
+                    "encounterId": "pt_18"
+                  },
+                  {
+                    "id": "1c144420-565b-48a3-ba11-38d8d37bb5d7",
+                    "activityId": "act13",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act13@pt_19",
+                    "encounterId": "pt_19"
+                  },
+                  {
+                    "id": "cf2dbbd2-516e-4b3f-8fb8-ed3976678d07",
+                    "activityId": "act13",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act13@pt_20",
+                    "encounterId": "pt_20"
+                  },
+                  {
+                    "id": "074eeacb-7a5e-477a-86ec-2699eca0cd36",
+                    "activityId": "act13",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act13@pt_21",
+                    "encounterId": "pt_21"
+                  },
+                  {
+                    "id": "5730a386-1f7e-49b9-9209-c58b961ca433",
+                    "activityId": "act13",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act13@pt_22",
+                    "encounterId": "pt_22"
+                  },
+                  {
+                    "id": "44964b08-d87d-44fa-95fc-80c73faee643",
+                    "activityId": "act13",
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act13@pt_24",
+                    "encounterId": "pt_24"
+                  }
+                ]
+              }
+            ],
+            "notes": [
+              {
+                "id": "soa_fn_1",
+                "text": "a Within 42 days of ALXN1840 administration. Details of procedures that may be performed by sites designated as “screening sites” (only in the US) are detailed in Section 8.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_2",
+                "text": "b Participants will be admitted to the clinical research unit (CRU) at least 10 hours prior to enrollment and initiation of copper- and molybdenum-controlled diet.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_3",
+                "text": "c At the CRU’s discretion, participants may remain in the CRU or be readmitted on Day 22 with all procedures starting on Day 23.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_4",
+                "text": "d Unscheduled study visits may occur at any time during the study and may include any study procedure as deemed necessary by the Investigator.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_5",
+                "text": "e Participants are required to return to the CRU Day 54+/−2; participants will be discontinued from ALXN1840 medication by their physician at the latest by the Day 54 follow-up.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_6",
+                "text": "f Discharge from the unit may occur after completion of all procedures on Day 9 and on Day 40 and after the Investigator has reviewed all safety assessment (including safety laboratory tests) and confirmed that the participant is appropriate for discharge.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_7",
+                "text": "g A single outpatient visit or phone call and safety laboratory assessment should occur between Day 14 and Day 18. A phone call may take place on a different day than the blood draw within the Day 14 through Day 18 period.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_8",
+                "text": "h If needed to confirm menopause.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_9",
+                "text": "i Parameters include age and sex. Race and ethnicity will be collected where permitted by local regulations.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_10",
+                "text": "j Wilson disease history will include diagnosis date, method of diagnosis, history of cirrhosis, details of any previous liver biopsies performed, and treatment received.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_11",
+                "text": "k A full physical examination will be performed at Screening, at check-in for the study, and at the End of the study/Early Termination Visit. A physical examination should also be performed on any participants with ongoing adverse events prior to discharge from the unit. Otherwise, a symptom-driven physical examination may be performed at other times, at the Principal Investigator’s discretion.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_12",
+                "text": "l Height at screening only.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_13",
+                "text": "m While in the CRU, study intervention will be administered after an overnight fast (ie, at least 10 hours) at the same time every morning; drug is to be administered with 240 mL of water and meals should be delayed a minimum of 2 hours after dosing. As an outpatient, participants are expected to take ALXN1840 at approximately the same time daily (+/−1 hour). Participants should take the medication with a glass of water on an empty stomach; meals should be delayed a minimum of 2 hours after dosing.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_14",
+                "text": "n During the outpatient period, participants will use SMS text messaging to confirm study intervention administration.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_15",
+                "text": "o Blood sampling for PK/PD will occur before ALXN1840 administration and represents a predose trough. See Table 2 for PK/PD sampling on Days 1, 25, 29, and 39.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_16",
+                "text": "p PK/PD collection will include timepoints described in the schedule of PK/PD assessment for Days 1, 25, 29, and 39 (Table 2).",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_17",
+                "text": "q Samples for serum chemistry will be obtained following a fast of at least 8 hours at the Screening Visit and at check-in. In case of rechecks, and postdose serum chemistry, participants may not have fasted for 6 or 8 hours before the serum chemistry sample is taken.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_18",
+                "text": "r Laboratory assessment including chemistry, hematology, and coagulation parameters should be performed on Days -8, -1, 8, 23, and 28 only.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_19",
+                "text": "s Menstruation check is for women only; women of childbearing potential should only be enrolled after a negative serum pregnancy test result at Screening. Additional urine pregnancy testing will be standard for the protocol unless serum testing is required by site policies, local regulation, or Institutional Review Boards (IRBs)/Independent Ethics Committees (IECs) (Section 10.2). In addition to pregnancy tests detailed at the visits in the SoA, females of childbearing potential will be required to perform urine pregnancy tests at least every 4 weeks at their home or the study site throughout their time in the study.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_20",
+                "text": "t A single 15 mL serum sample will be retained for evaluation in the event of an unexpected safety finding; retained samples may be destroyed after completion of the clinical study report.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_21",
+                "text": "u Vital signs measurements and ECGs should be performed before dosing, unless otherwise specified. Vitals signs include body temperature, heart rate, respiratory rate, and systolic and diastolic blood pressure.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_22",
+                "text": "v Copper- and molybdenum-controlled diet will be initiated after registration/inclusion. Participants will remain on a copper/molybdenum controlled diet throughout both the inpatient Period 1 (Day 8 to Day 9) and inpatient Period 2 (Day 23 to Day 40); during this time participants will be strongly encouraged to eat all meals. While not in the CRU, participants will be encouraged to adhere to their usual copper-controlled diet.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_23",
+                "text": "w For each input/output balance period, 24-hour urine samples are to be collected for measurement of copper and molybdenum.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_24",
+                "text": "x For fecal samples, each individual sample will be independently collected with record of date, time, and weight of the sample.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_25",
+                "text": "y Abbreviations: AE = adverse event; BMI = body mass index; C-1 = check-in; Cu = copper; D = day; ECG = electrocardiogram; EOS/ET = End of Study or Early Termination; HIV = human immunodeficiency virus; HR = heart rate; LBC = labile bound copper; Mo = molybdenum; OP = outpatient; PD = pharmacodynamic; PK = pharmacokinetics; PUF = plasma ultrafiltrate; UNS = unscheduled; WD = Wilson disease.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_26",
+                "text": "Table 2 note: Time point (hours)a: a Time points are relative to dosing (0 hours).",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_27",
+                "text": "Table 2 note: b Hour 24 PK/PD sampling is to occur just prior to the next-day dose of ALXN1840.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_28",
+                "text": "Table 2 abbreviations: Cu = copper; LBC = labile bound copper; Mo = molybdenum; PD = pharmacodynamic; PK = pharmacokinetic; PUF = plasma ultrafiltrate.",
+                "instanceType": "CommentAnnotation"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

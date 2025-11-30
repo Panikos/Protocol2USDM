@@ -343,11 +343,11 @@ def _analyze_with_openai(
     
     def call_api(images: List[str]) -> Tuple[str, HeaderStructure]:
         """Make API call with given images using Responses API."""
-        # Build input content for Responses API
-        content = [{"type": "input_text", "text": prompt}]
+        # Build input content for Responses API - use input_text and input_image types
+        input_content = [{"type": "input_text", "text": prompt}]
         for img_path in images:
             data_url = encode_image(img_path)
-            content.append({
+            input_content.append({
                 "type": "input_image",
                 "image_url": data_url
             })
@@ -357,20 +357,21 @@ def _analyze_with_openai(
         
         params = {
             "model": model_name,
-            "input": content,
+            "input": [{"role": "user", "content": input_content}],
             "text": {"format": {"type": "json_object"}},
+            "max_output_tokens": 4096,
         }
         
         if not is_reasoning:
-            params["text"]["temperature"] = 0.1
-        
-        params["max_output_tokens"] = 4096
+            params["temperature"] = 0.1
         
         response = client.responses.create(**params)
         
         # Extract content from Responses API response
         raw = ""
-        if hasattr(response, 'output') and response.output:
+        if hasattr(response, 'output_text'):
+            raw = response.output_text
+        elif hasattr(response, 'output') and response.output:
             for item in response.output:
                 if hasattr(item, 'content'):
                     for content_item in item.content:

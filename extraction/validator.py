@@ -339,13 +339,13 @@ def _validate_with_openai(prompt: str, image_paths: List[str], model_name: str) 
     
     client = OpenAI(api_key=api_key)
     
-    # Build input content for Responses API
-    content = [{"type": "input_text", "text": prompt}]
+    # Build input content for Responses API - use input_text and input_image types
+    input_content = [{"type": "input_text", "text": prompt}]
     
     for img_path in image_paths:
         with open(img_path, 'rb') as f:
             data = base64.b64encode(f.read()).decode('utf-8')
-        content.append({
+        input_content.append({
             "type": "input_image",
             "image_url": f"data:image/png;base64,{data}"
         })
@@ -355,19 +355,21 @@ def _validate_with_openai(prompt: str, image_paths: List[str], model_name: str) 
     
     params = {
         "model": model_name,
-        "input": content,
+        "input": [{"role": "user", "content": input_content}],
         "text": {"format": {"type": "json_object"}},
         "max_output_tokens": 4096,
     }
     
     if not is_reasoning:
-        params["text"]["temperature"] = 0.1
+        params["temperature"] = 0.1
     
     response = client.responses.create(**params)
     
     # Extract content from Responses API response
     result = ""
-    if hasattr(response, 'output') and response.output:
+    if hasattr(response, 'output_text'):
+        result = response.output_text
+    elif hasattr(response, 'output') and response.output:
         for item in response.output:
             if hasattr(item, 'content'):
                 for content_item in item.content:
