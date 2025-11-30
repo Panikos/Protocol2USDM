@@ -694,10 +694,16 @@ class ScheduledActivityInstance(USDMEntity):
     """
     USDM ScheduledActivityInstance - Activity scheduled at a timepoint.
     
+    Per USDM 4.0 schema:
+    - activityIds: 0..* (list of activity references)
+    - encounterId: 0..1 (reference to Encounter)
+    - epochId: 0..1 (reference to StudyEpoch)
+    
     Required: id, name, instanceType
     """
     id: str = ""
-    activityId: str = ""
+    activityIds: List[str] = field(default_factory=list)
+    activityId: str = ""  # Backward compatibility - converted to activityIds
     name: Optional[str] = None
     epochId: Optional[str] = None
     encounterId: Optional[str] = None
@@ -706,15 +712,24 @@ class ScheduledActivityInstance(USDMEntity):
     defaultConditionId: Optional[str] = None
     instanceType: str = "ScheduledActivityInstance"
     
+    def __post_init__(self):
+        # Convert singular activityId to activityIds list for schema compliance
+        if self.activityId and not self.activityIds:
+            self.activityIds = [self.activityId]
+    
     def to_dict(self) -> Dict[str, Any]:
+        # Ensure activityIds is populated
+        activity_ids = self.activityIds if self.activityIds else ([self.activityId] if self.activityId else [])
+        
         result = {
             "id": self._ensure_id(),
-            "activityId": self.activityId,
+            "activityIds": activity_ids,
             "instanceType": self.instanceType,
         }
         
         # name is required - auto-generate if not provided
-        result["name"] = self.name or f"{self.activityId}@{self.encounterId or 'schedule'}"
+        act_label = activity_ids[0] if activity_ids else "activity"
+        result["name"] = self.name or f"{act_label}@{self.encounterId or 'schedule'}"
         
         if self.epochId:
             result["epochId"] = self.epochId

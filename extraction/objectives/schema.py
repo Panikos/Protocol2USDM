@@ -13,6 +13,10 @@ from typing import List, Optional, Dict, Any
 from enum import Enum
 
 from core.usdm_types import generate_uuid, Code
+from core.terminology_codes import (
+    get_objective_level_code,
+    get_endpoint_level_code,
+)
 
 
 class ObjectiveLevel(Enum):
@@ -20,13 +24,23 @@ class ObjectiveLevel(Enum):
     PRIMARY = "Primary"
     SECONDARY = "Secondary"
     EXPLORATORY = "Exploratory"
+    
+    def to_code(self) -> Dict[str, Any]:
+        """Return proper NCI Code object for this level."""
+        # Use single source of truth from core.terminology_codes
+        return get_objective_level_code(self.value)
 
 
 class EndpointLevel(Enum):
-    """USDM Endpoint level codes (mirrors objective levels)."""
+    """USDM Endpoint level codes."""
     PRIMARY = "Primary"
     SECONDARY = "Secondary"
     EXPLORATORY = "Exploratory"
+    
+    def to_code(self) -> Dict[str, Any]:
+        """Return proper NCI Code object for this level."""
+        # Use single source of truth from core.terminology_codes
+        return get_endpoint_level_code(self.value)
 
 
 class IntercurrentEventStrategy(Enum):
@@ -60,11 +74,7 @@ class Endpoint:
             "id": self.id,
             "name": self.name,
             "text": self.text,
-            "level": {
-                "code": self.level.value,
-                "codeSystem": "USDM",
-                "decode": self.level.value,
-            },
+            "level": self.level.to_code(),  # Use correct NCI codes
             "instanceType": self.instance_type,
         }
         if self.purpose:
@@ -172,11 +182,7 @@ class Objective:
             "id": self.id,
             "name": self.name,
             "text": self.text,
-            "level": {
-                "code": self.level.value,
-                "codeSystem": "USDM",
-                "decode": self.level.value,
-            },
+            "level": self.level.to_code(),  # Use correct NCI codes
             "endpointIds": self.endpoint_ids,
             "instanceType": self.instance_type,
         }

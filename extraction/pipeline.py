@@ -491,14 +491,18 @@ def validate_schema(soa_path: str) -> dict:
     if versions:
         timeline = versions[0].get("timeline", {})
         activities = {a.get("id"): a for a in timeline.get("activities", [])}
+        # Support both plannedTimepoints (legacy) and encounters (USDM 4.0)
         timepoints = {t.get("id"): t for t in timeline.get("plannedTimepoints", [])}
+        encounters = {e.get("id"): e for e in timeline.get("encounters", [])}
         
         # Check linkage
         for at in timeline.get("activityTimepoints", []):
             if at.get("activityId") not in activities:
                 issues.append(f"Invalid activityId: {at.get('activityId')}")
-            if at.get("plannedTimepointId") not in timepoints:
-                issues.append(f"Invalid plannedTimepointId: {at.get('plannedTimepointId')}")
+            # Support both encounterId (new) and plannedTimepointId (legacy)
+            enc_id = at.get("encounterId") or at.get("plannedTimepointId")
+            if enc_id and enc_id not in encounters and enc_id not in timepoints:
+                issues.append(f"Invalid encounterId: {enc_id}")
     
     valid = len(issues) == 0
     logger.info(f"Schema validation: {'PASSED' if valid else 'FAILED'} ({len(issues)} issues)")

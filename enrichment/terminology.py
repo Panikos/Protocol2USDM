@@ -23,63 +23,26 @@ from core.evs_client import (
     ensure_usdm_codes_cached,
     USDM_CODES,
 )
+from core.terminology_codes import (
+    OBJECTIVE_LEVEL_CODES,
+    ENDPOINT_LEVEL_CODES,
+    STUDY_PHASE_CODES,
+    BLINDING_CODES,
+    ELIGIBILITY_CODES,
+    ARM_TYPE_CODES,
+    find_code_by_text,
+)
 
 logger = logging.getLogger(__name__)
 
-# Term-to-code mappings for common USDM entities
-# These map text values to NCI codes for quick lookup
-STUDY_PHASE_MAPPINGS = {
-    'phase 1': 'C15600',
-    'phase i': 'C15600',
-    'phase 2': 'C15601',
-    'phase ii': 'C15601',
-    'phase 3': 'C15602',
-    'phase iii': 'C15602',
-    'phase 4': 'C15603',
-    'phase iv': 'C15603',
-    'phase 1/2': 'C15693',
-    'phase i/ii': 'C15693',
-    'phase 2/3': 'C15694',
-    'phase ii/iii': 'C15694',
-}
-
-BLINDING_MAPPINGS = {
-    'open label': 'C82639',
-    'open-label': 'C82639',
-    'single blind': 'C15228',
-    'single-blind': 'C15228',
-    'double blind': 'C15227',
-    'double-blind': 'C15227',
-    'triple blind': 'C156397',
-    'triple-blind': 'C156397',
-}
-
-OBJECTIVE_LEVEL_MAPPINGS = {
-    'primary': 'C98772',
-    'secondary': 'C98781',
-    'exploratory': 'C98724',
-}
-
-ELIGIBILITY_MAPPINGS = {
-    'inclusion': 'C25532',
-    'exclusion': 'C25370',
-}
-
-ENDPOINT_LEVEL_MAPPINGS = {
-    'primary': 'C98770',
-    'secondary': 'C98784',
-    'exploratory': 'C157551',
-}
-
-ARM_TYPE_MAPPINGS = {
-    'experimental': 'C174266',
-    'treatment': 'C174266',
-    'placebo': 'C49648',
-    'active comparator': 'C49649',
-    'comparator': 'C49649',
-    'no intervention': 'C174269',
-    'control': 'C49649',
-}
+# Legacy mappings - now derived from single source of truth
+# These extract just the NCI code from the full code objects
+STUDY_PHASE_MAPPINGS = {k: v["code"] for k, v in STUDY_PHASE_CODES.items()}
+BLINDING_MAPPINGS = {k: v["code"] for k, v in BLINDING_CODES.items()}
+OBJECTIVE_LEVEL_MAPPINGS = {k: v["code"] for k, v in OBJECTIVE_LEVEL_CODES.items()}
+ENDPOINT_LEVEL_MAPPINGS = {k: v["code"] for k, v in ENDPOINT_LEVEL_CODES.items()}
+ELIGIBILITY_MAPPINGS = {k: v["code"] for k, v in ELIGIBILITY_CODES.items()}
+ARM_TYPE_MAPPINGS = {k: v["code"] for k, v in ARM_TYPE_CODES.items()}
 
 
 def _get_code_object(nci_code: str, client: EVSClient) -> Optional[Dict[str, Any]]:

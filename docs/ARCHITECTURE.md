@@ -180,6 +180,12 @@ These are used only during extraction and convert to official types:
 | `HeaderStructure` | Vision extraction anchor | Discarded after use |
 | `Timeline` | Extraction container | `StudyDesign` |
 
+**ActivityTimepoint Key Fields:**
+- `activityId`: Reference to Activity (act_1, act_2, ...)
+- `encounterId`: Reference to Encounter (enc_1, enc_2, ...) - **primary field**
+- `plannedTimepointId`: Legacy field (pt_1, pt_2, ...) - backward compat only
+- `footnoteRefs`: Superscript references (["a", "m"]) for ticks like X^a
+
 ## Required Fields
 
 The schema defines which fields are required. Key ones enforced:
@@ -212,11 +218,14 @@ Provenance tracks the **source** of each extracted entity and cell (text extract
 ┌─────────────────────────────────────────────────────────────────┐
 │                    Extraction Pipeline                          │
 │                                                                 │
-│   text_extractor.py ──► entities + provenance (simple IDs)     │
+│   Header Structure (enc_1, enc_2, ...) from vision analysis    │
+│           │                                                     │
+│           ▼                                                     │
+│   text_extractor.py ──► uses encounterId (enc_N) directly      │
 │           │                        │                            │
 │           ▼                        ▼                            │
 │   9_final_soa.json     9_final_soa_provenance.json             │
-│   (act_1, pt_1)        (act_1|pt_1 → source)                   │
+│   (act_1, enc_1)       (act_1|enc_1 → source)                  │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
                             │
@@ -228,7 +237,8 @@ Provenance tracks the **source** of each extracted entity and cell (text extract
 │           │                        │                            │
 │           ▼                        ▼                            │
 │   protocol_usdm.json   convert_provenance_to_uuids()           │
-│   (UUIDs)                          │                            │
+│   (UUIDs)              (enc_N → uuid, pt_N → uuid for legacy)  │
+│                                    │                            │
 │                                    ▼                            │
 │                        protocol_usdm_provenance.json            │
 │                        (uuid|uuid → source)                     │
@@ -255,8 +265,10 @@ Provenance tracks the **source** of each extracted entity and cell (text extract
 
 | File | IDs | Purpose |
 |------|-----|---------|
-| `9_final_soa_provenance.json` | Simple (act_1, pt_1) | Original extraction provenance |
+| `9_final_soa_provenance.json` | Simple (act_1, enc_1) | Original extraction provenance |
 | `protocol_usdm_provenance.json` | UUIDs | Viewer consumption (matches protocol_usdm.json) |
+
+**Note:** Extraction now uses `encounterId` (enc_N) directly from header structure instead of `plannedTimepointId` (pt_N). Legacy pt_N format is still supported for backward compatibility.
 
 ### Provenance File Format
 
@@ -320,6 +332,31 @@ result = validate_usdm_dict(data)
 print(f"Errors: {result.error_count}")
 ```
 
+### Terminology Codes (`core/terminology_codes.py`)
+
+Single source of truth for all NCI codes. All codes verified against NIH EVS API.
+
+```python
+from core.terminology_codes import (
+    get_objective_level_code,
+    get_endpoint_level_code,
+    OBJECTIVE_LEVEL_CODES,
+    ENDPOINT_LEVEL_CODES,
+)
+
+# Get USDM-compliant Code object
+code = get_objective_level_code("primary")
+# Returns: {"code": "C85826", "decode": "Trial Primary Objective", ...}
+```
+
+**Key Code Categories:**
+- **Objective Levels**: C85826 (Primary), C85827 (Secondary), C163559 (Exploratory)
+- **Endpoint Levels**: C98772 (Primary), C98781 (Secondary), C98724 (Exploratory)
+- **Blinding**: C49659 (Open Label), C28233 (Single), C15228 (Double), C66959 (Triple)
+- **Arm Types**: C174266 (Investigational), C174268 (Placebo), C174267 (Active Comparator)
+
+**Verification:** Run `python tests/verify_evs_codes.py` to re-verify against NIH EVS API.
+
 ### EVS Client (`core/evs_client.py`)
 
 The EVS client connects to NCI EVS APIs for controlled terminology:
@@ -336,10 +373,10 @@ code = client.fetch_ncit_code('C15600')  # Phase I Trial
 ```
 
 **Features:**
-- Connects to EVS CT API (`evs.nci.nih.gov/ctapi/v1`)
-- Local JSON cache with 30-day TTL
-- Pre-defined 33 USDM-relevant NCI codes
+- Connects to EVS REST API (`api-evsrest.nci.nih.gov`)
+- Local JSON cache with 30-day TTL (`core/evs_cache/nci_codes.json`)
 - Automatic cache population on first run
+- Used by `enrichment/terminology.py` to fetch code metadata
 
 ## Updating for New USDM Versions
 
@@ -364,6 +401,7 @@ core/
 ├── usdm_schema_loader.py      # Schema parser + USDMEntity base class
 ├── usdm_types_generated.py    # Official USDM types (86+ entities)
 ├── usdm_types.py              # Main interface + internal extraction types
+├── terminology_codes.py       # Single source of truth for NCI codes (EVS-verified)
 ├── evs_client.py              # NCI EVS API client with caching
 ├── provenance.py              # ProvenanceTracker for extraction source tracking
 ├── schema_prompt_generator.py # Prompt generator from schema
@@ -376,15 +414,19 @@ extraction/
 ├── header_analyzer.py         # Vision-based structure extraction
 ├── text_extractor.py          # Text-based data extraction
 ├── validator.py               # Extraction validation
-└── */schema.py                # Extraction-specific types (see below)
+└── */schema.py                # Extraction-specific types (imports from terminology_codes)
 
 enrichment/
-└── terminology.py             # NCI EVS terminology enrichment
+└── terminology.py             # NCI EVS enrichment (uses terminology_codes)
 
 validation/
 ├── __init__.py                # Main validation interface
 ├── usdm_validator.py          # Official package validation
 └── cdisc_conformance.py       # CDISC CORE conformance
+
+tests/
+├── verify_evs_codes.py        # Verify NCI codes against NIH EVS API
+└── ...                        # Other test files
 
 archive/legacy_pipeline/
 ├── usdm_types_v4.py           # [ARCHIVED] Manual types

@@ -151,28 +151,34 @@ class ActivityTimepoint:
     Internal extraction type - represents a tick in the SoA matrix.
     Maps to ScheduledActivityInstance in USDM 4.0.
     
+    Uses encounterId (enc_N) as the primary timepoint reference.
+    plannedTimepointId (pt_N) is kept for backward compatibility only.
+    
     footnoteRefs: List of footnote identifiers (e.g., ["a", "m"]) for ticks
     that have superscript references like "X^a" or "✓^m,n"
     """
     activity_id: str = ""
-    timepoint_id: str = ""
+    timepoint_id: str = ""  # Deprecated - use encounterId
     is_performed: bool = True
     condition: Optional[str] = None
     activityId: str = ""  # Alternative field name
-    plannedTimepointId: str = ""  # Alternative field name
-    encounterId: str = ""  # Alternative field name
+    encounterId: str = ""  # Primary: enc_N from header structure
+    plannedTimepointId: str = ""  # Legacy: pt_N (backward compat)
     footnoteRefs: List[str] = field(default_factory=list)  # Footnote superscripts (e.g., ["a", "m"])
     
     def __post_init__(self):
         if not self.activity_id and self.activityId:
             self.activity_id = self.activityId
+        # Prioritize encounterId over plannedTimepointId
         if not self.timepoint_id:
-            self.timepoint_id = self.plannedTimepointId or self.encounterId
+            self.timepoint_id = self.encounterId or self.plannedTimepointId
     
     def to_dict(self) -> Dict[str, Any]:
+        # Use encounterId as the canonical ID
+        enc_id = self.encounterId or self.timepoint_id or self.plannedTimepointId
         result = {
             "activityId": self.activity_id or self.activityId,
-            "encounterId": self.timepoint_id or self.plannedTimepointId or self.encounterId,
+            "encounterId": enc_id,
             "instanceType": "ScheduledActivityInstance",
         }
         # Include footnoteRefs if present (for provenance/viewer, not USDM output)
@@ -184,9 +190,12 @@ class ActivityTimepoint:
     def from_dict(cls, data: Dict) -> 'ActivityTimepoint':
         if not data:
             return cls()
+        # Prioritize encounterId over plannedTimepointId
+        enc_id = data.get('encounterId', data.get('plannedTimepointId', data.get('timepoint_id', '')))
         return cls(
             activity_id=data.get('activity_id', data.get('activityId', '')),
-            timepoint_id=data.get('timepoint_id', data.get('plannedTimepointId', data.get('encounterId', ''))),
+            encounterId=enc_id,
+            timepoint_id=enc_id,
             is_performed=data.get('is_performed', data.get('isPerformed', True)),
             condition=data.get('condition'),
             footnoteRefs=data.get('footnoteRefs', data.get('footnote_refs', [])),
@@ -194,10 +203,12 @@ class ActivityTimepoint:
     
     def to_scheduled_instance(self) -> ScheduledActivityInstance:
         """Convert to official USDM ScheduledActivityInstance."""
+        act_id = self.activity_id or self.activityId
+        enc_id = self.encounterId or self.timepoint_id or self.plannedTimepointId
         return ScheduledActivityInstance(
             id=generate_uuid(),
-            activityId=self.activity_id or self.activityId,
-            encounterId=self.timepoint_id or self.plannedTimepointId or self.encounterId,
+            activityIds=[act_id] if act_id else [],  # USDM 4.0 uses activityIds (plural)
+            encounterId=enc_id,
         )
 
 
@@ -428,6 +439,26 @@ class Timeline:
             for i, fn in enumerate(self.footnotes)
         ]
         
+        # Create ScheduledActivityInstances
+        # Note: Extraction now uses enc_N directly, but we keep pt_N -> enc_N
+        # mapping as backward compatibility for any legacy data
+        import re
+        pt_to_enc = {}
+        for enc in self.encounters:
+            enc_id = enc.id if hasattr(enc, 'id') else enc.get('id', '')
+            match = re.match(r'^enc_(\d+)$', enc_id)
+            if match:
+                n = match.group(1)
+                pt_to_enc[f"pt_{n}"] = enc_id
+        
+        instances = []
+        for at in self.activityTimepoints:
+            inst = at.to_scheduled_instance()
+            # Backward compat: Map pt_* to enc_* if needed (legacy data)
+            if inst.encounterId and inst.encounterId in pt_to_enc:
+                inst.encounterId = pt_to_enc[inst.encounterId]
+            instances.append(inst)
+        
         return StudyDesign(
             id=design_id,
             activities=all_activities,
@@ -438,7 +469,7 @@ class Timeline:
                     id="timeline_1",
                     name="Main Schedule Timeline",
                     mainTimeline=True,
-                    instances=[at.to_scheduled_instance() for at in self.activityTimepoints],
+                    instances=instances,
                 )
             ],
             notes=soa_notes,

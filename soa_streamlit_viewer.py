@@ -103,10 +103,14 @@ def get_activity_timepoints(timeline):
         for st in schedule_timelines:
             for instance in st.get('instances', []):
                 if instance.get('instanceType') == 'ScheduledActivityInstance':
-                    act_id = instance.get('activityId')
+                    # Handle both activityIds (plural, USDM 4.0) and activityId (singular, legacy)
+                    act_ids = instance.get('activityIds', [])
+                    if not act_ids and instance.get('activityId'):
+                        act_ids = [instance.get('activityId')]
                     enc_id = instance.get('encounterId')
-                    if act_id and enc_id:
-                        activity_timepoints.setdefault(act_id, []).append(enc_id)
+                    for act_id in act_ids:
+                        if act_id and enc_id:
+                            activity_timepoints.setdefault(act_id, []).append(enc_id)
     
     # Legacy: Check activityTimepoints and scheduledActivityInstances
     for key in ['scheduledActivityInstances', 'activityTimepoints']:

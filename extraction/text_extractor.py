@@ -133,20 +133,20 @@ Every activity MUST have `activityGroupId` linking it to its parent group.
     {{
       "id": "at_1",
       "activityId": "act_1",
-      "plannedTimepointId": "pt_1",
+      "encounterId": "enc_1",
       "instanceType": "ActivityTimepoint"
     }},
     {{
       "id": "at_2",
       "activityId": "act_2",
-      "plannedTimepointId": "pt_1",
+      "encounterId": "enc_1",
       "footnoteRefs": ["a"],
       "instanceType": "ActivityTimepoint"
     }},
     {{
       "id": "at_3",
       "activityId": "act_3",
-      "plannedTimepointId": "pt_2",
+      "encounterId": "enc_2",
       "footnoteRefs": ["m", "n"],
       "instanceType": "ActivityTimepoint"
     }}
@@ -158,7 +158,7 @@ Every activity MUST have `activityGroupId` linking it to its parent group.
 
 1. **Every entity MUST have `id` and `instanceType`** - mandatory for USDM compliance
 2. **Use sequential IDs** - act_1, act_2 for activities; at_1, at_2 for timepoints
-3. **Use EXACT IDs from header structure** for plannedTimepointId - do not create new ones
+3. **Use EXACT encounter IDs from header structure** for encounterId (enc_1, enc_2, etc.) - do not create new ones
 4. **ONLY create ActivityTimepoints where you see explicit tick marks** (X, ✓, •)
 5. **Do NOT infer ticks** from clinical logic or "at every visit" text
 6. **If unsure about a tick, OMIT it** - false negatives are better than false positives
@@ -199,7 +199,7 @@ PK/PD Analyses           <- group header (grp_3)
 ## ActivityTimepoint Fields  
 - `id`: Unique identifier (at_1, at_2, etc.)
 - `activityId`: Reference to the activity (must match an activity's id)
-- `plannedTimepointId`: Reference to timepoint from header (must match exactly)
+- `encounterId`: Reference to encounter from header (enc_1, enc_2, etc.) - must match exactly
 - `footnoteRefs`: (OPTIONAL) Array of footnote letters if the tick has superscript references
   - Example: "X^a" → `["a"]`, "✓^m,n" → `["m", "n"]`
   - Only include if superscript is present on the tick mark

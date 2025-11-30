@@ -337,8 +337,9 @@ def convert_provenance_to_uuids(provenance_data: dict, id_map: dict) -> dict:
     This creates a new provenance dict with all IDs converted to UUIDs,
     ensuring perfect alignment with protocol_usdm.json.
     
-    IMPORTANT: Provenance uses pt_N for timepoint IDs but USDM uses enc_N for encounters.
-    We map pt_N -> enc_N UUID so viewer lookups work correctly.
+    Handles both:
+    - New format: enc_N (encounterId directly from extraction)
+    - Legacy format: pt_N (plannedTimepointId, backward compat)
     
     Args:
         provenance_data: Original provenance dict (entities, cells, cellFootnotes, metadata)
@@ -350,29 +351,31 @@ def convert_provenance_to_uuids(provenance_data: dict, id_map: dict) -> dict:
     if not provenance_data or not id_map:
         return provenance_data
     
-    # Build pt_N -> enc_N mapping for timepoint/encounter alignment
-    # Provenance uses pt_1, pt_2... but USDM uses enc_1, enc_2... for the same columns
-    pt_to_enc_uuid = {}
+    # Build pt_N -> enc_N UUID mapping for backward compatibility
+    # Legacy provenance used pt_1, pt_2... but id_map has enc_1, enc_2...
     import re
+    pt_to_enc_uuid = {}
     for key, uuid_val in id_map.items():
-        match = re.match(r'^pt_(\d+)$', key)
+        match = re.match(r'^enc_(\d+)$', key)
         if match:
             n = match.group(1)
-            enc_key = f"enc_{n}"
-            if enc_key in id_map:
-                # Map pt_N's UUID to enc_N's UUID for provenance lookup
-                pt_to_enc_uuid[uuid_val] = id_map[enc_key]
+            # Map pt_N directly to enc_N's UUID (backward compat)
+            pt_to_enc_uuid[f"pt_{n}"] = uuid_val
     
     def convert_id(old_id: str) -> str:
         """Convert ID using id_map, return original if not found."""
         return id_map.get(old_id, old_id)
     
     def convert_timepoint_id(old_id: str) -> str:
-        """Convert timepoint ID, mapping pt_N to enc_N UUID."""
-        # First convert to UUID
-        uuid_val = id_map.get(old_id, old_id)
-        # Then check if this pt_N UUID should map to enc_N UUID
-        return pt_to_enc_uuid.get(uuid_val, uuid_val)
+        """Convert timepoint ID to UUID. Handles both enc_N (new) and pt_N (legacy)."""
+        # Direct lookup in id_map (handles enc_N directly)
+        if old_id in id_map:
+            return id_map[old_id]
+        # Legacy: pt_N -> enc_N UUID lookup
+        if old_id in pt_to_enc_uuid:
+            return pt_to_enc_uuid[old_id]
+        # Return as-is if not found
+        return old_id
     
     result = {}
     
@@ -1348,12 +1351,13 @@ Examples:
             except Exception as e:
                 logger.warning(f"  ✗ Sites extraction error: {e}")
         
-        # Combine outputs if full-protocol
+        # Combine outputs - always run if we have any data (soa_data or expansion)
+        # This ensures protocol_usdm.json is created for viewer even for SoA-only runs
         combined_usdm_path = None
         schema_validation_result = None
         schema_fixer_result = None
         
-        if args.full_protocol or (run_any_expansion and soa_data):
+        if args.full_protocol or run_any_expansion or soa_data:
             logger.info("\n" + "="*60)
             logger.info("COMBINING OUTPUTS")
             logger.info("="*60)
