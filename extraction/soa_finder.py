@@ -246,10 +246,10 @@ def find_soa_pages(
     llm_pages = find_soa_pages_llm(pdf_path, model_name, all_candidates)
     
     if llm_pages:
-        # Expand to include adjacent pages (tables often span pages)
-        final_pages = _expand_adjacent_pages(llm_pages, pdf_path)
+        # Conservative expansion: only ±1 page and fill gaps (LLM is high-confidence)
+        final_pages = _expand_conservative(llm_pages, pdf_path)
         if set(final_pages) != set(llm_pages):
-            logger.info(f"Expanded pages from {sorted(llm_pages)} to {sorted(final_pages)} (adjacent page detection)")
+            logger.info(f"Expanded pages from {sorted(llm_pages)} to {sorted(final_pages)} (conservative ±1 expansion)")
         return sorted(final_pages)
     
     # Fallback to heuristics if LLM fails
@@ -308,6 +308,45 @@ def _find_soa_title_pages(pdf_path: str) -> List[int]:
     return title_pages
 
 
+def _expand_conservative(pages: List[int], pdf_path: str) -> List[int]:
+    """
+    Conservative page expansion for high-confidence LLM results.
+    
+    Only adds:
+    1. Gap pages between detected pages (e.g., 13 and 15 → add 14)
+    2. Exactly ±1 page on each end (not iterative)
+    
+    This prevents runaway expansion when LLM correctly identifies the SoA pages.
+    """
+    if not pages:
+        return pages
+    
+    doc = fitz.open(pdf_path)
+    total_pages = len(doc)
+    doc.close()
+    
+    expanded = set(pages)
+    sorted_pages = sorted(pages)
+    
+    # Fill gaps between detected pages
+    if len(sorted_pages) >= 2:
+        for i in range(len(sorted_pages) - 1):
+            start, end = sorted_pages[i], sorted_pages[i + 1]
+            for gap_page in range(start + 1, end):
+                expanded.add(gap_page)
+    
+    # Add exactly 1 page before and 1 page after (not iterative)
+    min_page = min(sorted_pages)
+    max_page = max(sorted_pages)
+    
+    if min_page - 1 >= 0:
+        expanded.add(min_page - 1)
+    if max_page + 1 < total_pages:
+        expanded.add(max_page + 1)
+    
+    return list(expanded)
+
+
 def _expand_adjacent_pages(pages: List[int], pdf_path: str) -> List[int]:
     """
     Expand page list to include adjacent pages and fill gaps.
@@ -315,6 +354,9 @@ def _expand_adjacent_pages(pages: List[int], pdf_path: str) -> List[int]:
     SoA tables often span multiple pages, so if we find page N,
     we should also check page N+1 (and potentially N-1) for table continuation.
     Also fills in any gaps between detected pages (e.g., if 13 and 15 are detected, include 14).
+    
+    NOTE: This is the aggressive expansion used for heuristic-only detection.
+    When LLM provides high-confidence pages, use _expand_conservative instead.
     """
     if not pages:
         return pages
