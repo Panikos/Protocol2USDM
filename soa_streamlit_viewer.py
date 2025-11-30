@@ -1841,14 +1841,38 @@ with tab5:
             if enriched > 0:
                 st.success(f"✅ Enriched {enriched}/{total} entities with NCI terminology codes")
                 
-                with st.expander("View Enrichment Details"):
-                    by_type = enrichment_result.get('by_type', {})
-                    for entity_type, count in sorted(by_type.items(), key=lambda x: -x[1]):
-                        st.markdown(f"- **{entity_type}**: {count} entities")
-                    
-                    if enrichment_result.get('cache_stats'):
-                        st.markdown("---")
-                        st.markdown("**Cache Stats:**")
+                # Show summary by type
+                by_type = enrichment_result.get('by_type', {})
+                cols = st.columns(len(by_type) if by_type else 1)
+                for i, (entity_type, count) in enumerate(sorted(by_type.items(), key=lambda x: -x[1])):
+                    with cols[i % len(cols)]:
+                        st.metric(entity_type, count)
+                
+                # Show enriched items in expander
+                enriched_items = enrichment_result.get('enriched_items', [])
+                if enriched_items:
+                    with st.expander(f"View All {len(enriched_items)} Enriched Items"):
+                        # Group by type
+                        for entity_type in sorted(by_type.keys()):
+                            items_of_type = [item for item in enriched_items if item.get('type') == entity_type]
+                            if items_of_type:
+                                st.markdown(f"**{entity_type}** ({len(items_of_type)})")
+                                for item in items_of_type:
+                                    name = item.get('name', 'Unknown')
+                                    nci = item.get('nci_code', '')
+                                    # Show additional context based on type
+                                    extra = ''
+                                    if item.get('level'):
+                                        extra = f" [{item['level']}]"
+                                    elif item.get('category'):
+                                        extra = f" [{item['category']}]"
+                                    elif item.get('arm_type'):
+                                        extra = f" [{item['arm_type']}]"
+                                    st.markdown(f"- {name}{extra} → `{nci}`")
+                                st.markdown("")
+                
+                if enrichment_result.get('cache_stats'):
+                    with st.expander("Cache Stats"):
                         stats = enrichment_result['cache_stats']
                         st.markdown(f"- Cached codes: {stats.get('total_entries', 0)}")
                         st.markdown(f"- Fresh entries: {stats.get('fresh_entries', 0)}")

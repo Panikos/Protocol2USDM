@@ -143,6 +143,7 @@ def enrich_terminology(json_path: str, output_dir: str = None) -> Dict[str, Any]
         enriched_count = 0
         total_entities = 0
         by_type: Dict[str, int] = {}
+        enriched_items: List[Dict[str, str]] = []  # Track individual enriched items
         
         def enrich_entity(obj: Dict, path: str = "") -> None:
             nonlocal enriched_count, total_entities
@@ -170,6 +171,7 @@ def enrich_terminology(json_path: str, output_dir: str = None) -> Dict[str, Any]
                             phase_obj['standardCode'] = code_obj
                             enriched_count += 1
                             by_type['StudyPhase'] = by_type.get('StudyPhase', 0) + 1
+                            enriched_items.append({'type': 'StudyPhase', 'name': phase_text, 'nci_code': nci_code})
             
             # Enrich blinding schema
             if 'blindingSchema' in obj:
@@ -187,6 +189,7 @@ def enrich_terminology(json_path: str, output_dir: str = None) -> Dict[str, Any]
                         obj['blindingSchema'] = code_obj
                         enriched_count += 1
                         by_type['BlindingSchema'] = by_type.get('BlindingSchema', 0) + 1
+                        enriched_items.append({'type': 'BlindingSchema', 'name': blinding_text, 'nci_code': nci_code})
             
             # Enrich objective level
             if instance_type == 'Objective' and 'level' in obj:
@@ -204,6 +207,8 @@ def enrich_terminology(json_path: str, output_dir: str = None) -> Dict[str, Any]
                         obj['level'] = code_obj
                         enriched_count += 1
                         by_type['Objective'] = by_type.get('Objective', 0) + 1
+                        obj_name = obj.get('name', obj.get('text', 'Unnamed'))[:50]
+                        enriched_items.append({'type': 'Objective', 'name': obj_name, 'level': level_text, 'nci_code': nci_code})
             
             # Enrich endpoint level
             if instance_type == 'Endpoint' and 'level' in obj:
@@ -221,6 +226,8 @@ def enrich_terminology(json_path: str, output_dir: str = None) -> Dict[str, Any]
                         obj['level'] = code_obj
                         enriched_count += 1
                         by_type['Endpoint'] = by_type.get('Endpoint', 0) + 1
+                        ep_name = obj.get('name', obj.get('text', 'Unnamed'))[:50]
+                        enriched_items.append({'type': 'Endpoint', 'name': ep_name, 'level': level_text, 'nci_code': nci_code})
             
             # Enrich eligibility category
             if instance_type == 'EligibilityCriterion' and 'category' in obj:
@@ -238,6 +245,8 @@ def enrich_terminology(json_path: str, output_dir: str = None) -> Dict[str, Any]
                         obj['category'] = code_obj
                         enriched_count += 1
                         by_type['EligibilityCriterion'] = by_type.get('EligibilityCriterion', 0) + 1
+                        crit_name = obj.get('name', obj.get('identifier', 'Unnamed'))[:40]
+                        enriched_items.append({'type': 'EligibilityCriterion', 'name': crit_name, 'category': cat_text, 'nci_code': nci_code})
             
             # Enrich study arm type
             if instance_type == 'StudyArm' and 'type' in obj:
@@ -255,6 +264,8 @@ def enrich_terminology(json_path: str, output_dir: str = None) -> Dict[str, Any]
                         obj['type'] = code_obj
                         enriched_count += 1
                         by_type['StudyArm'] = by_type.get('StudyArm', 0) + 1
+                        arm_name = obj.get('name', 'Unnamed Arm')
+                        enriched_items.append({'type': 'StudyArm', 'name': arm_name, 'arm_type': type_text, 'nci_code': nci_code})
             
             # Recurse into nested objects
             for key, value in obj.items():
@@ -280,6 +291,7 @@ def enrich_terminology(json_path: str, output_dir: str = None) -> Dict[str, Any]
             'enriched': enriched_count,
             'total_entities': total_entities,
             'by_type': by_type,
+            'enriched_items': enriched_items,
             'cache_stats': client.get_cache_stats(),
         }
         
