@@ -158,33 +158,29 @@ def find_soa_pages_llm(
         return []
     
     # Build prompt
-    prompt = """Analyze these protocol pages and identify ALL pages that contain a Schedule of Activities (SoA) table.
+    prompt = """Analyze these protocol pages and identify which ones contain a Schedule of Activities (SoA) table.
 
 An SoA table typically has:
-- Column headers with visit names (Visit 1, Visit 2, etc.) or time points (Day -7, Day 1, Week 4, etc.)
-- Row headers with procedure/activity names (e.g., "Informed consent", "Physical examination", "Blood sampling")
-- A grid with checkmarks (X, ✓) indicating which activities occur at which visits
+- Column headers with visit names (Visit 1, Visit 2, etc.) or time points (Week 0, Day 1, etc.)
+- Row headers with procedure/activity names
+- Checkmarks or X marks indicating which activities occur at which visits
 
-**CRITICAL: SoA tables span MULTIPLE PAGES (typically 2-4 pages). You MUST identify ALL pages.**
-
-How to identify SoA CONTINUATION pages (pages 2, 3, etc. of the table):
-- Same column structure as the first page (Days, Visits, etc.)
-- Activity/procedure names in the left column
-- Grid of X marks continuing from previous page
-- May NOT have "Schedule of Activities" title - just table content
-- Look for: "Safety Assessments", "Laboratory", "PK/PD", "Balance assessments", etc.
+IMPORTANT: SoA tables often span MULTIPLE PAGES. Include:
+- Pages with the "Schedule of Activities" title/header (even if the table starts on that page)
+- Continuation pages that have table content but no title
+- All pages that are part of the same table
 
 PAGES TO ANALYZE:
 {pages}
 
 Return a JSON object with:
 {{
-  "soa_pages": [list of ALL page numbers containing SoA table content],
+  "soa_pages": [list of page numbers that contain SoA tables - include ALL pages of multi-page tables],
   "confidence": "high" or "medium" or "low",
-  "notes": "brief explanation including how many pages the table spans"
+  "notes": "brief explanation"
 }}
 
-**Do NOT miss continuation pages. If page N has the SoA title, check if pages N+1, N+2 continue the same table.**""".format(
+Include any page that has SoA table content, even if it's a continuation page.""".format(
         pages="\n\n---\n\n".join(page_texts)
     )
     
@@ -242,55 +238,23 @@ def find_soa_pages(
     # Combine heuristic and title pages
     all_candidates = list(set(heuristic_pages + title_pages))
     
-    # Pre-expand candidates to include ±2 adjacent pages BEFORE LLM analysis
-    # This ensures the LLM sees potential continuation pages
-    expanded_candidates = _pre_expand_candidates(all_candidates, pdf_path)
-    logger.info(f"Expanded candidates for LLM: {sorted(expanded_candidates)}")
-    
     if not use_llm or not model_name:
-        final_pages = _expand_adjacent_pages(expanded_candidates, pdf_path)
+        final_pages = _expand_adjacent_pages(all_candidates, pdf_path)
         return sorted(final_pages)[:10]
     
-    # Second pass: LLM refinement (now sees adjacent pages)
-    llm_pages = find_soa_pages_llm(pdf_path, model_name, expanded_candidates)
+    # Second pass: LLM refinement
+    llm_pages = find_soa_pages_llm(pdf_path, model_name, all_candidates)
     
     if llm_pages:
-        # LLM already saw pre-expanded candidates (±2 pages), so trust its selection
-        # No additional expansion needed - LLM has already identified all SoA pages
-        return sorted(llm_pages)
+        # Expand to include adjacent pages (tables often span pages)
+        final_pages = _expand_adjacent_pages(llm_pages, pdf_path)
+        if set(final_pages) != set(llm_pages):
+            logger.info(f"Expanded pages from {sorted(llm_pages)} to {sorted(final_pages)} (adjacent page detection)")
+        return sorted(final_pages)
     
     # Fallback to heuristics if LLM fails
     final_pages = _expand_adjacent_pages(all_candidates, pdf_path)
     return sorted(final_pages)[:10]
-
-
-def _pre_expand_candidates(pages: List[int], pdf_path: str, radius: int = 2) -> List[int]:
-    """
-    Pre-expand candidate pages by ±radius before LLM analysis.
-    
-    This ensures the LLM sees potential continuation pages that
-    weren't caught by heuristics.
-    
-    Args:
-        pages: Initial candidate pages
-        pdf_path: Path to PDF
-        radius: Number of pages to add on each side (default ±2)
-    """
-    if not pages:
-        return pages
-    
-    doc = fitz.open(pdf_path)
-    total_pages = len(doc)
-    doc.close()
-    
-    expanded = set(pages)
-    for page in pages:
-        for offset in range(-radius, radius + 1):
-            new_page = page + offset
-            if 0 <= new_page < total_pages:
-                expanded.add(new_page)
-    
-    return list(expanded)
 
 
 def _find_soa_title_pages(pdf_path: str) -> List[int]:
@@ -344,127 +308,6 @@ def _find_soa_title_pages(pdf_path: str) -> List[int]:
     return title_pages
 
 
-def _expand_conservative(pages: List[int], pdf_path: str, model_name: str = None) -> List[int]:
-    """
-    Conservative page expansion with vision validation.
-    
-    For each candidate expansion page (±1 from detected range), uses vision
-    to verify it actually contains SoA table content before including it.
-    
-    Args:
-        pages: LLM-identified SoA pages
-        pdf_path: Path to PDF
-        model_name: LLM model for vision validation (optional)
-    """
-    if not pages:
-        return pages
-    
-    doc = fitz.open(pdf_path)
-    total_pages = len(doc)
-    
-    expanded = set(pages)
-    sorted_pages = sorted(pages)
-    
-    # Fill gaps between detected pages (these are definitely part of SoA)
-    if len(sorted_pages) >= 2:
-        for i in range(len(sorted_pages) - 1):
-            start, end = sorted_pages[i], sorted_pages[i + 1]
-            for gap_page in range(start + 1, end):
-                expanded.add(gap_page)
-    
-    # Candidate pages to validate: ±1 from detected range
-    min_page = min(sorted_pages)
-    max_page = max(sorted_pages)
-    
-    candidates = []
-    if min_page - 1 >= 0:
-        candidates.append(min_page - 1)
-    if max_page + 1 < total_pages:
-        candidates.append(max_page + 1)
-    
-    # If no model provided, just add candidates without validation
-    if not model_name or not candidates:
-        for c in candidates:
-            expanded.add(c)
-        doc.close()
-        return list(expanded)
-    
-    # Validate each candidate with vision
-    import tempfile
-    import os
-    
-    for page_num in candidates:
-        # Render page to image
-        page = doc[page_num]
-        pix = page.get_pixmap(dpi=100)  # Lower DPI for quick check
-        
-        # Create temp file path without keeping handle open
-        tmp_fd, tmp_path = tempfile.mkstemp(suffix='.png')
-        os.close(tmp_fd)  # Close the file descriptor immediately
-        
-        try:
-            pix.save(tmp_path)
-            is_soa = _validate_page_is_soa(tmp_path, model_name)
-            if is_soa:
-                expanded.add(page_num)
-                logger.info(f"Vision confirmed page {page_num + 1} is part of SoA")
-            else:
-                logger.info(f"Vision rejected page {page_num + 1} - not SoA table")
-        finally:
-            try:
-                os.unlink(tmp_path)
-            except OSError:
-                pass  # Ignore cleanup errors on Windows
-    
-    doc.close()
-    return list(expanded)
-
-
-def _validate_page_is_soa(image_path: str, model_name: str) -> bool:
-    """
-    Use vision to check if a page contains SoA table content.
-    
-    Returns True if the page appears to be part of a Schedule of Activities table.
-    """
-    from core.llm_client import get_llm_client, LLMConfig
-    from core.json_utils import parse_llm_json
-    import base64
-    
-    # Encode image
-    with open(image_path, 'rb') as f:
-        img_data = base64.standard_b64encode(f.read()).decode('utf-8')
-    
-    prompt = """Look at this page image. Is it part of a Schedule of Activities (SoA) table?
-
-A SoA table typically has:
-- Column headers with visit names (Day 1, Week 2, Visit 3, etc.)
-- Row labels with activity/procedure names
-- A grid of tick marks (X, ✓) or empty cells
-
-Answer in JSON format:
-{"is_soa_table": true/false, "confidence": "high/medium/low", "reason": "brief explanation"}"""
-
-    client = get_llm_client(model_name)
-    
-    # Build vision message
-    messages = [
-        {"role": "user", "content": [
-            {"type": "text", "text": prompt},
-            {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{img_data}"}}
-        ]}
-    ]
-    
-    config = LLMConfig(temperature=0.0, json_mode=True, max_tokens=200)
-    
-    try:
-        response = client.generate(messages, config)
-        result = parse_llm_json(response.content, fallback={})
-        return result.get('is_soa_table', False) and result.get('confidence') in ['high', 'medium']
-    except Exception as e:
-        logger.warning(f"Vision validation failed: {e}")
-        return True  # Default to including page if validation fails
-
-
 def _expand_adjacent_pages(pages: List[int], pdf_path: str) -> List[int]:
     """
     Expand page list to include adjacent pages and fill gaps.
@@ -472,9 +315,6 @@ def _expand_adjacent_pages(pages: List[int], pdf_path: str) -> List[int]:
     SoA tables often span multiple pages, so if we find page N,
     we should also check page N+1 (and potentially N-1) for table continuation.
     Also fills in any gaps between detected pages (e.g., if 13 and 15 are detected, include 14).
-    
-    NOTE: This is the aggressive expansion used for heuristic-only detection.
-    When LLM provides high-confidence pages, use _expand_conservative instead.
     """
     if not pages:
         return pages
@@ -497,38 +337,17 @@ def _expand_adjacent_pages(pages: List[int], pdf_path: str) -> List[int]:
                         expanded.add(gap_page)
                         logger.info(f"Filled gap: added page {gap_page + 1} (1-indexed) between pages {start + 1} and {end + 1}")
     
-    # Step 2: Iteratively expand to adjacent pages until no more additions
-    prev_size = 0
-    while len(expanded) > prev_size:
-        prev_size = len(expanded)
-        new_pages = set()
-        
-        for page_num in list(expanded):
-            # Check next page (table continuation)
-            if page_num + 1 < total_pages and page_num + 1 not in expanded:
-                next_text = doc[page_num + 1].get_text().lower()
-                # Check if next page looks like a table continuation
-                has_table_content = any(
-                    re.search(pattern, next_text)
-                    for pattern in [r'\bday\s*[-+]?\d+', r'\bweek\s*[-+]?\d+', r'\bvisit\s*\d+', r'screening', r'baseline', r'\bx\b']
-                )
-                if has_table_content:
-                    new_pages.add(page_num + 1)
-                    logger.debug(f"Added adjacent page {page_num + 2} (1-indexed) - continuation of page {page_num + 1}")
-            
-            # Check previous page (table may start earlier)
-            if page_num - 1 >= 0 and page_num - 1 not in expanded:
-                prev_text = doc[page_num - 1].get_text().lower()
-                # More permissive check - any table content or SoA title
-                has_table_content = (
-                    re.search(r'schedule\s+of\s+(activities|assessments)', prev_text) or
-                    any(re.search(pattern, prev_text) for pattern in [r'\bday\s*[-+]?\d+', r'\bweek\s*[-+]?\d+', r'\bvisit\s*\d+'])
-                )
-                if has_table_content:
-                    new_pages.add(page_num - 1)
-                    logger.debug(f"Added page {page_num} (1-indexed) - precedes page {page_num + 1}")
-        
-        expanded.update(new_pages)
+    # Step 2: Add ±1 page on each end (non-iterative, conservative)
+    # SoA tables typically span 2-4 pages, so ±1 is sufficient
+    sorted_pages = sorted(expanded)
+    min_page, max_page = sorted_pages[0], sorted_pages[-1]
+    
+    if min_page - 1 >= 0:
+        expanded.add(min_page - 1)
+        logger.debug(f"Added page {min_page} (1-indexed) before SoA")
+    if max_page + 1 < total_pages:
+        expanded.add(max_page + 1)
+        logger.debug(f"Added page {max_page + 2} (1-indexed) after SoA")
     
     doc.close()
     return list(expanded)

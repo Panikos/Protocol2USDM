@@ -89,30 +89,13 @@ These are CATEGORY HEADERS that group related activities. They are typically:
 - Have NO tick marks (they are headers, not activities)
 
 ## YOUR TASK
-Extract the ACTIVITIES and TICK MATRIX from the protocol text using a SYSTEMATIC approach.
+Extract the ACTIVITIES and TICK MATRIX from the protocol text.
 
-## SYSTEMATIC EXTRACTION PROCESS
-
-Work through the SoA table METHODICALLY using these steps:
-
-### Step 1: Identify ALL Activity Rows
-- Scan the ENTIRE table from top to bottom, across ALL pages
-- List every row that represents an activity (not a group header)
-- For EACH page, process EVERY row - do not skip any
-- Pay special attention to rows immediately after page breaks
-
-### Step 2: For EACH Activity Row (process one at a time)
-1. Extract the activity name exactly as written
-2. Determine which group it belongs to (the nearest group header ABOVE it)
-3. Scan across ALL columns (timepoints) for that row
-4. Record EVERY cell that contains a tick mark (X, ✓, •, or similar)
-
-### Step 3: Build the Tick Matrix
-- For each activity, systematically check EVERY timepoint column
-- Use the timepoint IDs from the header structure (pt_1, pt_2, ... pt_N)
-- Create one ActivityTimepoint for each tick found
-
-**IMPORTANT: Do not stop early. Process the COMPLETE table.**
+For each activity row in the SoA table:
+1. Extract the activity name and description  
+2. Assign it to its parent group using `activityGroupId`
+3. Identify which timepoints have a tick (X, ✓, or similar marker)
+4. Create an ActivityTimepoint entry for EACH tick
 
 ## USDM v4.0 Output Format (MUST follow exactly)
 
@@ -172,21 +155,6 @@ Every activity MUST have `activityGroupId` linking it to its parent group.
 7. **DO NOT include group headers as activities** - only extract the individual activities UNDER each group
 8. **Include ALL activities** from the SoA table with their descriptions
 9. **Every activity MUST have `activityGroupId`** - MANDATORY, see rules below
-
-## MULTI-PAGE SoA HANDLING
-
-The protocol text contains `--- PAGE BREAK ---` markers between pages. The SoA table typically spans 2-4 pages.
-
-**PAGE BREAK RULES:**
-1. Activities continue ACROSS page breaks - the table does NOT restart
-2. The FIRST row after `--- PAGE BREAK ---` is usually an ACTIVITY ROW, not a header
-3. Process text BEFORE and AFTER each page break marker
-4. The current activity group continues across page breaks unless a new group header appears
-
-**VERIFICATION:** After extraction, mentally walk through each page of the text:
-- Page 1: Did I capture all activities from this page?
-- Page 2: Did I capture the FIRST activity after the page break?
-- Page N: Did I process every row on this page?
 
 ## HOW TO ASSIGN activityGroupId (MANDATORY)
 
@@ -302,20 +270,8 @@ def extract_soa_from_text(
         response = client.generate(messages, config)
         raw_response = response.content
         
-        # Log raw response for debugging (first 500 chars)
-        if not raw_response:
-            logger.warning("LLM returned empty response for text extraction")
-        else:
-            logger.debug(f"Raw response (first 500 chars): {raw_response[:500]}")
-        
         # Parse response
         data = parse_llm_json(raw_response, fallback={})
-        
-        # Debug: log what keys were found
-        if data:
-            logger.debug(f"Parsed JSON keys: {list(data.keys())}")
-        else:
-            logger.warning(f"Failed to parse JSON. Raw response type: {type(raw_response)}, length: {len(raw_response) if raw_response else 0}")
         
         # Extract activities
         activities = [

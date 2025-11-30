@@ -229,11 +229,6 @@ def convert_ids_to_uuids(data: dict, id_map: dict = None) -> dict:
     USDM 4.0 requires all 'id' fields to be valid UUIDs.
     This function recursively converts IDs while maintaining internal references.
     
-    Special handling for pt_* → enc_* resolution:
-    - PlannedTimepoints have IDs like pt_1 with encounterId: enc_1
-    - ScheduledActivityInstance.encounterId may reference pt_* IDs
-    - We resolve pt_* to enc_* before UUID conversion so they share the same UUID
-    
     Args:
         data: USDM JSON data
         id_map: Optional existing ID mapping (for consistency)
@@ -243,52 +238,6 @@ def convert_ids_to_uuids(data: dict, id_map: dict = None) -> dict:
     """
     if id_map is None:
         id_map = {}
-    
-    # First pass: Build pt_* → enc_* mapping from plannedTimepoints
-    # PlannedTimepoints link pt_* IDs to enc_* IDs via their encounterId field
-    pt_to_enc_map = {}
-    
-    def collect_pt_enc_mappings(obj):
-        """Recursively collect pt_* → enc_* mappings from plannedTimepoints."""
-        if isinstance(obj, dict):
-            # Check if this is a plannedTimepoint with encounterId
-            obj_id = obj.get('id', '')
-            enc_id = obj.get('encounterId', '')
-            if isinstance(obj_id, str) and isinstance(enc_id, str):
-                if obj_id.startswith('pt_') and enc_id.startswith('enc_'):
-                    pt_to_enc_map[obj_id] = enc_id
-            # Recurse into nested structures
-            for value in obj.values():
-                if isinstance(value, (dict, list)):
-                    collect_pt_enc_mappings(value)
-        elif isinstance(obj, list):
-            for item in obj:
-                collect_pt_enc_mappings(item)
-    
-    collect_pt_enc_mappings(data)
-    
-    # If no explicit mappings found, try to infer from encounter order
-    # (pt_1 → enc_1, pt_2 → enc_2, etc. based on position)
-    if not pt_to_enc_map:
-        encounters = []
-        def find_encounters(obj):
-            if isinstance(obj, dict):
-                if obj.get('instanceType') == 'Encounter' and obj.get('id', '').startswith('enc_'):
-                    encounters.append(obj.get('id'))
-                for value in obj.values():
-                    if isinstance(value, (dict, list)):
-                        find_encounters(value)
-            elif isinstance(obj, list):
-                for item in obj:
-                    find_encounters(item)
-        find_encounters(data)
-        
-        # Build positional mapping
-        for i, enc_id in enumerate(encounters, 1):
-            pt_to_enc_map[f"pt_{i}"] = enc_id
-    
-    if pt_to_enc_map:
-        logger.debug(f"Built {len(pt_to_enc_map)} pt_* → enc_* mappings")
     
     def is_simple_id(value):
         """Check if value looks like a simple ID that needs conversion."""
@@ -304,46 +253,32 @@ def convert_ids_to_uuids(data: dict, id_map: dict = None) -> dict:
         id_patterns = ['_', '-']
         return any(p in value for p in id_patterns) and len(value) < 50
     
-    def resolve_pt_to_enc(simple_id: str) -> str:
-        """Resolve pt_* ID to enc_* ID if mapping exists."""
-        return pt_to_enc_map.get(simple_id, simple_id)
-    
-    def get_or_create_uuid(simple_id: str, resolve_pt: bool = False) -> str:
+    def get_or_create_uuid(simple_id: str) -> str:
         """Get existing UUID for ID or create new one."""
-        # Optionally resolve pt_* to enc_* first
-        if resolve_pt:
-            simple_id = resolve_pt_to_enc(simple_id)
-        
         if simple_id not in id_map:
             id_map[simple_id] = str(uuid.uuid4())
         return id_map[simple_id]
     
-    def convert_recursive(obj, parent_key: str = None):
+    def convert_recursive(obj):
         """Recursively convert IDs in nested structure."""
         if isinstance(obj, dict):
             result = {}
-            # Check if this is a ScheduledActivityInstance
-            is_scheduled_instance = obj.get('instanceType') == 'ScheduledActivityInstance'
-            
             for key, value in obj.items():
                 if key == 'id' and is_simple_id(value):
                     result[key] = get_or_create_uuid(value)
-                elif key == 'encounterId' and is_simple_id(value) and is_scheduled_instance:
-                    # Special handling: resolve pt_* to enc_* for ScheduledActivityInstance
-                    result[key] = get_or_create_uuid(value, resolve_pt=True)
                 elif key.endswith('Id') and is_simple_id(value):
-                    # Handle other reference fields like activityId, epochId
+                    # Handle reference fields like activityId, encounterId, epochId
                     result[key] = get_or_create_uuid(value)
                 elif key.endswith('Ids') and isinstance(value, list):
                     # Handle ID arrays like activityIds, childIds
                     result[key] = [get_or_create_uuid(v) if is_simple_id(v) else v for v in value]
                 elif isinstance(value, (dict, list)):
-                    result[key] = convert_recursive(value, key)
+                    result[key] = convert_recursive(value)
                 else:
                     result[key] = value
             return result
         elif isinstance(obj, list):
-            return [convert_recursive(item, parent_key) for item in obj]
+            return [convert_recursive(item) for item in obj]
         else:
             return obj
     
@@ -938,12 +873,6 @@ Examples:
     )
     
     parser.add_argument(
-        "--no-table-extraction",
-        action="store_true",
-        help="Disable table-aware PDF extraction (use raw text instead)"
-    )
-    
-    parser.add_argument(
         "--confidence-threshold",
         type=float,
         default=0.7,
@@ -1163,7 +1092,6 @@ Examples:
         remove_hallucinations=args.remove_hallucinations,  # Default False (keep all cells)
         hallucination_confidence_threshold=args.confidence_threshold,
         save_intermediate=True,
-        use_table_extraction=not args.no_table_extraction,  # Default True (use table-aware extraction)
     )
     
     # Determine which expansion phases to run
