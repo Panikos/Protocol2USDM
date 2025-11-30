@@ -1241,12 +1241,12 @@ attach_provenance_to_inventory(inventory)
 attach_footnotes_to_inventory(inventory)
 
 # --- USDM Metrics Dashboard in Sidebar ---
-if inventory['final_soa']:
+if inventory.get('full_usdm'):
     st.sidebar.markdown("---")
     st.sidebar.subheader("📊 USDM Quality Metrics")
 
-    # Compute metrics solely from the reconciled SoA (no external gold standard).
-    metrics = compute_usdm_metrics(inventory['final_soa']['content'])
+    # Compute metrics from protocol_usdm.json (single source of truth)
+    metrics = compute_usdm_metrics(inventory['full_usdm']['content'])
 
     if metrics:
         # Entity counts
@@ -1274,16 +1274,12 @@ if inventory['final_soa']:
 # --- Main Display: Render the final SoA --- 
 st.header("Schedule of Activities (SoA)")
 
-# Use 9_final_soa.json for SoA display (has matching provenance)
-# protocol_usdm.json has different activities from expansion phases
+# ALWAYS use protocol_usdm.json as the single source of truth
+# It contains the combined, validated, and enriched USDM output
 soa_source = None
 soa_source_name = None
 
-if inventory.get('final_soa') and inventory['final_soa'].get('content'):
-    soa_source = inventory['final_soa']['content']
-    soa_source_name = "9_final_soa.json"
-elif inventory.get('full_usdm') and inventory['full_usdm'].get('content'):
-    # Fallback to protocol_usdm.json if no SoA file
+if inventory.get('full_usdm') and inventory['full_usdm'].get('content'):
     soa_source = inventory['full_usdm']['content']
     soa_source_name = "protocol_usdm.json"
 
@@ -1774,11 +1770,11 @@ with tab3:
 
 with tab4:
     st.subheader("Quality Metrics")
-    if not inventory['final_soa']:
-        render_no_data_message("Quality Metrics", "Run the pipeline to generate a final SoA for quality analysis")
+    if not inventory.get('full_usdm'):
+        render_no_data_message("Quality Metrics", "Run the pipeline to generate protocol_usdm.json for quality analysis")
     else:
-        # Entity counts and quality metrics
-        metrics = compute_usdm_metrics(inventory['final_soa']['content'])
+        # Entity counts and quality metrics from protocol_usdm.json
+        metrics = compute_usdm_metrics(inventory['full_usdm']['content'])
         
         if metrics:
             col1, col2, col3 = st.columns(3)
@@ -1808,7 +1804,7 @@ with tab4:
             # Completeness table
             st.markdown("---")
             st.subheader("Field Completeness")
-            completeness = compute_completeness_metrics(inventory['final_soa']['content'])
+            completeness = compute_completeness_metrics(inventory['full_usdm']['content'])
             if completeness:
                 st.table(completeness)
         else:
@@ -1818,8 +1814,8 @@ with tab5:
     st.subheader("Validation & Conformance Results")
     
     # Get the output directory from the current file path
-    if inventory['final_soa'] and inventory['final_soa'].get('path'):
-        output_dir = Path(inventory['final_soa']['path']).parent
+    if inventory.get('full_usdm') and inventory['full_usdm'].get('path'):
+        output_dir = Path(inventory['full_usdm']['path']).parent
     else:
         output_dir = None
     
