@@ -128,7 +128,7 @@ st.set_page_config(page_title="Protocol2USDM Viewer", layout="wide", page_icon="
 # Inject custom CSS
 st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 
-st.title('📊 Protocol2USDM v6.0 Viewer')
+st.title('📊 Protocol2USDM v6.5 Viewer')
 st.markdown("**Full Protocol Extraction** | USDM v4.0 Format")
 # Placeholder for dynamic file display; will be updated after run selection.
 file_placeholder = st.empty()
