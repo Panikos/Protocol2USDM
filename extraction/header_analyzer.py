@@ -331,10 +331,9 @@ def _analyze_with_openai(
     model_name: str, 
     prompt: str
 ) -> HeaderAnalysisResult:
-    """Analyze using OpenAI GPT-4 Vision."""
+    """Analyze using OpenAI Responses API with vision."""
     from openai import OpenAI
     import os
-    from core.constants import REASONING_MODELS
     
     api_key = os.environ.get("OPENAI_API_KEY")
     if not api_key:
@@ -343,29 +342,42 @@ def _analyze_with_openai(
     client = OpenAI(api_key=api_key)
     
     def call_api(images: List[str]) -> Tuple[str, HeaderStructure]:
-        """Make API call with given images."""
-        content = [{"type": "text", "text": prompt}]
+        """Make API call with given images using Responses API."""
+        # Build input content for Responses API
+        content = [{"type": "input_text", "text": prompt}]
         for img_path in images:
             data_url = encode_image(img_path)
             content.append({
-                "type": "image_url",
-                "image_url": {"url": data_url}
+                "type": "input_image",
+                "image_url": data_url
             })
         
+        # Build parameters for Responses API
         is_reasoning = any(rm in model_name.lower() for rm in ['o1', 'o3', 'gpt-5'])
+        
         params = {
             "model": model_name,
-            "messages": [{"role": "user", "content": content}],
-            "response_format": {"type": "json_object"},
+            "input": content,
+            "text": {"format": {"type": "json_object"}},
         }
-        if is_reasoning:
-            params["max_completion_tokens"] = 4096
-        else:
-            params["max_tokens"] = 4096
-            params["temperature"] = 0.1
         
-        response = client.chat.completions.create(**params)
-        raw = response.choices[0].message.content or ""
+        if not is_reasoning:
+            params["text"]["temperature"] = 0.1
+        
+        params["max_output_tokens"] = 4096
+        
+        response = client.responses.create(**params)
+        
+        # Extract content from Responses API response
+        raw = ""
+        if hasattr(response, 'output') and response.output:
+            for item in response.output:
+                if hasattr(item, 'content'):
+                    for content_item in item.content:
+                        if hasattr(content_item, 'text'):
+                            raw = content_item.text
+                            break
+        
         data = parse_llm_json(raw, fallback={})
         struct = HeaderStructure.from_dict(data)
         return raw, struct

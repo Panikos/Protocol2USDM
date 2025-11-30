@@ -329,7 +329,7 @@ def _validate_with_gemini(prompt: str, image_paths: List[str], model_name: str) 
 
 
 def _validate_with_openai(prompt: str, image_paths: List[str], model_name: str) -> dict:
-    """Run validation with OpenAI."""
+    """Run validation with OpenAI Responses API."""
     from openai import OpenAI
     import os
     
@@ -339,14 +339,15 @@ def _validate_with_openai(prompt: str, image_paths: List[str], model_name: str) 
     
     client = OpenAI(api_key=api_key)
     
-    content = [{"type": "text", "text": prompt}]
+    # Build input content for Responses API
+    content = [{"type": "input_text", "text": prompt}]
     
     for img_path in image_paths:
         with open(img_path, 'rb') as f:
             data = base64.b64encode(f.read()).decode('utf-8')
         content.append({
-            "type": "image_url",
-            "image_url": {"url": f"data:image/png;base64,{data}"}
+            "type": "input_image",
+            "image_url": f"data:image/png;base64,{data}"
         })
     
     # Handle reasoning models differently
@@ -354,19 +355,27 @@ def _validate_with_openai(prompt: str, image_paths: List[str], model_name: str) 
     
     params = {
         "model": model_name,
-        "messages": [{"role": "user", "content": content}],
-        "response_format": {"type": "json_object"},
+        "input": content,
+        "text": {"format": {"type": "json_object"}},
+        "max_output_tokens": 4096,
     }
     
-    if is_reasoning:
-        params["max_completion_tokens"] = 4096
-    else:
-        params["max_tokens"] = 4096
-        params["temperature"] = 0.1
+    if not is_reasoning:
+        params["text"]["temperature"] = 0.1
     
-    response = client.chat.completions.create(**params)
+    response = client.responses.create(**params)
     
-    return {'response': response.choices[0].message.content or ""}
+    # Extract content from Responses API response
+    result = ""
+    if hasattr(response, 'output') and response.output:
+        for item in response.output:
+            if hasattr(item, 'content'):
+                for content_item in item.content:
+                    if hasattr(content_item, 'text'):
+                        result = content_item.text
+                        break
+    
+    return {'response': result}
 
 
 def apply_validation_fixes(

@@ -130,7 +130,7 @@ class OpenAIProvider(LLMProvider):
         config: Optional[LLMConfig] = None
     ) -> LLMResponse:
         """
-        Generate completion using OpenAI API.
+        Generate completion using OpenAI Responses API.
         
         Args:
             messages: List of message dicts with 'role' and 'content'
@@ -142,55 +142,97 @@ class OpenAIProvider(LLMProvider):
         if config is None:
             config = LLMConfig()
         
-        # Build parameters
+        # Convert messages to Responses API input format
+        # Responses API uses 'input' instead of 'messages'
+        input_items = []
+        for msg in messages:
+            role = msg.get('role', 'user')
+            content = msg.get('content', '')
+            
+            if role == 'system':
+                # System messages become instructions
+                input_items.append({
+                    "type": "message",
+                    "role": "system", 
+                    "content": content
+                })
+            elif role == 'user':
+                # User messages
+                if isinstance(content, str):
+                    input_items.append({
+                        "type": "message",
+                        "role": "user",
+                        "content": content
+                    })
+                elif isinstance(content, list):
+                    # Multi-part content (text + images)
+                    input_items.append({
+                        "type": "message",
+                        "role": "user",
+                        "content": content
+                    })
+            elif role == 'assistant':
+                input_items.append({
+                    "type": "message",
+                    "role": "assistant",
+                    "content": content
+                })
+        
+        # Build parameters for Responses API
         params = {
             "model": self.model,
-            "messages": messages,
+            "input": input_items,
         }
         
-        # Add temperature if supported
+        # Add temperature if supported (via text config)
+        text_config = {}
         if self.model not in self.NO_TEMP_MODELS:
-            params["temperature"] = config.temperature
+            text_config["temperature"] = config.temperature
         
         # Add JSON mode if requested
         if config.json_mode and self.supports_json_mode():
-            params["response_format"] = {"type": "json_object"}
+            text_config["format"] = {"type": "json_object"}
+        
+        if text_config:
+            params["text"] = text_config
         
         # Add optional parameters
         if config.max_tokens:
-            # GPT-5 and o-series use max_completion_tokens instead of max_tokens
-            if self.model in self.COMPLETION_TOKENS_MODELS:
-                params["max_completion_tokens"] = config.max_tokens
-            else:
-                params["max_tokens"] = config.max_tokens
-        if config.stop_sequences:
-            params["stop"] = config.stop_sequences
-        if config.top_p is not None:
-            params["top_p"] = config.top_p
+            params["max_output_tokens"] = config.max_tokens
         
-        # Make API call
+        # Make API call using Responses API
         try:
-            response = self.client.chat.completions.create(**params)
+            response = self.client.responses.create(**params)
             
             # Extract usage information
             usage = None
-            if response.usage:
+            if hasattr(response, 'usage') and response.usage:
                 usage = {
-                    "prompt_tokens": response.usage.prompt_tokens,
-                    "completion_tokens": response.usage.completion_tokens,
-                    "total_tokens": response.usage.total_tokens
+                    "prompt_tokens": getattr(response.usage, 'input_tokens', 0),
+                    "completion_tokens": getattr(response.usage, 'output_tokens', 0),
+                    "total_tokens": getattr(response.usage, 'total_tokens', 0)
                 }
             
+            # Extract content from response
+            content = ""
+            if hasattr(response, 'output') and response.output:
+                for item in response.output:
+                    if hasattr(item, 'content'):
+                        for content_item in item.content:
+                            if hasattr(content_item, 'text'):
+                                content = content_item.text
+                                break
+            
             return LLMResponse(
-                content=response.choices[0].message.content,
-                model=response.model,
+                content=content,
+                model=getattr(response, 'model', self.model),
                 usage=usage,
-                finish_reason=response.choices[0].finish_reason,
+                finish_reason=getattr(response, 'status', None),
                 raw_response=response
             )
         
         except Exception as e:
-            raise RuntimeError(f"OpenAI API call failed for model '{self.model}': {e}")
+            raise RuntimeError(f"OpenAI Responses API call failed for model '{self.model}': {e}")
 
 
 class GeminiProvider(LLMProvider):
