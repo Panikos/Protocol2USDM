@@ -222,7 +222,7 @@ def run_expansion_phases(
     return results
 
 
-def convert_ids_to_uuids(data: dict, id_map: dict = None, header_structure_path: str = None) -> dict:
+def convert_ids_to_uuids(data: dict, id_map: dict = None) -> dict:
     """
     Convert all simple IDs (like 'study_1', 'act_1') to proper UUIDs.
     
@@ -237,7 +237,6 @@ def convert_ids_to_uuids(data: dict, id_map: dict = None, header_structure_path:
     Args:
         data: USDM JSON data
         id_map: Optional existing ID mapping (for consistency)
-        header_structure_path: Path to header structure JSON with pt_* → enc_* mappings
         
     Returns:
         Data with UUIDs and the ID mapping used
@@ -245,47 +244,30 @@ def convert_ids_to_uuids(data: dict, id_map: dict = None, header_structure_path:
     if id_map is None:
         id_map = {}
     
-    # First pass: Build pt_* → enc_* mapping from header structure or data
+    # First pass: Build pt_* → enc_* mapping from plannedTimepoints
     # PlannedTimepoints link pt_* IDs to enc_* IDs via their encounterId field
     pt_to_enc_map = {}
     
-    # Try loading from header structure file (most reliable source)
-    if header_structure_path and os.path.exists(header_structure_path):
-        try:
-            with open(header_structure_path, 'r', encoding='utf-8') as f:
-                header_data = json.load(f)
-            # Extract from columnHierarchy.plannedTimepoints
-            col_hierarchy = header_data.get('columnHierarchy', {})
-            for pt in col_hierarchy.get('plannedTimepoints', []):
-                pt_id = pt.get('id', '')
-                enc_id = pt.get('encounterId', '')
-                if pt_id.startswith('pt_') and enc_id.startswith('enc_'):
-                    pt_to_enc_map[pt_id] = enc_id
-            if pt_to_enc_map:
-                logger.debug(f"Loaded {len(pt_to_enc_map)} pt_* → enc_* mappings from header structure")
-        except Exception as e:
-            logger.warning(f"Failed to load header structure: {e}")
+    def collect_pt_enc_mappings(obj):
+        """Recursively collect pt_* → enc_* mappings from plannedTimepoints."""
+        if isinstance(obj, dict):
+            # Check if this is a plannedTimepoint with encounterId
+            obj_id = obj.get('id', '')
+            enc_id = obj.get('encounterId', '')
+            if isinstance(obj_id, str) and isinstance(enc_id, str):
+                if obj_id.startswith('pt_') and enc_id.startswith('enc_'):
+                    pt_to_enc_map[obj_id] = enc_id
+            # Recurse into nested structures
+            for value in obj.values():
+                if isinstance(value, (dict, list)):
+                    collect_pt_enc_mappings(value)
+        elif isinstance(obj, list):
+            for item in obj:
+                collect_pt_enc_mappings(item)
     
-    # Fallback: Collect from data itself
-    if not pt_to_enc_map:
-        def collect_pt_enc_mappings(obj):
-            """Recursively collect pt_* → enc_* mappings from plannedTimepoints."""
-            if isinstance(obj, dict):
-                obj_id = obj.get('id', '')
-                enc_id = obj.get('encounterId', '')
-                if isinstance(obj_id, str) and isinstance(enc_id, str):
-                    if obj_id.startswith('pt_') and enc_id.startswith('enc_'):
-                        pt_to_enc_map[obj_id] = enc_id
-                for value in obj.values():
-                    if isinstance(value, (dict, list)):
-                        collect_pt_enc_mappings(value)
-            elif isinstance(obj, list):
-                for item in obj:
-                    collect_pt_enc_mappings(item)
-        
-        collect_pt_enc_mappings(data)
+    collect_pt_enc_mappings(data)
     
-    # If still no mappings found, try to infer from encounter order
+    # If no explicit mappings found, try to infer from encounter order
     # (pt_1 → enc_1, pt_2 → enc_2, etc. based on position)
     if not pt_to_enc_map:
         encounters = []
@@ -304,9 +286,9 @@ def convert_ids_to_uuids(data: dict, id_map: dict = None, header_structure_path:
         # Build positional mapping
         for i, enc_id in enumerate(encounters, 1):
             pt_to_enc_map[f"pt_{i}"] = enc_id
-        
-        if pt_to_enc_map:
-            logger.debug(f"Inferred {len(pt_to_enc_map)} pt_* → enc_* mappings from encounter order")
+    
+    if pt_to_enc_map:
+        logger.debug(f"Built {len(pt_to_enc_map)} pt_* → enc_* mappings")
     
     def is_simple_id(value):
         """Check if value looks like a simple ID that needs conversion."""
@@ -592,9 +574,7 @@ def validate_and_fix_schema(
     # Step 2: Convert IDs to UUIDs (USDM 4.0 requirement)
     if convert_to_uuids:
         logger.info("\n[2/3] Converting IDs to UUIDs...")
-        # Pass header structure path for pt_* → enc_* resolution
-        header_structure_path = os.path.join(output_dir, "4_header_structure.json")
-        data, id_map = convert_ids_to_uuids(data, header_structure_path=header_structure_path)
+        data, id_map = convert_ids_to_uuids(data)
         logger.info(f"      Converted {len(id_map)} IDs to UUIDs")
         
         # Save ID mapping for reference
@@ -958,6 +938,12 @@ Examples:
     )
     
     parser.add_argument(
+        "--no-table-extraction",
+        action="store_true",
+        help="Disable table-aware PDF extraction (use raw text instead)"
+    )
+    
+    parser.add_argument(
         "--confidence-threshold",
         type=float,
         default=0.7,
@@ -1177,6 +1163,7 @@ Examples:
         remove_hallucinations=args.remove_hallucinations,  # Default False (keep all cells)
         hallucination_confidence_threshold=args.confidence_threshold,
         save_intermediate=True,
+        use_table_extraction=not args.no_table_extraction,  # Default True (use table-aware extraction)
     )
     
     # Determine which expansion phases to run

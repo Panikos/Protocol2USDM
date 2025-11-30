@@ -41,6 +41,7 @@ class PipelineConfig:
     remove_hallucinations: bool = False  # Keep all text-extracted cells; use provenance for confidence
     hallucination_confidence_threshold: float = 0.7
     save_intermediate: bool = True
+    use_table_extraction: bool = True  # Use table-aware PDF extraction (vs raw text)
 
 
 @dataclass
@@ -328,6 +329,77 @@ def run_extraction_pipeline(
         return result
 
 
+def extract_tables_from_pages(doc, page_nums: List[int]) -> str:
+    """
+    Extract text from PDF pages using table-aware extraction.
+    
+    Uses PyMuPDF's built-in table detection to preserve table structure.
+    Falls back to raw text for non-table content.
+    
+    Args:
+        doc: PyMuPDF document object
+        page_nums: List of 0-indexed page numbers
+        
+    Returns:
+        Formatted text with tables preserved as markdown
+    """
+    all_text_parts = []
+    
+    for page_num in sorted(page_nums):
+        if not (0 <= page_num < len(doc)):
+            continue
+            
+        page = doc[page_num]
+        page_text_parts = []
+        
+        # Try to find tables on this page
+        try:
+            tables = page.find_tables()
+            
+            if tables and len(tables.tables) > 0:
+                # Found tables - extract as structured markdown
+                for table in tables.tables:
+                    # Convert table to markdown format
+                    md_rows = []
+                    for row_idx, row in enumerate(table.extract()):
+                        # Clean cells
+                        cells = [str(cell).strip() if cell else "" for cell in row]
+                        md_row = "| " + " | ".join(cells) + " |"
+                        md_rows.append(md_row)
+                        
+                        # Add header separator after first row
+                        if row_idx == 0:
+                            separator = "|" + "|".join(["---" for _ in cells]) + "|"
+                            md_rows.append(separator)
+                    
+                    if md_rows:
+                        page_text_parts.append("\n".join(md_rows))
+                
+                # Also get any non-table text
+                non_table_text = page.get_text().strip()
+                if non_table_text:
+                    # Add context text that's not part of tables
+                    page_text_parts.append(f"\n[Additional text from page {page_num + 1}:]\n{non_table_text[:500]}...")
+                    
+                logger.debug(f"Page {page_num + 1}: Extracted {len(tables.tables)} table(s)")
+            else:
+                # No tables found - use raw text
+                page_text_parts.append(page.get_text())
+                logger.debug(f"Page {page_num + 1}: No tables found, using raw text")
+                
+        except Exception as e:
+            # Fallback to raw text if table extraction fails
+            logger.warning(f"Table extraction failed on page {page_num + 1}: {e}, using raw text")
+            page_text_parts.append(page.get_text())
+        
+        if page_text_parts:
+            all_text_parts.append(f"\n\n--- PAGE {page_num + 1} ---\n\n" + "\n\n".join(page_text_parts))
+    
+    result = "\n".join(all_text_parts)
+    logger.info(f"Table extraction: processed {len(page_nums)} pages")
+    return result
+
+
 def run_from_files(
     pdf_path: str,
     output_dir: str,
@@ -380,9 +452,13 @@ def run_from_files(
             logger.info(f"Found SoA pages: {[p+1 for p in sorted(soa_pages)]} (PDF viewer numbering)")
     
     # Extract text from SoA pages
-    text = "\n\n--- PAGE BREAK ---\n\n".join(
-        doc[p].get_text() for p in soa_pages if 0 <= p < len(doc)
-    )
+    if config.use_table_extraction:
+        text = extract_tables_from_pages(doc, soa_pages)
+    else:
+        # Fallback: raw text extraction
+        text = "\n\n--- PAGE BREAK ---\n\n".join(
+            doc[p].get_text() for p in soa_pages if 0 <= p < len(doc)
+        )
     
     # Extract images from SoA pages only
     images_dir = os.path.join(output_dir, "3_soa_images")
