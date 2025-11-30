@@ -134,6 +134,35 @@ ARM_TYPE_CODES: Dict[str, Dict[str, str]] = {
 
 
 # =============================================================================
+# STUDY IDENTIFIER TYPE CODES
+# Source: CDISC Protocol Controlled Terminology
+# =============================================================================
+
+STUDY_IDENTIFIER_TYPE_CODES: Dict[str, Dict[str, str]] = {
+    "sponsor": {
+        "code": "C99905x",  # Placeholder - verify exact code
+        "decode": "Sponsor Protocol Identifier",
+        "pattern": None,  # Default for sponsor identifiers
+    },
+    "nct": {
+        "code": "C142710",
+        "decode": "ClinicalTrials.gov Identifier",
+        "pattern": r"^NCT\d+$",
+    },
+    "eudract": {
+        "code": "C142711",
+        "decode": "EudraCT Number",
+        "pattern": r"^\d{4}-\d{6}-\d{2}$",
+    },
+    "ind": {
+        "code": "C142712",
+        "decode": "IND Number",
+        "pattern": r"^\d{5,6}$",  # Usually 5-6 digit numbers
+    },
+}
+
+
+# =============================================================================
 # HELPER FUNCTIONS
 # =============================================================================
 
@@ -185,6 +214,67 @@ def get_objective_level_code(level: str) -> Dict[str, Any]:
 def get_endpoint_level_code(level: str) -> Dict[str, Any]:
     """Get USDM Code object for an endpoint level."""
     return get_code_object(level, ENDPOINT_LEVEL_CODES)
+
+
+def get_study_identifier_type(identifier_text: str) -> Dict[str, Any]:
+    """
+    Infer the type of a study identifier based on its format.
+    
+    Args:
+        identifier_text: The identifier value (e.g., "NCT04573309", "2020-001104-41")
+        
+    Returns:
+        USDM Code object for the identifier type
+    """
+    import re
+    
+    if not identifier_text:
+        return get_code_object("sponsor", STUDY_IDENTIFIER_TYPE_CODES)
+    
+    text = identifier_text.strip()
+    
+    # Check NCT format (ClinicalTrials.gov)
+    if re.match(r'^NCT\d+$', text, re.IGNORECASE):
+        info = STUDY_IDENTIFIER_TYPE_CODES["nct"]
+        return {
+            "code": info["code"],
+            "codeSystem": "http://www.cdisc.org",
+            "codeSystemVersion": "2024-09-27",
+            "decode": info["decode"],
+            "instanceType": "Code",
+        }
+    
+    # Check EudraCT format (YYYY-NNNNNN-NN)
+    if re.match(r'^\d{4}-\d{6}-\d{2}$', text):
+        info = STUDY_IDENTIFIER_TYPE_CODES["eudract"]
+        return {
+            "code": info["code"],
+            "codeSystem": "http://www.cdisc.org",
+            "codeSystemVersion": "2024-09-27",
+            "decode": info["decode"],
+            "instanceType": "Code",
+        }
+    
+    # Check IND format (5-6 digit number)
+    if re.match(r'^\d{5,6}$', text):
+        info = STUDY_IDENTIFIER_TYPE_CODES["ind"]
+        return {
+            "code": info["code"],
+            "codeSystem": "http://www.cdisc.org",
+            "codeSystemVersion": "2024-09-27",
+            "decode": info["decode"],
+            "instanceType": "Code",
+        }
+    
+    # Default to Sponsor Protocol Identifier
+    info = STUDY_IDENTIFIER_TYPE_CODES["sponsor"]
+    return {
+        "code": info["code"],
+        "codeSystem": "http://www.cdisc.org",
+        "codeSystemVersion": "2024-09-27",
+        "decode": info["decode"],
+        "instanceType": "Code",
+    }
 
 
 def find_code_by_text(text: str, codes_dict: Dict[str, Dict[str, str]]) -> str | None:

@@ -267,14 +267,23 @@ class StudyIdentifier(USDMEntity):
     USDM StudyIdentifier - An identifier for a study.
     
     NCI Code: C142709
-    Required: id, text, instanceType
+    Required: id, text, type, instanceType
+    
+    Type is auto-inferred from the identifier format:
+    - NCT... → ClinicalTrials.gov Identifier
+    - YYYY-NNNNNN-NN → EudraCT Number
+    - 5-6 digits → IND Number
+    - Other → Sponsor Protocol Identifier
     """
     id: str = ""
     text: str = ""
     scopeId: Optional[str] = None
+    type: Optional[Code] = None  # Auto-inferred if not provided
     instanceType: str = "StudyIdentifier"
     
     def to_dict(self) -> Dict[str, Any]:
+        from core.terminology_codes import get_study_identifier_type
+        
         result = {
             "id": self._ensure_id(),
             "text": self.text,
@@ -282,6 +291,14 @@ class StudyIdentifier(USDMEntity):
         }
         if self.scopeId:
             result["scopeId"] = self.scopeId
+        
+        # Auto-infer type if not explicitly provided
+        if self.type:
+            result["type"] = self.type.to_dict() if hasattr(self.type, 'to_dict') else self.type
+        else:
+            # Infer type from identifier text format
+            result["type"] = get_study_identifier_type(self.text)
+        
         return result
 
 
@@ -1449,6 +1466,18 @@ def normalize_usdm_data(data: Dict[str, Any]) -> Dict[str, Any]:
         )
         return arm.to_dict()
     
+    def normalize_study_identifier(obj: Dict) -> Dict:
+        """Normalize a StudyIdentifier to include type field."""
+        if not obj or not isinstance(obj, dict):
+            return obj
+        si = StudyIdentifier(
+            id=obj.get("id") or None,
+            text=obj.get("text", ""),
+            scopeId=obj.get("scopeId"),
+            type=Code.from_dict(obj.get("type")) if obj.get("type") else None,
+        )
+        return si.to_dict()
+    
     def normalize_alias_code(obj: Dict) -> Dict:
         """Normalize an AliasCode (e.g., blindingSchema) to include standardCode."""
         if not obj or not isinstance(obj, dict):
@@ -1499,6 +1528,9 @@ def normalize_usdm_data(data: Dict[str, Any]) -> Dict[str, Any]:
                 elif key in ("arms", "studyArms") and isinstance(value, list):
                     # Also rename studyArms -> arms
                     normalized["arms"] = [normalize_arm(a) for a in value]
+                elif key == "studyIdentifiers" and isinstance(value, list):
+                    # Normalize StudyIdentifiers to add type field
+                    normalized[key] = [normalize_study_identifier(si) for si in value]
                 elif key == "type" and isinstance(value, dict) and "code" in value:
                     normalized[key] = normalize_code(value)
                 elif key == "blindingSchema" and isinstance(value, dict):
