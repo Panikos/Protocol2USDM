@@ -14,6 +14,14 @@ Protocol2USDM is an automated pipeline that extracts, validates, and structures 
 python main_v2.py .\input\Alexion_NCT04573309_Wilsons.pdf --full-protocol --enrich --sap .\input\Alexion_NCT04573309_Wilsons_SAP.pdf --model gemini-3-pro-preview --view
 ```
 
+```bash
+python main_v2.py .\input\Alexion_NCT04573309_Wilsons.pdf --full-protocol --enrich --sap .\input\Alexion_NCT04573309_Wilsons_SAP.pdf --model claude-opus-4-5 --view
+```
+
+```bash
+python main_v2.py .\input\Alexion_NCT04573309_Wilsons.pdf --full-protocol --enrich --sap .\input\Alexion_NCT04573309_Wilsons_SAP.pdf --model gpt-5.1 --view
+```
+
 This extracts the full protocol, enriches entities with NCI terminology codes, includes SAP analysis populations, and launches the interactive viewer.
 
 ---
@@ -280,12 +288,18 @@ streamlit run soa_streamlit_viewer.py
 
 ## Model Benchmark
 
-Based on testing across 4 protocols:
+SoA extraction tested on Alexion Wilson's Disease protocol (Nov 2025):
 
-| Model | Success Rate | Avg Time | Recommendation |
-|-------|-------------|----------|----------------|
-| **GPT-5.1** | 100% | 92s | **Best reliability** |
-| Gemini-3-pro-preview | 75% | 400s | More thorough but slower |
+| Model | Activities | Timepoints | Ticks | Vision Header | Recommendation |
+|-------|------------|------------|-------|---------------|----------------|
+| **Claude Opus 4.5** | 36 ✓ | 24 ✓ | 212 (100% confirmed) | ✅ | **Best accuracy** |
+| **Gemini 3 Pro** | 36 ✓ | 24 ✓ | 207 (10 flagged) | ✅ | Good, slower |
+| GPT-5.1 | 36 ✓ | 0 ❌ | 0 ❌ | ❌ | Vision issues |
+
+**Notes:**
+- Claude Opus 4.5: Best overall - all ticks confirmed by vision validation
+- Gemini 3 Pro: Good accuracy, flags potential hallucinations for review
+- GPT-5.1: Vision-based header analysis fails; text extraction works but no tick matrix
 
 ---
 
