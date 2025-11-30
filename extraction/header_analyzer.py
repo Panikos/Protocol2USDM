@@ -233,9 +233,11 @@ def analyze_soa_headers(
         # Build prompt
         prompt = custom_prompt or HEADER_ANALYSIS_PROMPT
         
-        # For Gemini models, use the generative AI library directly
+        # Route to appropriate provider
         if 'gemini' in model_name.lower():
             return _analyze_with_gemini(image_paths, model_name, prompt)
+        elif 'claude' in model_name.lower():
+            return _analyze_with_claude(image_paths, model_name, prompt)
         else:
             return _analyze_with_openai(image_paths, model_name, prompt)
             
@@ -392,6 +394,96 @@ def _analyze_with_openai(
     if len(image_paths) > 3 and not structure.encounters:
         logger.info(f"Empty result with all images, retrying with later images only...")
         later_images = image_paths[len(image_paths)//2:]  # Use second half of images
+        raw_response, structure = call_api(later_images)
+        structure = _enforce_unique_encounter_names(structure)
+        
+        # If still empty, try middle images
+        if not structure.encounters and len(image_paths) > 4:
+            logger.info(f"Still empty, trying middle images...")
+            mid_start = len(image_paths) // 3
+            mid_end = 2 * len(image_paths) // 3
+            mid_images = image_paths[mid_start:mid_end]
+            raw_response, structure = call_api(mid_images)
+            structure = _enforce_unique_encounter_names(structure)
+    
+    return HeaderAnalysisResult(
+        structure=structure,
+        raw_response=raw_response,
+        model_used=model_name,
+        image_count=len(image_paths),
+        success=True
+    )
+
+
+def _analyze_with_claude(
+    image_paths: List[str], 
+    model_name: str, 
+    prompt: str
+) -> HeaderAnalysisResult:
+    """Analyze using Anthropic Claude API with vision."""
+    import anthropic
+    import os
+    
+    api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("CLAUDE_API_KEY")
+    if not api_key:
+        raise ValueError("ANTHROPIC_API_KEY or CLAUDE_API_KEY not set")
+    
+    client = anthropic.Anthropic(api_key=api_key)
+    
+    def call_api(images: List[str]) -> Tuple[str, HeaderStructure]:
+        """Make API call with given images using Claude."""
+        # Build message content with images
+        content = []
+        
+        # Add images first
+        for img_path in images:
+            with open(img_path, 'rb') as f:
+                img_data = base64.b64encode(f.read()).decode('utf-8')
+            content.append({
+                "type": "image",
+                "source": {
+                    "type": "base64",
+                    "media_type": "image/png",
+                    "data": img_data
+                }
+            })
+        
+        # Add text prompt
+        content.append({
+            "type": "text",
+            "text": prompt
+        })
+        
+        # Add JSON mode instruction to system
+        system = "You must respond with valid JSON only. No markdown code blocks, no explanation, just the JSON object."
+        
+        response = client.messages.create(
+            model=model_name,
+            max_tokens=4096,
+            system=system,
+            messages=[{"role": "user", "content": content}]
+        )
+        
+        # Extract content from response
+        raw = ""
+        if response.content:
+            for block in response.content:
+                if hasattr(block, 'text'):
+                    raw = block.text
+                    break
+        
+        data = parse_llm_json(raw, fallback={})
+        struct = HeaderStructure.from_dict(data)
+        return raw, struct
+    
+    # Try with all images first
+    raw_response, structure = call_api(image_paths)
+    structure = _enforce_unique_encounter_names(structure)
+    
+    # If result is empty and we have multiple images, try with later images only
+    if len(image_paths) > 3 and not structure.encounters:
+        logger.info(f"Empty result with all images, retrying with later images only...")
+        later_images = image_paths[len(image_paths)//2:]
         raw_response, structure = call_api(later_images)
         structure = _enforce_unique_encounter_names(structure)
         

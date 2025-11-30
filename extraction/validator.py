@@ -233,6 +233,8 @@ def validate_extraction(
         # Call vision model
         if 'gemini' in model_name.lower():
             result = _validate_with_gemini(prompt, image_paths, model_name)
+        elif 'claude' in model_name.lower():
+            result = _validate_with_claude(prompt, image_paths, model_name)
         else:
             result = _validate_with_openai(prompt, image_paths, model_name)
         
@@ -376,6 +378,60 @@ def _validate_with_openai(prompt: str, image_paths: List[str], model_name: str) 
                     if hasattr(content_item, 'text'):
                         result = content_item.text
                         break
+    
+    return {'response': result}
+
+
+def _validate_with_claude(prompt: str, image_paths: List[str], model_name: str) -> dict:
+    """Run validation with Anthropic Claude API."""
+    import anthropic
+    import os
+    
+    api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("CLAUDE_API_KEY")
+    if not api_key:
+        raise ValueError("ANTHROPIC_API_KEY or CLAUDE_API_KEY not set")
+    
+    client = anthropic.Anthropic(api_key=api_key)
+    
+    # Build message content with images
+    content = []
+    
+    # Add images first
+    for img_path in image_paths:
+        with open(img_path, 'rb') as f:
+            data = base64.b64encode(f.read()).decode('utf-8')
+        content.append({
+            "type": "image",
+            "source": {
+                "type": "base64",
+                "media_type": "image/png",
+                "data": data
+            }
+        })
+    
+    # Add text prompt
+    content.append({
+        "type": "text",
+        "text": prompt
+    })
+    
+    # Add JSON mode instruction to system
+    system = "You must respond with valid JSON only. No markdown code blocks, no explanation, just the JSON object."
+    
+    response = client.messages.create(
+        model=model_name,
+        max_tokens=4096,
+        system=system,
+        messages=[{"role": "user", "content": content}]
+    )
+    
+    # Extract content from response
+    result = ""
+    if response.content:
+        for block in response.content:
+            if hasattr(block, 'text'):
+                result = block.text
+                break
     
     return {'response': result}
 

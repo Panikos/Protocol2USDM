@@ -15,6 +15,7 @@ from dataclasses import dataclass
 import os
 from openai import OpenAI
 import google.generativeai as genai
+import anthropic
 
 
 @dataclass
@@ -347,12 +348,148 @@ class GeminiProvider(LLMProvider):
         return '\n'.join(formatted_parts)
 
 
+class ClaudeProvider(LLMProvider):
+    """
+    Anthropic Claude provider supporting Claude 3, 3.5, and 4 models.
+    
+    Features:
+    - Native JSON mode (via tool_use or system prompt)
+    - 200K context window
+    - Strong reasoning capabilities
+    - Vision support (Claude 3+)
+    """
+    
+    SUPPORTED_MODELS = [
+        # Claude Opus 4.x (most powerful)
+        'claude-opus-4-1', 'claude-opus-4-1-20250805',
+        'claude-opus-4', 'claude-opus-4-20250514',
+        # Claude Sonnet 4 (recommended default)
+        'claude-sonnet-4', 'claude-sonnet-4-20250514',
+        # Claude 3.7 Sonnet
+        'claude-3-7-sonnet-latest', 'claude-3-7-sonnet-20250219',
+        # Claude 3.5
+        'claude-3-5-sonnet-latest', 'claude-3-5-sonnet-20241022',
+        'claude-3-5-haiku-latest', 'claude-3-5-haiku-20241022',
+        # Claude 3 (legacy)
+        'claude-3-haiku', 'claude-3-haiku-20240307',
+    ]
+    
+    def __init__(self, model: str, api_key: Optional[str] = None):
+        super().__init__(model, api_key)
+        self.client = anthropic.Anthropic(api_key=self.api_key)
+    
+    def _get_api_key_from_env(self) -> str:
+        """Get Anthropic API key from environment."""
+        # Check common environment variable names
+        api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("CLAUDE_API_KEY")
+        if not api_key:
+            raise ValueError("ANTHROPIC_API_KEY or CLAUDE_API_KEY environment variable not set")
+        return api_key
+    
+    def supports_json_mode(self) -> bool:
+        """Claude supports JSON mode via system prompt."""
+        return True
+    
+    def generate(
+        self, 
+        messages: List[Dict[str, str]], 
+        config: Optional[LLMConfig] = None
+    ) -> LLMResponse:
+        """
+        Generate completion using Anthropic Claude API.
+        
+        Args:
+            messages: List of message dicts with 'role' and 'content'
+            config: Generation configuration
+        
+        Returns:
+            LLMResponse with content and metadata
+        """
+        if config is None:
+            config = LLMConfig()
+        
+        # Separate system message from other messages (Claude API requirement)
+        system_content = ""
+        api_messages = []
+        
+        for msg in messages:
+            role = msg.get('role', 'user')
+            content = msg.get('content', '')
+            
+            if role == 'system':
+                system_content = content
+            else:
+                # Claude uses 'assistant' for assistant messages
+                api_messages.append({
+                    "role": role,
+                    "content": content
+                })
+        
+        # Add JSON mode instruction to system prompt if requested
+        if config.json_mode:
+            json_instruction = "\n\nYou must respond with valid JSON only. No markdown, no explanation, just the JSON object."
+            system_content = (system_content + json_instruction) if system_content else json_instruction.strip()
+        
+        # Build parameters
+        params = {
+            "model": self.model,
+            "messages": api_messages,
+            "max_tokens": config.max_tokens or 4096,
+        }
+        
+        if system_content:
+            params["system"] = system_content
+        
+        # Add temperature
+        params["temperature"] = config.temperature
+        
+        # Add optional parameters
+        if config.stop_sequences:
+            params["stop_sequences"] = config.stop_sequences
+        if config.top_p is not None:
+            params["top_p"] = config.top_p
+        
+        # Make API call
+        try:
+            response = self.client.messages.create(**params)
+            
+            # Extract content from response
+            content = ""
+            if response.content:
+                for block in response.content:
+                    if hasattr(block, 'text'):
+                        content = block.text
+                        break
+            
+            # Extract usage information
+            usage = None
+            if response.usage:
+                usage = {
+                    "prompt_tokens": response.usage.input_tokens,
+                    "completion_tokens": response.usage.output_tokens,
+                    "total_tokens": response.usage.input_tokens + response.usage.output_tokens
+                }
+            
+            return LLMResponse(
+                content=content,
+                model=response.model,
+                usage=usage,
+                finish_reason=response.stop_reason,
+                raw_response=response
+            )
+        
+        except Exception as e:
+            raise RuntimeError(f"Anthropic API call failed for model '{self.model}': {e}")
+
+
 class LLMProviderFactory:
     """Factory for creating LLM provider instances."""
     
     _providers = {
         'openai': OpenAIProvider,
         'gemini': GeminiProvider,
+        'claude': ClaudeProvider,
+        'anthropic': ClaudeProvider,  # Alias
     }
     
     @classmethod
@@ -394,7 +531,7 @@ class LLMProviderFactory:
         Auto-detect provider from model name.
         
         Args:
-            model: Model identifier (e.g., "gpt-4o", "gemini-2.5-pro")
+            model: Model identifier (e.g., "gpt-4o", "gemini-2.5-pro", "claude-sonnet-4")
             api_key: Optional API key
         
         Returns:
@@ -412,6 +549,10 @@ class LLMProviderFactory:
         # Check Gemini patterns
         if 'gemini' in model_lower:
             return cls.create('gemini', model, api_key)
+        
+        # Check Claude/Anthropic patterns
+        if any(pattern in model_lower for pattern in ['claude', 'anthropic']):
+            return cls.create('claude', model, api_key)
         
         raise ValueError(
             f"Could not auto-detect provider for model '{model}'. "
