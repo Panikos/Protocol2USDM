@@ -627,13 +627,23 @@ def render_flexible_soa(data, table_id: str = "main", source_name: str = "SoA da
     # Strategy 1: Standard `scheduleTimelines`
     if components['scheduleTimelines'] and components['scheduleTimelines'][0].get('instances'):
         # st.success("Using standard `scheduleTimelines` to link activities to the timeline.")
+        # Build encounter -> epoch lookup for fallback
+        enc_to_epoch = {e.get('id'): e.get('epochId') for e in components['encounters'] if e.get('id')}
+        
         for instance in components['scheduleTimelines'][0].get('instances', []):
             if instance.get('instanceType') == 'ScheduledActivityInstance':
                 encounter_id = instance.get('encounterId')
-                epoch_id = instance.get('epochId')
-                if encounter_id and epoch_id:
-                    epoch_encounter_pairs[epoch_id].add(encounter_id)
-                    for act_id in instance.get('activityIds', []):
+                # Try to get epochId from instance, fallback to encounter's epochId
+                epoch_id = instance.get('epochId') or enc_to_epoch.get(encounter_id)
+                
+                if encounter_id:
+                    if epoch_id:
+                        epoch_encounter_pairs[epoch_id].add(encounter_id)
+                    # Handle both activityIds (plural array) and activityId (singular string)
+                    act_ids = instance.get('activityIds', [])
+                    if not act_ids and instance.get('activityId'):
+                        act_ids = [instance.get('activityId')]
+                    for act_id in act_ids:
                         activity_encounter_links.add((act_id, encounter_id))
     
     # Strategy 2: Fallback to `activityTimepoints` (common in intermediary files)
