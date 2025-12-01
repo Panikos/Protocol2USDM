@@ -481,17 +481,17 @@ Contact author for permission to use.
 
 ## Acknowledgments
 
-This project is, in many ways, a workflow wrapper around the incredible work done by [CDISC](https://www.cdisc.org/) and its volunteers. We stand on the shoulders of giants.
+This project is, in many ways, a workflow wrapper around the incredible work done by [CDISC](https://www.cdisc.org/) and its volunteers. 
 
 ### CDISC & Data4Knowledge
 
-A special thank you to the **Data4Knowledge (D4K) team** and the CDISC DDF community:
+A special thank you to the **Data4Knowledge (D4K) team** and the CDISC DDF/USDM community:
 
-- **[DDF Reference Architecture](https://github.com/cdisc-org/DDF-RA)** - The USDM schema that powers this entire pipeline
-- **[CDISC CORE Engine](https://github.com/cdisc-org/cdisc-rules-engine)** - Conformance validation rules
+- **[DDF Reference Architecture](https://github.com/cdisc-org/DDF-RA)** - The USDM standard that powers this entire pipeline
+- **[CDISC CORE Engine](https://github.com/cdisc-org/cdisc-rules-engine)** - Conformance validation engine and rules
 - **[usdm Python Package](https://pypi.org/project/usdm/)** - Official USDM validation library
 
-Most importantly, heartfelt thanks to **Dave Iberson-Hurst**, **Kirsten Walther Langendorf**, and **Johannes Ulander** — who have been extraordinarily kind and supportive despite my repeated questions and suggestions. Their openness in sharing their work enables projects like this to exist.
+Most importantly, heartfelt thanks to **Dave Iberson-Hurst**, **Kirsten Walther Langendorf**, and **Johannes Ulander** — who have been extraordinarily kind and supportive despite my repeated questions and pestering. Their openness in sharing their work and time enables projects like this to exist.
 
 ### Other Resources
 
