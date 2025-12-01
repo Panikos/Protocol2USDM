@@ -55,7 +55,7 @@ This extracts the full protocol, enriches entities with NCI terminology codes, i
 
 ## Features
 
-- **Multi-Model Support**: Claude Opus 4.5, Gemini 3.x (recommended), GPT-5.1, GPT-4o via unified provider interface
+- **Multi-Model Support**: Claude Opus 4.5, Gemini 3 Pro Preview (recommended), GPT-4o via unified provider interface
 - **Vision-Validated Extraction**: Text extraction validated against actual PDF images
 - **USDM v4.0 Compliant**: Outputs follow official CDISC schema with proper entity hierarchy
 - **NCI Terminology Enrichment**: Automatic enrichment with official NCI codes via EVS API
@@ -65,7 +65,7 @@ This extracts the full protocol, enriches entities with NCI terminology codes, i
 - **CDISC CORE Validation**: Built-in conformance checking with local engine
 - **Interactive Viewer**: Streamlit-based SoA review interface with collapsible sections
 
-### Extraction Capabilities (v6.2)
+### Extraction Capabilities (v6.5)
 
 | Module | Entities | CLI Flag |
 |--------|----------|----------|
@@ -75,10 +75,12 @@ This extracts the full protocol, enriches entities with NCI terminology codes, i
 | **Objectives** | Objective, Endpoint, Estimand | `--objectives` |
 | **Study Design** | StudyArm, StudyCell, StudyCohort | `--studydesign` |
 | **Interventions** | StudyIntervention, AdministrableProduct, Substance | `--interventions` |
-| **Narrative** | NarrativeContent, Abbreviation, StudyDefinitionDocument | `--narrative` |
+| **Narrative** | NarrativeContent, Abbreviation | `--narrative` |
 | **Advanced** | StudyAmendment, GeographicScope, Country | `--advanced` |
 | **Procedures** | Procedure, MedicalDevice, Ingredient, Strength | `--procedures` |
 | **Scheduling** | Timing, Condition, TransitionRule, ScheduleTimelineExit | `--scheduling` |
+| **Doc Structure** | NarrativeContentItem, StudyDefinitionDocument | `--docstructure` |
+| **Amendments** | StudyAmendmentReason, ImpactedEntity | `--amendmentdetails` |
 
 #### Conditional Sources (Additional Documents)
 
@@ -119,18 +121,22 @@ Output: Individual JSONs + combined `protocol_usdm.json`
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/Panikos/Protcol2USDMv3.git
-cd Protcol2USDMv3
+git clone https://github.com/Panikos/Protocol2USDMv3.git
+cd Protocol2USDMv3
 
 # 2. Install dependencies
 pip install -r requirements.txt
 
 # 3. Set up API keys (.env file)
-OPENAI_API_KEY=sk-...
-GOOGLE_API_KEY=AIza...
+OPENAI_API_KEY=...
+GOOGLE_API_KEY=...
+CDISC_API_KEY=...
+CLAUDE_API_KEY=...
 
 # 4. Run the pipeline
-python main_v2.py input/your_protocol.pdf
+```bash
+python main_v2.py .\input\Alexion_NCT04573309_Wilsons.pdf --full-protocol --enrich --sap .\input\Alexion_NCT04573309_Wilsons_SAP.pdf --model claude-opus-4-5 --view
+```
 
 # 5. View results
 streamlit run soa_streamlit_viewer.py
@@ -142,7 +148,7 @@ streamlit run soa_streamlit_viewer.py
 
 ### Requirements
 - Python 3.9+
-- API keys: OpenAI and/or Google AI
+- API keys: OpenAI, Google AI, Claude AI, CDISC API
 
 ### Setup
 
@@ -182,10 +188,13 @@ python main_v2.py <protocol.pdf> [options]
 ### Model Selection
 
 ```bash
-# Use GPT-5.1 (default)
+# Use GPT-5.1 (not working well)
 python main_v2.py protocol.pdf --model gpt-5.1
 
-# Use Gemini 3 Pro Preview
+# Use Claude (preferred)
+python main_v2.py protocol.pdf --model claude-opus-4-5
+
+# Use Gemini 3 Pro Preview (preferred)
 python main_v2.py protocol.pdf --model gemini-3-pro-preview
 
 # Use Gemini 2.5 Pro
@@ -198,8 +207,8 @@ python main_v2.py protocol.pdf --model gpt-4o
 ### Full Pipeline with Post-Processing
 
 ```bash
-# Run extraction + enrichment + schema validation + CORE conformance
-python main_v2.py protocol.pdf --full
+# Run SoA + enrichment + schema validation + CORE conformance
+python main_v2.py protocol.pdf --soa
 
 # Or run post-processing steps individually
 python main_v2.py protocol.pdf --enrich              # Step 7: NCI terminology
@@ -210,12 +219,16 @@ python main_v2.py protocol.pdf --conformance         # Step 9: CORE conformance
 ### Additional Options
 
 ```bash
---output-dir, -o    Output directory (default: output/<protocol_name>)
---pages, -p         Specific SoA page numbers (comma-separated)
---no-validate       Skip vision validation
---remove-hallucinations  Remove cells not confirmed by vision (default: keep all)
---view              Launch Streamlit viewer after extraction
---verbose, -v       Enable verbose output
+--output-dir, -o           Output directory (default: output/<protocol_name>)
+--pages, -p                Specific SoA page numbers (comma-separated)
+--no-validate              Skip vision validation
+--remove-hallucinations    Remove cells not confirmed by vision (default: keep all)
+--confidence-threshold     Confidence threshold for hallucination removal (default: 0.7)
+--view                     Launch Streamlit viewer after extraction
+--no-view                  Don't launch viewer (default behavior)
+--verbose, -v              Enable verbose output
+--update-evs-cache         Update EVS terminology cache before enrichment
+--update-cache             Update CDISC CORE rules cache (requires CDISC_API_KEY)
 ```
 
 ---
@@ -227,32 +240,44 @@ python main_v2.py protocol.pdf --conformance         # Step 9: CORE conformance
 | Step | Description | Output File |
 |------|-------------|-------------|
 | 1 | Find SoA pages & analyze header structure (vision) | `4_header_structure.json` |
-| 2 | Extract SoA data from text | `5_text_extraction.json` |
+| 2 | Extract SoA data from text | `5_raw_text_soa.json` |
 | 3 | Validate extraction against images | `6_validation_result.json` |
-| 4 | Build final SoA output | `9_final_soa.json` |
+| 4 | Build SoA output | `9_final_soa.json` + `9_final_soa_provenance.json` |
 
 ### Expansion Phases (with `--full-protocol`)
 
-| Phase | Entities | Output File |
-|-------|----------|-------------|
-| Metadata | StudyTitle, Organization, Indication | `2_study_metadata.json` |
-| Eligibility | EligibilityCriterion, Population | `3_eligibility_criteria.json` |
-| Objectives | Objective, Endpoint, Estimand | `4_objectives_endpoints.json` |
-| Study Design | StudyArm, StudyCell, StudyCohort | `5_study_design.json` |
-| Interventions | StudyIntervention, Product | `6_interventions.json` |
-| Narrative | Abbreviation, NarrativeContent | `7_narrative_structure.json` |
-| Advanced | StudyAmendment, Country | `8_advanced_entities.json` |
-| Procedures | Procedure, MedicalDevice | `9_procedures_devices.json` |
-| Scheduling | Timing, Condition, TransitionRule | `10_scheduling_logic.json` |
+| Phase | Entities | Output File | CLI Flag |
+|-------|----------|-------------|----------|
+| Metadata | StudyTitle, Organization, Indication | `2_study_metadata.json` | `--metadata` |
+| Eligibility | EligibilityCriterion, Population | `3_eligibility_criteria.json` | `--eligibility` |
+| Objectives | Objective, Endpoint, Estimand | `4_objectives_endpoints.json` | `--objectives` |
+| Study Design | StudyArm, StudyCell, StudyCohort | `5_study_design.json` | `--studydesign` |
+| Interventions | StudyIntervention, Product, Substance | `6_interventions.json` | `--interventions` |
+| Narrative | Abbreviation, NarrativeContent | `7_narrative_structure.json` | `--narrative` |
+| Advanced | StudyAmendment, GeographicScope, Country | `8_advanced_entities.json` | `--advanced` |
+| Procedures | Procedure, MedicalDevice, Ingredient | `9_procedures_devices.json` | `--procedures` |
+| Scheduling | Timing, Condition, TransitionRule | `10_scheduling_logic.json` | `--scheduling` |
+| Doc Structure | NarrativeContentItem, StudyDefinitionDocument | `13_document_structure.json` | `--docstructure` |
+| Amendments | StudyAmendmentReason, ImpactedEntity | `14_amendment_details.json` | `--amendmentdetails` |
 
-### Post-Processing (Steps 7-9)
+### Conditional Sources (with `--sap` or `--sites`)
+
+| Source | Entities | Output File |
+|--------|----------|-------------|
+| SAP Document | AnalysisPopulation, Characteristic | `11_sap_populations.json` |
+| Site List | StudySite, StudyRole, AssignedPerson | `12_site_list.json` |
+
+### Post-Processing
 
 | Step | Description | Output File |
 |------|-------------|-------------|
 | Combine | Merge all extractions | `protocol_usdm.json` ⭐ |
 | Terminology | NCI EVS code enrichment | `terminology_enrichment.json` |
 | Schema Fix | Auto-fix schema issues (UUIDs, Codes) | `schema_validation.json` |
-| Conformance | CDISC CORE validation | `conformance_report.json` |
+| USDM Validation | Validate against official USDM package | `usdm_validation.json` |
+| Conformance | CDISC CORE rules validation | `conformance_report.json` |
+| ID Mapping | Simple ID → UUID mapping | `id_mapping.json` |
+| Provenance | UUID-based provenance for viewer | `protocol_usdm_provenance.json` |
 
 **Primary output:** `output/<protocol>/protocol_usdm.json`
 
@@ -320,15 +345,15 @@ SoA extraction tested on Alexion Wilson's Disease protocol (Nov 2025):
 | Model | Activities | Timepoints | Ticks | Vision Header | Recommendation |
 |-------|------------|------------|-------|---------------|----------------|
 | **Claude Opus 4.5** | 36 ✓ | 24 ✓ | 212 (100% confirmed) | ✅ | **Best accuracy** |
+| **Gemini 3 Pro Preview** | 36 ✓ | 24 ✓ | 210 | ✅ | **Recommended** |
 | **Gemini 2.5 Pro** | 36 ✓ | 24 ✓ | 207 (10 flagged) | ✅ | Good, reliable |
-| GPT-4.1 | 36 ✓ | 24 ✓ | 205 | ✅ | Good alternative |
+| GPT-4o | 36 ✓ | 24 ✓ | 205 | ✅ | Good alternative |
 
 **Notes:**
 - Claude Opus 4.5: Best overall - all ticks confirmed by vision validation
+- Gemini 3 Pro Preview: Fast, accurate, recommended for most use cases
 - Gemini 2.5 Pro: Good accuracy, flags potential hallucinations for review
-- GPT-4.1: Solid performance with vision support
-
-**⚠️ Invalid Models:** `gpt-5`, `gpt-5.1`, `gpt-5.1-pro` do NOT exist on OpenAI API
+- GPT-4o: Solid performance with vision support
 
 ---
 
@@ -350,7 +375,7 @@ Protocol2USDMv3/
 │   ├── text_extractor.py     # Text-based extraction
 │   ├── pipeline.py           # SoA extraction pipeline
 │   ├── validator.py          # Extraction validation
-│   └── */                    # Domain extractors (11 modules)
+│   └── */                    # Domain extractors (13 modules)
 ├── enrichment/               # Terminology enrichment
 │   └── terminology.py        # NCI EVS enrichment
 ├── validation/               # Validation package
@@ -393,8 +418,9 @@ python testing/benchmark_models.py
 
 ```bash
 # Required - at least one LLM provider
-OPENAI_API_KEY=sk-...       # For GPT models
-GOOGLE_API_KEY=AIza...      # For Gemini models
+OPENAI_API_KEY=...          # For GPT models
+GOOGLE_API_KEY=...          # For Gemini models
+CLAUDE_API_KEY=...          # For Claude models (Anthropic)
 
 # Required for CDISC conformance validation
 CDISC_API_KEY=...           # For CORE rules cache (get from library.cdisc.org)
@@ -402,16 +428,19 @@ CDISC_API_KEY=...           # For CORE rules cache (get from library.cdisc.org)
 
 ### Supported Models
 
-**OpenAI:**
-- `gpt-5.1` (recommended)
-- `gpt-4o`
-- `gpt-4`
+**Anthropic (Recommended):**
+- `claude-opus-4-5` ⭐ Best accuracy
+- `claude-sonnet-4`
 
-**Google:**
-- `gemini-3-pro-preview`
+**Google (Recommended):**
+- `gemini-3-pro-preview` ⭐ Fast & accurate
 - `gemini-2.5-pro`
 - `gemini-2.5-flash`
 - `gemini-2.0-flash`
+
+**OpenAI:**
+- `gpt-4o`
+- `gpt-4`
 
 ---
 
@@ -452,6 +481,18 @@ Contact author for permission to use.
 
 ## Acknowledgments
 
-- [CDISC](https://www.cdisc.org/) for USDM specification
-- [CDISC CORE Engine](https://github.com/cdisc-org/cdisc-rules-engine) for conformance validation
+This project is, in many ways, a workflow wrapper around the incredible work done by [CDISC](https://www.cdisc.org/) and its volunteers. We stand on the shoulders of giants.
+
+### CDISC & Data4Knowledge
+
+A special thank you to the **Data4Knowledge (D4K) team** and the CDISC DDF community:
+
+- **[DDF Reference Architecture](https://github.com/cdisc-org/DDF-RA)** - The USDM schema that powers this entire pipeline
+- **[CDISC CORE Engine](https://github.com/cdisc-org/cdisc-rules-engine)** - Conformance validation rules
+- **[usdm Python Package](https://pypi.org/project/usdm/)** - Official USDM validation library
+
+Most importantly, heartfelt thanks to **Dave Iberson-Hurst**, **Kirsten Walther Langendorf**, and **Johannes Ulander** — who have been extraordinarily kind and supportive despite my repeated questions and suggestions. Their openness in sharing their work enables projects like this to exist.
+
+### Other Resources
+
 - [NCI EVS](https://evs.nci.nih.gov/) for terminology services
