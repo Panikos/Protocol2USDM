@@ -18,6 +18,7 @@ import {
   FileEdit,
   BarChart3,
   BookOpen,
+  Image,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -35,13 +36,13 @@ import {
   ExtensionsView,
 } from '@/components/protocol';
 import { QualityMetricsDashboard, ValidationResultsView } from '@/components/quality';
-import { DocumentStructureView } from '@/components/intermediate';
+import { DocumentStructureView, SoAImagesTab } from '@/components/intermediate';
 import { useProtocolStore } from '@/stores/protocolStore';
 import { useOverlayStore } from '@/stores/overlayStore';
 import { cn } from '@/lib/utils';
 import type { ProvenanceData } from '@/lib/provenance/types';
 
-type TabId = 'overview' | 'eligibility' | 'objectives' | 'design' | 'interventions' | 'amendments' | 'extensions' | 'quality' | 'validation' | 'document' | 'soa' | 'timeline' | 'provenance';
+type TabId = 'overview' | 'eligibility' | 'objectives' | 'design' | 'interventions' | 'amendments' | 'extensions' | 'quality' | 'validation' | 'document' | 'images' | 'soa' | 'timeline' | 'provenance';
 
 export default function ProtocolDetailPage() {
   const params = useParams();
@@ -236,6 +237,13 @@ export default function ProtocolDetailPage() {
               Document
             </TabButton>
             <TabButton 
+              active={activeTab === 'images'} 
+              onClick={() => setActiveTab('images')}
+              icon={<Image className="h-4 w-4" />}
+            >
+              Images
+            </TabButton>
+            <TabButton 
               active={activeTab === 'soa'} 
               onClick={() => setActiveTab('soa')}
               icon={<Table className="h-4 w-4" />}
@@ -291,6 +299,9 @@ export default function ProtocolDetailPage() {
         )}
         {activeTab === 'document' && (
           <DocumentStructureView usdm={usdm} />
+        )}
+        {activeTab === 'images' && (
+          <SoAImagesTab protocolId={protocolId} />
         )}
         {activeTab === 'soa' && (
           <SoATab provenance={provenance} />
