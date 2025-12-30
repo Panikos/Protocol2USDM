@@ -47,7 +47,7 @@ from .schema import (
     StratificationFactor,
     RandomizationScheme,
     # Fix A: Titration schedules
-    DoseLevel,
+    TitrationDoseLevel,
     DoseTitrationSchedule,
     # Fix B: Instance bindings
     InstanceBinding,

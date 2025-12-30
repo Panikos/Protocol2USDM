@@ -14,7 +14,7 @@ import logging
 from typing import List, Dict, Any, Optional, Tuple
 
 from .schema import (
-    DoseLevel, DoseTitrationSchedule, InstanceBinding,
+    TitrationDoseLevel, DoseTitrationSchedule, InstanceBinding,
     Repetition, RepetitionType, ExecutionModelData, ExecutionModelResult
 )
 
@@ -50,8 +50,12 @@ def _extract_titration_from_text(text: str) -> List[DoseTitrationSchedule]:
     schedules = []
     text_lower = text.lower()
     
-    # Look for titration indicators
-    if not any(kw in text_lower for kw in ['titrat', 'escalat', 'dose adjustment', 'dose increase']):
+    # Look for titration indicators - expanded to catch more patterns
+    titration_indicators = [
+        'titrat', 'escalat', 'dose adjustment', 'dose increase',
+        'then', 'followed by', 'switch to', 'increase to', 'from day'
+    ]
+    if not any(kw in text_lower for kw in titration_indicators):
         return schedules
     
     for pattern, ttype in TITRATION_PATTERNS:
@@ -69,14 +73,14 @@ def _extract_titration_from_text(text: str) -> List[DoseTitrationSchedule]:
                         duration = int(groups[1]) if groups[1].isdigit() else 28
                         end_dose = int(groups[2])
                         
-                        dose_levels.append(DoseLevel(
+                        dose_levels.append(TitrationDoseLevel(
                             dose_value=f"{start_dose} mg",
                             start_day=1,
                             end_day=duration,
                             source_text=match.group(),
                         ))
                         
-                        dose_levels.append(DoseLevel(
+                        dose_levels.append(TitrationDoseLevel(
                             dose_value=f"{end_dose} mg",
                             start_day=duration + 1,
                             requires_prior_dose=f"{start_dose} mg",

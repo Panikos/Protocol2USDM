@@ -321,7 +321,7 @@ class AnalysisWindow:
 # =============================================================================
 
 @dataclass
-class DoseLevel:
+class TitrationDoseLevel:
     """
     A single dose level within a titration schedule.
     
@@ -373,7 +373,7 @@ class DoseTitrationSchedule:
     id: str
     intervention_id: Optional[str] = None
     intervention_name: Optional[str] = None
-    dose_levels: List[DoseLevel] = field(default_factory=list)
+    dose_levels: List[TitrationDoseLevel] = field(default_factory=list)
     titration_type: str = "escalation"  # escalation, de-escalation, adaptive
     anchor_id: Optional[str] = None
     source_text: Optional[str] = None
