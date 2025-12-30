@@ -34,14 +34,14 @@ import {
   AmendmentHistoryView,
   ExtensionsView,
 } from '@/components/protocol';
-import { QualityMetricsDashboard } from '@/components/quality';
+import { QualityMetricsDashboard, ValidationResultsView } from '@/components/quality';
 import { DocumentStructureView } from '@/components/intermediate';
 import { useProtocolStore } from '@/stores/protocolStore';
 import { useOverlayStore } from '@/stores/overlayStore';
 import { cn } from '@/lib/utils';
 import type { ProvenanceData } from '@/lib/provenance/types';
 
-type TabId = 'overview' | 'eligibility' | 'objectives' | 'design' | 'interventions' | 'amendments' | 'extensions' | 'quality' | 'document' | 'soa' | 'timeline' | 'provenance';
+type TabId = 'overview' | 'eligibility' | 'objectives' | 'design' | 'interventions' | 'amendments' | 'extensions' | 'quality' | 'validation' | 'document' | 'soa' | 'timeline' | 'provenance';
 
 export default function ProtocolDetailPage() {
   const params = useParams();
@@ -222,6 +222,13 @@ export default function ProtocolDetailPage() {
               Quality
             </TabButton>
             <TabButton 
+              active={activeTab === 'validation'} 
+              onClick={() => setActiveTab('validation')}
+              icon={<AlertCircle className="h-4 w-4" />}
+            >
+              Validation
+            </TabButton>
+            <TabButton 
               active={activeTab === 'document'} 
               onClick={() => setActiveTab('document')}
               icon={<BookOpen className="h-4 w-4" />}
@@ -278,6 +285,9 @@ export default function ProtocolDetailPage() {
         )}
         {activeTab === 'quality' && (
           <QualityMetricsDashboard usdm={usdm} />
+        )}
+        {activeTab === 'validation' && (
+          <ValidationResultsView protocolId={protocolId} />
         )}
         {activeTab === 'document' && (
           <DocumentStructureView usdm={usdm} />
