@@ -25,6 +25,7 @@ from .schema import (
     ExecutionType,
     SamplingConstraint,
     ActivityBinding,
+    AnalysisWindow,
     # Phase 2
     TraversalConstraint,
     CrossoverDesign,
@@ -102,6 +103,7 @@ __all__ = [
     "ExecutionType",
     "SamplingConstraint",
     "ActivityBinding",
+    "AnalysisWindow",
     # Phase 2 Schema
     "TraversalConstraint",
     "CrossoverDesign",

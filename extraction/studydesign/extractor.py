@@ -19,6 +19,7 @@ from .schema import (
     StudyArm,
     StudyCell,
     StudyCohort,
+    DoseEpoch,
     ArmType,
     BlindingSchema,
     RandomizationType,
@@ -234,11 +235,26 @@ def _parse_design_response(raw: Dict[str, Any]) -> Optional[StudyDesignData]:
                 arm_type_str = str(arm_type_data)
             arm_type = _map_arm_type(arm_type_str)
             
+            # Parse titration info
+            is_titration = arm_data.get('isTitration', False)
+            dose_epochs = []
+            if is_titration and arm_data.get('doseEpochs'):
+                for de_data in arm_data.get('doseEpochs', []):
+                    if isinstance(de_data, dict):
+                        dose_epochs.append(DoseEpoch(
+                            dose=de_data.get('dose', ''),
+                            start_day=de_data.get('startDay'),
+                            end_day=de_data.get('endDay'),
+                            description=de_data.get('description'),
+                        ))
+            
             arms.append(StudyArm(
                 id=arm_data.get('id', f"arm_{i+1}"),
                 name=arm_data.get('name', f'Arm {i+1}'),
                 description=arm_data.get('description'),
                 arm_type=arm_type,
+                is_titration=is_titration,
+                dose_epochs=dose_epochs,
             ))
         
         # Process cohorts - accept both 'cohorts' and 'studyCohorts' keys

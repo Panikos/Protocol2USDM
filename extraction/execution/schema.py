@@ -15,8 +15,9 @@ from typing import Dict, List, Optional, Any
 
 
 class AnchorType(Enum):
-    """Types of time anchors per USDM workshop manual."""
+    """Types of time anchors."""
     FIRST_DOSE = "FirstDose"
+    TREATMENT_START = "TreatmentStart"
     RANDOMIZATION = "Randomization"
     SCREENING = "Screening"
     DAY_1 = "Day1"
@@ -24,6 +25,7 @@ class AnchorType(Enum):
     ENROLLMENT = "Enrollment"
     INFORMED_CONSENT = "InformedConsent"
     CYCLE_START = "CycleStart"
+    COLLECTION_DAY = "CollectionDay"  # FIX 4: 24-hour collection boundary anchor
     CUSTOM = "Custom"
 
 
@@ -262,6 +264,53 @@ class SamplingConstraint:
             result["windowEnd"] = self.window_end
         if self.rationale:
             result["rationale"] = self.rationale
+        if self.source_text:
+            result["sourceText"] = self.source_text
+        return result
+
+
+@dataclass
+class AnalysisWindow:
+    """
+    Defines a computable analysis window for endpoint derivation.
+    
+    FIX 3: Addresses the need for explicit baseline/accumulation/steady-state phases
+    that can be referenced by endpoints for deterministic derivation.
+    
+    Attributes:
+        id: Unique identifier
+        window_type: Type of window (baseline, accumulation, steady_state, treatment)
+        name: Human-readable name
+        start_day: Start day relative to anchor (can be negative for baseline)
+        end_day: End day relative to anchor
+        anchor_id: Reference to time anchor
+        linked_endpoint_ids: Endpoints that use this window
+        description: Additional context
+    """
+    id: str
+    window_type: str  # baseline, accumulation, steady_state, treatment, follow_up
+    name: str
+    start_day: int
+    end_day: int
+    anchor_id: Optional[str] = None
+    linked_endpoint_ids: List[str] = field(default_factory=list)
+    description: Optional[str] = None
+    source_text: Optional[str] = None
+    
+    def to_dict(self) -> Dict[str, Any]:
+        result = {
+            "id": self.id,
+            "windowType": self.window_type,
+            "name": self.name,
+            "startDay": self.start_day,
+            "endDay": self.end_day,
+        }
+        if self.anchor_id:
+            result["anchorId"] = self.anchor_id
+        if self.linked_endpoint_ids:
+            result["linkedEndpointIds"] = self.linked_endpoint_ids
+        if self.description:
+            result["description"] = self.description
         if self.source_text:
             result["sourceText"] = self.source_text
         return result
@@ -917,6 +966,8 @@ class ExecutionModelData:
     randomization_scheme: Optional[RandomizationScheme] = None
     # FIX C: Activity bindings for tight coupling
     activity_bindings: List[ActivityBinding] = field(default_factory=list)
+    # FIX 3: Analysis windows for endpoint derivation
+    analysis_windows: List[AnalysisWindow] = field(default_factory=list)
     
     def to_dict(self) -> Dict[str, Any]:
         result = {
@@ -947,6 +998,9 @@ class ExecutionModelData:
         # FIX C: Activity bindings
         if self.activity_bindings:
             result["activityBindings"] = [b.to_dict() for b in self.activity_bindings]
+        # FIX 3: Analysis windows
+        if self.analysis_windows:
+            result["analysisWindows"] = [w.to_dict() for w in self.analysis_windows]
         return result
     
     def to_extension(self) -> Dict[str, Any]:

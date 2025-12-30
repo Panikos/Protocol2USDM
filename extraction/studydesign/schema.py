@@ -63,6 +63,29 @@ class AllocationRatio:
 
 
 @dataclass
+class DoseEpoch:
+    """
+    Represents a dose-level epoch for titration studies.
+    
+    Used when a single arm has sequential dose levels (within-subject titration).
+    """
+    dose: str  # e.g., "15 mg/day"
+    start_day: Optional[int] = None
+    end_day: Optional[int] = None
+    description: Optional[str] = None
+    
+    def to_dict(self) -> Dict[str, Any]:
+        result = {"dose": self.dose}
+        if self.start_day is not None:
+            result["startDay"] = self.start_day
+        if self.end_day is not None:
+            result["endDay"] = self.end_day
+        if self.description:
+            result["description"] = self.description
+        return result
+
+
+@dataclass
 class StudyArm:
     """
     USDM StudyArm entity.
@@ -75,6 +98,9 @@ class StudyArm:
     arm_type: ArmType = ArmType.EXPERIMENTAL
     label: Optional[str] = None
     population_ids: List[str] = field(default_factory=list)  # Links to StudyCohort
+    # Titration support
+    is_titration: bool = False  # True if within-subject dose escalation
+    dose_epochs: List[DoseEpoch] = field(default_factory=list)  # Sequential dose levels
     instance_type: str = "StudyArm"
     
     def to_dict(self) -> Dict[str, Any]:
@@ -94,6 +120,17 @@ class StudyArm:
             result["label"] = self.label
         if self.population_ids:
             result["populationIds"] = self.population_ids
+        # Titration extension
+        if self.is_titration:
+            result["extensionAttributes"] = [{
+                "url": "x-titration",
+                "valueString": "true"
+            }]
+            if self.dose_epochs:
+                result["extensionAttributes"].append({
+                    "url": "x-doseEpochs",
+                    "valueString": str([de.to_dict() for de in self.dose_epochs])
+                })
         return result
 
 
