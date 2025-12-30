@@ -18,7 +18,8 @@ from typing import List, Dict, Any, Optional, Tuple
 
 from .schema import (
     Repetition, RepetitionType, SamplingConstraint,
-    ExecutionModelResult, ExecutionModelData
+    ExecutionModelResult, ExecutionModelData, ActivityBinding,
+    AnalysisWindow, TimeAnchor, AnchorType
 )
 
 logger = logging.getLogger(__name__)
@@ -448,6 +449,245 @@ def _extract_duration_from_context(context: str) -> Optional[Dict[str, str]]:
     return None
 
 
+# =============================================================================
+# FIX 2: DAILY REPETITION BINDING WITH EXPECTED COUNTS
+# =============================================================================
+
+# Patterns for activities that need daily binding
+DAILY_COLLECTION_ACTIVITIES = [
+    (r'(?:24[\-\s]?hour|daily)\s+urine\s+(?:collection|sample)', 'urine_collection'),
+    (r'(?:feces|stool|fecal)\s+(?:collection|sample)', 'feces_collection'),
+    (r'(?:controlled|standardized)\s+(?:meal|diet)', 'controlled_meal'),
+    (r'daily\s+(?:meal|food)\s+(?:intake|consumption)', 'meal_intake'),
+    (r'(?:copper|cu|molybdenum|mo)\s+balance', 'balance_collection'),
+    (r'daily\s+weight', 'daily_weight'),
+    (r'daily\s+diary', 'daily_diary'),
+]
+
+
+def _detect_daily_activity_bindings(text: str) -> Tuple[List[ActivityBinding], List[Repetition]]:
+    """
+    FIX 2: Detect daily collection activities and create explicit bindings.
+    
+    This addresses the feedback: "daily repetition is not machine-enforced"
+    by encoding "every day" semantics with expected occurrence counts.
+    """
+    bindings = []
+    daily_repetitions = []
+    
+    # Pattern to find day ranges like "Days -4 through -1", "Day 2-3", "Days 30-35"
+    day_range_pattern = re.compile(
+        r'(?:days?\s*)?([-–]?\d+)\s*(?:to|through|[-–])\s*(?:days?\s*)?([-–]?\d+)',
+        re.IGNORECASE
+    )
+    
+    for activity_pattern, activity_type in DAILY_COLLECTION_ACTIVITIES:
+        matches = re.finditer(activity_pattern, text, re.IGNORECASE)
+        
+        for match in matches:
+            # Get context around match to find day range
+            start_ctx = max(0, match.start() - 200)
+            end_ctx = min(len(text), match.end() + 200)
+            context = text[start_ctx:end_ctx]
+            
+            # Find day ranges in context
+            range_matches = day_range_pattern.finditer(context)
+            
+            for range_match in range_matches:
+                try:
+                    start_day = int(range_match.group(1).replace('–', '-'))
+                    end_day = int(range_match.group(2).replace('–', '-'))
+                    
+                    # Calculate expected daily occurrences
+                    expected_count = abs(end_day - start_day) + 1
+                    
+                    # Create repetition with count
+                    rep_id = f"rep_daily_bound_{len(daily_repetitions)+1}"
+                    daily_repetitions.append(Repetition(
+                        id=rep_id,
+                        type=RepetitionType.DAILY,
+                        interval="P1D",
+                        count=expected_count,
+                        start_offset=f"P{start_day}D" if start_day >= 0 else f"-P{abs(start_day)}D",
+                        end_offset=f"P{end_day}D" if end_day >= 0 else f"-P{abs(end_day)}D",
+                        source_text=f"{match.group()} ({range_match.group()})",
+                    ))
+                    
+                    # Create binding
+                    bindings.append(ActivityBinding(
+                        id=f"binding_{len(bindings)+1}",
+                        activity_id=activity_type,
+                        activity_name=match.group(),
+                        repetition_id=rep_id,
+                        expected_occurrences=expected_count,
+                        source_text=f"Daily {activity_type} from Day {start_day} to Day {end_day}",
+                    ))
+                    
+                except (ValueError, AttributeError):
+                    continue
+    
+    return bindings, daily_repetitions
+
+
+# =============================================================================
+# FIX 3: ANALYSIS WINDOW EXTRACTION
+# =============================================================================
+
+# Patterns for analysis window types
+ANALYSIS_WINDOW_PATTERNS = [
+    # Baseline windows
+    (r'(?:pre[\-\s]?treatment\s+)?baseline\s+(?:period|window|phase)?\s*(?:days?\s*)?([-–]?\d+)\s*(?:to|through|[-–])\s*(?:days?\s*)?([-–]?\d+)', 'baseline'),
+    (r'days?\s*([-–]\d+)\s*(?:to|through|[-–])\s*([-–]?\d+)\s*(?:as\s+)?baseline', 'baseline'),
+    
+    # Accumulation windows
+    (r'accumulation\s+(?:period|window|phase)', 'accumulation'),
+    (r'(?:initial|early)\s+(?:treatment\s+)?(?:period|phase)', 'accumulation'),
+    
+    # Steady-state windows
+    (r'steady[\-\s]?state\s+(?:period|window|phase)', 'steady_state'),
+    (r'(?:maintenance|stable)\s+(?:treatment\s+)?(?:period|phase)', 'steady_state'),
+    
+    # Treatment windows
+    (r'treatment\s+(?:period|window|phase)\s*(?:\d+)?', 'treatment'),
+    (r'(?:active|dosing)\s+(?:period|phase)', 'treatment'),
+]
+
+
+def _detect_analysis_windows(text: str) -> List[AnalysisWindow]:
+    """
+    FIX 3: Detect analysis windows (baseline, accumulation, steady-state).
+    
+    This addresses the feedback: "Baseline vs accumulation vs steady-state 
+    windows are not explicit as computable phases"
+    """
+    windows = []
+    
+    # First, find explicit day ranges for baseline
+    baseline_pattern = re.compile(
+        r'(?:baseline|pre[\-\s]?treatment)\s+(?:period|window|phase|days?)?\s*[:\-]?\s*'
+        r'(?:days?\s*)?([-–]?\d+)\s*(?:to|through|[-–])\s*(?:days?\s*)?([-–]?\d+)',
+        re.IGNORECASE
+    )
+    
+    for match in baseline_pattern.finditer(text):
+        try:
+            start_day = int(match.group(1).replace('–', '-'))
+            end_day = int(match.group(2).replace('–', '-'))
+            
+            windows.append(AnalysisWindow(
+                id=f"window_baseline_{len(windows)+1}",
+                window_type="baseline",
+                name="Baseline Period",
+                start_day=start_day,
+                end_day=end_day,
+                description=f"Pre-treatment baseline from Day {start_day} to Day {end_day}",
+                source_text=match.group(),
+            ))
+        except (ValueError, AttributeError):
+            continue
+    
+    # Find treatment windows with day ranges
+    treatment_pattern = re.compile(
+        r'(?:treatment|dosing|active)\s+(?:period|window|phase)?\s*[:\-]?\s*'
+        r'(?:days?\s*)?(\d+)\s*(?:to|through|[-–])\s*(?:days?\s*)?(\d+)',
+        re.IGNORECASE
+    )
+    
+    for match in treatment_pattern.finditer(text):
+        try:
+            start_day = int(match.group(1))
+            end_day = int(match.group(2))
+            
+            windows.append(AnalysisWindow(
+                id=f"window_treatment_{len(windows)+1}",
+                window_type="treatment",
+                name="Treatment Period",
+                start_day=start_day,
+                end_day=end_day,
+                description=f"Active treatment from Day {start_day} to Day {end_day}",
+                source_text=match.group(),
+            ))
+        except (ValueError, AttributeError):
+            continue
+    
+    # Find steady-state references
+    steady_state_pattern = re.compile(
+        r'steady[\-\s]?state\s+(?:period|window|phase|days?)?\s*[:\-]?\s*'
+        r'(?:days?\s*)?(\d+)\s*(?:to|through|[-–])\s*(?:days?\s*)?(\d+)',
+        re.IGNORECASE
+    )
+    
+    for match in steady_state_pattern.finditer(text):
+        try:
+            start_day = int(match.group(1))
+            end_day = int(match.group(2))
+            
+            windows.append(AnalysisWindow(
+                id=f"window_steady_state_{len(windows)+1}",
+                window_type="steady_state",
+                name="Steady-State Period",
+                start_day=start_day,
+                end_day=end_day,
+                description=f"Steady-state from Day {start_day} to Day {end_day}",
+                source_text=match.group(),
+            ))
+        except (ValueError, AttributeError):
+            continue
+    
+    return windows
+
+
+# =============================================================================
+# FIX 4: COLLECTION DAY ANCHOR DETECTION
+# =============================================================================
+
+def _detect_collection_day_anchors(text: str) -> List[TimeAnchor]:
+    """
+    FIX 4: Detect 24-hour collection day boundaries.
+    
+    This addresses the feedback: "need a stable anchor for 24-hour collection 
+    boundaries"
+    """
+    anchors = []
+    
+    # Patterns for 24-hour collection definitions
+    collection_patterns = [
+        (r'24[\-\s]?hour\s+(?:urine|collection)\s+(?:period|window|from)\s*'
+         r'(\d{1,2})[:\.]?(\d{2})?\s*(?:am|pm|hours?)?', 'urine'),
+        (r'collection\s+(?:day|period)\s+(?:begins?|starts?|from)\s*'
+         r'(\d{1,2})[:\.]?(\d{2})?\s*(?:am|pm|hours?)?', 'general'),
+        (r'(?:morning|am)\s+(?:of\s+)?day\s+\d+\s+to\s+(?:morning|am)\s+(?:of\s+)?day\s+\d+', 'morning_anchor'),
+    ]
+    
+    for pattern, anchor_type in collection_patterns:
+        matches = re.finditer(pattern, text, re.IGNORECASE)
+        
+        for match in matches:
+            anchors.append(TimeAnchor(
+                id=f"anchor_collection_{len(anchors)+1}",
+                definition=f"24-hour collection day boundary ({anchor_type})",
+                anchor_type=AnchorType.COLLECTION_DAY,
+                source_text=match.group(),
+            ))
+    
+    # Also detect generic 24-hour collection mentions
+    generic_24h = re.finditer(
+        r'(?:complete\s+)?24[\-\s]?hour\s+(?:urine|stool|feces|collection)',
+        text, re.IGNORECASE
+    )
+    
+    for match in generic_24h:
+        if not any(a.source_text == match.group() for a in anchors):
+            anchors.append(TimeAnchor(
+                id=f"anchor_collection_{len(anchors)+1}",
+                definition="24-hour collection period",
+                anchor_type=AnchorType.COLLECTION_DAY,
+                source_text=match.group(),
+            ))
+    
+    return anchors
+
+
 def _detect_sampling_constraints(text: str) -> List[SamplingConstraint]:
     """Detect minimum sampling requirements from PK/PD tables."""
     constraints = []
@@ -523,6 +763,16 @@ def extract_repetitions(
     # Detect sampling constraints
     sampling_constraints = _detect_sampling_constraints(text)
     
+    # FIX 2: Daily activity bindings with expected counts
+    activity_bindings, bound_repetitions = _detect_daily_activity_bindings(text)
+    all_repetitions.extend(bound_repetitions)
+    
+    # FIX 3: Analysis windows (baseline, accumulation, steady-state)
+    analysis_windows = _detect_analysis_windows(text)
+    
+    # FIX 4: Collection day anchors (24-hour boundaries)
+    collection_anchors = _detect_collection_day_anchors(text)
+    
     # LLM enhancement if requested
     if use_llm and (all_repetitions or sampling_constraints):
         try:
@@ -544,6 +794,9 @@ def extract_repetitions(
     data = ExecutionModelData(
         repetitions=unique_repetitions,
         sampling_constraints=sampling_constraints,
+        activity_bindings=activity_bindings,
+        analysis_windows=analysis_windows,
+        time_anchors=collection_anchors,
     )
     
     result = ExecutionModelResult(
@@ -557,6 +810,14 @@ def extract_repetitions(
         f"Extracted {len(unique_repetitions)} repetitions, "
         f"{len(sampling_constraints)} sampling constraints"
     )
+    
+    # Log Fix 2, 3, 4 results
+    if activity_bindings:
+        logger.info(f"  FIX 2: {len(activity_bindings)} daily activity bindings with expected counts")
+    if analysis_windows:
+        logger.info(f"  FIX 3: {len(analysis_windows)} analysis windows (baseline/treatment/steady-state)")
+    if collection_anchors:
+        logger.info(f"  FIX 4: {len(collection_anchors)} collection day anchors")
     
     return result
 
