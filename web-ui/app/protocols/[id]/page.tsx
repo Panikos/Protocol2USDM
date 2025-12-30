@@ -32,6 +32,7 @@ import {
   StudyDesignView,
   InterventionsView,
   AmendmentHistoryView,
+  ExtensionsView,
 } from '@/components/protocol';
 import { QualityMetricsDashboard } from '@/components/quality';
 import { DocumentStructureView } from '@/components/intermediate';
@@ -40,7 +41,7 @@ import { useOverlayStore } from '@/stores/overlayStore';
 import { cn } from '@/lib/utils';
 import type { ProvenanceData } from '@/lib/provenance/types';
 
-type TabId = 'overview' | 'eligibility' | 'objectives' | 'design' | 'interventions' | 'amendments' | 'quality' | 'document' | 'soa' | 'timeline' | 'provenance';
+type TabId = 'overview' | 'eligibility' | 'objectives' | 'design' | 'interventions' | 'amendments' | 'extensions' | 'quality' | 'document' | 'soa' | 'timeline' | 'provenance';
 
 export default function ProtocolDetailPage() {
   const params = useParams();
@@ -207,6 +208,13 @@ export default function ProtocolDetailPage() {
               Amendments
             </TabButton>
             <TabButton 
+              active={activeTab === 'extensions'} 
+              onClick={() => setActiveTab('extensions')}
+              icon={<Layers className="h-4 w-4" />}
+            >
+              Extensions
+            </TabButton>
+            <TabButton 
               active={activeTab === 'quality'} 
               onClick={() => setActiveTab('quality')}
               icon={<BarChart3 className="h-4 w-4" />}
@@ -264,6 +272,9 @@ export default function ProtocolDetailPage() {
         )}
         {activeTab === 'amendments' && (
           <AmendmentHistoryView usdm={usdm} />
+        )}
+        {activeTab === 'extensions' && (
+          <ExtensionsView usdm={usdm} />
         )}
         {activeTab === 'quality' && (
           <QualityMetricsDashboard usdm={usdm} />
