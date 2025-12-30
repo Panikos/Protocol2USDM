@@ -19,6 +19,9 @@ import {
   BarChart3,
   BookOpen,
   Image,
+  Microscope,
+  Stethoscope,
+  MapPin,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,6 +37,9 @@ import {
   InterventionsView,
   AmendmentHistoryView,
   ExtensionsView,
+  AdvancedEntitiesView,
+  ProceduresDevicesView,
+  StudySitesView,
 } from '@/components/protocol';
 import { QualityMetricsDashboard, ValidationResultsView } from '@/components/quality';
 import { DocumentStructureView, SoAImagesTab } from '@/components/intermediate';
@@ -42,7 +48,7 @@ import { useOverlayStore } from '@/stores/overlayStore';
 import { cn } from '@/lib/utils';
 import type { ProvenanceData } from '@/lib/provenance/types';
 
-type TabId = 'overview' | 'eligibility' | 'objectives' | 'design' | 'interventions' | 'amendments' | 'extensions' | 'quality' | 'validation' | 'document' | 'images' | 'soa' | 'timeline' | 'provenance';
+type TabId = 'overview' | 'eligibility' | 'objectives' | 'design' | 'interventions' | 'amendments' | 'extensions' | 'entities' | 'procedures' | 'sites' | 'quality' | 'validation' | 'document' | 'images' | 'soa' | 'timeline' | 'provenance';
 
 export default function ProtocolDetailPage() {
   const params = useParams();
@@ -164,8 +170,8 @@ export default function ProtocolDetailPage() {
         </div>
 
         {/* Tab navigation */}
-        <div className="container mx-auto px-4">
-          <nav className="flex gap-1 -mb-px">
+        <div className="container mx-auto px-4 overflow-x-auto">
+          <nav className="flex gap-1 -mb-px min-w-max pb-2">
             <TabButton 
               active={activeTab === 'overview'} 
               onClick={() => setActiveTab('overview')}
@@ -214,6 +220,27 @@ export default function ProtocolDetailPage() {
               icon={<Layers className="h-4 w-4" />}
             >
               Extensions
+            </TabButton>
+            <TabButton 
+              active={activeTab === 'entities'} 
+              onClick={() => setActiveTab('entities')}
+              icon={<Microscope className="h-4 w-4" />}
+            >
+              Entities
+            </TabButton>
+            <TabButton 
+              active={activeTab === 'procedures'} 
+              onClick={() => setActiveTab('procedures')}
+              icon={<Stethoscope className="h-4 w-4" />}
+            >
+              Procedures
+            </TabButton>
+            <TabButton 
+              active={activeTab === 'sites'} 
+              onClick={() => setActiveTab('sites')}
+              icon={<MapPin className="h-4 w-4" />}
+            >
+              Sites
             </TabButton>
             <TabButton 
               active={activeTab === 'quality'} 
@@ -290,6 +317,15 @@ export default function ProtocolDetailPage() {
         )}
         {activeTab === 'extensions' && (
           <ExtensionsView usdm={usdm} />
+        )}
+        {activeTab === 'entities' && (
+          <AdvancedEntitiesView usdm={usdm} />
+        )}
+        {activeTab === 'procedures' && (
+          <ProceduresDevicesView usdm={usdm} />
+        )}
+        {activeTab === 'sites' && (
+          <StudySitesView usdm={usdm} />
         )}
         {activeTab === 'quality' && (
           <QualityMetricsDashboard usdm={usdm} />
