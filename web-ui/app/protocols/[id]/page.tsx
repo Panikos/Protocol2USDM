@@ -11,6 +11,11 @@ import {
   ArrowLeft, 
   Loader2,
   AlertCircle,
+  ClipboardList,
+  Target,
+  Layers,
+  Pill,
+  FileEdit,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,12 +23,20 @@ import { DraftPublishControls } from '@/components/overlay/DraftPublishControls'
 import { SoAView } from '@/components/soa';
 import { TimelineView } from '@/components/timeline';
 import { ProvenanceView } from '@/components/provenance';
+import {
+  StudyMetadataView,
+  EligibilityCriteriaView,
+  ObjectivesEndpointsView,
+  StudyDesignView,
+  InterventionsView,
+  AmendmentHistoryView,
+} from '@/components/protocol';
 import { useProtocolStore } from '@/stores/protocolStore';
 import { useOverlayStore } from '@/stores/overlayStore';
 import { cn } from '@/lib/utils';
 import type { ProvenanceData } from '@/lib/provenance/types';
 
-type TabId = 'overview' | 'soa' | 'timeline' | 'provenance';
+type TabId = 'overview' | 'eligibility' | 'objectives' | 'design' | 'interventions' | 'amendments' | 'soa' | 'timeline' | 'provenance';
 
 export default function ProtocolDetailPage() {
   const params = useParams();
@@ -155,11 +168,46 @@ export default function ProtocolDetailPage() {
               Overview
             </TabButton>
             <TabButton 
+              active={activeTab === 'eligibility'} 
+              onClick={() => setActiveTab('eligibility')}
+              icon={<ClipboardList className="h-4 w-4" />}
+            >
+              Eligibility
+            </TabButton>
+            <TabButton 
+              active={activeTab === 'objectives'} 
+              onClick={() => setActiveTab('objectives')}
+              icon={<Target className="h-4 w-4" />}
+            >
+              Objectives
+            </TabButton>
+            <TabButton 
+              active={activeTab === 'design'} 
+              onClick={() => setActiveTab('design')}
+              icon={<Layers className="h-4 w-4" />}
+            >
+              Design
+            </TabButton>
+            <TabButton 
+              active={activeTab === 'interventions'} 
+              onClick={() => setActiveTab('interventions')}
+              icon={<Pill className="h-4 w-4" />}
+            >
+              Interventions
+            </TabButton>
+            <TabButton 
+              active={activeTab === 'amendments'} 
+              onClick={() => setActiveTab('amendments')}
+              icon={<FileEdit className="h-4 w-4" />}
+            >
+              Amendments
+            </TabButton>
+            <TabButton 
               active={activeTab === 'soa'} 
               onClick={() => setActiveTab('soa')}
               icon={<Table className="h-4 w-4" />}
             >
-              Schedule of Activities
+              SoA
             </TabButton>
             <TabButton 
               active={activeTab === 'timeline'} 
@@ -182,7 +230,22 @@ export default function ProtocolDetailPage() {
       {/* Content */}
       <main className="container mx-auto px-4 py-6">
         {activeTab === 'overview' && (
-          <OverviewTab studyDesign={studyDesign} metadata={metadata} />
+          <StudyMetadataView usdm={usdm} />
+        )}
+        {activeTab === 'eligibility' && (
+          <EligibilityCriteriaView usdm={usdm} />
+        )}
+        {activeTab === 'objectives' && (
+          <ObjectivesEndpointsView usdm={usdm} />
+        )}
+        {activeTab === 'design' && (
+          <StudyDesignView usdm={usdm} />
+        )}
+        {activeTab === 'interventions' && (
+          <InterventionsView usdm={usdm} />
+        )}
+        {activeTab === 'amendments' && (
+          <AmendmentHistoryView usdm={usdm} />
         )}
         {activeTab === 'soa' && (
           <SoATab provenance={provenance} />
