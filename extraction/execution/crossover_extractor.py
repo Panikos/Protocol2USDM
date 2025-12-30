@@ -361,10 +361,20 @@ def extract_crossover_design(
             model_used=model,
         )
     
+    # EXCLUSION CHECK: Skip crossover detection entirely for titration studies
+    if _is_titration_study(text):
+        logger.info("Detected titration study - skipping crossover detection entirely")
+        return ExecutionModelResult(
+            success=False,
+            data=ExecutionModelData(),
+            pages_used=pages,
+            model_used="heuristic",
+        )
+    
     # Heuristic detection
     crossover = _detect_crossover_heuristic(text)
     
-    # LLM enhancement
+    # LLM enhancement (only if not excluded by titration check above)
     if use_llm and crossover:
         try:
             llm_crossover = _extract_crossover_llm(text, model)
