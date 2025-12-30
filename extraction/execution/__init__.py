@@ -40,12 +40,17 @@ from .schema import (
     StateType,
     # Phase 4
     DosingRegimen,
-    DoseLevel,
+    DoseLevel as DosingDoseLevel,  # Alias to avoid conflict
     DosingFrequency,
     RouteOfAdministration,
     VisitWindow,
     StratificationFactor,
     RandomizationScheme,
+    # Fix A: Titration schedules
+    DoseLevel,
+    DoseTitrationSchedule,
+    # Fix B: Instance bindings
+    InstanceBinding,
     # Container
     ExecutionModelData,
     ExecutionModelResult,
@@ -92,6 +97,13 @@ from .pipeline_integration import (
     extract_execution_model,
     enrich_usdm_with_execution_model,
     create_execution_model_summary,
+)
+from .binding_extractor import (
+    extract_bindings_and_titration,
+    create_instance_bindings_from_usdm,
+    extract_titration_from_arm,
+    deduplicate_epochs,
+    fix_visit_window_targets,
 )
 
 __all__ = [

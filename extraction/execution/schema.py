@@ -316,6 +316,149 @@ class AnalysisWindow:
         return result
 
 
+# =============================================================================
+# FIX A: DOSE TITRATION SCHEDULE - Day-bounded dose levels with transition rules
+# =============================================================================
+
+@dataclass
+class DoseLevel:
+    """
+    A single dose level within a titration schedule.
+    
+    Attributes:
+        dose_value: Dose amount (e.g., "15 mg")
+        start_day: First day this dose applies
+        end_day: Last day this dose applies (None = ongoing)
+        requires_prior_dose: Previous dose level required before this one
+        transition_rule: Rule for transitioning to this dose
+    """
+    dose_value: str
+    start_day: int
+    end_day: Optional[int] = None
+    requires_prior_dose: Optional[str] = None
+    transition_rule: Optional[str] = None
+    source_text: Optional[str] = None
+    
+    def to_dict(self) -> Dict[str, Any]:
+        result = {
+            "doseValue": self.dose_value,
+            "startDay": self.start_day,
+        }
+        if self.end_day is not None:
+            result["endDay"] = self.end_day
+        if self.requires_prior_dose:
+            result["requiresPriorDose"] = self.requires_prior_dose
+        if self.transition_rule:
+            result["transitionRule"] = self.transition_rule
+        if self.source_text:
+            result["sourceText"] = self.source_text
+        return result
+
+
+@dataclass
+class DoseTitrationSchedule:
+    """
+    FIX A: Operationalized titration schedule with explicit day bounds.
+    
+    Addresses feedback: "Dose titration is described, but not operationalized"
+    by providing machine-enforceable dose transitions.
+    
+    Attributes:
+        id: Unique identifier
+        intervention_id: Reference to the intervention being titrated
+        dose_levels: Ordered list of dose levels with day bounds
+        titration_type: Type of titration (escalation, de-escalation, adaptive)
+        anchor_id: Reference to time anchor (e.g., first dose)
+    """
+    id: str
+    intervention_id: Optional[str] = None
+    intervention_name: Optional[str] = None
+    dose_levels: List[DoseLevel] = field(default_factory=list)
+    titration_type: str = "escalation"  # escalation, de-escalation, adaptive
+    anchor_id: Optional[str] = None
+    source_text: Optional[str] = None
+    
+    def to_dict(self) -> Dict[str, Any]:
+        result = {
+            "id": self.id,
+            "titrationType": self.titration_type,
+            "doseLevels": [d.to_dict() for d in self.dose_levels],
+        }
+        if self.intervention_id:
+            result["interventionId"] = self.intervention_id
+        if self.intervention_name:
+            result["interventionName"] = self.intervention_name
+        if self.anchor_id:
+            result["anchorId"] = self.anchor_id
+        if self.source_text:
+            result["sourceText"] = self.source_text
+        return result
+
+
+# =============================================================================
+# FIX B: INSTANCE BINDING - Bind repetitions/anchors to ScheduledActivityInstance
+# =============================================================================
+
+@dataclass
+class InstanceBinding:
+    """
+    FIX B: Binds execution rules to specific ScheduledActivityInstance.
+    
+    Addresses feedback: "You created repetition rules, but didn't bind them to
+    scheduled instances" - this is the highest ROI fix for realism.
+    
+    Attributes:
+        id: Unique identifier
+        instance_id: Reference to ScheduledActivityInstance.id
+        activity_id: Reference to the activity
+        repetition_id: Which repetition rule applies
+        time_anchor_id: Which time anchor this instance uses
+        start_offset: ISO 8601 offset from anchor to start
+        end_offset: ISO 8601 offset from anchor to end
+        expected_count: Expected number of occurrences in this binding
+        collection_boundary: For 24h collections, defines the boundary type
+    """
+    id: str
+    instance_id: str
+    activity_id: Optional[str] = None
+    activity_name: Optional[str] = None
+    repetition_id: Optional[str] = None
+    time_anchor_id: Optional[str] = None
+    start_offset: Optional[str] = None  # ISO 8601 duration
+    end_offset: Optional[str] = None    # ISO 8601 duration
+    expected_count: Optional[int] = None
+    collection_boundary: Optional[str] = None  # "morning-to-morning", "midnight-to-midnight"
+    encounter_id: Optional[str] = None
+    source_text: Optional[str] = None
+    
+    def to_dict(self) -> Dict[str, Any]:
+        result = {
+            "id": self.id,
+            "instanceId": self.instance_id,
+        }
+        if self.activity_id:
+            result["activityId"] = self.activity_id
+        if self.activity_name:
+            result["activityName"] = self.activity_name
+        if self.repetition_id:
+            result["repetitionId"] = self.repetition_id
+        if self.time_anchor_id:
+            result["timeAnchorId"] = self.time_anchor_id
+        if self.start_offset:
+            result["startOffset"] = self.start_offset
+        if self.end_offset:
+            result["endOffset"] = self.end_offset
+        if self.expected_count is not None:
+            result["expectedCount"] = self.expected_count
+        if self.collection_boundary:
+            result["collectionBoundary"] = self.collection_boundary
+        if self.encounter_id:
+            result["encounterId"] = self.encounter_id
+        if self.source_text:
+            result["sourceText"] = self.source_text
+        return result
+
+
 @dataclass
 class ActivityBinding:
     """
@@ -971,6 +1114,10 @@ class ExecutionModelData:
     activity_bindings: List[ActivityBinding] = field(default_factory=list)
     # FIX 3: Analysis windows for endpoint derivation
     analysis_windows: List[AnalysisWindow] = field(default_factory=list)
+    # FIX A: Operationalized titration schedules
+    titration_schedules: List['DoseTitrationSchedule'] = field(default_factory=list)
+    # FIX B: Instance bindings (repetition → ScheduledActivityInstance)
+    instance_bindings: List['InstanceBinding'] = field(default_factory=list)
     
     def to_dict(self) -> Dict[str, Any]:
         result = {
@@ -1004,6 +1151,12 @@ class ExecutionModelData:
         # FIX 3: Analysis windows
         if self.analysis_windows:
             result["analysisWindows"] = [w.to_dict() for w in self.analysis_windows]
+        # FIX A: Titration schedules
+        if self.titration_schedules:
+            result["titrationSchedules"] = [t.to_dict() for t in self.titration_schedules]
+        # FIX B: Instance bindings
+        if self.instance_bindings:
+            result["instanceBindings"] = [i.to_dict() for i in self.instance_bindings]
         return result
     
     def to_extension(self) -> Dict[str, Any]:
@@ -1050,6 +1203,9 @@ class ExecutionModelData:
             # Fix 2, 3: Activity bindings and analysis windows
             activity_bindings=self.activity_bindings + other.activity_bindings,
             analysis_windows=self.analysis_windows + other.analysis_windows,
+            # Fix A, B: Titration schedules and instance bindings
+            titration_schedules=self.titration_schedules + other.titration_schedules,
+            instance_bindings=self.instance_bindings + other.instance_bindings,
         )
 
 
