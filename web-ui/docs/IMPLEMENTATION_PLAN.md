@@ -174,6 +174,14 @@ components/
 - [x] Provenance coloring
 - [x] Overlay draft/publish workflow
 - [x] Timing nodes with anchors
-- [ ] Protocol expansion data
-- [ ] Validation results
-- [ ] Quality metrics
+- [x] Protocol expansion data (Phase 1)
+- [x] Quality metrics (Phase 2)
+- [x] Document structure view (Phase 3)
+
+## Commits
+
+1. `7c3b14f` - Web UI improvements (Next.js 15+, AG Grid, Timeline)
+2. `84fd72e` - Phase 1: Protocol Expansion Data Tabs
+3. `91d4c6b` - Phase 2: Quality Metrics Dashboard
+4. `1256e9f` - Fix missing Badge and Progress UI components
+5. `0512ff5` - Phase 3: Intermediate Data Views
