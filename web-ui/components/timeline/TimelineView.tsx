@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useCallback, useRef } from 'react';
-import { TimelineCanvas } from './TimelineCanvas';
+import { TimelineCanvas, TimelineCanvasHandle } from './TimelineCanvas';
 import { TimelineToolbar, TimelineLegend } from './TimelineToolbar';
 import { toGraphModel } from '@/lib/adapters/toGraphModel';
 import { useProtocolStore, selectStudyDesign } from '@/stores/protocolStore';
@@ -15,7 +15,7 @@ interface TimelineViewProps {
 export function TimelineView({ onNodeSelect }: TimelineViewProps) {
   const studyDesign = useProtocolStore(selectStudyDesign);
   const overlayPayload = useOverlayStore(selectDraftPayload);
-  const canvasRef = useRef<any>(null);
+  const canvasRef = useRef<TimelineCanvasHandle>(null);
 
   // Build graph model from USDM + overlay
   const graphModel = useMemo(() => {
@@ -28,26 +28,26 @@ export function TimelineView({ onNodeSelect }: TimelineViewProps) {
     edgeCount: graphModel.edges.length,
   }), [graphModel]);
 
-  // Zoom handlers (would need cy ref exposed from TimelineCanvas)
+  // Zoom handlers - call methods on canvas ref
   const handleZoomIn = useCallback(() => {
-    // TODO: Implement zoom via cy ref
+    canvasRef.current?.zoomIn();
   }, []);
 
   const handleZoomOut = useCallback(() => {
-    // TODO: Implement zoom via cy ref
+    canvasRef.current?.zoomOut();
   }, []);
 
   const handleFit = useCallback(() => {
-    // TODO: Implement fit via cy ref
+    canvasRef.current?.fit();
   }, []);
 
   const handleResetLayout = useCallback(() => {
-    // Reset is handled by overlay store
+    // Reset is handled by overlay store, then fit
+    canvasRef.current?.fit();
   }, []);
 
   const handleExportPNG = useCallback(() => {
-    // TODO: Implement PNG export via cy ref
-    console.log('Export PNG not yet implemented');
+    canvasRef.current?.exportPNG();
   }, []);
 
   if (!studyDesign) {
@@ -78,6 +78,7 @@ export function TimelineView({ onNodeSelect }: TimelineViewProps) {
         <CardContent className="p-0">
           <div className="h-[600px]">
             <TimelineCanvas
+              ref={canvasRef}
               graphModel={graphModel}
               onNodeSelect={onNodeSelect}
             />

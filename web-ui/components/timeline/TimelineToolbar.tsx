@@ -146,17 +146,18 @@ export function TimelineToolbar({
 
 // Node type legend
 export function TimelineLegend({ className }: { className?: string }) {
-  const items = [
+  const nodeItems = [
     { color: 'bg-blue-100 border-blue-500', label: 'Epoch' },
     { color: 'bg-white border-gray-700', label: 'Encounter', shape: 'rounded-full' },
     { color: 'bg-white border-green-500', label: 'Activity' },
-    { color: 'bg-orange-50 border-orange-500 border-dashed', label: 'Condition' },
+    { color: 'bg-white border-[#003366] border-2', label: 'Timing', shape: 'rounded-full' },
+    { color: 'bg-white border-[#003366] border-3', label: 'Anchor (⚓)', shape: 'rounded-full' },
   ];
 
   return (
     <div className={cn('flex flex-wrap items-center gap-4 text-sm', className)}>
       <span className="font-medium text-muted-foreground">Node Types:</span>
-      {items.map((item) => (
+      {nodeItems.map((item) => (
         <div key={item.label} className="flex items-center gap-1.5">
           <div 
             className={cn(

@@ -12,10 +12,10 @@ function getOverlayPath(protocolId: string, type: 'draft' | 'published'): string
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const protocolId = params.id;
+    const { id: protocolId } = await params;
     const overlayPath = getOverlayPath(protocolId, 'draft');
     
     try {
@@ -37,10 +37,10 @@ export async function GET(
 
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const protocolId = params.id;
+    const { id: protocolId } = await params;
     const body = await request.json();
     
     // Validate overlay schema

@@ -22,6 +22,7 @@ export interface USDMStudyDesign {
   encounters?: USDMEncounter[];
   epochs?: USDMEpoch[];
   scheduleTimelines?: USDMScheduleTimeline[];
+  timings?: USDMTiming[];  // Timings at studyDesign level
   arms?: USDMArm[];
   [key: string]: unknown;
 }
@@ -57,18 +58,58 @@ export interface USDMEpoch {
 export interface USDMScheduleTimeline {
   id: string;
   name?: string;
+  label?: string;
   instanceType: string;
+  mainTimeline?: boolean;
+  entryCondition?: string;
+  entryId?: string;
   instances?: USDMScheduledInstance[];
+  timings?: USDMTiming[];
+  exits?: { id: string; instanceType: string }[];
+  [key: string]: unknown;
+}
+
+export interface USDMTiming {
+  id: string;
+  name?: string;
+  label?: string;
+  description?: string;
+  instanceType: string;
+  // CDISC format (from manual)
+  type?: string | {
+    code: string;
+    decode: string;
+    [key: string]: unknown;
+  };
+  value?: string | number;  // ISO 8601 duration or numeric
+  valueLabel?: string;  // Human readable e.g. "7 days"
+  unit?: string;  // e.g. "days", "weeks"
+  windowLower?: string | number;  // ISO 8601 duration or numeric
+  windowUpper?: string | number;  // ISO 8601 duration or numeric
+  windowLabel?: string;  // Human readable e.g. "-2..2 days"
+  relativeTo?: string;  // Simple format: "First Dose", "Previous Visit"
+  relativeFromScheduledInstanceId?: string;  // CDISC format
+  relativeToScheduledInstanceId?: string;  // CDISC format
+  relativeToFrom?: {
+    code: string;
+    decode: string;
+    [key: string]: unknown;
+  };
   [key: string]: unknown;
 }
 
 export interface USDMScheduledInstance {
   id: string;
+  name?: string;
+  label?: string;
+  description?: string;
   instanceType: string;
   activityId?: string;
   activityIds?: string[];
   encounterId?: string;
   epochId?: string;
+  defaultConditionId?: string;  // Next instance in sequence
+  timelineExitId?: string;  // Links to exit
   [key: string]: unknown;
 }
 

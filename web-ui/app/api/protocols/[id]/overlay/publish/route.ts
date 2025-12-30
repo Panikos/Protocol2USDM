@@ -11,10 +11,10 @@ function getOverlayPath(protocolId: string, type: 'draft' | 'published'): string
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const protocolId = params.id;
+    const { id: protocolId } = await params;
     const draftPath = getOverlayPath(protocolId, 'draft');
     const publishedPath = getOverlayPath(protocolId, 'published');
     

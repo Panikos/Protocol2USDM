@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useCallback, useState } from 'react';
+import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import cytoscape, { Core, NodeSingular } from 'cytoscape';
 import { cytoscapeStyles } from '@/styles/cytoscape-theme';
 import { useOverlayStore, selectSnapGrid } from '@/stores/overlayStore';
@@ -15,11 +15,15 @@ interface TimelineCanvasProps {
   className?: string;
 }
 
-export function TimelineCanvas({
-  graphModel,
-  onNodeSelect,
-  className,
-}: TimelineCanvasProps) {
+export interface TimelineCanvasHandle {
+  zoomIn: () => void;
+  zoomOut: () => void;
+  fit: () => void;
+  exportPNG: () => void;
+}
+
+export const TimelineCanvas = forwardRef<TimelineCanvasHandle, TimelineCanvasProps>(
+  function TimelineCanvas({ graphModel, onNodeSelect, className }, ref) {
   const containerRef = useRef<HTMLDivElement>(null);
   const cyRef = useRef<Core | null>(null);
   
@@ -149,6 +153,36 @@ export function TimelineCanvas({
     );
   }
 
+  // Expose methods to parent via ref
+  useImperativeHandle(ref, () => ({
+    zoomIn: () => {
+      if (cyRef.current) {
+        cyRef.current.zoom(cyRef.current.zoom() * 1.2);
+      }
+    },
+    zoomOut: () => {
+      if (cyRef.current) {
+        cyRef.current.zoom(cyRef.current.zoom() / 1.2);
+      }
+    },
+    fit: () => {
+      if (cyRef.current) {
+        cyRef.current.fit(undefined, 50);
+      }
+    },
+    exportPNG: () => {
+      if (cyRef.current) {
+        const png = cyRef.current.png({ output: 'blob', bg: 'white', full: true });
+        const url = URL.createObjectURL(png as Blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'timeline.png';
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    },
+  }), []);
+
   return (
     <div className={cn('relative w-full h-full', className)}>
       <div 
@@ -172,7 +206,7 @@ export function TimelineCanvas({
       </div>
     </div>
   );
-}
+});
 
 function ValidationErrorList({ errors }: { errors: ValidationError[] }) {
   return (

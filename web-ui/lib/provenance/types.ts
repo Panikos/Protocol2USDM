@@ -26,23 +26,38 @@ export type EntityProvenance = z.infer<typeof EntityProvenanceSchema>;
 
 // Full provenance data structure
 export const ProvenanceDataSchema = z.object({
-  // Entity-level provenance
+  // New format: entities object with activity/encounter sources
+  entities: z.object({
+    activities: z.record(z.string(), z.enum(['text', 'vision', 'both'])).optional(),
+    plannedTimepoints: z.record(z.string(), z.enum(['text', 'vision', 'both'])).optional(),
+    encounters: z.record(z.string(), z.enum(['text', 'vision', 'both'])).optional(),
+    epochs: z.record(z.string(), z.enum(['text', 'vision', 'both'])).optional(),
+    activityGroups: z.record(z.string(), z.enum(['text', 'vision', 'both'])).optional(),
+  }).optional(),
+  
+  // New format: cells as flat map "activityId|encounterId" -> source
+  cells: z.record(
+    z.string(), // "activityId|encounterId"
+    z.enum(['text', 'vision', 'both', 'needs_review'])
+  ).optional(),
+  
+  // Legacy format: Entity-level provenance
   activities: z.record(z.string(), EntityProvenanceSchema).optional(),
   plannedTimepoints: z.record(z.string(), EntityProvenanceSchema).optional(),
   encounters: z.record(z.string(), EntityProvenanceSchema).optional(),
   epochs: z.record(z.string(), EntityProvenanceSchema).optional(),
   
-  // Cell-level provenance (activity × timepoint)
+  // Legacy format: Cell-level provenance (activity × timepoint)
   activityTimepoints: z.record(
     z.string(), // activityId
     z.record(z.string(), z.enum(['text', 'vision', 'both', 'needs_review'])) // timepointId → source
   ).optional(),
   
-  // Footnote references per cell
-  cellFootnotes: z.record(
-    z.string(), // activityId
-    z.record(z.string(), z.array(z.string())) // timepointId → footnote refs
-  ).optional(),
+  // Footnote references per cell (supports both formats)
+  cellFootnotes: z.union([
+    z.record(z.string(), z.array(z.string())), // New: "activityId|encounterId" -> refs
+    z.record(z.string(), z.record(z.string(), z.array(z.string()))) // Legacy: nested
+  ]).optional(),
   
   // SoA footnotes
   footnotes: z.array(z.string()).optional(),
@@ -71,10 +86,11 @@ export function calculateProvenanceStats(provenance: ProvenanceData | null): Pro
     total: 0,
   };
 
-  if (!provenance?.activityTimepoints) return stats;
+  if (!provenance) return stats;
 
-  for (const activityCells of Object.values(provenance.activityTimepoints)) {
-    for (const source of Object.values(activityCells)) {
+  // New format: provenance.cells
+  if (provenance.cells) {
+    for (const source of Object.values(provenance.cells)) {
       stats.total++;
       switch (source) {
         case 'both':
@@ -84,9 +100,33 @@ export function calculateProvenanceStats(provenance: ProvenanceData | null): Pro
           stats.textOnly++;
           break;
         case 'vision':
+          stats.visionOnly++;
+          break;
         case 'needs_review':
           stats.needsReview++;
           break;
+      }
+    }
+    return stats;
+  }
+
+  // Legacy format: provenance.activityTimepoints
+  if (provenance.activityTimepoints) {
+    for (const activityCells of Object.values(provenance.activityTimepoints)) {
+      for (const source of Object.values(activityCells)) {
+        stats.total++;
+        switch (source) {
+          case 'both':
+            stats.confirmed++;
+            break;
+          case 'text':
+            stats.textOnly++;
+            break;
+          case 'vision':
+          case 'needs_review':
+            stats.needsReview++;
+            break;
+        }
       }
     }
   }

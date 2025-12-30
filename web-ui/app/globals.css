@@ -65,6 +65,51 @@
   --ag-row-hover-color: hsl(var(--accent));
 }
 
+/* AG Grid header text wrapping - column headers */
+.ag-theme-alpine .ag-header-cell-wrap .ag-header-cell-label {
+  white-space: normal !important;
+  text-overflow: clip !important;
+  overflow: visible !important;
+  line-height: 1.3;
+}
+
+.ag-theme-alpine .ag-header-cell-wrap .ag-header-cell-text {
+  white-space: normal !important;
+  text-overflow: clip !important;
+  overflow: visible !important;
+}
+
+/* AG Grid header text wrapping - group header rows (epochs) */
+.ag-theme-alpine .ag-header-group-cell {
+  white-space: normal !important;
+  overflow: visible !important;
+}
+
+.ag-theme-alpine .ag-header-group-cell-label {
+  white-space: normal !important;
+  text-align: center;
+  line-height: 1.3;
+  overflow: visible !important;
+  text-overflow: clip !important;
+}
+
+.ag-theme-alpine .ag-header-group-text {
+  white-space: normal !important;
+  text-overflow: clip !important;
+  overflow: visible !important;
+  display: block;
+  word-wrap: break-word;
+}
+
+/* Ensure header rows have adequate height */
+.ag-theme-alpine .ag-header-row {
+  min-height: auto !important;
+}
+
+.ag-theme-alpine .ag-header-row-column-group {
+  min-height: 40px !important;
+}
+
 /* Cytoscape container */
 .cytoscape-container {
   width: 100%;

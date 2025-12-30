@@ -178,15 +178,25 @@ export function toSoATableModel(
       const key = cellKey(row.id, col.id);
       const hasLink = activityEncounterLinks.has(key);
       
-      // Get provenance for this cell
-      const cellProv = provenance?.activityTimepoints?.[row.id]?.[col.id];
-      const footnoteRefs = provenance?.cellFootnotes?.[row.id]?.[col.id] ?? [];
+      // Get provenance for this cell - check both formats
+      // New format: provenance.cells["activityId|encounterId"]
+      // Old format: provenance.activityTimepoints[activityId][encounterId]
+      let cellProv: CellSource | undefined;
+      if (provenance?.cells?.[key]) {
+        cellProv = provenance.cells[key] as CellSource;
+      } else if (provenance?.activityTimepoints?.[row.id]?.[col.id]) {
+        cellProv = provenance.activityTimepoints[row.id][col.id] as CellSource;
+      }
+      
+      // Get footnotes - check both formats
+      const footnoteRefs = provenance?.cellFootnotes?.[key] ?? 
+                          provenance?.cellFootnotes?.[row.id]?.[col.id] ?? [];
       
       model.cells.set(key, {
         activityId: row.id,
         visitId: col.id,
         mark: hasLink ? 'X' : null,
-        footnoteRefs,
+        footnoteRefs: Array.isArray(footnoteRefs) ? footnoteRefs : [],
         provenance: {
           source: cellProv ?? (hasLink ? 'none' : 'none'),
           needsReview: cellProv === 'needs_review' || cellProv === 'vision' || 

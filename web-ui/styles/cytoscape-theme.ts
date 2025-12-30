@@ -112,6 +112,45 @@ export const cytoscapeStyles: Stylesheet[] = [
     },
   },
   
+  // Anchor nodes (Fixed Reference - with anchor icon styling)
+  {
+    selector: 'node[type="anchor"]',
+    style: {
+      'background-color': '#ffffff',
+      'border-width': 3,
+      'border-color': '#003366',
+      'shape': 'ellipse',
+      'width': 80,
+      'height': 80,
+      'text-valign': 'center',
+      'text-halign': 'center',
+      'text-wrap': 'wrap',
+      'text-max-width': '70px',
+      'font-size': '12px',
+      'font-weight': 'bold',
+      'color': '#003366',
+    },
+  },
+  
+  // Timing detail nodes (non-anchor timing relationships)
+  {
+    selector: 'node.timing-detail-node',
+    style: {
+      'background-color': '#ffffff',
+      'border-width': 2,
+      'border-color': '#003366',
+      'shape': 'ellipse',
+      'width': 65,
+      'height': 65,
+      'text-valign': 'center',
+      'text-halign': 'center',
+      'text-wrap': 'wrap',
+      'text-max-width': '55px',
+      'font-size': '9px',
+      'color': '#003366',
+    },
+  },
+  
   // Locked nodes indicator
   {
     selector: 'node.locked',
@@ -167,8 +206,25 @@ export const cytoscapeStyles: Stylesheet[] = [
   {
     selector: 'edge[type="timing"]',
     style: {
-      'line-color': '#3b82f6',
-      'target-arrow-color': '#3b82f6',
+      'line-color': '#003366',
+      'target-arrow-color': '#003366',
+      'curve-style': 'bezier',
+      'width': 2,
+    },
+  },
+  
+  // Timing edges with labels
+  {
+    selector: 'edge.timing-edge',
+    style: {
+      'line-color': '#003366',
+      'target-arrow-color': '#003366',
+      'label': 'data(label)',
+      'font-size': '9px',
+      'color': '#003366',
+      'font-weight': 'bold',
+      'text-rotation': 'autorotate',
+      'text-margin-y': -8,
     },
   },
   

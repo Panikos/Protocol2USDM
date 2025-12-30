@@ -12,6 +12,7 @@ import {
 } from 'ag-grid-community';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
+// Note: ag-grid-enterprise removed - requires license key
 
 import { ProvenanceCellRenderer } from './ProvenanceCellRenderer';
 import type { SoATableModel, SoACell } from '@/lib/adapters/toSoATableModel';
@@ -52,16 +53,18 @@ export function SoAGrid({ model, onCellClick }: SoAGridProps) {
   const columnDefs = useMemo((): (ColDef | ColGroupDef)[] => {
     const defs: (ColDef | ColGroupDef)[] = [];
 
-    // Row group column (for hierarchical display)
+    // Category column (shown as regular column without enterprise license)
     if (model.rowGroups.length > 0) {
       defs.push({
         headerName: 'Category',
         field: 'groupName',
         pinned: 'left',
         width: 160,
-        rowGroup: true,
-        hide: true,
         suppressMovable: true,
+        cellStyle: {
+          fontWeight: '600',
+          backgroundColor: '#f3f4f6',
+        },
       });
     }
 
@@ -86,24 +89,27 @@ export function SoAGrid({ model, onCellClick }: SoAGridProps) {
         .map((col) => ({
           headerName: col.timing || col.name,
           field: `col_${col.id}`,
-          width: 70,
-          minWidth: 50,
-          maxWidth: 100,
+          minWidth: 80,
+          flex: 1,
           cellRenderer: ProvenanceCellRenderer,
           cellRendererParams: {
             columnId: col.id,
             cellMap: model.cells,
           },
-          headerClass: 'text-center',
+          headerClass: 'text-center ag-header-cell-wrap',
           cellClass: 'text-center p-0',
           suppressMenu: true,
+          wrapHeaderText: true,
+          autoHeaderHeight: true,
         }));
 
       defs.push({
         headerName: group.name,
-        headerClass: 'bg-blue-50 font-semibold',
+        headerClass: 'bg-blue-50 font-semibold ag-header-cell-wrap',
         children,
-      });
+        wrapHeaderText: true,
+        autoHeaderHeight: true,
+      } as ColGroupDef);
     }
 
     // If no groups, add columns directly
@@ -112,14 +118,17 @@ export function SoAGrid({ model, onCellClick }: SoAGridProps) {
         defs.push({
           headerName: col.timing || col.name,
           field: `col_${col.id}`,
-          width: 80,
+          minWidth: 80,
+          flex: 1,
           cellRenderer: ProvenanceCellRenderer,
           cellRendererParams: {
             columnId: col.id,
             cellMap: model.cells,
           },
-          headerClass: 'text-center',
+          headerClass: 'text-center ag-header-cell-wrap',
           cellClass: 'text-center p-0',
+          wrapHeaderText: true,
+          autoHeaderHeight: true,
         });
       }
     }
@@ -135,20 +144,7 @@ export function SoAGrid({ model, onCellClick }: SoAGridProps) {
     suppressMovable: false,
   }), []);
 
-  // Auto-group column settings
-  const autoGroupColumnDef = useMemo<ColDef>(() => ({
-    headerName: 'Category',
-    minWidth: 180,
-    pinned: 'left',
-    cellRendererParams: {
-      suppressCount: true,
-    },
-    cellStyle: {
-      fontWeight: '600',
-      backgroundColor: '#f3f4f6',
-    },
-  }), []);
-
+  
   // Grid ready handler
   const onGridReady = useCallback((params: GridReadyEvent) => {
     gridApiRef.current = params.api;
@@ -206,12 +202,10 @@ export function SoAGrid({ model, onCellClick }: SoAGridProps) {
         rowData={rowData}
         columnDefs={columnDefs}
         defaultColDef={defaultColDef}
-        autoGroupColumnDef={autoGroupColumnDef}
         getRowId={(params) => params.data.id}
         animateRows={true}
         rowDragManaged={true}
         suppressMoveWhenRowDragging={true}
-        groupDisplayType="groupRows"
         onGridReady={onGridReady}
         onRowDragEnd={onRowDragEnd}
         onColumnMoved={onColumnMoved}

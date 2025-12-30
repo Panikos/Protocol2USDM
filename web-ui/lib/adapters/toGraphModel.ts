@@ -5,11 +5,19 @@ import type {
   USDMEpoch,
   USDMScheduleTimeline,
   USDMScheduledInstance,
+  USDMTiming,
 } from '@/stores/protocolStore';
 import type { OverlayPayload, NodePosition } from '@/lib/overlay/schema';
 
 // Cytoscape node types
-export type NodeType = 'instance' | 'timing' | 'activity' | 'condition' | 'halo' | 'epoch';
+export type NodeType = 'instance' | 'timing' | 'activity' | 'condition' | 'halo' | 'epoch' | 'anchor';
+
+// Timing type codes from CDISC
+const TIMING_TYPE = {
+  BEFORE: 'C201357',
+  AFTER: 'C201356',
+  FIXED_REFERENCE: 'C201358',  // This is an anchor
+};
 
 export interface CytoscapeNode {
   data: {
@@ -20,6 +28,13 @@ export interface CytoscapeNode {
     epochId?: string;
     encounterId?: string;
     activityId?: string;
+    // Timing-specific data
+    timingType?: string;  // Before, After, Fixed Reference
+    timingValue?: string;  // e.g., "7 days"
+    windowLabel?: string;  // e.g., "-2..2 days"
+    isAnchor?: boolean;
+    fromInstanceId?: string;
+    toInstanceId?: string;
   };
   position: { x: number; y: number };
   locked?: boolean;
@@ -237,6 +252,81 @@ export function toGraphModel(
         actY += DEFAULT_SPACING.activitySpacing;
       }
     }
+  }
+
+  // Generate timing nodes from studyDesign.timings (root level)
+  const timings = studyDesign.timings ?? [];
+  const TIMING_Y_OFFSET = 200;  // Position below encounters
+  
+  for (let i = 0; i < timings.length; i++) {
+    const timing = timings[i];
+    
+    // Position timings in a row below the timeline
+    const timingX = DEFAULT_SPACING.startX + i * 140;
+    const timingY = DEFAULT_SPACING.startY + TIMING_Y_OFFSET;
+    
+    // Determine timing type - handle both simple string and CDISC object format
+    const timingTypeRaw = timing.type;
+    let timingTypeStr = 'Timing';
+    let isAnchor = false;
+    
+    if (typeof timingTypeRaw === 'string') {
+      timingTypeStr = timingTypeRaw;
+      // Check if this is an anchor-type timing
+      isAnchor = timingTypeRaw === 'Fixed Reference' || timingTypeRaw === 'Anchor';
+    } else if (timingTypeRaw && typeof timingTypeRaw === 'object') {
+      timingTypeStr = timingTypeRaw.decode ?? 'Timing';
+      isAnchor = timingTypeRaw.code === TIMING_TYPE.FIXED_REFERENCE;
+    }
+    
+    const nodeId = `timing_${timing.id}`;
+    const defaultPos = { x: timingX, y: timingY };
+    const position = getNodePosition(nodeId, overlay, defaultPos);
+    
+    // Build value label
+    let valueLabel = timing.valueLabel;
+    if (!valueLabel && timing.value !== undefined) {
+      const unit = timing.unit ?? '';
+      valueLabel = `${timing.value} ${unit}`.trim();
+    }
+    
+    // Build window label
+    let windowLabel = timing.windowLabel;
+    if (!windowLabel && (timing.windowLower !== undefined || timing.windowUpper !== undefined)) {
+      const lower = timing.windowLower ?? 0;
+      const upper = timing.windowUpper ?? 0;
+      const unit = timing.unit ?? 'days';
+      windowLabel = `${lower}..${upper} ${unit}`;
+    }
+    
+    // Build label with timing info
+    const labelParts: string[] = [];
+    if (isAnchor) {
+      labelParts.push('⚓');  // Anchor icon
+    }
+    if (timing.name) labelParts.push(timing.name);
+    if (valueLabel) labelParts.push(valueLabel);
+    if (windowLabel) labelParts.push(`(${windowLabel})`);
+    if (timing.relativeTo) labelParts.push(`→ ${timing.relativeTo}`);
+    const label = labelParts.join('\n') || 'Timing';
+    
+    model.nodes.push({
+      data: {
+        id: nodeId,
+        label,
+        type: isAnchor ? 'anchor' : 'timing',
+        usdmRef: timing.id,
+        timingType: timingTypeStr,
+        timingValue: valueLabel,
+        windowLabel,
+        isAnchor,
+      },
+      position,
+      locked: overlay?.diagram.nodes[nodeId]?.locked,
+      classes: isAnchor ? 'anchor-node' : 'timing-detail-node',
+    });
+    
+    nodeIds.add(nodeId);
   }
 
   // Validate the graph

@@ -8,10 +8,10 @@ const OUTPUT_DIR = process.env.PROTOCOL_OUTPUT_DIR ||
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const protocolId = params.id;
+    const { id: protocolId } = await params;
     const usdmPath = path.join(OUTPUT_DIR, protocolId, 'protocol_usdm.json');
     
     // Read USDM file
