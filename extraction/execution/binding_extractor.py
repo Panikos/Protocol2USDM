@@ -308,6 +308,59 @@ def deduplicate_epochs(epochs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return deduped
 
 
+def deduplicate_visit_windows(visit_windows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    FIX 5: Collapse duplicate visit windows (e.g., multiple EOS definitions).
+    
+    Keeps the window with the most specific/reasonable targetDay.
+    """
+    # Group by normalized name
+    name_groups: Dict[str, List[Dict[str, Any]]] = {}
+    
+    for vw in visit_windows:
+        vw_name = vw.get('visitName', vw.get('name', '')).lower()
+        # Normalize common variations
+        normalized = vw_name
+        for pattern, canonical in [
+            (r'end\s*of\s*study', 'eos'),
+            (r'e\.?o\.?s\.?', 'eos'),
+            (r'early\s*termination', 'et'),
+            (r'e\.?t\.?', 'et'),
+            (r'screen(?:ing)?', 'screening'),
+            (r'base\s*line', 'baseline'),
+        ]:
+            if re.search(pattern, normalized):
+                normalized = canonical
+                break
+        
+        if normalized not in name_groups:
+            name_groups[normalized] = []
+        name_groups[normalized].append(vw)
+    
+    # Collapse duplicates - keep the one with most reasonable targetDay
+    deduped = []
+    for name, windows in name_groups.items():
+        if len(windows) == 1:
+            deduped.append(windows[0])
+        else:
+            # Multiple definitions - pick the best one
+            # Prefer: highest targetDay for EOS, lowest for screening
+            if name in ('eos', 'et'):
+                # For EOS, higher day is more likely correct
+                best = max(windows, key=lambda w: w.get('targetDay', 0) or 0)
+            elif name in ('screening', 'baseline'):
+                # For screening/baseline, lower (or negative) day is more likely
+                best = min(windows, key=lambda w: w.get('targetDay', 999) or 999)
+            else:
+                # Default: keep first
+                best = windows[0]
+            
+            logger.info(f"Collapsed {len(windows)} duplicate '{name}' visit windows -> targetDay={best.get('targetDay')}")
+            deduped.append(best)
+    
+    return deduped
+
+
 def fix_visit_window_targets(
     visit_windows: List[Dict[str, Any]], 
     encounters: List[Dict[str, Any]]

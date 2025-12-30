@@ -121,8 +121,57 @@ def find_crossover_pages(
     return pages
 
 
+def _is_titration_study(text: str) -> bool:
+    """
+    Detect if this is a within-subject titration study.
+    
+    Titration studies have dose escalation within the SAME subject, not
+    different treatments in different periods. They should NOT be classified
+    as crossover even if they mention "periods" or "phases".
+    """
+    text_lower = text.lower()
+    
+    # Strong titration indicators
+    titration_patterns = [
+        r'dose\s+titration',
+        r'titrat(?:e|ion|ed)\s+(?:to|from)',
+        r'dose\s+escalation',
+        r'escalat(?:e|ion|ed)\s+(?:to|from)',
+        r'(\d+)\s*mg.*?(?:for|during).*?(\d+)\s*days?.*?(?:then|followed\s+by).*?(\d+)\s*mg',
+        r'starting\s+dose.*?(?:increase|titrate|escalate)',
+        r'initial\s+dose.*?(?:increase|titrate|escalate)',
+        r'dose\s+adjustment',
+        r'within[\-\s]?subject\s+(?:dose|titration)',
+    ]
+    
+    titration_score = 0
+    for pattern in titration_patterns:
+        if re.search(pattern, text_lower):
+            titration_score += 1
+    
+    # Single-arm indicators (further evidence against crossover)
+    single_arm_patterns = [
+        r'single[\-\s]?arm',
+        r'open[\-\s]?label(?:\s+single)',
+        r'all\s+(?:subjects?|participants?)\s+(?:will\s+)?receive',
+        r'no\s+(?:control|placebo|comparator)\s+(?:arm|group)',
+    ]
+    
+    for pattern in single_arm_patterns:
+        if re.search(pattern, text_lower):
+            titration_score += 1
+    
+    # If strong titration evidence, this is NOT a crossover
+    return titration_score >= 2
+
+
 def _detect_crossover_heuristic(text: str) -> Optional[CrossoverDesign]:
     """Detect crossover design using regex patterns."""
+    
+    # EXCLUSION: Check for titration study first
+    if _is_titration_study(text):
+        logger.info("Detected titration study - excluding from crossover classification")
+        return None
     
     # Check if this is a crossover study
     is_crossover = False

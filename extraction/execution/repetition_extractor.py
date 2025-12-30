@@ -553,6 +553,35 @@ ANALYSIS_WINDOW_PATTERNS = [
 ]
 
 
+def _parse_day_with_sign(day_str: str) -> int:
+    """
+    Parse day string preserving negative sign.
+    
+    Handles formats like: "-4", "−4", "–4", "Day -4", "Day−4"
+    """
+    if not day_str:
+        return 0
+    
+    # Normalize various dash/minus characters to standard minus
+    normalized = day_str.replace('–', '-').replace('−', '-').replace('—', '-')
+    
+    # Remove any non-numeric characters except minus at start
+    cleaned = re.sub(r'[^\d\-]', '', normalized)
+    
+    # Handle cases where minus is separated: "- 4" -> "-4"
+    if cleaned.startswith('-'):
+        return int(cleaned)
+    
+    # Check if original had a negative indicator before digits
+    if re.search(r'[-–−—]\s*\d', day_str):
+        # Extract just the number and make it negative
+        num_match = re.search(r'(\d+)', day_str)
+        if num_match:
+            return -int(num_match.group(1))
+    
+    return int(cleaned) if cleaned else 0
+
+
 def _detect_analysis_windows(text: str) -> List[AnalysisWindow]:
     """
     FIX 3: Detect analysis windows (baseline, accumulation, steady-state).
@@ -563,16 +592,17 @@ def _detect_analysis_windows(text: str) -> List[AnalysisWindow]:
     windows = []
     
     # First, find explicit day ranges for baseline
+    # Pattern handles "Day -4 through Day -1", "Days -4 to -1", etc.
     baseline_pattern = re.compile(
         r'(?:baseline|pre[\-\s]?treatment)\s+(?:period|window|phase|days?)?\s*[:\-]?\s*'
-        r'(?:days?\s*)?([-–]?\d+)\s*(?:to|through|[-–])\s*(?:days?\s*)?([-–]?\d+)',
+        r'(?:days?\s*)?([-–−]?\s*\d+)\s*(?:to|through|[-–−])\s*(?:days?\s*)?([-–−]?\s*\d+)',
         re.IGNORECASE
     )
     
     for match in baseline_pattern.finditer(text):
         try:
-            start_day = int(match.group(1).replace('–', '-'))
-            end_day = int(match.group(2).replace('–', '-'))
+            start_day = _parse_day_with_sign(match.group(1))
+            end_day = _parse_day_with_sign(match.group(2))
             
             windows.append(AnalysisWindow(
                 id=f"window_baseline_{len(windows)+1}",

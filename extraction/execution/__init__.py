@@ -103,6 +103,7 @@ from .binding_extractor import (
     create_instance_bindings_from_usdm,
     extract_titration_from_arm,
     deduplicate_epochs,
+    deduplicate_visit_windows,
     fix_visit_window_targets,
 )
 

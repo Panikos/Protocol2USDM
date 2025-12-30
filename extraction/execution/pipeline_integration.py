@@ -10,6 +10,7 @@ output with execution semantics via extensionAttributes.
 
 import json
 import logging
+import re
 from pathlib import Path
 from typing import Dict, Any, Optional, List
 
@@ -388,6 +389,7 @@ def enrich_usdm_with_execution_model(
         create_instance_bindings_from_usdm,
         extract_titration_from_arm,
         deduplicate_epochs,
+        deduplicate_visit_windows,
         fix_visit_window_targets,
     )
     
@@ -412,12 +414,16 @@ def enrich_usdm_with_execution_model(
             if len(design['epochs']) < original_count:
                 logger.info(f"  Deduplicated epochs: {original_count} -> {len(design['epochs'])}")
         
-        # FIX C: Fix visit window targets to match encounters
-        if execution_data.visit_windows and design.get('encounters'):
+        # FIX C + FIX 5: Deduplicate and fix visit windows
+        if execution_data.visit_windows:
             vw_dicts = [vw.to_dict() for vw in execution_data.visit_windows]
-            fixed_vws = fix_visit_window_targets(vw_dicts, design['encounters'])
-            # Update execution_data with fixed windows (rebuild objects)
-            # For now, we'll apply fixes during extension output
+            # First deduplicate (collapse duplicate EOS, etc.)
+            vw_dicts = deduplicate_visit_windows(vw_dicts)
+            # Then fix targets against encounters
+            if design.get('encounters'):
+                vw_dicts = fix_visit_window_targets(vw_dicts, design['encounters'])
+            # Store fixed windows for later output
+            execution_data._fixed_visit_windows = vw_dicts
         
         # FIX A: Extract titration from arm descriptions
         for arm in design.get('arms', []):
@@ -655,11 +661,13 @@ def _add_execution_extensions(
             [dr.to_dict() for dr in execution_data.dosing_regimens]
         ))
     
-    # Phase 4: Add visit windows
+    # Phase 4: Add visit windows (use fixed/deduped if available)
     if execution_data.visit_windows:
+        vw_output = getattr(execution_data, '_fixed_visit_windows', None)
+        if vw_output is None:
+            vw_output = [vw.to_dict() for vw in execution_data.visit_windows]
         design['extensionAttributes'].append(_create_extension_attribute(
-            "x-executionModel-visitWindows",
-            [vw.to_dict() for vw in execution_data.visit_windows]
+            "x-executionModel-visitWindows", vw_output
         ))
     
     # Phase 4: Add randomization scheme
@@ -668,12 +676,45 @@ def _add_execution_extensions(
             "x-executionModel-randomizationScheme", execution_data.randomization_scheme.to_dict()
         ))
     
-    # FIX C: Add activity bindings for tight coupling
+    # FIX C: Add activity bindings for tight coupling (with ID resolution)
     if execution_data.activity_bindings:
-        design['extensionAttributes'].append(_create_extension_attribute(
-            "x-executionModel-activityBindings",
-            [ab.to_dict() for ab in execution_data.activity_bindings]
-        ))
+        # Build name->UUID mapping from actual USDM activities
+        activity_uuid_map = {}
+        for activity in design.get('activities', []):
+            act_id = activity.get('id', '')
+            act_name = activity.get('name', '').lower()
+            activity_uuid_map[act_name] = act_id
+            # Also map normalized versions
+            normalized = re.sub(r'[^a-z0-9]', '', act_name)
+            activity_uuid_map[normalized] = act_id
+        
+        # Build repetition ID set for validation
+        rep_id_set = {r.id for r in execution_data.repetitions}
+        
+        # Resolve binding IDs
+        resolved_bindings = []
+        for ab in execution_data.activity_bindings:
+            ab_dict = ab.to_dict()
+            
+            # Resolve activity ID to UUID
+            activity_key = ab.activity_name.lower() if ab.activity_name else ab.activity_id.lower()
+            normalized_key = re.sub(r'[^a-z0-9]', '', activity_key)
+            
+            resolved_uuid = activity_uuid_map.get(activity_key) or activity_uuid_map.get(normalized_key)
+            if resolved_uuid:
+                ab_dict['activityId'] = resolved_uuid
+            
+            # Validate repetition ID exists
+            if ab.repetition_id and ab.repetition_id not in rep_id_set:
+                logger.warning(f"Binding references non-existent repetition: {ab.repetition_id}")
+                continue  # Skip invalid bindings
+            
+            resolved_bindings.append(ab_dict)
+        
+        if resolved_bindings:
+            design['extensionAttributes'].append(_create_extension_attribute(
+                "x-executionModel-activityBindings", resolved_bindings
+            ))
     
     # FIX C: Also add bindings directly to activities for easy lookup
     if execution_data.activity_bindings:
