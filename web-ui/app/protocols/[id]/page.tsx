@@ -22,8 +22,14 @@ import {
   Microscope,
   Stethoscope,
   MapPin,
+  FolderOpen,
+  Database,
+  Activity,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { TabGroup, TabButton } from '@/components/ui/tab-group';
+import { ExportButton, ExportFormat } from '@/components/ui/export-button';
+import { exportToCSV, exportToJSON, exportToPDF, formatUSDMForExport } from '@/lib/export/exportUtils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DraftPublishControls } from '@/components/overlay/DraftPublishControls';
 import { SoAView } from '@/components/soa';
@@ -114,6 +120,65 @@ export default function ProtocolDetailPage() {
     useOverlayStore.getState().promoteDraftToPublished();
   };
 
+  const handleExport = (format: ExportFormat) => {
+    if (!usdm) return;
+    
+    const exportData = formatUSDMForExport(usdm as Record<string, unknown>);
+    const filename = `${protocolId}_${activeTab}`;
+    
+    switch (format) {
+      case 'csv':
+        // Export current tab data as CSV
+        let csvData: Record<string, unknown>[] = [];
+        if (activeTab === 'eligibility') csvData = exportData.eligibility;
+        else if (activeTab === 'objectives') csvData = exportData.objectives;
+        else if (activeTab === 'soa') csvData = exportData.activities;
+        else csvData = [exportData.metadata];
+        exportToCSV(csvData, { filename });
+        break;
+      case 'json':
+        exportToJSON(usdm, { filename: `${protocolId}_usdm` });
+        break;
+      case 'pdf':
+        exportToPDF('export-content', { 
+          filename, 
+          title: protocolId,
+          subtitle: `${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Export`
+        });
+        break;
+    }
+  };
+
+  // Tab group definitions
+  const protocolTabs = [
+    { id: 'overview', label: 'Overview', icon: <FileText className="h-4 w-4" /> },
+    { id: 'eligibility', label: 'Eligibility', icon: <ClipboardList className="h-4 w-4" /> },
+    { id: 'objectives', label: 'Objectives', icon: <Target className="h-4 w-4" /> },
+    { id: 'design', label: 'Design', icon: <Layers className="h-4 w-4" /> },
+    { id: 'interventions', label: 'Interventions', icon: <Pill className="h-4 w-4" /> },
+    { id: 'amendments', label: 'Amendments', icon: <FileEdit className="h-4 w-4" /> },
+  ];
+
+  const advancedTabs = [
+    { id: 'extensions', label: 'Extensions', icon: <Layers className="h-4 w-4" /> },
+    { id: 'entities', label: 'Entities', icon: <Microscope className="h-4 w-4" /> },
+    { id: 'procedures', label: 'Procedures', icon: <Stethoscope className="h-4 w-4" /> },
+    { id: 'sites', label: 'Sites', icon: <MapPin className="h-4 w-4" /> },
+  ];
+
+  const qualityTabs = [
+    { id: 'quality', label: 'Metrics', icon: <BarChart3 className="h-4 w-4" /> },
+    { id: 'validation', label: 'Validation', icon: <AlertCircle className="h-4 w-4" /> },
+  ];
+
+  const dataTabs = [
+    { id: 'document', label: 'Document', icon: <BookOpen className="h-4 w-4" /> },
+    { id: 'images', label: 'Images', icon: <Image className="h-4 w-4" /> },
+    { id: 'soa', label: 'SoA Table', icon: <Table className="h-4 w-4" /> },
+    { id: 'timeline', label: 'Timeline', icon: <GitBranch className="h-4 w-4" /> },
+    { id: 'provenance', label: 'Provenance', icon: <Eye className="h-4 w-4" /> },
+  ];
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -171,132 +236,46 @@ export default function ProtocolDetailPage() {
 
         {/* Tab navigation */}
         <div className="container mx-auto px-4 overflow-x-auto">
-          <nav className="flex gap-1 -mb-px min-w-max pb-2">
-            <TabButton 
-              active={activeTab === 'overview'} 
-              onClick={() => setActiveTab('overview')}
-              icon={<FileText className="h-4 w-4" />}
-            >
-              Overview
-            </TabButton>
-            <TabButton 
-              active={activeTab === 'eligibility'} 
-              onClick={() => setActiveTab('eligibility')}
-              icon={<ClipboardList className="h-4 w-4" />}
-            >
-              Eligibility
-            </TabButton>
-            <TabButton 
-              active={activeTab === 'objectives'} 
-              onClick={() => setActiveTab('objectives')}
-              icon={<Target className="h-4 w-4" />}
-            >
-              Objectives
-            </TabButton>
-            <TabButton 
-              active={activeTab === 'design'} 
-              onClick={() => setActiveTab('design')}
-              icon={<Layers className="h-4 w-4" />}
-            >
-              Design
-            </TabButton>
-            <TabButton 
-              active={activeTab === 'interventions'} 
-              onClick={() => setActiveTab('interventions')}
-              icon={<Pill className="h-4 w-4" />}
-            >
-              Interventions
-            </TabButton>
-            <TabButton 
-              active={activeTab === 'amendments'} 
-              onClick={() => setActiveTab('amendments')}
-              icon={<FileEdit className="h-4 w-4" />}
-            >
-              Amendments
-            </TabButton>
-            <TabButton 
-              active={activeTab === 'extensions'} 
-              onClick={() => setActiveTab('extensions')}
-              icon={<Layers className="h-4 w-4" />}
-            >
-              Extensions
-            </TabButton>
-            <TabButton 
-              active={activeTab === 'entities'} 
-              onClick={() => setActiveTab('entities')}
-              icon={<Microscope className="h-4 w-4" />}
-            >
-              Entities
-            </TabButton>
-            <TabButton 
-              active={activeTab === 'procedures'} 
-              onClick={() => setActiveTab('procedures')}
-              icon={<Stethoscope className="h-4 w-4" />}
-            >
-              Procedures
-            </TabButton>
-            <TabButton 
-              active={activeTab === 'sites'} 
-              onClick={() => setActiveTab('sites')}
-              icon={<MapPin className="h-4 w-4" />}
-            >
-              Sites
-            </TabButton>
-            <TabButton 
-              active={activeTab === 'quality'} 
-              onClick={() => setActiveTab('quality')}
-              icon={<BarChart3 className="h-4 w-4" />}
-            >
-              Quality
-            </TabButton>
-            <TabButton 
-              active={activeTab === 'validation'} 
-              onClick={() => setActiveTab('validation')}
-              icon={<AlertCircle className="h-4 w-4" />}
-            >
-              Validation
-            </TabButton>
-            <TabButton 
-              active={activeTab === 'document'} 
-              onClick={() => setActiveTab('document')}
-              icon={<BookOpen className="h-4 w-4" />}
-            >
-              Document
-            </TabButton>
-            <TabButton 
-              active={activeTab === 'images'} 
-              onClick={() => setActiveTab('images')}
-              icon={<Image className="h-4 w-4" />}
-            >
-              Images
-            </TabButton>
-            <TabButton 
-              active={activeTab === 'soa'} 
-              onClick={() => setActiveTab('soa')}
+          <nav className="flex items-center gap-1 -mb-px min-w-max pb-2">
+            <TabGroup
+              label="Protocol"
+              icon={<FolderOpen className="h-4 w-4" />}
+              tabs={protocolTabs}
+              activeTab={activeTab}
+              onTabChange={(id) => setActiveTab(id as TabId)}
+              defaultExpanded={false}
+            />
+            <TabGroup
+              label="Advanced"
+              icon={<Database className="h-4 w-4" />}
+              tabs={advancedTabs}
+              activeTab={activeTab}
+              onTabChange={(id) => setActiveTab(id as TabId)}
+            />
+            <TabGroup
+              label="Quality"
+              icon={<Activity className="h-4 w-4" />}
+              tabs={qualityTabs}
+              activeTab={activeTab}
+              onTabChange={(id) => setActiveTab(id as TabId)}
+            />
+            <TabGroup
+              label="Data"
               icon={<Table className="h-4 w-4" />}
-            >
-              SoA
-            </TabButton>
-            <TabButton 
-              active={activeTab === 'timeline'} 
-              onClick={() => setActiveTab('timeline')}
-              icon={<GitBranch className="h-4 w-4" />}
-            >
-              Timeline
-            </TabButton>
-            <TabButton 
-              active={activeTab === 'provenance'} 
-              onClick={() => setActiveTab('provenance')}
-              icon={<Eye className="h-4 w-4" />}
-            >
-              Provenance
-            </TabButton>
+              tabs={dataTabs}
+              activeTab={activeTab}
+              onTabChange={(id) => setActiveTab(id as TabId)}
+            />
+            
+            <div className="flex-1" />
+            
+            <ExportButton onExport={handleExport} />
           </nav>
         </div>
       </header>
 
       {/* Content */}
-      <main className="container mx-auto px-4 py-6">
+      <main id="export-content" className="container mx-auto px-4 py-6">
         {activeTab === 'overview' && (
           <StudyMetadataView usdm={usdm} />
         )}
