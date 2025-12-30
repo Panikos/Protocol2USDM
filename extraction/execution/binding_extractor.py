@@ -28,7 +28,9 @@ logger = logging.getLogger(__name__)
 # Patterns for detecting titration schedules
 TITRATION_PATTERNS = [
     # "15 mg/day for approximately 28 days then 30 mg/day"
-    (r'(\d+)\s*mg(?:/day)?\s+(?:for\s+)?(?:approximately\s+)?(\d+)\s*days?\s*(?:,?\s*then\s*)(\d+)\s*mg', 'escalation'),
+    (r'(\d+)\s*mg(?:/day)?\s+(?:for\s+)?(?:approximately\s+)?(\d+)\s*days?\s*(?:,?\s*(?:then|followed\s+by).*?)(\d+)\s*mg', 'escalation'),
+    # "15 mg/day ... followed by ... titration to 30 mg/day starting on Day 29"
+    (r'(\d+)\s*mg(?:/day)?.*?(?:approximately|about)?\s*(\d+)\s*days?.*?(?:titration|titrate|followed\s+by).*?(\d+)\s*mg', 'escalation'),
     # "starting dose of 15 mg, escalate to 30 mg on Day 29"
     (r'starting\s+dose\s+(?:of\s+)?(\d+)\s*mg.*?(?:escalate|increase)\s+to\s+(\d+)\s*mg\s+(?:on\s+)?day\s+(\d+)', 'escalation'),
     # "Day 1-28: 15 mg, Day 29+: 30 mg"
