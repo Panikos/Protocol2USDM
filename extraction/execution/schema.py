@@ -342,6 +342,7 @@ class ActivityBinding:
     sampling_constraint_id: Optional[str] = None
     nominal_timepoints: List[str] = field(default_factory=list)
     offset_from_anchor: Optional[str] = None
+    expected_occurrences: Optional[int] = None  # FIX 2: Expected daily counts
     source_text: Optional[str] = None
     
     def to_dict(self) -> Dict[str, Any]:
@@ -361,6 +362,8 @@ class ActivityBinding:
             result["nominalTimepoints"] = self.nominal_timepoints
         if self.offset_from_anchor:
             result["offsetFromAnchor"] = self.offset_from_anchor
+        if self.expected_occurrences is not None:
+            result["expectedOccurrences"] = self.expected_occurrences
         if self.source_text:
             result["sourceText"] = self.source_text
         return result
@@ -1044,6 +1047,9 @@ class ExecutionModelData:
             dosing_regimens=self.dosing_regimens + other.dosing_regimens,
             visit_windows=self.visit_windows + other.visit_windows,
             randomization_scheme=merged_randomization,
+            # Fix 2, 3: Activity bindings and analysis windows
+            activity_bindings=self.activity_bindings + other.activity_bindings,
+            analysis_windows=self.analysis_windows + other.analysis_windows,
         )
 
 
