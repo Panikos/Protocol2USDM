@@ -17,6 +17,7 @@ import {
   Pill,
   FileEdit,
   BarChart3,
+  BookOpen,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -33,12 +34,13 @@ import {
   AmendmentHistoryView,
 } from '@/components/protocol';
 import { QualityMetricsDashboard } from '@/components/quality';
+import { DocumentStructureView } from '@/components/intermediate';
 import { useProtocolStore } from '@/stores/protocolStore';
 import { useOverlayStore } from '@/stores/overlayStore';
 import { cn } from '@/lib/utils';
 import type { ProvenanceData } from '@/lib/provenance/types';
 
-type TabId = 'overview' | 'eligibility' | 'objectives' | 'design' | 'interventions' | 'amendments' | 'quality' | 'soa' | 'timeline' | 'provenance';
+type TabId = 'overview' | 'eligibility' | 'objectives' | 'design' | 'interventions' | 'amendments' | 'quality' | 'document' | 'soa' | 'timeline' | 'provenance';
 
 export default function ProtocolDetailPage() {
   const params = useParams();
@@ -212,6 +214,13 @@ export default function ProtocolDetailPage() {
               Quality
             </TabButton>
             <TabButton 
+              active={activeTab === 'document'} 
+              onClick={() => setActiveTab('document')}
+              icon={<BookOpen className="h-4 w-4" />}
+            >
+              Document
+            </TabButton>
+            <TabButton 
               active={activeTab === 'soa'} 
               onClick={() => setActiveTab('soa')}
               icon={<Table className="h-4 w-4" />}
@@ -258,6 +267,9 @@ export default function ProtocolDetailPage() {
         )}
         {activeTab === 'quality' && (
           <QualityMetricsDashboard usdm={usdm} />
+        )}
+        {activeTab === 'document' && (
+          <DocumentStructureView usdm={usdm} />
         )}
         {activeTab === 'soa' && (
           <SoATab provenance={provenance} />
