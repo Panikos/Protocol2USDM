@@ -1,0 +1,299 @@
+{
+  "success": true,
+  "pagesUsed": [
+    0,
+    1,
+    2,
+    3,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    25,
+    26,
+    27,
+    28,
+    29
+  ],
+  "modelUsed": "claude-opus-4-5",
+  "studyDesignStructure": {
+    "studyArms": [
+      {
+        "id": "arm_1",
+        "name": "Active Comparator A: Diagnosis by Molecular Testing",
+        "type": {
+          "code": "Active Comparator Arm",
+          "codeSystem": "USDM",
+          "decode": "Active Comparator Arm"
+        },
+        "instanceType": "StudyArm",
+        "description": "Diagnosis and treatment based on the results of Urine PCR testing. Patients assigned even numbers on randomization table receive treatment guided by urine PCR results using KingFisher Duo Prime, QuantStudio 6 and 7 Flex Real-Time PCR System, and QuantStudio 12k Flex Real-Time PCR System."
+      },
+      {
+        "id": "arm_2",
+        "name": "Active Comparator B: Diagnosis by Conventional Testing",
+        "type": {
+          "code": "Active Comparator Arm",
+          "codeSystem": "USDM",
+          "decode": "Active Comparator Arm"
+        },
+        "instanceType": "StudyArm",
+        "description": "Diagnosis and treatment based on the results of Urine Culture and Sensitivity (C&S) testing. Patients assigned odd numbers on randomization table receive treatment guided by urine C&S results."
+      }
+    ],
+    "studyCells": [
+      {
+        "id": "cell_1",
+        "armId": "arm_1",
+        "epochId": "epoch_1",
+        "elementIds": [],
+        "instanceType": "StudyCell"
+      },
+      {
+        "id": "cell_2",
+        "armId": "arm_1",
+        "epochId": "epoch_2",
+        "elementIds": [],
+        "instanceType": "StudyCell"
+      },
+      {
+        "id": "cell_3",
+        "armId": "arm_1",
+        "epochId": "epoch_3",
+        "elementIds": [],
+        "instanceType": "StudyCell"
+      },
+      {
+        "id": "cell_4",
+        "armId": "arm_1",
+        "epochId": "epoch_4",
+        "elementIds": [],
+        "instanceType": "StudyCell"
+      },
+      {
+        "id": "cell_5",
+        "armId": "arm_2",
+        "epochId": "epoch_1",
+        "elementIds": [],
+        "instanceType": "StudyCell"
+      },
+      {
+        "id": "cell_6",
+        "armId": "arm_2",
+        "epochId": "epoch_2",
+        "elementIds": [],
+        "instanceType": "StudyCell"
+      },
+      {
+        "id": "cell_7",
+        "armId": "arm_2",
+        "epochId": "epoch_3",
+        "elementIds": [],
+        "instanceType": "StudyCell"
+      },
+      {
+        "id": "cell_8",
+        "armId": "arm_2",
+        "epochId": "epoch_4",
+        "elementIds": [],
+        "instanceType": "StudyCell"
+      }
+    ],
+    "studyCohorts": [
+      {
+        "id": "cohort_1",
+        "name": "Elderly",
+        "instanceType": "StudyCohort",
+        "characteristic": "Patients aged 65 years or older"
+      },
+      {
+        "id": "cohort_2",
+        "name": "Male",
+        "instanceType": "StudyCohort",
+        "characteristic": "Male patients"
+      },
+      {
+        "id": "cohort_3",
+        "name": "Pregnant",
+        "instanceType": "StudyCohort",
+        "characteristic": "Pregnant patients"
+      },
+      {
+        "id": "cohort_4",
+        "name": "Recurrent UTI",
+        "instanceType": "StudyCohort",
+        "characteristic": "Patients with multiple occurrence (≥3) of uncomplicated or complicated UTI in past 12 months"
+      },
+      {
+        "id": "cohort_5",
+        "name": "Underlying co-morbidities",
+        "instanceType": "StudyCohort",
+        "characteristic": "Patients with metabolic disorder (e.g. diabetes), immunosuppression, or impaired renal function (e.g. chronic kidney disease)"
+      },
+      {
+        "id": "cohort_6",
+        "name": "Functional and anatomic abnormalities",
+        "instanceType": "StudyCohort",
+        "characteristic": "Patients with known functional and anatomic abnormalities of the urinary tract (e.g. stones, stents, recent instrumentation, indwelling catheters, neurogenic bladder, or polycystic kidney disease)"
+      },
+      {
+        "id": "cohort_7",
+        "name": "Persistent infection",
+        "instanceType": "StudyCohort",
+        "characteristic": "Patients with persistent infection after primary antibiotic therapy"
+      }
+    ],
+    "summary": {
+      "armCount": 2,
+      "cellCount": 8,
+      "cohortCount": 7
+    },
+    "studyDesign": {
+      "id": "sd_1",
+      "name": "Study Design",
+      "instanceType": "InterventionalStudyDesign",
+      "trialIntentTypes": [
+        {
+          "code": "Diagnostic",
+          "codeSystem": "USDM",
+          "decode": "Diagnostic"
+        }
+      ],
+      "trialType": {
+        "code": "Interventional",
+        "codeSystem": "USDM",
+        "decode": "Interventional"
+      },
+      "blindingSchema": {
+        "code": "Open Label",
+        "codeSystem": "USDM",
+        "decode": "Open Label"
+      },
+      "randomizationType": {
+        "code": "Randomized",
+        "codeSystem": "USDM",
+        "decode": "Randomized"
+      },
+      "allocationRatio": {
+        "ratio": "1:1"
+      },
+      "controlType": {
+        "code": "Active Control",
+        "codeSystem": "USDM",
+        "decode": "Active Control"
+      },
+      "armIds": [
+        "arm_1",
+        "arm_2"
+      ],
+      "cohortIds": [
+        "cohort_1",
+        "cohort_2",
+        "cohort_3",
+        "cohort_4",
+        "cohort_5",
+        "cohort_6",
+        "cohort_7"
+      ],
+      "therapeuticAreas": [
+        "Urology",
+        "Infectious Disease"
+      ]
+    }
+  },
+  "rawResponse": {
+    "studyDesign": {
+      "type": "Interventional",
+      "trialIntentTypes": [
+        "Diagnostic"
+      ],
+      "blinding": {
+        "schema": "Open Label",
+        "maskedRoles": []
+      },
+      "randomization": {
+        "type": "Randomized",
+        "allocationRatio": "1:1",
+        "stratificationFactors": []
+      },
+      "controlType": "Active Control",
+      "therapeuticAreas": [
+        "Urology",
+        "Infectious Disease"
+      ]
+    },
+    "arms": [
+      {
+        "name": "Active Comparator A: Diagnosis by Molecular Testing",
+        "type": "Active Comparator",
+        "description": "Diagnosis and treatment based on the results of Urine PCR testing. Patients assigned even numbers on randomization table receive treatment guided by urine PCR results using KingFisher Duo Prime, QuantStudio 6 and 7 Flex Real-Time PCR System, and QuantStudio 12k Flex Real-Time PCR System."
+      },
+      {
+        "name": "Active Comparator B: Diagnosis by Conventional Testing",
+        "type": "Active Comparator",
+        "description": "Diagnosis and treatment based on the results of Urine Culture and Sensitivity (C&S) testing. Patients assigned odd numbers on randomization table receive treatment guided by urine C&S results."
+      }
+    ],
+    "cohorts": [
+      {
+        "name": "Elderly",
+        "characteristic": "Patients aged 65 years or older"
+      },
+      {
+        "name": "Male",
+        "characteristic": "Male patients"
+      },
+      {
+        "name": "Pregnant",
+        "characteristic": "Pregnant patients"
+      },
+      {
+        "name": "Recurrent UTI",
+        "characteristic": "Patients with multiple occurrence (≥3) of uncomplicated or complicated UTI in past 12 months"
+      },
+      {
+        "name": "Underlying co-morbidities",
+        "characteristic": "Patients with metabolic disorder (e.g. diabetes), immunosuppression, or impaired renal function (e.g. chronic kidney disease)"
+      },
+      {
+        "name": "Functional and anatomic abnormalities",
+        "characteristic": "Patients with known functional and anatomic abnormalities of the urinary tract (e.g. stones, stents, recent instrumentation, indwelling catheters, neurogenic bladder, or polycystic kidney disease)"
+      },
+      {
+        "name": "Persistent infection",
+        "characteristic": "Patients with persistent infection after primary antibiotic therapy"
+      }
+    ],
+    "epochs": [
+      {
+        "name": "Pre-screening",
+        "description": "Recruitment and initial contact with potential participants"
+      },
+      {
+        "name": "Screening and Baseline",
+        "description": "Visit 1 (Day 0) - Informed consent, eligibility assessment, urine sample collection, randomization"
+      },
+      {
+        "name": "Treatment",
+        "description": "Visit 2 (Day 0 + 5) - Treatment initiation within 24 hours of test results becoming available"
+      },
+      {
+        "name": "End-of-Study",
+        "description": "Visit 3 (Day 28 ± 7) - Final assessment, urine specimen collection, clinical outcome evaluation"
+      }
+    ]
+  }
+}

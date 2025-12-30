@@ -1,0 +1,458 @@
+{
+  "success": true,
+  "pagesUsed": [
+    2,
+    4,
+    6,
+    7,
+    16,
+    24,
+    26,
+    27,
+    37,
+    38,
+    40,
+    41,
+    46,
+    54,
+    59
+  ],
+  "modelUsed": "claude-opus-4-5",
+  "confidence": 1.0,
+  "scheduling": {
+    "timings": [
+      {
+        "id": "timing_1",
+        "name": "Screening Period",
+        "type": "Within",
+        "unit": "weeks",
+        "instanceType": "Timing",
+        "value": 2,
+        "relativeTo": "Randomization",
+        "windowLower": -14,
+        "windowUpper": -1
+      },
+      {
+        "id": "timing_2",
+        "name": "Treatment Period Duration",
+        "type": "At",
+        "unit": "weeks",
+        "instanceType": "Timing",
+        "value": 72,
+        "relativeTo": "Randomization",
+        "windowLower": 0,
+        "windowUpper": 0
+      },
+      {
+        "id": "timing_3",
+        "name": "Dose Escalation Period",
+        "type": "Within",
+        "unit": "weeks",
+        "instanceType": "Timing",
+        "value": 20,
+        "relativeTo": "First Dose",
+        "windowLower": 0,
+        "windowUpper": 140
+      },
+      {
+        "id": "timing_4",
+        "name": "Additional Treatment Period for Prediabetes",
+        "type": "At",
+        "unit": "weeks",
+        "instanceType": "Timing",
+        "value": 176,
+        "relativeTo": "Randomization",
+        "windowLower": 0,
+        "windowUpper": 0
+      },
+      {
+        "id": "timing_5",
+        "name": "Safety Follow-up Period (First 72 Weeks)",
+        "type": "After",
+        "unit": "weeks",
+        "instanceType": "Timing",
+        "value": 4,
+        "relativeTo": "Last Dose",
+        "windowLower": 0,
+        "windowUpper": 0
+      },
+      {
+        "id": "timing_6",
+        "name": "Safety Follow-up Period (Weeks 72-176)",
+        "type": "After",
+        "unit": "weeks",
+        "instanceType": "Timing",
+        "value": 17,
+        "relativeTo": "Last Dose",
+        "windowLower": 0,
+        "windowUpper": 0
+      },
+      {
+        "id": "timing_7",
+        "name": "Office Visit Window (Monthly through Week 24)",
+        "type": "At",
+        "unit": "weeks",
+        "instanceType": "Timing",
+        "value": 4,
+        "relativeTo": "Previous Visit",
+        "windowLower": -7,
+        "windowUpper": 7
+      },
+      {
+        "id": "timing_8",
+        "name": "Office Visit Window (Every 12 Weeks after Week 24)",
+        "type": "At",
+        "unit": "weeks",
+        "instanceType": "Timing",
+        "value": 12,
+        "relativeTo": "Previous Visit",
+        "windowLower": -7,
+        "windowUpper": 7
+      },
+      {
+        "id": "timing_9",
+        "name": "Telephone Visit Interval (Starting Week 28)",
+        "type": "At",
+        "unit": "weeks",
+        "instanceType": "Timing",
+        "value": 4,
+        "relativeTo": "Previous Visit",
+        "windowLower": 0,
+        "windowUpper": 0
+      },
+      {
+        "id": "timing_10",
+        "name": "Additional 2-Year Period Visit Interval",
+        "type": "At",
+        "unit": "weeks",
+        "instanceType": "Timing",
+        "value": 6,
+        "relativeTo": "Previous Visit",
+        "windowLower": -7,
+        "windowUpper": 7
+      },
+      {
+        "id": "timing_11",
+        "name": "Fasting Requirement",
+        "type": "Within",
+        "unit": "hours",
+        "instanceType": "Timing",
+        "value": 8,
+        "relativeTo": "Study Start",
+        "windowLower": 0,
+        "windowUpper": 0
+      },
+      {
+        "id": "timing_12",
+        "name": "Dose Escalation Increment Interval",
+        "type": "At",
+        "unit": "weeks",
+        "instanceType": "Timing",
+        "value": 4,
+        "relativeTo": "Previous Visit",
+        "windowLower": 0,
+        "windowUpper": 0
+      },
+      {
+        "id": "timing_13",
+        "name": "Missed Dose Window",
+        "type": "Within",
+        "unit": "hours",
+        "instanceType": "Timing",
+        "value": 72,
+        "relativeTo": "Previous Visit",
+        "windowLower": 0,
+        "windowUpper": 72
+      },
+      {
+        "id": "timing_14",
+        "name": "Visit 99 Window",
+        "type": "At",
+        "unit": "weeks",
+        "instanceType": "Timing",
+        "value": 72,
+        "relativeTo": "Randomization",
+        "windowLower": -7,
+        "windowUpper": 7
+      },
+      {
+        "id": "timing_15",
+        "name": "Visit 199 Window",
+        "type": "At",
+        "unit": "weeks",
+        "instanceType": "Timing",
+        "value": 176,
+        "relativeTo": "Randomization",
+        "windowLower": -7,
+        "windowUpper": 7
+      },
+      {
+        "id": "timing_16",
+        "name": "Dietician Consultation Interval (After Visit 21)",
+        "type": "At",
+        "unit": "months",
+        "instanceType": "Timing",
+        "value": 3,
+        "relativeTo": "Previous Visit",
+        "windowLower": 0,
+        "windowUpper": 0
+      },
+      {
+        "id": "timing_17",
+        "name": "Visit 801 Safety Follow-up",
+        "type": "After",
+        "unit": "weeks",
+        "instanceType": "Timing",
+        "value": 4,
+        "relativeTo": "End of Treatment",
+        "windowLower": 0,
+        "windowUpper": 0
+      },
+      {
+        "id": "timing_18",
+        "name": "Visit 802 Safety Follow-up",
+        "type": "After",
+        "unit": "weeks",
+        "instanceType": "Timing",
+        "value": 17,
+        "relativeTo": "End of Treatment",
+        "windowLower": 0,
+        "windowUpper": 0
+      }
+    ],
+    "conditions": [
+      {
+        "id": "cond_1",
+        "name": "Prediabetes Status at Randomization",
+        "instanceType": "Condition",
+        "description": "Participants classified as having prediabetes at randomization continue for additional 104 weeks",
+        "text": "Participants classified as having prediabetes at randomization and who remain on study drug through Week 72, will continue follow-up for an additional 104 weeks"
+      },
+      {
+        "id": "cond_2",
+        "name": "No Glycemic Evidence of T2DM",
+        "instanceType": "Condition",
+        "description": "Participants must not have glycemic assessments suggestive of T2DM",
+        "text": "Participants who have no glycemic assessments suggestive of T2DM and meet all other applicable inclusion criteria and none of the applicable exclusion criteria"
+      },
+      {
+        "id": "cond_3",
+        "name": "Intolerable GI Symptoms",
+        "instanceType": "Condition",
+        "description": "Condition for dose modification due to gastrointestinal symptoms",
+        "text": "Participants who experience intolerable GI symptoms (for example, nausea, vomiting, or diarrhea) at any time during the study"
+      },
+      {
+        "id": "cond_4",
+        "name": "Perceived Excessive Weight Loss",
+        "instanceType": "Condition",
+        "description": "Condition for dose modification during additional 2-year treatment period",
+        "text": "Management of participants with perceived excessive weight loss during the additional 2-year treatment period for participants with prediabetes at randomization"
+      },
+      {
+        "id": "cond_5",
+        "name": "BMI Target Reached",
+        "instanceType": "Condition",
+        "description": "Condition for recalculating energy intake",
+        "text": "If a BMI ≤22 kg/m2 is reached, the recommended energy intake should be recalculated with no kcal deficit for the remainder of the trial"
+      },
+      {
+        "id": "cond_6",
+        "name": "Temporary Drug Interruption Eligibility",
+        "instanceType": "Condition",
+        "description": "Condition for allowing temporary study drug interruption",
+        "text": "A temporary interruption of study drug for 1 dose is permitted, provided the participant has taken the last 3 weekly doses"
+      },
+      {
+        "id": "cond_7",
+        "name": "Pregnancy",
+        "instanceType": "Condition",
+        "description": "Female participants will be withdrawn if pregnant",
+        "text": "Female participants will be withdrawn from the study if the participant becomes pregnant"
+      },
+      {
+        "id": "cond_8",
+        "name": "Enrollment Cap for Women",
+        "instanceType": "Condition",
+        "description": "Upper limit on female enrollment",
+        "text": "An upper limit of 70% enrollment of women will be used to ensure a sufficiently large sample of men"
+      }
+    ],
+    "conditionAssignments": [],
+    "transitionRules": [
+      {
+        "id": "trans_1",
+        "name": "Screening to Randomization Transition",
+        "instanceType": "TransitionRule",
+        "transitionType": "Epoch Transition",
+        "fromElementId": "epoch_screening",
+        "toElementId": "epoch_treatment",
+        "text": "Participants who have no glycemic assessments suggestive of T2DM and meet all other applicable inclusion criteria and none of the applicable exclusion criteria at Visit 1 will continue to Visit 2"
+      },
+      {
+        "id": "trans_2",
+        "name": "Visit 1 to Visit 2 Transition",
+        "instanceType": "TransitionRule",
+        "transitionType": "Epoch Transition",
+        "fromElementId": "visit_1",
+        "toElementId": "visit_2",
+        "text": "Participants who have no glycemic assessments suggestive of T2DM and meet all other applicable inclusion criteria and none of the applicable exclusion criteria at Visit 1 will continue to Visit 2"
+      },
+      {
+        "id": "trans_3",
+        "name": "Week 72 to Additional Treatment Period",
+        "instanceType": "TransitionRule",
+        "transitionType": "Epoch Transition",
+        "fromElementId": "epoch_treatment_72wk",
+        "toElementId": "epoch_treatment_additional",
+        "text": "Participants classified as having prediabetes at randomization and who remain on study drug through Week 72, will continue follow-up for an additional 104 weeks"
+      },
+      {
+        "id": "trans_4",
+        "name": "Dose Reduction for GI Symptoms",
+        "instanceType": "TransitionRule",
+        "transitionType": "Dose Modification",
+        "text": "If intolerable GI symptoms persist despite the above measures, the investigator should contact Lilly to consider reinitiating study drug at the next-lowest maintenance dose in a blinded fashion (for example, 15 mg reduced to 10 mg, 10 mg reduced to 5 mg, or 5 mg reduced to placebo)"
+      },
+      {
+        "id": "trans_5",
+        "name": "Discontinuation for Persistent GI Symptoms",
+        "instanceType": "TransitionRule",
+        "transitionType": "Discontinuation",
+        "text": "If intolerable GI symptoms persist despite symptomatic treatment, temporary drug interruption, and resumption at a lower dose of study drug, the participant should be discontinued from study drug"
+      },
+      {
+        "id": "trans_6",
+        "name": "Discontinuation for Pregnancy",
+        "instanceType": "TransitionRule",
+        "transitionType": "Discontinuation",
+        "text": "Female participants will be withdrawn from the study if the participant becomes pregnant"
+      },
+      {
+        "id": "trans_7",
+        "name": "Dose Escalation Schedule",
+        "instanceType": "TransitionRule",
+        "transitionType": "Dose Modification",
+        "text": "Dosing algorithms starting at a low dose of 2.5 mg accompanied by dose escalation of 2.5-mg increments every 4 weeks"
+      },
+      {
+        "id": "trans_8",
+        "name": "Treatment to Safety Follow-up (72 weeks)",
+        "instanceType": "TransitionRule",
+        "transitionType": "Epoch Transition",
+        "fromElementId": "epoch_treatment",
+        "toElementId": "epoch_safety_followup",
+        "text": "For participants who discontinue or complete the study within the first 72 weeks, Visit 801 (safety follow-up visit) should be performed 4 weeks after the last visit during the 72-week treatment period"
+      },
+      {
+        "id": "trans_9",
+        "name": "Treatment to Safety Follow-up (176 weeks)",
+        "instanceType": "TransitionRule",
+        "transitionType": "Epoch Transition",
+        "fromElementId": "epoch_treatment_additional",
+        "toElementId": "epoch_safety_followup_extended",
+        "text": "For participants with prediabetes who complete the 176 weeks or discontinue after Week 72, Visit 802 should be performed 17 weeks after the last visit during the additional 2-year treatment period"
+      }
+    ],
+    "scheduleTimelineExits": [
+      {
+        "id": "exit_1",
+        "name": "Early Discontinuation of Treatment",
+        "exitType": "Early Termination",
+        "instanceType": "ScheduleTimelineExit",
+        "description": "Participants unable or unwilling to continue the study treatment for any reason will perform an early discontinuation of treatment (ED) visit"
+      },
+      {
+        "id": "exit_2",
+        "name": "Study Completion at 72 Weeks",
+        "exitType": "Completion",
+        "instanceType": "ScheduleTimelineExit",
+        "description": "Completion of 72-week treatment period for participants without prediabetes"
+      },
+      {
+        "id": "exit_3",
+        "name": "Study Completion at 176 Weeks",
+        "exitType": "Completion",
+        "instanceType": "ScheduleTimelineExit",
+        "description": "Completion of 176-week treatment period for participants with prediabetes at randomization"
+      },
+      {
+        "id": "exit_4",
+        "name": "Discontinuation for Pregnancy",
+        "exitType": "Early Termination",
+        "instanceType": "ScheduleTimelineExit",
+        "description": "Female participants will be withdrawn from the study if the participant becomes pregnant"
+      },
+      {
+        "id": "exit_5",
+        "name": "Discontinuation for Persistent GI Symptoms",
+        "exitType": "Early Termination",
+        "instanceType": "ScheduleTimelineExit",
+        "description": "Participant should be discontinued from study drug if intolerable GI symptoms persist despite symptomatic treatment, temporary drug interruption, and resumption at a lower dose"
+      },
+      {
+        "id": "exit_6",
+        "name": "Lost to Follow-up",
+        "exitType": "Early Termination",
+        "instanceType": "ScheduleTimelineExit",
+        "description": "Participants lost to follow-up as described in Section 7.3"
+      }
+    ],
+    "scheduledDecisionInstances": [
+      {
+        "id": "dec_1",
+        "name": "Week 72 Prediabetes Continuation Decision",
+        "timepointId": "pt_week72",
+        "instanceType": "ScheduledDecisionInstance",
+        "description": "Decision point for participants with prediabetes to continue into additional 2-year treatment period",
+        "conditionIds": [
+          "cond_1"
+        ]
+      },
+      {
+        "id": "dec_2",
+        "name": "GI Symptom Management Decision",
+        "timepointId": "pt_any",
+        "instanceType": "ScheduledDecisionInstance",
+        "description": "Decision point for managing intolerable GI symptoms including temporary interruption and dose reduction",
+        "conditionIds": [
+          "cond_3",
+          "cond_6"
+        ]
+      },
+      {
+        "id": "dec_3",
+        "name": "Dose Modification for Excessive Weight Loss",
+        "timepointId": "pt_week72_to_176",
+        "instanceType": "ScheduledDecisionInstance",
+        "description": "Decision point for dose modification in participants with perceived excessive weight loss during additional 2-year treatment period",
+        "conditionIds": [
+          "cond_4"
+        ]
+      },
+      {
+        "id": "dec_4",
+        "name": "Energy Intake Recalculation Decision",
+        "timepointId": "pt_any",
+        "instanceType": "ScheduledDecisionInstance",
+        "description": "Decision point to recalculate energy intake when BMI ≤22 kg/m2 is reached",
+        "conditionIds": [
+          "cond_5"
+        ]
+      },
+      {
+        "id": "dec_5",
+        "name": "Missed Dose Decision",
+        "timepointId": "pt_any",
+        "instanceType": "ScheduledDecisionInstance",
+        "description": "If a dose is missed, take as soon as possible unless within 72 hours of next dose, in which case skip the missed dose"
+      }
+    ],
+    "summary": {
+      "timingCount": 18,
+      "conditionCount": 8,
+      "transitionRuleCount": 9,
+      "exitCount": 6
+    }
+  }
+}

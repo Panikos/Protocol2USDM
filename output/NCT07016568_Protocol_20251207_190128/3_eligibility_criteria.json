@@ -1,0 +1,276 @@
+{
+  "success": true,
+  "pagesUsed": [
+    0,
+    1,
+    2
+  ],
+  "modelUsed": "claude-opus-4-5",
+  "eligibility": {
+    "eligibilityCriterionItems": [
+      {
+        "id": "eci_1",
+        "name": "Age requirement",
+        "text": "Age ≥18 years",
+        "instanceType": "EligibilityCriterionItem"
+      },
+      {
+        "id": "eci_2",
+        "name": "Primary PPH with significant blood loss",
+        "text": "Primary PPH with blood loss >1000 mL",
+        "instanceType": "EligibilityCriterionItem"
+      },
+      {
+        "id": "eci_3",
+        "name": "Refractory to standard treatments",
+        "text": "Refractory to uterotonics and uterine balloon tamponade",
+        "instanceType": "EligibilityCriterionItem"
+      },
+      {
+        "id": "eci_4",
+        "name": "Informed consent obtained",
+        "text": "Oral informed consent obtained",
+        "instanceType": "EligibilityCriterionItem"
+      },
+      {
+        "id": "eci_5",
+        "name": "PPH due to specific causes",
+        "text": "PPH due to trauma, coagulopathy, or retained placenta",
+        "instanceType": "EligibilityCriterionItem"
+      },
+      {
+        "id": "eci_6",
+        "name": "Inability to consent",
+        "text": "Inability to provide informed consent",
+        "instanceType": "EligibilityCriterionItem"
+      }
+    ],
+    "eligibilityCriteria": [
+      {
+        "id": "ec_1",
+        "identifier": "1",
+        "category": {
+          "code": "Inclusion",
+          "codeSystem": "USDM",
+          "decode": "Inclusion"
+        },
+        "criterionItemId": "eci_1",
+        "instanceType": "EligibilityCriterion",
+        "name": "Age requirement",
+        "nextId": "ec_2"
+      },
+      {
+        "id": "ec_2",
+        "identifier": "2",
+        "category": {
+          "code": "Inclusion",
+          "codeSystem": "USDM",
+          "decode": "Inclusion"
+        },
+        "criterionItemId": "eci_2",
+        "instanceType": "EligibilityCriterion",
+        "name": "Primary PPH with significant blood loss",
+        "previousId": "ec_1",
+        "nextId": "ec_3"
+      },
+      {
+        "id": "ec_3",
+        "identifier": "3",
+        "category": {
+          "code": "Inclusion",
+          "codeSystem": "USDM",
+          "decode": "Inclusion"
+        },
+        "criterionItemId": "eci_3",
+        "instanceType": "EligibilityCriterion",
+        "name": "Refractory to standard treatments",
+        "previousId": "ec_2",
+        "nextId": "ec_4"
+      },
+      {
+        "id": "ec_4",
+        "identifier": "4",
+        "category": {
+          "code": "Inclusion",
+          "codeSystem": "USDM",
+          "decode": "Inclusion"
+        },
+        "criterionItemId": "eci_4",
+        "instanceType": "EligibilityCriterion",
+        "name": "Informed consent obtained",
+        "previousId": "ec_3"
+      },
+      {
+        "id": "ec_5",
+        "identifier": "1",
+        "category": {
+          "code": "Exclusion",
+          "codeSystem": "USDM",
+          "decode": "Exclusion"
+        },
+        "criterionItemId": "eci_5",
+        "instanceType": "EligibilityCriterion",
+        "name": "PPH due to specific causes",
+        "nextId": "ec_6"
+      },
+      {
+        "id": "ec_6",
+        "identifier": "2",
+        "category": {
+          "code": "Exclusion",
+          "codeSystem": "USDM",
+          "decode": "Exclusion"
+        },
+        "criterionItemId": "eci_6",
+        "instanceType": "EligibilityCriterion",
+        "name": "Inability to consent",
+        "previousId": "ec_5"
+      }
+    ],
+    "summary": {
+      "inclusionCount": 4,
+      "exclusionCount": 2,
+      "totalCount": 6
+    }
+  },
+  "rawResponse": {
+    "eligibilityCriteria": [
+      {
+        "id": "ec_1",
+        "name": "Age requirement",
+        "identifier": "1",
+        "category": {
+          "code": "Inclusion",
+          "codeSystem": "http://www.cdisc.org/USDM/criterionCategory",
+          "decode": "Inclusion Criterion"
+        },
+        "criterionItemId": "eci_1",
+        "instanceType": "EligibilityCriterion"
+      },
+      {
+        "id": "ec_2",
+        "name": "Primary PPH with significant blood loss",
+        "identifier": "2",
+        "category": {
+          "code": "Inclusion",
+          "codeSystem": "http://www.cdisc.org/USDM/criterionCategory",
+          "decode": "Inclusion Criterion"
+        },
+        "criterionItemId": "eci_2",
+        "instanceType": "EligibilityCriterion"
+      },
+      {
+        "id": "ec_3",
+        "name": "Refractory to standard treatments",
+        "identifier": "3",
+        "category": {
+          "code": "Inclusion",
+          "codeSystem": "http://www.cdisc.org/USDM/criterionCategory",
+          "decode": "Inclusion Criterion"
+        },
+        "criterionItemId": "eci_3",
+        "instanceType": "EligibilityCriterion"
+      },
+      {
+        "id": "ec_4",
+        "name": "Informed consent obtained",
+        "identifier": "4",
+        "category": {
+          "code": "Inclusion",
+          "codeSystem": "http://www.cdisc.org/USDM/criterionCategory",
+          "decode": "Inclusion Criterion"
+        },
+        "criterionItemId": "eci_4",
+        "instanceType": "EligibilityCriterion"
+      },
+      {
+        "id": "ec_5",
+        "name": "PPH due to specific causes",
+        "identifier": "1",
+        "category": {
+          "code": "Exclusion",
+          "codeSystem": "http://www.cdisc.org/USDM/criterionCategory",
+          "decode": "Exclusion Criterion"
+        },
+        "criterionItemId": "eci_5",
+        "instanceType": "EligibilityCriterion"
+      },
+      {
+        "id": "ec_6",
+        "name": "Inability to consent",
+        "identifier": "2",
+        "category": {
+          "code": "Exclusion",
+          "codeSystem": "http://www.cdisc.org/USDM/criterionCategory",
+          "decode": "Exclusion Criterion"
+        },
+        "criterionItemId": "eci_6",
+        "instanceType": "EligibilityCriterion"
+      }
+    ],
+    "eligibilityCriterionItems": [
+      {
+        "id": "eci_1",
+        "name": "Age requirement",
+        "text": "Age ≥18 years",
+        "instanceType": "EligibilityCriterionItem"
+      },
+      {
+        "id": "eci_2",
+        "name": "Primary PPH with significant blood loss",
+        "text": "Primary PPH with blood loss >1000 mL",
+        "instanceType": "EligibilityCriterionItem"
+      },
+      {
+        "id": "eci_3",
+        "name": "Refractory to standard treatments",
+        "text": "Refractory to uterotonics and uterine balloon tamponade",
+        "instanceType": "EligibilityCriterionItem"
+      },
+      {
+        "id": "eci_4",
+        "name": "Informed consent obtained",
+        "text": "Oral informed consent obtained",
+        "instanceType": "EligibilityCriterionItem"
+      },
+      {
+        "id": "eci_5",
+        "name": "PPH due to specific causes",
+        "text": "PPH due to trauma, coagulopathy, or retained placenta",
+        "instanceType": "EligibilityCriterionItem"
+      },
+      {
+        "id": "eci_6",
+        "name": "Inability to consent",
+        "text": "Inability to provide informed consent",
+        "instanceType": "EligibilityCriterionItem"
+      }
+    ],
+    "population": {
+      "id": "pop_1",
+      "name": "Study Population",
+      "includesHealthySubjects": false,
+      "plannedEnrollmentNumber": {
+        "maxValue": 4,
+        "instanceType": "Range"
+      },
+      "plannedMinimumAge": "P18Y",
+      "plannedSex": [
+        {
+          "code": "Female",
+          "codeSystem": "http://www.cdisc.org/USDM/sex",
+          "decode": "Female"
+        }
+      ],
+      "criterionIds": [
+        "ec_1",
+        "ec_2",
+        "ec_3",
+        "ec_4",
+        "ec_5",
+        "ec_6"
+      ],
+      "instanceType": "StudyDesignPopulation"
+    }
+  }
+}

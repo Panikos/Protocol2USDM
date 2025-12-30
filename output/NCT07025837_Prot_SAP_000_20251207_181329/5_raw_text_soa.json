@@ -1,0 +1,309 @@
+{
+  "usdmVersion": "4.0",
+  "systemName": "Protocol2USDM",
+  "systemVersion": "0.1.0",
+  "study": {
+    "id": "9a9e15c0-52df-4215-8c90-18fac76af43d",
+    "name": "",
+    "instanceType": "Study",
+    "versions": [
+      {
+        "id": "714d02b8-17eb-4483-8923-94e86064a501",
+        "versionIdentifier": "1.0",
+        "rationale": "Initial protocol version",
+        "instanceType": "StudyVersion",
+        "studyDesigns": [
+          {
+            "id": "sd_1",
+            "name": "Study Design",
+            "rationale": "Protocol-defined study design",
+            "instanceType": "InterventionalStudyDesign",
+            "blindingSchema": {
+              "id": "5d77e67e-d4ff-49ad-b91d-f8311a6c9b5c",
+              "instanceType": "AliasCode",
+              "standardCode": {
+                "id": "857ed5d0-40db-4583-8fc1-900ce03361ea",
+                "code": "C49656",
+                "codeSystem": "http://www.cdisc.org",
+                "codeSystemVersion": "2024-09-27",
+                "decode": "Open Label",
+                "instanceType": "Code"
+              }
+            },
+            "model": {
+              "id": "3ad3d692-43ee-4504-94b0-7fc66b2a3574",
+              "code": "C82638",
+              "codeSystem": "http://www.cdisc.org",
+              "codeSystemVersion": "2024-09-27",
+              "decode": "Single Group Study",
+              "instanceType": "Code"
+            },
+            "epochs": [
+              {
+                "id": "epoch_1",
+                "name": "Screening",
+                "instanceType": "StudyEpoch",
+                "type": {
+                  "id": "81f88efd-e78d-46ae-82cd-e4484508c98e",
+                  "code": "C98779",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Screening Epoch",
+                  "instanceType": "Code"
+                }
+              },
+              {
+                "id": "epoch_2",
+                "name": "Intervention",
+                "instanceType": "StudyEpoch",
+                "type": {
+                  "id": "7ad8b3a6-fa38-47a0-97ba-6424beffa4e1",
+                  "code": "C98780",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Treatment Epoch",
+                  "instanceType": "Code"
+                }
+              },
+              {
+                "id": "epoch_3",
+                "name": "Conclusion",
+                "instanceType": "StudyEpoch",
+                "type": {
+                  "id": "0914cd52-d351-4140-b709-b37514c36ea0",
+                  "code": "C98780",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Treatment Epoch",
+                  "instanceType": "Code"
+                }
+              }
+            ],
+            "activities": [
+              {
+                "id": "grp_1",
+                "name": "Procedures",
+                "instanceType": "Activity",
+                "childIds": [
+                  "act_1",
+                  "act_2",
+                  "act_3",
+                  "act_4",
+                  "act_5",
+                  "act_6",
+                  "act_7"
+                ]
+              },
+              {
+                "id": "act_1",
+                "name": "Informed Consent",
+                "instanceType": "Activity",
+                "description": "Obtain informed consent from participant"
+              },
+              {
+                "id": "act_2",
+                "name": "Demographics",
+                "instanceType": "Activity",
+                "description": "Demographics"
+              },
+              {
+                "id": "act_3",
+                "name": "Inclusion/Exclusion",
+                "instanceType": "Activity",
+                "description": "Screen potential participants by inclusion and exclusion criteria"
+              },
+              {
+                "id": "act_4",
+                "name": "Administer Study Intervention",
+                "instanceType": "Activity",
+                "description": "Administer Study Intervention"
+              },
+              {
+                "id": "act_5",
+                "name": "Surveys",
+                "instanceType": "Activity",
+                "description": "Surveys"
+              },
+              {
+                "id": "act_6",
+                "name": "Photos",
+                "instanceType": "Activity",
+                "description": "Photos of face, neck, and chest (decolletage area)"
+              },
+              {
+                "id": "act_7",
+                "name": "Adverse Event Review and Evaluation",
+                "instanceType": "Activity",
+                "description": "Adverse Event Review and Evaluation"
+              }
+            ],
+            "encounters": [
+              {
+                "id": "enc_1",
+                "name": "Screening",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "02eb25d0-1276-470e-8955-056dfed4aa81",
+                  "code": "C48262",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Screening",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_1"
+              },
+              {
+                "id": "enc_2",
+                "name": "Intervention",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "ccffee30-e434-4ae7-89c2-1e38d26b0747",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_2"
+              },
+              {
+                "id": "enc_3",
+                "name": "Conclusion",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "b86f744e-d675-4967-9c98-ca5a8bd0d319",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_3"
+              }
+            ],
+            "scheduleTimelines": [
+              {
+                "id": "timeline_1",
+                "name": "Main Schedule Timeline",
+                "mainTimeline": true,
+                "instanceType": "ScheduleTimeline",
+                "entryCondition": "Subject enrolled in study",
+                "entryId": "306a63de-0edc-41ac-9204-0b38ce1ebf1d",
+                "instances": [
+                  {
+                    "id": "306a63de-0edc-41ac-9204-0b38ce1ebf1d",
+                    "activityIds": [
+                      "act_1"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_1@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "cc458008-4b5e-4f5c-b473-00a2e86f5a52",
+                    "activityIds": [
+                      "act_2"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_2@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "98b01f04-cd9a-419b-9f7f-dcfb48f69692",
+                    "activityIds": [
+                      "act_3"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_3@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "8c0d495b-fb88-4ea1-9e93-9cc38048269e",
+                    "activityIds": [
+                      "act_4"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_4@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "343d3cba-1a4e-4408-a806-995c8a740426",
+                    "activityIds": [
+                      "act_5"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_5@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "3e55d39a-847f-4689-a761-b4749e65e28b",
+                    "activityIds": [
+                      "act_5"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_5@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "40bb34a2-bf70-4d4a-8b7f-d5871319d9bb",
+                    "activityIds": [
+                      "act_5"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_5@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "e2411167-6fe4-439c-ad47-a3347aa1d72c",
+                    "activityIds": [
+                      "act_6"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_6@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "38910c7f-340e-49cd-8cc1-abb6a6231e0c",
+                    "activityIds": [
+                      "act_6"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_6@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "89280340-ad9e-4faa-a4e7-1d0ced742bef",
+                    "activityIds": [
+                      "act_7"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_7@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "272fa7ec-6994-43ea-8ad6-5d41fe68be7e",
+                    "activityIds": [
+                      "act_7"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_7@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "f1a9b501-2c0d-43de-98b1-50d3e2b0381c",
+                    "activityIds": [
+                      "act_7"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_7@enc_3",
+                    "encounterId": "enc_3"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

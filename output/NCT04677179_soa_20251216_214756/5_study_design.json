@@ -1,0 +1,282 @@
+{
+  "success": true,
+  "pagesUsed": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    7,
+    8,
+    9,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    28,
+    29
+  ],
+  "modelUsed": "claude-opus-4-5",
+  "studyDesignStructure": {
+    "studyArms": [
+      {
+        "id": "arm_1",
+        "name": "Experimental Treatment Arm",
+        "type": {
+          "code": "Experimental Arm",
+          "codeSystem": "USDM",
+          "decode": "Experimental Arm"
+        },
+        "instanceType": "StudyArm",
+        "description": "Participants receive study drug treatment during induction and maintenance periods"
+      },
+      {
+        "id": "arm_2",
+        "name": "Placebo Comparator Arm",
+        "type": {
+          "code": "Placebo Comparator Arm",
+          "codeSystem": "USDM",
+          "decode": "Placebo Comparator Arm"
+        },
+        "instanceType": "StudyArm",
+        "description": "Participants receive placebo during induction and maintenance periods"
+      }
+    ],
+    "studyCells": [
+      {
+        "id": "cell_1",
+        "armId": "arm_1",
+        "epochId": "epoch_1",
+        "elementIds": [],
+        "instanceType": "StudyCell"
+      },
+      {
+        "id": "cell_2",
+        "armId": "arm_1",
+        "epochId": "epoch_2",
+        "elementIds": [],
+        "instanceType": "StudyCell"
+      },
+      {
+        "id": "cell_3",
+        "armId": "arm_1",
+        "epochId": "epoch_3",
+        "elementIds": [],
+        "instanceType": "StudyCell"
+      },
+      {
+        "id": "cell_4",
+        "armId": "arm_1",
+        "epochId": "epoch_4",
+        "elementIds": [],
+        "instanceType": "StudyCell"
+      },
+      {
+        "id": "cell_5",
+        "armId": "arm_1",
+        "epochId": "epoch_5",
+        "elementIds": [],
+        "instanceType": "StudyCell"
+      },
+      {
+        "id": "cell_6",
+        "armId": "arm_1",
+        "epochId": "epoch_6",
+        "elementIds": [],
+        "instanceType": "StudyCell"
+      },
+      {
+        "id": "cell_7",
+        "armId": "arm_2",
+        "epochId": "epoch_1",
+        "elementIds": [],
+        "instanceType": "StudyCell"
+      },
+      {
+        "id": "cell_8",
+        "armId": "arm_2",
+        "epochId": "epoch_2",
+        "elementIds": [],
+        "instanceType": "StudyCell"
+      },
+      {
+        "id": "cell_9",
+        "armId": "arm_2",
+        "epochId": "epoch_3",
+        "elementIds": [],
+        "instanceType": "StudyCell"
+      },
+      {
+        "id": "cell_10",
+        "armId": "arm_2",
+        "epochId": "epoch_4",
+        "elementIds": [],
+        "instanceType": "StudyCell"
+      },
+      {
+        "id": "cell_11",
+        "armId": "arm_2",
+        "epochId": "epoch_5",
+        "elementIds": [],
+        "instanceType": "StudyCell"
+      },
+      {
+        "id": "cell_12",
+        "armId": "arm_2",
+        "epochId": "epoch_6",
+        "elementIds": [],
+        "instanceType": "StudyCell"
+      }
+    ],
+    "studyCohorts": [
+      {
+        "id": "cohort_1",
+        "name": "Responders at Week 12",
+        "instanceType": "StudyCohort",
+        "characteristic": "Participants who achieve response at Week 12 and continue to Maintenance Treatment Period"
+      },
+      {
+        "id": "cohort_2",
+        "name": "Nonresponders at Week 12",
+        "instanceType": "StudyCohort",
+        "characteristic": "Participants who do not achieve response at Week 12 and enter Extension Induction and Extension Maintenance Periods"
+      }
+    ],
+    "summary": {
+      "armCount": 2,
+      "cellCount": 12,
+      "cohortCount": 2
+    },
+    "studyDesign": {
+      "id": "sd_1",
+      "name": "Study Design",
+      "instanceType": "InterventionalStudyDesign",
+      "trialIntentTypes": [
+        {
+          "code": "Treatment",
+          "codeSystem": "USDM",
+          "decode": "Treatment"
+        }
+      ],
+      "trialType": {
+        "code": "Interventional",
+        "codeSystem": "USDM",
+        "decode": "Interventional"
+      },
+      "blindingSchema": {
+        "code": "Double Blind",
+        "codeSystem": "USDM",
+        "decode": "Double Blind"
+      },
+      "maskedRoles": [
+        "Subject",
+        "Investigator",
+        "Outcome Assessor"
+      ],
+      "randomizationType": {
+        "code": "Randomized",
+        "codeSystem": "USDM",
+        "decode": "Randomized"
+      },
+      "controlType": {
+        "code": "Placebo Control",
+        "codeSystem": "USDM",
+        "decode": "Placebo Control"
+      },
+      "armIds": [
+        "arm_1",
+        "arm_2"
+      ],
+      "cohortIds": [
+        "cohort_1",
+        "cohort_2"
+      ],
+      "therapeuticAreas": [
+        "Gastroenterology"
+      ]
+    }
+  },
+  "rawResponse": {
+    "studyDesign": {
+      "type": "Interventional",
+      "trialIntentTypes": [
+        "Treatment"
+      ],
+      "blinding": {
+        "schema": "Double Blind",
+        "maskedRoles": [
+          "Subject",
+          "Investigator",
+          "Outcome Assessor"
+        ]
+      },
+      "randomization": {
+        "type": "Randomized",
+        "allocationRatio": null,
+        "stratificationFactors": []
+      },
+      "controlType": "Placebo",
+      "therapeuticAreas": [
+        "Gastroenterology"
+      ]
+    },
+    "arms": [
+      {
+        "name": "Experimental Treatment Arm",
+        "type": "Experimental Arm",
+        "description": "Participants receive study drug treatment during induction and maintenance periods"
+      },
+      {
+        "name": "Placebo Comparator Arm",
+        "type": "Placebo Comparator",
+        "description": "Participants receive placebo during induction and maintenance periods"
+      }
+    ],
+    "cohorts": [
+      {
+        "name": "Responders at Week 12",
+        "characteristic": "Participants who achieve response at Week 12 and continue to Maintenance Treatment Period"
+      },
+      {
+        "name": "Nonresponders at Week 12",
+        "characteristic": "Participants who do not achieve response at Week 12 and enter Extension Induction and Extension Maintenance Periods"
+      }
+    ],
+    "epochs": [
+      {
+        "name": "Screening",
+        "description": "Up to 35 days before randomization (V1)"
+      },
+      {
+        "name": "Induction Treatment Period",
+        "description": "Week 1 to Week 12 (V2-V9)"
+      },
+      {
+        "name": "Maintenance Treatment Period",
+        "description": "Week 14 to Week 52 (V10-V29) for responders at Week 12"
+      },
+      {
+        "name": "Extension Induction Period",
+        "description": "Week 14 to Week 24 (V10-V15) for nonresponders at Week 12"
+      },
+      {
+        "name": "Extension Maintenance Period",
+        "description": "Week 26 to Week 52 (V16-V29) for nonresponders at Week 12"
+      },
+      {
+        "name": "Post-Treatment Follow-Up Period",
+        "description": "8 weeks after last dose (V801), 16 weeks after last dose (V802 for anti-HBc positive participants)"
+      }
+    ]
+  }
+}

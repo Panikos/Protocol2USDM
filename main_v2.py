@@ -57,6 +57,7 @@ from extraction.narrative import extract_narrative_structure
 from extraction.narrative.extractor import save_narrative_result
 from extraction.advanced import extract_advanced_entities
 from extraction.advanced.extractor import save_advanced_result
+from extraction.execution import extract_execution_model
 from extraction.confidence import (
     calculate_metadata_confidence,
     calculate_eligibility_confidence,
@@ -73,6 +74,7 @@ def run_expansion_phases(
     output_dir: str,
     model: str,
     phases: dict,
+    soa_data: dict = None,
 ) -> dict:
     """
     Run requested expansion phases.
@@ -82,6 +84,7 @@ def run_expansion_phases(
         output_dir: Output directory
         model: LLM model name
         phases: Dict of phase_name -> bool indicating which to run
+        soa_data: Optional SOA extraction data for enhanced context
     
     Returns:
         Dict of phase_name -> extraction result
@@ -218,6 +221,32 @@ def run_expansion_phases(
                 logger.info(f"  ✗ Amendment details extraction failed: {result.error}")
         except ImportError as e:
             logger.warning(f"  ✗ Amendment details module not available: {e}")
+    
+    if phases.get('execution'):
+        logger.info("\n--- Expansion: Execution Model (Phase 14) ---")
+        result = extract_execution_model(
+            pdf_path, 
+            model=model, 
+            output_dir=output_dir,
+            soa_data=soa_data,
+        )
+        results['execution'] = result
+        if result.success and result.data:
+            data = result.data
+            anchors = len(data.time_anchors)
+            reps = len(data.repetitions)
+            exec_types = len(data.execution_types)
+            traversals = len(data.traversal_constraints)
+            footnotes = len(data.footnote_conditions)
+            visits = len(data.visit_windows)
+            dosing = len(data.dosing_regimens)
+            crossover = "Yes" if data.crossover_design and data.crossover_design.is_crossover else "No"
+            logger.info(f"  ✓ Execution model extracted")
+            logger.info(f"    Anchors: {anchors}, Repetitions: {reps}, Exec Types: {exec_types}")
+            logger.info(f"    Traversals: {traversals}, Footnotes: {footnotes}, Crossover: {crossover}")
+            logger.info(f"    Visits: {visits}, Dosing: {dosing}")
+        else:
+            logger.info(f"  ✗ Execution model extraction failed: {result.error}")
     
     return results
 
@@ -741,8 +770,17 @@ def combine_to_full_usdm(
             if r.data.population:
                 study_design["population"] = r.data.population.to_dict()
     
-    # Note: population is required by USDM schema but we don't provide a default
-    # If missing, validation will flag it so user knows to run --eligibility extraction
+    # Ensure population is always present (required by USDM schema)
+    if "population" not in study_design:
+        study_design["population"] = {
+            "id": "pop_1",
+            "instanceType": "StudyDesignPopulation",
+            "name": "Study Population",
+            "description": "Target population for the study as defined by eligibility criteria",
+            "includesHealthySubjects": False  # Required field per USDM schema
+        }
+    elif "includesHealthySubjects" not in study_design["population"]:
+        study_design["population"]["includesHealthySubjects"] = False
     
     # Add Objectives & Endpoints
     if expansion_results and expansion_results.get('objectives'):
@@ -924,6 +962,15 @@ def combine_to_full_usdm(
     
     # Assemble final USDM v4.0 structure: study.versions[0] contains all data
     combined["study"]["versions"] = [study_version]
+    
+    # Add Execution Model (Phase 14) - enrich studyDesigns with execution semantics
+    # Must be done AFTER study.versions is assembled so enrich can find studyDesigns
+    if expansion_results and expansion_results.get('execution'):
+        r = expansion_results['execution']
+        if r.success and r.data:
+            from extraction.execution import enrich_usdm_with_execution_model
+            combined = enrich_usdm_with_execution_model(combined, r.data)
+            logger.info(f"  ✓ Enriched USDM with execution model (Phase 14)")
     
     # Save combined output as protocol_usdm.json (golden standard)
     output_path = os.path.join(output_dir, "protocol_usdm.json")
@@ -1110,6 +1157,16 @@ Examples:
         action="store_true",
         help="Extract amendment details & changes (Phase 13)"
     )
+    expansion_group.add_argument(
+        "--execution",
+        action="store_true",
+        help="Extract execution model semantics (Phase 14 - time anchors, repetitions, crossover)"
+    )
+    expansion_group.add_argument(
+        "--complete",
+        action="store_true",
+        help="Run COMPLETE extraction: full protocol + SAP (if provided) + all post-processing"
+    )
     
     # Conditional source arguments
     conditional_group = parser.add_argument_group('Conditional Sources (additional documents)')
@@ -1204,12 +1261,21 @@ Examples:
         save_intermediate=True,
     )
     
+    # Handle --complete flag (enables everything)
+    if args.complete:
+        args.full_protocol = True
+        args.soa = True  # Full SoA pipeline with post-processing
+        args.enrich = True
+        args.validate_schema = True
+        args.conformance = True
+        logger.info("Complete mode: enabling full protocol extraction with all post-processing")
+    
     # Determine which expansion phases to run
     run_any_expansion = (args.full_protocol or args.expansion_only or 
                          args.metadata or args.eligibility or args.objectives or
                          args.studydesign or args.interventions or args.narrative or 
                          args.advanced or args.procedures or args.scheduling or
-                         args.docstructure or args.amendmentdetails)
+                         args.docstructure or args.amendmentdetails or args.execution)
     
     expansion_phases = {
         'metadata': args.full_protocol or args.metadata,
@@ -1223,6 +1289,7 @@ Examples:
         'scheduling': args.full_protocol or args.scheduling,
         'docstructure': args.full_protocol or args.docstructure,
         'amendmentdetails': args.full_protocol or args.amendmentdetails,
+        'execution': args.full_protocol or args.execution,
     }
     
     # Conditional source phases (only run if source file provided)
@@ -1320,6 +1387,7 @@ Examples:
                 output_dir=output_dir,
                 model=config.model_name,
                 phases=expansion_phases,
+                soa_data=soa_data,
             )
             
             # Print expansion summary

@@ -1,0 +1,171 @@
+{
+  "success": true,
+  "pagesUsed": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    13,
+    14,
+    15,
+    16,
+    19,
+    20,
+    21,
+    22,
+    23
+  ],
+  "modelUsed": "claude-opus-4-5",
+  "studyDesignStructure": {
+    "studyArms": [
+      {
+        "id": "arm_1",
+        "name": "Ontamalimab 75 mg",
+        "type": {
+          "code": "Experimental Arm",
+          "codeSystem": "USDM",
+          "decode": "Experimental Arm"
+        },
+        "instanceType": "StudyArm",
+        "description": "Participants receive ontamalimab 75 mg administered subcutaneously every 4 weeks (Q4W) starting on Day 1, with the last dose administered at Week 20 (total treatment period is 24 weeks)"
+      }
+    ],
+    "studyCells": [
+      {
+        "id": "cell_1",
+        "armId": "arm_1",
+        "epochId": "epoch_1",
+        "elementIds": [],
+        "instanceType": "StudyCell"
+      },
+      {
+        "id": "cell_2",
+        "armId": "arm_1",
+        "epochId": "epoch_2",
+        "elementIds": [],
+        "instanceType": "StudyCell"
+      },
+      {
+        "id": "cell_3",
+        "armId": "arm_1",
+        "epochId": "epoch_3",
+        "elementIds": [],
+        "instanceType": "StudyCell"
+      }
+    ],
+    "studyCohorts": [
+      {
+        "id": "cohort_1",
+        "name": "Noncirrhotic (F1-F3)",
+        "instanceType": "StudyCohort",
+        "characteristic": "Participants with NASH and liver fibrosis stage F1, F2, or F3 (noncirrhotic)"
+      },
+      {
+        "id": "cohort_2",
+        "name": "Compensated Cirrhotic (F4cc)",
+        "instanceType": "StudyCohort",
+        "characteristic": "Participants with NASH and liver fibrosis stage F4 compensated cirrhotic"
+      }
+    ],
+    "summary": {
+      "armCount": 1,
+      "cellCount": 3,
+      "cohortCount": 2
+    },
+    "studyDesign": {
+      "id": "sd_1",
+      "name": "Study Design",
+      "instanceType": "InterventionalStudyDesign",
+      "trialIntentTypes": [
+        {
+          "code": "Treatment",
+          "codeSystem": "USDM",
+          "decode": "Treatment"
+        }
+      ],
+      "trialType": {
+        "code": "Interventional",
+        "codeSystem": "USDM",
+        "decode": "Interventional"
+      },
+      "blindingSchema": {
+        "code": "Open Label",
+        "codeSystem": "USDM",
+        "decode": "Open Label"
+      },
+      "randomizationType": {
+        "code": "Non-Randomized",
+        "codeSystem": "USDM",
+        "decode": "Non-Randomized"
+      },
+      "armIds": [
+        "arm_1"
+      ],
+      "cohortIds": [
+        "cohort_1",
+        "cohort_2"
+      ],
+      "therapeuticAreas": [
+        "Hepatology",
+        "Gastroenterology"
+      ]
+    }
+  },
+  "rawResponse": {
+    "studyDesign": {
+      "type": "Interventional",
+      "trialIntentTypes": [
+        "Treatment"
+      ],
+      "blinding": {
+        "schema": "Open Label",
+        "maskedRoles": []
+      },
+      "randomization": {
+        "type": "Non-Randomized",
+        "allocationRatio": null,
+        "stratificationFactors": []
+      },
+      "controlType": null,
+      "therapeuticAreas": [
+        "Hepatology",
+        "Gastroenterology"
+      ]
+    },
+    "arms": [
+      {
+        "name": "Ontamalimab 75 mg",
+        "type": "Experimental Arm",
+        "description": "Participants receive ontamalimab 75 mg administered subcutaneously every 4 weeks (Q4W) starting on Day 1, with the last dose administered at Week 20 (total treatment period is 24 weeks)"
+      }
+    ],
+    "cohorts": [
+      {
+        "name": "Noncirrhotic (F1-F3)",
+        "characteristic": "Participants with NASH and liver fibrosis stage F1, F2, or F3 (noncirrhotic)"
+      },
+      {
+        "name": "Compensated Cirrhotic (F4cc)",
+        "characteristic": "Participants with NASH and liver fibrosis stage F4 compensated cirrhotic"
+      }
+    ],
+    "epochs": [
+      {
+        "name": "Screening",
+        "description": "Up to 10 weeks (may be extended up to 12 weeks for SARS-CoV-2 positive participants, or up to 24 weeks for F4cc participants pending safety data)"
+      },
+      {
+        "name": "Treatment",
+        "description": "24 weeks (ontamalimab administered Q4W from Day 1 through Week 20)"
+      },
+      {
+        "name": "Follow-up",
+        "description": "12 weeks after last dose of study drug"
+      }
+    ]
+  }
+}

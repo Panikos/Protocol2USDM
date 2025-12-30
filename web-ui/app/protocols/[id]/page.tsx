@@ -209,8 +209,8 @@ export default function ProtocolDetailPage() {
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
-      <header className="border-b bg-white sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-3">
+      <header className="border-b bg-white sticky top-0 z-50 overflow-visible">
+        <div className="container mx-auto px-4 py-3 overflow-visible">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Link href="/protocols">
@@ -235,8 +235,8 @@ export default function ProtocolDetailPage() {
         </div>
 
         {/* Tab navigation */}
-        <div className="container mx-auto px-4 overflow-x-auto">
-          <nav className="flex items-center gap-1 -mb-px min-w-max pb-2">
+        <div className="container mx-auto px-4 overflow-visible">
+          <nav className="flex items-center gap-1 -mb-px min-w-max pb-2 overflow-visible">
             <TabGroup
               label="Protocol"
               icon={<FolderOpen className="h-4 w-4" />}
@@ -275,7 +275,7 @@ export default function ProtocolDetailPage() {
       </header>
 
       {/* Content */}
-      <main id="export-content" className="container mx-auto px-4 py-6">
+      <main id="export-content" className="container mx-auto px-4 py-6 relative z-0">
         {activeTab === 'overview' && (
           <StudyMetadataView usdm={usdm} />
         )}
@@ -329,33 +329,6 @@ export default function ProtocolDetailPage() {
         )}
       </main>
     </div>
-  );
-}
-
-function TabButton({ 
-  active, 
-  onClick, 
-  icon, 
-  children 
-}: { 
-  active: boolean; 
-  onClick: () => void; 
-  icon: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        'flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition-colors',
-        active
-          ? 'border-primary text-primary'
-          : 'border-transparent text-muted-foreground hover:text-foreground hover:border-gray-300'
-      )}
-    >
-      {icon}
-      {children}
-    </button>
   );
 }
 

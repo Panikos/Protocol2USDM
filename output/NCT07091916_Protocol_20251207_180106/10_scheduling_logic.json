@@ -1,0 +1,168 @@
+{
+  "success": true,
+  "pagesUsed": [
+    4,
+    7,
+    46
+  ],
+  "modelUsed": "claude-opus-4-5",
+  "confidence": 0.8,
+  "scheduling": {
+    "timings": [
+      {
+        "id": "timing_1",
+        "name": "Implant Visit Window",
+        "type": "Within",
+        "unit": "days",
+        "instanceType": "Timing",
+        "value": 30,
+        "relativeTo": "Study Start",
+        "windowLower": 0,
+        "windowUpper": 30
+      },
+      {
+        "id": "timing_2",
+        "name": "2-Week Follow-up Visit",
+        "type": "At",
+        "unit": "weeks",
+        "instanceType": "Timing",
+        "value": 2,
+        "relativeTo": "First Dose"
+      },
+      {
+        "id": "timing_3",
+        "name": "3-Month Follow-up Visit",
+        "type": "At",
+        "unit": "months",
+        "instanceType": "Timing",
+        "value": 3,
+        "relativeTo": "First Dose"
+      },
+      {
+        "id": "timing_4",
+        "name": "6-Month Follow-up Visit",
+        "type": "At",
+        "unit": "months",
+        "instanceType": "Timing",
+        "value": 6,
+        "relativeTo": "First Dose"
+      },
+      {
+        "id": "timing_5",
+        "name": "CT-scan or MRI Review Window",
+        "type": "Within",
+        "unit": "years",
+        "instanceType": "Timing",
+        "value": 1,
+        "relativeTo": "Baseline",
+        "windowLower": -365,
+        "windowUpper": 0
+      }
+    ],
+    "conditions": [
+      {
+        "id": "cond_1",
+        "name": "Unfavorable Mediastinal Anatomy",
+        "instanceType": "Condition",
+        "description": "Anatomical assessment determining procedure feasibility",
+        "text": "If the implanter feels the subject has unfavorable mediastinal anatomy, the procedure shall not be attempted"
+      },
+      {
+        "id": "cond_2",
+        "name": "Pre-implant Anatomy Evaluation",
+        "instanceType": "Condition",
+        "description": "Physical assessment criteria for substernal access",
+        "text": "Assess the subject in a supine position to evaluate potential abdominal interference to safely access substernal space and operator's ability to palpate xiphoid process, costal-rib margins and left sternal border"
+      },
+      {
+        "id": "cond_3",
+        "name": "Anticoagulation Management",
+        "instanceType": "Condition",
+        "description": "Requirement for anticoagulant management peri-procedurally",
+        "text": "Subjects on anticoagulants have oral and/or systemic anticoagulants withheld peri-procedurally in order to reduce risk of bleeding/hematoma"
+      },
+      {
+        "id": "cond_4",
+        "name": "CT/MRI Review Requirement for New Implanters",
+        "instanceType": "Condition",
+        "description": "Imaging review requirement for implanter experience",
+        "text": "It is also recommended to review a CT-scan (cardiac gated preferred) or MRI (taken within the last year) for the first 3 subjects at minimum, for each implanter"
+      }
+    ],
+    "conditionAssignments": [],
+    "transitionRules": [
+      {
+        "id": "trans_1",
+        "name": "Baseline to Implant Transition",
+        "instanceType": "TransitionRule",
+        "transitionType": "Epoch Transition",
+        "fromElementId": "epoch_baseline",
+        "toElementId": "epoch_implant",
+        "text": "It is recommended that the implant visit occurs within 30 days of study enrollment"
+      },
+      {
+        "id": "trans_2",
+        "name": "Discontinuation for Unfavorable Anatomy",
+        "instanceType": "TransitionRule",
+        "transitionType": "Discontinuation",
+        "text": "If the implanter feels the subject has unfavorable mediastinal anatomy, the procedure shall not be attempted, and the subject shall be exited from the study"
+      },
+      {
+        "id": "trans_3",
+        "name": "Exclusion Criterion 6 Exit",
+        "instanceType": "TransitionRule",
+        "transitionType": "Discontinuation",
+        "text": "Confirm the subject does not meet exclusion criterion 6 during pre-implant anatomy evaluation"
+      }
+    ],
+    "scheduleTimelineExits": [
+      {
+        "id": "exit_1",
+        "name": "Subject Withdrawal or Discontinuation",
+        "exitType": "Early Termination",
+        "instanceType": "ScheduleTimelineExit",
+        "description": "Subject may be withdrawn or discontinued as described in section 8.19"
+      },
+      {
+        "id": "exit_2",
+        "name": "Unfavorable Anatomy Exit",
+        "exitType": "Early Termination",
+        "instanceType": "ScheduleTimelineExit",
+        "description": "Subject exited from study if implanter determines unfavorable mediastinal anatomy"
+      },
+      {
+        "id": "exit_3",
+        "name": "Study-wide Suspension or Early Termination",
+        "exitType": "Early Termination",
+        "instanceType": "ScheduleTimelineExit",
+        "description": "Study-wide suspension or early termination as described in section 14.8"
+      },
+      {
+        "id": "exit_4",
+        "name": "Investigator/Site Suspension or Early Termination",
+        "exitType": "Early Termination",
+        "instanceType": "ScheduleTimelineExit",
+        "description": "Investigator or site level suspension or early termination"
+      }
+    ],
+    "scheduledDecisionInstances": [
+      {
+        "id": "dec_1",
+        "name": "Pre-implant Anatomy Decision",
+        "timepointId": "pt_baseline",
+        "instanceType": "ScheduledDecisionInstance",
+        "description": "Decision point for determining if implant procedure should proceed based on anatomical assessment",
+        "conditionIds": [
+          "cond_1",
+          "cond_2"
+        ]
+      }
+    ],
+    "summary": {
+      "timingCount": 5,
+      "conditionCount": 4,
+      "transitionRuleCount": 3,
+      "exitCount": 4
+    }
+  }
+}

@@ -204,6 +204,25 @@ python main_v2.py protocol.pdf --model gemini-2.5-pro
 python main_v2.py protocol.pdf --model gpt-4o
 ```
 
+### Complete Extraction (Recommended)
+
+```bash
+# Run EVERYTHING: full protocol + all post-processing
+python main_v2.py protocol.pdf --complete
+
+# With SAP document for analysis populations
+python main_v2.py protocol.pdf --complete --sap sap.pdf
+```
+
+**`--complete` enables:**
+| Option | Description |
+|--------|-------------|
+| `--full-protocol` | All 12 expansion phases (metadata, eligibility, objectives, etc.) |
+| `--soa` | Full SoA extraction pipeline |
+| `--enrich` | NCI terminology code enrichment |
+| `--validate-schema` | USDM schema validation |
+| `--conformance` | CDISC CORE conformance rules |
+
 ### Full Pipeline with Post-Processing
 
 ```bash
@@ -259,6 +278,7 @@ python main_v2.py protocol.pdf --conformance         # Step 9: CORE conformance
 | Scheduling | Timing, Condition, TransitionRule | `10_scheduling_logic.json` | `--scheduling` |
 | Doc Structure | NarrativeContentItem, StudyDefinitionDocument | `13_document_structure.json` | `--docstructure` |
 | Amendments | StudyAmendmentReason, ImpactedEntity | `14_amendment_details.json` | `--amendmentdetails` |
+| **Execution** | TimeAnchor, Repetition, StateMachine | `11_execution_model.json` | `--execution` |
 
 ### Conditional Sources (with `--sap` or `--sites`)
 

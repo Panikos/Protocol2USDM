@@ -51,26 +51,34 @@ export function TabGroup({
       </button>
 
       {isExpanded && (
-        <div className="absolute top-full left-0 z-50 mt-1 min-w-[160px] bg-background border rounded-lg shadow-lg py-1">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => {
-                onTabChange(tab.id);
-                setIsExpanded(false);
-              }}
-              className={cn(
-                'w-full flex items-center gap-2 px-3 py-2 text-sm transition-colors',
-                activeTab === tab.id
-                  ? 'bg-primary/10 text-primary font-medium'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-              )}
-            >
-              {tab.icon}
-              <span>{tab.label}</span>
-            </button>
-          ))}
-        </div>
+        <>
+          {/* Backdrop to close dropdown when clicking outside */}
+          <div 
+            className="fixed inset-0 z-[60]" 
+            onClick={() => setIsExpanded(false)}
+          />
+          <div className="absolute top-full left-0 z-[70] mt-1 min-w-[180px] bg-white dark:bg-slate-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl py-1">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onTabChange(tab.id);
+                  setIsExpanded(false);
+                }}
+                className={cn(
+                  'w-full flex items-center gap-2 px-3 py-2 text-sm transition-colors text-left',
+                  activeTab === tab.id
+                    ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-medium'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800'
+                )}
+              >
+                {tab.icon}
+                <span>{tab.label}</span>
+              </button>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );

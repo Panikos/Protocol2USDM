@@ -1,0 +1,266 @@
+{
+  "success": true,
+  "pagesUsed": [
+    2,
+    14,
+    26,
+    30
+  ],
+  "modelUsed": "claude-opus-4-5",
+  "confidence": 1.0,
+  "scheduling": {
+    "timings": [
+      {
+        "id": "timing_1",
+        "name": "Device Usage Duration",
+        "type": "Within",
+        "unit": "hours",
+        "instanceType": "Timing",
+        "value": 7,
+        "relativeTo": "Study Start",
+        "windowLower": 0,
+        "windowUpper": 7
+      },
+      {
+        "id": "timing_2",
+        "name": "Overall Study Duration",
+        "type": "Within",
+        "unit": "years",
+        "instanceType": "Timing",
+        "value": 2,
+        "relativeTo": "Study Start",
+        "windowLower": 0,
+        "windowUpper": 730
+      },
+      {
+        "id": "timing_3",
+        "name": "SAE Reporting Timeframe",
+        "type": "Within",
+        "unit": "days",
+        "instanceType": "Timing",
+        "value": 2,
+        "windowLower": 0,
+        "windowUpper": 2
+      },
+      {
+        "id": "timing_4",
+        "name": "UADE Reporting Timeframe",
+        "type": "Within",
+        "unit": "days",
+        "instanceType": "Timing",
+        "value": 10,
+        "windowLower": 0,
+        "windowUpper": 10
+      },
+      {
+        "id": "timing_5",
+        "name": "Emergency Protocol Deviation Reporting",
+        "type": "Within",
+        "unit": "days",
+        "instanceType": "Timing",
+        "value": 5,
+        "windowLower": 0,
+        "windowUpper": 5
+      },
+      {
+        "id": "timing_6",
+        "name": "Informed Consent Violation Reporting",
+        "type": "Within",
+        "unit": "days",
+        "instanceType": "Timing",
+        "value": 5,
+        "windowLower": 0,
+        "windowUpper": 5
+      },
+      {
+        "id": "timing_7",
+        "name": "IRB Withdrawal Notification",
+        "type": "Within",
+        "unit": "days",
+        "instanceType": "Timing",
+        "value": 5,
+        "windowLower": 0,
+        "windowUpper": 5
+      },
+      {
+        "id": "timing_8",
+        "name": "Device Recall Reporting",
+        "type": "Within",
+        "unit": "days",
+        "instanceType": "Timing",
+        "value": 30,
+        "windowLower": 0,
+        "windowUpper": 30
+      },
+      {
+        "id": "timing_9",
+        "name": "Interim Progress Report",
+        "type": "At",
+        "unit": "years",
+        "instanceType": "Timing",
+        "value": 1,
+        "windowLower": 0,
+        "windowUpper": 0
+      },
+      {
+        "id": "timing_10",
+        "name": "Final Report Submission",
+        "type": "Within",
+        "unit": "months",
+        "instanceType": "Timing",
+        "value": 6,
+        "relativeTo": "End of Treatment",
+        "windowLower": 0,
+        "windowUpper": 180
+      }
+    ],
+    "conditions": [
+      {
+        "id": "cond_1",
+        "name": "Febrile Confirmation Criteria",
+        "instanceType": "Condition",
+        "description": "Criteria for confirming febrile status at enrollment",
+        "text": "Oral measurement with Welch Allyn clinical thermometer >= 99.5 F"
+      },
+      {
+        "id": "cond_2",
+        "name": "Age Eligibility",
+        "instanceType": "Condition",
+        "description": "Age range for study participation",
+        "text": "Participants between the ages of 2-4 years"
+      },
+      {
+        "id": "cond_3",
+        "name": "Nonfebrile Patient Cap",
+        "instanceType": "Condition",
+        "description": "Maximum number of nonfebrile patients allowed",
+        "text": "Study will not include more than 25 nonfebrile patients"
+      },
+      {
+        "id": "cond_4",
+        "name": "Anatomical Limitation Exclusion",
+        "instanceType": "Condition",
+        "description": "Exclusion based on anatomical limitations",
+        "text": "Participants presenting an anatomical limitation that would prevent the use of the wearable device"
+      },
+      {
+        "id": "cond_5",
+        "name": "AE Causality - Definite",
+        "instanceType": "Condition",
+        "description": "Criteria for definite causality assessment",
+        "text": "Clear evidence to suggest a causal relationship, and other possible contributing factors can be ruled out. Clear clinical response to withdrawal of study intervention."
+      },
+      {
+        "id": "cond_6",
+        "name": "AE Causality - Probable",
+        "instanceType": "Condition",
+        "description": "Criteria for probable causality assessment",
+        "text": "Reasonable temporal sequence from study intervention, influence of other factors is unlikely, clinically reasonable response on withdrawal of study intervention."
+      }
+    ],
+    "conditionAssignments": [],
+    "transitionRules": [
+      {
+        "id": "trans_1",
+        "name": "Inclusion/Exclusion Deviation Handling",
+        "instanceType": "TransitionRule",
+        "transitionType": "Discontinuation",
+        "text": "If a subject who does not meet inclusion/exclusion criteria is inadvertently included, the Sponsor or a specified designee should be immediately contacted to obtain instructions on whether the subject should be discontinued from the study."
+      },
+      {
+        "id": "trans_2",
+        "name": "Discontinuation for Adverse Events",
+        "instanceType": "TransitionRule",
+        "transitionType": "Discontinuation",
+        "text": "Intolerable AE occurrence or treatment forces subject to stop participation in the study"
+      },
+      {
+        "id": "trans_3",
+        "name": "Discontinuation for Non-compliance",
+        "instanceType": "TransitionRule",
+        "transitionType": "Discontinuation",
+        "text": "Non-compliance of protocol and required procedures"
+      },
+      {
+        "id": "trans_4",
+        "name": "Discontinuation for Discharge",
+        "instanceType": "TransitionRule",
+        "transitionType": "Discontinuation",
+        "text": "Subject discharge from hospital"
+      }
+    ],
+    "scheduleTimelineExits": [
+      {
+        "id": "exit_1",
+        "name": "Parent/Legal Representative Withdrawal Request",
+        "exitType": "Early Termination",
+        "instanceType": "ScheduleTimelineExit",
+        "description": "Parents/Legal representatives' request to withdraw child from study"
+      },
+      {
+        "id": "exit_2",
+        "name": "Investigator Withdrawal Request",
+        "exitType": "Early Termination",
+        "instanceType": "ScheduleTimelineExit",
+        "description": "Investigator request to withdraw subject"
+      },
+      {
+        "id": "exit_3",
+        "name": "Discharge from Hospital",
+        "exitType": "Early Termination",
+        "instanceType": "ScheduleTimelineExit",
+        "description": "Subject discharge from hospital facility"
+      },
+      {
+        "id": "exit_4",
+        "name": "Adverse Event Withdrawal",
+        "exitType": "Early Termination",
+        "instanceType": "ScheduleTimelineExit",
+        "description": "Intolerable AE occurrence or treatment forces subject to stop participation in the study"
+      },
+      {
+        "id": "exit_5",
+        "name": "Protocol Non-compliance",
+        "exitType": "Early Termination",
+        "instanceType": "ScheduleTimelineExit",
+        "description": "Non-compliance of protocol and required procedures"
+      },
+      {
+        "id": "exit_6",
+        "name": "Study Completion",
+        "exitType": "Completion",
+        "instanceType": "ScheduleTimelineExit",
+        "description": "Completion of all protocol-required visits and device usage period"
+      }
+    ],
+    "scheduledDecisionInstances": [
+      {
+        "id": "dec_1",
+        "name": "Febrile Status Confirmation",
+        "timepointId": "enrollment",
+        "instanceType": "ScheduledDecisionInstance",
+        "description": "Decision point to confirm febrile status at enrollment using oral temperature measurement",
+        "conditionIds": [
+          "cond_1"
+        ]
+      },
+      {
+        "id": "dec_2",
+        "name": "Inclusion/Exclusion Deviation Decision",
+        "timepointId": "screening",
+        "instanceType": "ScheduledDecisionInstance",
+        "description": "Decision point for handling inadvertent inclusion of ineligible subjects",
+        "conditionIds": [
+          "cond_2",
+          "cond_4"
+        ]
+      }
+    ],
+    "summary": {
+      "timingCount": 10,
+      "conditionCount": 6,
+      "transitionRuleCount": 4,
+      "exitCount": 6
+    }
+  }
+}

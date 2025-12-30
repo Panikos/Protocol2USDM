@@ -1,0 +1,282 @@
+{
+  "success": true,
+  "pagesUsed": [
+    12,
+    13,
+    14
+  ],
+  "modelUsed": "claude-opus-4-5",
+  "eligibility": {
+    "eligibilityCriterionItems": [
+      {
+        "id": "eci_1",
+        "name": "Age requirement",
+        "text": "Male or female patients between ages 2 years -4 years of age",
+        "instanceType": "EligibilityCriterionItem"
+      },
+      {
+        "id": "eci_2",
+        "name": "Temperature requirement",
+        "text": "Confirmed oral temperature of >=99.5 F for febrile participants OR confirmed oral temperature of <99.5 F for afebrile participants",
+        "instanceType": "EligibilityCriterionItem"
+      },
+      {
+        "id": "eci_3",
+        "name": "Compliance willingness",
+        "text": "Willing and likely (based on the investigator's judgement) to comply with all study requirements",
+        "instanceType": "EligibilityCriterionItem"
+      },
+      {
+        "id": "eci_4",
+        "name": "Silicone allergy exclusion",
+        "text": "Participants who are allergic to silicone",
+        "instanceType": "EligibilityCriterionItem"
+      },
+      {
+        "id": "eci_5",
+        "name": "Sensory issues exclusion",
+        "text": "Adolescents with sensory issues who may find it difficult to have a wearable device on their chest.",
+        "instanceType": "EligibilityCriterionItem"
+      },
+      {
+        "id": "eci_6",
+        "name": "Anatomical limitation exclusion",
+        "text": "Participants presenting an anatomical limitation that would prevent the use of the wearable device",
+        "instanceType": "EligibilityCriterionItem"
+      }
+    ],
+    "eligibilityCriteria": [
+      {
+        "id": "ec_1",
+        "identifier": "1",
+        "category": {
+          "code": "Inclusion",
+          "codeSystem": "USDM",
+          "decode": "Inclusion"
+        },
+        "criterionItemId": "eci_1",
+        "instanceType": "EligibilityCriterion",
+        "name": "Age requirement",
+        "nextId": "ec_2"
+      },
+      {
+        "id": "ec_2",
+        "identifier": "2",
+        "category": {
+          "code": "Inclusion",
+          "codeSystem": "USDM",
+          "decode": "Inclusion"
+        },
+        "criterionItemId": "eci_2",
+        "instanceType": "EligibilityCriterion",
+        "name": "Temperature requirement",
+        "previousId": "ec_1",
+        "nextId": "ec_3"
+      },
+      {
+        "id": "ec_3",
+        "identifier": "3",
+        "category": {
+          "code": "Inclusion",
+          "codeSystem": "USDM",
+          "decode": "Inclusion"
+        },
+        "criterionItemId": "eci_3",
+        "instanceType": "EligibilityCriterion",
+        "name": "Compliance willingness",
+        "previousId": "ec_2"
+      },
+      {
+        "id": "ec_4",
+        "identifier": "1",
+        "category": {
+          "code": "Exclusion",
+          "codeSystem": "USDM",
+          "decode": "Exclusion"
+        },
+        "criterionItemId": "eci_4",
+        "instanceType": "EligibilityCriterion",
+        "name": "Silicone allergy exclusion",
+        "nextId": "ec_5"
+      },
+      {
+        "id": "ec_5",
+        "identifier": "2",
+        "category": {
+          "code": "Exclusion",
+          "codeSystem": "USDM",
+          "decode": "Exclusion"
+        },
+        "criterionItemId": "eci_5",
+        "instanceType": "EligibilityCriterion",
+        "name": "Sensory issues exclusion",
+        "previousId": "ec_4",
+        "nextId": "ec_6"
+      },
+      {
+        "id": "ec_6",
+        "identifier": "3",
+        "category": {
+          "code": "Exclusion",
+          "codeSystem": "USDM",
+          "decode": "Exclusion"
+        },
+        "criterionItemId": "eci_6",
+        "instanceType": "EligibilityCriterion",
+        "name": "Anatomical limitation exclusion",
+        "previousId": "ec_5"
+      }
+    ],
+    "summary": {
+      "inclusionCount": 3,
+      "exclusionCount": 3,
+      "totalCount": 6
+    }
+  },
+  "rawResponse": {
+    "eligibilityCriteria": [
+      {
+        "id": "ec_1",
+        "name": "Age requirement",
+        "identifier": "1",
+        "category": {
+          "code": "Inclusion",
+          "codeSystem": "http://www.cdisc.org/USDM/criterionCategory",
+          "decode": "Inclusion Criterion"
+        },
+        "criterionItemId": "eci_1",
+        "instanceType": "EligibilityCriterion"
+      },
+      {
+        "id": "ec_2",
+        "name": "Temperature requirement",
+        "identifier": "2",
+        "category": {
+          "code": "Inclusion",
+          "codeSystem": "http://www.cdisc.org/USDM/criterionCategory",
+          "decode": "Inclusion Criterion"
+        },
+        "criterionItemId": "eci_2",
+        "instanceType": "EligibilityCriterion"
+      },
+      {
+        "id": "ec_3",
+        "name": "Compliance willingness",
+        "identifier": "3",
+        "category": {
+          "code": "Inclusion",
+          "codeSystem": "http://www.cdisc.org/USDM/criterionCategory",
+          "decode": "Inclusion Criterion"
+        },
+        "criterionItemId": "eci_3",
+        "instanceType": "EligibilityCriterion"
+      },
+      {
+        "id": "ec_4",
+        "name": "Silicone allergy exclusion",
+        "identifier": "1",
+        "category": {
+          "code": "Exclusion",
+          "codeSystem": "http://www.cdisc.org/USDM/criterionCategory",
+          "decode": "Exclusion Criterion"
+        },
+        "criterionItemId": "eci_4",
+        "instanceType": "EligibilityCriterion"
+      },
+      {
+        "id": "ec_5",
+        "name": "Sensory issues exclusion",
+        "identifier": "2",
+        "category": {
+          "code": "Exclusion",
+          "codeSystem": "http://www.cdisc.org/USDM/criterionCategory",
+          "decode": "Exclusion Criterion"
+        },
+        "criterionItemId": "eci_5",
+        "instanceType": "EligibilityCriterion"
+      },
+      {
+        "id": "ec_6",
+        "name": "Anatomical limitation exclusion",
+        "identifier": "3",
+        "category": {
+          "code": "Exclusion",
+          "codeSystem": "http://www.cdisc.org/USDM/criterionCategory",
+          "decode": "Exclusion Criterion"
+        },
+        "criterionItemId": "eci_6",
+        "instanceType": "EligibilityCriterion"
+      }
+    ],
+    "eligibilityCriterionItems": [
+      {
+        "id": "eci_1",
+        "name": "Age requirement",
+        "text": "Male or female patients between ages 2 years -4 years of age",
+        "instanceType": "EligibilityCriterionItem"
+      },
+      {
+        "id": "eci_2",
+        "name": "Temperature requirement",
+        "text": "Confirmed oral temperature of >=99.5 F for febrile participants OR confirmed oral temperature of <99.5 F for afebrile participants",
+        "instanceType": "EligibilityCriterionItem"
+      },
+      {
+        "id": "eci_3",
+        "name": "Compliance willingness",
+        "text": "Willing and likely (based on the investigator's judgement) to comply with all study requirements",
+        "instanceType": "EligibilityCriterionItem"
+      },
+      {
+        "id": "eci_4",
+        "name": "Silicone allergy exclusion",
+        "text": "Participants who are allergic to silicone",
+        "instanceType": "EligibilityCriterionItem"
+      },
+      {
+        "id": "eci_5",
+        "name": "Sensory issues exclusion",
+        "text": "Adolescents with sensory issues who may find it difficult to have a wearable device on their chest.",
+        "instanceType": "EligibilityCriterionItem"
+      },
+      {
+        "id": "eci_6",
+        "name": "Anatomical limitation exclusion",
+        "text": "Participants presenting an anatomical limitation that would prevent the use of the wearable device",
+        "instanceType": "EligibilityCriterionItem"
+      }
+    ],
+    "population": {
+      "id": "pop_1",
+      "name": "Study Population",
+      "includesHealthySubjects": true,
+      "plannedEnrollmentNumber": {
+        "maxValue": 150,
+        "instanceType": "Range"
+      },
+      "plannedMinimumAge": "P2Y",
+      "plannedMaximumAge": "P4Y",
+      "plannedSex": [
+        {
+          "code": "Male",
+          "codeSystem": "http://www.cdisc.org/USDM/sex",
+          "decode": "Male"
+        },
+        {
+          "code": "Female",
+          "codeSystem": "http://www.cdisc.org/USDM/sex",
+          "decode": "Female"
+        }
+      ],
+      "criterionIds": [
+        "ec_1",
+        "ec_2",
+        "ec_3",
+        "ec_4",
+        "ec_5",
+        "ec_6"
+      ],
+      "instanceType": "StudyDesignPopulation"
+    }
+  }
+}

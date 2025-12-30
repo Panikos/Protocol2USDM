@@ -1,0 +1,784 @@
+{
+  "success": true,
+  "pagesUsed": [
+    6,
+    7,
+    8,
+    18,
+    19,
+    22,
+    26,
+    27,
+    28,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42
+  ],
+  "modelUsed": "claude-opus-4-5",
+  "confidence": 1.0,
+  "proceduresDevices": {
+    "procedures": [
+      {
+        "id": "proc_1",
+        "name": "Venipuncture",
+        "instanceType": "Procedure",
+        "label": "Blood Draw",
+        "description": "Collection of blood samples for laboratory analysis including hematology, chemistry panel, and other assessments",
+        "procedureType": {
+          "code": "Sample Collection",
+          "codeSystem": "USDM",
+          "decode": "Sample Collection"
+        },
+        "code": {
+          "code": "36415",
+          "codeSystem": "CPT",
+          "decode": "Collection of venous blood by venipuncture"
+        }
+      },
+      {
+        "id": "proc_2",
+        "name": "Physical Examination",
+        "instanceType": "Procedure",
+        "label": "Physical Exam",
+        "description": "Complete physical examination performed at screening",
+        "procedureType": {
+          "code": "Assessment",
+          "codeSystem": "USDM",
+          "decode": "Assessment"
+        },
+        "code": {
+          "code": "99201-99215",
+          "codeSystem": "CPT",
+          "decode": "Office or outpatient visit evaluation and management"
+        }
+      },
+      {
+        "id": "proc_3",
+        "name": "Height Measurement",
+        "instanceType": "Procedure",
+        "label": "Height",
+        "description": "Measurement of participant height per standardized protocol",
+        "procedureType": {
+          "code": "Assessment",
+          "codeSystem": "USDM",
+          "decode": "Assessment"
+        },
+        "code": {
+          "code": "3023F",
+          "codeSystem": "CPT",
+          "decode": "Height measurement"
+        }
+      },
+      {
+        "id": "proc_4",
+        "name": "Weight Measurement",
+        "instanceType": "Procedure",
+        "label": "Weight",
+        "description": "Body weight measurement obtained in fasting state per standardized protocol",
+        "procedureType": {
+          "code": "Assessment",
+          "codeSystem": "USDM",
+          "decode": "Assessment"
+        },
+        "code": {
+          "code": "3025F",
+          "codeSystem": "CPT",
+          "decode": "Weight measurement"
+        }
+      },
+      {
+        "id": "proc_5",
+        "name": "Waist Circumference Measurement",
+        "instanceType": "Procedure",
+        "label": "Waist Circumference",
+        "description": "Measurement of waist circumference per standardized protocol",
+        "procedureType": {
+          "code": "Assessment",
+          "codeSystem": "USDM",
+          "decode": "Assessment"
+        },
+        "code": {
+          "code": "3024F",
+          "codeSystem": "CPT",
+          "decode": "Waist circumference measurement"
+        }
+      },
+      {
+        "id": "proc_6",
+        "name": "Electrocardiogram",
+        "instanceType": "Procedure",
+        "label": "ECG",
+        "description": "12-lead electrocardiogram performed in triplicate at Weeks 0 and 36, single measurements at other timepoints. ECGs collected at least 30 minutes prior to blood sample collection",
+        "procedureType": {
+          "code": "Diagnostic",
+          "codeSystem": "USDM",
+          "decode": "Diagnostic"
+        },
+        "code": {
+          "code": "93000",
+          "codeSystem": "CPT",
+          "decode": "Electrocardiogram, routine ECG with at least 12 leads"
+        }
+      },
+      {
+        "id": "proc_7",
+        "name": "Vital Signs Measurement",
+        "instanceType": "Procedure",
+        "label": "Vital Signs",
+        "description": "Three sitting blood pressure and heart rate measurements taken before ECG and blood sample collection",
+        "procedureType": {
+          "code": "Monitoring",
+          "codeSystem": "USDM",
+          "decode": "Monitoring"
+        },
+        "code": {
+          "code": "99211",
+          "codeSystem": "CPT",
+          "decode": "Vital signs measurement"
+        }
+      },
+      {
+        "id": "proc_8",
+        "name": "Serum Pregnancy Test",
+        "instanceType": "Procedure",
+        "label": "Serum Pregnancy",
+        "description": "Serum pregnancy test performed at Visit 1 for women of childbearing potential",
+        "procedureType": {
+          "code": "Diagnostic",
+          "codeSystem": "USDM",
+          "decode": "Diagnostic"
+        },
+        "code": {
+          "code": "84703",
+          "codeSystem": "CPT",
+          "decode": "Gonadotropin, chorionic (hCG); quantitative"
+        }
+      },
+      {
+        "id": "proc_9",
+        "name": "Urine Pregnancy Test",
+        "instanceType": "Procedure",
+        "label": "Urine Pregnancy",
+        "description": "Urine pregnancy test performed at multiple visits for women of childbearing potential, result required prior to randomization and first injection",
+        "procedureType": {
+          "code": "Diagnostic",
+          "codeSystem": "USDM",
+          "decode": "Diagnostic"
+        },
+        "code": {
+          "code": "81025",
+          "codeSystem": "CPT",
+          "decode": "Urine pregnancy test"
+        }
+      },
+      {
+        "id": "proc_10",
+        "name": "Follicle-Stimulating Hormone Test",
+        "instanceType": "Procedure",
+        "label": "FSH Test",
+        "description": "FSH test performed at Visit 1 for postmenopausal women at least 40 years of age with intact uterus, not on hormone therapy, with spontaneous amenorrhea for more than 1 year",
+        "procedureType": {
+          "code": "Diagnostic",
+          "codeSystem": "USDM",
+          "decode": "Diagnostic"
+        },
+        "code": {
+          "code": "83001",
+          "codeSystem": "CPT",
+          "decode": "Gonadotropin; follicle stimulating hormone (FSH)"
+        }
+      },
+      {
+        "id": "proc_11",
+        "name": "2-Hour Oral Glucose Tolerance Test",
+        "instanceType": "Procedure",
+        "label": "OGTT",
+        "description": "2-hour OGTT consisting of assessment of glucose, insulin, and c-peptide at time 0, 30, 60, 90, and 120 minutes. Omitted at visits following protocol-defined diabetes diagnosis",
+        "procedureType": {
+          "code": "Diagnostic",
+          "codeSystem": "USDM",
+          "decode": "Diagnostic"
+        },
+        "code": {
+          "code": "82951",
+          "codeSystem": "CPT",
+          "decode": "Glucose tolerance test (GTT), 3 specimens"
+        }
+      },
+      {
+        "id": "proc_12",
+        "name": "Urinary Albumin/Creatinine Ratio",
+        "instanceType": "Procedure",
+        "label": "UACR",
+        "description": "Urinary albumin to creatinine ratio measurement",
+        "procedureType": {
+          "code": "Diagnostic",
+          "codeSystem": "USDM",
+          "decode": "Diagnostic"
+        },
+        "code": {
+          "code": "82043",
+          "codeSystem": "CPT",
+          "decode": "Urine albumin, microalbumin, quantitative"
+        }
+      },
+      {
+        "id": "proc_13",
+        "name": "Cystatin-C Test",
+        "instanceType": "Procedure",
+        "label": "Cystatin-C",
+        "description": "Cystatin-C laboratory assessment",
+        "procedureType": {
+          "code": "Diagnostic",
+          "codeSystem": "USDM",
+          "decode": "Diagnostic"
+        },
+        "code": {
+          "code": "82610",
+          "codeSystem": "CPT",
+          "decode": "Cystatin C"
+        }
+      },
+      {
+        "id": "proc_14",
+        "name": "Calcitonin Test",
+        "instanceType": "Procedure",
+        "label": "Calcitonin",
+        "description": "Calcitonin screening assessment to confirm eligibility",
+        "procedureType": {
+          "code": "Diagnostic",
+          "codeSystem": "USDM",
+          "decode": "Diagnostic"
+        },
+        "code": {
+          "code": "82308",
+          "codeSystem": "CPT",
+          "decode": "Calcitonin"
+        }
+      },
+      {
+        "id": "proc_15",
+        "name": "Hematology Panel",
+        "instanceType": "Procedure",
+        "label": "Hematology",
+        "description": "Complete hematology laboratory assessment",
+        "procedureType": {
+          "code": "Diagnostic",
+          "codeSystem": "USDM",
+          "decode": "Diagnostic"
+        },
+        "code": {
+          "code": "85025",
+          "codeSystem": "CPT",
+          "decode": "Complete blood count with differential"
+        }
+      },
+      {
+        "id": "proc_16",
+        "name": "Thyroid-Stimulating Hormone Test",
+        "instanceType": "Procedure",
+        "label": "TSH",
+        "description": "TSH screening assessment to confirm eligibility",
+        "procedureType": {
+          "code": "Diagnostic",
+          "codeSystem": "USDM",
+          "decode": "Diagnostic"
+        },
+        "code": {
+          "code": "84443",
+          "codeSystem": "CPT",
+          "decode": "Thyroid stimulating hormone (TSH)"
+        }
+      },
+      {
+        "id": "proc_17",
+        "name": "Chemistry Panel",
+        "instanceType": "Procedure",
+        "label": "Chemistry",
+        "description": "Chemistry panel including creatinine for eGFR calculation using CKD-EPI equation",
+        "procedureType": {
+          "code": "Diagnostic",
+          "codeSystem": "USDM",
+          "decode": "Diagnostic"
+        },
+        "code": {
+          "code": "80053",
+          "codeSystem": "CPT",
+          "decode": "Comprehensive metabolic panel"
+        }
+      },
+      {
+        "id": "proc_18",
+        "name": "Immunogenicity Assessment",
+        "instanceType": "Procedure",
+        "label": "ADA Testing",
+        "description": "Antidrug antibody testing including PK sample, collected prior to drug administration",
+        "procedureType": {
+          "code": "Diagnostic",
+          "codeSystem": "USDM",
+          "decode": "Diagnostic"
+        },
+        "code": {
+          "code": "86001",
+          "codeSystem": "CPT",
+          "decode": "Immunoassay for antibody"
+        }
+      },
+      {
+        "id": "proc_19",
+        "name": "Pharmacokinetic Sampling",
+        "instanceType": "Procedure",
+        "label": "TZP PK",
+        "description": "PK samples collected at time windows of 1-24 hours, 24-96 hours, or 120-168 hours post dose as assigned by IWRS",
+        "procedureType": {
+          "code": "Sample Collection",
+          "codeSystem": "USDM",
+          "decode": "Sample Collection"
+        },
+        "code": {
+          "code": "80299",
+          "codeSystem": "CPT",
+          "decode": "Quantitation of therapeutic drug"
+        }
+      },
+      {
+        "id": "proc_20",
+        "name": "Subcutaneous Injection",
+        "instanceType": "Procedure",
+        "label": "SC Injection",
+        "description": "Subcutaneous injection of study drug administered weekly using autoinjector",
+        "procedureType": {
+          "code": "Therapeutic",
+          "codeSystem": "USDM",
+          "decode": "Therapeutic"
+        },
+        "code": {
+          "code": "96372",
+          "codeSystem": "CPT",
+          "decode": "Therapeutic, prophylactic, or diagnostic injection; subcutaneous or intramuscular"
+        }
+      },
+      {
+        "id": "proc_21",
+        "name": "Patient Health Questionnaire-9",
+        "instanceType": "Procedure",
+        "label": "PHQ-9",
+        "description": "Depression screening questionnaire administered after assessment of adverse events",
+        "procedureType": {
+          "code": "Assessment",
+          "codeSystem": "USDM",
+          "decode": "Assessment"
+        },
+        "code": {
+          "code": "96127",
+          "codeSystem": "CPT",
+          "decode": "Brief emotional/behavioral assessment"
+        }
+      },
+      {
+        "id": "proc_22",
+        "name": "Columbia-Suicide Severity Rating Scale",
+        "instanceType": "Procedure",
+        "label": "C-SSRS",
+        "description": "Suicide risk assessment adapted for ideation and behavior categories only, administered after AE assessment",
+        "procedureType": {
+          "code": "Assessment",
+          "codeSystem": "USDM",
+          "decode": "Assessment"
+        },
+        "code": {
+          "code": "96127",
+          "codeSystem": "CPT",
+          "decode": "Brief emotional/behavioral assessment"
+        }
+      },
+      {
+        "id": "proc_23",
+        "name": "Self-Harm Supplement Form",
+        "instanceType": "Procedure",
+        "label": "Self-Harm Assessment",
+        "description": "Self-harm assessment administered after AE assessment",
+        "procedureType": {
+          "code": "Assessment",
+          "codeSystem": "USDM",
+          "decode": "Assessment"
+        },
+        "code": {
+          "code": "96127",
+          "codeSystem": "CPT",
+          "decode": "Brief emotional/behavioral assessment"
+        }
+      },
+      {
+        "id": "proc_24",
+        "name": "Short Form 36 version 2",
+        "instanceType": "Procedure",
+        "label": "SF-36v2",
+        "description": "Quality of life questionnaire, acute 1 week recall version",
+        "procedureType": {
+          "code": "Assessment",
+          "codeSystem": "USDM",
+          "decode": "Assessment"
+        },
+        "code": {
+          "code": "96161",
+          "codeSystem": "CPT",
+          "decode": "Administration of patient-focused health risk assessment instrument"
+        }
+      },
+      {
+        "id": "proc_25",
+        "name": "Impact of Weight on Quality of Life-Lite Clinical Trials Version",
+        "instanceType": "Procedure",
+        "label": "IWQOL-Lite-CT",
+        "description": "Weight-related quality of life assessment questionnaire",
+        "procedureType": {
+          "code": "Assessment",
+          "codeSystem": "USDM",
+          "decode": "Assessment"
+        },
+        "code": {
+          "code": "96161",
+          "codeSystem": "CPT",
+          "decode": "Administration of patient-focused health risk assessment instrument"
+        }
+      },
+      {
+        "id": "proc_26",
+        "name": "EQ-5D-5L",
+        "instanceType": "Procedure",
+        "label": "EQ-5D-5L",
+        "description": "Health-related quality of life questionnaire",
+        "procedureType": {
+          "code": "Assessment",
+          "codeSystem": "USDM",
+          "decode": "Assessment"
+        },
+        "code": {
+          "code": "96161",
+          "codeSystem": "CPT",
+          "decode": "Administration of patient-focused health risk assessment instrument"
+        }
+      },
+      {
+        "id": "proc_27",
+        "name": "Patient Global Impression of Status for Physical Activity",
+        "instanceType": "Procedure",
+        "label": "PGIS",
+        "description": "Patient-reported outcome assessment for physical activity status",
+        "procedureType": {
+          "code": "Assessment",
+          "codeSystem": "USDM",
+          "decode": "Assessment"
+        },
+        "code": {
+          "code": "96161",
+          "codeSystem": "CPT",
+          "decode": "Administration of patient-focused health risk assessment instrument"
+        }
+      },
+      {
+        "id": "proc_28",
+        "name": "Fasting Glucose Test",
+        "instanceType": "Procedure",
+        "label": "Fasting Glucose",
+        "description": "Fasting glucose measurement for glycemic status classification",
+        "procedureType": {
+          "code": "Diagnostic",
+          "codeSystem": "USDM",
+          "decode": "Diagnostic"
+        },
+        "code": {
+          "code": "82947",
+          "codeSystem": "CPT",
+          "decode": "Glucose; quantitative, blood"
+        }
+      },
+      {
+        "id": "proc_29",
+        "name": "Hemoglobin A1c Test",
+        "instanceType": "Procedure",
+        "label": "HbA1c",
+        "description": "HbA1c measurement for glycemic status classification",
+        "procedureType": {
+          "code": "Diagnostic",
+          "codeSystem": "USDM",
+          "decode": "Diagnostic"
+        },
+        "code": {
+          "code": "83036",
+          "codeSystem": "CPT",
+          "decode": "Hemoglobin; glycosylated (A1C)"
+        }
+      },
+      {
+        "id": "proc_30",
+        "name": "Insulin Measurement",
+        "instanceType": "Procedure",
+        "label": "Insulin",
+        "description": "Insulin measurement during OGTT at time 0, 30, 60, 90, and 120 minutes",
+        "procedureType": {
+          "code": "Diagnostic",
+          "codeSystem": "USDM",
+          "decode": "Diagnostic"
+        },
+        "code": {
+          "code": "83525",
+          "codeSystem": "CPT",
+          "decode": "Insulin; total"
+        }
+      },
+      {
+        "id": "proc_31",
+        "name": "C-Peptide Measurement",
+        "instanceType": "Procedure",
+        "label": "C-Peptide",
+        "description": "C-peptide measurement during OGTT at time 0, 30, 60, 90, and 120 minutes",
+        "procedureType": {
+          "code": "Diagnostic",
+          "codeSystem": "USDM",
+          "decode": "Diagnostic"
+        },
+        "code": {
+          "code": "84681",
+          "codeSystem": "CPT",
+          "decode": "C-peptide"
+        }
+      },
+      {
+        "id": "proc_32",
+        "name": "Pharmacogenetic Blood Sampling",
+        "instanceType": "Procedure",
+        "label": "Pharmacogenetics",
+        "description": "Whole blood sample collection for pharmacogenetic research",
+        "procedureType": {
+          "code": "Sample Collection",
+          "codeSystem": "USDM",
+          "decode": "Sample Collection"
+        },
+        "code": {
+          "code": "36415",
+          "codeSystem": "CPT",
+          "decode": "Collection of venous blood by venipuncture"
+        }
+      },
+      {
+        "id": "proc_33",
+        "name": "Injection Training",
+        "instanceType": "Procedure",
+        "label": "Injection Training",
+        "description": "Training with autoinjector demonstration device to ensure proper self-administration technique",
+        "procedureType": {
+          "code": "Assessment",
+          "codeSystem": "USDM",
+          "decode": "Assessment"
+        },
+        "code": {
+          "code": "99211",
+          "codeSystem": "CPT",
+          "decode": "Patient education and training"
+        }
+      },
+      {
+        "id": "proc_34",
+        "name": "Lifestyle Program Consultation",
+        "instanceType": "Procedure",
+        "label": "Dietician Consultation",
+        "description": "Counselling on diet and exercise by dietician including calculation of individualized energy requirement and methods to change dietary composition and physical activity",
+        "procedureType": {
+          "code": "Assessment",
+          "codeSystem": "USDM",
+          "decode": "Assessment"
+        },
+        "code": {
+          "code": "97802",
+          "codeSystem": "CPT",
+          "decode": "Medical nutrition therapy; initial assessment and intervention"
+        }
+      }
+    ],
+    "medicalDevices": [
+      {
+        "id": "dev_1",
+        "name": "Autoinjector",
+        "instanceType": "MedicalDevice",
+        "label": "Single-dose Pen",
+        "description": "Autoinjector device (also referred to as single-dose pen) for subcutaneous injection of tirzepatide or placebo",
+        "deviceType": {
+          "code": "Drug Delivery Device",
+          "codeSystem": "USDM",
+          "decode": "Drug Delivery Device"
+        },
+        "manufacturer": "Eli Lilly and Company",
+        "modelNumber": "Not specified"
+      },
+      {
+        "id": "dev_2",
+        "name": "Autoinjector Demonstration Device",
+        "instanceType": "MedicalDevice",
+        "label": "Demo Device",
+        "description": "Demonstration device used by study site personnel to train participants on proper autoinjector use",
+        "deviceType": {
+          "code": "Drug Delivery Device",
+          "codeSystem": "USDM",
+          "decode": "Drug Delivery Device"
+        },
+        "manufacturer": "Eli Lilly and Company",
+        "modelNumber": "Not specified"
+      },
+      {
+        "id": "dev_3",
+        "name": "ECG Device",
+        "instanceType": "MedicalDevice",
+        "label": "Electrocardiogram Device",
+        "description": "Device for recording 12-lead electrocardiograms",
+        "deviceType": {
+          "code": "Diagnostic Device",
+          "codeSystem": "USDM",
+          "decode": "Diagnostic Device"
+        },
+        "manufacturer": "Not specified",
+        "modelNumber": "Not specified"
+      },
+      {
+        "id": "dev_4",
+        "name": "Blood Pressure Monitor",
+        "instanceType": "MedicalDevice",
+        "label": "BP Monitor",
+        "description": "Device for measuring sitting blood pressure",
+        "deviceType": {
+          "code": "Monitoring Device",
+          "codeSystem": "USDM",
+          "decode": "Monitoring Device"
+        },
+        "manufacturer": "Not specified",
+        "modelNumber": "Not specified"
+      },
+      {
+        "id": "dev_5",
+        "name": "Participant Diary",
+        "instanceType": "MedicalDevice",
+        "label": "Study Diary",
+        "description": "Diary provided to participants to record key study information including study drug compliance",
+        "deviceType": {
+          "code": "Monitoring Device",
+          "codeSystem": "USDM",
+          "decode": "Monitoring Device"
+        },
+        "manufacturer": "Not specified",
+        "modelNumber": "Not specified"
+      }
+    ],
+    "medicalDeviceIdentifiers": [],
+    "ingredients": [
+      {
+        "id": "ing_1",
+        "name": "Tirzepatide",
+        "role": "Active",
+        "instanceType": "Ingredient",
+        "substanceId": "LY3298176"
+      },
+      {
+        "id": "ing_2",
+        "name": "Placebo",
+        "role": "Inactive",
+        "instanceType": "Ingredient",
+        "substanceId": "placebo_1"
+      }
+    ],
+    "strengths": [
+      {
+        "id": "str_1",
+        "instanceType": "Strength",
+        "value": 2.5,
+        "unit": "mg",
+        "numerator": {
+          "value": 2.5,
+          "unit": "mg"
+        },
+        "denominator": {
+          "value": 1,
+          "unit": "dose"
+        }
+      },
+      {
+        "id": "str_2",
+        "instanceType": "Strength",
+        "value": 5,
+        "unit": "mg",
+        "numerator": {
+          "value": 5,
+          "unit": "mg"
+        },
+        "denominator": {
+          "value": 1,
+          "unit": "dose"
+        }
+      },
+      {
+        "id": "str_3",
+        "instanceType": "Strength",
+        "value": 7.5,
+        "unit": "mg",
+        "numerator": {
+          "value": 7.5,
+          "unit": "mg"
+        },
+        "denominator": {
+          "value": 1,
+          "unit": "dose"
+        }
+      },
+      {
+        "id": "str_4",
+        "instanceType": "Strength",
+        "value": 10,
+        "unit": "mg",
+        "numerator": {
+          "value": 10,
+          "unit": "mg"
+        },
+        "denominator": {
+          "value": 1,
+          "unit": "dose"
+        }
+      },
+      {
+        "id": "str_5",
+        "instanceType": "Strength",
+        "value": 12.5,
+        "unit": "mg",
+        "numerator": {
+          "value": 12.5,
+          "unit": "mg"
+        },
+        "denominator": {
+          "value": 1,
+          "unit": "dose"
+        }
+      },
+      {
+        "id": "str_6",
+        "instanceType": "Strength",
+        "value": 15,
+        "unit": "mg",
+        "numerator": {
+          "value": 15,
+          "unit": "mg"
+        },
+        "denominator": {
+          "value": 1,
+          "unit": "dose"
+        }
+      }
+    ],
+    "summary": {
+      "procedureCount": 34,
+      "deviceCount": 5,
+      "ingredientCount": 2
+    }
+  }
+}

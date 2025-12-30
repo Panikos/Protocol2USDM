@@ -1,0 +1,273 @@
+{
+  "success": true,
+  "pagesUsed": [
+    3,
+    9,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    23,
+    34,
+    57
+  ],
+  "modelUsed": "gemini-2.5-pro",
+  "confidence": 1.0,
+  "scheduling": {
+    "timings": [
+      {
+        "id": "timing_1",
+        "name": "Screening Window",
+        "type": "Within",
+        "unit": "days",
+        "instanceType": "Timing",
+        "value": 28,
+        "windowLower": -28,
+        "windowUpper": -2
+      },
+      {
+        "id": "timing_2",
+        "name": "Washout Period",
+        "type": "Between",
+        "unit": "days",
+        "instanceType": "Timing",
+        "value": 3
+      },
+      {
+        "id": "timing_3",
+        "name": "Follow-up Visit Window",
+        "type": "At",
+        "unit": "days",
+        "instanceType": "Timing",
+        "value": 28,
+        "relativeTo": "Last Dose",
+        "windowLower": -2,
+        "windowUpper": 2
+      },
+      {
+        "id": "timing_4",
+        "name": "CRU Discharge",
+        "type": "After",
+        "unit": "hours",
+        "instanceType": "Timing",
+        "value": 6
+      },
+      {
+        "id": "timing_5",
+        "name": "Study Drug Administration Timing",
+        "type": "After",
+        "unit": "minutes",
+        "instanceType": "Timing",
+        "value": 5
+      },
+      {
+        "id": "timing_6",
+        "name": "Bedside PG Monitoring Interval (High PG)",
+        "type": "Within",
+        "unit": "minutes",
+        "instanceType": "Timing",
+        "value": 10
+      },
+      {
+        "id": "timing_7",
+        "name": "Bedside PG Monitoring Interval (Low PG)",
+        "type": "Within",
+        "unit": "minutes",
+        "instanceType": "Timing",
+        "value": 5
+      },
+      {
+        "id": "timing_8",
+        "name": "TE ADA Additional Follow-up Sampling",
+        "type": "At",
+        "unit": "weeks",
+        "instanceType": "Timing",
+        "value": 12,
+        "relativeTo": "Previous Visit",
+        "windowLower": -7,
+        "windowUpper": 7
+      },
+      {
+        "id": "timing_9",
+        "name": "Hypersensitivity Reaction Sampling",
+        "type": "After",
+        "unit": "days",
+        "instanceType": "Timing",
+        "value": 30
+      }
+    ],
+    "conditions": [
+      {
+        "id": "cond_1",
+        "name": "Admission Reschedule Condition",
+        "instanceType": "Condition",
+        "description": "Condition for rescheduling admission to the Clinical Research Unit (CRU).",
+        "text": "Admission can be rescheduled if PG level is not 90 to 250 mg/dL on Day 1."
+      },
+      {
+        "id": "cond_2",
+        "name": "Insulin Infusion Stop Criteria",
+        "instanceType": "Condition",
+        "description": "Criteria to stop the insulin infusion used to induce hypoglycemia.",
+        "text": "Insulin infusion is stopped once bedside PG is <60 mg/dL."
+      },
+      {
+        "id": "cond_3",
+        "name": "Interim Safety Review Trigger",
+        "instanceType": "Condition",
+        "description": "Condition for conducting an interim safety review.",
+        "text": "Safety data will be reviewed after the first 6 patients are administered LY900018 in Period 2 and complete Period 2 Day 1."
+      },
+      {
+        "id": "cond_4",
+        "name": "Continuation after Safety Review",
+        "instanceType": "Condition",
+        "description": "Condition for dosing the remaining patients after the interim safety review.",
+        "text": "If no clinically significant safety findings for treatment or study procedure are noted, the remaining patients will be dosed."
+      },
+      {
+        "id": "cond_5",
+        "name": "TE ADA Additional Follow-up Trigger",
+        "instanceType": "Condition",
+        "description": "Condition for initiating additional follow-up for immunogenicity.",
+        "text": "Patients with TE ADA at follow-up/ED will undergo additional follow-up."
+      },
+      {
+        "id": "cond_6",
+        "name": "TE ADA Additional Follow-up Stop Criteria",
+        "instanceType": "Condition",
+        "description": "Criteria for stopping the additional follow-up for immunogenicity.",
+        "text": "Additional follow-up continues until the titer returns to baseline (ie, returns to within a single 2-fold dilution of the baseline titer) or until 1 year after the last dose of study treatment."
+      },
+      {
+        "id": "cond_7",
+        "name": "Patient Replacement Criteria",
+        "instanceType": "Condition",
+        "description": "Criteria for replacing a patient who has discontinued.",
+        "text": "If patients discontinue from the study before completion of both periods with evaluable primary outcome for any reason, the patient may be replaced."
+      }
+    ],
+    "conditionAssignments": [],
+    "transitionRules": [
+      {
+        "id": "trans_1",
+        "name": "Transition to Additional Follow-up",
+        "instanceType": "TransitionRule",
+        "transitionType": "Epoch Transition",
+        "fromElementId": "epoch_main_study",
+        "toElementId": "epoch_additional_followup",
+        "text": "Patients with TE ADA at follow-up/ED will undergo additional follow-up."
+      },
+      {
+        "id": "trans_2",
+        "name": "Continuation of Enrollment Post-Safety Review",
+        "instanceType": "TransitionRule",
+        "transitionType": "Epoch Transition",
+        "fromElementId": "cohort_initial_safety",
+        "toElementId": "cohort_remaining",
+        "text": "If no clinically significant safety findings are noted after the first 6 patients complete Period 2, the remaining patients will be dosed."
+      },
+      {
+        "id": "trans_3",
+        "name": "Handling of Inadvertently Enrolled Patients",
+        "instanceType": "TransitionRule",
+        "transitionType": "Discontinuation",
+        "text": "If the sponsor or investigator identifies a patient who did not meet enrollment criteria, a discussion must occur to determine if the patient may continue in the study. Documented approval from the Lilly CP/CRP is required to allow the patient to continue."
+      }
+    ],
+    "scheduleTimelineExits": [
+      {
+        "id": "exit_1",
+        "name": "Enrollment in Another Clinical Study",
+        "exitType": "Early Termination",
+        "instanceType": "ScheduleTimelineExit",
+        "description": "Patient will be discontinued for enrollment in any other clinical study involving an investigational product or other incompatible medical research."
+      },
+      {
+        "id": "exit_2",
+        "name": "Discontinuation for Medical, Safety, or Regulatory Reasons",
+        "exitType": "Early Termination",
+        "instanceType": "ScheduleTimelineExit",
+        "description": "Patient will be discontinued if participation needs to be stopped for medical, safety, regulatory, or other reasons consistent with applicable laws, regulations, and good clinical practice."
+      },
+      {
+        "id": "exit_3",
+        "name": "Investigator Decision",
+        "exitType": "Early Termination",
+        "instanceType": "ScheduleTimelineExit",
+        "description": "The investigator decides that the patient should be discontinued from the study for any reason."
+      },
+      {
+        "id": "exit_4",
+        "name": "Patient Withdrawal",
+        "exitType": "Early Termination",
+        "instanceType": "ScheduleTimelineExit",
+        "description": "The patient, or legal representative, requests to be withdrawn from the study."
+      },
+      {
+        "id": "exit_5",
+        "name": "Study Discontinuation for Safety",
+        "exitType": "Early Termination",
+        "instanceType": "ScheduleTimelineExit",
+        "description": "Following the review of the safety data from the first 6 patients to complete Period 2 Day 1, the study will be stopped if deemed necessary for patient safety."
+      },
+      {
+        "id": "exit_6",
+        "name": "Lost to Follow-up",
+        "exitType": "Early Termination",
+        "instanceType": "ScheduleTimelineExit",
+        "description": "A patient will be considered lost to follow-up if he or she repeatedly fails to return for scheduled visits and is unable to be contacted by the study site."
+      },
+      {
+        "id": "exit_7",
+        "name": "Study Completion",
+        "exitType": "Completion",
+        "instanceType": "ScheduleTimelineExit",
+        "description": "Completion of all protocol-required visits, including the final follow-up visit."
+      }
+    ],
+    "scheduledDecisionInstances": [
+      {
+        "id": "dec_1",
+        "name": "Interim Safety Review Decision",
+        "timepointId": "After first 6 patients complete Period 2 Day 1",
+        "instanceType": "ScheduledDecisionInstance",
+        "description": "Decision point to continue dosing remaining patients or stop the study based on safety data from the first 6 patients.",
+        "conditionIds": [
+          "cond_3",
+          "cond_4"
+        ]
+      },
+      {
+        "id": "dec_2",
+        "name": "Admission Decision",
+        "timepointId": "Day 1 of each Treatment Period",
+        "instanceType": "ScheduledDecisionInstance",
+        "description": "Decision to proceed with or reschedule admission based on patient's plasma glucose level.",
+        "conditionIds": [
+          "cond_1"
+        ]
+      },
+      {
+        "id": "dec_3",
+        "name": "Additional Follow-up Decision",
+        "timepointId": "Follow-up/ED Visit",
+        "instanceType": "ScheduledDecisionInstance",
+        "description": "Decision to place a patient into an additional follow-up period based on the presence of treatment-emergent antidrug antibodies.",
+        "conditionIds": [
+          "cond_5"
+        ]
+      }
+    ],
+    "summary": {
+      "timingCount": 9,
+      "conditionCount": 7,
+      "transitionRuleCount": 3,
+      "exitCount": 7
+    }
+  }
+}

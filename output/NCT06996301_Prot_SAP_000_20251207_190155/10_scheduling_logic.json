@@ -1,0 +1,209 @@
+{
+  "success": true,
+  "pagesUsed": [
+    2,
+    8,
+    15,
+    16,
+    17,
+    34
+  ],
+  "modelUsed": "claude-opus-4-5",
+  "confidence": 1.0,
+  "scheduling": {
+    "timings": [
+      {
+        "id": "timing_1",
+        "name": "Study Duration",
+        "type": "Within",
+        "unit": "days",
+        "instanceType": "Timing",
+        "value": 28,
+        "relativeTo": "Study Start",
+        "windowLower": 0,
+        "windowUpper": 28
+      },
+      {
+        "id": "timing_2",
+        "name": "Visit 2 Treatment",
+        "type": "At",
+        "unit": "days",
+        "instanceType": "Timing",
+        "value": 5,
+        "relativeTo": "Baseline",
+        "windowLower": 0,
+        "windowUpper": 0
+      },
+      {
+        "id": "timing_3",
+        "name": "Visit 3 End-of-Study",
+        "type": "At",
+        "unit": "days",
+        "instanceType": "Timing",
+        "value": 28,
+        "relativeTo": "Baseline",
+        "windowLower": -7,
+        "windowUpper": 7
+      },
+      {
+        "id": "timing_4",
+        "name": "Prior Investigational Product Washout",
+        "type": "Before",
+        "unit": "days",
+        "instanceType": "Timing",
+        "value": 30,
+        "relativeTo": "Screening"
+      },
+      {
+        "id": "timing_5",
+        "name": "Prior Antibiotic Washout for UTI",
+        "type": "Before",
+        "unit": "hours",
+        "instanceType": "Timing",
+        "value": 48,
+        "relativeTo": "Baseline"
+      },
+      {
+        "id": "timing_6",
+        "name": "Prior Medication Review Window",
+        "type": "Before",
+        "unit": "days",
+        "instanceType": "Timing",
+        "value": 7,
+        "relativeTo": "Screening"
+      },
+      {
+        "id": "timing_7",
+        "name": "Prior Antimicrobial Review Window",
+        "type": "Before",
+        "unit": "days",
+        "instanceType": "Timing",
+        "value": 14,
+        "relativeTo": "Screening"
+      },
+      {
+        "id": "timing_8",
+        "name": "Prior Investigational Treatment Review Window",
+        "type": "Before",
+        "unit": "days",
+        "instanceType": "Timing",
+        "value": 30,
+        "relativeTo": "Screening"
+      }
+    ],
+    "conditions": [
+      {
+        "id": "cond_1",
+        "name": "Age Eligibility",
+        "instanceType": "Condition",
+        "description": "Minimum age requirement for study participation",
+        "text": "At least 18 years of age at the time of consent"
+      },
+      {
+        "id": "cond_2",
+        "name": "cUTI Signs and Symptoms",
+        "instanceType": "Condition",
+        "description": "Clinical presentation criteria for complicated UTI",
+        "text": "Presenting at least two of the following new, persistent or worsening cUTI signs and symptoms: fever (>38°C or >100.4°F), hypothermia (<35.5°C or <95.9°F), rigors, chills, dysuria, urinary frequency, urgency, hematuria, suprapubic pain, pelvic pain, CVA tenderness, nausea, vomiting, radiographic evidence of pyelonephritis, leukocytosis"
+      },
+      {
+        "id": "cond_3",
+        "name": "Pyuria Evidence",
+        "instanceType": "Condition",
+        "description": "Laboratory evidence of pyuria",
+        "text": "Urine specimen with evidence of pyuria: dipstick positive for nitrite and/or leukocyte esterase, or ≥10 WBCs per mm3, or ≥10 WBCs per hpf, or clinically suspected pyuria"
+      },
+      {
+        "id": "cond_4",
+        "name": "High-Risk Patient Population",
+        "instanceType": "Condition",
+        "description": "Criteria defining high-risk patients",
+        "text": "Elderly (≥65 years), male, pregnant, having recurrent UTI (≥3/year), with underlying co-morbidities (diabetes, immunosuppression, CKD), or with known functional and anatomical abnormalities of the urinary tract"
+      },
+      {
+        "id": "cond_5",
+        "name": "Urine Sample Volume",
+        "instanceType": "Condition",
+        "description": "Minimum urine sample requirement",
+        "text": "Able to provide at least 8 mL urine at visit 1 and 3"
+      },
+      {
+        "id": "cond_6",
+        "name": "Chronic Antibiotic Use Definition",
+        "instanceType": "Condition",
+        "description": "Definition of chronic medication use for exclusion",
+        "text": "Medication taken daily for ≥30 days or used on an as needed basis for ≥6 months"
+      }
+    ],
+    "conditionAssignments": [],
+    "transitionRules": [
+      {
+        "id": "trans_1",
+        "name": "Screening to Treatment Transition",
+        "instanceType": "TransitionRule",
+        "transitionType": "Epoch Transition",
+        "fromElementId": "epoch_screening",
+        "toElementId": "epoch_treatment",
+        "text": "Subject must meet all inclusion criteria (I1-I8) and none of the exclusion criteria (E1-E8)"
+      },
+      {
+        "id": "trans_2",
+        "name": "Prior Investigational Product Exclusion",
+        "instanceType": "TransitionRule",
+        "transitionType": "Discontinuation",
+        "text": "Currently participating in or has participated in an interventional clinical trial with an investigational product or device within 30 days prior to the Screening Visit"
+      },
+      {
+        "id": "trans_3",
+        "name": "Prior Antibiotic Use Exclusion",
+        "instanceType": "TransitionRule",
+        "transitionType": "Discontinuation",
+        "text": "Receipt of any dose of a potentially therapeutic oral or systemic antibiotics for the treatment of UTI within 48 hours before the study baseline urine is obtained"
+      },
+      {
+        "id": "trans_4",
+        "name": "Chronic Antibiotic Use Exclusion",
+        "instanceType": "TransitionRule",
+        "transitionType": "Discontinuation",
+        "text": "Currently on or chronic use of any antibiotics for any clinical indication, other than UTI"
+      }
+    ],
+    "scheduleTimelineExits": [
+      {
+        "id": "exit_1",
+        "name": "Study Completion",
+        "exitType": "Completion",
+        "instanceType": "ScheduleTimelineExit",
+        "description": "Subject completes the last study-related visit/contact"
+      },
+      {
+        "id": "exit_2",
+        "name": "Subject Withdrawal",
+        "exitType": "Early Termination",
+        "instanceType": "ScheduleTimelineExit",
+        "description": "Withdrawal from the study"
+      },
+      {
+        "id": "exit_3",
+        "name": "Lost to Follow-up",
+        "exitType": "Early Termination",
+        "instanceType": "ScheduleTimelineExit",
+        "description": "Subject is lost to follow-up"
+      },
+      {
+        "id": "exit_4",
+        "name": "Enrollment Completion",
+        "exitType": "Completion",
+        "instanceType": "ScheduleTimelineExit",
+        "description": "Last subject enrollment will occur when an adequate number of subjects that satisfy the study endpoint criteria are achieved"
+      }
+    ],
+    "scheduledDecisionInstances": [],
+    "summary": {
+      "timingCount": 8,
+      "conditionCount": 6,
+      "transitionRuleCount": 4,
+      "exitCount": 4
+    }
+  }
+}

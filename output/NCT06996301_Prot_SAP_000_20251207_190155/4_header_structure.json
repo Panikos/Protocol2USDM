@@ -1,0 +1,219 @@
+{
+  "columnHierarchy": {
+    "epochs": [
+      {
+        "id": "epoch_1",
+        "name": "Screening and Baseline",
+        "instanceType": "StudyEpoch",
+        "type": {
+          "id": "217e93a5-ddec-4e01-8570-f0732e561dec",
+          "code": "C98779",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Screening Epoch",
+          "instanceType": "Code"
+        }
+      },
+      {
+        "id": "epoch_2",
+        "name": "Treatment",
+        "instanceType": "StudyEpoch",
+        "type": {
+          "id": "22335808-4831-4cc2-a888-0aa8865d33d7",
+          "code": "C98780",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Treatment Epoch",
+          "instanceType": "Code"
+        }
+      },
+      {
+        "id": "epoch_3",
+        "name": "End-of-Study",
+        "instanceType": "StudyEpoch",
+        "type": {
+          "id": "6a234234-7425-4327-b5ca-6cdaad96d83c",
+          "code": "C98780",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Treatment Epoch",
+          "instanceType": "Code"
+        }
+      },
+      {
+        "id": "epoch_4",
+        "name": "Unscheduled",
+        "instanceType": "StudyEpoch",
+        "type": {
+          "id": "adadd250-ef1d-4a75-be59-b8c6e988ab7c",
+          "code": "C98780",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Treatment Epoch",
+          "instanceType": "Code"
+        }
+      }
+    ],
+    "encounters": [
+      {
+        "id": "enc_1",
+        "name": "Screening and Baseline V1 (Day 0)",
+        "instanceType": "Encounter",
+        "type": {
+          "id": "0123a4d8-60f0-4378-a776-624814b1f26a",
+          "code": "C48262",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Screening",
+          "instanceType": "Code"
+        },
+        "epochId": "epoch_1"
+      },
+      {
+        "id": "enc_2",
+        "name": "Treatment V2 (Day 0 to 5)",
+        "instanceType": "Encounter",
+        "type": {
+          "id": "8b5436e8-4f01-438e-9515-6706914525ed",
+          "code": "C99156",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Scheduled Visit",
+          "instanceType": "Code"
+        },
+        "epochId": "epoch_2"
+      },
+      {
+        "id": "enc_3",
+        "name": "End-of-Study V3 (Day 28 ± 7)",
+        "instanceType": "Encounter",
+        "type": {
+          "id": "d74d70de-1e94-4176-85ff-dc3425966dee",
+          "code": "C126070",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "End of Study",
+          "instanceType": "Code"
+        },
+        "epochId": "epoch_3"
+      },
+      {
+        "id": "enc_4",
+        "name": "Unscheduled Visit",
+        "instanceType": "Encounter",
+        "type": {
+          "id": "75bf62bf-be8b-410a-a7ca-d4cd26bcc865",
+          "code": "C99157",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Unscheduled",
+          "instanceType": "Code"
+        },
+        "epochId": "epoch_4"
+      }
+    ],
+    "plannedTimepoints": [
+      {
+        "id": "pt_1",
+        "visit": "Day 0",
+        "epoch": "",
+        "epochId": "",
+        "day": "",
+        "window": null,
+        "encounterId": "enc_1",
+        "instanceType": "Timing"
+      },
+      {
+        "id": "pt_2",
+        "visit": "Day 0 to 5",
+        "epoch": "",
+        "epochId": "",
+        "day": "",
+        "window": null,
+        "encounterId": "enc_2",
+        "instanceType": "Timing"
+      },
+      {
+        "id": "pt_3",
+        "visit": "Day 28 ± 7",
+        "epoch": "",
+        "epochId": "",
+        "day": "",
+        "window": null,
+        "encounterId": "enc_3",
+        "instanceType": "Timing"
+      },
+      {
+        "id": "pt_4",
+        "visit": "Unscheduled",
+        "epoch": "",
+        "epochId": "",
+        "day": "",
+        "window": null,
+        "encounterId": "enc_4",
+        "instanceType": "Timing"
+      }
+    ]
+  },
+  "rowGroups": [
+    {
+      "id": "grp_1",
+      "name": "Administrative",
+      "description": null,
+      "childIds": [],
+      "instanceType": "Activity",
+      "activityNames": [
+        "Informed Consent",
+        "Eligibility Criteria",
+        "Demographics",
+        "Medical history",
+        "Randomization",
+        "Study conclusion"
+      ]
+    },
+    {
+      "id": "grp_2",
+      "name": "Safety Assessments",
+      "description": null,
+      "childIds": [],
+      "instanceType": "Activity",
+      "activityNames": [
+        "Vital signs",
+        "Physical Examination",
+        "Adverse events"
+      ]
+    },
+    {
+      "id": "grp_3",
+      "name": "Treatment",
+      "description": null,
+      "childIds": [],
+      "instanceType": "Activity",
+      "activityNames": [
+        "Concomitant therapy",
+        "cUTI treatment"
+      ]
+    },
+    {
+      "id": "grp_4",
+      "name": "Laboratory/Diagnostics",
+      "description": null,
+      "childIds": [],
+      "instanceType": "Activity",
+      "activityNames": [
+        "Urine sample collection",
+        "Urine PCR",
+        "Urine C&S"
+      ]
+    }
+  ],
+  "footnotes": [
+    "i Treatment visit (Visit 2) and/or unscheduled visits may be conducted virtually",
+    "a Demographics include sex, age, date of birth",
+    "b Vital signs include body temperature (°C), SBP (mmHg), DBP (mmHg), HR (bpm) and may be conducted by the Investigator at their discretion",
+    "c AEs will be collected from the time of informed consent to EOS. Any ongoing AEs at EOS will be followed until resolution or stabilization",
+    "d cUTI treatment may continue at EOS and after patient's study exit",
+    "e Additional urine testing (PCR, C&S, or both) may be ordered at unscheduled visits at treating Investigator's discretion",
+    "f cUTI treatment must initiate within 24 hours of receiving the test results (either PCR or C&S as per subject's assigned arm)"
+  ]
+}

@@ -1,0 +1,309 @@
+{
+  "success": true,
+  "pagesUsed": [
+    2,
+    4,
+    10,
+    12,
+    15,
+    17,
+    20,
+    25,
+    27,
+    29,
+    32,
+    37,
+    39,
+    40,
+    41,
+    42,
+    57
+  ],
+  "modelUsed": "gemini-2.5-pro",
+  "confidence": 1.0,
+  "scheduling": {
+    "timings": [
+      {
+        "id": "timing_1",
+        "name": "Zinc Washout Period",
+        "type": "Before",
+        "unit": "days",
+        "instanceType": "Timing",
+        "value": 21,
+        "relativeTo": "First Dose"
+      },
+      {
+        "id": "timing_2",
+        "name": "Chelator Therapy Washout",
+        "type": "Before",
+        "unit": "days",
+        "instanceType": "Timing",
+        "value": 4,
+        "relativeTo": "First Dose"
+      },
+      {
+        "id": "timing_3",
+        "name": "Experimental Therapy Washout",
+        "type": "Before",
+        "unit": "days",
+        "instanceType": "Timing",
+        "value": 90,
+        "relativeTo": "Screening"
+      },
+      {
+        "id": "timing_4",
+        "name": "Prescription Medication Washout",
+        "type": "Before",
+        "unit": "days",
+        "instanceType": "Timing",
+        "value": 14
+      },
+      {
+        "id": "timing_5",
+        "name": "Non-Prescription Medication Washout",
+        "type": "Before",
+        "unit": "days",
+        "instanceType": "Timing",
+        "value": 7
+      },
+      {
+        "id": "timing_6",
+        "name": "Run-in Period",
+        "type": "Between",
+        "unit": "days",
+        "instanceType": "Timing",
+        "value": -7,
+        "relativeTo": "First Dose",
+        "windowLower": -7,
+        "windowUpper": -5
+      },
+      {
+        "id": "timing_7",
+        "name": "Baseline Collection Period",
+        "type": "Between",
+        "unit": "days",
+        "instanceType": "Timing",
+        "value": -4,
+        "relativeTo": "First Dose",
+        "windowLower": -4,
+        "windowUpper": -1
+      },
+      {
+        "id": "timing_8",
+        "name": "End of Study Visit Window",
+        "type": "At",
+        "unit": "days",
+        "instanceType": "Timing",
+        "value": 54,
+        "relativeTo": "First Dose",
+        "windowLower": -2,
+        "windowUpper": 2
+      },
+      {
+        "id": "timing_9",
+        "name": "Outpatient Dosing Window",
+        "type": "At",
+        "unit": "hours",
+        "instanceType": "Timing",
+        "value": 0,
+        "windowLower": -1,
+        "windowUpper": 1
+      },
+      {
+        "id": "timing_10",
+        "name": "Meal Delay Post-Dose",
+        "type": "After",
+        "unit": "hours",
+        "instanceType": "Timing",
+        "value": 2
+      },
+      {
+        "id": "timing_11",
+        "name": "Recurring Pregnancy Test",
+        "type": "At",
+        "unit": "weeks",
+        "instanceType": "Timing",
+        "value": 4,
+        "relativeTo": "Previous Visit"
+      },
+      {
+        "id": "timing_12",
+        "name": "Alcohol Abstinence",
+        "type": "Within",
+        "unit": "hours",
+        "instanceType": "Timing",
+        "value": 48,
+        "windowLower": -48,
+        "windowUpper": 0
+      }
+    ],
+    "conditions": [
+      {
+        "id": "cond_1",
+        "name": "Dose Titration Safety Review",
+        "instanceType": "Condition",
+        "description": "Safety Review Committee (SRC) must review available safety data through Day 23 for each participant before dose titration to 30 mg/day.",
+        "text": "Before titration to 30 mg/day, the Safety Review Committee (SRC) will review available safety data through Day 23 for each participant."
+      },
+      {
+        "id": "cond_2",
+        "name": "Outpatient Period Extension",
+        "instanceType": "Condition",
+        "description": "The Outpatient Period may be extended up to an additional 14 days with Investigator approval.",
+        "text": "To ensure flexibility, the Outpatient Period during Treatment Period 1 may be extended up to an additional 14 days with Investigator approval."
+      },
+      {
+        "id": "cond_3",
+        "name": "Dose Titration Safety Hold",
+        "instanceType": "Condition",
+        "description": "Participants may remain on the 15 mg/day dose for the duration of the study if there are safety concerns.",
+        "text": "participants may remain on the 15 mg/day dose for the duration of the study."
+      },
+      {
+        "id": "cond_4",
+        "name": "Rechallenge Limit",
+        "instanceType": "Condition",
+        "description": "A maximum of 3 rechallenges will be allowed following a dose modification.",
+        "text": "A maximum of 3 rechallenges will be allowed."
+      }
+    ],
+    "conditionAssignments": [],
+    "transitionRules": [
+      {
+        "id": "trans_1",
+        "name": "Scheduled Dose Titration",
+        "instanceType": "TransitionRule",
+        "transitionType": "Dose Modification",
+        "fromElementId": "dose_15mg",
+        "toElementId": "dose_30mg",
+        "text": "Participants will be administered ALXN1840 at 15 mg/day for a treatment period of approximately 28 days followed by titration up to 30 mg/day on Day 29."
+      },
+      {
+        "id": "trans_2",
+        "name": "Dose Interruption for Elevated Transaminases",
+        "instanceType": "TransitionRule",
+        "transitionType": "Dose Modification",
+        "text": "ALT or AST > 3x ULN and <= 5x ULN requires temporary interruption of dosing."
+      },
+      {
+        "id": "trans_3",
+        "name": "Discontinuation for Severe Hepatotoxicity",
+        "instanceType": "TransitionRule",
+        "transitionType": "Discontinuation",
+        "text": "ALT or AST > 5x ULN requires discontinuation of study intervention."
+      },
+      {
+        "id": "trans_4",
+        "name": "Dose Reduction for Anemia",
+        "instanceType": "TransitionRule",
+        "transitionType": "Dose Modification",
+        "text": "Hemoglobin < 10 g/dL requires dose reduction to previous dose level or 15 mg QOD."
+      },
+      {
+        "id": "trans_5",
+        "name": "Dose Reduction for Thrombocytopenia",
+        "instanceType": "TransitionRule",
+        "transitionType": "Dose Modification",
+        "text": "Platelets < 100,000/mm3 requires dose reduction to previous dose level or 15 mg QOD."
+      },
+      {
+        "id": "trans_6",
+        "name": "Dose Reduction for Neutropenia",
+        "instanceType": "TransitionRule",
+        "transitionType": "Dose Modification",
+        "text": "Neutrophils > 30% decrease from baseline and below reference range requires dose reduction."
+      },
+      {
+        "id": "trans_7",
+        "name": "Dose Interruption for Hy's Law Precursor",
+        "instanceType": "TransitionRule",
+        "transitionType": "Dose Modification",
+        "text": "Bilirubin > 2x ULN accompanied by ALT > 3x ULN requires temporary interruption."
+      },
+      {
+        "id": "trans_8",
+        "name": "Dose Modification for Neurologic Worsening",
+        "instanceType": "TransitionRule",
+        "transitionType": "Dose Modification",
+        "text": "Evidence of neurologic worsening by AEs or by neurologic physical exam assessment requires evaluation for dose modification."
+      },
+      {
+        "id": "trans_9",
+        "name": "Discontinuation for Pregnancy",
+        "instanceType": "TransitionRule",
+        "transitionType": "Discontinuation",
+        "text": "Participants must be considered for discontinuation from study intervention if pregnancy or planned pregnancy occurs."
+      }
+    ],
+    "scheduleTimelineExits": [
+      {
+        "id": "exit_1",
+        "name": "Study Completion",
+        "exitType": "Completion",
+        "instanceType": "ScheduleTimelineExit",
+        "description": "A participant is considered to have completed the study if he/she has completed all phases of the study including the last scheduled procedure shown in the Schedule of Activities."
+      },
+      {
+        "id": "exit_2",
+        "name": "Participant Withdrawal of Consent",
+        "exitType": "Early Termination",
+        "instanceType": "ScheduleTimelineExit",
+        "description": "A participant may withdraw from the study at any time at his/her own request."
+      },
+      {
+        "id": "exit_3",
+        "name": "Investigator Discretionary Withdrawal",
+        "exitType": "Early Termination",
+        "instanceType": "ScheduleTimelineExit",
+        "description": "A participant may be withdrawn at any time at the discretion of the Investigator for safety, behavioral, compliance, or administrative reasons."
+      },
+      {
+        "id": "exit_4",
+        "name": "Lost to Follow-up",
+        "exitType": "Early Termination",
+        "instanceType": "ScheduleTimelineExit",
+        "description": "A participant will be considered lost to follow-up if he or she repeatedly fails to return for scheduled visits and is unable to be contacted by the study site."
+      },
+      {
+        "id": "exit_5",
+        "name": "Sponsor Termination of Study",
+        "exitType": "Early Termination",
+        "instanceType": "ScheduleTimelineExit",
+        "description": "Alexion reserves the right to close the study site or terminate the study at any time for any reason at the sole discretion of Alexion."
+      },
+      {
+        "id": "exit_6",
+        "name": "Discontinuation for Severe Adverse Event",
+        "exitType": "Early Termination",
+        "instanceType": "ScheduleTimelineExit",
+        "description": "Participants must be considered for discontinuation from study intervention for serious hypersensitivity reaction or severe uncontrolled infection."
+      }
+    ],
+    "scheduledDecisionInstances": [
+      {
+        "id": "dec_1",
+        "name": "Dose Titration Decision",
+        "timepointId": "Day 29",
+        "instanceType": "ScheduledDecisionInstance",
+        "description": "Decision point to titrate dose from 15 mg/day to 30 mg/day based on safety review.",
+        "conditionIds": [
+          "cond_1",
+          "cond_3"
+        ]
+      },
+      {
+        "id": "dec_2",
+        "name": "Ongoing Dose Modification Decision",
+        "timepointId": "Any Visit",
+        "instanceType": "ScheduledDecisionInstance",
+        "description": "Decision point for dose modification (interruption, reduction) based on emergent safety data (e.g., lab results, AEs) as per dose modification criteria."
+      }
+    ],
+    "summary": {
+      "timingCount": 12,
+      "conditionCount": 4,
+      "transitionRuleCount": 9,
+      "exitCount": 6
+    }
+  }
+}

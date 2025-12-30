@@ -1,0 +1,360 @@
+{
+  "usdmVersion": "4.0",
+  "systemName": "Protocol2USDM",
+  "systemVersion": "6.2.0",
+  "study": {
+    "id": "c45567ff-341a-4195-ae96-ede413cb1ba1",
+    "name": "",
+    "instanceType": "Study",
+    "versions": [
+      {
+        "id": "8dc43b35-527a-49a6-b31c-5cbbc12f3b63",
+        "versionIdentifier": "1.0",
+        "rationale": "Initial protocol version",
+        "instanceType": "StudyVersion",
+        "studyDesigns": [
+          {
+            "id": "sd_1",
+            "name": "Study Design",
+            "rationale": "Protocol-defined study design",
+            "instanceType": "InterventionalStudyDesign",
+            "blindingSchema": {
+              "id": "87b14ccd-9023-4624-bc5a-67c9e270d645",
+              "instanceType": "AliasCode",
+              "standardCode": {
+                "id": "f1653f61-156d-4fa2-aa81-435ac6eba0e0",
+                "code": "C49656",
+                "codeSystem": "http://www.cdisc.org",
+                "codeSystemVersion": "2024-09-27",
+                "decode": "Open Label",
+                "instanceType": "Code"
+              }
+            },
+            "model": {
+              "id": "fc3c1052-bbb5-4155-9c7d-434710547622",
+              "code": "C82638",
+              "codeSystem": "http://www.cdisc.org",
+              "codeSystemVersion": "2024-09-27",
+              "decode": "Single Group Study",
+              "instanceType": "Code"
+            },
+            "epochs": [
+              {
+                "id": "epoch_1",
+                "name": "Study Period",
+                "instanceType": "StudyEpoch",
+                "type": {
+                  "id": "f612562a-5a91-4b0a-888e-e0bbf68ea215",
+                  "code": "C98780",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Treatment Epoch",
+                  "instanceType": "Code"
+                }
+              }
+            ],
+            "activities": [
+              {
+                "id": "grp_1",
+                "name": "Study Procedures",
+                "instanceType": "Activity",
+                "childIds": [
+                  "act_1",
+                  "act_2",
+                  "act_3",
+                  "act_4",
+                  "act_5"
+                ]
+              },
+              {
+                "id": "act_1",
+                "name": "Consenting and Inclusion",
+                "instanceType": "Activity",
+                "description": "Waiver of documentation of consent and assent for participants due to minimal risk study involving no procedures requiring written consent outside research context"
+              },
+              {
+                "id": "act_2",
+                "name": "Procedures Following Enrollment",
+                "instanceType": "Activity",
+                "description": "Enrollment procedures including device placement preparation and study setup"
+              },
+              {
+                "id": "act_3",
+                "name": "tempshield device placement",
+                "instanceType": "Activity",
+                "description": "The tempshield wearable device will be placed on the upper chest with gentle, silicon adhesive tape. The research team will register the wearable device and connect it to the AION BIOSTYEMS, INC. Shield app via the Samsung A13"
+              },
+              {
+                "id": "act_4",
+                "name": "Oral temperature measurement",
+                "instanceType": "Activity",
+                "description": "Oral temperature taken by the research team using a Welch Allyn 901053 Oral Thermometer and input information into the AION BIOSTYEMS, INC. app. Research coordinators will measure oral temperatures every 2 hours ±1 hour over the 24hour period, with a maximum of 6 recordings per pt"
+              },
+              {
+                "id": "act_5",
+                "name": "Data recording in Shield app",
+                "instanceType": "Activity",
+                "description": "Measurements of the tempshield sensor temperature will be recorded in the AION BIOSTYEMS, INC. Shield app. Oral temperatures will be de-identified and recorded in the app for comparison against tempshield data for clinical validation"
+              }
+            ],
+            "encounters": [
+              {
+                "id": "enc_1",
+                "name": "Visit 1",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "6db06aa9-6981-45b2-b459-7c982845603b",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_1"
+              },
+              {
+                "id": "enc_2",
+                "name": "Visit 2",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "bdba2145-572a-4667-9652-9b8e370c4a9c",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_1"
+              },
+              {
+                "id": "enc_3",
+                "name": "Visit 3",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "65e81693-2ed9-40b9-a7c4-059a935736b8",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_1"
+              },
+              {
+                "id": "enc_4",
+                "name": "Visit 4",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "48e5439d-7610-42e7-8a37-719dc5c434ab",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_1"
+              },
+              {
+                "id": "enc_5",
+                "name": "Visit 5",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "7d1f6c43-497e-44d0-8c65-2ffcdb4f1e87",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_1"
+              },
+              {
+                "id": "enc_6",
+                "name": "Visit 6",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "6174ff49-6b6c-4b56-ae53-07501b845ed6",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_1"
+              }
+            ],
+            "scheduleTimelines": [
+              {
+                "id": "timeline_1",
+                "name": "Main Schedule Timeline",
+                "mainTimeline": true,
+                "instanceType": "ScheduleTimeline",
+                "entryCondition": "Subject enrolled in study",
+                "entryId": "4941fc34-8167-4ff6-bf8a-fdcb18c998ca",
+                "instances": [
+                  {
+                    "id": "4941fc34-8167-4ff6-bf8a-fdcb18c998ca",
+                    "activityIds": [
+                      "act_1"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_1@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "d6a9fc5d-aa05-41f1-825a-23b1e296418e",
+                    "activityIds": [
+                      "act_2"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_2@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "e2ef3138-5ca1-4cca-ae7e-0f90da164dd8",
+                    "activityIds": [
+                      "act_3"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_3@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "5cb595ba-25e3-42f2-9af4-f18664647fbc",
+                    "activityIds": [
+                      "act_4"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_4@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "70af5bc4-903c-4cd5-8a51-8d012a312b1d",
+                    "activityIds": [
+                      "act_4"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_4@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "325df5ba-e4b5-463a-a658-d231c54d9ffe",
+                    "activityIds": [
+                      "act_4"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_4@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "7244a327-ad40-47ae-af23-46f4671debf7",
+                    "activityIds": [
+                      "act_4"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_4@enc_4",
+                    "encounterId": "enc_4"
+                  },
+                  {
+                    "id": "1cf049d2-f37e-4221-b593-ade209f2139a",
+                    "activityIds": [
+                      "act_4"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_4@enc_5",
+                    "encounterId": "enc_5"
+                  },
+                  {
+                    "id": "f322c61a-8e0a-49ed-af06-09dd820344fc",
+                    "activityIds": [
+                      "act_4"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_4@enc_6",
+                    "encounterId": "enc_6"
+                  },
+                  {
+                    "id": "590a3e79-62bb-4689-b0fb-ca12b68c95c9",
+                    "activityIds": [
+                      "act_5"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_5@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "a3c40e59-9202-40a3-8d9a-715541ebd345",
+                    "activityIds": [
+                      "act_5"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_5@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "3d3146f2-02d2-4e39-9b38-f44896915c5a",
+                    "activityIds": [
+                      "act_5"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_5@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "9a442504-8059-4ea9-a2dc-a76bc31f9639",
+                    "activityIds": [
+                      "act_5"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_5@enc_4",
+                    "encounterId": "enc_4"
+                  },
+                  {
+                    "id": "f78094de-d6b3-44de-bc6e-d773a60502bf",
+                    "activityIds": [
+                      "act_5"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_5@enc_5",
+                    "encounterId": "enc_5"
+                  },
+                  {
+                    "id": "9a0ce07d-85f9-40fd-9a76-47d624daaa89",
+                    "activityIds": [
+                      "act_5"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_5@enc_6",
+                    "encounterId": "enc_6"
+                  }
+                ]
+              }
+            ],
+            "notes": [
+              {
+                "id": "soa_fn_1",
+                "text": "Subjects will receive a $25 Amazon or Target gift card after second oral temperature is obtained",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_2",
+                "text": "Children will receive the $10-$20 small stuffed toy after the second oral temperature reading is obtained",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_3",
+                "text": "Device will be removed overnight when outside of research hours",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_4",
+                "text": "Research coordinators will measure oral temperatures every 2 hours ±1 hour over the 24hour period, with a maximum of 6 recordings per pt",
+                "instanceType": "CommentAnnotation"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

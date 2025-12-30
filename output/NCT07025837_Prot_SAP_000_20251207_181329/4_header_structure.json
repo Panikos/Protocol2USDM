@@ -1,0 +1,140 @@
+{
+  "columnHierarchy": {
+    "epochs": [
+      {
+        "id": "epoch_1",
+        "name": "Screening",
+        "instanceType": "StudyEpoch",
+        "type": {
+          "id": "c5a32b70-1831-493d-99db-161690fa4e71",
+          "code": "C98779",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Screening Epoch",
+          "instanceType": "Code"
+        }
+      },
+      {
+        "id": "epoch_2",
+        "name": "Intervention",
+        "instanceType": "StudyEpoch",
+        "type": {
+          "id": "ad9b6abb-4ff8-4642-bc5b-6fccfb5e8e8a",
+          "code": "C98780",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Treatment Epoch",
+          "instanceType": "Code"
+        }
+      },
+      {
+        "id": "epoch_3",
+        "name": "Conclusion",
+        "instanceType": "StudyEpoch",
+        "type": {
+          "id": "85a0ba3c-c5ec-4f4e-97ed-65a2659b35ca",
+          "code": "C98780",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Treatment Epoch",
+          "instanceType": "Code"
+        }
+      }
+    ],
+    "encounters": [
+      {
+        "id": "enc_1",
+        "name": "Screening",
+        "instanceType": "Encounter",
+        "type": {
+          "id": "10a61f03-6e7c-4707-bef4-19b13cf8c7a5",
+          "code": "C48262",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Screening",
+          "instanceType": "Code"
+        },
+        "epochId": "epoch_1"
+      },
+      {
+        "id": "enc_2",
+        "name": "Intervention",
+        "instanceType": "Encounter",
+        "type": {
+          "id": "4749bac9-e33a-492f-a5de-66973f976369",
+          "code": "C99156",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Scheduled Visit",
+          "instanceType": "Code"
+        },
+        "epochId": "epoch_2"
+      },
+      {
+        "id": "enc_3",
+        "name": "Conclusion",
+        "instanceType": "Encounter",
+        "type": {
+          "id": "26dcb05a-3356-431f-ae30-50b033dbc6b6",
+          "code": "C99156",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Scheduled Visit",
+          "instanceType": "Code"
+        },
+        "epochId": "epoch_3"
+      }
+    ],
+    "plannedTimepoints": [
+      {
+        "id": "pt_1",
+        "visit": "Baseline",
+        "epoch": "",
+        "epochId": "",
+        "day": "",
+        "window": null,
+        "encounterId": "enc_1",
+        "instanceType": "Timing"
+      },
+      {
+        "id": "pt_2",
+        "visit": "Week 2, 4, 6, 8, 10, 12",
+        "epoch": "",
+        "epochId": "",
+        "day": "",
+        "window": null,
+        "encounterId": "enc_2",
+        "instanceType": "Timing"
+      },
+      {
+        "id": "pt_3",
+        "visit": "Week 12",
+        "epoch": "",
+        "epochId": "",
+        "day": "",
+        "window": null,
+        "encounterId": "enc_3",
+        "instanceType": "Timing"
+      }
+    ]
+  },
+  "rowGroups": [
+    {
+      "id": "grp_1",
+      "name": "Procedures",
+      "description": null,
+      "childIds": [],
+      "instanceType": "Activity",
+      "activityNames": [
+        "Informed Consent",
+        "Demographics",
+        "Inclusion/Exclusion",
+        "Administer Study Intervention",
+        "Surveys",
+        "Photos",
+        "Adverse Event Review and Evaluation"
+      ]
+    }
+  ],
+  "footnotes": []
+}

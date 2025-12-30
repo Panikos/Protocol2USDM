@@ -1,0 +1,369 @@
+{
+  "success": true,
+  "pagesUsed": [
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49
+  ],
+  "modelUsed": "gemini-2.5-pro",
+  "interventions": {
+    "studyInterventions": [
+      {
+        "id": "int_1",
+        "name": "LY900018",
+        "role": {
+          "code": "Investigational Product",
+          "codeSystem": "USDM",
+          "decode": "Investigational Product"
+        },
+        "instanceType": "StudyIntervention",
+        "description": "Nasal glucagon (LY900018) is a powder formulation of human glucagon for the rescue treatment of hypoglycemia.",
+        "productIds": [
+          "prod_1"
+        ],
+        "administrationIds": [
+          "admin_1"
+        ]
+      },
+      {
+        "id": "int_2",
+        "name": "GlucaGen",
+        "role": {
+          "code": "Comparator",
+          "codeSystem": "USDM",
+          "decode": "Comparator"
+        },
+        "instanceType": "StudyIntervention",
+        "description": "Intramuscular glucagon (IMG) used as an active comparator.",
+        "productIds": [
+          "prod_2"
+        ],
+        "administrationIds": [
+          "admin_2"
+        ]
+      },
+      {
+        "id": "int_3",
+        "name": "Human regular insulin",
+        "role": {
+          "code": "Concomitant Medication",
+          "codeSystem": "USDM",
+          "decode": "Concomitant Medication"
+        },
+        "instanceType": "StudyIntervention",
+        "description": "Administered via IV infusion to induce hypoglycemia for the study procedure.",
+        "productIds": [
+          "prod_3"
+        ],
+        "administrationIds": [
+          "admin_3"
+        ]
+      },
+      {
+        "id": "int_4",
+        "name": "IV glucose",
+        "role": {
+          "code": "Rescue Medication",
+          "codeSystem": "USDM",
+          "decode": "Rescue Medication"
+        },
+        "instanceType": "StudyIntervention",
+        "description": "Administered if a patient's bedside plasma glucose concentration remains low after glucagon administration or if severe hypoglycemia symptoms occur.",
+        "productIds": [
+          "prod_4"
+        ],
+        "administrationIds": [
+          "admin_4"
+        ]
+      }
+    ],
+    "administrableProducts": [
+      {
+        "id": "prod_1",
+        "name": "LY900018",
+        "instanceType": "AdministrableProduct",
+        "doseForm": {
+          "code": "Powder",
+          "codeSystem": "USDM",
+          "decode": "Powder"
+        },
+        "strength": "3 mg",
+        "substanceIds": [
+          "sub_1"
+        ],
+        "manufacturer": "Lilly"
+      },
+      {
+        "id": "prod_2",
+        "name": "GlucaGen",
+        "instanceType": "AdministrableProduct",
+        "doseForm": {
+          "code": "Injection",
+          "codeSystem": "USDM",
+          "decode": "Injection"
+        },
+        "strength": "1 mg",
+        "substanceIds": [
+          "sub_2"
+        ],
+        "manufacturer": "Novo Nordisk A/S"
+      },
+      {
+        "id": "prod_3",
+        "name": "Human regular insulin",
+        "instanceType": "AdministrableProduct",
+        "doseForm": {
+          "code": "Solution",
+          "codeSystem": "USDM",
+          "decode": "Solution"
+        },
+        "strength": "100 U/mL diluted to 0.3 U/mL",
+        "substanceIds": [
+          "sub_3"
+        ]
+      },
+      {
+        "id": "prod_4",
+        "name": "IV glucose",
+        "instanceType": "AdministrableProduct",
+        "doseForm": {
+          "code": "Solution",
+          "codeSystem": "USDM",
+          "decode": "Solution"
+        }
+      }
+    ],
+    "administrations": [
+      {
+        "id": "admin_1",
+        "name": "LY900018 3 mg single dose",
+        "instanceType": "Administration",
+        "dose": "3 mg",
+        "doseFrequency": "single dose per period",
+        "route": {
+          "code": "Intranasal",
+          "codeSystem": "USDM",
+          "decode": "Intranasal"
+        },
+        "duration": "Single administration"
+      },
+      {
+        "id": "admin_2",
+        "name": "GlucaGen 1 mg single dose",
+        "instanceType": "Administration",
+        "dose": "1 mg",
+        "doseFrequency": "single dose per period",
+        "route": {
+          "code": "Intramuscular",
+          "codeSystem": "USDM",
+          "decode": "Intramuscular"
+        },
+        "duration": "Single administration"
+      },
+      {
+        "id": "admin_3",
+        "name": "Human regular insulin infusion",
+        "instanceType": "Administration",
+        "dose": "2 mU/kg/min, adjustable up to 3 mU/kg/min for T1DM or 4 mU/kg/min for T2DM",
+        "doseFrequency": "once per period",
+        "route": {
+          "code": "Intravenous",
+          "codeSystem": "USDM",
+          "decode": "Intravenous"
+        },
+        "duration": "Until bedside plasma glucose level is <60 mg/dL, for a maximum of 4 hours."
+      },
+      {
+        "id": "admin_4",
+        "name": "IV glucose rescue",
+        "instanceType": "Administration",
+        "dose": "As deemed clinically necessary",
+        "doseFrequency": "As needed",
+        "route": {
+          "code": "Intravenous",
+          "codeSystem": "USDM",
+          "decode": "Intravenous"
+        },
+        "duration": "As needed"
+      }
+    ],
+    "substances": [
+      {
+        "id": "sub_1",
+        "name": "glucagon",
+        "instanceType": "Substance",
+        "description": "A synthetic single-chain, 29-amino-acid polypeptide identical to human glucagon."
+      },
+      {
+        "id": "sub_2",
+        "name": "human regular insulin",
+        "instanceType": "Substance",
+        "description": "Active substance used to induce hypoglycemia."
+      },
+      {
+        "id": "sub_3",
+        "name": "glucose",
+        "instanceType": "Substance",
+        "description": "Active substance in rescue medication for insufficient response to glucagon."
+      }
+    ],
+    "medicalDevices": [
+      {
+        "id": "dev_1",
+        "name": "Nasal delivery device",
+        "instanceType": "MedicalDevice",
+        "manufacturer": "Lilly"
+      }
+    ],
+    "summary": {
+      "interventionCount": 4,
+      "productCount": 4,
+      "deviceCount": 1
+    }
+  },
+  "rawResponse": {
+    "interventions": [
+      {
+        "name": "LY900018",
+        "role": "Investigational Product",
+        "description": "Nasal glucagon (LY900018) is a powder formulation of human glucagon for the rescue treatment of hypoglycemia."
+      },
+      {
+        "name": "GlucaGen",
+        "role": "Comparator",
+        "description": "Intramuscular glucagon (IMG) used as an active comparator."
+      },
+      {
+        "name": "Human regular insulin",
+        "role": "Concomitant Medication",
+        "description": "Administered via IV infusion to induce hypoglycemia for the study procedure."
+      },
+      {
+        "name": "IV glucose",
+        "role": "Rescue Medication",
+        "description": "Administered if a patient's bedside plasma glucose concentration remains low after glucagon administration or if severe hypoglycemia symptoms occur."
+      }
+    ],
+    "products": [
+      {
+        "name": "LY900018",
+        "doseForm": "Nasal powder",
+        "strength": "3 mg",
+        "manufacturer": "Lilly"
+      },
+      {
+        "name": "GlucaGen",
+        "doseForm": "Powder for injection",
+        "strength": "1 mg",
+        "manufacturer": "Novo Nordisk A/S"
+      },
+      {
+        "name": "Human regular insulin",
+        "doseForm": "Solution for infusion",
+        "strength": "100 U/mL diluted to 0.3 U/mL",
+        "manufacturer": null
+      },
+      {
+        "name": "IV glucose",
+        "doseForm": "Solution for infusion",
+        "strength": null,
+        "manufacturer": null
+      }
+    ],
+    "substances": [
+      {
+        "name": "glucagon",
+        "description": "A synthetic single-chain, 29-amino-acid polypeptide identical to human glucagon."
+      },
+      {
+        "name": "human regular insulin",
+        "description": "Active substance used to induce hypoglycemia."
+      },
+      {
+        "name": "glucose",
+        "description": "Active substance in rescue medication for insufficient response to glucagon."
+      }
+    ],
+    "administrations": [
+      {
+        "name": "LY900018 3 mg single dose",
+        "dose": "3 mg",
+        "frequency": "single dose per period",
+        "route": "Intranasal",
+        "duration": "Single administration"
+      },
+      {
+        "name": "GlucaGen 1 mg single dose",
+        "dose": "1 mg",
+        "frequency": "single dose per period",
+        "route": "Intramuscular",
+        "duration": "Single administration"
+      },
+      {
+        "name": "Human regular insulin infusion",
+        "dose": "2 mU/kg/min, adjustable up to 3 mU/kg/min for T1DM or 4 mU/kg/min for T2DM",
+        "frequency": "once per period",
+        "route": "Intravenous",
+        "duration": "Until bedside plasma glucose level is <60 mg/dL, for a maximum of 4 hours."
+      },
+      {
+        "name": "IV glucose rescue",
+        "dose": "As deemed clinically necessary",
+        "frequency": "As needed",
+        "route": "Intravenous",
+        "duration": "As needed"
+      }
+    ],
+    "devices": [
+      {
+        "name": "Nasal delivery device",
+        "manufacturer": "Lilly",
+        "purpose": "A single-use, nasal dosing device included as part of the LY900018 investigational drug product to deliver the contained drug constituent."
+      }
+    ]
+  }
+}
