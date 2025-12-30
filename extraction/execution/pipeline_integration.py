@@ -441,6 +441,14 @@ def enrich_usdm_with_execution_model(
         
         # Add all execution extensions
         _add_execution_extensions(design, execution_data)
+        
+        # FIX 5: Run integrity validation before finalizing
+        integrity_issues = validate_execution_model_integrity(execution_data, design)
+        if integrity_issues:
+            # Store issues as extension for downstream visibility
+            design['extensionAttributes'].append(_create_extension_attribute(
+                "x-executionModel-integrityIssues", integrity_issues
+            ))
     
     return enriched
 
@@ -576,12 +584,52 @@ def _add_execution_extensions(
             "x-executionModel-crossoverDesign", execution_data.crossover_design.to_dict()
         ))
     
-    # Phase 2: Add traversal constraints (FIX E: resolve to real epoch IDs)
+    # Phase 2: Add traversal constraints (FIX 2: resolve to real epoch IDs)
     if execution_data.traversal_constraints:
         # Get existing epoch and encounter IDs
         epoch_ids = {e.get('id') for e in design.get('epochs', [])}
-        epoch_names = {e.get('name', '').upper().replace(' ', '_'): e.get('id') 
-                       for e in design.get('epochs', [])}
+        
+        # Build comprehensive epoch name mapping with aliases
+        epoch_names = {}
+        for e in design.get('epochs', []):
+            epoch_id = e.get('id')
+            epoch_name = e.get('name', '')
+            
+            # Primary mapping
+            normalized = epoch_name.upper().replace(' ', '_').replace('-', '_')
+            epoch_names[normalized] = epoch_id
+            epoch_names[epoch_name.upper()] = epoch_id
+            
+            # Add common aliases
+            name_lower = epoch_name.lower()
+            if 'screen' in name_lower:
+                epoch_names['SCREENING'] = epoch_id
+                epoch_names['SCREEN'] = epoch_id
+            if 'run' in name_lower and 'in' in name_lower:
+                epoch_names['RUN_IN'] = epoch_id
+                epoch_names['RUNIN'] = epoch_id
+            if 'baseline' in name_lower or 'day 1' in name_lower:
+                epoch_names['BASELINE'] = epoch_id
+                epoch_names['DAY_1'] = epoch_id
+            if 'treatment' in name_lower or 'active' in name_lower:
+                epoch_names['TREATMENT'] = epoch_id
+                epoch_names['ACTIVE_TREATMENT'] = epoch_id
+            if 'titration' in name_lower:
+                epoch_names['TITRATION'] = epoch_id
+                epoch_names['DOSE_TITRATION'] = epoch_id
+            if 'maintenance' in name_lower or 'stable' in name_lower:
+                epoch_names['MAINTENANCE'] = epoch_id
+                epoch_names['STABLE_DOSE'] = epoch_id
+            if 'follow' in name_lower:
+                epoch_names['FOLLOW_UP'] = epoch_id
+                epoch_names['FOLLOWUP'] = epoch_id
+            if 'period' in name_lower:
+                # Extract period number
+                import re
+                period_match = re.search(r'period\s*(\d+)', name_lower)
+                if period_match:
+                    epoch_names[f'PERIOD_{period_match.group(1)}'] = epoch_id
+        
         encounter_ids = {e.get('id') for e in design.get('encounters', [])}
         
         # Resolve traversal constraints to use real IDs
@@ -676,6 +724,27 @@ def _add_execution_extensions(
             "x-executionModel-randomizationScheme", execution_data.randomization_scheme.to_dict()
         ))
     
+    # FIX 1: Ensure all bound repetitions exist before processing bindings
+    # Build map of existing repetitions
+    rep_id_map = {r.id: r for r in execution_data.repetitions}
+    
+    # Check bindings and auto-create missing repetitions
+    if execution_data.activity_bindings:
+        for ab in execution_data.activity_bindings:
+            if ab.repetition_id and ab.repetition_id not in rep_id_map:
+                # Create a placeholder repetition from binding metadata
+                from .schema import Repetition, RepetitionType
+                placeholder_rep = Repetition(
+                    id=ab.repetition_id,
+                    type=RepetitionType.DAILY,
+                    interval="P1D",
+                    count=ab.expected_occurrences if ab.expected_occurrences else 1,
+                    source_text=f"Auto-generated from binding: {ab.source_text}",
+                )
+                execution_data.repetitions.append(placeholder_rep)
+                rep_id_map[ab.repetition_id] = placeholder_rep
+                logger.info(f"Auto-created missing repetition: {ab.repetition_id}")
+    
     # FIX C: Add activity bindings for tight coupling (with ID resolution)
     if execution_data.activity_bindings:
         # Build name->UUID mapping from actual USDM activities
@@ -688,7 +757,7 @@ def _add_execution_extensions(
             normalized = re.sub(r'[^a-z0-9]', '', act_name)
             activity_uuid_map[normalized] = act_id
         
-        # Build repetition ID set for validation
+        # Build repetition ID set for validation (now includes auto-created ones)
         rep_id_set = {r.id for r in execution_data.repetitions}
         
         # Resolve binding IDs
@@ -704,11 +773,7 @@ def _add_execution_extensions(
             if resolved_uuid:
                 ab_dict['activityId'] = resolved_uuid
             
-            # Validate repetition ID exists
-            if ab.repetition_id and ab.repetition_id not in rep_id_set:
-                logger.warning(f"Binding references non-existent repetition: {ab.repetition_id}")
-                continue  # Skip invalid bindings
-            
+            # All repetitions should now exist (we auto-created missing ones above)
             resolved_bindings.append(ab_dict)
         
         if resolved_bindings:
@@ -759,6 +824,73 @@ def _add_execution_extensions(
             "x-executionModel-analysisWindows",
             [aw.to_dict() for aw in execution_data.analysis_windows]
         ))
+
+
+def validate_execution_model_integrity(
+    execution_data: ExecutionModelData,
+    design: Dict[str, Any],
+) -> List[str]:
+    """
+    FIX 5: Post-combine integrity validator.
+    
+    Checks for internal consistency issues before writing USDM:
+    1. All binding.repetitionId references exist in repetitions list
+    2. All traversal.requiredSequence items are valid epoch UUIDs
+    3. Titration schedules have explicit day bounds
+    4. Day offsets have correct sign semantics
+    5. No duplicate epoch/visit window definitions
+    
+    Returns list of issues found (empty = valid).
+    """
+    issues = []
+    
+    # 1. Binding → Repetition integrity
+    rep_ids = {r.id for r in execution_data.repetitions}
+    for ab in execution_data.activity_bindings:
+        if ab.repetition_id and ab.repetition_id not in rep_ids:
+            issues.append(f"INTEGRITY: Binding '{ab.id}' references missing repetition '{ab.repetition_id}'")
+    
+    # 2. Traversal → Epoch integrity
+    epoch_ids = {e.get('id') for e in design.get('epochs', [])}
+    for tc in execution_data.traversal_constraints:
+        for step in tc.required_sequence:
+            # Check if step looks like a UUID or a resolved ID
+            is_uuid = len(step) == 36 and '-' in step
+            is_in_epochs = step in epoch_ids
+            if not is_uuid and not is_in_epochs:
+                issues.append(f"INTEGRITY: Traversal step '{step}' is not a valid epoch ID")
+    
+    # 3. Titration schedule bounds check
+    for ts in execution_data.titration_schedules:
+        for dl in ts.dose_levels:
+            if dl.start_day is None:
+                issues.append(f"INTEGRITY: Titration dose '{dl.dose_value}' missing start_day")
+    
+    # 4. Day offset sign validation
+    for rep in execution_data.repetitions:
+        if rep.start_offset and rep.source_text:
+            # Check if source mentions negative days but offset is positive
+            if 'day -' in rep.source_text.lower() or 'day−' in rep.source_text.lower():
+                if rep.start_offset and not rep.start_offset.startswith('-'):
+                    issues.append(f"INTEGRITY: Repetition '{rep.id}' has positive offset but source mentions negative day")
+    
+    # 5. Duplicate epoch check
+    epoch_names_seen = set()
+    for e in design.get('epochs', []):
+        name = e.get('name', '').lower()
+        if name in epoch_names_seen:
+            issues.append(f"INTEGRITY: Duplicate epoch name '{name}'")
+        epoch_names_seen.add(name)
+    
+    # Log summary
+    if issues:
+        logger.warning(f"Execution model integrity check found {len(issues)} issues")
+        for issue in issues[:5]:  # Log first 5
+            logger.warning(f"  {issue}")
+    else:
+        logger.info("Execution model integrity check passed")
+    
+    return issues
 
 
 def create_execution_model_summary(

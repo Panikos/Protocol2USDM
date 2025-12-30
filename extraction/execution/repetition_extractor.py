@@ -495,13 +495,15 @@ def _detect_daily_activity_bindings(text: str) -> Tuple[List[ActivityBinding], L
             
             for range_match in range_matches:
                 try:
-                    start_day = int(range_match.group(1).replace('–', '-'))
-                    end_day = int(range_match.group(2).replace('–', '-'))
+                    # FIX 4: Use robust day parsing to preserve negative signs
+                    start_day = _parse_day_with_sign(range_match.group(1))
+                    end_day = _parse_day_with_sign(range_match.group(2))
                     
                     # Calculate expected daily occurrences
                     expected_count = abs(end_day - start_day) + 1
                     
                     # Create repetition with count
+                    # FIX 4: Proper ISO8601 duration with negative sign
                     rep_id = f"rep_daily_bound_{len(daily_repetitions)+1}"
                     daily_repetitions.append(Repetition(
                         id=rep_id,
