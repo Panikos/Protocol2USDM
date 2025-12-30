@@ -362,7 +362,11 @@ def extract_crossover_design(
         )
     
     # EXCLUSION CHECK: Skip crossover detection entirely for titration studies
-    if _is_titration_study(text):
+    # Check broader text (first 30 pages) for titration indicators since
+    # crossover pages may not contain the titration keywords
+    synopsis_pages = list(range(min(30, get_page_count(pdf_path))))
+    synopsis_text = extract_text_from_pages(pdf_path, synopsis_pages)
+    if _is_titration_study(synopsis_text):
         logger.info("Detected titration study - skipping crossover detection entirely")
         return ExecutionModelResult(
             success=False,
