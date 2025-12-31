@@ -477,6 +477,43 @@ def _create_terminal_epoch(epoch_id: str, epoch_name: str) -> Dict[str, Any]:
     }
 
 
+def _create_abstract_epoch(epoch_id: str, epoch_name: str) -> Dict[str, Any]:
+    """
+    FIX 2: Create an abstract epoch for traversal resolution.
+    
+    When traversal constraints reference abstract phases (RUN_IN, BASELINE, etc.)
+    that don't match extracted SoA epochs, create placeholder epochs to maintain
+    graph integrity.
+    """
+    import uuid
+    
+    # Map abstract names to CDISC epoch type codes
+    epoch_codes = {
+        'screening': 'C48262',      # Screening
+        'run_in': 'C98779',         # Run-In
+        'baseline': 'C25213',       # Baseline
+        'treatment': 'C25532',      # Treatment
+        'maintenance': 'C82517',    # Maintenance
+        'follow_up': 'C48313',      # Follow-Up
+        'washout': 'C48313',        # Washout (use Follow-Up code)
+    }
+    
+    return {
+        "id": epoch_id,
+        "name": epoch_name,
+        "description": f"{epoch_name} - auto-created from traversal constraint",
+        "sequenceNumber": 50,  # Middle sequence for abstract epochs
+        "epochType": {
+            "id": str(uuid.uuid4()),
+            "code": epoch_codes.get(epoch_id, "C25532"),
+            "codeSystem": "http://www.cdisc.org",
+            "decode": epoch_name,
+            "instanceType": "Code"
+        },
+        "instanceType": "StudyEpoch"
+    }
+
+
 def _create_extension_attribute(name: str, value: Any) -> Dict[str, Any]:
     """
     Create a properly formatted USDM ExtensionAttribute per official schema.
@@ -662,9 +699,31 @@ def _add_execution_extensions(
                         epoch_ids.add(new_epoch['id'])
                         resolved_sequence.append(new_epoch['id'])
                     else:
-                        # Keep as-is if can't resolve
-                        resolved_sequence.append(step)
-                        logger.warning(f"Could not resolve traversal step '{step}' to epoch ID")
+                        # FIX 2: Auto-create missing abstract epochs
+                        abstract_epoch_names = {
+                            'SCREENING': 'Screening',
+                            'RUN_IN': 'Run-In Period',
+                            'BASELINE': 'Baseline',
+                            'TREATMENT': 'Treatment Period',
+                            'MAINTENANCE': 'Maintenance Period',
+                            'FOLLOW_UP': 'Follow-Up',
+                            'WASHOUT': 'Washout Period',
+                        }
+                        if step_upper in abstract_epoch_names:
+                            new_epoch = _create_abstract_epoch(
+                                step_upper.lower(), 
+                                abstract_epoch_names[step_upper]
+                            )
+                            if 'epochs' not in design:
+                                design['epochs'] = []
+                            design['epochs'].append(new_epoch)
+                            epoch_ids.add(new_epoch['id'])
+                            resolved_sequence.append(new_epoch['id'])
+                            logger.info(f"Auto-created epoch for traversal: {step_upper}")
+                        else:
+                            # Keep as-is if can't resolve
+                            resolved_sequence.append(step)
+                            logger.warning(f"Could not resolve traversal step '{step}' to epoch ID")
             
             # Update the constraint with resolved sequence
             resolved_tc = tc.to_dict()
