@@ -699,31 +699,36 @@ def _add_execution_extensions(
                         epoch_ids.add(new_epoch['id'])
                         resolved_sequence.append(new_epoch['id'])
                     else:
-                        # FIX 2: Auto-create missing abstract epochs
-                        abstract_epoch_names = {
-                            'SCREENING': 'Screening',
-                            'RUN_IN': 'Run-In Period',
-                            'BASELINE': 'Baseline',
-                            'TREATMENT': 'Treatment Period',
-                            'MAINTENANCE': 'Maintenance Period',
-                            'FOLLOW_UP': 'Follow-Up',
-                            'WASHOUT': 'Washout Period',
-                        }
-                        if step_upper in abstract_epoch_names:
-                            new_epoch = _create_abstract_epoch(
-                                step_upper.lower(), 
-                                abstract_epoch_names[step_upper]
-                            )
-                            if 'epochs' not in design:
-                                design['epochs'] = []
-                            design['epochs'].append(new_epoch)
-                            epoch_ids.add(new_epoch['id'])
-                            resolved_sequence.append(new_epoch['id'])
-                            logger.info(f"Auto-created epoch for traversal: {step_upper}")
-                        else:
-                            # Keep as-is if can't resolve
-                            resolved_sequence.append(step)
-                            logger.warning(f"Could not resolve traversal step '{step}' to epoch ID")
+                        # FIX 2: Try fuzzy matching to existing SoA epochs
+                        # Don't create orphaned abstract epochs - map to existing or skip
+                        matched = False
+                        for existing_epoch in design.get('epochs', []):
+                            existing_name = existing_epoch.get('name', '').lower()
+                            # Fuzzy match: check if step token relates to existing epoch
+                            if step_upper == 'RUN_IN' and ('check' in existing_name or 'c-i' in existing_name):
+                                resolved_sequence.append(existing_epoch['id'])
+                                matched = True
+                                break
+                            elif step_upper == 'BASELINE' and ('inpatient' in existing_name and '1' in existing_name):
+                                resolved_sequence.append(existing_epoch['id'])
+                                matched = True
+                                break
+                            elif step_upper == 'TREATMENT' and ('inpatient' in existing_name):
+                                resolved_sequence.append(existing_epoch['id'])
+                                matched = True
+                                break
+                            elif step_upper == 'MAINTENANCE' and ('op' in existing_name or 'outpatient' in existing_name):
+                                resolved_sequence.append(existing_epoch['id'])
+                                matched = True
+                                break
+                            elif step_upper == 'FOLLOW_UP' and ('uns' in existing_name or 'unscheduled' in existing_name):
+                                resolved_sequence.append(existing_epoch['id'])
+                                matched = True
+                                break
+                        
+                        if not matched:
+                            # Skip unresolvable abstract tokens - don't create orphans
+                            logger.warning(f"Skipping unresolvable traversal step '{step}' (no matching SoA epoch)")
             
             # Update the constraint with resolved sequence
             resolved_tc = tc.to_dict()
