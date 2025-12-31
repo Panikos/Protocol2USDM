@@ -909,15 +909,20 @@ def validate_execution_model_integrity(
         if ab.repetition_id and ab.repetition_id not in rep_ids:
             issues.append(f"INTEGRITY: Binding '{ab.id}' references missing repetition '{ab.repetition_id}'")
     
-    # 2. Traversal → Epoch integrity
+    # 2. Traversal → Epoch integrity (check resolved constraints in design)
     epoch_ids = {e.get('id') for e in design.get('epochs', [])}
-    for tc in execution_data.traversal_constraints:
-        for step in tc.required_sequence:
-            # Check if step looks like a UUID or a resolved ID
-            is_uuid = len(step) == 36 and '-' in step
-            is_in_epochs = step in epoch_ids
-            if not is_uuid and not is_in_epochs:
-                issues.append(f"INTEGRITY: Traversal step '{step}' is not a valid epoch ID")
+    # Check the resolved traversal constraints from extension attributes
+    for ext in design.get('extensionAttributes', []):
+        url = ext.get('url', '')
+        if 'traversalConstraints' in url:
+            import json
+            resolved_constraints = json.loads(ext.get('valueString', '[]'))
+            for tc in resolved_constraints:
+                for step in tc.get('requiredSequence', []):
+                    # Check if step is a valid epoch ID (should be after resolution)
+                    is_in_epochs = step in epoch_ids
+                    if not is_in_epochs and not step.startswith('end_of_study') and not step.startswith('early_termination'):
+                        issues.append(f"INTEGRITY: Traversal step '{step}' is not a valid epoch ID")
     
     # 3. Titration schedule bounds check
     for ts in execution_data.titration_schedules:
