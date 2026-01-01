@@ -151,10 +151,19 @@ def extract_execution_model(
     
     # 5. Extract traversal constraints (Phase 2)
     logger.info("Step 5/10: Extracting traversal constraints...")
+    
+    # Extract existing epochs from SoA to use as reference (avoids abstract labels)
+    existing_epochs = None
+    if soa_data:
+        existing_epochs = soa_data.get('epochs', [])
+        if existing_epochs:
+            logger.info(f"  Using {len(existing_epochs)} SoA epochs as traversal reference")
+    
     traversal_result = extract_traversal_constraints(
         pdf_path=pdf_path,
         model=model,
         use_llm=enable_llm,
+        existing_epochs=existing_epochs,
     )
     
     if traversal_result.success:

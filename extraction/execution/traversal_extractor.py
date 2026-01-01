@@ -116,12 +116,21 @@ def find_traversal_pages(
     return pages
 
 
-def _detect_epochs(text: str) -> List[str]:
-    """Detect study epochs/periods from text."""
-    epochs = []
+def _detect_epochs(text: str, existing_epochs: Optional[List[Dict[str, Any]]] = None) -> List[str]:
+    """
+    Detect study epochs/periods from text.
+    
+    If existing_epochs from SoA are provided, match against those actual epoch
+    names/IDs instead of outputting arbitrary abstract labels.
+    """
     text_lower = text.lower()
     
-    # Standard epoch order to look for
+    # If we have existing epochs from SoA, use those as the source of truth
+    if existing_epochs:
+        return _match_epochs_to_soa(text_lower, existing_epochs)
+    
+    # Fallback: detect abstract epoch labels (legacy behavior)
+    epochs = []
     standard_epochs = [
         ("SCREENING", r'screening\s+(?:period|phase|epoch|visit)?'),
         ("RUN_IN", r'run[\-\s]?in\s+(?:period|phase)?'),
@@ -140,16 +149,79 @@ def _detect_epochs(text: str) -> List[str]:
             if epoch_name not in epochs:
                 epochs.append(epoch_name)
     
-    # If no epochs found, use defaults
     if not epochs:
         epochs = ["SCREENING", "TREATMENT", "FOLLOW_UP", "END_OF_STUDY"]
     
-    # Ensure END_OF_STUDY is last
     if "END_OF_STUDY" in epochs:
         epochs.remove("END_OF_STUDY")
     epochs.append("END_OF_STUDY")
     
     return epochs
+
+
+def _match_epochs_to_soa(text_lower: str, existing_epochs: List[Dict[str, Any]]) -> List[str]:
+    """
+    Match traversal references to actual SoA epoch IDs.
+    
+    This ensures traversal constraints reference real epoch IDs from the start,
+    avoiding the need for downstream resolution.
+    """
+    matched_epochs = []
+    
+    # Build a mapping of epoch patterns to actual epoch IDs
+    epoch_patterns = []
+    for epoch in existing_epochs:
+        epoch_id = epoch.get('id', '')
+        epoch_name = epoch.get('name', '')
+        name_lower = epoch_name.lower()
+        
+        # Create patterns to match this epoch in text
+        patterns = [
+            re.escape(epoch_name.lower()),  # Exact name match
+            re.escape(name_lower.replace(' ', r'\s*')),  # Flexible spacing
+        ]
+        
+        # Add semantic patterns based on epoch name content
+        if 'screen' in name_lower:
+            patterns.append(r'screening\s+(?:period|phase|epoch|visit)?')
+        if 'baseline' in name_lower or 'day 1' in name_lower or 'day-1' in name_lower:
+            patterns.append(r'baseline\s+(?:period|phase|visit)?')
+        if 'treatment' in name_lower or 'active' in name_lower:
+            patterns.append(r'(?:active\s+)?treatment\s+(?:period|phase|epoch)?')
+        if 'inpatient' in name_lower:
+            patterns.append(r'inpatient\s+(?:period|phase)?\s*\d*')
+        if 'outpatient' in name_lower or name_lower == 'op':
+            patterns.append(r'outpatient\s+(?:period|phase)?')
+        if 'follow' in name_lower:
+            patterns.append(r'follow[\-\s]?up\s+(?:period|phase|epoch)?')
+        if 'maintenance' in name_lower:
+            patterns.append(r'maintenance\s+(?:period|phase)?')
+        if 'washout' in name_lower:
+            patterns.append(r'washout\s+(?:period|phase)?')
+        if 'end' in name_lower or 'eos' in name_lower or 'et' in name_lower:
+            patterns.append(r'end[\-\s]?of[\-\s]?(?:study|treatment)')
+        
+        epoch_patterns.append((epoch_id, epoch_name, patterns))
+    
+    # Check which epochs are mentioned in the traversal text
+    for epoch_id, epoch_name, patterns in epoch_patterns:
+        for pattern in patterns:
+            try:
+                if re.search(pattern, text_lower):
+                    if epoch_id not in matched_epochs:
+                        matched_epochs.append(epoch_id)
+                        logger.debug(f"Matched traversal epoch: {epoch_name} ({epoch_id})")
+                    break
+            except re.error:
+                continue
+    
+    # If no matches, return all epochs in sequence order (sorted by sequenceNumber if available)
+    if not matched_epochs:
+        sorted_epochs = sorted(existing_epochs, key=lambda e: e.get('sequenceNumber', 999))
+        matched_epochs = [e.get('id', '') for e in sorted_epochs if e.get('id')]
+        logger.info(f"No specific traversal matches - using all {len(matched_epochs)} SoA epochs in sequence")
+    
+    return matched_epochs
 
 
 def _detect_mandatory_visits(text: str) -> List[str]:
@@ -226,6 +298,7 @@ def extract_traversal_constraints(
     model: str = "gemini-2.5-pro",
     pages: Optional[List[int]] = None,
     use_llm: bool = True,
+    existing_epochs: Optional[List[Dict[str, Any]]] = None,
 ) -> ExecutionModelResult:
     """
     Extract traversal constraints from protocol PDF.
@@ -235,6 +308,8 @@ def extract_traversal_constraints(
         model: LLM model to use
         pages: Specific pages to analyze
         use_llm: Whether to use LLM enhancement
+        existing_epochs: Epochs from SoA extraction to use as reference
+                        (avoids outputting abstract labels that need resolution)
         
     Returns:
         ExecutionModelResult with TraversalConstraints
@@ -260,10 +335,16 @@ def extract_traversal_constraints(
             model_used=model,
         )
     
-    # Heuristic extraction
-    epochs = _detect_epochs(text)
+    # Heuristic extraction - pass existing epochs to match against SoA
+    epochs = _detect_epochs(text, existing_epochs)
     mandatory_visits = _detect_mandatory_visits(text)
     allows_early_exit, exit_procedures = _detect_early_exit_conditions(text)
+    
+    # Log whether we used SoA epochs or abstract labels
+    if existing_epochs:
+        logger.info(f"Matched traversal to {len(epochs)} existing SoA epoch IDs")
+    else:
+        logger.info(f"No SoA epochs provided - using abstract labels: {epochs}")
     
     # Build constraint
     constraint = TraversalConstraint(
