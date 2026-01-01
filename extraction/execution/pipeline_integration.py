@@ -31,6 +31,7 @@ from .dosing_regimen_extractor import extract_dosing_regimens
 from .visit_window_extractor import extract_visit_windows
 from .stratification_extractor import extract_stratification
 from .entity_resolver import EntityResolver, EntityResolutionContext, create_resolution_context_from_design
+from .reconciliation_layer import ReconciliationLayer, reconcile_usdm_with_execution_model
 
 logger = logging.getLogger(__name__)
 
@@ -440,7 +441,33 @@ def enrich_usdm_with_execution_model(
             if bindings:
                 logger.info(f"  Created {len(bindings)} instance bindings")
         
-        # Add all execution extensions
+        # NEW: Run Reconciliation Layer to promote findings to core USDM
+        # This promotes crossover→epochs/cells, resolves traversal→IDs, etc.
+        try:
+            reconciled_design, classified_issues, entity_maps = reconcile_usdm_with_execution_model(
+                design, execution_data
+            )
+            # Update design in place with reconciled version
+            design.update(reconciled_design)
+            
+            # Store entity maps for downstream use
+            if entity_maps:
+                design.setdefault('extensionAttributes', []).append(_create_extension_attribute(
+                    "x-executionModel-entityMaps", entity_maps
+                ))
+            
+            # Store classified issues (with severity levels)
+            if classified_issues:
+                design.setdefault('extensionAttributes', []).append(_create_extension_attribute(
+                    "x-executionModel-classifiedIssues", classified_issues
+                ))
+                blocking = sum(1 for i in classified_issues if i.get('severity') == 'blocking')
+                if blocking > 0:
+                    logger.warning(f"  Reconciliation found {blocking} BLOCKING issues")
+        except Exception as e:
+            logger.warning(f"Reconciliation layer failed: {e}")
+        
+        # Add all execution extensions (remaining data not promoted to core)
         _add_execution_extensions(design, execution_data)
         
         # FIX 5: Run integrity validation before finalizing
