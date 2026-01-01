@@ -145,14 +145,19 @@ class EntityResolver:
         """Use LLM to semantically resolve epoch concepts."""
         from core.llm_client import call_llm
         
-        prompt = self._build_epoch_resolution_prompt(concepts, context)
+        # Combine system prompt with user prompt (call_llm doesn't support system_prompt)
+        full_prompt = f"{EPOCH_RESOLUTION_SYSTEM_PROMPT}\n\n{self._build_epoch_resolution_prompt(concepts, context)}"
         
         try:
-            response = call_llm(
-                prompt,
-                system_prompt=EPOCH_RESOLUTION_SYSTEM_PROMPT,
+            result = call_llm(
+                full_prompt,
+                json_mode=True,
                 temperature=0.1  # Low temperature for consistent resolution
             )
+            response = result.get('response', '')
+            if result.get('error'):
+                logger.error(f"LLM epoch resolution error: {result.get('error')}")
+                return {c: None for c in concepts}
             return self._parse_epoch_resolution_response(response, concepts, context)
         except Exception as e:
             logger.error(f"LLM epoch resolution failed: {e}")
@@ -293,7 +298,11 @@ If a concept has no matching epoch, set epochId and epochName to null."""
 Return JSON array with mappings (same format as epoch resolution)."""
         
         try:
-            response = call_llm(prompt, temperature=0.1)
+            result = call_llm(prompt, json_mode=True, temperature=0.1)
+            response = result.get('response', '')
+            if result.get('error'):
+                logger.error(f"LLM visit resolution error: {result.get('error')}")
+                return {c: None for c in concepts}
             return self._parse_visit_resolution_response(response, concepts, context)
         except Exception as e:
             logger.error(f"LLM visit resolution failed: {e}")
