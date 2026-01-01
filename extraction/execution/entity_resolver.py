@@ -143,7 +143,7 @@ class EntityResolver:
         context: EntityResolutionContext
     ) -> Dict[str, Optional[EntityMapping]]:
         """Use LLM to semantically resolve epoch concepts."""
-        from extraction.llm_utils import call_llm
+        from core.llm_client import call_llm
         
         prompt = self._build_epoch_resolution_prompt(concepts, context)
         
@@ -280,7 +280,7 @@ If a concept has no matching epoch, set epochId and epochName to null."""
         context: EntityResolutionContext
     ) -> Dict[str, Optional[EntityMapping]]:
         """Use LLM to resolve visit concepts."""
-        from extraction.llm_utils import call_llm
+        from core.llm_client import call_llm
         
         prompt = f"""Map the following abstract visit concepts to actual protocol visits/encounters.
 
