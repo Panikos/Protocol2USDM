@@ -30,6 +30,7 @@ from .sampling_density_extractor import extract_sampling_density
 from .dosing_regimen_extractor import extract_dosing_regimens
 from .visit_window_extractor import extract_visit_windows
 from .stratification_extractor import extract_stratification
+from .entity_resolver import EntityResolver, EntityResolutionContext, create_resolution_context_from_design
 
 logger = logging.getLogger(__name__)
 
@@ -621,53 +622,53 @@ def _add_execution_extensions(
             "x-executionModel-crossoverDesign", execution_data.crossover_design.to_dict()
         ))
     
-    # Phase 2: Add traversal constraints (FIX 2: resolve to real epoch IDs)
+    # Phase 2: Add traversal constraints (using LLM-based entity resolution)
     if execution_data.traversal_constraints:
         # Get existing epoch and encounter IDs
         epoch_ids = {e.get('id') for e in design.get('epochs', [])}
+        encounter_ids = {e.get('id') for e in design.get('encounters', [])}
         
-        # Build comprehensive epoch name mapping with aliases
+        # Build basic epoch name mapping (exact matches only)
         epoch_names = {}
         for e in design.get('epochs', []):
             epoch_id = e.get('id')
             epoch_name = e.get('name', '')
-            
-            # Primary mapping
             normalized = epoch_name.upper().replace(' ', '_').replace('-', '_')
             epoch_names[normalized] = epoch_id
             epoch_names[epoch_name.upper()] = epoch_id
-            
-            # Add common aliases
-            name_lower = epoch_name.lower()
-            if 'screen' in name_lower:
-                epoch_names['SCREENING'] = epoch_id
-                epoch_names['SCREEN'] = epoch_id
-            if 'run' in name_lower and 'in' in name_lower:
-                epoch_names['RUN_IN'] = epoch_id
-                epoch_names['RUNIN'] = epoch_id
-            if 'baseline' in name_lower or 'day 1' in name_lower:
-                epoch_names['BASELINE'] = epoch_id
-                epoch_names['DAY_1'] = epoch_id
-            if 'treatment' in name_lower or 'active' in name_lower:
-                epoch_names['TREATMENT'] = epoch_id
-                epoch_names['ACTIVE_TREATMENT'] = epoch_id
-            if 'titration' in name_lower:
-                epoch_names['TITRATION'] = epoch_id
-                epoch_names['DOSE_TITRATION'] = epoch_id
-            if 'maintenance' in name_lower or 'stable' in name_lower:
-                epoch_names['MAINTENANCE'] = epoch_id
-                epoch_names['STABLE_DOSE'] = epoch_id
-            if 'follow' in name_lower:
-                epoch_names['FOLLOW_UP'] = epoch_id
-                epoch_names['FOLLOWUP'] = epoch_id
-            if 'period' in name_lower:
-                # Extract period number
-                import re
-                period_match = re.search(r'period\s*(\d+)', name_lower)
-                if period_match:
-                    epoch_names[f'PERIOD_{period_match.group(1)}'] = epoch_id
         
-        encounter_ids = {e.get('id') for e in design.get('encounters', [])}
+        # Collect abstract concepts that need LLM resolution
+        abstract_concepts = set()
+        for tc in execution_data.traversal_constraints:
+            for step in tc.required_sequence:
+                step_upper = step.upper().replace(' ', '_')
+                if step not in epoch_ids and step not in encounter_ids and step_upper not in epoch_names:
+                    # Not a direct match - needs resolution
+                    if step_upper not in ['END_OF_STUDY', 'EOS', 'STUDY_COMPLETION', 
+                                          'EARLY_TERMINATION', 'ET', 'DISCONTINUED']:
+                        abstract_concepts.add(step_upper)
+        
+        # Use LLM-based EntityResolver for abstract concepts
+        llm_mappings = {}
+        if abstract_concepts:
+            try:
+                resolver = EntityResolver()
+                context = create_resolution_context_from_design(design)
+                mappings = resolver.resolve_epoch_concepts(list(abstract_concepts), context)
+                for concept, mapping in mappings.items():
+                    if mapping:
+                        llm_mappings[concept] = mapping.resolved_id
+                        logger.info(f"LLM resolved '{concept}' → '{mapping.resolved_name}' (confidence: {mapping.confidence:.2f})")
+                    else:
+                        logger.warning(f"LLM could not resolve '{concept}' to any epoch")
+                
+                # Store mappings as extension attribute for transparency
+                if resolver.get_all_mappings():
+                    design['extensionAttributes'].append(_create_extension_attribute(
+                        "x-executionModel-entityMappings", resolver.export_mappings()
+                    ))
+            except Exception as e:
+                logger.warning(f"LLM entity resolution failed: {e}, falling back to skip")
         
         # Resolve traversal constraints to use real IDs
         resolved_constraints = []
@@ -679,56 +680,30 @@ def _add_execution_extensions(
                 # Check if already a valid ID
                 if step in epoch_ids or step in encounter_ids:
                     resolved_sequence.append(step)
-                # Try to map name to ID
+                # Try exact name match
                 elif step_upper in epoch_names:
                     resolved_sequence.append(epoch_names[step_upper])
+                # Try LLM-resolved mapping
+                elif step_upper in llm_mappings:
+                    resolved_sequence.append(llm_mappings[step_upper])
+                # Handle terminal epochs
+                elif step_upper in ['END_OF_STUDY', 'EOS', 'STUDY_COMPLETION']:
+                    new_epoch = _create_terminal_epoch('end_of_study', 'End of Study')
+                    if 'epochs' not in design:
+                        design['epochs'] = []
+                    design['epochs'].append(new_epoch)
+                    epoch_ids.add(new_epoch['id'])
+                    resolved_sequence.append(new_epoch['id'])
+                elif step_upper in ['EARLY_TERMINATION', 'ET', 'DISCONTINUED']:
+                    new_epoch = _create_terminal_epoch('early_termination', 'Early Termination')
+                    if 'epochs' not in design:
+                        design['epochs'] = []
+                    design['epochs'].append(new_epoch)
+                    epoch_ids.add(new_epoch['id'])
+                    resolved_sequence.append(new_epoch['id'])
                 else:
-                    # Create missing epoch for abstract references like END_OF_STUDY
-                    if step_upper in ['END_OF_STUDY', 'EOS', 'STUDY_COMPLETION']:
-                        new_epoch = _create_terminal_epoch('end_of_study', 'End of Study')
-                        if 'epochs' not in design:
-                            design['epochs'] = []
-                        design['epochs'].append(new_epoch)
-                        epoch_ids.add(new_epoch['id'])
-                        resolved_sequence.append(new_epoch['id'])
-                    elif step_upper in ['EARLY_TERMINATION', 'ET', 'DISCONTINUED']:
-                        new_epoch = _create_terminal_epoch('early_termination', 'Early Termination')
-                        if 'epochs' not in design:
-                            design['epochs'] = []
-                        design['epochs'].append(new_epoch)
-                        epoch_ids.add(new_epoch['id'])
-                        resolved_sequence.append(new_epoch['id'])
-                    else:
-                        # FIX 2: Try fuzzy matching to existing SoA epochs
-                        # Don't create orphaned abstract epochs - map to existing or skip
-                        matched = False
-                        for existing_epoch in design.get('epochs', []):
-                            existing_name = existing_epoch.get('name', '').lower()
-                            # Fuzzy match: check if step token relates to existing epoch
-                            if step_upper == 'RUN_IN' and ('check' in existing_name or 'c-i' in existing_name):
-                                resolved_sequence.append(existing_epoch['id'])
-                                matched = True
-                                break
-                            elif step_upper == 'BASELINE' and ('inpatient' in existing_name and '1' in existing_name):
-                                resolved_sequence.append(existing_epoch['id'])
-                                matched = True
-                                break
-                            elif step_upper == 'TREATMENT' and ('inpatient' in existing_name):
-                                resolved_sequence.append(existing_epoch['id'])
-                                matched = True
-                                break
-                            elif step_upper == 'MAINTENANCE' and ('op' in existing_name or 'outpatient' in existing_name):
-                                resolved_sequence.append(existing_epoch['id'])
-                                matched = True
-                                break
-                            elif step_upper == 'FOLLOW_UP' and ('uns' in existing_name or 'unscheduled' in existing_name):
-                                resolved_sequence.append(existing_epoch['id'])
-                                matched = True
-                                break
-                        
-                        if not matched:
-                            # Skip unresolvable abstract tokens - don't create orphans
-                            logger.warning(f"Skipping unresolvable traversal step '{step}' (no matching SoA epoch)")
+                    # Skip unresolvable - don't create orphans
+                    logger.warning(f"Skipping unresolvable traversal step '{step}'")
             
             # Update the constraint with resolved sequence
             resolved_tc = tc.to_dict()
