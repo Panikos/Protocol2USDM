@@ -261,11 +261,39 @@ class ReconciliationLayer:
         design: Dict[str, Any],
         execution_data: Any
     ) -> Any:
-        """Resolve traversal constraint labels to actual USDM epoch IDs."""
+        """Resolve traversal constraint labels to actual USDM epoch IDs using LLM."""
+        from .entity_resolver import EntityResolver, create_resolution_context_from_design
         
         epoch_ids = {e.get('id') for e in design.get('epochs', [])}
-        unresolved = set()
         
+        # Collect all unresolved concepts
+        unresolved_concepts = set()
+        for tc in execution_data.traversal_constraints:
+            for step in tc.required_sequence:
+                step_upper = step.upper().replace(' ', '_')
+                if step not in epoch_ids and step_upper not in self._epoch_alias_map:
+                    unresolved_concepts.add(step_upper)
+        
+        # Use LLM-based EntityResolver for semantic mapping
+        llm_mappings = {}
+        if unresolved_concepts:
+            try:
+                resolver = EntityResolver()
+                context = create_resolution_context_from_design(design)
+                mappings = resolver.resolve_epoch_concepts(list(unresolved_concepts), context)
+                
+                for concept, mapping in mappings.items():
+                    if mapping:
+                        llm_mappings[concept] = mapping.resolved_id
+                        self._epoch_alias_map[concept] = mapping.resolved_id
+                        logger.info(f"LLM resolved '{concept}' → '{mapping.resolved_name}' (confidence: {mapping.confidence:.2f})")
+                    else:
+                        logger.warning(f"LLM could not resolve '{concept}'")
+            except Exception as e:
+                logger.warning(f"LLM entity resolution failed: {e}")
+        
+        # Now resolve all traversal steps
+        unresolved = set()
         for tc in execution_data.traversal_constraints:
             resolved_sequence = []
             for step in tc.required_sequence:
@@ -274,10 +302,9 @@ class ReconciliationLayer:
                 # Already a valid ID?
                 if step in epoch_ids:
                     resolved_sequence.append(step)
-                # Can we resolve via alias map?
+                # Can we resolve via alias map (includes LLM mappings)?
                 elif step_upper in self._epoch_alias_map:
                     resolved_sequence.append(self._epoch_alias_map[step_upper])
-                # Normalized version in map?
                 elif step in self._epoch_alias_map:
                     resolved_sequence.append(self._epoch_alias_map[step])
                 else:
