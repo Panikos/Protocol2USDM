@@ -913,15 +913,17 @@ def _add_execution_extensions(
     if execution_data.footnote_conditions:
         resolved_footnotes = []
         activity_names = {a.get('name', '').lower(): a.get('id') for a in design.get('activities', [])}
+        activity_ids_set = {a.get('id') for a in design.get('activities', [])}
         
         for fc in execution_data.footnote_conditions:
             fc_dict = fc.to_dict()
             
             # Resolve appliesToActivityIds - convert names to IDs
-            if fc.applies_to_activities:
+            # Use correct attribute name: applies_to_activity_ids
+            if fc.applies_to_activity_ids:
                 resolved_activity_ids = []
-                for act in fc.applies_to_activities:
-                    if act in {a.get('id') for a in design.get('activities', [])}:
+                for act in fc.applies_to_activity_ids:
+                    if act in activity_ids_set:
                         resolved_activity_ids.append(act)
                     elif act.lower() in activity_names:
                         resolved_activity_ids.append(activity_names[act.lower()])
@@ -933,16 +935,17 @@ def _add_execution_extensions(
                                 break
                 fc_dict['appliesToActivityIds'] = resolved_activity_ids
             
-            # Resolve appliesToEncounterIds
-            if fc.applies_to_encounters:
+            # Resolve appliesToTimepointIds to encounter IDs
+            if fc.applies_to_timepoint_ids:
                 resolved_encounter_ids = []
-                for enc in fc.applies_to_encounters:
+                for tp in fc.applies_to_timepoint_ids:
                     resolved_id = _resolve_to_encounter_id(
-                        enc, encounter_ids, design.get('encounters', [])
+                        tp, encounter_ids, design.get('encounters', [])
                     )
                     if resolved_id:
                         resolved_encounter_ids.append(resolved_id)
-                fc_dict['appliesToEncounterIds'] = resolved_encounter_ids
+                if resolved_encounter_ids:
+                    fc_dict['appliesToEncounterIds'] = resolved_encounter_ids
             
             resolved_footnotes.append(fc_dict)
         
