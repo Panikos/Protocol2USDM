@@ -495,6 +495,101 @@ def enrich_usdm_with_execution_model(
     return enriched
 
 
+def _resolve_to_epoch_id(
+    label: str,
+    epoch_ids: set,
+    epoch_names: Dict[str, str],
+    llm_mappings: Dict[str, str],
+    design: Dict[str, Any]
+) -> Optional[str]:
+    """
+    Resolve any epoch label/name/placeholder to an actual epoch ID.
+    Auto-creates terminal epochs if needed. Returns None if unresolvable.
+    """
+    label_upper = label.upper().replace(' ', '_').replace('-', '_')
+    
+    # Already a valid ID
+    if label in epoch_ids:
+        return label
+    
+    # Exact name match
+    if label_upper in epoch_names:
+        return epoch_names[label_upper]
+    
+    # LLM-resolved mapping
+    if label_upper in llm_mappings:
+        return llm_mappings[label_upper]
+    
+    # Terminal epochs - auto-create
+    if label_upper in ['END_OF_STUDY', 'EOS', 'STUDY_COMPLETION', 'STUDY_END']:
+        new_epoch = _create_terminal_epoch('epoch_end_of_study', 'End of Study')
+        if 'epochs' not in design:
+            design['epochs'] = []
+        # Check if already exists
+        existing = [e for e in design['epochs'] if 'end_of_study' in e.get('id', '').lower()]
+        if existing:
+            return existing[0]['id']
+        design['epochs'].append(new_epoch)
+        return new_epoch['id']
+    
+    if label_upper in ['EARLY_TERMINATION', 'ET', 'DISCONTINUED', 'WITHDRAWAL']:
+        new_epoch = _create_terminal_epoch('epoch_early_termination', 'Early Termination')
+        if 'epochs' not in design:
+            design['epochs'] = []
+        existing = [e for e in design['epochs'] if 'early_termination' in e.get('id', '').lower()]
+        if existing:
+            return existing[0]['id']
+        design['epochs'].append(new_epoch)
+        return new_epoch['id']
+    
+    # Fuzzy match existing epochs
+    for epoch in design.get('epochs', []):
+        epoch_name_lower = epoch.get('name', '').lower()
+        if label.lower() in epoch_name_lower or epoch_name_lower in label.lower():
+            return epoch['id']
+    
+    logger.warning(f"Could not resolve epoch label '{label}' to any ID")
+    return None
+
+
+def _resolve_to_encounter_id(
+    visit_name: str,
+    encounter_ids: set,
+    encounters: List[Dict[str, Any]]
+) -> Optional[str]:
+    """
+    Resolve a visit name to an encounter ID.
+    Uses fuzzy matching on name. Returns None if unresolvable.
+    """
+    visit_lower = visit_name.lower().strip()
+    
+    # Already a valid ID
+    if visit_name in encounter_ids:
+        return visit_name
+    
+    # Exact name match
+    for enc in encounters:
+        if enc.get('name', '').lower() == visit_lower:
+            return enc['id']
+    
+    # Fuzzy match
+    for enc in encounters:
+        enc_name = enc.get('name', '').lower()
+        # Check if key terms match
+        if visit_lower in enc_name or enc_name in visit_lower:
+            return enc['id']
+        # Handle common patterns
+        if 'end of study' in visit_lower and ('eos' in enc_name or 'end' in enc_name):
+            return enc['id']
+        if 'screening' in visit_lower and 'screen' in enc_name:
+            return enc['id']
+        if 'day 1' in visit_lower and ('day 1' in enc_name or 'baseline' in enc_name):
+            return enc['id']
+    
+    logger.warning(f"Could not resolve visit '{visit_name}' to encounter ID")
+    return None
+
+
 def _create_terminal_epoch(epoch_id: str, epoch_name: str) -> Dict[str, Any]:
     """
     FIX E: Create a terminal epoch (End of Study, Early Termination) when missing.
@@ -657,10 +752,64 @@ def _add_execution_extensions(
                     "x-executionModel-executionType", exec_type
                 ))
     
-    # Phase 2: Add crossover design
+    # Phase 2: Add crossover design AND promote periods to first-class epochs
     if execution_data.crossover_design:
+        cd = execution_data.crossover_design
+        
+        # Promote crossover periods to actual USDM epochs (not just extension)
+        if cd.is_crossover and cd.num_periods and cd.num_periods > 0:
+            if 'epochs' not in design:
+                design['epochs'] = []
+            
+            existing_epoch_names = {e.get('name', '').lower() for e in design.get('epochs', [])}
+            
+            for i in range(cd.num_periods):
+                period_name = f"Period {i + 1}"
+                if period_name.lower() not in existing_epoch_names:
+                    import uuid
+                    period_epoch = {
+                        "id": f"epoch_period_{i + 1}",
+                        "name": period_name,
+                        "description": f"Crossover study period {i + 1}",
+                        "sequenceNumber": 100 + i,  # After screening/baseline epochs
+                        "epochType": {
+                            "id": str(uuid.uuid4()),
+                            "code": "C101526",  # Treatment Epoch
+                            "codeSystem": "http://www.cdisc.org",
+                            "decode": "Treatment Epoch",
+                            "instanceType": "Code"
+                        },
+                        "instanceType": "StudyEpoch"
+                    }
+                    design['epochs'].append(period_epoch)
+                    logger.info(f"Promoted crossover {period_name} to first-class USDM epoch")
+            
+            # Add washout epochs between periods if washout duration exists
+            if cd.washout_duration and cd.num_periods > 1:
+                for i in range(cd.num_periods - 1):
+                    washout_name = f"Washout {i + 1}"
+                    if washout_name.lower() not in existing_epoch_names:
+                        import uuid
+                        washout_epoch = {
+                            "id": f"epoch_washout_{i + 1}",
+                            "name": washout_name,
+                            "description": f"Washout period between Period {i + 1} and Period {i + 2}",
+                            "sequenceNumber": 100 + i + 0.5,
+                            "epochType": {
+                                "id": str(uuid.uuid4()),
+                                "code": "C48271",  # Washout
+                                "codeSystem": "http://www.cdisc.org",
+                                "decode": "Washout",
+                                "instanceType": "Code"
+                            },
+                            "instanceType": "StudyEpoch"
+                        }
+                        design['epochs'].append(washout_epoch)
+                        logger.info(f"Promoted crossover {washout_name} to first-class USDM epoch")
+        
+        # Still store extension for full crossover details (sequences, etc.)
         design['extensionAttributes'].append(_create_extension_attribute(
-            "x-executionModel-crossoverDesign", execution_data.crossover_design.to_dict()
+            "x-executionModel-crossoverDesign", cd.to_dict()
         ))
     
     # Phase 2: Add traversal constraints (using LLM-based entity resolution)
@@ -711,55 +860,94 @@ def _add_execution_extensions(
             except Exception as e:
                 logger.warning(f"LLM entity resolution failed: {e}, falling back to skip")
         
-        # Resolve traversal constraints to use real IDs
+        # Resolve traversal constraints - ALL fields must use real IDs
         resolved_constraints = []
         for tc in execution_data.traversal_constraints:
+            resolved_tc = tc.to_dict()
+            
+            # 1. Resolve requiredSequence
             resolved_sequence = []
             for step in tc.required_sequence:
-                step_upper = step.upper().replace(' ', '_')
-                
-                # Check if already a valid ID
-                if step in epoch_ids or step in encounter_ids:
-                    resolved_sequence.append(step)
-                # Try exact name match
-                elif step_upper in epoch_names:
-                    resolved_sequence.append(epoch_names[step_upper])
-                # Try LLM-resolved mapping
-                elif step_upper in llm_mappings:
-                    resolved_sequence.append(llm_mappings[step_upper])
-                # Handle terminal epochs
-                elif step_upper in ['END_OF_STUDY', 'EOS', 'STUDY_COMPLETION']:
-                    new_epoch = _create_terminal_epoch('end_of_study', 'End of Study')
-                    if 'epochs' not in design:
-                        design['epochs'] = []
-                    design['epochs'].append(new_epoch)
-                    epoch_ids.add(new_epoch['id'])
-                    resolved_sequence.append(new_epoch['id'])
-                elif step_upper in ['EARLY_TERMINATION', 'ET', 'DISCONTINUED']:
-                    new_epoch = _create_terminal_epoch('early_termination', 'Early Termination')
-                    if 'epochs' not in design:
-                        design['epochs'] = []
-                    design['epochs'].append(new_epoch)
-                    epoch_ids.add(new_epoch['id'])
-                    resolved_sequence.append(new_epoch['id'])
-                else:
-                    # Skip unresolvable - don't create orphans
-                    logger.warning(f"Skipping unresolvable traversal step '{step}'")
-            
-            # Update the constraint with resolved sequence
-            resolved_tc = tc.to_dict()
+                resolved_id = _resolve_to_epoch_id(
+                    step, epoch_ids, epoch_names, llm_mappings, design
+                )
+                if resolved_id:
+                    resolved_sequence.append(resolved_id)
+                    epoch_ids.add(resolved_id)  # Track newly created
             resolved_tc['requiredSequence'] = resolved_sequence
+            
+            # 2. Resolve exitEpochIds - MUST be real epoch IDs
+            resolved_exits = []
+            for exit_id in tc.exit_epoch_ids or []:
+                resolved_id = _resolve_to_epoch_id(
+                    exit_id, epoch_ids, epoch_names, llm_mappings, design
+                )
+                if resolved_id:
+                    resolved_exits.append(resolved_id)
+                    epoch_ids.add(resolved_id)
+            resolved_tc['exitEpochIds'] = resolved_exits
+            
+            # 3. Resolve mandatoryVisits - convert names to encounter IDs
+            resolved_visits = []
+            for visit in tc.mandatory_visits or []:
+                resolved_id = _resolve_to_encounter_id(
+                    visit, encounter_ids, design.get('encounters', [])
+                )
+                if resolved_id:
+                    resolved_visits.append(resolved_id)
+            resolved_tc['mandatoryVisits'] = resolved_visits
+            
             resolved_constraints.append(resolved_tc)
+        
+        # Validate: no unresolved references allowed
+        for tc in resolved_constraints:
+            for step in tc.get('requiredSequence', []):
+                if step not in epoch_ids and not step.startswith('epoch_'):
+                    logger.error(f"UNRESOLVED traversal step after resolution: {step}")
         
         design['extensionAttributes'].append(_create_extension_attribute(
             "x-executionModel-traversalConstraints", resolved_constraints
         ))
     
-    # Phase 2: Add footnote conditions
+    # Phase 2: Add footnote conditions with resolved activity/encounter IDs
     if execution_data.footnote_conditions:
+        resolved_footnotes = []
+        activity_names = {a.get('name', '').lower(): a.get('id') for a in design.get('activities', [])}
+        
+        for fc in execution_data.footnote_conditions:
+            fc_dict = fc.to_dict()
+            
+            # Resolve appliesToActivityIds - convert names to IDs
+            if fc.applies_to_activities:
+                resolved_activity_ids = []
+                for act in fc.applies_to_activities:
+                    if act in {a.get('id') for a in design.get('activities', [])}:
+                        resolved_activity_ids.append(act)
+                    elif act.lower() in activity_names:
+                        resolved_activity_ids.append(activity_names[act.lower()])
+                    else:
+                        # Fuzzy match
+                        for a_name, a_id in activity_names.items():
+                            if act.lower() in a_name or a_name in act.lower():
+                                resolved_activity_ids.append(a_id)
+                                break
+                fc_dict['appliesToActivityIds'] = resolved_activity_ids
+            
+            # Resolve appliesToEncounterIds
+            if fc.applies_to_encounters:
+                resolved_encounter_ids = []
+                for enc in fc.applies_to_encounters:
+                    resolved_id = _resolve_to_encounter_id(
+                        enc, encounter_ids, design.get('encounters', [])
+                    )
+                    if resolved_id:
+                        resolved_encounter_ids.append(resolved_id)
+                fc_dict['appliesToEncounterIds'] = resolved_encounter_ids
+            
+            resolved_footnotes.append(fc_dict)
+        
         design['extensionAttributes'].append(_create_extension_attribute(
-            "x-executionModel-footnoteConditions",
-            [fc.to_dict() for fc in execution_data.footnote_conditions]
+            "x-executionModel-footnoteConditions", resolved_footnotes
         ))
     
     # Phase 3: Add endpoint algorithms
