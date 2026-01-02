@@ -27,6 +27,7 @@ class AnalysisPopulation:
     name: str
     label: Optional[str] = None
     description: Optional[str] = None
+    definition: Optional[str] = None  # Full definition text from SAP
     population_type: str = "Analysis"  # Analysis, Safety, Efficacy, etc.
     criteria: Optional[str] = None
     instance_type: str = "AnalysisPopulation"
@@ -40,8 +41,10 @@ class AnalysisPopulation:
         }
         if self.label:
             result["label"] = self.label
-        if self.description:
-            result["description"] = self.description
+        # Use definition as description if available, otherwise use description
+        desc = self.definition or self.description
+        if desc:
+            result["populationDescription"] = desc
         if self.criteria:
             result["criteria"] = self.criteria
         return result
@@ -107,29 +110,31 @@ class SAPExtractionResult:
         return result
 
 
-SAP_EXTRACTION_PROMPT = """Extract Analysis Populations and Baseline Characteristics from this clinical document.
+SAP_EXTRACTION_PROMPT = """Extract Analysis Populations with their COMPLETE DEFINITIONS from this SAP document.
 
-Look for analysis populations in:
-- Section 9 (Statistical Considerations / Populations for Analysis)
-- Statistical Analysis Plan sections
-- Any section defining study populations
+**CRITICAL: You MUST extract the full definition/criteria text for each population.**
 
-**Analysis Populations to extract:**
-- Full Analysis Set (FAS) / Intent-to-Treat (ITT) population
-- Modified ITT (mITT) population  
-- Per-Protocol (PP) population
-- Safety population / Safety Analysis Set
-- Pharmacokinetic (PK) Analysis Set
-- Pharmacodynamic (PD) Analysis Set
-- Any other defined analysis populations
+Look for analysis population definitions in:
+- "Analysis Sets" or "Analysis Populations" sections (usually Section 3 or 4 in SAP)
+- Tables describing population inclusion/exclusion criteria
+- "Populations for Analysis" sections
+- Any text that says "will include all subjects who..." or "is defined as..."
 
-**Baseline Characteristics to extract:**
-- Demographics (age, sex, race, ethnicity)
-- Disease characteristics
-- Prior therapies
-- Baseline assessments
+**For each population, extract:**
+1. **Name**: Full name (e.g., "Full Analysis Set", "Safety Analysis Set")
+2. **Label/Abbreviation**: Short form (e.g., "FAS", "SAF", "ITT", "PP")
+3. **Definition**: The COMPLETE text describing who is included. This is REQUIRED.
+   - Look for phrases like "includes all subjects who...", "defined as...", "consists of..."
+   - Extract the full eligibility criteria text
+4. **Type**: Efficacy, Safety, or PK/PD
 
-Return JSON:
+**Common populations and their typical definitions:**
+- Full Analysis Set (FAS): Usually all randomized subjects who received at least one dose
+- Safety Analysis Set (SAF): All subjects who received at least one dose of study drug
+- Per-Protocol Set (PP): Subjects without major protocol deviations
+- PK Analysis Set: Subjects with evaluable PK samples
+
+Return JSON with COMPLETE definitions (not placeholders):
 ```json
 {{
   "analysisPopulations": [
@@ -137,17 +142,17 @@ Return JSON:
       "id": "pop_1",
       "name": "Full Analysis Set",
       "label": "FAS",
-      "description": "All participants who were enrolled and received at least 1 dose of study drug",
+      "definition": "All enrolled subjects who received at least one dose of study drug and have at least one post-baseline efficacy assessment",
       "populationType": "Efficacy",
-      "criteria": "Enrolled and received at least 1 dose"
+      "criteria": "Enrolled AND received >=1 dose AND has post-baseline assessment"
     }},
     {{
-      "id": "pop_2",
+      "id": "pop_2", 
       "name": "Safety Analysis Set",
       "label": "SAF",
-      "description": "All participants who received at least 1 dose of study drug",
+      "definition": "All subjects who received at least one dose of study drug, whether randomized or not",
       "populationType": "Safety",
-      "criteria": "Received at least 1 dose"
+      "criteria": "Received >=1 dose"
     }}
   ],
   "characteristics": [
@@ -160,6 +165,8 @@ Return JSON:
   ]
 }}
 ```
+
+**If you cannot find a definition for a population, include what section/page it might be in.**
 
 DOCUMENT TEXT:
 {sap_text}
@@ -217,6 +224,7 @@ def extract_from_sap(
                 name=p.get('name', ''),
                 label=p.get('label'),
                 description=p.get('description'),
+                definition=p.get('definition'),  # Extract definition field
                 population_type=p.get('populationType', 'Analysis'),
                 criteria=p.get('criteria'),
             )
