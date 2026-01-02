@@ -773,7 +773,8 @@ def combine_to_full_usdm(
             md = r.metadata
             study_version["titles"] = [t.to_dict() for t in md.titles]
             study_version["studyIdentifiers"] = [i.to_dict() for i in md.identifiers]
-            combined["study"]["organizations"] = [o.to_dict() for o in md.organizations]
+            # USDM-compliant: organizations go to studyVersion (per dataStructure.yml)
+            study_version["organizations"] = [o.to_dict() for o in md.organizations]
             if md.study_phase:
                 study_version["studyPhase"] = md.study_phase.to_dict()
             # Store indications temporarily - will be added to studyDesign later
@@ -807,10 +808,10 @@ def combine_to_full_usdm(
     if expansion_results and expansion_results.get('eligibility'):
         r = expansion_results['eligibility']
         if r.success and r.data:
-            # Add EligibilityCriterionItems (the actual criterion text)
+            # USDM-compliant: EligibilityCriterionItems go to studyVersion (per dataStructure.yml)
             if r.data.criterion_items:
-                study_design["eligibilityCriterionItems"] = [item.to_dict() for item in r.data.criterion_items]
-            # Add EligibilityCriteria (references to items with category/ordering)
+                study_version["eligibilityCriterionItems"] = [item.to_dict() for item in r.data.criterion_items]
+            # EligibilityCriteria stay in studyDesign (per dataStructure.yml)
             study_design["eligibilityCriteria"] = [c.to_dict() for c in r.data.criteria]
             if r.data.population:
                 study_design["population"] = r.data.population.to_dict()
@@ -840,8 +841,11 @@ def combine_to_full_usdm(
     if expansion_results and expansion_results.get('interventions'):
         r = expansion_results['interventions']
         if r.success and r.data:
-            study_design["studyInterventions"] = [i.to_dict() for i in r.data.interventions]
-            combined["administrableProducts"] = [p.to_dict() for p in r.data.products]
+            # USDM-compliant: studyInterventions go to studyVersion (per dataStructure.yml)
+            study_version["studyInterventions"] = [i.to_dict() for i in r.data.interventions]
+            # USDM-compliant: administrableProducts go to studyVersion (per dataStructure.yml)
+            study_version["administrableProducts"] = [p.to_dict() for p in r.data.products]
+            # Administrations and substances - keep at root for now (product details)
             combined["administrations"] = [a.to_dict() for a in r.data.administrations]
             combined["substances"] = [s.to_dict() for s in r.data.substances]
     
@@ -913,17 +917,19 @@ def combine_to_full_usdm(
     if expansion_results and expansion_results.get('narrative'):
         r = expansion_results['narrative']
         if r.success and r.data:
-            combined["narrativeContents"] = [s.to_dict() for s in r.data.sections]
+            # USDM-compliant: narrativeContentItems go to studyVersion (per dataStructure.yml)
+            study_version["narrativeContentItems"] = [s.to_dict() for s in r.data.sections]
             study_version["abbreviations"] = [a.to_dict() for a in r.data.abbreviations]
             if r.data.document:
                 combined["studyDefinitionDocument"] = r.data.document.to_dict()
     
     # Add Advanced Entities
+    # USDM-compliant: amendments go to studyVersion.amendments (per dataStructure.yml)
     if expansion_results and expansion_results.get('advanced'):
         r = expansion_results['advanced']
         if r.success and r.data:
             if r.data.amendments:
-                combined["studyAmendments"] = [a.to_dict() for a in r.data.amendments]
+                study_version["amendments"] = [a.to_dict() for a in r.data.amendments]
             if r.data.geographic_scope:
                 combined["geographicScope"] = r.data.geographic_scope.to_dict()
             if r.data.countries:
@@ -978,9 +984,10 @@ def combine_to_full_usdm(
                     # Add unmatched to studyDesign.procedures as fallback
                     study_design['procedures'] = unmatched
             
-            # Medical devices, ingredients, strengths remain at root (no activity linkage in USDM)
+            # USDM-compliant: medicalDevices go to studyVersion (per dataStructure.yml)
             if data_dict.get('medicalDevices'):
-                combined["medicalDevices"] = data_dict['medicalDevices']
+                study_version["medicalDevices"] = data_dict['medicalDevices']
+            # Ingredients and strengths are product-related, keep at root for now
             if data_dict.get('ingredients'):
                 combined["ingredients"] = data_dict['ingredients']
             if data_dict.get('strengths'):
