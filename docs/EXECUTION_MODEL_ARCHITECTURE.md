@@ -128,9 +128,36 @@ except Exception as e:
     logger.warning(f"Reconciliation layer failed: {e}")
 ```
 
+## SoA Context Passing
+
+All extractors now receive existing SoA entities as context via `SoAContext` helper:
+
+```python
+from extraction.execution.soa_context import SoAContext, extract_soa_context
+
+# Extract once at pipeline start
+soa_context = extract_soa_context(soa_data)
+
+# Pass to extractors
+traversal_result = extract_traversal_constraints(
+    pdf_path=pdf_path,
+    existing_epochs=soa_context.epochs,  # Actual IDs, not abstract labels
+)
+```
+
+### Benefits
+- Extractors reference actual epoch/encounter/activity IDs
+- No downstream resolution needed
+- Traversal constraints directly usable by generators
+
+### Test Results
+- Before: `Matched traversal to 1 existing SoA epoch IDs`
+- After: `All traversal steps resolved to epoch IDs`
+
 ## Future Improvements
 
-1. **Crossover promotion to epochs** - Currently detects but doesn't fully create period epochs
-2. **Dosing consolidation** - Merge fragmented regimens into parent interventions
-3. **Visit window derivation** - Auto-derive targetDay from SoA position when ambiguous
-4. **Confidence thresholds** - Allow configuration of minimum confidence for LLM mappings
+1. **Extend SoA context to all extractors** - crossover, repetition, footnote, dosing
+2. **Crossover promotion to epochs** - Currently detects but doesn't fully create period epochs
+3. **Dosing consolidation** - Merge fragmented regimens into parent interventions
+4. **Visit window derivation** - Auto-derive targetDay from SoA position when ambiguous
+5. **Confidence thresholds** - Allow configuration of minimum confidence for LLM mappings
