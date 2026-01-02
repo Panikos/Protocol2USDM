@@ -184,6 +184,7 @@ def extract_execution_model(
         pdf_path=pdf_path,
         model=model,
         use_llm=enable_llm,
+        existing_activities=soa_context.activities if soa_context.has_activities() else None,
     )
     
     if footnote_result.success:

@@ -368,6 +368,7 @@ def extract_footnote_conditions(
     pages: Optional[List[int]] = None,
     footnotes: Optional[List[str]] = None,
     use_llm: bool = True,
+    existing_activities: Optional[List[Dict[str, Any]]] = None,
 ) -> ExecutionModelResult:
     """
     Extract structured conditions from SoA footnotes.
@@ -378,6 +379,7 @@ def extract_footnote_conditions(
         pages: Specific pages to analyze
         footnotes: Pre-extracted footnote texts (if available)
         use_llm: Whether to use LLM enhancement
+        existing_activities: Activities from SoA to match footnotes against
         
     Returns:
         ExecutionModelResult with FootnoteConditions
