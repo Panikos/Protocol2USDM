@@ -1675,7 +1675,8 @@ Examples:
             logger.info(f"SoA: {'✓ Success' if (result and result.success) else '✗ Failed'}")
         if run_any_expansion:
             exp_success = sum(1 for k, r in expansion_results.items() if k != '_pipeline_context' and hasattr(r, 'success') and r.success)
-            logger.info(f"Expansion: {exp_success}/{len(expansion_results)} phases successful")
+            exp_total = sum(1 for k in expansion_results if k != '_pipeline_context')
+            logger.info(f"Expansion: {exp_success}/{exp_total} phases successful")
         
         # Schema validation summary
         if schema_validation_result is not None:
