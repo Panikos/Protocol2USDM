@@ -43,7 +43,9 @@ export function DocumentStructureView({ usdm }: DocumentStructureViewProps) {
   const version = versions[0] as Record<string, unknown> | undefined;
   
   const documentContents = (version?.documentContents as DocumentContent[]) ?? [];
-  const narrativeContents = (version?.narrativeContents as DocumentContent[]) ?? [];
+  // USDM-compliant: narrativeContentItems at studyVersion level (per dataStructure.yml)
+  const narrativeContents = (version?.narrativeContentItems as DocumentContent[]) ?? 
+                            (version?.narrativeContents as DocumentContent[]) ?? [];
   
   // M11 Template sections mapping
   const m11Sections = [

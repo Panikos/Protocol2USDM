@@ -36,11 +36,9 @@ export function EligibilityCriteriaView({ usdm }: EligibilityCriteriaViewProps) 
     const study = usdm?.study as Record<string, unknown> | undefined;
     const versions = (study?.versions as unknown[]) ?? [];
     const version = versions[0] as Record<string, unknown> | undefined;
-    const studyDesigns = (version?.studyDesigns as Record<string, unknown>[]) ?? [];
-    const design = studyDesigns[0];
     
-    // Check for eligibilityCriterionItems at design level
-    const criterionItems = (design?.eligibilityCriterionItems as EligibilityCriterionItem[]) ?? [];
+    // USDM-compliant: eligibilityCriterionItems are at studyVersion level (per dataStructure.yml)
+    const criterionItems = (version?.eligibilityCriterionItems as EligibilityCriterionItem[]) ?? [];
     
     for (const item of criterionItems) {
       if (item.id) {

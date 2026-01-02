@@ -65,8 +65,9 @@ export function ProceduresDevicesView({ usdm }: ProceduresDevicesViewProps) {
     }
   }
 
-  // Devices at studyDesign level
-  const devices = (studyDesign.studyDevices as Device[]) ?? [];
+  // USDM-compliant: medicalDevices are at studyVersion level (per dataStructure.yml)
+  const devices = (version?.medicalDevices as Device[]) ?? 
+                  (studyDesign.medicalDevices as Device[]) ?? [];
 
   const hasData = procedures.length > 0 || devices.length > 0;
 

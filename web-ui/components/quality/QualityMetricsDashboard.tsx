@@ -49,6 +49,10 @@ export function QualityMetricsDashboard({ usdm }: QualityMetricsDashboardProps) 
   const design = studyDesigns[0];
 
   // Calculate entity counts
+  // USDM-compliant: timings are in scheduleTimeline.timings (per dataStructure.yml)
+  const scheduleTimelines = (design?.scheduleTimelines as { timings?: unknown[] }[]) ?? [];
+  const timingsCount = scheduleTimelines.reduce((sum, tl) => sum + (tl.timings?.length ?? 0), 0);
+  
   const counts: EntityCounts = {
     activities: (design?.activities as unknown[])?.length ?? 0,
     encounters: (design?.encounters as unknown[])?.length ?? 0,
@@ -57,9 +61,9 @@ export function QualityMetricsDashboard({ usdm }: QualityMetricsDashboardProps) 
     objectives: (design?.objectives as unknown[])?.length ?? 0,
     eligibilityCriteria: ((design?.eligibilityCriteria as unknown[])?.length ?? 0) +
                          ((version?.eligibilityCriterionItems as unknown[])?.length ?? 0),
-    interventions: ((design?.studyInterventions as unknown[])?.length ?? 0) +
+    interventions: ((version?.studyInterventions as unknown[])?.length ?? 0) +
                    ((version?.administrableProducts as unknown[])?.length ?? 0),
-    timings: (design?.timings as unknown[])?.length ?? 0,
+    timings: timingsCount,
   };
 
   // Calculate field population metrics
