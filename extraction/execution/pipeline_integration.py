@@ -32,6 +32,7 @@ from .visit_window_extractor import extract_visit_windows
 from .stratification_extractor import extract_stratification
 from .entity_resolver import EntityResolver, EntityResolutionContext, create_resolution_context_from_design
 from .reconciliation_layer import ReconciliationLayer, reconcile_usdm_with_execution_model
+from .soa_context import SoAContext, extract_soa_context
 
 logger = logging.getLogger(__name__)
 
@@ -82,6 +83,11 @@ def extract_execution_model(
     
     # Determine if LLM should be used
     enable_llm = use_llm and not skip_llm
+    
+    # Extract SoA context once - pass to all extractors for entity resolution
+    soa_context = extract_soa_context(soa_data)
+    if soa_context.has_epochs() or soa_context.has_encounters():
+        logger.info(f"SoA context available: {soa_context.get_summary()}")
     
     # 1. Extract time anchors
     logger.info("Step 1/10: Extracting time anchors...")
@@ -152,27 +158,15 @@ def extract_execution_model(
     # 5. Extract traversal constraints (Phase 2)
     logger.info("Step 5/10: Extracting traversal constraints...")
     
-    # Extract existing epochs from SoA to use as reference (avoids abstract labels)
-    existing_epochs = None
-    if soa_data:
-        # Epochs are nested in USDM structure: study.versions[].studyDesigns[].epochs
-        existing_epochs = soa_data.get('epochs', [])
-        if not existing_epochs:
-            # Try nested USDM path
-            study = soa_data.get('study', {})
-            versions = study.get('versions', [])
-            if versions:
-                designs = versions[0].get('studyDesigns', [])
-                if designs:
-                    existing_epochs = designs[0].get('epochs', [])
-        if existing_epochs:
-            logger.info(f"  Using {len(existing_epochs)} SoA epochs as traversal reference")
+    # Use SoA epochs as reference (avoids abstract labels that need resolution)
+    if soa_context.has_epochs():
+        logger.info(f"  Using {len(soa_context.epochs)} SoA epochs as traversal reference")
     
     traversal_result = extract_traversal_constraints(
         pdf_path=pdf_path,
         model=model,
         use_llm=enable_llm,
-        existing_epochs=existing_epochs,
+        existing_epochs=soa_context.epochs if soa_context.has_epochs() else None,
     )
     
     if traversal_result.success:
