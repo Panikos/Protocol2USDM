@@ -107,9 +107,19 @@ def extract_interventions(
     model_name: str = "gemini-2.5-pro",
     pages: Optional[List[int]] = None,
     protocol_text: Optional[str] = None,
+    existing_arms: Optional[List[Dict[str, Any]]] = None,
+    study_indication: Optional[str] = None,
 ) -> InterventionsExtractionResult:
     """
     Extract interventions and products from a protocol PDF.
+    
+    Args:
+        pdf_path: Path to protocol PDF
+        model_name: LLM model to use
+        pages: Specific pages to use
+        protocol_text: Optional pre-extracted text
+        existing_arms: Treatment arms from study design for reference
+        study_indication: Indication from metadata for context
     """
     result = InterventionsExtractionResult(success=False, model_used=model_name)
     
@@ -134,7 +144,17 @@ def extract_interventions(
         
         # Call LLM for extraction
         logger.info("Extracting interventions with LLM...")
-        prompt = build_interventions_extraction_prompt(protocol_text)
+        
+        # Build context hints from prior extractions
+        context_hints = ""
+        if existing_arms:
+            arm_names = [a.get('name', '') for a in existing_arms if a.get('name')]
+            if arm_names:
+                context_hints += f"\nKnown treatment arms: {', '.join(arm_names)}"
+        if study_indication:
+            context_hints += f"\nStudy indication: {study_indication}"
+        
+        prompt = build_interventions_extraction_prompt(protocol_text, context_hints=context_hints)
         
         response = call_llm(
             prompt=prompt,

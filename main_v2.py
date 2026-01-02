@@ -157,7 +157,12 @@ def run_expansion_phases(
     
     if phases.get('interventions'):
         logger.info("\n--- Expansion: Interventions (Phase 5) ---")
-        result = extract_interventions(pdf_path, model_name=model)
+        result = extract_interventions(
+            pdf_path, 
+            model_name=model,
+            existing_arms=pipeline_context.arms if pipeline_context.has_arms() else None,
+            study_indication=pipeline_context.indication if pipeline_context.indication else None,
+        )
         save_interventions_result(result, os.path.join(output_dir, "6_interventions.json"))
         results['interventions'] = result
         if result.success and result.data:
