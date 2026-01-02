@@ -115,8 +115,12 @@ def run_expansion_phases(
     
     if phases.get('eligibility'):
         logger.info("\n--- Expansion: Eligibility Criteria (Phase 1) ---")
-        # Pass context for potential reference (e.g., indication from metadata)
-        result = extract_eligibility_criteria(pdf_path, model_name=model)
+        result = extract_eligibility_criteria(
+            pdf_path, 
+            model_name=model,
+            study_indication=pipeline_context.indication if pipeline_context.indication else None,
+            study_phase=pipeline_context.phase if pipeline_context.phase else None,
+        )
         save_eligibility_result(result, os.path.join(output_dir, "3_eligibility_criteria.json"))
         results['eligibility'] = result
         if result.success and result.data:
