@@ -114,11 +114,11 @@ SAP_EXTRACTION_PROMPT = """Extract Analysis Populations with their COMPLETE DEFI
 
 **CRITICAL: You MUST extract the full definition/criteria text for each population.**
 
-Look for analysis population definitions in:
-- "Analysis Sets" or "Analysis Populations" sections (usually Section 3 or 4 in SAP)
-- Tables describing population inclusion/exclusion criteria
-- "Populations for Analysis" sections
-- Any text that says "will include all subjects who..." or "is defined as..."
+Look for analysis population definitions in ANY section titled:
+- "DATA SETS ANALYZED", "STUDY POPULATIONS", "ANALYSIS SETS", "POPULATIONS FOR ANALYSIS"
+- Subsections with population names as headers (e.g., "Screened Set", "Full Analysis Set", "Safety Set")
+- The definition text immediately follows the population name/header
+- Definitions typically start with "All participants who...", "All subjects who...", "Includes all..."
 
 **For each population, extract:**
 1. **Name**: Full name (e.g., "Full Analysis Set", "Safety Analysis Set")
