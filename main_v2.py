@@ -128,7 +128,12 @@ def run_expansion_phases(
     
     if phases.get('objectives'):
         logger.info("\n--- Expansion: Objectives & Endpoints (Phase 3) ---")
-        result = extract_objectives_endpoints(pdf_path, model_name=model)
+        result = extract_objectives_endpoints(
+            pdf_path, 
+            model_name=model,
+            study_indication=pipeline_context.indication if pipeline_context.indication else None,
+            study_phase=pipeline_context.phase if pipeline_context.phase else None,
+        )
         save_objectives_result(result, os.path.join(output_dir, "4_objectives_endpoints.json"))
         results['objectives'] = result
         if result.success and result.data:

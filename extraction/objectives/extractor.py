@@ -110,6 +110,8 @@ def extract_objectives_endpoints(
     model_name: str = "gemini-2.5-pro",
     pages: Optional[List[int]] = None,
     protocol_text: Optional[str] = None,
+    study_indication: Optional[str] = None,
+    study_phase: Optional[str] = None,
 ) -> ObjectivesExtractionResult:
     """
     Extract objectives and endpoints from a protocol PDF.
@@ -119,6 +121,8 @@ def extract_objectives_endpoints(
         model_name: LLM model to use
         pages: Specific pages to use (0-indexed), auto-detected if None
         protocol_text: Optional pre-extracted text
+        study_indication: Indication from metadata for context
+        study_phase: Study phase from metadata for context
         
     Returns:
         ObjectivesExtractionResult with extracted data
@@ -147,7 +151,15 @@ def extract_objectives_endpoints(
         
         # Call LLM for extraction
         logger.info("Extracting objectives and endpoints with LLM...")
-        prompt = build_objectives_extraction_prompt(protocol_text)
+        
+        # Build context hints from prior extractions
+        context_hints = ""
+        if study_indication:
+            context_hints += f"\nStudy indication: {study_indication}"
+        if study_phase:
+            context_hints += f"\nStudy phase: {study_phase}"
+        
+        prompt = build_objectives_extraction_prompt(protocol_text, context_hints=context_hints)
         
         response = call_llm(
             prompt=prompt,
