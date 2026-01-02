@@ -128,27 +128,64 @@ except Exception as e:
     logger.warning(f"Reconciliation layer failed: {e}")
 ```
 
-## SoA Context Passing
+## Pipeline Context Architecture
 
-All extractors now receive existing SoA entities as context via `SoAContext` helper:
+The entire pipeline now uses **PipelineContext** to accumulate extraction results, enabling each subsequent extractor to reference prior data.
 
-```python
-from extraction.execution.soa_context import SoAContext, extract_soa_context
-
-# Extract once at pipeline start
-soa_context = extract_soa_context(soa_data)
-
-# Pass to extractors
-traversal_result = extract_traversal_constraints(
-    pdf_path=pdf_path,
-    existing_epochs=soa_context.epochs,  # Actual IDs, not abstract labels
-)
+```
+PDF → SoA Extraction → PipelineContext
+                           ↓
+PDF → Metadata → adds to context
+                           ↓
+PDF → Eligibility → references metadata, adds to context
+                           ↓
+PDF → Objectives → references metadata, adds to context
+                           ↓
+PDF → Study Design → references all above, adds to context
+                           ↓
+PDF → Interventions → references design, adds to context
+                           ↓
+... subsequent extractors reference accumulated context ...
+                           ↓
+PDF → Execution Model → references ALL prior data
 ```
 
+### PipelineContext
+
+```python
+from extraction.pipeline_context import PipelineContext, create_pipeline_context
+
+# Create context from SoA extraction
+pipeline_context = create_pipeline_context(soa_data)
+
+# Each extractor updates context
+pipeline_context.update_from_metadata(result.metadata)
+pipeline_context.update_from_eligibility(result.data)
+pipeline_context.update_from_objectives(result.data)
+# ... etc
+
+# Later extractors can reference accumulated data
+if pipeline_context.has_epochs():
+    traversal_result = extract_traversal_constraints(
+        pdf_path=pdf_path,
+        existing_epochs=pipeline_context.epochs,
+    )
+```
+
+### Available Context Data
+- **epochs** - Study phases from SoA
+- **encounters** - Visits from SoA
+- **activities** - Procedures/assessments from SoA
+- **arms** - Treatment arms from study design
+- **interventions** - Drugs/treatments from interventions
+- **objectives/endpoints** - From objectives extraction
+- **inclusion/exclusion_criteria** - From eligibility extraction
+
 ### Benefits
-- Extractors reference actual epoch/encounter/activity IDs
+- Extractors reference actual IDs, not arbitrary labels
 - No downstream resolution needed
-- Traversal constraints directly usable by generators
+- Consistent references across entire USDM output
+- Better extraction accuracy with rich context
 
 ### Test Results
 - Before: `Matched traversal to 1 existing SoA epoch IDs`
