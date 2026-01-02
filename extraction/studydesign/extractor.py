@@ -117,6 +117,8 @@ def extract_study_design(
     model_name: str = "gemini-2.5-pro",
     pages: Optional[List[int]] = None,
     protocol_text: Optional[str] = None,
+    existing_epochs: Optional[List[Dict[str, Any]]] = None,
+    existing_arms: Optional[List[Dict[str, Any]]] = None,
 ) -> StudyDesignExtractionResult:
     """
     Extract study design structure from a protocol PDF.
@@ -126,6 +128,8 @@ def extract_study_design(
         model_name: LLM model to use
         pages: Specific pages to use (0-indexed), auto-detected if None
         protocol_text: Optional pre-extracted text
+        existing_epochs: Epochs from SoA extraction for reference
+        existing_arms: Arms from prior extraction for reference
         
     Returns:
         StudyDesignExtractionResult with extracted data
@@ -154,7 +158,19 @@ def extract_study_design(
         
         # Call LLM for extraction
         logger.info("Extracting study design with LLM...")
-        prompt = build_study_design_extraction_prompt(protocol_text)
+        
+        # Build context hints from existing SoA data
+        context_hints = ""
+        if existing_epochs:
+            epoch_names = [e.get('name', '') for e in existing_epochs if e.get('name')]
+            if epoch_names:
+                context_hints += f"\nKnown study epochs from SoA: {', '.join(epoch_names)}"
+        if existing_arms:
+            arm_names = [a.get('name', '') for a in existing_arms if a.get('name')]
+            if arm_names:
+                context_hints += f"\nKnown treatment arms from SoA: {', '.join(arm_names)}"
+        
+        prompt = build_study_design_extraction_prompt(protocol_text, context_hints=context_hints)
         
         response = call_llm(
             prompt=prompt,

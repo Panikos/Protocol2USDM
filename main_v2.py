@@ -140,7 +140,12 @@ def run_expansion_phases(
     
     if phases.get('studydesign'):
         logger.info("\n--- Expansion: Study Design (Phase 4) ---")
-        result = extract_study_design(pdf_path, model_name=model)
+        result = extract_study_design(
+            pdf_path, 
+            model_name=model,
+            existing_epochs=pipeline_context.epochs if pipeline_context.has_epochs() else None,
+            existing_arms=pipeline_context.arms if pipeline_context.has_arms() else None,
+        )
         save_study_design_result(result, os.path.join(output_dir, "5_study_design.json"))
         results['studydesign'] = result
         if result.success and result.data:

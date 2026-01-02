@@ -161,9 +161,13 @@ Pages are 0-indexed. Return ONLY valid JSON.
 """
 
 
-def build_study_design_extraction_prompt(protocol_text: str) -> str:
-    """Build the full extraction prompt with protocol content."""
-    return f"{STUDY_DESIGN_EXTRACTION_PROMPT}\n\n---\n\nPROTOCOL CONTENT:\n\n{protocol_text}"
+def build_study_design_extraction_prompt(protocol_text: str, context_hints: str = "") -> str:
+    """Build the full extraction prompt with protocol content and optional context hints."""
+    prompt = STUDY_DESIGN_EXTRACTION_PROMPT
+    if context_hints:
+        prompt += f"\n\nCONTEXT FROM PRIOR EXTRACTION:{context_hints}"
+    prompt += f"\n\n---\n\nPROTOCOL CONTENT:\n\n{protocol_text}"
+    return prompt
 
 
 def build_page_finder_prompt() -> str:
