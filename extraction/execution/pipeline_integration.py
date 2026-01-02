@@ -915,13 +915,25 @@ def _add_execution_extensions(
         activity_names = {a.get('name', '').lower(): a.get('id') for a in design.get('activities', [])}
         activity_ids_set = {a.get('id') for a in design.get('activities', [])}
         
+        # Build keyword-to-activity mapping for footnote text matching
+        activity_keywords = {}
+        for a in design.get('activities', []):
+            a_name = a.get('name', '').lower()
+            a_id = a.get('id')
+            # Add full name
+            activity_keywords[a_name] = a_id
+            # Add individual words (except common ones)
+            for word in a_name.split():
+                if len(word) > 3 and word not in {'the', 'and', 'for', 'with', 'other'}:
+                    if word not in activity_keywords:
+                        activity_keywords[word] = a_id
+        
         for fc in execution_data.footnote_conditions:
             fc_dict = fc.to_dict()
             
-            # Resolve appliesToActivityIds - convert names to IDs
-            # Use correct attribute name: applies_to_activity_ids
+            # First: try to resolve any existing activity refs from LLM
+            resolved_activity_ids = []
             if fc.applies_to_activity_ids:
-                resolved_activity_ids = []
                 for act in fc.applies_to_activity_ids:
                     if act in activity_ids_set:
                         resolved_activity_ids.append(act)
@@ -933,6 +945,17 @@ def _add_execution_extensions(
                             if act.lower() in a_name or a_name in act.lower():
                                 resolved_activity_ids.append(a_id)
                                 break
+            
+            # Second: if no activity refs yet, extract from footnote text
+            if not resolved_activity_ids and fc.text:
+                fn_text_lower = fc.text.lower()
+                matched_ids = set()
+                for keyword, a_id in activity_keywords.items():
+                    if keyword in fn_text_lower:
+                        matched_ids.add(a_id)
+                resolved_activity_ids = list(matched_ids)
+            
+            if resolved_activity_ids:
                 fc_dict['appliesToActivityIds'] = resolved_activity_ids
             
             # Resolve appliesToTimepointIds to encounter IDs

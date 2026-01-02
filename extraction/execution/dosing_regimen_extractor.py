@@ -220,8 +220,30 @@ def _extract_regimens_heuristic(text: str) -> List[DosingRegimen]:
         dose_amount = float(match.group(2))
         dose_unit = match.group(3).lower()
         
-        # Skip common false positives
-        if treatment_name.lower() in ['the', 'and', 'for', 'with', 'from', 'study', 'day', 'week']:
+        # Skip common false positives - expanded list
+        false_positives = {
+            'the', 'and', 'for', 'with', 'from', 'study', 'day', 'week', 'to',
+            'of', 'in', 'at', 'on', 'by', 'or', 'be', 'is', 'was', 'were', 'are',
+            'than', 'each', 'per', 'every', 'total', 'maximum', 'minimum',
+            'approximately', 'about', 'up', 'least', 'most', 'after', 'before',
+            'during', 'between', 'within', 'dose', 'doses', 'dosing', 'mg', 'day and',
+            'for the', 'to the', 'of the', 'in the', 'at the', 'on the', 'by the',
+        }
+        name_lower = treatment_name.lower()
+        if name_lower in false_positives:
+            continue
+        
+        # Skip if name is too short (< 3 chars) or doesn't look like a drug name
+        if len(treatment_name) < 3:
+            continue
+        
+        # Skip if name contains only common words
+        words = treatment_name.split()
+        if all(w.lower() in false_positives for w in words):
+            continue
+        
+        # Skip if name doesn't start with a letter or contains invalid patterns
+        if not treatment_name[0].isalpha():
             continue
         
         # Avoid duplicates
