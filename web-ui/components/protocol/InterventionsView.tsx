@@ -49,11 +49,12 @@ export function InterventionsView({ usdm }: InterventionsViewProps) {
   const studyDesigns = (version?.studyDesigns as Record<string, unknown>[]) ?? [];
   const design = studyDesigns[0];
 
-  // Get interventions from multiple possible locations
-  const studyInterventions = (design?.studyInterventions as StudyIntervention[]) ?? 
-                             (version?.studyInterventions as StudyIntervention[]) ?? [];
+  // USDM-compliant: studyInterventions and administrableProducts are at studyVersion level
+  const studyInterventions = (version?.studyInterventions as StudyIntervention[]) ?? 
+                             (design?.studyInterventions as StudyIntervention[]) ?? [];
   
-  const administrableProducts = (version?.administrableProducts as AdministrableProduct[]) ?? [];
+  const administrableProducts = (version?.administrableProducts as AdministrableProduct[]) ?? 
+                                (usdm.administrableProducts as AdministrableProduct[]) ?? [];
 
   if (studyInterventions.length === 0 && administrableProducts.length === 0) {
     return (

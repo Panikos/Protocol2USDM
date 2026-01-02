@@ -65,7 +65,7 @@ This extracts the full protocol, enriches entities with NCI terminology codes, i
 - **CDISC CORE Validation**: Built-in conformance checking with local engine
 - **Interactive Viewer**: Streamlit-based SoA review interface with collapsible sections
 
-### Extraction Capabilities (v6.5)
+### Extraction Capabilities (v6.6)
 
 | Module | Entities | CLI Flag |
 |--------|----------|----------|
@@ -305,9 +305,29 @@ python main_v2.py protocol.pdf --conformance         # Step 9: CORE conformance
 
 ## Output Structure
 
-The output follows the USDM v4.0 schema with proper `Study → StudyVersion → StudyDesign` hierarchy.
+The output follows the official USDM v4.0 schema from `dataStructure.yml` with proper entity placement:
 
-For detailed output structure and entity relationships, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#output-structure).
+```
+Study → StudyVersion → StudyDesign
+         │              │
+         │              ├── eligibilityCriteria[]
+         │              ├── indications[]
+         │              ├── analysisPopulations[]
+         │              ├── activities[].definedProcedures[]
+         │              └── scheduleTimelines[].timings[], .exits[]
+         │
+         ├── eligibilityCriterionItems[]
+         ├── organizations[]
+         ├── narrativeContentItems[]
+         ├── abbreviations[]
+         ├── conditions[]
+         ├── amendments[]
+         ├── administrableProducts[]
+         ├── medicalDevices[]
+         └── studyInterventions[]
+```
+
+For detailed output structure and entity relationships, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#usdm-output-structure-v40-compliant).
 
 ### Provenance Tracking
 
@@ -480,6 +500,7 @@ CDISC_API_KEY=...           # For CORE rules cache (get from library.cdisc.org)
 The following items are planned for upcoming releases:
 
 - [ ] **Biomedical Concepts**: Add extraction via a separate comprehensive canonical model for standardized concept mapping
+- [x] **USDM Entity Placement Compliance**: All entities placed at correct USDM locations per `dataStructure.yml` *(completed v6.6.0)*
 - [x] **StudyIdentifier Type Auto-Inference**: NCT, EudraCT, IND, Sponsor patterns auto-detected *(completed v6.5.0)*
 - [x] **encounterId Alignment**: Extraction uses enc_N directly instead of pt_N *(completed v6.5.0)*
 - [x] **EVS-Verified Terminology Codes**: All 28 NCI codes verified against NIH EVS API *(completed v6.5.0)*

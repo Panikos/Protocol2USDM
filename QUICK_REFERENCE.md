@@ -1,8 +1,8 @@
 # Protocol2USDM Quick Reference
 
-**v6.5.0** | One-page command reference
+**v6.6.0** | One-page command reference
 
-> **New in v6.5.0:** External evaluation **88%** (7/8 passing)! encounterId alignment, StudyIdentifier type auto-inference, EVS-verified terminology codes. All 28 NCI codes verified against NIH EVS API.
+> **New in v6.6.0:** Full USDM entity placement compliance per `dataStructure.yml`. All entities now at correct hierarchical locations (studyVersion, studyDesign, scheduleTimeline, activity).
 
 ---
 
@@ -234,7 +234,31 @@ CDISC_API_KEY=...            # For CORE (optional)
 
 ---
 
-**Docs:** [README.md](README.md) | [USER_GUIDE.md](USER_GUIDE.md) | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+---
 
-**Last Updated:** 2025-11-29  
-**Version:** 6.3.0
+## USDM Entity Placement (v6.6)
+
+| Entity | Location |
+|--------|----------|
+| `eligibilityCriterionItems` | `studyVersion` |
+| `organizations` | `studyVersion` |
+| `narrativeContentItems` | `studyVersion` |
+| `abbreviations` | `studyVersion` |
+| `conditions` | `studyVersion` |
+| `amendments` | `studyVersion` |
+| `administrableProducts` | `studyVersion` |
+| `medicalDevices` | `studyVersion` |
+| `studyInterventions` | `studyVersion` |
+| `eligibilityCriteria` | `studyDesign` |
+| `indications` | `studyDesign` |
+| `analysisPopulations` | `studyDesign` |
+| `timings` | `scheduleTimeline` |
+| `exits` | `scheduleTimeline` |
+| `definedProcedures` | `activity` |
+
+---
+
+**Docs:** [README.md](README.md) | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+
+**Last Updated:** 2026-01-02  
+**Version:** 6.6.0

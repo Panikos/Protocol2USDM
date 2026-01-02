@@ -4,6 +4,60 @@ All notable changes documented here. Dates in ISO-8601.
 
 ---
 
+## [6.6.0] – 2026-01-02
+
+### USDM Entity Placement Compliance
+
+Full audit and fix of entity placement to comply with official CDISC `dataStructure.yml`.
+
+#### Entity Placement Changes
+
+All entities now placed at their correct USDM hierarchical locations:
+
+| Entity | Before | After |
+|--------|--------|-------|
+| `eligibilityCriterionItems` | `studyDesign` | `studyVersion` |
+| `organizations` | `study` | `studyVersion` |
+| `narrativeContentItems` | root (`narrativeContents`) | `studyVersion` |
+| `abbreviations` | root | `studyVersion` |
+| `conditions` | root | `studyVersion` |
+| `amendments` | root | `studyVersion` |
+| `administrableProducts` | root | `studyVersion` |
+| `medicalDevices` | root | `studyVersion` |
+| `studyInterventions` | `studyDesign` | `studyVersion` |
+| `indications` | `study` | `studyDesign` |
+| `analysisPopulations` | root | `studyDesign` |
+| `timings` | root | `scheduleTimeline.timings` |
+| `scheduleTimelineExits` | root | `scheduleTimeline.exits` |
+| `procedures` | root | `activity.definedProcedures` |
+
+#### Files Changed
+
+**Pipeline (`main_v2.py`):**
+* Moved entity assignments to correct USDM locations
+* Added USDM placement comments referencing `dataStructure.yml`
+
+**UI Components:**
+* `EligibilityCriteriaView.tsx` - Read `eligibilityCriterionItems` from `studyVersion`
+* `ProceduresDevicesView.tsx` - Read `medicalDevices` from `studyVersion`
+* `QualityMetricsDashboard.tsx` - Read `timings` from `scheduleTimeline`, interventions from `studyVersion`
+* `DocumentStructureView.tsx` - Read `narrativeContentItems` from `studyVersion`
+
+#### Documentation Updates
+
+* Updated `docs/ARCHITECTURE.md` with USDM Output Structure section
+* Updated `README.md` with entity hierarchy diagram
+* Updated `QUICK_REFERENCE.md` with entity placement table
+* Added migration notes for v6.6 changes
+
+#### Reference
+
+Entity placement verified against:
+- `https://github.com/cdisc-org/DDF-RA/blob/main/Deliverables/UML/dataStructure.yml`
+- USDM workshop manual examples
+
+---
+
 ## [6.4.1] – 2025-11-30
 
 ### Provenance & Viewer Fix - Tick Color Display

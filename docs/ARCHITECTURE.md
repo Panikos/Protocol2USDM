@@ -208,6 +208,69 @@ The schema defines which fields are required. Key ones enforced:
 ### AliasCode (blindingSchema)
 - `id`, `standardCode`, `instanceType`
 
+## USDM Output Structure (v4.0 Compliant)
+
+The output follows the official CDISC USDM v4.0 structure from `dataStructure.yml`. Entities are placed at their correct hierarchical levels:
+
+### Entity Placement Hierarchy
+
+```
+Root Level:
+└── studyDefinitionDocument     # Protocol document metadata
+
+Study:
+└── versions[]                  # StudyVersion array
+    ├── titles[]                # Study titles
+    ├── studyIdentifiers[]      # NCT, EudraCT, etc.
+    ├── organizations[]         # Sponsor, CRO, etc.
+    ├── eligibilityCriterionItems[]  # Actual criterion text
+    ├── narrativeContentItems[] # Protocol sections
+    ├── abbreviations[]         # Abbreviation definitions
+    ├── conditions[]            # Scheduling conditions
+    ├── amendments[]            # Protocol amendments
+    ├── administrableProducts[] # Drug products
+    ├── medicalDevices[]        # Medical devices
+    ├── studyInterventions[]    # Interventions
+    └── studyDesigns[]          # StudyDesign array
+        ├── eligibilityCriteria[]    # Criterion references
+        ├── indications[]            # Disease indications
+        ├── population               # Study population
+        ├── analysisPopulations[]    # SAP populations
+        ├── objectives[]             # Study objectives
+        ├── endpoints[]              # Study endpoints
+        ├── activities[]             # Study activities
+        │   └── definedProcedures[]  # Procedures per activity
+        ├── encounters[]             # Study visits
+        ├── epochs[]                 # Study phases
+        ├── arms[]                   # Treatment arms
+        ├── studyCells[]             # Arm-epoch intersections
+        ├── notes[]                  # Protocol-wide footnotes
+        └── scheduleTimelines[]      # Timeline definitions
+            ├── timings[]            # Timing constraints
+            └── exits[]              # Exit conditions
+```
+
+### Key Placement Rules (per dataStructure.yml)
+
+| Entity | Correct Location | NOT at |
+|--------|-----------------|--------|
+| `eligibilityCriterionItems` | `studyVersion` | ~~studyDesign~~ |
+| `organizations` | `studyVersion` | ~~study~~ |
+| `narrativeContentItems` | `studyVersion` | ~~root~~ |
+| `abbreviations` | `studyVersion` | ~~root~~ |
+| `conditions` | `studyVersion` | ~~root~~ |
+| `amendments` | `studyVersion` | ~~root~~ |
+| `administrableProducts` | `studyVersion` | ~~root~~ |
+| `medicalDevices` | `studyVersion` | ~~root~~ |
+| `studyInterventions` | `studyVersion` | ~~studyDesign~~ |
+| `indications` | `studyDesign` | ~~study~~ |
+| `analysisPopulations` | `studyDesign` | ~~root~~ |
+| `timings` | `scheduleTimeline` | ~~root~~ |
+| `exits` | `scheduleTimeline` | ~~root~~ |
+| `definedProcedures` | `activity` | ~~root~~ |
+
+---
+
 ## Provenance Tracking
 
 Provenance tracks the **source** of each extracted entity and cell (text extraction, vision validation, or both), plus **footnote references** for ticks with superscripts.
@@ -461,6 +524,23 @@ Each extraction module has a local `schema.py` with extraction-specific types:
 1. **Types now auto-populate required fields** - No need to manually set `id`, `codeSystem`, etc.
 2. **Prompts generated from schema** - More accurate entity definitions
 3. **Single source of truth** - All derived from `dataStructure.yml`
+
+### From v6.x to v6.6 (USDM Placement Compliance)
+
+All entities now placed at their correct USDM locations per `dataStructure.yml`:
+
+1. **eligibilityCriterionItems** moved from `studyDesign` → `studyVersion`
+2. **organizations** moved from `study` → `studyVersion`
+3. **narrativeContentItems** renamed from `narrativeContents` and moved to `studyVersion`
+4. **studyInterventions** moved from `studyDesign` → `studyVersion`
+5. **administrableProducts** moved from root → `studyVersion`
+6. **medicalDevices** moved from root → `studyVersion`
+7. **timings** moved from root → `scheduleTimeline.timings`
+8. **exits** moved from root → `scheduleTimeline.exits`
+9. **conditions** moved from root → `studyVersion.conditions`
+10. **procedures** moved from root → `activity.definedProcedures`
+11. **indications** moved from `study` → `studyDesign.indications`
+12. **analysisPopulations** moved from root → `studyDesign.analysisPopulations`
 
 ### Backward Compatibility
 
