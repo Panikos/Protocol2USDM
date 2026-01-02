@@ -166,7 +166,13 @@ Return JSON with COMPLETE definitions (not placeholders):
 }}
 ```
 
-**If you cannot find a definition for a population, include what section/page it might be in.**
+**IMPORTANT: Do NOT return placeholder text like "Definition not found" or "See section X". 
+Search the ENTIRE document for definition text. The definition is the sentence(s) that describe which subjects are included.**
+
+**Example definitions from typical SAPs:**
+- "The Screened Set includes all subjects who signed an informed consent form."
+- "The Full Analysis Set includes all enrolled subjects who received at least one dose of study drug."
+- "The Safety Set consists of all subjects who received at least one dose of study medication."
 
 DOCUMENT TEXT:
 {sap_text}
