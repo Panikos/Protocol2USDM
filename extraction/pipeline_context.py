@@ -169,65 +169,89 @@ class PipelineContext:
         self._rebuild_lookup_maps()
         logger.info(f"Updated context from SoA: {len(self.epochs)} epochs, {len(self.encounters)} encounters, {len(self.activities)} activities")
     
-    def update_from_metadata(self, metadata: Dict[str, Any]):
+    def update_from_metadata(self, metadata):
         """Update context from metadata extraction."""
         if not metadata:
             return
-        self.study_title = metadata.get('studyTitle', self.study_title)
-        self.study_id = metadata.get('studyId', self.study_id)
-        self.sponsor = metadata.get('sponsor', self.sponsor)
-        self.indication = metadata.get('indication', self.indication)
-        self.phase = metadata.get('phase', self.phase)
+        # Handle both dict and object types
+        if hasattr(metadata, 'to_dict'):
+            metadata = metadata.to_dict()
+        elif hasattr(metadata, '__dict__') and not isinstance(metadata, dict):
+            metadata = vars(metadata)
+        if isinstance(metadata, dict):
+            self.study_title = metadata.get('studyTitle', metadata.get('study_title', self.study_title))
+            self.study_id = metadata.get('studyId', metadata.get('study_id', self.study_id))
+            self.sponsor = metadata.get('sponsor', self.sponsor)
+            self.indication = metadata.get('indication', self.indication)
+            self.phase = metadata.get('phase', self.phase)
         logger.debug(f"Updated context from metadata: {self.study_title}")
     
-    def update_from_eligibility(self, eligibility: Dict[str, Any]):
+    def _to_dict(self, obj):
+        """Convert object to dict if needed."""
+        if obj is None:
+            return {}
+        if isinstance(obj, dict):
+            return obj
+        if hasattr(obj, 'to_dict'):
+            return obj.to_dict()
+        if hasattr(obj, '__dict__'):
+            return vars(obj)
+        return {}
+    
+    def update_from_eligibility(self, eligibility):
         """Update context from eligibility extraction."""
         if not eligibility:
             return
-        self.inclusion_criteria = eligibility.get('inclusionCriteria', self.inclusion_criteria)
-        self.exclusion_criteria = eligibility.get('exclusionCriteria', self.exclusion_criteria)
+        data = self._to_dict(eligibility)
+        self.inclusion_criteria = data.get('inclusionCriteria', data.get('inclusion_criteria', self.inclusion_criteria))
+        self.exclusion_criteria = data.get('exclusionCriteria', data.get('exclusion_criteria', self.exclusion_criteria))
         logger.debug(f"Updated context from eligibility: {len(self.inclusion_criteria)} inclusion, {len(self.exclusion_criteria)} exclusion")
     
-    def update_from_objectives(self, objectives: Dict[str, Any]):
+    def update_from_objectives(self, objectives):
         """Update context from objectives extraction."""
         if not objectives:
             return
-        self.objectives = objectives.get('objectives', self.objectives)
-        self.endpoints = objectives.get('endpoints', self.endpoints)
+        data = self._to_dict(objectives)
+        self.objectives = data.get('objectives', self.objectives)
+        self.endpoints = data.get('endpoints', self.endpoints)
         logger.debug(f"Updated context from objectives: {len(self.objectives)} objectives, {len(self.endpoints)} endpoints")
     
-    def update_from_studydesign(self, design: Dict[str, Any]):
+    def update_from_studydesign(self, design):
         """Update context from study design extraction."""
         if not design:
             return
-        self.arms = design.get('arms', self.arms)
-        self.cohorts = design.get('cohorts', self.cohorts)
+        data = self._to_dict(design)
+        self.arms = data.get('arms', self.arms)
+        self.cohorts = data.get('cohorts', self.cohorts)
         self._rebuild_lookup_maps()
         logger.debug(f"Updated context from study design: {len(self.arms)} arms, {len(self.cohorts)} cohorts")
     
-    def update_from_interventions(self, interventions: Dict[str, Any]):
+    def update_from_interventions(self, interventions):
         """Update context from interventions extraction."""
         if not interventions:
             return
-        self.interventions = interventions.get('interventions', self.interventions)
-        self.products = interventions.get('products', self.products)
+        data = self._to_dict(interventions)
+        self.interventions = data.get('interventions', self.interventions)
+        self.products = data.get('products', self.products)
         self._rebuild_lookup_maps()
         logger.debug(f"Updated context from interventions: {len(self.interventions)} interventions")
     
-    def update_from_procedures(self, procedures: Dict[str, Any]):
+    def update_from_procedures(self, procedures):
         """Update context from procedures extraction."""
         if not procedures:
             return
-        self.procedures = procedures.get('procedures', self.procedures)
-        self.devices = procedures.get('devices', self.devices)
+        data = self._to_dict(procedures)
+        self.procedures = data.get('procedures', self.procedures)
+        self.devices = data.get('devices', self.devices)
         logger.debug(f"Updated context from procedures: {len(self.procedures)} procedures")
     
-    def update_from_scheduling(self, scheduling: Dict[str, Any]):
+    def update_from_scheduling(self, scheduling):
         """Update context from scheduling extraction."""
         if not scheduling:
             return
-        self.timings = scheduling.get('timings', self.timings)
-        self.scheduling_rules = scheduling.get('rules', self.scheduling_rules)
+        data = self._to_dict(scheduling)
+        self.timings = data.get('timings', self.timings)
+        self.scheduling_rules = data.get('rules', self.scheduling_rules)
         logger.debug(f"Updated context from scheduling: {len(self.timings)} timings")
     
     def update_from_execution_model(self, execution: Dict[str, Any]):
