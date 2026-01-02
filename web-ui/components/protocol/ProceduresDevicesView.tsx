@@ -43,19 +43,9 @@ export function ProceduresDevicesView({ usdm }: ProceduresDevicesViewProps) {
   }
 
   // Extract data from USDM structure
-  const study = usdm.study as Record<string, unknown> | undefined;
-  const versions = (study?.versions as unknown[]) ?? [];
-  const version = versions[0] as Record<string, unknown> | undefined;
-  const studyDesigns = (version?.studyDesigns as Record<string, unknown>[]) ?? [];
-  const studyDesign = studyDesigns[0] ?? {};
-
-  // Get procedures
-  const procedures = (studyDesign.procedures as Procedure[]) ?? 
-    (version?.procedures as Procedure[]) ?? [];
-
-  // Get devices
-  const devices = (studyDesign.studyDevices as Device[]) ?? 
-    (version?.studyDevices as Device[]) ?? [];
+  // Procedures and devices are at the ROOT level of the USDM, not inside studyDesign
+  const procedures = (usdm.procedures as Procedure[]) ?? [];
+  const devices = (usdm.studyDevices as Device[]) ?? [];
 
   const hasData = procedures.length > 0 || devices.length > 0;
 

@@ -911,6 +911,8 @@ def _add_execution_extensions(
     
     # Phase 2: Add footnote conditions with resolved activity/encounter IDs
     # Also promote to native USDM by attaching as activity notes
+    # Per USDM IG: activity-specific footnotes -> Activity.notes[]
+    #              protocol-wide footnotes -> StudyDesign.notes[]
     if execution_data.footnote_conditions:
         resolved_footnotes = []
         activity_names = {a.get('name', '').lower(): a.get('id') for a in design.get('activities', [])}
@@ -918,6 +920,8 @@ def _add_execution_extensions(
         
         # Track conditions per activity for native USDM promotion
         activity_conditions = {}  # activity_id -> list of condition texts
+        # Track protocol-wide footnotes (no activity match) for StudyDesign.notes[]
+        protocol_wide_footnotes = []
         
         # Build keyword-to-activity mapping for footnote text matching
         activity_keywords = {}
@@ -961,7 +965,7 @@ def _add_execution_extensions(
             
             if resolved_activity_ids:
                 fc_dict['appliesToActivityIds'] = resolved_activity_ids
-                # Track for native USDM promotion
+                # Track for native USDM promotion to Activity.notes[]
                 for act_id in resolved_activity_ids:
                     if act_id not in activity_conditions:
                         activity_conditions[act_id] = []
@@ -970,6 +974,15 @@ def _add_execution_extensions(
                         'text': fc.text,
                         'structured': fc.structured_condition,
                     })
+            else:
+                # No activity match - this is a protocol-wide footnote
+                # Per USDM IG, goes to StudyDesign.notes[]
+                protocol_wide_footnotes.append({
+                    'type': fc.condition_type,
+                    'text': fc.text,
+                    'structured': fc.structured_condition,
+                    'source': fc.source_text,
+                })
             
             # Resolve appliesToTimepointIds to encounter IDs
             if fc.applies_to_timepoint_ids:
@@ -1009,6 +1022,19 @@ def _add_execution_extensions(
         
         if conditions_promoted > 0:
             logger.info(f"Promoted {conditions_promoted} footnote conditions to native USDM activity notes")
+        
+        # Promote protocol-wide footnotes to StudyDesign.notes[] per USDM IG
+        if protocol_wide_footnotes:
+            if 'notes' not in design:
+                design['notes'] = []
+            for i, fn in enumerate(protocol_wide_footnotes):
+                note = {
+                    "id": f"note_protocol_{i+1}",
+                    "text": fn['text'][:500] if fn.get('text') else "Protocol-level condition",
+                    "instanceType": "Note"
+                }
+                design['notes'].append(note)
+            logger.info(f"Promoted {len(protocol_wide_footnotes)} protocol-wide footnotes to StudyDesign.notes[]")
     
     # Phase 3: Add endpoint algorithms
     if execution_data.endpoint_algorithms:

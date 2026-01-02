@@ -806,6 +806,10 @@ def combine_to_full_usdm(
     if expansion_results and expansion_results.get('eligibility'):
         r = expansion_results['eligibility']
         if r.success and r.data:
+            # Add EligibilityCriterionItems (the actual criterion text)
+            if r.data.criterion_items:
+                study_design["eligibilityCriterionItems"] = [item.to_dict() for item in r.data.criterion_items]
+            # Add EligibilityCriteria (references to items with category/ordering)
             study_design["eligibilityCriteria"] = [c.to_dict() for c in r.data.criteria]
             if r.data.population:
                 study_design["population"] = r.data.population.to_dict()

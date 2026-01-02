@@ -317,7 +317,7 @@ def _parse_usdm_eligibility_format(raw: Dict[str, Any]) -> Optional[EligibilityD
                 exclusion_count += 1
                 exc_prev_id = crit_id
         
-        # Parse population if present
+        # Parse population if present, linking to all criteria
         population = None
         pop_data = raw.get('population')
         if isinstance(pop_data, dict) and pop_data.get('description'):
@@ -325,6 +325,15 @@ def _parse_usdm_eligibility_format(raw: Dict[str, Any]) -> Optional[EligibilityD
                 id=pop_data.get('id', 'pop_1'),
                 name=pop_data.get('name', 'Study Population'),
                 description=pop_data['description'],
+                criterion_ids=[c.id for c in criteria],  # Link to all criteria
+            )
+        elif criteria:
+            # Create default population with criterion IDs even if no population data
+            population = StudyDesignPopulation(
+                id='pop_1',
+                name='Study Population',
+                description='Target population defined by eligibility criteria',
+                criterion_ids=[c.id for c in criteria],
             )
         
         logger.info(f"Parsed USDM format: {inclusion_count} inclusion, {exclusion_count} exclusion criteria")

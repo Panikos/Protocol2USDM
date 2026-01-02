@@ -1,8 +1,9 @@
 'use client';
 
+import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, XCircle, Users } from 'lucide-react';
+import { CheckCircle2, XCircle, Users, AlertTriangle } from 'lucide-react';
 
 interface EligibilityCriteriaViewProps {
   usdm: Record<string, unknown> | null;
@@ -14,11 +15,41 @@ interface EligibilityCriterion {
   label?: string;
   description?: string;
   text?: string;
-  category?: { decode?: string };
+  category?: { decode?: string; code?: string };
   identifier?: string;
+  criterionItemId?: string;
+}
+
+interface EligibilityCriterionItem {
+  id: string;
+  name?: string;
+  text?: string;
+  instanceType?: string;
 }
 
 export function EligibilityCriteriaView({ usdm }: EligibilityCriteriaViewProps) {
+  // Build criterion items map from USDM eligibilityCriterionItems
+  const criterionItemsMap = useMemo(() => {
+    const map = new Map<string, EligibilityCriterionItem>();
+    
+    // Look for eligibilityCriterionItems in the USDM
+    const study = usdm?.study as Record<string, unknown> | undefined;
+    const versions = (study?.versions as unknown[]) ?? [];
+    const version = versions[0] as Record<string, unknown> | undefined;
+    const studyDesigns = (version?.studyDesigns as Record<string, unknown>[]) ?? [];
+    const design = studyDesigns[0];
+    
+    // Check for eligibilityCriterionItems at design level
+    const criterionItems = (design?.eligibilityCriterionItems as EligibilityCriterionItem[]) ?? [];
+    
+    for (const item of criterionItems) {
+      if (item.id) {
+        map.set(item.id, item);
+      }
+    }
+    return map;
+  }, [usdm]);
+
   if (!usdm) {
     return (
       <Card>
@@ -46,30 +77,43 @@ export function EligibilityCriteriaView({ usdm }: EligibilityCriteriaViewProps) 
     );
   }
 
-  // Extract eligibility criteria
+  // Extract eligibility criteria from USDM
   const eligibilityCriteria = (design.eligibilityCriteria as EligibilityCriterion[]) ?? [];
   
-  // Also check version-level eligibilityCriterionItems
-  const criterionItems = (version?.eligibilityCriterionItems as EligibilityCriterion[]) ?? [];
+  // Resolve criterion text from USDM eligibilityCriterionItems using criterionItemId
+  const resolvedCriteria = eligibilityCriteria.map(criterion => {
+    if (criterion.criterionItemId && criterionItemsMap.has(criterion.criterionItemId)) {
+      const item = criterionItemsMap.get(criterion.criterionItemId)!;
+      return {
+        ...criterion,
+        text: item.text || criterion.text,
+      };
+    }
+    return criterion;
+  });
   
-  // Combine both sources
-  const allCriteria = [...eligibilityCriteria, ...criterionItems];
+  // Check if we have missing criterion item references (pipeline gap)
+  const hasMissingItems = eligibilityCriteria.some(c => 
+    c.criterionItemId && !criterionItemsMap.has(c.criterionItemId) && !c.text
+  );
 
   // Separate inclusion vs exclusion
-  const inclusionCriteria = allCriteria.filter(c => 
+  const inclusionCriteria = resolvedCriteria.filter(c => 
     c.category?.decode?.toLowerCase().includes('inclusion') ||
+    c.category?.code === 'C25532' ||
     c.name?.toLowerCase().includes('inclusion') ||
     c.identifier?.startsWith('I')
   );
   
-  const exclusionCriteria = allCriteria.filter(c => 
+  const exclusionCriteria = resolvedCriteria.filter(c => 
     c.category?.decode?.toLowerCase().includes('exclusion') ||
+    c.category?.code === 'C25370' ||
     c.name?.toLowerCase().includes('exclusion') ||
     c.identifier?.startsWith('E')
   );
 
   // If no categorization, just show all
-  const uncategorized = allCriteria.filter(c => 
+  const uncategorized = resolvedCriteria.filter(c => 
     !inclusionCriteria.includes(c) && !exclusionCriteria.includes(c)
   );
 
@@ -92,7 +136,7 @@ export function EligibilityCriteriaView({ usdm }: EligibilityCriteriaViewProps) 
     );
   };
 
-  if (allCriteria.length === 0) {
+  if (resolvedCriteria.length === 0) {
     return (
       <Card>
         <CardContent className="py-12 text-center">
@@ -104,6 +148,23 @@ export function EligibilityCriteriaView({ usdm }: EligibilityCriteriaViewProps) 
 
   return (
     <div className="space-y-6">
+      {/* Pipeline Gap Warning */}
+      {hasMissingItems && (
+        <Card className="border-amber-200 bg-amber-50 dark:bg-amber-950/20">
+          <CardContent className="py-4">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5" />
+              <div>
+                <p className="font-medium text-amber-800 dark:text-amber-200">Pipeline Gap: Missing EligibilityCriterionItem entities</p>
+                <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+                  The USDM contains EligibilityCriterion references but the linked EligibilityCriterionItem entities (with actual text) are not included.
+                  This needs to be fixed in the extraction pipeline.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
       {/* Population Summary */}
       {population && (
         <Card>

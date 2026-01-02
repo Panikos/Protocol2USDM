@@ -1,0 +1,267 @@
+{
+  "success": true,
+  "pagesUsed": [
+    2,
+    4,
+    10,
+    12,
+    15,
+    17,
+    20,
+    25,
+    27,
+    29,
+    32,
+    37,
+    39,
+    40,
+    41,
+    42,
+    57
+  ],
+  "modelUsed": "gemini-2.5-pro",
+  "confidence": 1.0,
+  "scheduling": {
+    "timings": [
+      {
+        "id": "timing_1",
+        "name": "Zinc Washout Period",
+        "type": "Before",
+        "unit": "days",
+        "instanceType": "Timing",
+        "value": 21,
+        "relativeTo": "First Dose"
+      },
+      {
+        "id": "timing_2",
+        "name": "Experimental Therapy Washout",
+        "type": "Before",
+        "unit": "days",
+        "instanceType": "Timing",
+        "value": 90,
+        "relativeTo": "Screening"
+      },
+      {
+        "id": "timing_3",
+        "name": "Prescription Medication Washout",
+        "type": "Before",
+        "unit": "days",
+        "instanceType": "Timing",
+        "value": 14
+      },
+      {
+        "id": "timing_4",
+        "name": "Non-Prescription Medication Washout",
+        "type": "Before",
+        "unit": "days",
+        "instanceType": "Timing",
+        "value": 7
+      },
+      {
+        "id": "timing_5",
+        "name": "End of Study Visit Window",
+        "type": "At",
+        "unit": "days",
+        "instanceType": "Timing",
+        "value": 54,
+        "relativeTo": "First Dose",
+        "windowLower": -2,
+        "windowUpper": 2
+      },
+      {
+        "id": "timing_6",
+        "name": "Dose Escalation Timing",
+        "type": "At",
+        "unit": "days",
+        "instanceType": "Timing",
+        "value": 29,
+        "relativeTo": "First Dose"
+      },
+      {
+        "id": "timing_7",
+        "name": "Chelator Discontinuation Prior to Baseline",
+        "type": "Before",
+        "unit": "days",
+        "instanceType": "Timing",
+        "value": 4,
+        "relativeTo": "First Dose"
+      },
+      {
+        "id": "timing_8",
+        "name": "Pregnancy Test Frequency",
+        "type": "At",
+        "unit": "weeks",
+        "instanceType": "Timing",
+        "value": 4,
+        "relativeTo": "Previous Visit"
+      }
+    ],
+    "conditions": [
+      {
+        "id": "cond_1",
+        "name": "Safety Review for Dose Escalation",
+        "instanceType": "Condition",
+        "description": "Safety Review Committee (SRC) must review safety data before dose escalation from 15 mg/day to 30 mg/day.",
+        "text": "Before titration to 30 mg/day, the Safety Review Committee (SRC) will review available safety data through Day 23 for each participant."
+      },
+      {
+        "id": "cond_2",
+        "name": "ALT Elevation for Dose Interruption",
+        "instanceType": "Condition",
+        "description": "Alanine aminotransferase (ALT) elevation criteria for temporary dose interruption.",
+        "text": "ALT > 3 × ULN and ≤ 5 × ULN"
+      },
+      {
+        "id": "cond_3",
+        "name": "ALT Elevation for Discontinuation",
+        "instanceType": "Condition",
+        "description": "Alanine aminotransferase (ALT) elevation criteria for permanent study intervention discontinuation.",
+        "text": "ALT > 5 × ULN"
+      },
+      {
+        "id": "cond_4",
+        "name": "Neutropenia for Dose Reduction",
+        "instanceType": "Condition",
+        "description": "Neutrophil count decrease criteria for dose reduction.",
+        "text": "Neutrophils > 50% ↓ from baseline and below reference range"
+      },
+      {
+        "id": "cond_5",
+        "name": "Neurologic Worsening",
+        "instanceType": "Condition",
+        "description": "Clinical evidence of neurologic worsening that may trigger a dose modification evaluation.",
+        "text": "Evidence of neurologic worsening by AEs or by neurologic physical exam assessment"
+      },
+      {
+        "id": "cond_6",
+        "name": "Adaptive Outpatient Period Extension",
+        "instanceType": "Condition",
+        "description": "Condition allowing for the extension of the outpatient period.",
+        "text": "To ensure flexibility, the Outpatient Period during Treatment Period 1 may be extended up to an additional 14 days with Investigator approval."
+      }
+    ],
+    "conditionAssignments": [],
+    "transitionRules": [
+      {
+        "id": "trans_1",
+        "name": "Dose Escalation to 30mg",
+        "instanceType": "TransitionRule",
+        "transitionType": "Dose Modification",
+        "fromElementId": "dose_15mg",
+        "toElementId": "dose_30mg",
+        "text": "Participants will be administered ALXN1840 at 15 mg/day on Day 1 through Day 28 and then increase to 30 mg/day on Day 29 through Day 39."
+      },
+      {
+        "id": "trans_2",
+        "name": "Dose Interruption for ALT Elevation",
+        "instanceType": "TransitionRule",
+        "transitionType": "Dose Modification",
+        "text": "If ALT is > 3 × ULN and ≤ 5 × ULN, temporary interruption of dosing is required."
+      },
+      {
+        "id": "trans_3",
+        "name": "Dose Reduction for Neutropenia",
+        "instanceType": "TransitionRule",
+        "transitionType": "Dose Modification",
+        "text": "If Neutrophils > 50% ↓ from baseline and below reference range, reduce dose to previous dose level or 15 mg QOD."
+      },
+      {
+        "id": "trans_4",
+        "name": "Intervention Discontinuation for Severe ALT Elevation",
+        "instanceType": "TransitionRule",
+        "transitionType": "Discontinuation",
+        "text": "If ALT is > 5 × ULN, discontinue study intervention."
+      },
+      {
+        "id": "trans_5",
+        "name": "Intervention Discontinuation for Pregnancy",
+        "instanceType": "TransitionRule",
+        "transitionType": "Discontinuation",
+        "text": "Participants must be considered for discontinuation from study intervention if Pregnancy or planned pregnancy occurs."
+      },
+      {
+        "id": "trans_6",
+        "name": "Intervention Discontinuation for Disallowed Medication",
+        "instanceType": "TransitionRule",
+        "transitionType": "Discontinuation",
+        "text": "Participants must be considered for discontinuation from study intervention if Use of disallowed medication occurs."
+      }
+    ],
+    "scheduleTimelineExits": [
+      {
+        "id": "exit_1",
+        "name": "Study Completion",
+        "exitType": "Completion",
+        "instanceType": "ScheduleTimelineExit",
+        "description": "A participant is considered to have completed the study if he/she has completed all phases of the study including the last scheduled procedure shown in the Schedule of Activities (SoA)."
+      },
+      {
+        "id": "exit_2",
+        "name": "Participant Withdrawal of Consent",
+        "exitType": "Early Termination",
+        "instanceType": "ScheduleTimelineExit",
+        "description": "A participant may withdraw from the study at any time at his/her own request."
+      },
+      {
+        "id": "exit_3",
+        "name": "Investigator Discretionary Withdrawal",
+        "exitType": "Early Termination",
+        "instanceType": "ScheduleTimelineExit",
+        "description": "A participant may be withdrawn at any time at the discretion of the Investigator for safety, behavioral, compliance, or administrative reasons."
+      },
+      {
+        "id": "exit_4",
+        "name": "Lost to Follow-up",
+        "exitType": "Early Termination",
+        "instanceType": "ScheduleTimelineExit",
+        "description": "A participant will be considered lost to follow-up if he or she repeatedly fails to return for scheduled visits and is unable to be contacted by the study site."
+      },
+      {
+        "id": "exit_5",
+        "name": "Study Termination by Sponsor",
+        "exitType": "Early Termination",
+        "instanceType": "ScheduleTimelineExit",
+        "description": "Alexion reserves the right to close the study site or terminate the study at any time for any reason at the sole discretion of Alexion."
+      }
+    ],
+    "scheduledDecisionInstances": [
+      {
+        "id": "dec_1",
+        "name": "Dose Escalation Safety Review",
+        "timepointId": "Day 23",
+        "instanceType": "ScheduledDecisionInstance",
+        "description": "Decision point for the Safety Review Committee to approve dose escalation based on safety data through Day 23.",
+        "conditionIds": [
+          "cond_1"
+        ]
+      },
+      {
+        "id": "dec_2",
+        "name": "Dose Modification for Liver Function",
+        "timepointId": "Unscheduled",
+        "instanceType": "ScheduledDecisionInstance",
+        "description": "Unscheduled decision point to modify or discontinue dose based on clinically significant ALT elevations.",
+        "conditionIds": [
+          "cond_2",
+          "cond_3"
+        ]
+      },
+      {
+        "id": "dec_3",
+        "name": "Dose Modification for Neurologic Worsening",
+        "timepointId": "Unscheduled",
+        "instanceType": "ScheduledDecisionInstance",
+        "description": "Unscheduled decision point where the Investigator and Medical Monitor evaluate the need for dose modification based on neurologic worsening.",
+        "conditionIds": [
+          "cond_5"
+        ]
+      }
+    ],
+    "summary": {
+      "timingCount": 8,
+      "conditionCount": 6,
+      "transitionRuleCount": 6,
+      "exitCount": 5
+    }
+  }
+}

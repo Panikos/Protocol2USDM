@@ -64,6 +64,7 @@ export default function ProtocolDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [provenance, setProvenance] = useState<ProvenanceData | null>(null);
+  const [intermediateFiles, setIntermediateFiles] = useState<Record<string, unknown> | null>(null);
 
   const { setProtocol, usdm, metadata } = useProtocolStore();
   const { loadOverlays, draft } = useOverlayStore();
@@ -78,10 +79,11 @@ export default function ProtocolDetailPage() {
         // Load USDM
         const usdmRes = await fetch(`/api/protocols/${protocolId}/usdm`);
         if (!usdmRes.ok) throw new Error('Failed to load protocol');
-        const { usdm, revision, provenance: provData } = await usdmRes.json();
+        const { usdm, revision, provenance: provData, intermediateFiles: intFiles } = await usdmRes.json();
         
         setProtocol(protocolId, usdm, revision);
         setProvenance(provData);
+        setIntermediateFiles(intFiles);
 
         // Load overlays
         const [publishedRes, draftRes] = await Promise.all([
@@ -104,20 +106,53 @@ export default function ProtocolDetailPage() {
   }, [protocolId, setProtocol, loadOverlays]);
 
   const handleSaveDraft = async () => {
-    if (!draft) return;
-    await fetch(`/api/protocols/${protocolId}/overlay/draft`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(draft),
-    });
-    useOverlayStore.getState().markClean();
+    // Access current draft from store state (not captured at render time)
+    const currentDraft = useOverlayStore.getState().draft;
+    if (!currentDraft) return;
+    
+    try {
+      const response = await fetch(`/api/protocols/${protocolId}/overlay/draft`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(currentDraft),
+      });
+      
+      if (response.ok) {
+        useOverlayStore.getState().markClean();
+      } else {
+        console.error('Failed to save draft:', await response.text());
+      }
+    } catch (err) {
+      console.error('Error saving draft:', err);
+    }
   };
 
   const handlePublish = async () => {
-    await fetch(`/api/protocols/${protocolId}/overlay/publish`, {
-      method: 'POST',
-    });
-    useOverlayStore.getState().promoteDraftToPublished();
+    // First save the current draft
+    const currentDraft = useOverlayStore.getState().draft;
+    if (!currentDraft) return;
+    
+    try {
+      // Save draft first to ensure latest changes are persisted
+      await fetch(`/api/protocols/${protocolId}/overlay/draft`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(currentDraft),
+      });
+      
+      // Then publish
+      const response = await fetch(`/api/protocols/${protocolId}/overlay/publish`, {
+        method: 'POST',
+      });
+      
+      if (response.ok) {
+        useOverlayStore.getState().promoteDraftToPublished();
+      } else {
+        console.error('Failed to publish:', await response.text());
+      }
+    } catch (err) {
+      console.error('Error publishing:', err);
+    }
   };
 
   const handleExport = (format: ExportFormat) => {
