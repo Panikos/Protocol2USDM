@@ -12,12 +12,18 @@ interface ProceduresDevicesViewProps {
   usdm: Record<string, unknown> | null;
 }
 
+interface Code {
+  code: string;
+  decode?: string;
+  codeSystem?: string;
+}
+
 interface Procedure {
   id: string;
   name?: string;
   description?: string;
-  procedureType?: string;
-  code?: { code: string; decode?: string };
+  procedureType?: Code | string;
+  code?: Code;
   instanceType?: string;
 }
 
@@ -125,7 +131,11 @@ export function ProceduresDevicesView({ usdm }: ProceduresDevicesViewProps) {
                       {procedure.name || `Procedure ${i + 1}`}
                     </div>
                     {procedure.procedureType && (
-                      <Badge variant="outline">{procedure.procedureType}</Badge>
+                      <Badge variant="outline">
+                        {typeof procedure.procedureType === 'string' 
+                          ? procedure.procedureType 
+                          : procedure.procedureType.decode || procedure.procedureType.code}
+                      </Badge>
                     )}
                   </div>
                   {procedure.description && (

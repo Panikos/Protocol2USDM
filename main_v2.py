@@ -909,11 +909,12 @@ def combine_to_full_usdm(
     study_version["studyDesigns"] = [study_design]
     
     # Add Narrative Content
+    # USDM-compliant: abbreviations go in studyVersion.abbreviations
     if expansion_results and expansion_results.get('narrative'):
         r = expansion_results['narrative']
         if r.success and r.data:
             combined["narrativeContents"] = [s.to_dict() for s in r.data.sections]
-            combined["abbreviations"] = [a.to_dict() for a in r.data.abbreviations]
+            study_version["abbreviations"] = [a.to_dict() for a in r.data.abbreviations]
             if r.data.document:
                 combined["studyDefinitionDocument"] = r.data.document.to_dict()
     
@@ -986,28 +987,42 @@ def combine_to_full_usdm(
                 combined["strengths"] = data_dict['strengths']
     
     # Add Scheduling Logic (Phase 11)
+    # USDM-compliant: timings/exits go in scheduleTimeline, conditions in studyVersion
     if expansion_results and expansion_results.get('scheduling'):
         r = expansion_results['scheduling']
         if r.success and r.data:
             data_dict = r.data.to_dict()
-            if data_dict.get('timings'):
-                combined["timings"] = data_dict['timings']
+            
+            # Timings and exits go into scheduleTimeline (per USDM spec)
+            if study_design.get('scheduleTimelines'):
+                main_timeline = study_design['scheduleTimelines'][0]
+                if data_dict.get('timings'):
+                    if 'timings' not in main_timeline:
+                        main_timeline['timings'] = []
+                    main_timeline['timings'].extend(data_dict['timings'])
+                if data_dict.get('scheduleTimelineExits'):
+                    if 'exits' not in main_timeline:
+                        main_timeline['exits'] = []
+                    main_timeline['exits'].extend(data_dict['scheduleTimelineExits'])
+            
+            # Conditions go to studyVersion (per USDM spec)
             if data_dict.get('conditions'):
-                combined["conditions"] = data_dict['conditions']
+                study_version["conditions"] = data_dict['conditions']
+            
+            # TransitionRules stay at root for now (need element linkage)
             if data_dict.get('transitionRules'):
                 combined["transitionRules"] = data_dict['transitionRules']
-            if data_dict.get('scheduleTimelineExits'):
-                combined["scheduleTimelineExits"] = data_dict['scheduleTimelineExits']
     
     # Add SAP data (from --sap extraction)
+    # USDM-compliant: analysisPopulations go in studyDesign.analysisPopulations
     if expansion_results and expansion_results.get('sap'):
         r = expansion_results['sap']
         if r.success and r.data:
             data_dict = r.data.to_dict()
             if data_dict.get('analysisPopulations'):
-                combined["analysisPopulations"] = data_dict['analysisPopulations']
+                study_design["analysisPopulations"] = data_dict['analysisPopulations']
             if data_dict.get('characteristics'):
-                combined["characteristics"] = data_dict['characteristics']
+                study_design["characteristics"] = data_dict['characteristics']
     
     # Add Sites data (conditional)
     if expansion_results and expansion_results.get('sites'):
