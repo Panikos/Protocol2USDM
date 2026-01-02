@@ -58,6 +58,7 @@ from extraction.narrative.extractor import save_narrative_result
 from extraction.advanced import extract_advanced_entities
 from extraction.advanced.extractor import save_advanced_result
 from extraction.execution import extract_execution_model
+from extraction.pipeline_context import PipelineContext, create_pipeline_context
 from extraction.confidence import (
     calculate_metadata_confidence,
     calculate_eligibility_confidence,
@@ -75,6 +76,7 @@ def run_expansion_phases(
     model: str,
     phases: dict,
     soa_data: dict = None,
+    pipeline_context: PipelineContext = None,
 ) -> dict:
     """
     Run requested expansion phases.
@@ -85,11 +87,18 @@ def run_expansion_phases(
         model: LLM model name
         phases: Dict of phase_name -> bool indicating which to run
         soa_data: Optional SOA extraction data for enhanced context
+        pipeline_context: Accumulated context from prior extractions
     
     Returns:
         Dict of phase_name -> extraction result
     """
     results = {}
+    
+    # Create or use existing pipeline context
+    if pipeline_context is None:
+        pipeline_context = create_pipeline_context(soa_data)
+    
+    logger.info(f"Pipeline context: {pipeline_context.get_summary()}")
     
     if phases.get('metadata'):
         logger.info("\n--- Expansion: Study Metadata (Phase 2) ---")
@@ -97,6 +106,8 @@ def run_expansion_phases(
         save_metadata_result(result, os.path.join(output_dir, "2_study_metadata.json"))
         results['metadata'] = result
         if result.success and result.metadata:
+            # Update pipeline context with metadata
+            pipeline_context.update_from_metadata(result.metadata)
             conf = calculate_metadata_confidence(result.metadata)
             logger.info(f"  ✓ Metadata extraction (📊 {conf.overall:.0%})")
         else:
@@ -104,10 +115,12 @@ def run_expansion_phases(
     
     if phases.get('eligibility'):
         logger.info("\n--- Expansion: Eligibility Criteria (Phase 1) ---")
+        # Pass context for potential reference (e.g., indication from metadata)
         result = extract_eligibility_criteria(pdf_path, model_name=model)
         save_eligibility_result(result, os.path.join(output_dir, "3_eligibility_criteria.json"))
         results['eligibility'] = result
         if result.success and result.data:
+            pipeline_context.update_from_eligibility(result.data)
             conf = calculate_eligibility_confidence(result.data)
             logger.info(f"  ✓ Eligibility extraction (📊 {conf.overall:.0%})")
         else:
@@ -119,6 +132,7 @@ def run_expansion_phases(
         save_objectives_result(result, os.path.join(output_dir, "4_objectives_endpoints.json"))
         results['objectives'] = result
         if result.success and result.data:
+            pipeline_context.update_from_objectives(result.data)
             conf = calculate_objectives_confidence(result.data)
             logger.info(f"  ✓ Objectives extraction (📊 {conf.overall:.0%})")
         else:
@@ -130,6 +144,7 @@ def run_expansion_phases(
         save_study_design_result(result, os.path.join(output_dir, "5_study_design.json"))
         results['studydesign'] = result
         if result.success and result.data:
+            pipeline_context.update_from_studydesign(result.data)
             conf = calculate_studydesign_confidence(result.data)
             logger.info(f"  ✓ Study design extraction (📊 {conf.overall:.0%})")
         else:
@@ -141,6 +156,7 @@ def run_expansion_phases(
         save_interventions_result(result, os.path.join(output_dir, "6_interventions.json"))
         results['interventions'] = result
         if result.success and result.data:
+            pipeline_context.update_from_interventions(result.data)
             conf = calculate_interventions_confidence(result.data)
             logger.info(f"  ✓ Interventions extraction (📊 {conf.overall:.0%})")
         else:
@@ -175,6 +191,7 @@ def run_expansion_phases(
             result = extract_procedures_devices(pdf_path, model=model, output_dir=output_dir)
             results['procedures'] = result
             if result.success and result.data:
+                pipeline_context.update_from_procedures(result.data.to_dict())
                 logger.info(f"  ✓ Procedures extraction ({result.data.to_dict()['summary']['procedureCount']} procedures)")
             else:
                 logger.info(f"  ✗ Procedures extraction failed: {result.error}")
@@ -188,6 +205,7 @@ def run_expansion_phases(
             result = extract_scheduling(pdf_path, model=model, output_dir=output_dir)
             results['scheduling'] = result
             if result.success and result.data:
+                pipeline_context.update_from_scheduling(result.data.to_dict())
                 logger.info(f"  ✓ Scheduling extraction ({result.data.to_dict()['summary']['timingCount']} timings)")
             else:
                 logger.info(f"  ✗ Scheduling extraction failed: {result.error}")
@@ -247,6 +265,9 @@ def run_expansion_phases(
             logger.info(f"    Visits: {visits}, Dosing: {dosing}")
         else:
             logger.info(f"  ✗ Execution model extraction failed: {result.error}")
+    
+    # Store pipeline context in results for downstream use
+    results['_pipeline_context'] = pipeline_context
     
     return results
 
