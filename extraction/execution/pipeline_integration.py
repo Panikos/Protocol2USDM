@@ -910,10 +910,14 @@ def _add_execution_extensions(
         ))
     
     # Phase 2: Add footnote conditions with resolved activity/encounter IDs
+    # Also promote to native USDM by attaching as activity notes
     if execution_data.footnote_conditions:
         resolved_footnotes = []
         activity_names = {a.get('name', '').lower(): a.get('id') for a in design.get('activities', [])}
         activity_ids_set = {a.get('id') for a in design.get('activities', [])}
+        
+        # Track conditions per activity for native USDM promotion
+        activity_conditions = {}  # activity_id -> list of condition texts
         
         # Build keyword-to-activity mapping for footnote text matching
         activity_keywords = {}
@@ -957,6 +961,15 @@ def _add_execution_extensions(
             
             if resolved_activity_ids:
                 fc_dict['appliesToActivityIds'] = resolved_activity_ids
+                # Track for native USDM promotion
+                for act_id in resolved_activity_ids:
+                    if act_id not in activity_conditions:
+                        activity_conditions[act_id] = []
+                    activity_conditions[act_id].append({
+                        'type': fc.condition_type,
+                        'text': fc.text,
+                        'structured': fc.structured_condition,
+                    })
             
             # Resolve appliesToTimepointIds to encounter IDs
             if fc.applies_to_timepoint_ids:
@@ -975,6 +988,27 @@ def _add_execution_extensions(
         design['extensionAttributes'].append(_create_extension_attribute(
             "x-executionModel-footnoteConditions", resolved_footnotes
         ))
+        
+        # Promote to native USDM: Attach conditions as notes to activities
+        conditions_promoted = 0
+        for activity in design.get('activities', []):
+            act_id = activity.get('id')
+            if act_id in activity_conditions:
+                conditions = activity_conditions[act_id]
+                # Add as notes array if not present
+                if 'notes' not in activity:
+                    activity['notes'] = []
+                for cond in conditions:
+                    note = {
+                        "id": f"note_cond_{act_id}_{len(activity['notes'])+1}",
+                        "text": cond['text'][:500],
+                        "instanceType": "Note"
+                    }
+                    activity['notes'].append(note)
+                    conditions_promoted += 1
+        
+        if conditions_promoted > 0:
+            logger.info(f"Promoted {conditions_promoted} footnote conditions to native USDM activity notes")
     
     # Phase 3: Add endpoint algorithms
     if execution_data.endpoint_algorithms:
@@ -996,12 +1030,70 @@ def _add_execution_extensions(
             "x-executionModel-stateMachine", execution_data.state_machine.to_dict()
         ))
     
-    # Phase 4: Add dosing regimens
+    # Phase 4: Promote dosing regimens to native USDM Administration entities
     if execution_data.dosing_regimens:
+        # Also keep as extension for full details
         design['extensionAttributes'].append(_create_extension_attribute(
             "x-executionModel-dosingRegimens",
             [dr.to_dict() for dr in execution_data.dosing_regimens]
         ))
+        
+        # Promote to native USDM: Create Administration entities and link to interventions
+        promoted_administrations = []
+        for dr in execution_data.dosing_regimens:
+            # Build dose string from dose levels
+            dose_str = None
+            if dr.dose_levels:
+                doses = [f"{dl.amount} {dl.unit}" for dl in dr.dose_levels]
+                dose_str = " / ".join(doses)
+            
+            # Build frequency string
+            freq_str = dr.frequency.value if dr.frequency else None
+            
+            # Build route
+            route_code = None
+            if dr.route:
+                route_code = {
+                    "code": dr.route.value,
+                    "codeSystem": "USDM",
+                    "decode": dr.route.value,
+                    "instanceType": "Code"
+                }
+            
+            admin = {
+                "id": f"admin_exec_{dr.id}",
+                "name": f"{dr.treatment_name} Administration",
+                "instanceType": "Administration",
+            }
+            if dose_str:
+                admin["dose"] = dose_str
+            if freq_str:
+                admin["doseFrequency"] = freq_str
+            if route_code:
+                admin["route"] = route_code
+            if dr.duration_description:
+                admin["duration"] = dr.duration_description
+            if dr.source_text:
+                admin["description"] = dr.source_text[:200]
+            
+            promoted_administrations.append(admin)
+            
+            # Try to link to matching intervention
+            treatment_lower = dr.treatment_name.lower()
+            for intervention in design.get('studyInterventions', []):
+                int_name = intervention.get('name', '').lower()
+                if treatment_lower in int_name or int_name in treatment_lower:
+                    if 'administrationIds' not in intervention:
+                        intervention['administrationIds'] = []
+                    if admin['id'] not in intervention['administrationIds']:
+                        intervention['administrationIds'].append(admin['id'])
+                    break
+        
+        # Add promoted administrations to a dedicated array (if not already present)
+        if 'administrations' not in design:
+            design['administrations'] = []
+        design['administrations'].extend(promoted_administrations)
+        logger.info(f"Promoted {len(promoted_administrations)} dosing regimens to native USDM Administration entities")
     
     # Phase 4: Add visit windows (use fixed/deduped if available)
     if execution_data.visit_windows:

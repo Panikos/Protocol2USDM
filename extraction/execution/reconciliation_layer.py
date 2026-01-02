@@ -89,7 +89,18 @@ class ReconciliationLayer:
         """
         logger.info("Starting reconciliation layer...")
         
-        # Step 1: Promote crossover findings to core epochs/cells
+        # Step 0: Design reconciliation gate - validate crossover vs study design consistency
+        if execution_data.crossover_design and execution_data.crossover_design.is_crossover:
+            # Check if crossover detection is consistent with study design
+            num_arms = len(usdm_design.get('arms', []))
+            crossover_valid = self._validate_crossover_consistency(
+                usdm_design, execution_data.crossover_design
+            )
+            if not crossover_valid:
+                logger.warning("Crossover detection inconsistent with study design - dropping crossover extension")
+                execution_data.crossover_design = None
+        
+        # Step 1: Promote crossover findings to core epochs/cells (if still valid)
         if execution_data.crossover_design:
             usdm_design = self._promote_crossover_design(
                 usdm_design, execution_data.crossover_design
@@ -122,10 +133,64 @@ class ReconciliationLayer:
         logger.info(f"Reconciliation complete: {len(self.issues)} issues found")
         return usdm_design
     
+    def _validate_crossover_consistency(
+        self,
+        design: Dict[str, Any],
+        crossover: Any,  # CrossoverDesign
+    ) -> bool:
+        """
+        Validate that crossover detection is consistent with the actual study design.
+        
+        Design reconciliation gate: If the study is single-arm or the crossover
+        detection doesn't match the study structure, return False to drop it.
+        
+        Returns:
+            True if crossover is consistent with design, False otherwise
+        """
+        num_arms = len(design.get('arms', []))
+        num_epochs = len(design.get('epochs', []))
+        
+        # Single-arm studies shouldn't have crossover (unless it's a within-subject crossover)
+        if num_arms <= 1 and crossover.num_sequences > 1:
+            self.issues.append(IntegrityIssue(
+                severity=IssueSeverity.WARNING,
+                category="crossover_design_mismatch",
+                message=f"Crossover detected ({crossover.num_sequences} sequences) but study has {num_arms} arm(s)",
+                affected_path="$.studyDesigns[0].crossoverDesign",
+                suggestion="Review if this is actually a crossover study or if detection was a false positive"
+            ))
+            return False
+        
+        # Check if periods make sense given epochs
+        if crossover.num_periods > num_epochs:
+            self.issues.append(IntegrityIssue(
+                severity=IssueSeverity.WARNING,
+                category="crossover_period_mismatch",
+                message=f"Crossover has {crossover.num_periods} periods but only {num_epochs} epochs exist",
+                affected_path="$.studyDesigns[0].crossoverDesign",
+                suggestion="Period epochs may need to be created or crossover detection may be inaccurate"
+            ))
+            # Don't fail - we can create the epochs
+        
+        # Check for titration indicators that conflict with crossover
+        arm_descriptions = ' '.join(a.get('description', '') for a in design.get('arms', []))
+        titration_indicators = ['titration', 'titrate', 'dose escalation', 'dose adjustment']
+        if any(ind in arm_descriptions.lower() for ind in titration_indicators):
+            self.issues.append(IntegrityIssue(
+                severity=IssueSeverity.WARNING,
+                category="crossover_titration_conflict",
+                message="Study appears to have titration schedule which conflicts with crossover detection",
+                affected_path="$.studyDesigns[0].crossoverDesign",
+                suggestion="Titration studies are typically not crossover - dropping crossover extension"
+            ))
+            return False
+        
+        return True
+    
     def _promote_crossover_design(
         self,
         design: Dict[str, Any],
-        crossover: Any  # CrossoverDesign
+        crossover: Any,  # CrossoverDesign
     ) -> Dict[str, Any]:
         """
         Promote crossover findings into core USDM epochs/cells/arms.
