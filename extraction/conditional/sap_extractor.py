@@ -218,27 +218,39 @@ def extract_from_sap(
         json_str = json_match.group(1) if json_match else response
         raw_data = json.loads(json_str)
         
+        # Handle case where LLM returns a list directly
+        if isinstance(raw_data, list):
+            raw_data = {"analysisPopulations": raw_data, "characteristics": []}
+        
+        pop_list = raw_data.get('analysisPopulations', [])
+        if not isinstance(pop_list, list):
+            pop_list = []
+        
         populations = [
             AnalysisPopulation(
-                id=p.get('id', f"pop_{i+1}"),
-                name=p.get('name', ''),
-                label=p.get('label'),
-                description=p.get('description'),
-                definition=p.get('definition'),  # Extract definition field
-                population_type=p.get('populationType', 'Analysis'),
-                criteria=p.get('criteria'),
+                id=p.get('id', f"pop_{i+1}") if isinstance(p, dict) else f"pop_{i+1}",
+                name=p.get('name', '') if isinstance(p, dict) else str(p),
+                label=p.get('label') if isinstance(p, dict) else None,
+                description=p.get('description') if isinstance(p, dict) else None,
+                definition=p.get('definition') if isinstance(p, dict) else None,
+                population_type=p.get('populationType', 'Analysis') if isinstance(p, dict) else 'Analysis',
+                criteria=p.get('criteria') if isinstance(p, dict) else None,
             )
-            for i, p in enumerate(raw_data.get('analysisPopulations', []))
+            for i, p in enumerate(pop_list)
         ]
+        
+        char_list = raw_data.get('characteristics', [])
+        if not isinstance(char_list, list):
+            char_list = []
         
         characteristics = [
             Characteristic(
-                id=c.get('id', f"char_{i+1}"),
-                name=c.get('name', ''),
-                description=c.get('description'),
-                data_type=c.get('dataType', 'Text'),
+                id=c.get('id', f"char_{i+1}") if isinstance(c, dict) else f"char_{i+1}",
+                name=c.get('name', '') if isinstance(c, dict) else str(c),
+                description=c.get('description') if isinstance(c, dict) else None,
+                data_type=c.get('dataType', 'Text') if isinstance(c, dict) else 'Text',
             )
-            for i, c in enumerate(raw_data.get('characteristics', []))
+            for i, c in enumerate(char_list)
         ]
         
         data = SAPData(analysis_populations=populations, characteristics=characteristics)
