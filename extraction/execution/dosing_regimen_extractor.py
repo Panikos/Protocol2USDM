@@ -226,25 +226,50 @@ def _extract_regimens_heuristic(text: str) -> List[DosingRegimen]:
             'of', 'in', 'at', 'on', 'by', 'or', 'be', 'is', 'was', 'were', 'are',
             'than', 'each', 'per', 'every', 'total', 'maximum', 'minimum',
             'approximately', 'about', 'up', 'least', 'most', 'after', 'before',
-            'during', 'between', 'within', 'dose', 'doses', 'dosing', 'mg', 'day and',
-            'for the', 'to the', 'of the', 'in the', 'at the', 'on the', 'by the',
+            'during', 'between', 'within', 'dose', 'doses', 'dosing', 'mg',
+            'initial', 'state', 'treatment', 'titration', 'end', 'start',
+            'daily', 'weekly', 'monthly', 'hours', 'minutes', 'given', 'taken',
         }
         name_lower = treatment_name.lower()
+        
+        # Skip single false positive words
         if name_lower in false_positives:
             continue
         
-        # Skip if name is too short (< 3 chars) or doesn't look like a drug name
-        if len(treatment_name) < 3:
+        # Skip if name is too short (< 4 chars for single words)
+        if len(treatment_name) < 4:
             continue
         
-        # Skip if name contains only common words
-        words = treatment_name.split()
-        if all(w.lower() in false_positives for w in words):
+        # Skip if ALL words are common/false positives
+        words = name_lower.split()
+        if all(w in false_positives or len(w) < 3 for w in words):
             continue
         
-        # Skip if name doesn't start with a letter or contains invalid patterns
+        # Skip patterns like "X at", "X of", "to X", "end of", "state at"
+        if re.match(r'^(to|of|at|in|on|by|end|state|initial|treatment|titration)\s+\w+$', name_lower):
+            continue
+        if re.match(r'^\w+\s+(at|of|to|in|on|by)$', name_lower):
+            continue
+        
+        # Skip if name doesn't start with a letter
         if not treatment_name[0].isalpha():
             continue
+        
+        # Skip names with excessive whitespace or weird characters
+        if '\n' in treatment_name or '\t' in treatment_name or '  ' in treatment_name:
+            continue
+        
+        # Drug names typically have specific patterns - require alphanumeric with possible hyphen/numbers
+        # Valid: ALXN1840, Aspirin, Drug-123
+        # Invalid: "state at", "end of", "Interventionm"
+        if not re.match(r'^[A-Z][A-Za-z0-9\-]+$', treatment_name):
+            # Multi-word: at least one word should look like a drug name
+            has_drug_like_word = any(
+                re.match(r'^[A-Z][A-Za-z0-9\-]+$', w) and len(w) >= 4 and w.lower() not in false_positives
+                for w in treatment_name.split()
+            )
+            if not has_drug_like_word:
+                continue
         
         # Avoid duplicates
         key = treatment_name.lower()
