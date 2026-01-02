@@ -43,9 +43,24 @@ export function ProceduresDevicesView({ usdm }: ProceduresDevicesViewProps) {
   }
 
   // Extract data from USDM structure
-  // Procedures and devices are at the ROOT level of the USDM, not inside studyDesign
-  const procedures = (usdm.procedures as Procedure[]) ?? [];
-  const devices = (usdm.studyDevices as Device[]) ?? [];
+  // Per USDM spec: Procedures are nested within Activities via definedProcedures
+  const study = usdm.study as Record<string, unknown> | undefined;
+  const versions = (study?.versions as unknown[]) ?? [];
+  const version = versions[0] as Record<string, unknown> | undefined;
+  const studyDesigns = (version?.studyDesigns as Record<string, unknown>[]) ?? [];
+  const studyDesign = studyDesigns[0] ?? {};
+
+  // Collect procedures from all activities' definedProcedures
+  const activities = (studyDesign.activities as { definedProcedures?: Procedure[] }[]) ?? [];
+  const procedures: Procedure[] = [];
+  for (const activity of activities) {
+    if (activity.definedProcedures) {
+      procedures.push(...activity.definedProcedures);
+    }
+  }
+
+  // Devices at studyDesign level
+  const devices = (studyDesign.studyDevices as Device[]) ?? [];
 
   const hasData = procedures.length > 0 || devices.length > 0;
 

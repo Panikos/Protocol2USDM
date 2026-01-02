@@ -53,25 +53,24 @@ export function AdvancedEntitiesView({ usdm }: AdvancedEntitiesViewProps) {
   }
 
   // Extract data from USDM structure
-  // Indications are at study level (usdm.study.indications)
+  // Per USDM spec: indications, biomedicalConcepts, estimands, therapeuticAreas are at studyDesign level
   const study = usdm.study as Record<string, unknown> | undefined;
   const versions = (study?.versions as unknown[]) ?? [];
   const version = versions[0] as Record<string, unknown> | undefined;
   const studyDesigns = (version?.studyDesigns as Record<string, unknown>[]) ?? [];
   const studyDesign = studyDesigns[0] ?? {};
 
-  // Get indications - at study level
-  const indications = (study?.indications as Indication[]) ?? [];
+  // Get indications - at studyDesign level per USDM spec
+  const indications = (studyDesign.indications as Indication[]) ?? [];
 
-  // Get biomedical concepts - check root level and studyDesign
-  const biomedicalConcepts = (usdm.biomedicalConcepts as BiomedicalConcept[]) ?? 
-    (studyDesign.biomedicalConcepts as BiomedicalConcept[]) ?? [];
+  // Get biomedical concepts - at studyDesign level
+  const biomedicalConcepts = (studyDesign.biomedicalConcepts as BiomedicalConcept[]) ?? [];
 
-  // Get estimands - check studyDesign level
+  // Get estimands - at studyDesign level
   const estimands = (studyDesign.estimands as Estimand[]) ?? [];
 
-  // Get therapeutic areas - check version level
-  const therapeuticAreas = (version?.therapeuticAreas as { term?: string }[]) ?? [];
+  // Get therapeutic areas - at studyDesign level
+  const therapeuticAreas = (studyDesign.therapeuticAreas as { term?: string; decode?: string }[]) ?? [];
 
   const hasData = indications.length > 0 || biomedicalConcepts.length > 0 || 
     estimands.length > 0 || therapeuticAreas.length > 0;
@@ -153,7 +152,7 @@ export function AdvancedEntitiesView({ usdm }: AdvancedEntitiesViewProps) {
             <div className="flex flex-wrap gap-2">
               {therapeuticAreas.map((area, i) => (
                 <Badge key={i} variant="secondary" className="text-sm">
-                  {area.term || 'Unknown'}
+                  {area.decode || area.term || 'Unknown'}
                 </Badge>
               ))}
             </div>

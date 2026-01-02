@@ -776,8 +776,9 @@ def combine_to_full_usdm(
             combined["study"]["organizations"] = [o.to_dict() for o in md.organizations]
             if md.study_phase:
                 study_version["studyPhase"] = md.study_phase.to_dict()
+            # Store indications temporarily - will be added to studyDesign later
             if md.indications:
-                combined["study"]["indications"] = [i.to_dict() for i in md.indications]
+                combined["_temp_indications"] = [i.to_dict() for i in md.indications]
     
     # Build StudyDesign container with all required fields
     study_design = {
@@ -900,6 +901,10 @@ def combine_to_full_usdm(
                 "instanceType": "Code"
             }
     
+    # Add indications to studyDesign (USDM-compliant: studyDesign.indications, not study.indications)
+    if combined.get("_temp_indications"):
+        study_design["indications"] = combined.pop("_temp_indications")
+    
     # Add studyDesign to study_version (not to root)
     study_version["studyDesigns"] = [study_design]
     
@@ -924,12 +929,55 @@ def combine_to_full_usdm(
                 combined["countries"] = [c.to_dict() for c in r.data.countries]
     
     # Add Procedures & Devices (Phase 10)
+    # USDM-compliant: procedures go in activity.definedProcedures, not at root
     if expansion_results and expansion_results.get('procedures'):
         r = expansion_results['procedures']
         if r.success and r.data:
             data_dict = r.data.to_dict()
-            if data_dict.get('procedures'):
-                combined["procedures"] = data_dict['procedures']
+            procedures_list = data_dict.get('procedures', [])
+            
+            # Link procedures to activities via definedProcedures
+            if procedures_list and study_design.get('activities'):
+                # Build name-to-procedure mapping for matching
+                proc_by_name = {}
+                for proc in procedures_list:
+                    proc_name = proc.get('name', '').lower()
+                    if proc_name:
+                        proc_by_name[proc_name] = proc
+                        # Also add without common suffixes for fuzzy matching
+                        for suffix in [' sampling', ' collection', ' test', ' assessment']:
+                            if proc_name.endswith(suffix):
+                                proc_by_name[proc_name[:-len(suffix)]] = proc
+                
+                # Match procedures to activities
+                procedures_linked = 0
+                for activity in study_design['activities']:
+                    act_name = activity.get('name', '').lower()
+                    matched_procs = []
+                    
+                    # Direct match
+                    if act_name in proc_by_name:
+                        matched_procs.append(proc_by_name[act_name])
+                    
+                    # Partial match - procedure name in activity name or vice versa
+                    for proc_name, proc in proc_by_name.items():
+                        if proc not in matched_procs:
+                            if proc_name in act_name or act_name in proc_name:
+                                matched_procs.append(proc)
+                    
+                    if matched_procs:
+                        activity['definedProcedures'] = matched_procs
+                        procedures_linked += len(matched_procs)
+                
+                # Any unmatched procedures go to a general "Other" activity or studyDesign.procedures
+                unmatched = [p for p in procedures_list if not any(
+                    p in act.get('definedProcedures', []) for act in study_design['activities']
+                )]
+                if unmatched:
+                    # Add unmatched to studyDesign.procedures as fallback
+                    study_design['procedures'] = unmatched
+            
+            # Medical devices, ingredients, strengths remain at root (no activity linkage in USDM)
             if data_dict.get('medicalDevices'):
                 combined["medicalDevices"] = data_dict['medicalDevices']
             if data_dict.get('ingredients'):
