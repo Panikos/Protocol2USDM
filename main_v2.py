@@ -1411,9 +1411,9 @@ Examples:
                 soa_data=soa_data,
             )
             
-            # Print expansion summary
-            success_count = sum(1 for r in expansion_results.values() if r.success)
-            total_count = len(expansion_results)
+            # Print expansion summary (exclude _pipeline_context from count)
+            success_count = sum(1 for k, r in expansion_results.items() if k != '_pipeline_context' and hasattr(r, 'success') and r.success)
+            total_count = sum(1 for k in expansion_results if k != '_pipeline_context')
             logger.info(f"\n✓ Expansion phases: {success_count}/{total_count} successful")
         
         # Run conditional source extraction if files provided
@@ -1645,7 +1645,7 @@ Examples:
         
         # Determine overall success
         soa_success = result.success if result else True  # If no SoA, consider it OK
-        expansion_success = all(r.success for r in expansion_results.values()) if expansion_results else True
+        expansion_success = all(r.success for k, r in expansion_results.items() if k != '_pipeline_context' and hasattr(r, 'success')) if expansion_results else True
         overall_success = soa_success and expansion_success
         
         # Final summary
@@ -1655,7 +1655,7 @@ Examples:
         if run_soa:
             logger.info(f"SoA: {'✓ Success' if (result and result.success) else '✗ Failed'}")
         if run_any_expansion:
-            exp_success = sum(1 for r in expansion_results.values() if r.success)
+            exp_success = sum(1 for k, r in expansion_results.items() if k != '_pipeline_context' and hasattr(r, 'success') and r.success)
             logger.info(f"Expansion: {exp_success}/{len(expansion_results)} phases successful")
         
         # Schema validation summary
