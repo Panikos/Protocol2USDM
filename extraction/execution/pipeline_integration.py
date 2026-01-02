@@ -155,7 +155,16 @@ def extract_execution_model(
     # Extract existing epochs from SoA to use as reference (avoids abstract labels)
     existing_epochs = None
     if soa_data:
+        # Epochs are nested in USDM structure: study.versions[].studyDesigns[].epochs
         existing_epochs = soa_data.get('epochs', [])
+        if not existing_epochs:
+            # Try nested USDM path
+            study = soa_data.get('study', {})
+            versions = study.get('versions', [])
+            if versions:
+                designs = versions[0].get('studyDesigns', [])
+                if designs:
+                    existing_epochs = designs[0].get('epochs', [])
         if existing_epochs:
             logger.info(f"  Using {len(existing_epochs)} SoA epochs as traversal reference")
     
