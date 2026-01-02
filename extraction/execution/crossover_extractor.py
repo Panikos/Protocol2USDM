@@ -326,6 +326,7 @@ def extract_crossover_design(
     model: str = "gemini-2.5-pro",
     pages: Optional[List[int]] = None,
     use_llm: bool = True,
+    existing_epochs: Optional[List[Dict[str, Any]]] = None,
 ) -> ExecutionModelResult:
     """
     Extract crossover design structure from protocol PDF.
@@ -335,6 +336,7 @@ def extract_crossover_design(
         model: LLM model to use
         pages: Specific pages to analyze
         use_llm: Whether to use LLM enhancement
+        existing_epochs: Epochs from SoA to reference for period naming
         
     Returns:
         ExecutionModelResult with CrossoverDesign and TraversalConstraint

@@ -144,6 +144,7 @@ def extract_execution_model(
         pdf_path=pdf_path,
         model=model,
         use_llm=enable_llm,
+        existing_epochs=soa_context.epochs if soa_context.has_epochs() else None,
     )
     
     if crossover_result.success and crossover_result.data.crossover_design:
