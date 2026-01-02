@@ -38,18 +38,15 @@ export function AmendmentHistoryView({ usdm }: AmendmentHistoryViewProps) {
     );
   }
 
-  // Extract amendments from study level (NOT version level)
+  // USDM-compliant: amendments are at studyVersion.amendments (per dataStructure.yml)
   const study = usdm.study as Record<string, unknown> | undefined;
-  const studyAmendments = (usdm.studyAmendments as Amendment[]) ?? 
-    (study?.studyAmendments as Amendment[]) ?? [];
-  
-  // Also check version level as fallback
   const versions = (study?.versions as unknown[]) ?? [];
   const version = versions[0] as Record<string, unknown> | undefined;
-  const versionAmendments = (version?.amendments as Amendment[]) ?? [];
   
-  // Use study-level amendments if available, otherwise version-level
-  const amendments = studyAmendments.length > 0 ? studyAmendments : versionAmendments;
+  // Prioritize USDM-compliant location (studyVersion.amendments)
+  const amendments = (version?.amendments as Amendment[]) ?? 
+    (usdm.studyAmendments as Amendment[]) ?? 
+    (study?.studyAmendments as Amendment[]) ?? [];
 
   if (amendments.length === 0) {
     return (

@@ -191,6 +191,18 @@ if pipeline_context.has_epochs():
 - Before: `Matched traversal to 1 existing SoA epoch IDs`
 - After: `All traversal steps resolved to epoch IDs`
 
+## USDM Entity Placement (v6.6)
+
+As of v6.6, all entities are placed at their correct USDM locations per `dataStructure.yml`:
+
+| Entity | Location |
+|--------|----------|
+| `timings` | `scheduleTimeline.timings[]` |
+| `exits` | `scheduleTimeline.exits[]` |
+| `conditions` | `studyVersion.conditions[]` |
+| `analysisPopulations` | `studyDesign.analysisPopulations[]` |
+| `footnote conditions` | `studyDesign.notes[]` (protocol-wide) or `activity.notes[]` (activity-specific) |
+
 ## Future Improvements
 
 1. **Extend SoA context to all extractors** - crossover, repetition, footnote, dosing

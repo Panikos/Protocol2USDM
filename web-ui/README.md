@@ -58,6 +58,22 @@ web-ui/
 2. **Overlay (presentation)** - Layout, ordering, visual settings
 3. **Adapters** - Transform USDM + Overlay → view models
 
+### USDM Structure (v6.6)
+
+The UI reads data from USDM-compliant locations per `dataStructure.yml`:
+
+| Data | USDM Path |
+|------|----------|
+| Eligibility Criteria | `studyDesign.eligibilityCriteria[]` |
+| Criterion Items (text) | `studyVersion.eligibilityCriterionItems[]` |
+| Organizations | `studyVersion.organizations[]` |
+| Interventions | `studyVersion.studyInterventions[]` |
+| Products | `studyVersion.administrableProducts[]` |
+| Devices | `studyVersion.medicalDevices[]` |
+| Timings | `scheduleTimeline.timings[]` |
+| Indications | `studyDesign.indications[]` |
+| Procedures | `activity.definedProcedures[]` |
+
 ### Key Principles
 
 - USDM is never modified by the UI (read-only)

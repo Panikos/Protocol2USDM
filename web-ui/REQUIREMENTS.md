@@ -51,14 +51,32 @@
 2. **Overlay (presentation + authoring)** - Stores layout, ordering, presentation-only data
 3. **Adapters (pure functions)** - Transform USDM + Overlay into view models
 
-### 2.2 Key Principles
+### 2.2 USDM Entity Locations (v6.6)
+
+UI components read data from USDM-compliant paths per `dataStructure.yml`:
+
+| Data | USDM Path |
+|------|----------|
+| Eligibility Criteria | `studyDesign.eligibilityCriteria[]` |
+| Criterion Items (text) | `studyVersion.eligibilityCriterionItems[]` |
+| Organizations | `studyVersion.organizations[]` |
+| Interventions | `studyVersion.studyInterventions[]` |
+| Products | `studyVersion.administrableProducts[]` |
+| Devices | `studyVersion.medicalDevices[]` |
+| Timings | `scheduleTimeline.timings[]` |
+| Indications | `studyDesign.indications[]` |
+| Procedures | `activity.definedProcedures[]` |
+| Narrative | `studyVersion.narrativeContentItems[]` |
+| Abbreviations | `studyVersion.abbreviations[]` |
+
+### 2.3 Key Principles
 
 - **USDM is the semantic source-of-truth**
 - **Overlay is presentation-only**, never semantic
 - **Draft / Publish workflow** for authoring control
 - Renderers consume adapter output, never parse USDM directly
 
-### 2.3 Data Flow
+### 2.4 Data Flow
 
 ```
 BACKEND (Python Pipeline)

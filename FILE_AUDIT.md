@@ -1,8 +1,36 @@
 # Protocol2USDM File Audit
 
-**Date**: 2025-11-29
-**Version**: 6.3.0
-**Status**: CLEANUP COMPLETED
+**Date**: 2026-01-02
+**Version**: 6.6.0
+**Status**: USDM PLACEMENT COMPLIANCE
+
+## Changes Made (2026-01-02) - v6.6.0
+
+### USDM Entity Placement Compliance
+
+All entities now placed at correct USDM locations per `dataStructure.yml`:
+
+| Entity | Before | After |
+|--------|--------|-------|
+| `eligibilityCriterionItems` | `studyDesign` | `studyVersion` |
+| `organizations` | `study` | `studyVersion` |
+| `narrativeContentItems` | root | `studyVersion` |
+| `studyInterventions` | `studyDesign` | `studyVersion` |
+| `administrableProducts` | root | `studyVersion` |
+| `medicalDevices` | root | `studyVersion` |
+| `timings` | root | `scheduleTimeline` |
+| `exits` | root | `scheduleTimeline` |
+| `conditions` | root | `studyVersion` |
+| `procedures` | root | `activity.definedProcedures` |
+| `indications` | `study` | `studyDesign` |
+| `analysisPopulations` | root | `studyDesign` |
+
+### Files Modified
+- `main_v2.py` - Entity placement logic
+- `web-ui/components/protocol/*.tsx` - UI component data paths
+- All documentation files updated
+
+---
 
 ## Changes Made (2025-11-29) - v6.3.0
 

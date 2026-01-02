@@ -460,7 +460,21 @@ class ExecutionType(Enum):
 
 ## USDM Compliance
 
-All output is USDM v4.0 compliant. Execution-specific metadata is stored in `extensionAttributes` using the `x-executionModel` namespace:
+All output is USDM v4.0 compliant per the official `dataStructure.yml`. As of v6.6:
+
+### Entity Placement (per dataStructure.yml)
+
+| Entity | Location |
+|--------|----------|
+| `timings` | `scheduleTimeline.timings[]` |
+| `exits` | `scheduleTimeline.exits[]` |
+| `conditions` | `studyVersion.conditions[]` |
+| `analysisPopulations` | `studyDesign.analysisPopulations[]` |
+| `footnote conditions` | `studyDesign.notes[]` or `activity.notes[]` |
+
+### Extension Attributes
+
+Execution-specific metadata is stored in `extensionAttributes` using the `x-executionModel` namespace:
 
 ```json
 {
@@ -487,18 +501,19 @@ All output is USDM v4.0 compliant. Execution-specific metadata is stored in `ext
         ]
       }
     ],
+    "scheduleTimelines": [
+      {
+        "id": "tl_main",
+        "timings": [...],
+        "exits": [...]
+      }
+    ],
     "activities": [
       {
         "id": "act_1",
         "name": "Balance Collection",
-        "extensionAttributes": [
-          {
-            "x-executionModel-executionType": {
-              "executionType": "Window",
-              "rationale": "Days -4 to -1 continuous collection"
-            }
-          }
-        ]
+        "definedProcedures": [...],
+        "notes": [...]
       }
     ]
   }
