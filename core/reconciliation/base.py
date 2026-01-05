@@ -360,19 +360,24 @@ class BaseReconciler(ABC, Generic[T, R]):
         return list(set(c.source for c in contributions))
     
     def _get_best_id(self, contributions: List[T], prefix: str = "entity") -> str:
-        """Get best ID from contributions or generate new UUID."""
-        # Sort by priority
+        """
+        Get best ID from contributions or generate new UUID.
+        
+        IMPORTANT: Always preserves the original ID from the highest-priority
+        contribution to maintain referential integrity with other entities
+        (e.g., encounters reference epochs by ID).
+        
+        Only generates a new UUID if no ID is present.
+        """
+        # Sort by priority (highest first)
         sorted_contribs = sorted(contributions, key=lambda c: -c.priority)
         primary_id = sorted_contribs[0].entity_id
         
-        # Use existing ID if it looks like a UUID, otherwise generate new
-        if primary_id and not primary_id.startswith((f'{prefix}_', 'soa_', 'traversal_')):
-            try:
-                uuid.UUID(primary_id)
-                return primary_id
-            except ValueError:
-                pass
+        # Always preserve existing ID to maintain references from other entities
+        if primary_id:
+            return primary_id
         
+        # Only generate new UUID if truly missing
         return str(uuid.uuid4())
     
     def clear(self) -> None:

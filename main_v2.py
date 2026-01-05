@@ -1542,14 +1542,13 @@ def combine_to_full_usdm(
                     except (json.JSONDecodeError, KeyError, IndexError):
                         pass
         
+        # Epoch reconciliation - now preserves original IDs
         if soa_epochs:
             reconciled_epochs = reconcile_epochs_from_pipeline(
                 soa_epochs=soa_epochs,
                 traversal_sequence=traversal_sequence,
             )
-            
             if reconciled_epochs:
-                # Update study design with reconciled epochs
                 study_design["epochs"] = reconciled_epochs
                 main_epochs = [e for e in reconciled_epochs if any(
                     ext.get("valueString") == "main" 
