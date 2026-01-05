@@ -390,7 +390,9 @@ def reconcile_activities_from_pipeline(
     Returns:
         List of reconciled activity dictionaries
     """
-    reconciler = ActivityReconciler()
+    # Use exact matching (1.0) to prevent incorrect merging of SoA activities
+    # SoA activities are authoritative and should not be merged with procedure activities
+    reconciler = ActivityReconciler(match_threshold=1.0)
     
     if soa_activities:
         reconciler.contribute("soa", soa_activities, priority=10)

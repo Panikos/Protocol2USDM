@@ -406,7 +406,9 @@ def reconcile_encounters_from_pipeline(
     Returns:
         List of reconciled encounter dictionaries
     """
-    reconciler = EncounterReconciler()
+    # Use exact matching (1.0) to prevent incorrect merging of SoA encounters
+    # SoA encounters are authoritative and should not be merged with execution model visits
+    reconciler = EncounterReconciler(match_threshold=1.0)
     
     # Add epoch IDs to SoA encounters if map provided
     if soa_encounters:
