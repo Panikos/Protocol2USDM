@@ -1558,63 +1558,57 @@ def combine_to_full_usdm(
                 )]
                 logger.info(f"  ✓ Reconciled {len(reconciled_epochs)} epochs ({len(main_epochs)} main, {len(reconciled_epochs) - len(main_epochs)} sub)")
         
-        # Reconcile encounters
-        soa_encounters = study_design.get("encounters", [])
-        if soa_encounters:
-            # Get visit windows from execution model
-            visit_windows = None
-            if execution_data and hasattr(execution_data, 'visit_windows'):
-                visit_windows = [vw.__dict__ if hasattr(vw, '__dict__') else vw 
-                                for vw in (execution_data.visit_windows or [])]
-            
-            reconciled_encounters = reconcile_encounters_from_pipeline(
-                soa_encounters=soa_encounters,
-                visit_windows=visit_windows,
-            )
-            
-            if reconciled_encounters:
-                study_design["encounters"] = reconciled_encounters
-                logger.info(f"  ✓ Reconciled {len(reconciled_encounters)} encounters")
+        # NOTE: Encounter/Activity reconciliation is DISABLED because it generates new IDs
+        # that break references in scheduleTimelines (which causes missing ticks in UI).
+        # TODO: Either preserve original IDs or update scheduleTimeline references after reconciliation.
+        # 
+        # # Reconcile encounters
+        # soa_encounters = study_design.get("encounters", [])
+        # if soa_encounters:
+        #     visit_windows = None
+        #     if execution_data and hasattr(execution_data, 'visit_windows'):
+        #         visit_windows = [vw.__dict__ if hasattr(vw, '__dict__') else vw 
+        #                         for vw in (execution_data.visit_windows or [])]
+        #     reconciled_encounters = reconcile_encounters_from_pipeline(
+        #         soa_encounters=soa_encounters,
+        #         visit_windows=visit_windows,
+        #     )
+        #     if reconciled_encounters:
+        #         study_design["encounters"] = reconciled_encounters
+        #         logger.info(f"  ✓ Reconciled {len(reconciled_encounters)} encounters")
         
-        # Reconcile activities
-        soa_activities = study_design.get("activities", [])
-        if soa_activities:
-            # Get procedure activities if available
-            procedure_activities = None
-            if expansion_results and expansion_results.get('procedures'):
-                proc_result = expansion_results['procedures']
-                if proc_result.success and proc_result.data:
-                    # ProceduresDevicesData is a dataclass, not a dict
-                    if hasattr(proc_result.data, 'procedures'):
-                        procedure_activities = [
-                            p.__dict__ if hasattr(p, '__dict__') else p 
-                            for p in (proc_result.data.procedures or [])
-                        ]
-                    elif isinstance(proc_result.data, dict):
-                        procedure_activities = proc_result.data.get('procedures', [])
-            
-            # Get repetitions from execution model
-            execution_repetitions = None
-            if execution_data and hasattr(execution_data, 'repetitions'):
-                execution_repetitions = [r.__dict__ if hasattr(r, '__dict__') else r 
-                                        for r in (execution_data.repetitions or [])]
-            
-            # Get footnote conditions
-            footnote_conditions = None
-            if execution_data and hasattr(execution_data, 'footnote_conditions'):
-                footnote_conditions = [f.__dict__ if hasattr(f, '__dict__') else f 
-                                      for f in (execution_data.footnote_conditions or [])]
-            
-            reconciled_activities = reconcile_activities_from_pipeline(
-                soa_activities=soa_activities,
-                procedure_activities=procedure_activities,
-                execution_repetitions=execution_repetitions,
-                footnote_conditions=footnote_conditions,
-            )
-            
-            if reconciled_activities:
-                study_design["activities"] = reconciled_activities
-                logger.info(f"  ✓ Reconciled {len(reconciled_activities)} activities")
+        # Activity reconciliation also DISABLED - same ID reference issue as encounters
+        # # Reconcile activities
+        # soa_activities = study_design.get("activities", [])
+        # if soa_activities:
+        #     procedure_activities = None
+        #     if expansion_results and expansion_results.get('procedures'):
+        #         proc_result = expansion_results['procedures']
+        #         if proc_result.success and proc_result.data:
+        #             if hasattr(proc_result.data, 'procedures'):
+        #                 procedure_activities = [
+        #                     p.__dict__ if hasattr(p, '__dict__') else p 
+        #                     for p in (proc_result.data.procedures or [])
+        #                 ]
+        #             elif isinstance(proc_result.data, dict):
+        #                 procedure_activities = proc_result.data.get('procedures', [])
+        #     execution_repetitions = None
+        #     if execution_data and hasattr(execution_data, 'repetitions'):
+        #         execution_repetitions = [r.__dict__ if hasattr(r, '__dict__') else r 
+        #                                 for r in (execution_data.repetitions or [])]
+        #     footnote_conditions = None
+        #     if execution_data and hasattr(execution_data, 'footnote_conditions'):
+        #         footnote_conditions = [f.__dict__ if hasattr(f, '__dict__') else f 
+        #                               for f in (execution_data.footnote_conditions or [])]
+        #     reconciled_activities = reconcile_activities_from_pipeline(
+        #         soa_activities=soa_activities,
+        #         procedure_activities=procedure_activities,
+        #         execution_repetitions=execution_repetitions,
+        #         footnote_conditions=footnote_conditions,
+        #     )
+        #     if reconciled_activities:
+        #         study_design["activities"] = reconciled_activities
+        #         logger.info(f"  ✓ Reconciled {len(reconciled_activities)} activities")
                 
     except Exception as e:
         logger.warning(f"  ⚠ Entity reconciliation skipped: {e}")
