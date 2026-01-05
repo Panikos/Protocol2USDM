@@ -58,6 +58,7 @@ from extraction.narrative.extractor import save_narrative_result
 from extraction.advanced import extract_advanced_entities
 from extraction.advanced.extractor import save_advanced_result
 from extraction.execution import extract_execution_model
+from core.epoch_reconciler import EpochReconciler, reconcile_epochs_from_pipeline
 from extraction.pipeline_context import PipelineContext, create_pipeline_context
 from extraction.confidence import (
     calculate_metadata_confidence,
@@ -353,6 +354,135 @@ def convert_ids_to_uuids(data: dict, id_map: dict = None) -> dict:
     
     converted = convert_recursive(data)
     return converted, id_map
+
+
+def link_timing_ids_to_instances(study_design: dict) -> int:
+    """
+    Link timingId on ScheduledActivityInstances based on encounter matching.
+    
+    Per USDM 4.0, ScheduledActivityInstance can have a timingId reference.
+    This function matches instances to timings using multiple strategies:
+    1. Exact name match
+    2. Day number extraction and matching
+    3. Partial/fuzzy name matching
+    
+    Args:
+        study_design: StudyDesign dict with scheduleTimelines containing instances and timings
+        
+    Returns:
+        Number of instances that were linked to timings
+    """
+    import re
+    
+    if not study_design.get('scheduleTimelines'):
+        return 0
+    
+    main_timeline = study_design['scheduleTimelines'][0]
+    instances = main_timeline.get('instances', [])
+    timings = main_timeline.get('timings', [])
+    
+    if not instances or not timings:
+        return 0
+    
+    def extract_day_numbers(text: str) -> set:
+        """Extract day numbers from text like 'Day 1', 'Day -1', '(Day 54)'."""
+        if not text:
+            return set()
+        # Match patterns: "Day 1", "Day -1", "day 54", "(Day 1)", etc.
+        matches = re.findall(r'day\s*(-?\d+)', text.lower())
+        return set(int(m) for m in matches)
+    
+    def extract_visit_number(text: str) -> int:
+        """Extract visit number from text like 'Visit 1', 'V1'."""
+        if not text:
+            return None
+        match = re.search(r'(?:visit|v)\s*(\d+)', text.lower())
+        return int(match.group(1)) if match else None
+    
+    # Build encounter ID -> info lookup
+    enc_id_to_info = {}
+    for enc in study_design.get('encounters', []):
+        enc_id = enc.get('id', '')
+        enc_name = enc.get('name', '')
+        if enc_id:
+            enc_id_to_info[enc_id] = {
+                'name': enc_name.lower().strip(),
+                'days': extract_day_numbers(enc_name),
+                'visit': extract_visit_number(enc_name),
+            }
+    
+    # Build timing lookup with multiple keys
+    timing_by_name = {}  # exact name match
+    timing_by_day = {}   # day number match
+    timing_by_visit = {} # visit number match
+    
+    for timing in timings:
+        timing_id = timing.get('id', '')
+        if not timing_id:
+            continue
+        
+        name = timing.get('name', '').lower().strip()
+        value_label = timing.get('valueLabel', '').lower().strip()
+        
+        # Add exact name matches
+        if name:
+            timing_by_name[name] = timing_id
+        if value_label:
+            timing_by_name[value_label] = timing_id
+        
+        # Extract and add day numbers
+        for text in [name, value_label]:
+            for day in extract_day_numbers(text):
+                timing_by_day[day] = timing_id
+        
+        # Add by ISO duration value
+        value = timing.get('value')
+        if isinstance(value, str) and value.startswith('P') and 'D' in value:
+            match = re.search(r'P(-?\d+)D', value)
+            if match:
+                timing_by_day[int(match.group(1))] = timing_id
+        
+        # Add visit number
+        for text in [name, value_label]:
+            visit = extract_visit_number(text)
+            if visit:
+                timing_by_visit[visit] = timing_id
+    
+    # Link instances to timings
+    linked_count = 0
+    for instance in instances:
+        if instance.get('timingId'):
+            continue  # Already has timing
+        
+        enc_id = instance.get('encounterId', '')
+        enc_info = enc_id_to_info.get(enc_id, {})
+        
+        if not enc_info:
+            continue
+        
+        timing_id = None
+        
+        # Strategy 1: Exact name match
+        if enc_info['name'] in timing_by_name:
+            timing_id = timing_by_name[enc_info['name']]
+        
+        # Strategy 2: Day number match
+        if not timing_id and enc_info['days']:
+            for day in enc_info['days']:
+                if day in timing_by_day:
+                    timing_id = timing_by_day[day]
+                    break
+        
+        # Strategy 3: Visit number match
+        if not timing_id and enc_info['visit']:
+            if enc_info['visit'] in timing_by_visit:
+                timing_id = timing_by_visit[enc_info['visit']]
+        
+        if timing_id:
+            instance['timingId'] = timing_id
+            linked_count += 1
+    
+    return linked_count
 
 
 def build_name_to_id_map(data: dict) -> dict:
@@ -735,6 +865,49 @@ def validate_and_fix_schema(
     return fixed_data, usdm_result, fixer_result, usdm_result, id_map if convert_to_uuids else {}
 
 
+def load_previous_extractions(output_dir: str) -> dict:
+    """
+    Load previously extracted data from JSON files.
+    
+    This allows the combine function to use data from prior runs
+    even when those phases weren't re-run in the current session.
+    
+    Returns dict of phase_name -> loaded data (dict format, not objects)
+    """
+    loaded = {}
+    
+    # Define extraction files and their phase names
+    extraction_files = {
+        'metadata': '2_study_metadata.json',
+        'eligibility': '3_eligibility_criteria.json',
+        'objectives': '4_objectives_endpoints.json',
+        'studydesign': '5_study_design.json',
+        'interventions': '6_interventions.json',
+        'narrative': '7_narrative_structure.json',
+        'advanced': '8_advanced_entities.json',
+        'procedures': '9_procedures_devices.json',
+        'scheduling': '10_scheduling_logic.json',
+        'docstructure': '13_document_structure.json',
+        'amendmentdetails': '14_amendment_details.json',
+        'execution': '11_execution_model.json',
+        'sap': '11_sap_populations.json',
+    }
+    
+    for phase, filename in extraction_files.items():
+        filepath = os.path.join(output_dir, filename)
+        if os.path.exists(filepath):
+            try:
+                with open(filepath, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    if data.get('success', True):  # Default to True if not present
+                        loaded[phase] = data
+                        logger.debug(f"Loaded previous extraction: {phase}")
+            except (json.JSONDecodeError, IOError) as e:
+                logger.debug(f"Could not load {filename}: {e}")
+    
+    return loaded
+
+
 def combine_to_full_usdm(
     output_dir: str,
     soa_data: dict = None,
@@ -742,8 +915,19 @@ def combine_to_full_usdm(
 ) -> dict:
     """
     Combine SoA and expansion results into unified USDM JSON.
+    
+    This function merges:
+    1. Data from expansion_results (current run, object format)
+    2. Data from previously saved JSON files (prior runs, dict format)
+    
+    Previously extracted data is used as fallback when expansion_results
+    doesn't contain data for a phase.
     """
     from datetime import datetime
+    
+    # Load previously extracted data from JSON files
+    previous_extractions = load_previous_extractions(output_dir)
+    logger.info(f"Loaded {len(previous_extractions)} previous extractions from output directory")
     
     # USDM v4.0 compliant structure:
     # study.versions[0].studyDesigns[] contains the actual data
@@ -767,6 +951,7 @@ def combine_to_full_usdm(
     }
     
     # Add Study Metadata to study_version (USDM v4.0 compliant)
+    metadata_added = False
     if expansion_results and expansion_results.get('metadata'):
         r = expansion_results['metadata']
         if r.success and r.metadata:
@@ -780,6 +965,24 @@ def combine_to_full_usdm(
             # Store indications temporarily - will be added to studyDesign later
             if md.indications:
                 combined["_temp_indications"] = [i.to_dict() for i in md.indications]
+            metadata_added = True
+    
+    # Fallback to previously extracted metadata
+    if not metadata_added and previous_extractions.get('metadata'):
+        prev = previous_extractions['metadata']
+        if prev.get('metadata'):
+            md = prev['metadata']
+            if md.get('titles'):
+                study_version["titles"] = md['titles']
+            if md.get('identifiers'):
+                study_version["studyIdentifiers"] = md['identifiers']
+            if md.get('organizations'):
+                study_version["organizations"] = md['organizations']
+            if md.get('studyPhase'):
+                study_version["studyPhase"] = md['studyPhase']
+            if md.get('indications'):
+                combined["_temp_indications"] = md['indications']
+            logger.info("  Using previously extracted metadata")
     
     # Build StudyDesign container with all required fields
     study_design = {
@@ -791,6 +994,7 @@ def combine_to_full_usdm(
     }
     
     # Add Study Design Structure
+    studydesign_added = False
     if expansion_results and expansion_results.get('studydesign'):
         r = expansion_results['studydesign']
         if r.success and r.data:
@@ -803,8 +1007,27 @@ def combine_to_full_usdm(
             study_design["arms"] = [a.to_dict() for a in sd.arms]
             study_design["studyCohorts"] = [c.to_dict() for c in sd.cohorts]
             study_design["studyCells"] = [c.to_dict() for c in sd.cells]
+            studydesign_added = True
+    
+    # Fallback to previously extracted study design
+    if not studydesign_added and previous_extractions.get('studydesign'):
+        prev = previous_extractions['studydesign']
+        if prev.get('studyDesign'):
+            sd = prev['studyDesign']
+            if sd.get('blindingSchema'):
+                study_design["blindingSchema"] = sd['blindingSchema']
+            if sd.get('randomizationType'):
+                study_design["randomizationType"] = sd['randomizationType']
+            if sd.get('arms'):
+                study_design["arms"] = sd['arms']
+            if sd.get('cohorts'):
+                study_design["studyCohorts"] = sd['cohorts']
+            if sd.get('cells'):
+                study_design["studyCells"] = sd['cells']
+            logger.info("  Using previously extracted study design")
     
     # Add Eligibility Criteria
+    eligibility_added = False
     if expansion_results and expansion_results.get('eligibility'):
         r = expansion_results['eligibility']
         if r.success and r.data:
@@ -815,6 +1038,20 @@ def combine_to_full_usdm(
             study_design["eligibilityCriteria"] = [c.to_dict() for c in r.data.criteria]
             if r.data.population:
                 study_design["population"] = r.data.population.to_dict()
+            eligibility_added = True
+    
+    # Fallback to previously extracted eligibility
+    if not eligibility_added and previous_extractions.get('eligibility'):
+        prev = previous_extractions['eligibility']
+        if prev.get('eligibility'):
+            elig = prev['eligibility']
+            if elig.get('criterionItems'):
+                study_version["eligibilityCriterionItems"] = elig['criterionItems']
+            if elig.get('criteria'):
+                study_design["eligibilityCriteria"] = elig['criteria']
+            if elig.get('population'):
+                study_design["population"] = elig['population']
+            logger.info("  Using previously extracted eligibility")
     
     # Ensure population is always present (required by USDM schema)
     if "population" not in study_design:
@@ -829,6 +1066,7 @@ def combine_to_full_usdm(
         study_design["population"]["includesHealthySubjects"] = False
     
     # Add Objectives & Endpoints
+    objectives_added = False
     if expansion_results and expansion_results.get('objectives'):
         r = expansion_results['objectives']
         if r.success and r.data:
@@ -836,8 +1074,23 @@ def combine_to_full_usdm(
             study_design["endpoints"] = [e.to_dict() for e in r.data.endpoints]
             if r.data.estimands:
                 study_design["estimands"] = [e.to_dict() for e in r.data.estimands]
+            objectives_added = True
+    
+    # Fallback to previously extracted objectives
+    if not objectives_added and previous_extractions.get('objectives'):
+        prev = previous_extractions['objectives']
+        if prev.get('objectives'):
+            obj = prev['objectives']
+            if obj.get('objectives'):
+                study_design["objectives"] = obj['objectives']
+            if obj.get('endpoints'):
+                study_design["endpoints"] = obj['endpoints']
+            if obj.get('estimands'):
+                study_design["estimands"] = obj['estimands']
+            logger.info("  Using previously extracted objectives")
     
     # Add Interventions
+    interventions_added = False
     if expansion_results and expansion_results.get('interventions'):
         r = expansion_results['interventions']
         if r.success and r.data:
@@ -848,6 +1101,43 @@ def combine_to_full_usdm(
             # Administrations and substances - keep at root for now (product details)
             combined["administrations"] = [a.to_dict() for a in r.data.administrations]
             combined["substances"] = [s.to_dict() for s in r.data.substances]
+            interventions_added = True
+    
+    # Fallback to previously extracted interventions
+    if not interventions_added and previous_extractions.get('interventions'):
+        prev = previous_extractions['interventions']
+        if prev.get('interventions'):
+            intv = prev['interventions']
+            if intv.get('studyInterventions'):
+                study_version["studyInterventions"] = intv['studyInterventions']
+            if intv.get('administrableProducts'):
+                # Ensure administrableDoseForm has required standardCode (USDM 4.0)
+                products = []
+                for p in intv['administrableProducts']:
+                    if isinstance(p, dict):
+                        dose_form = p.get('administrableDoseForm', {})
+                        if dose_form and 'code' in dose_form and 'standardCode' not in dose_form:
+                            p = dict(p)  # Copy to avoid mutating original
+                            p['administrableDoseForm'] = {
+                                **dose_form,
+                                'standardCode': {
+                                    'id': str(uuid.uuid4()),
+                                    'code': dose_form.get('code', ''),
+                                    'codeSystem': dose_form.get('codeSystem', 'http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl'),
+                                    'codeSystemVersion': dose_form.get('codeSystemVersion', '25.01d'),
+                                    'decode': dose_form.get('decode', ''),
+                                    'instanceType': 'Code',
+                                }
+                            }
+                    products.append(p)
+                study_version["administrableProducts"] = products
+            if intv.get('administrations'):
+                combined["administrations"] = intv['administrations']
+            if intv.get('substances'):
+                combined["substances"] = intv['substances']
+            if intv.get('medicalDevices'):
+                study_version["medicalDevices"] = intv['medicalDevices']
+            logger.info("  Using previously extracted interventions")
     
     # Add SoA data - check multiple possible locations
     if soa_data:
@@ -883,6 +1173,62 @@ def combine_to_full_usdm(
                 if key in soa_schedule and soa_schedule[key]:
                     study_design[key] = soa_schedule[key]
     
+    # Ensure arms is always present (required by USDM schema for InterventionalStudyDesign)
+    if "arms" not in study_design or not study_design["arms"]:
+        study_design["arms"] = [{
+            "id": "arm_1",
+            "name": "Treatment Arm",
+            "description": "Main treatment arm",
+            "type": {
+                "id": "code_arm_type_1",
+                "code": "C174266",
+                "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+                "codeSystemVersion": "25.01d",
+                "decode": "Experimental Arm",
+                "instanceType": "Code"
+            },
+            "dataOriginType": {
+                "id": "code_data_origin_1",
+                "code": "C142493",
+                "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+                "codeSystemVersion": "25.01d",
+                "decode": "Collected",
+                "instanceType": "Code"
+            },
+            "dataOriginDescription": "Data collected during study conduct",
+            "instanceType": "StudyArm"
+        }]
+    
+    # Ensure studyCells is always present (required by USDM schema)
+    if "studyCells" not in study_design or not study_design["studyCells"]:
+        # Create cells linking arms to epochs
+        arms = study_design.get("arms", [])
+        epochs = study_design.get("epochs", [])
+        cells = []
+        for arm in arms:
+            arm_id = arm.get("id", "arm_1")
+            for epoch in epochs:
+                epoch_id = epoch.get("id", "") if isinstance(epoch, dict) else getattr(epoch, 'id', '')
+                if epoch_id:
+                    cells.append({
+                        "id": f"cell_{arm_id}_{epoch_id}",
+                        "armId": arm_id,
+                        "epochId": epoch_id,
+                        "elementIds": [],
+                        "instanceType": "StudyCell"
+                    })
+        if cells:
+            study_design["studyCells"] = cells
+        else:
+            # Fallback: create at least one cell
+            study_design["studyCells"] = [{
+                "id": "cell_1",
+                "armId": study_design["arms"][0]["id"] if study_design.get("arms") else "arm_1",
+                "epochId": epochs[0].get("id", "epoch_1") if epochs else "epoch_1",
+                "elementIds": [],
+                "instanceType": "StudyCell"
+            }]
+    
     # Add model field (required) - infer from arms count
     if "model" not in study_design:
         arms = study_design.get("arms", [])
@@ -914,6 +1260,7 @@ def combine_to_full_usdm(
     
     # Add Narrative Content
     # USDM-compliant: abbreviations go in studyVersion.abbreviations
+    narrative_added = False
     if expansion_results and expansion_results.get('narrative'):
         r = expansion_results['narrative']
         if r.success and r.data:
@@ -922,9 +1269,26 @@ def combine_to_full_usdm(
             study_version["abbreviations"] = [a.to_dict() for a in r.data.abbreviations]
             if r.data.document:
                 combined["studyDefinitionDocument"] = r.data.document.to_dict()
+            narrative_added = True
+    
+    # Fallback to previously extracted narrative
+    if not narrative_added and previous_extractions.get('narrative'):
+        prev = previous_extractions['narrative']
+        if prev.get('narrative'):
+            narr = prev['narrative']
+            if narr.get('narrativeContentItems'):
+                study_version["narrativeContentItems"] = narr['narrativeContentItems']
+            elif narr.get('narrativeContents'):
+                study_version["narrativeContentItems"] = narr['narrativeContents']
+            if narr.get('abbreviations'):
+                study_version["abbreviations"] = narr['abbreviations']
+            if narr.get('studyDefinitionDocument'):
+                combined["studyDefinitionDocument"] = narr['studyDefinitionDocument']
+            logger.info("  Using previously extracted narrative")
     
     # Add Advanced Entities
     # USDM-compliant: amendments go to studyVersion.amendments (per dataStructure.yml)
+    advanced_added = False
     if expansion_results and expansion_results.get('advanced'):
         r = expansion_results['advanced']
         if r.success and r.data:
@@ -934,6 +1298,22 @@ def combine_to_full_usdm(
                 combined["geographicScope"] = r.data.geographic_scope.to_dict()
             if r.data.countries:
                 combined["countries"] = [c.to_dict() for c in r.data.countries]
+            advanced_added = True
+    
+    # Fallback to previously extracted advanced entities
+    if not advanced_added and previous_extractions.get('advanced'):
+        prev = previous_extractions['advanced']
+        if prev.get('advanced'):
+            adv = prev['advanced']
+            if adv.get('studyAmendments'):
+                study_version["amendments"] = adv['studyAmendments']
+            elif adv.get('amendments'):
+                study_version["amendments"] = adv['amendments']
+            if adv.get('geographicScope'):
+                combined["geographicScope"] = adv['geographicScope']
+            if adv.get('countries'):
+                combined["countries"] = adv['countries']
+            logger.info("  Using previously extracted advanced entities")
     
     # Add Procedures & Devices (Phase 10)
     # USDM-compliant: procedures go in activity.definedProcedures, not at root
@@ -995,6 +1375,7 @@ def combine_to_full_usdm(
     
     # Add Scheduling Logic (Phase 11)
     # USDM-compliant: timings/exits go in scheduleTimeline, conditions in studyVersion
+    scheduling_added = False
     if expansion_results and expansion_results.get('scheduling'):
         r = expansion_results['scheduling']
         if r.success and r.data:
@@ -1007,6 +1388,12 @@ def combine_to_full_usdm(
                     if 'timings' not in main_timeline:
                         main_timeline['timings'] = []
                     main_timeline['timings'].extend(data_dict['timings'])
+                    
+                    # USDM Enhancement: Link timingId on ScheduledActivityInstances
+                    linked = link_timing_ids_to_instances(study_design)
+                    if linked > 0:
+                        logger.info(f"  Linked {linked} instances to timings")
+                
                 if data_dict.get('scheduleTimelineExits'):
                     if 'exits' not in main_timeline:
                         main_timeline['exits'] = []
@@ -1019,9 +1406,33 @@ def combine_to_full_usdm(
             # TransitionRules stay at root for now (need element linkage)
             if data_dict.get('transitionRules'):
                 combined["transitionRules"] = data_dict['transitionRules']
+            scheduling_added = True
+    
+    # Fallback to previously extracted scheduling
+    if not scheduling_added and previous_extractions.get('scheduling'):
+        prev = previous_extractions['scheduling']
+        if prev.get('scheduling'):
+            sched = prev['scheduling']
+            if study_design.get('scheduleTimelines') and sched.get('timings'):
+                main_timeline = study_design['scheduleTimelines'][0]
+                if 'timings' not in main_timeline:
+                    main_timeline['timings'] = []
+                main_timeline['timings'].extend(sched['timings'])
+                
+                # USDM Enhancement: Link timingId on ScheduledActivityInstances
+                linked = link_timing_ids_to_instances(study_design)
+                if linked > 0:
+                    logger.info(f"  Linked {linked} instances to timings")
+            
+            if sched.get('conditions'):
+                study_version["conditions"] = sched['conditions']
+            if sched.get('transitionRules'):
+                combined["transitionRules"] = sched['transitionRules']
+            logger.info("  Using previously extracted scheduling")
     
     # Add SAP data (from --sap extraction)
     # USDM-compliant: analysisPopulations go in studyDesign.analysisPopulations
+    sap_added = False
     if expansion_results and expansion_results.get('sap'):
         r = expansion_results['sap']
         if r.success and r.data:
@@ -1030,6 +1441,18 @@ def combine_to_full_usdm(
                 study_design["analysisPopulations"] = data_dict['analysisPopulations']
             if data_dict.get('characteristics'):
                 study_design["characteristics"] = data_dict['characteristics']
+            sap_added = True
+    
+    # Fallback to previously extracted SAP
+    if not sap_added and previous_extractions.get('sap'):
+        prev = previous_extractions['sap']
+        if prev.get('sap'):
+            sap = prev['sap']
+            if sap.get('analysisPopulations'):
+                study_design["analysisPopulations"] = sap['analysisPopulations']
+            if sap.get('characteristics'):
+                study_design["characteristics"] = sap['characteristics']
+            logger.info("  Using previously extracted SAP populations")
     
     # Add Sites data (conditional)
     if expansion_results and expansion_results.get('sites'):
@@ -1079,12 +1502,59 @@ def combine_to_full_usdm(
     
     # Add Execution Model (Phase 14) - enrich studyDesigns with execution semantics
     # Must be done AFTER study.versions is assembled so enrich can find studyDesigns
+    execution_data = None
     if expansion_results and expansion_results.get('execution'):
         r = expansion_results['execution']
         if r.success and r.data:
             from extraction.execution import enrich_usdm_with_execution_model
             combined = enrich_usdm_with_execution_model(combined, r.data)
+            execution_data = r.data
             logger.info(f"  ✓ Enriched USDM with execution model (Phase 14)")
+    
+    # Reconcile Epochs (Phase 15) - merge epoch sources, identify main flow
+    # This runs after execution model so we have traversal constraints
+    try:
+        study_design = combined.get("study", {}).get("versions", [{}])[0].get("studyDesigns", [{}])[0]
+        soa_epochs = study_design.get("epochs", [])
+        
+        # Extract traversal sequence from execution model if available
+        traversal_sequence = None
+        if execution_data and hasattr(execution_data, 'traversal_constraints'):
+            constraints = execution_data.traversal_constraints or []
+            if constraints and hasattr(constraints[0], 'required_sequence'):
+                traversal_sequence = constraints[0].required_sequence
+        
+        # Also check extension attributes for traversal constraints
+        if not traversal_sequence:
+            extensions = study_design.get("extensionAttributes", [])
+            for ext in extensions:
+                if ext.get("url", "").endswith("traversalConstraints") and ext.get("valueString"):
+                    try:
+                        import json as json_mod
+                        constraints = json_mod.loads(ext["valueString"])
+                        if constraints and isinstance(constraints, list) and constraints[0].get("requiredSequence"):
+                            traversal_sequence = constraints[0]["requiredSequence"]
+                            break
+                    except (json.JSONDecodeError, KeyError, IndexError):
+                        pass
+        
+        if soa_epochs:
+            reconciled_epochs = reconcile_epochs_from_pipeline(
+                soa_epochs=soa_epochs,
+                traversal_sequence=traversal_sequence,
+            )
+            
+            if reconciled_epochs:
+                # Update study design with reconciled epochs
+                study_design["epochs"] = reconciled_epochs
+                main_epochs = [e for e in reconciled_epochs if any(
+                    ext.get("valueString") == "main" 
+                    for ext in e.get("extensionAttributes", [])
+                    if ext.get("url", "").endswith("epochCategory")
+                )]
+                logger.info(f"  ✓ Reconciled {len(reconciled_epochs)} epochs ({len(main_epochs)} main, {len(reconciled_epochs) - len(main_epochs)} sub)")
+    except Exception as e:
+        logger.warning(f"  ⚠ Epoch reconciliation skipped: {e}")
     
     # Save combined output as protocol_usdm.json (golden standard)
     output_path = os.path.join(output_dir, "protocol_usdm.json")

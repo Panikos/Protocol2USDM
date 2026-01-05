@@ -1,6 +1,6 @@
-import type { Stylesheet } from 'cytoscape';
-
-export const cytoscapeStyles: Stylesheet[] = [
+// Cytoscape stylesheet definitions
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const cytoscapeStyles: any[] = [
   // Base node style
   {
     selector: 'node',
@@ -15,7 +15,7 @@ export const cytoscapeStyles: Stylesheet[] = [
     },
   },
   
-  // Epoch nodes (background grouping)
+  // Epoch nodes (background grouping) - left justified
   {
     selector: 'node[type="epoch"]',
     style: {
@@ -32,7 +32,7 @@ export const cytoscapeStyles: Stylesheet[] = [
     },
   },
   
-  // Timing/encounter nodes (white circle)
+  // Timing/encounter nodes (circles)
   {
     selector: 'node[type="timing"]',
     style: {
@@ -43,7 +43,43 @@ export const cytoscapeStyles: Stylesheet[] = [
       'width': 50,
       'height': 50,
       'text-valign': 'bottom',
-      'text-margin-y': 8,
+      'text-margin-y': 5,
+    },
+  },
+  
+  // Timing nodes that are anchors - label above, anchor icon as background
+  {
+    selector: 'node[type="timing"][?isAnchor]',
+    style: {
+      'background-color': '#fef3c7',
+      'border-width': 3,
+      'border-color': '#d97706',
+      'width': 55,
+      'height': 55,
+      'text-valign': 'top',
+      'text-margin-y': -8,
+      'label': 'data(label)',
+      'font-size': '11px',
+      'background-image': 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNiNDUzMDkiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48Y2lyY2xlIGN4PSIxMiIgY3k9IjUiIHI9IjMiLz48bGluZSB4MT0iMTIiIHkxPSIyMiIgeDI9IjEyIiB5Mj0iOCIvPjxwYXRoIGQ9Ik01IDEySDJhMTAgMTAgMCAwIDAgMjAgMGgtMyIvPjwvc3ZnPg==',
+      'background-width': '50%',
+      'background-height': '50%',
+      'background-position-x': '50%',
+      'background-position-y': '50%',
+    },
+  },
+  
+  // Anchor-timing class - same styling
+  {
+    selector: 'node.anchor-timing',
+    style: {
+      'background-color': '#fef3c7',
+      'border-width': 3,
+      'border-color': '#d97706',
+      'text-valign': 'top',
+      'text-margin-y': -8,
+      'background-image': 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNiNDUzMDkiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48Y2lyY2xlIGN4PSIxMiIgY3k9IjUiIHI9IjMiLz48bGluZSB4MT0iMTIiIHkxPSIyMiIgeDI9IjEyIiB5Mj0iOCIvPjxwYXRoIGQ9Ik01IDEySDJhMTAgMTAgMCAwIDAgMjAgMGgtMyIvPjwvc3ZnPg==',
+      'background-width': '50%',
+      'background-height': '50%',
     },
   },
   
@@ -55,10 +91,10 @@ export const cytoscapeStyles: Stylesheet[] = [
       'border-width': 2,
       'border-color': '#22c55e',
       'shape': 'round-rectangle',
-      'width': 100,
-      'height': 36,
+      'width': 140,
+      'height': 45,
       'text-wrap': 'wrap',
-      'text-max-width': '90px',
+      'text-max-width': '130px',
       'font-size': '10px',
       'text-valign': 'center',
       'text-halign': 'center',
@@ -112,23 +148,23 @@ export const cytoscapeStyles: Stylesheet[] = [
     },
   },
   
-  // Anchor nodes (Fixed Reference - with anchor icon styling)
+  // Anchor nodes (Fixed Reference - label above, icon centered)
   {
     selector: 'node[type="anchor"]',
     style: {
-      'background-color': '#ffffff',
+      'background-color': '#fef3c7',
       'border-width': 3,
-      'border-color': '#003366',
+      'border-color': '#d97706',
       'shape': 'ellipse',
-      'width': 80,
-      'height': 80,
-      'text-valign': 'center',
-      'text-halign': 'center',
-      'text-wrap': 'wrap',
-      'text-max-width': '70px',
-      'font-size': '12px',
-      'font-weight': 'bold',
-      'color': '#003366',
+      'width': 55,
+      'height': 55,
+      'text-valign': 'top',
+      'text-margin-y': -8,
+      'label': 'data(label)',
+      'font-size': '11px',
+      'background-image': 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNiNDUzMDkiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48Y2lyY2xlIGN4PSIxMiIgY3k9IjUiIHI9IjMiLz48bGluZSB4MT0iMTIiIHkxPSIyMiIgeDI9IjEyIiB5Mj0iOCIvPjxwYXRoIGQ9Ik01IDEySDJhMTAgMTAgMCAwIDAgMjAgMGgtMyIvPjwvc3ZnPg==',
+      'background-width': '50%',
+      'background-height': '50%',
     },
   },
   
@@ -256,6 +292,100 @@ export const cytoscapeStyles: Stylesheet[] = [
       'width': 3,
       'line-color': '#6366f1',
       'target-arrow-color': '#6366f1',
+    },
+  },
+  
+  // Epoch transition edges (arrows between epochs)
+  {
+    selector: 'edge[type="transition"]',
+    style: {
+      'line-color': '#94a3b8',
+      'target-arrow-color': '#94a3b8',
+      'target-arrow-shape': 'triangle',
+      'curve-style': 'straight',
+      'width': 3,
+      'arrow-scale': 1.2,
+    },
+  },
+  
+  // Epoch transition with class
+  {
+    selector: 'edge.epoch-transition',
+    style: {
+      'line-color': '#64748b',
+      'target-arrow-color': '#64748b',
+      'line-style': 'solid',
+      'width': 2,
+    },
+  },
+  
+  // Execution model anchor nodes
+  {
+    selector: 'node.execution-anchor',
+    style: {
+      'background-color': '#fef3c7',
+      'border-width': 3,
+      'border-color': '#d97706',
+      'shape': 'diamond',
+      'width': 70,
+      'height': 70,
+      'text-valign': 'bottom',
+      'text-margin-y': 8,
+      'font-size': '10px',
+      'font-weight': 'bold',
+      'color': '#92400e',
+    },
+  },
+  
+  // Visit window indicator nodes
+  {
+    selector: 'node[type="window"]',
+    style: {
+      'background-color': '#ecfdf5',
+      'border-width': 2,
+      'border-color': '#10b981',
+      'border-style': 'dashed',
+      'shape': 'round-rectangle',
+      'width': 90,
+      'height': 24,
+      'font-size': '9px',
+      'text-valign': 'center',
+      'text-halign': 'center',
+      'color': '#059669',
+    },
+  },
+  
+  // Encounters with visit windows
+  {
+    selector: 'node.has-window',
+    style: {
+      'border-width': 3,
+      'border-color': '#10b981',
+    },
+  },
+  
+  // Swimlane background nodes
+  {
+    selector: 'node[type="swimlane"]',
+    style: {
+      'background-color': '#f8fafc',
+      'background-opacity': 0.5,
+      'border-width': 1,
+      'border-color': '#e2e8f0',
+      'border-style': 'dashed',
+      'shape': 'round-rectangle',
+      'z-index': -10,
+    },
+  },
+  
+  // Window edges
+  {
+    selector: 'edge[type="window"]',
+    style: {
+      'line-color': '#86efac',
+      'line-style': 'dashed',
+      'width': 1,
+      'target-arrow-shape': 'none',
     },
   },
 ];

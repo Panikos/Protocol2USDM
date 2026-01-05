@@ -9,8 +9,55 @@ import type {
 } from '@/stores/protocolStore';
 import type { OverlayPayload, NodePosition } from '@/lib/overlay/schema';
 
+// Helper to combine class names
+function cn(...classes: (string | boolean | undefined | null)[]): string | undefined {
+  const result = classes.filter(Boolean).join(' ');
+  return result || undefined;
+}
+
+// Execution model types
+export interface TimeAnchor {
+  id: string;
+  definition: string;
+  anchorType: string;
+  dayValue?: number;
+  sourceText?: string;
+}
+
+export interface Repetition {
+  id: string;
+  type: string;
+  interval?: string;
+  startOffset?: string;
+  endOffset?: string;
+  activityId?: string;
+  sourceText?: string;
+}
+
+export interface VisitWindow {
+  encounterId: string;
+  windowLower?: number;
+  windowUpper?: number;
+  windowLabel?: string;
+}
+
+export interface TraversalConstraint {
+  id: string;
+  requiredSequence?: string[];
+  allowEarlyExit?: boolean;
+  exitEpochIds?: string[];
+  mandatoryVisits?: string[];
+}
+
+export interface ExecutionModelData {
+  timeAnchors?: TimeAnchor[];
+  repetitions?: Repetition[];
+  visitWindows?: VisitWindow[];
+  traversalConstraints?: TraversalConstraint[];
+}
+
 // Cytoscape node types
-export type NodeType = 'instance' | 'timing' | 'activity' | 'condition' | 'halo' | 'epoch' | 'anchor';
+export type NodeType = 'instance' | 'timing' | 'activity' | 'condition' | 'halo' | 'epoch' | 'anchor' | 'window' | 'repetition' | 'swimlane';
 
 // Timing type codes from CDISC
 const TIMING_TYPE = {
@@ -35,6 +82,9 @@ export interface CytoscapeNode {
     isAnchor?: boolean;
     fromInstanceId?: string;
     toInstanceId?: string;
+    // Visit window data
+    hasWindow?: boolean;
+    parentEncounter?: string;
   };
   position: { x: number; y: number };
   locked?: boolean;
@@ -46,7 +96,7 @@ export interface CytoscapeEdge {
     id: string;
     source: string;
     target: string;
-    type: 'timing' | 'activity' | 'condition' | 'sequence';
+    type: 'timing' | 'activity' | 'condition' | 'sequence' | 'transition' | 'window';
     label?: string;
   };
   classes?: string;
@@ -70,17 +120,23 @@ export interface GraphModel {
 
 // Default layout configuration
 const DEFAULT_SPACING = {
-  epochWidth: 250,
-  encounterSpacing: 150,
-  activitySpacing: 80,
-  startX: 100,
-  startY: 100,
+  epochWidth: 300,
+  encounterSpacing: 160,  // Increased from 120 for wider activity boxes
+  activitySpacing: 55,    // Vertical spacing between activities (box height 45 + 10 gap)
+  startX: 80,
+  startY: 120,
+  swimlaneHeight: 600,
+  anchorY: 50,
+  epochHeaderHeight: 50,
+  encounterY: 150,
+  activityStartY: 250,
 };
 
 // Main adapter function
 export function toGraphModel(
   studyDesign: USDMStudyDesign | null,
-  overlay: OverlayPayload | null
+  overlay: OverlayPayload | null,
+  executionModel?: ExecutionModelData | null
 ): GraphModel {
   const model: GraphModel = {
     nodes: [],
@@ -90,10 +146,33 @@ export function toGraphModel(
 
   if (!studyDesign) return model;
 
-  const epochs = studyDesign.epochs ?? [];
+  const allEpochs = studyDesign.epochs ?? [];
   const encounters = studyDesign.encounters ?? [];
   const activities = studyDesign.activities ?? [];
   const scheduleTimelines = studyDesign.scheduleTimelines ?? [];
+
+  // Filter epochs based on traversal constraints if available
+  // This shows only the main epoch flow (like traversal view does)
+  let epochs = allEpochs;
+  const traversalConstraint = executionModel?.traversalConstraints?.[0];
+  if (traversalConstraint?.requiredSequence && traversalConstraint.requiredSequence.length > 0) {
+    const requiredSequence = traversalConstraint.requiredSequence;
+    // Map epoch_N format to actual epoch by index
+    const filteredEpochIds = new Set<string>();
+    for (const seqId of requiredSequence) {
+      const match = seqId.match(/epoch_(\d+)/);
+      if (match) {
+        const idx = parseInt(match[1], 10) - 1;
+        if (allEpochs[idx]) {
+          filteredEpochIds.add(allEpochs[idx].id);
+        }
+      } else {
+        // Direct ID reference
+        filteredEpochIds.add(seqId);
+      }
+    }
+    epochs = allEpochs.filter(e => filteredEpochIds.has(e.id));
+  }
 
   // Build maps
   const epochMap = new Map(epochs.map(e => [e.id, e]));
@@ -117,9 +196,11 @@ export function toGraphModel(
     epochPositions.set(epoch.id, { x: epochX, width });
 
     const nodeId = `epoch_${epoch.id}`;
+    // Center epoch box directly above the first encounter in this epoch
+    // Epoch center X = first encounter X (both use epochX as starting point)
     const position = getNodePosition(nodeId, overlay, { 
-      x: epochX + width / 2, 
-      y: DEFAULT_SPACING.startY - 50 
+      x: epochX, 
+      y: DEFAULT_SPACING.epochHeaderHeight 
     });
 
     model.nodes.push({
@@ -138,7 +219,7 @@ export function toGraphModel(
     epochX += width + 50;
   }
 
-  // Generate encounter/timing nodes
+  // Generate encounter/timing nodes with visit windows
   const encounterPositions = new Map<string, { x: number; y: number }>();
 
   for (const epoch of epochs) {
@@ -150,26 +231,67 @@ export function toGraphModel(
 
     for (const enc of encountersInEpoch) {
       const nodeId = `enc_${enc.id}`;
-      const defaultPos = { x: encX, y: DEFAULT_SPACING.startY + 50 };
+      const defaultPos = { x: encX, y: DEFAULT_SPACING.encounterY };
       const position = getNodePosition(nodeId, overlay, defaultPos);
 
       encounterPositions.set(enc.id, position);
 
+      // Check for visit window from execution model or encounter timing
+      const hasWindow = Boolean(enc.timing?.windowLabel || 
+        (enc.timing && (enc.timing as Record<string, unknown>).windowLower !== undefined));
+      
       model.nodes.push({
         data: {
           id: nodeId,
-          label: enc.timing?.windowLabel ?? enc.name,
+          label: enc.name,
           type: 'timing',
           usdmRef: enc.id,
           epochId: epoch.id,
           encounterId: enc.id,
+          windowLabel: enc.timing?.windowLabel,
+          hasWindow,
         },
         position,
         locked: overlay?.diagram.nodes[nodeId]?.locked,
-        classes: overlay?.diagram.nodes[nodeId]?.highlight ? 'highlighted' : undefined,
+        classes: cn(
+          overlay?.diagram.nodes[nodeId]?.highlight && 'highlighted',
+          hasWindow && 'has-window'
+        ),
       });
 
       nodeIds.add(nodeId);
+      
+      // Add visit window indicator node if window exists
+      if (hasWindow && enc.timing?.windowLabel) {
+        const windowNodeId = `window_${enc.id}`;
+        const windowPos = { x: position.x, y: position.y - 30 };
+        
+        model.nodes.push({
+          data: {
+            id: windowNodeId,
+            label: enc.timing.windowLabel,
+            type: 'window',
+            usdmRef: enc.id,
+            parentEncounter: enc.id,
+          },
+          position: getNodePosition(windowNodeId, overlay, windowPos),
+          classes: 'window-node',
+        });
+        
+        nodeIds.add(windowNodeId);
+        
+        // Edge from window to encounter
+        model.edges.push({
+          data: {
+            id: `window_edge_${enc.id}`,
+            source: windowNodeId,
+            target: nodeId,
+            type: 'window',
+          },
+          classes: 'window-edge',
+        });
+      }
+      
       encX += DEFAULT_SPACING.encounterSpacing;
     }
   }
@@ -223,10 +345,18 @@ export function toGraphModel(
         const defaultPos = { x: encPos.x, y: actY };
         const position = getNodePosition(nodeId, overlay, defaultPos);
 
+        // Use instance name if available (human-readable format like "Blood Draw @ Day 1")
+        // Fall back to activity label/name if instance name is missing or just an ID
+        let label = activity.label ?? activity.name;
+        if (instance.name && !instance.name.match(/^[a-f0-9-]{36}$/i)) {
+          // Instance has a human-readable name, use it
+          label = instance.name;
+        }
+
         model.nodes.push({
           data: {
             id: nodeId,
-            label: activity.label ?? activity.name,
+            label,
             type: 'activity',
             usdmRef: actId,
             encounterId,
@@ -327,6 +457,47 @@ export function toGraphModel(
     });
     
     nodeIds.add(nodeId);
+  }
+
+  // Mark timing nodes as anchors based on execution model
+  // Instead of creating separate anchor nodes, we mark existing encounters as anchors
+  if (executionModel?.timeAnchors?.length) {
+    const anchorTypes = new Set(executionModel.timeAnchors.map(a => a.anchorType?.toLowerCase()));
+    const anchorDays = new Map(executionModel.timeAnchors.map(a => [a.dayValue, a]));
+    
+    // Update existing timing nodes with anchor info
+    for (const node of model.nodes) {
+      if (node.data.type === 'timing') {
+        // Check if this encounter matches an anchor (by name pattern or day value)
+        const label = node.data.label?.toLowerCase() || '';
+        const isBaselineAnchor = anchorTypes.has('baseline') && 
+          (label.includes('baseline') || label.includes('day 1') || label.includes('screening'));
+        const isFirstDoseAnchor = anchorTypes.has('firstdose') && 
+          (label.includes('first dose') || label.includes('day 1') || label.includes('treatment'));
+        
+        if (isBaselineAnchor || isFirstDoseAnchor) {
+          node.data.isAnchor = true;
+          node.classes = cn(node.classes, 'anchor-timing');
+        }
+      }
+    }
+  }
+
+  // Add epoch transition arrows
+  for (let i = 0; i < epochs.length - 1; i++) {
+    const currentEpoch = epochs[i];
+    const nextEpoch = epochs[i + 1];
+    
+    model.edges.push({
+      data: {
+        id: `epoch_trans_${currentEpoch.id}_${nextEpoch.id}`,
+        source: `epoch_${currentEpoch.id}`,
+        target: `epoch_${nextEpoch.id}`,
+        type: 'transition',
+        label: '→',
+      },
+      classes: 'epoch-transition',
+    });
   }
 
   // Validate the graph

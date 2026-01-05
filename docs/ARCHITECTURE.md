@@ -186,6 +186,35 @@ These are used only during extraction and convert to official types:
 - `plannedTimepointId`: Legacy field (pt_1, pt_2, ...) - backward compat only
 - `footnoteRefs`: Superscript references (["a", "m"]) for ticks like X^a
 
+### ScheduledActivityInstance Enhancements (v6.7+)
+
+When `ActivityTimepoint` converts to `ScheduledActivityInstance`, additional USDM conformance enhancements are applied:
+
+| Enhancement | Description |
+|-------------|-------------|
+| **epochId** | Inherited from linked Encounter's `epochId` |
+| **name** | Human-readable format: `"Activity Name @ Encounter Name"` |
+| **timingId** | Linked to matching Timing entity (when scheduling data available) |
+
+**Conversion Flow:**
+
+```
+ActivityTimepoint                      ScheduledActivityInstance
+─────────────────                      ─────────────────────────
+activityId: "act_1"         ──►        activityIds: ["uuid-for-act_1"]
+encounterId: "enc_1"        ──►        encounterId: "uuid-for-enc_1"
+                                       epochId: "uuid-for-epoch_1"  (from encounter)
+                                       name: "Blood Draw @ Day 1"   (resolved names)
+                                       timingId: "uuid-for-timing"  (if matched)
+```
+
+**Timing Linking Logic (`link_timing_ids_to_instances`):**
+
+1. Build encounter ID → name lookup from `studyDesign.encounters`
+2. Build timing name/valueLabel → ID lookup from `scheduleTimeline.timings`
+3. For each instance, match encounter name to timing name/valueLabel
+4. Set `timingId` on instances that match
+
 ## Required Fields
 
 The schema defines which fields are required. Key ones enforced:
@@ -268,6 +297,153 @@ Study:
 | `timings` | `scheduleTimeline` | ~~root~~ |
 | `exits` | `scheduleTimeline` | ~~root~~ |
 | `definedProcedures` | `activity` | ~~root~~ |
+
+---
+
+## Execution Model Promotion
+
+The pipeline extracts rich execution model data (time anchors, repetitions, dosing regimens) which must be materialized into **core USDM** rather than stored only in extensions. This ensures downstream consumers (synthetic generators) can use core USDM without parsing extensions.
+
+### Architecture
+
+```
+PDF → Execution Extractors → Execution Model Data
+                                    ↓
+                          ExecutionModelPromoter
+                                    ↓
+                          Core USDM Entities:
+                            - ScheduledActivityInstance (anchors)
+                            - ScheduledActivityInstance (repetitions)
+                            - Administration (dosing regimens)
+                            - Timing (with valid references)
+```
+
+### Key Contract
+
+**Extensions are OPTIONAL/DEBUG. Core USDM must be self-sufficient.**
+
+### Promotion Steps
+
+| Step | Input | Output |
+|------|-------|--------|
+| 1. Anchor Promotion | `time_anchors[]` | `ScheduledActivityInstance` with anchor metadata |
+| 2. Repetition Expansion | `repetitions[]` | Multiple `ScheduledActivityInstance` per occurrence |
+| 3. Dosing Normalization | `dosing_regimens[]` | `Administration` linked to `StudyIntervention` |
+| 4. Reference Reconciliation | `Timing.relativeFromScheduledInstanceId` | Fix dangling references |
+
+### Files
+
+- `extraction/execution/execution_model_promoter.py` - Main promotion logic
+- `extraction/execution/reconciliation_layer.py` - Entity resolution and issue classification
+- `extraction/execution/pipeline_integration.py` - Integration into enrichment flow
+
+### Reference Reconciliation
+
+After UUID conversion, all `relativeFromScheduledInstanceId` references in timings are verified:
+1. If reference exists → keep as-is
+2. If reference is in anchor map → remap to promoted anchor
+3. If reference missing → create missing anchor instance or remap to closest match
+
+---
+
+## Epoch Reconciliation Layer
+
+The pipeline reconciles epoch data from multiple extraction sources (SoA, Study Design, Traversal, SAP) into a consistent, canonical set of epochs for `protocol_usdm.json`.
+
+### Problem
+
+Epochs extracted from different sources may have:
+- **Footnote markers**: "Screening a", "Period 1 b" (from SoA table headers)
+- **Different granularity**: SoA may show sub-phases, traversal shows main flow
+- **Conflicting names**: Different extractors may name the same epoch differently
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    EPOCH RECONCILIATION LAYER                    │
+│                    core/epoch_reconciler.py                      │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  class EpochReconciler:                                          │
+│    def contribute(source, epochs, priority)                      │
+│    def contribute_traversal_sequence(sequence, all_epochs)       │
+│    def reconcile() -> List[ReconciledEpoch]                     │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+                              ↑
+        ┌─────────────────────┼─────────────────────┐
+        ↑                     ↑                     ↑
+┌───────────────┐   ┌───────────────┐   ┌───────────────┐
+│ SoA Extractor │   │   Traversal   │   │ SAP Extractor │
+│ priority=10   │   │  priority=25  │   │ priority=30   │
+│               │   │               │   │               │
+│ Raw epochs    │   │ Main flow     │   │ Analysis      │
+│ from table    │   │ sequence      │   │ epochs        │
+└───────────────┘   └───────────────┘   └───────────────┘
+```
+
+### Key Features
+
+| Feature | Description |
+|---------|-------------|
+| **Name cleaning** | Strips footnote markers (a, b, c...) from epoch names |
+| **Main/sub categorization** | Uses traversal constraints to identify main flow epochs |
+| **Priority-based merging** | Higher priority sources override conflicts |
+| **Fuzzy matching** | Merges epochs with similar names (but not "Period 1" vs "Period 2") |
+| **Extensibility** | Any extractor can contribute epochs via `contribute()` |
+| **CDISC type inference** | Infers epoch type codes from names (Screening, Treatment, etc.) |
+
+### Output Schema Extension
+
+Reconciled epochs include extension attributes for metadata:
+
+```json
+{
+  "id": "uuid",
+  "name": "Screening",
+  "instanceType": "StudyEpoch",
+  "type": { "code": "C98779", "decode": "Screening Epoch" },
+  "extensionAttributes": [
+    { "url": ".../x-epochCategory", "valueString": "main" },
+    { "url": ".../x-epochSequenceOrder", "valueString": "1" },
+    { "url": ".../x-epochRawName", "valueString": "Screening a" },
+    { "url": ".../x-epochSources", "valueString": "soa,traversal" }
+  ]
+}
+```
+
+### Epoch Categories
+
+| Category | Description |
+|----------|-------------|
+| `main` | Part of primary subject flow (from traversal constraints) |
+| `sub` | Sub-phase or intermediate epoch |
+| `exit` | Early termination or exit epoch |
+| `analysis` | Analysis-specific epoch (from SAP) |
+
+### Usage
+
+```python
+from core.epoch_reconciler import reconcile_epochs_from_pipeline
+
+# Convenience function for pipeline integration
+reconciled = reconcile_epochs_from_pipeline(
+    soa_epochs=soa_epochs,
+    traversal_sequence=["epoch_1", "epoch_3", "epoch_5"],
+    study_design_epochs=None,  # Optional
+    sap_epochs=None,           # Optional - for future SAP integration
+)
+
+# Returns list of USDM-compliant epoch dicts
+```
+
+### Fallback Behavior
+
+If no traversal constraints are available:
+- First epoch marked as `main` (sequence=1)
+- Last epoch marked as `main` (sequence=2)
+- All others marked as `sub`
 
 ---
 
@@ -552,3 +728,227 @@ from core.usdm_types import Activity, Encounter, Timeline
 from core.usdm_types import PlannedTimepoint  # Internal type
 from core.usdm_types import USING_GENERATED_TYPES  # Always True now
 ```
+
+---
+
+## Reconciliation Layer
+
+The Reconciliation Layer bridges execution model findings with the core USDM graph, ensuring that structural findings (crossover, traversal, dosing) don't just land in extensions but actually shape the core USDM model.
+
+### Architecture
+
+```
+PDF → Core Extractors → Initial USDM Core
+                              ↓
+PDF → Execution Extractors → Execution Data
+                              ↓
+         ← Reconciliation Layer →
+                              ↓
+                     Enriched USDM Core
+```
+
+### Key File
+
+`extraction/execution/reconciliation_layer.py`
+
+### Responsibilities
+
+1. **Promote structural findings** - Crossover → epochs/cells/arms
+2. **Bidirectional entity resolution** - Traversal ↔ epochs  
+3. **Consolidate/normalize data** - Dosing, visits
+4. **Validate consistency** - Before final output
+
+### Reconciliation Steps
+
+```python
+from extraction.execution.reconciliation_layer import ReconciliationLayer
+
+layer = ReconciliationLayer()
+enriched_design = layer.reconcile(usdm_design, execution_data)
+
+# Access classified issues
+for issue in layer.issues:
+    print(f"{issue.severity.value}: {issue.message}")
+    print(f"  Path: {issue.affected_path}")
+    print(f"  Suggestion: {issue.suggestion}")
+```
+
+### Crossover Promotion
+
+When `isCrossover=true`, the layer:
+- Creates epochs for each period (+ washout if present)
+- Creates study cells per arm×epoch
+- Ensures encounters align to epochs
+- Validates crossover is consistent with study design
+
+### Design Reconciliation Gate
+
+Before promoting crossover findings, validates consistency:
+- Single-arm studies shouldn't have crossover
+- Period count should align with epoch count
+- Titration studies conflict with crossover
+
+---
+
+## Entity Resolution
+
+LLM-based semantic entity resolution replaces fragile fuzzy string matching. It maps abstract extraction concepts (like "RUN_IN", "BASELINE", "TREATMENT") to actual protocol-specific entities.
+
+### Key File
+
+`extraction/execution/entity_resolver.py`
+
+### Architecture
+
+```
+Downstream Extractors → EntityResolver.resolve_epoch_concepts()
+                              ↓
+                     LLM Semantic Understanding
+                              ↓
+                     EntityMapping (cached)
+                              ↓
+                     First-class data for validation
+```
+
+### Usage
+
+```python
+from extraction.execution.entity_resolver import (
+    EntityResolver, 
+    EntityResolutionContext,
+    create_resolution_context_from_design
+)
+
+# Create resolver and context
+resolver = EntityResolver(llm_client)
+context = create_resolution_context_from_design(usdm_design)
+
+# Resolve abstract concepts to actual epochs
+mappings = resolver.resolve_epoch_concepts(
+    concepts=["RUN_IN", "BASELINE", "TREATMENT"],
+    context=context
+)
+
+for concept, mapping in mappings.items():
+    if mapping:
+        print(f"{concept} → {mapping.resolved_name} ({mapping.confidence:.0%})")
+        print(f"  Reasoning: {mapping.reasoning}")
+```
+
+### EntityMapping Fields
+
+| Field | Description |
+|-------|-------------|
+| `abstract_concept` | Source concept (e.g., "RUN_IN") |
+| `entity_type` | EPOCH, VISIT, ACTIVITY, ARM, TIMEPOINT |
+| `resolved_id` | Actual entity ID from protocol |
+| `resolved_name` | Human-readable name |
+| `confidence` | 0.0 to 1.0 |
+| `reasoning` | LLM explanation for mapping |
+
+### Standard Epoch Concepts
+
+| Concept | Typical Mapping |
+|---------|-----------------|
+| SCREENING | Initial assessment, eligibility |
+| RUN_IN | Washout, stabilization |
+| BASELINE | Day 1, pre-treatment |
+| TREATMENT | Active intervention |
+| MAINTENANCE | Stable dose continuation |
+| FOLLOW_UP | Post-treatment monitoring |
+| END_OF_STUDY | Final assessments |
+
+---
+
+## Classified Integrity Issues
+
+The reconciliation layer generates classified integrity issues with actionable context.
+
+### Severity Levels
+
+| Severity | Description |
+|----------|-------------|
+| `BLOCKING` | Prevents downstream use |
+| `WARNING` | Degraded but usable |
+| `INFO` | Informational only |
+
+### IntegrityIssue Fields
+
+```python
+@dataclass
+class IntegrityIssue:
+    severity: IssueSeverity
+    category: str           # e.g., "traversal_resolution"
+    message: str
+    affected_path: str      # JSONPath to affected object
+    affected_ids: List[str]
+    suggestion: str         # Actionable fix
+```
+
+### Issue Categories
+
+| Category | Description |
+|----------|-------------|
+| `crossover_design_mismatch` | Crossover detected but study is single-arm |
+| `crossover_period_mismatch` | Period count doesn't match epoch count |
+| `crossover_titration_conflict` | Titration schedule conflicts with crossover |
+| `traversal_resolution` | Traversal step couldn't resolve to epoch |
+| `dosing_fragmentation` | Dosing regimens are fragmented |
+| `visit_window_overlap` | Visit windows overlap |
+
+### Output Format
+
+Issues are saved to `11_reconciliation_issues.json`:
+
+```json
+[
+  {
+    "severity": "warning",
+    "category": "traversal_resolution",
+    "message": "Traversal step 'RUN_IN' could not be resolved to an epoch ID",
+    "affectedPath": "$.traversalConstraints[].requiredSequence",
+    "affectedIds": ["tc_1"],
+    "suggestion": "Create epoch for 'RUN_IN' or map to existing epoch"
+  }
+]
+```
+
+---
+
+## Entity Maps
+
+The reconciliation layer builds bidirectional entity maps for downstream use.
+
+### Epoch Alias Map
+
+Maps semantic labels to actual epoch IDs:
+
+```python
+{
+    "SCREENING": "epoch_uuid_1",
+    "BASELINE": "epoch_uuid_2", 
+    "TREATMENT": "epoch_uuid_3",
+    "PERIOD_1": "epoch_uuid_4",
+    "PERIOD_2": "epoch_uuid_5",
+    "FOLLOW_UP": "epoch_uuid_6"
+}
+```
+
+### Visit Alias Map
+
+Maps visit names to encounter IDs:
+
+```python
+{
+    "VISIT_1": "enc_uuid_1",
+    "SCREENING": "enc_uuid_2",
+    "DAY_1": "enc_uuid_3"
+}
+```
+
+### Automatic Alias Generation
+
+The layer automatically generates aliases from:
+- Direct name mapping (e.g., "Screening" → SCREENING)
+- Semantic content detection (e.g., name contains "screen" → SCREENING)
+- Period number extraction (e.g., "Period 1" → PERIOD_1)

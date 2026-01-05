@@ -38,6 +38,12 @@ from .constants import (
     DEFAULT_MODEL,
     REASONING_MODELS,
 )
+from .epoch_reconciler import (
+    EpochReconciler,
+    EpochContribution,
+    ReconciledEpoch,
+    reconcile_epochs_from_pipeline,
+)
 
 __all__ = [
     # LLM Client
@@ -68,4 +74,9 @@ __all__ = [
     "SYSTEM_VERSION",
     "DEFAULT_MODEL",
     "REASONING_MODELS",
+    # Epoch Reconciler
+    "EpochReconciler",
+    "EpochContribution",
+    "ReconciledEpoch",
+    "reconcile_epochs_from_pipeline",
 ]

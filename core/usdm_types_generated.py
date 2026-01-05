@@ -663,6 +663,11 @@ class ScheduleTimeline(USDMEntity):
     """
     USDM ScheduleTimeline - Contains scheduled instances.
     
+    Per USDM 4.0 schema:
+    - instances: 0..* (ScheduledActivityInstance references)
+    - timings: 0..* (Timing references for scheduled activities)
+    - exits: 0..* (ScheduleTimelineExit references)
+    
     Required: id, name, entryCondition, entryId, instanceType
     """
     id: str = ""
@@ -673,6 +678,7 @@ class ScheduleTimeline(USDMEntity):
     entryCondition: str = "Subject enrolled in study"
     entryId: Optional[str] = None
     instances: List['ScheduledActivityInstance'] = field(default_factory=list)
+    timings: List['Timing'] = field(default_factory=list)  # USDM 4.0: timings belong in timeline
     exits: List['ScheduleTimelineExit'] = field(default_factory=list)
     instanceType: str = "ScheduleTimeline"
     
@@ -700,6 +706,8 @@ class ScheduleTimeline(USDMEntity):
         
         if self.instances:
             result["instances"] = [i.to_dict() for i in self.instances]
+        if self.timings:
+            result["timings"] = [t.to_dict() if hasattr(t, 'to_dict') else t for t in self.timings]
         if self.exits:
             result["exits"] = [e.to_dict() for e in self.exits]
         
@@ -777,24 +785,69 @@ class ScheduleTimelineExit(USDMEntity):
 
 @dataclass
 class Timing(USDMEntity):
-    """USDM Timing - Timing for scheduled activities."""
+    """
+    USDM Timing - Timing for scheduled activities.
+    
+    Per USDM 4.0 schema, required fields:
+    - id, name, type, value, valueLabel, relativeToFrom, relativeFromScheduledInstanceId
+    """
     id: str = ""
+    name: str = ""
     type: Optional[Code] = None
-    value: Optional[str] = None
-    valueLabel: Optional[str] = None
+    value: str = "P0D"  # ISO 8601 duration, required
+    valueLabel: str = ""  # Required - human-readable label
+    relativeToFrom: Optional[Code] = None  # Required - what timing is relative to
+    relativeFromScheduledInstanceId: str = ""  # Required - reference to anchor instance
+    windowLower: Optional[str] = None  # ISO 8601 duration
+    windowUpper: Optional[str] = None  # ISO 8601 duration
+    windowLabel: Optional[str] = None
     instanceType: str = "Timing"
     
     def to_dict(self) -> Dict[str, Any]:
         result = {
             "id": self._ensure_id(),
+            "name": self.name or self.valueLabel or "Timing",
             "instanceType": self.instanceType,
+            "value": self.value or "P0D",
+            "valueLabel": self.valueLabel or self.name or "Day 0",
         }
+        
+        # Type - default to "Fixed Reference" if not provided
         if self.type:
-            result["type"] = self.type.to_dict()
-        if self.value:
-            result["value"] = self.value
-        if self.valueLabel:
-            result["valueLabel"] = self.valueLabel
+            result["type"] = self.type.to_dict() if hasattr(self.type, 'to_dict') else self.type
+        else:
+            result["type"] = {
+                "id": generate_uuid(),
+                "code": "C71148",
+                "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+                "codeSystemVersion": "25.01d",
+                "decode": "Fixed Reference",
+                "instanceType": "Code"
+            }
+        
+        # relativeToFrom - default to "Study Start" if not provided
+        if self.relativeToFrom:
+            result["relativeToFrom"] = self.relativeToFrom.to_dict() if hasattr(self.relativeToFrom, 'to_dict') else self.relativeToFrom
+        else:
+            result["relativeToFrom"] = {
+                "id": generate_uuid(),
+                "code": "C71153",
+                "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+                "codeSystemVersion": "25.01d",
+                "decode": "Study Start",
+                "instanceType": "Code"
+            }
+        
+        # relativeFromScheduledInstanceId - required, use placeholder if not set
+        result["relativeFromScheduledInstanceId"] = self.relativeFromScheduledInstanceId or generate_uuid()
+        
+        if self.windowLower:
+            result["windowLower"] = self.windowLower
+        if self.windowUpper:
+            result["windowUpper"] = self.windowUpper
+        if self.windowLabel:
+            result["windowLabel"] = self.windowLabel
+            
         return result
 
 
@@ -1411,8 +1464,8 @@ def normalize_usdm_data(data: Dict[str, Any]) -> Dict[str, Any]:
     import copy
     result = copy.deepcopy(data)
     
-    def normalize_code(obj: Dict) -> Dict:
-        """Normalize a Code object."""
+    def normalize_code(obj: Dict, preserve_standard_code: bool = True) -> Dict:
+        """Normalize a Code object, optionally preserving nested standardCode."""
         if not obj or not isinstance(obj, dict):
             return obj
         if "code" in obj:
@@ -1423,7 +1476,11 @@ def normalize_usdm_data(data: Dict[str, Any]) -> Dict[str, Any]:
                 codeSystemVersion=obj.get("codeSystemVersion", "2024-09-27"),
                 id=obj.get("id"),
             )
-            return code.to_dict()
+            result = code.to_dict()
+            # Preserve standardCode if present in original (USDM 4.0 requirement)
+            if preserve_standard_code and "standardCode" in obj and obj["standardCode"]:
+                result["standardCode"] = normalize_code(obj["standardCode"], preserve_standard_code=False)
+            return result
         return obj
     
     def normalize_encounter(obj: Dict) -> Dict:
@@ -1450,7 +1507,11 @@ def normalize_usdm_data(data: Dict[str, Any]) -> Dict[str, Any]:
             description=obj.get("description"),
             type=Code.from_dict(obj.get("type")) if obj.get("type") else None,
         )
-        return epoch.to_dict()
+        result = epoch.to_dict()
+        # Preserve extensionAttributes from epoch reconciliation
+        if obj.get("extensionAttributes"):
+            result["extensionAttributes"] = obj["extensionAttributes"]
+        return result
     
     def normalize_arm(obj: Dict) -> Dict:
         """Normalize a StudyArm."""
@@ -1511,9 +1572,10 @@ def normalize_usdm_data(data: Dict[str, Any]) -> Dict[str, Any]:
             # Check for specific entity types by instanceType or field patterns
             inst_type = obj.get("instanceType", "")
             
-            # Normalize Code objects
+            # Normalize Code objects (preserve standardCode if present)
             if inst_type == "Code" or ("code" in obj and "decode" in obj and "standardCode" not in obj):
-                return normalize_code(obj)
+                # normalize_code now handles standardCode preservation internally
+                return normalize_code(obj, preserve_standard_code=True)
             
             # Normalize by path patterns
             normalized = {}
@@ -1536,6 +1598,24 @@ def normalize_usdm_data(data: Dict[str, Any]) -> Dict[str, Any]:
                 elif key == "blindingSchema" and isinstance(value, dict):
                     # AliasCode requires standardCode
                     normalized[key] = normalize_alias_code(value)
+                elif key == "administrableDoseForm" and isinstance(value, dict):
+                    # administrableDoseForm requires nested standardCode (USDM 4.0)
+                    if "code" in value and "standardCode" not in value:
+                        # Add standardCode as copy of the Code
+                        code_normalized = normalize_code(value)
+                        normalized[key] = {
+                            **code_normalized,
+                            "standardCode": {
+                                "id": generate_uuid(),
+                                "code": code_normalized.get("code", ""),
+                                "codeSystem": code_normalized.get("codeSystem", "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl"),
+                                "codeSystemVersion": code_normalized.get("codeSystemVersion", "25.01d"),
+                                "decode": code_normalized.get("decode", ""),
+                                "instanceType": "Code",
+                            }
+                        }
+                    else:
+                        normalized[key] = walk_and_normalize(value, new_path)
                 elif key in ("dataOriginType", "model") and isinstance(value, dict):
                     if "code" in value:
                         normalized[key] = normalize_code(value)
