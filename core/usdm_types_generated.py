@@ -1495,7 +1495,11 @@ def normalize_usdm_data(data: Dict[str, Any]) -> Dict[str, Any]:
             type=Code.from_dict(obj.get("type")) if obj.get("type") else None,
             epochId=obj.get("epochId"),
         )
-        return enc.to_dict()
+        result = enc.to_dict()
+        # Preserve extensionAttributes from encounter reconciliation
+        if obj.get("extensionAttributes"):
+            result["extensionAttributes"] = obj["extensionAttributes"]
+        return result
     
     def normalize_epoch(obj: Dict) -> Dict:
         """Normalize a StudyEpoch."""

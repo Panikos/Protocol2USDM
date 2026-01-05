@@ -346,104 +346,122 @@ After UUID conversion, all `relativeFromScheduledInstanceId` references in timin
 
 ---
 
-## Epoch Reconciliation Layer
+## Unified Entity Reconciliation Framework
 
-The pipeline reconciles epoch data from multiple extraction sources (SoA, Study Design, Traversal, SAP) into a consistent, canonical set of epochs for `protocol_usdm.json`.
+The pipeline reconciles USDM entities (epochs, encounters, activities) from multiple extraction sources into consistent, canonical data for `protocol_usdm.json`.
 
 ### Problem
 
-Epochs extracted from different sources may have:
-- **Footnote markers**: "Screening a", "Period 1 b" (from SoA table headers)
-- **Different granularity**: SoA may show sub-phases, traversal shows main flow
-- **Conflicting names**: Different extractors may name the same epoch differently
+Entities extracted from different sources may have:
+- **Footnote markers**: "Screening a", "Physical Exam (b)" (from SoA table headers)
+- **Different granularity**: SoA vs detailed procedures vs execution model timing
+- **Conflicting names**: Different extractors may name the same entity differently
+- **Partial information**: One source has timing, another has conditional logic
 
 ### Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    EPOCH RECONCILIATION LAYER                    │
-│                    core/epoch_reconciler.py                      │
+│              UNIFIED RECONCILIATION FRAMEWORK                    │
+│                  core/reconciliation/                            │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
-│  class EpochReconciler:                                          │
-│    def contribute(source, epochs, priority)                      │
-│    def contribute_traversal_sequence(sequence, all_epochs)       │
-│    def reconcile() -> List[ReconciledEpoch]                     │
+│  BaseReconciler (Abstract)                                       │
+│    ├── contribute(source, entities, priority)                    │
+│    ├── reconcile() -> List[ReconciledEntity]                    │
+│    └── fuzzy_match_names(), _post_reconcile()                   │
 │                                                                  │
+│  ┌─────────────────┬─────────────────┬─────────────────┐        │
+│  │ EpochReconciler │ ActivityRecon.  │ EncounterRecon. │        │
+│  │ - main/sub cat  │ - type inference│ - visit windows │        │
+│  │ - traversal seq │ - group merging │ - study day     │        │
+│  │ - CDISC codes   │ - conditionals  │ - timing labels │        │
+│  └─────────────────┴─────────────────┴─────────────────┘        │
 └─────────────────────────────────────────────────────────────────┘
                               ↑
         ┌─────────────────────┼─────────────────────┐
         ↑                     ↑                     ↑
 ┌───────────────┐   ┌───────────────┐   ┌───────────────┐
-│ SoA Extractor │   │   Traversal   │   │ SAP Extractor │
-│ priority=10   │   │  priority=25  │   │ priority=30   │
+│ SoA Extractor │   │  Procedures   │   │  Execution    │
+│ priority=10   │   │  priority=20  │   │  Model p=25   │
 │               │   │               │   │               │
-│ Raw epochs    │   │ Main flow     │   │ Analysis      │
-│ from table    │   │ sequence      │   │ epochs        │
+│ Base entities │   │ Detailed info │   │ Timing/rules  │
 └───────────────┘   └───────────────┘   └───────────────┘
 ```
 
-### Key Features
+### Reconcilers
+
+| Reconciler | Entity | Key Features |
+|------------|--------|--------------|
+| **EpochReconciler** | StudyEpoch | Main/sub categorization, traversal sequence, CDISC type inference |
+| **ActivityReconciler** | Activity | Activity type inference, group merging, conditional logic from footnotes |
+| **EncounterReconciler** | Encounter | Visit windows, study day extraction, timing labels |
+
+### Common Features
 
 | Feature | Description |
 |---------|-------------|
-| **Name cleaning** | Strips footnote markers (a, b, c...) from epoch names |
-| **Main/sub categorization** | Uses traversal constraints to identify main flow epochs |
+| **Name cleaning** | Strips footnote markers (a, b, c...) from entity names |
 | **Priority-based merging** | Higher priority sources override conflicts |
-| **Fuzzy matching** | Merges epochs with similar names (but not "Period 1" vs "Period 2") |
-| **Extensibility** | Any extractor can contribute epochs via `contribute()` |
-| **CDISC type inference** | Infers epoch type codes from names (Screening, Treatment, etc.) |
-
-### Output Schema Extension
-
-Reconciled epochs include extension attributes for metadata:
-
-```json
-{
-  "id": "uuid",
-  "name": "Screening",
-  "instanceType": "StudyEpoch",
-  "type": { "code": "C98779", "decode": "Screening Epoch" },
-  "extensionAttributes": [
-    { "url": ".../x-epochCategory", "valueString": "main" },
-    { "url": ".../x-epochSequenceOrder", "valueString": "1" },
-    { "url": ".../x-epochRawName", "valueString": "Screening a" },
-    { "url": ".../x-epochSources", "valueString": "soa,traversal" }
-  ]
-}
-```
-
-### Epoch Categories
-
-| Category | Description |
-|----------|-------------|
-| `main` | Part of primary subject flow (from traversal constraints) |
-| `sub` | Sub-phase or intermediate epoch |
-| `exit` | Early termination or exit epoch |
-| `analysis` | Analysis-specific epoch (from SAP) |
+| **Fuzzy matching** | Merges similar names (but not "Period 1" vs "Period 2") |
+| **Extensibility** | Any extractor can contribute via `contribute()` |
+| **Source attribution** | Tracks which extractors contributed to each entity |
 
 ### Usage
 
 ```python
-from core.epoch_reconciler import reconcile_epochs_from_pipeline
-
-# Convenience function for pipeline integration
-reconciled = reconcile_epochs_from_pipeline(
-    soa_epochs=soa_epochs,
-    traversal_sequence=["epoch_1", "epoch_3", "epoch_5"],
-    study_design_epochs=None,  # Optional
-    sap_epochs=None,           # Optional - for future SAP integration
+from core.reconciliation import (
+    reconcile_epochs_from_pipeline,
+    reconcile_activities_from_pipeline,
+    reconcile_encounters_from_pipeline,
 )
 
-# Returns list of USDM-compliant epoch dicts
+# Epochs: SoA + traversal sequence
+reconciled_epochs = reconcile_epochs_from_pipeline(
+    soa_epochs=soa_epochs,
+    traversal_sequence=["epoch_1", "epoch_3", "epoch_5"],
+)
+
+# Activities: SoA + procedures + execution model
+reconciled_activities = reconcile_activities_from_pipeline(
+    soa_activities=soa_activities,
+    procedure_activities=procedures,
+    execution_repetitions=repetitions,
+    footnote_conditions=footnotes,
+)
+
+# Encounters: SoA + visit windows
+reconciled_encounters = reconcile_encounters_from_pipeline(
+    soa_encounters=soa_encounters,
+    visit_windows=visit_windows,
+)
 ```
 
-### Fallback Behavior
+### Extension Attributes
 
-If no traversal constraints are available:
-- First epoch marked as `main` (sequence=1)
-- Last epoch marked as `main` (sequence=2)
-- All others marked as `sub`
+All reconciled entities include extension attributes for metadata:
+
+```json
+{
+  "extensionAttributes": [
+    { "url": ".../x-entityCategory", "valueString": "main" },
+    { "url": ".../x-entityRawName", "valueString": "Screening a" },
+    { "url": ".../x-entitySources", "valueString": "soa,execution" }
+  ]
+}
+```
+
+### Priority Defaults
+
+| Source | Priority | Entities |
+|--------|----------|----------|
+| SoA | 10 | Base entities from table extraction |
+| Scheduling | 15 | Timing information |
+| Procedures | 20 | Detailed procedure info |
+| Traversal | 25 | Main epoch sequence |
+| Execution Model | 25 | Visit windows, repetitions |
+| Footnotes | 30 | Conditional logic |
+| SAP | 30 | Analysis-specific entities |
 
 ---
 
