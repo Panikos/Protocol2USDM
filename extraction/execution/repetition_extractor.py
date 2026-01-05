@@ -142,9 +142,9 @@ CYCLE_PATTERNS: List[Tuple[str, float]] = [
 
 # Continuous window patterns
 WINDOW_PATTERNS: List[Tuple[str, float]] = [
-    # Day range patterns
-    (r'day(?:s)?\s*[-–]?\s*(\d+)\s*(?:to|through|[-–])\s*(?:day\s*)?[-–]?\s*(\d+)', 0.90),
-    (r'from\s+day\s*[-–]?\s*(\d+)\s+to\s+day\s*[-–]?\s*(\d+)', 0.90),
+    # Day range patterns - capture sign with number using ([-–−]?\d+)
+    (r'day(?:s)?\s*([-–−]?\d+)\s*(?:to|through|[-–−])\s*(?:day\s*)?([-–−]?\d+)', 0.90),
+    (r'from\s+day\s*([-–−]?\d+)\s+to\s+day\s*([-–−]?\d+)', 0.90),
     (r'during\s+(?:the\s+)?(\d+)[\s-]*day\s+(?:period|window)', 0.85),
     (r'throughout\s+(?:the\s+)?(?:treatment|study)\s+period', 0.75),
     
@@ -394,19 +394,12 @@ def _detect_window_patterns(text: str) -> List[Repetition]:
             
             if len(groups) >= 2:
                 try:
-                    # Handle negative days (before anchor)
+                    # Use robust day parsing to handle negative signs
                     start_str = groups[0]
                     end_str = groups[1]
                     
-                    # Check for negative indicator in context
-                    pre_context = text[max(0, match.start()-20):match.start()]
-                    
-                    start_day = int(start_str)
-                    end_day = int(end_str)
-                    
-                    if '-' in pre_context or '−' in pre_context:
-                        start_day = -start_day
-                        end_day = -end_day
+                    start_day = _parse_day_with_sign(start_str)
+                    end_day = _parse_day_with_sign(end_str)
                         
                 except (ValueError, IndexError):
                     pass
@@ -750,6 +743,8 @@ def extract_repetitions(
     model: str = "gemini-2.5-pro",
     pages: Optional[List[int]] = None,
     use_llm: bool = False,
+    existing_activities: Optional[List[Dict[str, Any]]] = None,
+    existing_encounters: Optional[List[Dict[str, Any]]] = None,
 ) -> ExecutionModelResult:
     """
     Extract repetition patterns from protocol PDF.
@@ -759,6 +754,8 @@ def extract_repetitions(
         model: LLM model to use (if use_llm=True)
         pages: Specific pages to analyze (auto-detected if None)
         use_llm: Whether to use LLM for enhanced extraction
+        existing_activities: SoA activities for binding repetitions to actual activities
+        existing_encounters: SoA encounters for binding repetitions to visits
         
     Returns:
         ExecutionModelResult with extracted Repetitions
