@@ -1584,7 +1584,14 @@ def combine_to_full_usdm(
             if expansion_results and expansion_results.get('procedures'):
                 proc_result = expansion_results['procedures']
                 if proc_result.success and proc_result.data:
-                    procedure_activities = proc_result.data.get('procedures', [])
+                    # ProceduresDevicesData is a dataclass, not a dict
+                    if hasattr(proc_result.data, 'procedures'):
+                        procedure_activities = [
+                            p.__dict__ if hasattr(p, '__dict__') else p 
+                            for p in (proc_result.data.procedures or [])
+                        ]
+                    elif isinstance(proc_result.data, dict):
+                        procedure_activities = proc_result.data.get('procedures', [])
             
             # Get repetitions from execution model
             execution_repetitions = None
