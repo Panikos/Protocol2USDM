@@ -106,9 +106,14 @@ class NarrativeContent:
     instance_type: str = "NarrativeContent"
     
     def to_dict(self) -> Dict[str, Any]:
+        # USDM requires name and text fields to be non-empty strings
+        effective_name = self.name if self.name else f"Section {self.order + 1}"
+        effective_text = self.text if self.text else effective_name
+        
         result = {
             "id": self.id,
-            "name": self.name,
+            "name": effective_name,
+            "text": effective_text,  # Required field
             "order": self.order,
             "instanceType": self.instance_type,
         }
@@ -118,12 +123,13 @@ class NarrativeContent:
             result["sectionTitle"] = self.section_title
         if self.section_type:
             result["sectionType"] = {
+                "id": generate_uuid(),
                 "code": self.section_type.value,
                 "codeSystem": "USDM",
+                "codeSystemVersion": "2024-09-27",
                 "decode": self.section_type.value,
+                "instanceType": "Code",
             }
-        if self.text:
-            result["text"] = self.text
         if self.child_ids:
             result["childIds"] = self.child_ids
         return result
