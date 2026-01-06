@@ -1701,6 +1701,49 @@ def combine_to_full_usdm(
     except Exception as e:
         logger.warning(f"  ⚠ Activity source marking skipped: {e}")
     
+    # Link Procedures to Activities via definedProcedures (USDM compliant)
+    # This links Procedure entities to matching Activity entities by name
+    try:
+        procedures = study_design.get('procedures', [])
+        activities = study_design.get('activities', [])
+        
+        if procedures and activities:
+            # Build name-based lookup for procedures
+            proc_by_name = {}
+            for proc in procedures:
+                proc_name = proc.get('name', '').lower().strip()
+                if proc_name:
+                    proc_by_name[proc_name] = proc
+            
+            # Link procedures to activities by name matching
+            linked_count = 0
+            for activity in activities:
+                act_name = activity.get('name', '').lower().strip()
+                
+                # Try exact match first
+                matched_proc = proc_by_name.get(act_name)
+                
+                # Try partial match if no exact match
+                if not matched_proc:
+                    for proc_name, proc in proc_by_name.items():
+                        if proc_name in act_name or act_name in proc_name:
+                            matched_proc = proc
+                            break
+                
+                if matched_proc:
+                    if 'definedProcedures' not in activity:
+                        activity['definedProcedures'] = []
+                    # Add procedure if not already linked
+                    existing_ids = {p.get('id') for p in activity['definedProcedures']}
+                    if matched_proc.get('id') not in existing_ids:
+                        activity['definedProcedures'].append(matched_proc)
+                        linked_count += 1
+            
+            if linked_count > 0:
+                logger.info(f"  ✓ Linked {linked_count} procedures to activities via definedProcedures")
+    except Exception as e:
+        logger.warning(f"  ⚠ Procedure-Activity linking skipped: {e}")
+    
     # Save combined output as protocol_usdm.json (golden standard)
     output_path = os.path.join(output_dir, "protocol_usdm.json")
     with open(output_path, 'w', encoding='utf-8') as f:

@@ -192,14 +192,14 @@ export function SoAView({ provenance }: SoAViewProps) {
         </Card>
       )}
 
-      {/* Procedure Activities (from execution model enrichment) */}
+      {/* Protocol Activities not in SoA (from execution model enrichment) */}
       {tableModel.procedureActivities.length > 0 && (
         <Card>
           <CardHeader className="py-3">
             <CardTitle className="text-sm flex items-center gap-2">
-              <span>Procedure Activities</span>
+              <span>Protocol Activities (Not in SoA)</span>
               <span className="text-xs font-normal text-muted-foreground">
-                ({tableModel.procedureActivities.length} activities from protocol enrichment - not in SoA table)
+                ({tableModel.procedureActivities.length} activities extracted from protocol but not scheduled in SoA table)
               </span>
             </CardTitle>
           </CardHeader>
