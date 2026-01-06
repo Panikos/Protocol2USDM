@@ -178,9 +178,18 @@ class Objective:
     instance_type: str = "Objective"
     
     def to_dict(self) -> Dict[str, Any]:
+        # USDM requires name to be non-empty; fall back to text or level
+        effective_name = self.name
+        if not effective_name or not effective_name.strip():
+            # Use first 100 chars of text, or level-based name
+            if self.text:
+                effective_name = self.text[:100] + ("..." if len(self.text) > 100 else "")
+            else:
+                effective_name = f"{self.level.value} Objective"
+        
         result = {
             "id": self.id,
-            "name": self.name,
+            "name": effective_name,
             "text": self.text,
             "level": self.level.to_code(),  # Use correct NCI codes
             "endpointIds": self.endpoint_ids,

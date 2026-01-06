@@ -11,7 +11,7 @@ for custom metadata that doesn't fit core schema.
 
 from enum import Enum
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Union
 
 
 class AnchorType(Enum):
@@ -760,17 +760,18 @@ class StateTransition:
     A transition in the subject state machine.
     
     Defines how subjects move between states based on conditions/events.
+    Now supports both StateType enum and string-based protocol-specific states.
     """
-    from_state: StateType
-    to_state: StateType
+    from_state: Union[StateType, str]
+    to_state: Union[StateType, str]
     trigger: str                              # Event/condition that triggers transition
     guard_condition: Optional[str] = None     # Additional condition required
     actions: List[str] = field(default_factory=list)  # Actions to perform
     
     def to_dict(self) -> Dict[str, Any]:
         result = {
-            "fromState": self.from_state.value,
-            "toState": self.to_state.value,
+            "fromState": self.from_state.value if isinstance(self.from_state, StateType) else self.from_state,
+            "toState": self.to_state.value if isinstance(self.to_state, StateType) else self.to_state,
             "trigger": self.trigger,
         }
         if self.guard_condition:
@@ -788,39 +789,54 @@ class SubjectStateMachine:
     Enables validation of subject journeys and generation of
     realistic disposition patterns.
     
+    Now supports protocol-specific epoch names as states (strings) in addition
+    to generic StateType enums for more accurate protocol representation.
+    
     Attributes:
         id: Unique identifier
-        initial_state: Starting state (usually SCREENING)
-        terminal_states: Final states (COMPLETED, DISCONTINUED, etc.)
-        states: All possible states
+        initial_state: Starting state (epoch name or StateType)
+        terminal_states: Final states (epoch names or StateTypes)
+        states: All possible states (epoch names or StateTypes)
         transitions: Valid state transitions
+        epoch_ids: Optional mapping of state names to USDM epoch IDs
     """
     id: str
-    initial_state: StateType = StateType.SCREENING
-    terminal_states: List[StateType] = field(default_factory=lambda: [
+    initial_state: Union[StateType, str] = StateType.SCREENING
+    terminal_states: List[Union[StateType, str]] = field(default_factory=lambda: [
         StateType.COMPLETED, StateType.DISCONTINUED, 
         StateType.WITHDRAWN, StateType.DEATH
     ])
-    states: List[StateType] = field(default_factory=list)
+    states: List[Union[StateType, str]] = field(default_factory=list)
     transitions: List[StateTransition] = field(default_factory=list)
     source_text: Optional[str] = None
+    epoch_ids: Dict[str, str] = field(default_factory=dict)  # state name -> epoch ID
+    
+    def _state_to_str(self, state: Union[StateType, str]) -> str:
+        """Convert state to string representation."""
+        return state.value if isinstance(state, StateType) else state
     
     def to_dict(self) -> Dict[str, Any]:
-        return {
+        result = {
             "id": self.id,
-            "initialState": self.initial_state.value,
-            "terminalStates": [s.value for s in self.terminal_states],
-            "states": [s.value for s in self.states],
+            "initialState": self._state_to_str(self.initial_state),
+            "terminalStates": [self._state_to_str(s) for s in self.terminal_states],
+            "states": [self._state_to_str(s) for s in self.states],
             "transitions": [t.to_dict() for t in self.transitions],
         }
+        if self.epoch_ids:
+            result["epochIds"] = self.epoch_ids
+        return result
     
-    def get_valid_transitions(self, current_state: StateType) -> List[StateTransition]:
+    def get_valid_transitions(self, current_state: Union[StateType, str]) -> List[StateTransition]:
         """Get all valid transitions from a given state."""
-        return [t for t in self.transitions if t.from_state == current_state]
+        current = self._state_to_str(current_state)
+        return [t for t in self.transitions 
+                if self._state_to_str(t.from_state) == current]
     
-    def is_terminal(self, state: StateType) -> bool:
+    def is_terminal(self, state: Union[StateType, str]) -> bool:
         """Check if a state is terminal."""
-        return state in self.terminal_states
+        state_str = self._state_to_str(state)
+        return any(self._state_to_str(s) == state_str for s in self.terminal_states)
 
 
 @dataclass

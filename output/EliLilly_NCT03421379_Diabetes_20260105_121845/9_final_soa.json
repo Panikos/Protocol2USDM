@@ -1,0 +1,1323 @@
+{
+  "usdmVersion": "4.0",
+  "systemName": "Protocol2USDM",
+  "systemVersion": "6.2.0",
+  "study": {
+    "id": "6e666e5f-418a-4bcb-9875-4929a12fd7f9",
+    "name": "",
+    "instanceType": "Study",
+    "versions": [
+      {
+        "id": "0d3d93bb-235a-4ca0-9609-a1a217bc29be",
+        "versionIdentifier": "1.0",
+        "rationale": "Initial protocol version",
+        "instanceType": "StudyVersion",
+        "studyDesigns": [
+          {
+            "id": "sd_1",
+            "name": "Study Design",
+            "rationale": "Protocol-defined study design",
+            "instanceType": "InterventionalStudyDesign",
+            "blindingSchema": {
+              "id": "1364ad71-289f-471f-9f3a-d318692ea69f",
+              "instanceType": "AliasCode",
+              "standardCode": {
+                "id": "c3f06880-37c7-47f3-a92d-6abfe83d13ce",
+                "code": "C49656",
+                "codeSystem": "http://www.cdisc.org",
+                "codeSystemVersion": "2024-09-27",
+                "decode": "Open Label",
+                "instanceType": "Code"
+              }
+            },
+            "model": {
+              "id": "7f173929-f952-44e1-9da7-4c70c1cce37f",
+              "code": "C82638",
+              "codeSystem": "http://www.cdisc.org",
+              "codeSystemVersion": "2024-09-27",
+              "decode": "Single Group Study",
+              "instanceType": "Code"
+            },
+            "epochs": [
+              {
+                "id": "epoch_1",
+                "name": "Screening",
+                "instanceType": "StudyEpoch",
+                "type": {
+                  "id": "4fa28117-8121-4a8d-91a9-59af5a776758",
+                  "code": "C98779",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Screening Epoch",
+                  "instanceType": "Code"
+                }
+              },
+              {
+                "id": "epoch_2",
+                "name": "Period 1",
+                "instanceType": "StudyEpoch",
+                "type": {
+                  "id": "248b6044-5ced-424d-9f82-184319f5ad94",
+                  "code": "C98780",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Treatment Epoch",
+                  "instanceType": "Code"
+                }
+              },
+              {
+                "id": "epoch_3",
+                "name": "Wash out",
+                "instanceType": "StudyEpoch",
+                "type": {
+                  "id": "f04b2b37-3431-4ba1-a805-f5068197a701",
+                  "code": "C98780",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Treatment Epoch",
+                  "instanceType": "Code"
+                }
+              },
+              {
+                "id": "epoch_4",
+                "name": "Period 2",
+                "instanceType": "StudyEpoch",
+                "type": {
+                  "id": "be9a9c2a-e1c1-4240-bdd4-57a27dfd74ab",
+                  "code": "C98780",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Treatment Epoch",
+                  "instanceType": "Code"
+                }
+              },
+              {
+                "id": "epoch_5",
+                "name": "Follow-up/ED",
+                "instanceType": "StudyEpoch",
+                "type": {
+                  "id": "0d9ced85-b1ba-4f69-8f39-8996990b0785",
+                  "code": "C98781",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Follow-up Epoch",
+                  "instanceType": "Code"
+                }
+              },
+              {
+                "id": "epoch_6",
+                "name": "Additional Follow-up for TE ADAa",
+                "instanceType": "StudyEpoch",
+                "type": {
+                  "id": "2ce0c8a5-13bd-44da-8ef2-86741dddc67a",
+                  "code": "C98781",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Follow-up Epoch",
+                  "instanceType": "Code"
+                }
+              }
+            ],
+            "activities": [
+              {
+                "id": "grp_1",
+                "name": "Clinical Assessments",
+                "instanceType": "Activity",
+                "childIds": [
+                  "act_1",
+                  "act_2",
+                  "act_3",
+                  "act_4",
+                  "act_5",
+                  "act_6",
+                  "act_7",
+                  "act_8",
+                  "act_9",
+                  "act_10",
+                  "act_11",
+                  "act_12",
+                  "act_13",
+                  "act_14",
+                  "act_15",
+                  "act_16",
+                  "act_17",
+                  "act_18",
+                  "act_19"
+                ]
+              },
+              {
+                "id": "grp_2",
+                "name": "Laboratory Tests",
+                "instanceType": "Activity",
+                "childIds": [
+                  "act_20",
+                  "act_21",
+                  "act_22",
+                  "act_23",
+                  "act_24",
+                  "act_25",
+                  "act_26",
+                  "act_27",
+                  "act_28",
+                  "act_29",
+                  "act_30"
+                ]
+              },
+              {
+                "id": "grp_3",
+                "name": "Health Outcome Instruments",
+                "instanceType": "Activity",
+                "childIds": [
+                  "act_31",
+                  "act_32",
+                  "act_33"
+                ]
+              },
+              {
+                "id": "act_1",
+                "name": "Informed Consent",
+                "instanceType": "Activity",
+                "description": "Informed Consent"
+              },
+              {
+                "id": "act_2",
+                "name": "Randomization",
+                "instanceType": "Activity",
+                "description": "Randomization"
+              },
+              {
+                "id": "act_3",
+                "name": "Admission to CRU",
+                "instanceType": "Activity",
+                "description": "Admission can be rescheduled if PG level is not 90 to 250 mg/dL on Day 1."
+              },
+              {
+                "id": "act_4",
+                "name": "Discharge from CRU",
+                "instanceType": "Activity",
+                "description": "Patient may be discharged 6 hours after glucagon administration. A patient may remain inpatient at the CRU at the discretion of the investigator."
+              },
+              {
+                "id": "act_5",
+                "name": "Medical History",
+                "instanceType": "Activity",
+                "description": "Medical History"
+              },
+              {
+                "id": "act_6",
+                "name": "Collect Pre-existing Conditions and Adverse Events",
+                "instanceType": "Activity",
+                "description": "Collect Pre-existing Conditions and Adverse Events"
+              },
+              {
+                "id": "act_7",
+                "name": "Physical Exam",
+                "instanceType": "Activity",
+                "description": "After screening, medical assessment only performed to include medical review and targeted examination, as appropriate."
+              },
+              {
+                "id": "act_8",
+                "name": "Height and Weight",
+                "instanceType": "Activity",
+                "description": "Height is at screening only. Weight on Day 1 will be collected before the start of the procedure to induce hypoglycemia."
+              },
+              {
+                "id": "act_9",
+                "name": "Collect Hypoglycemic Events",
+                "instanceType": "Activity",
+                "description": "Refer to Section 9.5.5.1."
+              },
+              {
+                "id": "act_10",
+                "name": "Collect Concomitant Medications",
+                "instanceType": "Activity",
+                "description": "Review patients’ insulin regimens to confirm acceptability to undergo the procedure to induce hypoglycemia."
+              },
+              {
+                "id": "act_11",
+                "name": "Meal",
+                "instanceType": "Activity",
+                "description": "After completion of all PK sampling, patients will be provided a carbohydrate-rich meal. The investigator will ensure the patient’s PG is stable. A prandial insulin dose will be administered if needed."
+              },
+              {
+                "id": "act_12",
+                "name": "Insulin infusion to Induce Hypoglycemia",
+                "instanceType": "Activity",
+                "description": "Procedures in Period 2 will occur at approximately the same time as those in Period 1. Insulin infusion is stopped once bedside PG is <60 mg/dL."
+              },
+              {
+                "id": "act_13",
+                "name": "Bedside PG Monitoring for Safety",
+                "instanceType": "Activity",
+                "description": "Samples will be collected during the hypoglycemia induction procedure and post study treatment (up to 120 mins). Bedside PG monitoring will be conducted no more than 10 minutes apart while bedside PG is ≥90 mg/dL and no more than 5 minutes apart when bedside PG is <90 mg/dL."
+              },
+              {
+                "id": "act_14",
+                "name": "Study Treatment Administration",
+                "instanceType": "Activity",
+                "description": "Once bedside PG reaches <60 mg/dL, the insulin infusion is stopped and approximately 5 minutes later study drug is administered. Indicates Time = 0 min."
+              },
+              {
+                "id": "act_15",
+                "name": "Injection-Site Assessment",
+                "instanceType": "Activity",
+                "description": "Injection-site assessment for IMG only."
+              },
+              {
+                "id": "act_16",
+                "name": "Nasal Inspection",
+                "instanceType": "Activity",
+                "description": "Nasal inspection both for IMG and LY900018."
+              },
+              {
+                "id": "act_17",
+                "name": "Vital Signs (Supine Blood Pressure, Pulse Rate, and Body Temperature)",
+                "instanceType": "Activity",
+                "description": "Time points may be added for each period if warranted and agreed upon between Lilly and the investigator. Predose time point will be between insulin infusion stop and study treatment."
+              },
+              {
+                "id": "act_18",
+                "name": "Single 12-lead ECG (Local)",
+                "instanceType": "Activity",
+                "description": "Single 12-lead ECG (Local)"
+              },
+              {
+                "id": "act_19",
+                "name": "Triplicate 12-lead ECG (Central)",
+                "instanceType": "Activity",
+                "description": "Time points may be added for Period 1 and Period 2 if warranted and agreed upon between Lilly and the investigator. Predose time point will be between insulin infusion stop and study treatment."
+              },
+              {
+                "id": "act_20",
+                "name": "Clinical Serology Tests",
+                "instanceType": "Activity",
+                "description": "See Appendix 2, Clinical Laboratory Tests, for details."
+              },
+              {
+                "id": "act_21",
+                "name": "Clinical Lab Tests (Hematology, Clinical Chemistry, and Urinalysis)",
+                "instanceType": "Activity",
+                "description": "See Appendix 2, Clinical Laboratory Tests, for details. Patients do not need to fast for samples at screening or follow-up. At Periods 1 and 2, samples should be collected from patients who have fasted at least 8 hours before any study procedures."
+              },
+              {
+                "id": "act_22",
+                "name": "HbA1c",
+                "instanceType": "Activity",
+                "description": "See Appendix 2, Clinical Laboratory Tests, for details."
+              },
+              {
+                "id": "act_23",
+                "name": "Pregnancy Test (Female patients of childbearing potential only)",
+                "instanceType": "Activity",
+                "description": "Serum pregnancy test will be performed at screening. Urine pregnancy test will be performed at every admission period and follow-up visit if applicable."
+              },
+              {
+                "id": "act_24",
+                "name": "FSH (Female patients only)",
+                "instanceType": "Activity",
+                "description": "When needed to confirm postmenopausal status."
+              },
+              {
+                "id": "act_25",
+                "name": "Ethanol Testing",
+                "instanceType": "Activity",
+                "description": "Additional tests can be done at the discretion of the investigator."
+              },
+              {
+                "id": "act_26",
+                "name": "Urine Drug Screen",
+                "instanceType": "Activity",
+                "description": "Additional tests can be done at the discretion of the investigator."
+              },
+              {
+                "id": "act_27",
+                "name": "PK (Glucagon)",
+                "instanceType": "Activity",
+                "description": "Sampling times are relative to the time of study treatment administration (0 min). Predose time point will be between insulin infusion stop and study treatment."
+              },
+              {
+                "id": "act_28",
+                "name": "Plasma Glucose for PD",
+                "instanceType": "Activity",
+                "description": "-5 mins = stop insulin infusion. Sampling times are relative to the time of study treatment administration (0 min). Predose time point will be between insulin infusion stop and study treatment."
+              },
+              {
+                "id": "act_29",
+                "name": "Genetic Sample (Stored)",
+                "instanceType": "Activity",
+                "description": "Single sample for pharmacogenetic analysis taken prior to/on Period 1 Day -1."
+              },
+              {
+                "id": "act_30",
+                "name": "Anti-glucagon Antibodies",
+                "instanceType": "Activity",
+                "description": "In the event of drug hypersensitivity reactions (immediate or non-immediate), samples will be collected as close to event onset as possible, at event resolution, and 30 days following the event. Patients with TE ADA at follow-up/ED will undergo additional follow-up. Refer to Section 9.7.1 for details."
+              },
+              {
+                "id": "act_31",
+                "name": "Clarke Hypoglycemia Awareness Survey",
+                "instanceType": "Activity",
+                "description": "Clarke Hypoglycemia Awareness Survey"
+              },
+              {
+                "id": "act_32",
+                "name": "Nasal and Non-nasal Score Questionnaire",
+                "instanceType": "Activity",
+                "description": "Sampling times are relative to the time of study treatment administration (0 min). Questionnaire will be collected in both LY900018 and IMG treatment groups in both periods."
+              },
+              {
+                "id": "act_33",
+                "name": "Edinburgh Hypoglycemia Scale: Experimental Hypoglycemia",
+                "instanceType": "Activity",
+                "description": "Sampling times are relative to the time of study treatment administration (0 min). During hypoglycemia induction will be when PG ≤75 mg/dL. Predose time point will be between insulin infusion stop and study treatment."
+              }
+            ],
+            "encounters": [
+              {
+                "id": "enc_1",
+                "name": "Screening (Days -28 to -2)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "3aacbf59-7d8e-4cbd-8516-72bca79a7904",
+                  "code": "C48262",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Screening",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_1"
+              },
+              {
+                "id": "enc_2",
+                "name": "Screening (Day -1)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "7be2800c-dd01-40c0-a7fe-15ad0624d5c1",
+                  "code": "C48262",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Screening",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_1"
+              },
+              {
+                "id": "enc_3",
+                "name": "Period 1 (Day 1)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "cfe73b27-8850-4548-bdec-e551adbe4964",
+                  "code": "C82517",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Baseline",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_2"
+              },
+              {
+                "id": "enc_4",
+                "name": "Wash out (3 to 14 days)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "48ef7f45-4a79-4267-a97f-410c77b2f98d",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_3"
+              },
+              {
+                "id": "enc_5",
+                "name": "Period 2 (Day -1)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "2917a600-147d-49ca-8e35-d38ab0fde204",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_4"
+              },
+              {
+                "id": "enc_6",
+                "name": "Period 2 (Day 1)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "fdc9074f-761e-45c9-b69e-e04907b383f6",
+                  "code": "C82517",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Baseline",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_4"
+              },
+              {
+                "id": "enc_7",
+                "name": "Follow-up/ED (Within 28±2 days after last study treatment)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "c7569eb1-a1d9-4e57-b499-a22e19982b00",
+                  "code": "C99158",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Follow-up",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_5"
+              },
+              {
+                "id": "enc_8",
+                "name": "Additional Follow-up for TE ADAa",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "78776aad-4b20-40ae-8f75-80f769cff057",
+                  "code": "C99158",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Follow-up",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_6"
+              }
+            ],
+            "scheduleTimelines": [
+              {
+                "id": "timeline_1",
+                "name": "Main Schedule Timeline",
+                "mainTimeline": true,
+                "instanceType": "ScheduleTimeline",
+                "entryCondition": "Subject enrolled in study",
+                "entryId": "ec9091c5-57aa-4660-8cbc-7784b2295b46",
+                "instances": [
+                  {
+                    "id": "ec9091c5-57aa-4660-8cbc-7784b2295b46",
+                    "activityIds": [
+                      "act_1"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Informed Consent @ Screening (Days -28 to -2)",
+                    "epochId": "epoch_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "1932904e-df46-4e94-9e08-0b71401dd130",
+                    "activityIds": [
+                      "act_2"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Randomization @ Screening (Day -1)",
+                    "epochId": "epoch_1",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "f7cb0830-f748-431d-84f5-2392cf997502",
+                    "activityIds": [
+                      "act_3"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Admission to CRU @ Screening (Day -1)",
+                    "epochId": "epoch_1",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "2f12bf57-4847-4a5e-92b8-60716f7a125f",
+                    "activityIds": [
+                      "act_3"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Admission to CRU @ Period 2 (Day -1)",
+                    "epochId": "epoch_4",
+                    "encounterId": "enc_5"
+                  },
+                  {
+                    "id": "9ba84955-2d8e-4913-912e-19136385f9b1",
+                    "activityIds": [
+                      "act_4"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Discharge from CRU @ Period 1 (Day 1)",
+                    "epochId": "epoch_2",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "ceb1a044-36b0-40a5-a294-55c9ef04d82a",
+                    "activityIds": [
+                      "act_4"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Discharge from CRU @ Period 2 (Day 1)",
+                    "epochId": "epoch_4",
+                    "encounterId": "enc_6"
+                  },
+                  {
+                    "id": "cbfee409-13ce-4491-a496-9b232c20b9ef",
+                    "activityIds": [
+                      "act_5"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Medical History @ Screening (Days -28 to -2)",
+                    "epochId": "epoch_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "e516d1ba-007c-43b6-9a69-67119ea7a1a1",
+                    "activityIds": [
+                      "act_6"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Collect Pre-existing Conditions and Adverse Events @ Screening (Days -28 to -2)",
+                    "epochId": "epoch_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "873efff6-f33f-4532-88d5-1f571d0f4b9a",
+                    "activityIds": [
+                      "act_6"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Collect Pre-existing Conditions and Adverse Events @ Screening (Day -1)",
+                    "epochId": "epoch_1",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "6129fa8b-82fc-4a6d-a4f5-b81551190dd9",
+                    "activityIds": [
+                      "act_6"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Collect Pre-existing Conditions and Adverse Events @ Period 1 (Day 1)",
+                    "epochId": "epoch_2",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "b609033d-bf24-45f1-bffd-34c4beca5830",
+                    "activityIds": [
+                      "act_6"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Collect Pre-existing Conditions and Adverse Events @ Wash out (3 to 14 days)",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_4"
+                  },
+                  {
+                    "id": "9322d319-9900-4d4e-bffd-fc85b5198728",
+                    "activityIds": [
+                      "act_6"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Collect Pre-existing Conditions and Adverse Events @ Period 2 (Day -1)",
+                    "epochId": "epoch_4",
+                    "encounterId": "enc_5"
+                  },
+                  {
+                    "id": "3ca33d6e-925a-4f77-8afa-1afd76bf26c4",
+                    "activityIds": [
+                      "act_6"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Collect Pre-existing Conditions and Adverse Events @ Period 2 (Day 1)",
+                    "epochId": "epoch_4",
+                    "encounterId": "enc_6"
+                  },
+                  {
+                    "id": "96d15bb6-bef1-47b4-8498-ff3b32885e32",
+                    "activityIds": [
+                      "act_6"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Collect Pre-existing Conditions and Adverse Events @ Follow-up/ED (Within 28±2 d...",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_7"
+                  },
+                  {
+                    "id": "1aaacf24-9fc0-4ae9-80c9-c0cb1d3d6027",
+                    "activityIds": [
+                      "act_7"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Physical Exam @ Screening (Days -28 to -2)",
+                    "epochId": "epoch_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "0d71f859-f8e8-4588-a5b0-7dbc861bb8a3",
+                    "activityIds": [
+                      "act_7"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Physical Exam @ Period 1 (Day 1)",
+                    "epochId": "epoch_2",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "da079831-8625-4c0e-9882-6574e495e958",
+                    "activityIds": [
+                      "act_7"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Physical Exam @ Period 2 (Day 1)",
+                    "epochId": "epoch_4",
+                    "encounterId": "enc_6"
+                  },
+                  {
+                    "id": "6c805a2b-b5da-47fa-9a86-4515f47e388e",
+                    "activityIds": [
+                      "act_7"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Physical Exam @ Follow-up/ED (Within 28±2 d...",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_7"
+                  },
+                  {
+                    "id": "f888b0e6-30a1-4633-8fbe-a465c99a5986",
+                    "activityIds": [
+                      "act_8"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Height and Weight @ Screening (Days -28 to -2)",
+                    "epochId": "epoch_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "f56e302d-55ed-4548-ad51-b9fb09d155c5",
+                    "activityIds": [
+                      "act_8"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Height and Weight @ Period 1 (Day 1)",
+                    "epochId": "epoch_2",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "8b8fdad6-61df-423f-9557-3be84f2e226b",
+                    "activityIds": [
+                      "act_8"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Height and Weight @ Period 2 (Day 1)",
+                    "epochId": "epoch_4",
+                    "encounterId": "enc_6"
+                  },
+                  {
+                    "id": "3d75547e-fd1b-471f-9eef-ad7ad5772e8a",
+                    "activityIds": [
+                      "act_8"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Height and Weight @ Follow-up/ED (Within 28±2 d...",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_7"
+                  },
+                  {
+                    "id": "ad25e996-9e6d-4ee1-913c-6f9f3cc512c9",
+                    "activityIds": [
+                      "act_9"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Collect Hypoglycemic Events @ Period 1 (Day 1)",
+                    "epochId": "epoch_2",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "c22b2b33-10eb-476b-901b-07e6a15d68e7",
+                    "activityIds": [
+                      "act_9"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Collect Hypoglycemic Events @ Period 2 (Day 1)",
+                    "epochId": "epoch_4",
+                    "encounterId": "enc_6"
+                  },
+                  {
+                    "id": "410612be-18eb-4ba9-aef5-0d3cf450c663",
+                    "activityIds": [
+                      "act_10"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Collect Concomitant Medications @ Screening (Days -28 to -2)",
+                    "epochId": "epoch_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "d1162b04-ac67-4503-ae36-501adb00e61d",
+                    "activityIds": [
+                      "act_10"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Collect Concomitant Medications @ Screening (Day -1)",
+                    "epochId": "epoch_1",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "46f750f0-6993-4f17-a7e7-150652ba1114",
+                    "activityIds": [
+                      "act_10"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Collect Concomitant Medications @ Period 1 (Day 1)",
+                    "epochId": "epoch_2",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "20900c86-f911-434c-9317-7fd950e0f0f2",
+                    "activityIds": [
+                      "act_10"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Collect Concomitant Medications @ Wash out (3 to 14 days)",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_4"
+                  },
+                  {
+                    "id": "78879842-d169-4eb7-bdfb-6f24c00b7c80",
+                    "activityIds": [
+                      "act_10"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Collect Concomitant Medications @ Period 2 (Day -1)",
+                    "epochId": "epoch_4",
+                    "encounterId": "enc_5"
+                  },
+                  {
+                    "id": "d3307896-8031-44c5-a87a-e1b97aacab1a",
+                    "activityIds": [
+                      "act_10"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Collect Concomitant Medications @ Period 2 (Day 1)",
+                    "epochId": "epoch_4",
+                    "encounterId": "enc_6"
+                  },
+                  {
+                    "id": "445821bc-8dc4-4746-b6fb-89980f1ae80a",
+                    "activityIds": [
+                      "act_10"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Collect Concomitant Medications @ Follow-up/ED (Within 28±2 d...",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_7"
+                  },
+                  {
+                    "id": "d5bf0667-261a-4856-a1e6-acb29407ead8",
+                    "activityIds": [
+                      "act_11"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Meal @ Period 1 (Day 1)",
+                    "epochId": "epoch_2",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "5bb24d88-678f-4dda-8ade-3a8c494d98b0",
+                    "activityIds": [
+                      "act_11"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Meal @ Period 2 (Day 1)",
+                    "epochId": "epoch_4",
+                    "encounterId": "enc_6"
+                  },
+                  {
+                    "id": "7a969192-cc76-4ddb-9665-272f0fc61126",
+                    "activityIds": [
+                      "act_12"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Insulin infusion to Induce Hypoglycemia @ Period 1 (Day 1)",
+                    "epochId": "epoch_2",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "ac07a339-c854-4b54-a87b-ca6650e38630",
+                    "activityIds": [
+                      "act_12"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Insulin infusion to Induce Hypoglycemia @ Period 2 (Day 1)",
+                    "epochId": "epoch_4",
+                    "encounterId": "enc_6"
+                  },
+                  {
+                    "id": "05c18188-0b66-4be4-b1dd-01ba67764aae",
+                    "activityIds": [
+                      "act_13"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Bedside PG Monitoring for Safety @ Period 1 (Day 1)",
+                    "epochId": "epoch_2",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "288c93dc-48a8-4b27-9009-27541721b756",
+                    "activityIds": [
+                      "act_13"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Bedside PG Monitoring for Safety @ Period 2 (Day 1)",
+                    "epochId": "epoch_4",
+                    "encounterId": "enc_6"
+                  },
+                  {
+                    "id": "55a804ee-4c97-4365-90d0-1113fb5dd6a1",
+                    "activityIds": [
+                      "act_14"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Study Treatment Administration @ Period 1 (Day 1)",
+                    "epochId": "epoch_2",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "e3150ab2-55f6-4880-8ded-bb9f4e56d9e9",
+                    "activityIds": [
+                      "act_14"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Study Treatment Administration @ Period 2 (Day 1)",
+                    "epochId": "epoch_4",
+                    "encounterId": "enc_6"
+                  },
+                  {
+                    "id": "8dc2d007-fc34-49aa-8493-7813d2173ca4",
+                    "activityIds": [
+                      "act_15"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Injection-Site Assessment @ Period 1 (Day 1)",
+                    "epochId": "epoch_2",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "fe7cbaa5-3059-41fc-9ec3-bbb125a2d3f8",
+                    "activityIds": [
+                      "act_15"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Injection-Site Assessment @ Period 2 (Day 1)",
+                    "epochId": "epoch_4",
+                    "encounterId": "enc_6"
+                  },
+                  {
+                    "id": "06220092-d82c-4f8f-8b08-5eed8e4ca2cc",
+                    "activityIds": [
+                      "act_16"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Nasal Inspection @ Period 1 (Day 1)",
+                    "epochId": "epoch_2",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "4043e556-a7ea-4cdd-9712-0a44e63ac7b6",
+                    "activityIds": [
+                      "act_16"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Nasal Inspection @ Period 2 (Day 1)",
+                    "epochId": "epoch_4",
+                    "encounterId": "enc_6"
+                  },
+                  {
+                    "id": "6b5bdc26-5731-455d-84b0-65a6ee08f045",
+                    "activityIds": [
+                      "act_17"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Vital Signs (Supine Blood Pressure, Pulse Rate,... @ Screening (Days -28 to -2)",
+                    "epochId": "epoch_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "a47a8bdb-3b3a-47ed-be83-1ff5f7cda7b9",
+                    "activityIds": [
+                      "act_17"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Vital Signs (Supine Blood Pressure, Pulse Rate,... @ Period 1 (Day 1)",
+                    "epochId": "epoch_2",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "27c7b4d5-e1f4-482b-9603-7b059f26ba0f",
+                    "activityIds": [
+                      "act_17"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Vital Signs (Supine Blood Pressure, Pulse Rate,... @ Period 2 (Day 1)",
+                    "epochId": "epoch_4",
+                    "encounterId": "enc_6"
+                  },
+                  {
+                    "id": "ecf53a74-66b6-4129-8f41-d39f24782b50",
+                    "activityIds": [
+                      "act_17"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Vital Signs (Supine Blood Pressure, Pulse Rate,... @ Follow-up/ED (Within 28±2 d...",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_7"
+                  },
+                  {
+                    "id": "364f15f9-d88e-4543-899d-62d7e6b26b14",
+                    "activityIds": [
+                      "act_18"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Single 12-lead ECG (Local) @ Screening (Days -28 to -2)",
+                    "epochId": "epoch_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "47c7063e-2808-41ba-be86-c9aa5ddb9529",
+                    "activityIds": [
+                      "act_18"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Single 12-lead ECG (Local) @ Follow-up/ED (Within 28±2 d...",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_7"
+                  },
+                  {
+                    "id": "86f4c95d-2375-4a9d-9d49-e4d51460ae1e",
+                    "activityIds": [
+                      "act_19"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Triplicate 12-lead ECG (Central) @ Period 1 (Day 1)",
+                    "epochId": "epoch_2",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "01eb8a2a-d950-4943-bc87-0c97ee6b76e1",
+                    "activityIds": [
+                      "act_19"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Triplicate 12-lead ECG (Central) @ Period 2 (Day 1)",
+                    "epochId": "epoch_4",
+                    "encounterId": "enc_6"
+                  },
+                  {
+                    "id": "6d03dd1a-d35f-4727-9445-7bd9202a5ba9",
+                    "activityIds": [
+                      "act_20"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Clinical Serology Tests @ Screening (Days -28 to -2)",
+                    "epochId": "epoch_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "78a82ca5-55b0-43da-831c-197795c38da3",
+                    "activityIds": [
+                      "act_21"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Clinical Lab Tests (Hematology, Clinical Chemis... @ Screening (Days -28 to -2)",
+                    "epochId": "epoch_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "c042e401-c81b-47a5-a0cb-84833735b169",
+                    "activityIds": [
+                      "act_21"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Clinical Lab Tests (Hematology, Clinical Chemis... @ Period 1 (Day 1)",
+                    "epochId": "epoch_2",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "bffae597-0e1a-47aa-983a-4343ce0f574b",
+                    "activityIds": [
+                      "act_21"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Clinical Lab Tests (Hematology, Clinical Chemis... @ Period 2 (Day 1)",
+                    "epochId": "epoch_4",
+                    "encounterId": "enc_6"
+                  },
+                  {
+                    "id": "a11b5ff0-7941-4b40-b130-31067cd2faeb",
+                    "activityIds": [
+                      "act_21"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Clinical Lab Tests (Hematology, Clinical Chemis... @ Follow-up/ED (Within 28±2 d...",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_7"
+                  },
+                  {
+                    "id": "a0e5e934-f769-4fd4-abee-03c8a00d27a5",
+                    "activityIds": [
+                      "act_22"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "HbA1c @ Screening (Days -28 to -2)",
+                    "epochId": "epoch_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "ff9a171e-ea9b-4537-80a8-fa136ebe9502",
+                    "activityIds": [
+                      "act_22"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "HbA1c @ Period 2 (Day 1)",
+                    "epochId": "epoch_4",
+                    "encounterId": "enc_6"
+                  },
+                  {
+                    "id": "2d1c25a5-3743-4d25-8c46-b8885ecb296d",
+                    "activityIds": [
+                      "act_23"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Pregnancy Test (Female patients of childbearing... @ Screening (Days -28 to -2)",
+                    "epochId": "epoch_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "90824d71-56b0-429d-9887-dbd7994728b4",
+                    "activityIds": [
+                      "act_23"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Pregnancy Test (Female patients of childbearing... @ Screening (Day -1)",
+                    "epochId": "epoch_1",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "fb8acfcb-0359-49cf-93ce-831f3944ed8e",
+                    "activityIds": [
+                      "act_23"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Pregnancy Test (Female patients of childbearing... @ Period 2 (Day -1)",
+                    "epochId": "epoch_4",
+                    "encounterId": "enc_5"
+                  },
+                  {
+                    "id": "c4346602-2546-491f-8e53-5854eebdae42",
+                    "activityIds": [
+                      "act_23"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Pregnancy Test (Female patients of childbearing... @ Follow-up/ED (Within 28±2 d...",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_7"
+                  },
+                  {
+                    "id": "53a6a415-384c-443b-b05d-2ac869ede51e",
+                    "activityIds": [
+                      "act_24"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "FSH (Female patients only) @ Screening (Days -28 to -2)",
+                    "epochId": "epoch_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "5e4aa695-2ac0-498a-8459-a8557057bbb0",
+                    "activityIds": [
+                      "act_25"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Ethanol Testing @ Screening (Days -28 to -2)",
+                    "epochId": "epoch_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "c76a5a03-44e6-48b4-83d5-09199cbf9af4",
+                    "activityIds": [
+                      "act_26"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Urine Drug Screen @ Screening (Days -28 to -2)",
+                    "epochId": "epoch_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "325c889f-4355-48b2-a5c2-18bf6d2a9edd",
+                    "activityIds": [
+                      "act_27"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "PK (Glucagon) @ Period 1 (Day 1)",
+                    "epochId": "epoch_2",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "74f49097-d76d-4c9e-89c6-595333534a5b",
+                    "activityIds": [
+                      "act_27"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "PK (Glucagon) @ Period 2 (Day 1)",
+                    "epochId": "epoch_4",
+                    "encounterId": "enc_6"
+                  },
+                  {
+                    "id": "cffbc818-e95d-4176-b87e-997461293bed",
+                    "activityIds": [
+                      "act_27"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "PK (Glucagon) @ Follow-up/ED (Within 28±2 d...",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_7"
+                  },
+                  {
+                    "id": "0b1cb61d-1241-4b74-a6a6-2cd883e07369",
+                    "activityIds": [
+                      "act_27"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "PK (Glucagon) @ Additional Follow-up for TE...",
+                    "epochId": "epoch_6",
+                    "encounterId": "enc_8"
+                  },
+                  {
+                    "id": "17fd2e93-d89c-4ad7-b62c-05a9022f17f7",
+                    "activityIds": [
+                      "act_28"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Plasma Glucose for PD @ Period 1 (Day 1)",
+                    "epochId": "epoch_2",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "cb32e7df-dc34-4f77-8c0f-d21249370950",
+                    "activityIds": [
+                      "act_28"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Plasma Glucose for PD @ Period 2 (Day 1)",
+                    "epochId": "epoch_4",
+                    "encounterId": "enc_6"
+                  },
+                  {
+                    "id": "b10c0821-cd70-4a31-a2ff-86454c065117",
+                    "activityIds": [
+                      "act_29"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Genetic Sample (Stored) @ Screening (Day -1)",
+                    "epochId": "epoch_1",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "2e1741c4-e7c0-4eec-8556-95e711c4c509",
+                    "activityIds": [
+                      "act_30"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Anti-glucagon Antibodies @ Period 1 (Day 1)",
+                    "epochId": "epoch_2",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "fbbedcb8-d662-4614-8e3c-deb2efbc0c37",
+                    "activityIds": [
+                      "act_30"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Anti-glucagon Antibodies @ Follow-up/ED (Within 28±2 d...",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_7"
+                  },
+                  {
+                    "id": "23f0a62c-bba1-4934-a667-da344a6ad1d2",
+                    "activityIds": [
+                      "act_30"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Anti-glucagon Antibodies @ Additional Follow-up for TE...",
+                    "epochId": "epoch_6",
+                    "encounterId": "enc_8"
+                  },
+                  {
+                    "id": "7dd5774d-5422-4fac-b8b9-2974de2c3ff3",
+                    "activityIds": [
+                      "act_31"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Clarke Hypoglycemia Awareness Survey @ Screening (Days -28 to -2)",
+                    "epochId": "epoch_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "c6ffff45-27b1-49a7-b113-452a4e2edf50",
+                    "activityIds": [
+                      "act_32"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Nasal and Non-nasal Score Questionnaire @ Period 1 (Day 1)",
+                    "epochId": "epoch_2",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "e170d3a1-8cdb-440f-9cc5-1fb77bd6a551",
+                    "activityIds": [
+                      "act_32"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Nasal and Non-nasal Score Questionnaire @ Period 2 (Day 1)",
+                    "epochId": "epoch_4",
+                    "encounterId": "enc_6"
+                  },
+                  {
+                    "id": "5f363f8c-0b6e-4a9e-8ac8-3243c62c0e6d",
+                    "activityIds": [
+                      "act_33"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Edinburgh Hypoglycemia Scale: Experimental Hypo... @ Period 1 (Day 1)",
+                    "epochId": "epoch_2",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "1a5b63e4-524f-4d44-aa01-5fc14ca025fa",
+                    "activityIds": [
+                      "act_33"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Edinburgh Hypoglycemia Scale: Experimental Hypo... @ Period 2 (Day 1)",
+                    "epochId": "epoch_4",
+                    "encounterId": "enc_6"
+                  }
+                ]
+              }
+            ],
+            "notes": [
+              {
+                "id": "soa_fn_1",
+                "text": "Abbreviations: CRU = clinical research unit; ECG = electrocardiogram; ED = early discontinuation; FSH = follicle-stimulating hormone; HbA1c = hemoglobin A1c; IMG =intramuscular glucagon; min = minutes; PD = pharmacodynamics; PG = plasma glucose; PK = pharmacokinetics; TE ADA = treatment-emergent antidrug antibodies.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_2",
+                "text": "a. Samples for immunogenicity, should be collected every 12 weeks (84±7 days) until the titer returns to baseline (ie, returns to within a single 2-fold dilution of the baseline titer) or until 1 year after the last dose of study treatment. A time-matched PK (glucagon) sample may be collected at the follow-up immunogenicity assessment(s) if warranted and agreed upon between both the investigator and sponsor.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_3",
+                "text": "Note: If multiple procedures take place at the same time point, the following order of the procedure should be used: ECG, vital signs, and venipuncture. Plasma glucose sample should be collected as close as possible of protocol-specified time point.",
+                "instanceType": "CommentAnnotation"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

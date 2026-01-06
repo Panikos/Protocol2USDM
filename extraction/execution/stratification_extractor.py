@@ -364,7 +364,19 @@ Return JSON format:
 Return valid JSON only. If not a randomized study, return {{"ratio": null}}."""
 
     try:
-        response = call_llm(prompt, model_name=model)
+        result = call_llm(prompt, model_name=model)
+        
+        # Extract response text from dict
+        if isinstance(result, dict):
+            if 'error' in result:
+                logger.warning(f"LLM call error: {result['error']}")
+                return None
+            response = result.get('response', '')
+        else:
+            response = str(result)
+        
+        if not response:
+            return None
         
         # Parse JSON from response
         json_match = re.search(r'\{[\s\S]*\}', response)

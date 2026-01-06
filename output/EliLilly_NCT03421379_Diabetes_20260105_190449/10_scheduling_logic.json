@@ -1,0 +1,392 @@
+{
+  "success": true,
+  "pagesUsed": [
+    3,
+    9,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    23,
+    34,
+    57
+  ],
+  "modelUsed": "gemini-2.5-pro",
+  "confidence": 1.0,
+  "scheduling": {
+    "timings": [
+      {
+        "id": "timing_1",
+        "name": "Screening Window",
+        "type": {
+          "id": "545c300b-c246-44d9-8488-300dd6d59d3b",
+          "code": "C71152",
+          "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+          "codeSystemVersion": "25.01d",
+          "decode": "Between",
+          "instanceType": "Code"
+        },
+        "value": "P0D",
+        "valueLabel": "Screening Window",
+        "relativeToFrom": {
+          "id": "0e8e38e4-5245-45ff-9fc8-71d38055f392",
+          "code": "C71153",
+          "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+          "codeSystemVersion": "25.01d",
+          "decode": "Study Start",
+          "instanceType": "Code"
+        },
+        "relativeFromScheduledInstanceId": "d34076d1-1c6e-4018-9396-2771e4efe701",
+        "instanceType": "Timing",
+        "windowLower": "-P28D",
+        "windowUpper": "-P2D"
+      },
+      {
+        "id": "timing_2",
+        "name": "Washout Period",
+        "type": {
+          "id": "45e44020-7fcb-4e3c-b781-656c0462b139",
+          "code": "C71152",
+          "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+          "codeSystemVersion": "25.01d",
+          "decode": "Between",
+          "instanceType": "Code"
+        },
+        "value": "P0D",
+        "valueLabel": "Washout Period",
+        "relativeToFrom": {
+          "id": "56bb6205-2073-4b61-a8df-b1d8c68b2a4b",
+          "code": "C71153",
+          "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+          "codeSystemVersion": "25.01d",
+          "decode": "Study Start",
+          "instanceType": "Code"
+        },
+        "relativeFromScheduledInstanceId": "8b5a9f82-f63e-4457-9141-6460776a86d0",
+        "instanceType": "Timing",
+        "windowLower": "P3D",
+        "windowUpper": "P14D"
+      },
+      {
+        "id": "timing_3",
+        "name": "Follow-up Visit Window",
+        "type": {
+          "id": "ec3414b7-aa4c-4f9b-99e6-64657227ca5a",
+          "code": "C71148",
+          "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+          "codeSystemVersion": "25.01d",
+          "decode": "Fixed Reference",
+          "instanceType": "Code"
+        },
+        "value": "P28D",
+        "valueLabel": "Day 28",
+        "relativeToFrom": {
+          "id": "ce64f82b-7537-4dcd-b9ed-ab315facc5be",
+          "code": "C71156",
+          "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+          "codeSystemVersion": "25.01d",
+          "decode": "Last Dose",
+          "instanceType": "Code"
+        },
+        "relativeFromScheduledInstanceId": "2b9811d6-363c-4ecc-849c-c52ac18a1e41",
+        "instanceType": "Timing",
+        "windowLower": "-P2D",
+        "windowUpper": "P2D"
+      },
+      {
+        "id": "timing_4",
+        "name": "CRU Discharge",
+        "type": {
+          "id": "de5106b5-779b-438d-858b-b55ede826256",
+          "code": "C71150",
+          "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+          "codeSystemVersion": "25.01d",
+          "decode": "After",
+          "instanceType": "Code"
+        },
+        "value": "PT6H",
+        "valueLabel": "6 hours",
+        "relativeToFrom": {
+          "id": "522b8b29-3b54-4e80-b3ec-9535fc0ebcbc",
+          "code": "C71156",
+          "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+          "codeSystemVersion": "25.01d",
+          "decode": "Last Dose",
+          "instanceType": "Code"
+        },
+        "relativeFromScheduledInstanceId": "cfc0c08d-9491-4b43-8f32-a6287e3f3f73",
+        "instanceType": "Timing",
+        "windowLower": "PT0H",
+        "windowUpper": "P0D"
+      },
+      {
+        "id": "timing_5",
+        "name": "Study Drug Administration",
+        "type": {
+          "id": "b28e22f9-6eee-4875-910f-8285352c1397",
+          "code": "C71148",
+          "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+          "codeSystemVersion": "25.01d",
+          "decode": "Fixed Reference",
+          "instanceType": "Code"
+        },
+        "value": "PT5M",
+        "valueLabel": "5 minutes",
+        "relativeToFrom": {
+          "id": "16b80638-4b2e-4de5-8e92-9c95903941f8",
+          "code": "C71153",
+          "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+          "codeSystemVersion": "25.01d",
+          "decode": "Study Start",
+          "instanceType": "Code"
+        },
+        "relativeFromScheduledInstanceId": "f5376468-921f-4ace-8311-27e69f5eee9c",
+        "instanceType": "Timing",
+        "windowLower": "P0D",
+        "windowUpper": "P0D"
+      },
+      {
+        "id": "timing_6",
+        "name": "Bedside PG Monitoring Frequency (PG < 90 mg/dL)",
+        "type": {
+          "id": "2887917a-fb80-4570-ba82-a61b9c7ddd37",
+          "code": "C71151",
+          "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+          "codeSystemVersion": "25.01d",
+          "decode": "Within",
+          "instanceType": "Code"
+        },
+        "value": "PT5M",
+        "valueLabel": "5 minutes",
+        "relativeToFrom": {
+          "id": "829ef5af-2b61-4b46-9c26-753145e73da9",
+          "code": "C71153",
+          "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+          "codeSystemVersion": "25.01d",
+          "decode": "Study Start",
+          "instanceType": "Code"
+        },
+        "relativeFromScheduledInstanceId": "2ba83e0c-ce7d-4fc7-9ce3-0ececb7d8432",
+        "instanceType": "Timing",
+        "windowLower": "P0D",
+        "windowUpper": "P0D"
+      },
+      {
+        "id": "timing_7",
+        "name": "Bedside PG Monitoring Frequency (PG >= 90 mg/dL)",
+        "type": {
+          "id": "33e168a2-193f-491d-8fdc-d7818a00a285",
+          "code": "C71151",
+          "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+          "codeSystemVersion": "25.01d",
+          "decode": "Within",
+          "instanceType": "Code"
+        },
+        "value": "PT10M",
+        "valueLabel": "10 minutes",
+        "relativeToFrom": {
+          "id": "fd308350-7048-4b36-9464-e612e9041836",
+          "code": "C71153",
+          "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+          "codeSystemVersion": "25.01d",
+          "decode": "Study Start",
+          "instanceType": "Code"
+        },
+        "relativeFromScheduledInstanceId": "a5f94fcf-eadd-45f9-b588-22282fc4eac6",
+        "instanceType": "Timing",
+        "windowLower": "P0D",
+        "windowUpper": "P0D"
+      },
+      {
+        "id": "timing_8",
+        "name": "Additional Follow-up Immunogenicity Sampling",
+        "type": {
+          "id": "7d5279f0-2655-4c8c-a178-4eadcb3d4373",
+          "code": "C71148",
+          "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+          "codeSystemVersion": "25.01d",
+          "decode": "Fixed Reference",
+          "instanceType": "Code"
+        },
+        "value": "P84D",
+        "valueLabel": "Day 84",
+        "relativeToFrom": {
+          "id": "a2a024ab-ba5c-44ac-8aba-73b95ca57f22",
+          "code": "C71157",
+          "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+          "codeSystemVersion": "25.01d",
+          "decode": "Previous Visit",
+          "instanceType": "Code"
+        },
+        "relativeFromScheduledInstanceId": "e3acc026-6693-435d-ad09-99f5f335633e",
+        "instanceType": "Timing",
+        "windowLower": "-P7D",
+        "windowUpper": "P7D"
+      }
+    ],
+    "conditions": [
+      {
+        "id": "cond_1",
+        "name": "Admission Rescheduling Condition",
+        "instanceType": "Condition",
+        "description": "Condition for rescheduling admission to the CRU.",
+        "text": "Admission can be rescheduled if PG level is not 90 to 250 mg/dL on Day 1."
+      },
+      {
+        "id": "cond_2",
+        "name": "Stop Insulin Infusion Condition",
+        "instanceType": "Condition",
+        "description": "Condition to stop the insulin infusion used to induce hypoglycemia.",
+        "text": "Insulin infusion is stopped once bedside PG is <60 mg/dL."
+      },
+      {
+        "id": "cond_3",
+        "name": "Interim Safety Review Trigger",
+        "instanceType": "Condition",
+        "description": "A safety review is conducted after the first 6 patients complete Period 2.",
+        "text": "Safety data will be reviewed after the first 6 patients (regardless of type of diabetes) are administered LY900018 in Period 2."
+      },
+      {
+        "id": "cond_4",
+        "name": "Continuation after Interim Safety Review",
+        "instanceType": "Condition",
+        "description": "Condition to continue dosing after the interim safety review.",
+        "text": "If no clinically significant safety findings for treatment or study procedure are noted, the remaining patients will be dosed."
+      },
+      {
+        "id": "cond_5",
+        "name": "TE ADA Positive Condition",
+        "instanceType": "Condition",
+        "description": "Condition for entering additional follow-up for immunogenicity.",
+        "text": "Patients with TE ADA at follow-up/ED will undergo additional follow-up."
+      },
+      {
+        "id": "cond_6",
+        "name": "End of Additional Follow-up Condition",
+        "instanceType": "Condition",
+        "description": "Criteria to stop the additional follow-up for TE ADA.",
+        "text": "Additional follow-up continues until the titer returns to baseline (ie, returns to within a single 2-fold dilution of the baseline titer) or until 1 year after the last dose of study treatment."
+      },
+      {
+        "id": "cond_7",
+        "name": "Patient Replacement Criteria",
+        "instanceType": "Condition",
+        "description": "Criteria for replacing a discontinued patient.",
+        "text": "If patients discontinue from the study before completion of both periods with evaluable primary outcome for any reason, the patient may be replaced."
+      }
+    ],
+    "conditionAssignments": [],
+    "transitionRules": [
+      {
+        "id": "trans_1",
+        "name": "Transition to Additional Follow-up",
+        "instanceType": "TransitionRule",
+        "transitionType": "Epoch Transition",
+        "fromElementId": "epoch_followup",
+        "toElementId": "epoch_additional_followup",
+        "text": "Patients with TE ADA at follow-up/ED will undergo additional follow-up."
+      },
+      {
+        "id": "trans_2",
+        "name": "Handling of Inadvertently Enrolled Patients",
+        "instanceType": "TransitionRule",
+        "transitionType": "Discontinuation",
+        "text": "If the sponsor or investigator identifies a patient who did not meet enrollment criteria and was inadvertently enrolled, a discussion must occur to determine if the patient may continue in the study. Documented approval is required to continue."
+      }
+    ],
+    "scheduleTimelineExits": [
+      {
+        "id": "exit_1",
+        "name": "Enrollment in another clinical study",
+        "exitType": "Early Termination",
+        "instanceType": "ScheduleTimelineExit",
+        "description": "Enrollment in any other clinical study involving an investigational product or enrollment in any other type of medical research judged not to be scientifically or medically compatible with this study."
+      },
+      {
+        "id": "exit_2",
+        "name": "Medical, Safety, or Regulatory Reasons",
+        "exitType": "Early Termination",
+        "instanceType": "ScheduleTimelineExit",
+        "description": "Participation in the study needs to be stopped for medical, safety, regulatory, or other reasons consistent with applicable laws, regulations, and good clinical practice."
+      },
+      {
+        "id": "exit_3",
+        "name": "Investigator Decision",
+        "exitType": "Early Termination",
+        "instanceType": "ScheduleTimelineExit",
+        "description": "The investigator decides that the patient should be discontinued from the study for any reason."
+      },
+      {
+        "id": "exit_4",
+        "name": "Patient Decision",
+        "exitType": "Early Termination",
+        "instanceType": "ScheduleTimelineExit",
+        "description": "The patient, or legal representative, requests to be withdrawn from the study."
+      },
+      {
+        "id": "exit_5",
+        "name": "Study Discontinuation for Safety",
+        "exitType": "Early Termination",
+        "instanceType": "ScheduleTimelineExit",
+        "description": "Following the review of the safety data from the first 6 patients to complete Period 2 Day 1, the study will be stopped if deemed necessary for patient safety in the opinion of the Investigator and sponsor."
+      },
+      {
+        "id": "exit_6",
+        "name": "Lost to Follow-up",
+        "exitType": "Early Termination",
+        "instanceType": "ScheduleTimelineExit",
+        "description": "A patient will be considered lost to follow-up if he or she repeatedly fails to return for scheduled visits and is unable to be contacted by the study site."
+      },
+      {
+        "id": "exit_7",
+        "name": "Study Completion",
+        "exitType": "Completion",
+        "instanceType": "ScheduleTimelineExit",
+        "description": "Completion of all protocol-required visits, including the final follow-up visit."
+      }
+    ],
+    "scheduledDecisionInstances": [
+      {
+        "id": "dec_1",
+        "name": "Interim Safety Review Decision",
+        "timepointId": "After first 6 patients complete Period 2 Day 1",
+        "instanceType": "ScheduledDecisionInstance",
+        "description": "Decision point to continue dosing remaining patients or stop the entire study based on safety data from the first 6 patients.",
+        "conditionIds": [
+          "cond_3",
+          "cond_4"
+        ]
+      },
+      {
+        "id": "dec_2",
+        "name": "Admission Rescheduling Decision",
+        "timepointId": "Day 1 of Treatment Period",
+        "instanceType": "ScheduledDecisionInstance",
+        "description": "Decision to proceed with or reschedule admission based on patient's plasma glucose level.",
+        "conditionIds": [
+          "cond_1"
+        ]
+      },
+      {
+        "id": "dec_3",
+        "name": "Additional Follow-up Decision",
+        "timepointId": "Follow-up/ED Visit",
+        "instanceType": "ScheduledDecisionInstance",
+        "description": "Decision to place a patient into an additional follow-up period for immunogenicity monitoring based on TE ADA status.",
+        "conditionIds": [
+          "cond_5"
+        ]
+      }
+    ],
+    "summary": {
+      "timingCount": 8,
+      "conditionCount": 7,
+      "transitionRuleCount": 2,
+      "exitCount": 7
+    }
+  }
+}

@@ -5,11 +5,16 @@ import {
   ZoomIn, 
   ZoomOut, 
   Maximize, 
+  Minimize,
   Lock, 
   Unlock,
   RotateCcw,
   Grid,
   Download,
+  Fullscreen,
+  Anchor,
+  Clock,
+  Activity,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useOverlayStore, selectSnapGrid } from '@/stores/overlayStore';
@@ -21,6 +26,8 @@ interface TimelineToolbarProps {
   onFit?: () => void;
   onResetLayout?: () => void;
   onExportPNG?: () => void;
+  onToggleFullscreen?: () => void;
+  isFullscreen?: boolean;
   nodeCount: number;
   edgeCount: number;
   className?: string;
@@ -32,6 +39,8 @@ export function TimelineToolbar({
   onFit,
   onResetLayout,
   onExportPNG,
+  onToggleFullscreen,
+  isFullscreen,
   nodeCount,
   edgeCount,
   className,
@@ -139,6 +148,26 @@ export function TimelineToolbar({
           <Download className="h-4 w-4 mr-1.5" />
           Export PNG
         </Button>
+
+        {/* Fullscreen toggle */}
+        <Button
+          variant="default"
+          size="sm"
+          onClick={onToggleFullscreen}
+          className="gap-1.5"
+        >
+          {isFullscreen ? (
+            <>
+              <Minimize className="h-4 w-4" />
+              Exit
+            </>
+          ) : (
+            <>
+              <Fullscreen className="h-4 w-4" />
+              Fullscreen
+            </>
+          )}
+        </Button>
       </div>
     </div>
   );
@@ -151,27 +180,71 @@ export function TimelineLegend({ className }: { className?: string }) {
     { color: 'bg-white border-gray-700', label: 'Encounter', shape: 'rounded-full' },
     { color: 'bg-white border-green-500', label: 'Activity' },
     { color: 'bg-white border-[#003366] border-2', label: 'Timing', shape: 'rounded-full' },
-    { color: 'bg-white border-[#003366] border-3', label: 'Anchor (⚓)', shape: 'rounded-full' },
+    { color: 'bg-amber-100 border-amber-600 border-2', label: 'Anchor ⚓', shape: 'rounded-full' },
+  ];
+
+  const edgeItems = [
+    { color: 'bg-gray-500', label: 'Sequence', style: 'solid' },
+    { color: 'bg-green-500', label: 'Activity Link', style: 'dashed' },
+    { color: 'bg-slate-500', label: 'Epoch Transition', style: 'solid' },
   ];
 
   return (
-    <div className={cn('flex flex-wrap items-center gap-4 text-sm', className)}>
-      <span className="font-medium text-muted-foreground">Node Types:</span>
-      {nodeItems.map((item) => (
-        <div key={item.label} className="flex items-center gap-1.5">
-          <div 
-            className={cn(
-              'w-4 h-4 border-2',
-              item.color,
-              item.shape || 'rounded'
-            )} 
-          />
-          <span className="text-muted-foreground">{item.label}</span>
+    <div className={cn('flex flex-wrap items-center gap-6 text-sm', className)}>
+      {/* Nodes */}
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="font-medium text-muted-foreground">Nodes:</span>
+        {nodeItems.map((item) => (
+          <div key={item.label} className="flex items-center gap-1.5">
+            <div 
+              className={cn(
+                'w-4 h-4 border-2',
+                item.color,
+                item.shape || 'rounded'
+              )} 
+            />
+            <span className="text-muted-foreground">{item.label}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Divider */}
+      <div className="h-4 w-px bg-border" />
+
+      {/* Edges */}
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="font-medium text-muted-foreground">Edges:</span>
+        {edgeItems.map((item) => (
+          <div key={item.label} className="flex items-center gap-1.5">
+            <div className="flex items-center w-6">
+              <div 
+                className={cn(
+                  'h-0.5 w-full',
+                  item.color,
+                  item.style === 'dashed' && 'border-t-2 border-dashed bg-transparent'
+                )} 
+              />
+              <div 
+                className={cn(
+                  'w-0 h-0 border-t-[4px] border-t-transparent border-b-[4px] border-b-transparent border-l-[6px]',
+                  item.color.replace('bg-', 'border-l-')
+                )}
+              />
+            </div>
+            <span className="text-muted-foreground">{item.label}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Divider */}
+      <div className="h-4 w-px bg-border" />
+
+      {/* Controls */}
+      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1.5">
+          <Lock className="h-3.5 w-3.5 text-blue-500" />
+          <span className="text-muted-foreground">Locked Node</span>
         </div>
-      ))}
-      <div className="flex items-center gap-1.5">
-        <Lock className="h-3.5 w-3.5 text-blue-500" />
-        <span className="text-muted-foreground">Locked</span>
       </div>
     </div>
   );

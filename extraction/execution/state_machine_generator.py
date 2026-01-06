@@ -193,73 +193,117 @@ def _detect_guard_conditions(text: str, transitions: List[StateTransition]) -> L
 def _build_from_traversal(
     traversal: TraversalConstraint,
     crossover: Optional[CrossoverDesign] = None,
+    existing_epochs: Optional[List[Dict[str, Any]]] = None,
 ) -> SubjectStateMachine:
-    """Build state machine from traversal constraints."""
+    """
+    Build state machine from traversal constraints using actual protocol epoch names.
+    
+    Args:
+        traversal: Traversal constraint with required sequence
+        crossover: Optional crossover design info
+        existing_epochs: List of actual epoch dicts from USDM with 'id' and 'name'
+    """
     states = []
     transitions = []
+    epoch_ids = {}
     
-    # Map epoch names to state types
-    epoch_to_state = {
-        'SCREENING': StateType.SCREENING,
-        'BASELINE': StateType.ENROLLED,
-        'RANDOMIZATION': StateType.RANDOMIZED,
-        'TREATMENT': StateType.ON_TREATMENT,
-        'PERIOD_1': StateType.ON_TREATMENT,
-        'PERIOD_2': StateType.ON_TREATMENT,
-        'WASHOUT': StateType.ON_TREATMENT,
-        'FOLLOW_UP': StateType.FOLLOW_UP,
-        'END_OF_STUDY': StateType.COMPLETED,
-        'EARLY_TERMINATION': StateType.DISCONTINUED,
-    }
+    # Build epoch ID to name mapping from existing epochs
+    epoch_id_to_name = {}
+    if existing_epochs:
+        for ep in existing_epochs:
+            ep_id = ep.get('id', '')
+            ep_name = ep.get('name', ep_id)
+            epoch_id_to_name[ep_id] = ep_name
+            # Also map normalized versions
+            epoch_id_to_name[ep_id.lower()] = ep_name
+            epoch_id_to_name[ep_id.replace('_', ' ')] = ep_name
     
-    # Build states from sequence
+    # Determine initial state (first in sequence)
+    initial_state = "Screening"  # Default
+    
+    # Build states from required sequence using actual epoch names
     prev_state = None
-    for epoch in traversal.required_sequence:
-        state = epoch_to_state.get(epoch, StateType.ON_TREATMENT)
-        if state not in states:
-            states.append(state)
+    for epoch_ref in traversal.required_sequence:
+        # Try to resolve to actual epoch name
+        state_name = epoch_id_to_name.get(epoch_ref)
+        if not state_name:
+            # Try case-insensitive lookup
+            state_name = epoch_id_to_name.get(epoch_ref.lower())
+        if not state_name:
+            # Use the epoch ref itself, cleaned up
+            state_name = epoch_ref.replace('_', ' ').replace('epoch ', '').title()
+        
+        # Track epoch ID mapping
+        epoch_ids[state_name] = epoch_ref
+        
+        if state_name not in states:
+            states.append(state_name)
+        
+        # Set initial state from first epoch
+        if prev_state is None:
+            initial_state = state_name
         
         # Add transition from previous state
-        if prev_state and prev_state != state:
+        if prev_state and prev_state != state_name:
             transitions.append(StateTransition(
                 from_state=prev_state,
-                to_state=state,
-                trigger=f"Progress from {prev_state.value} to {state.value}",
+                to_state=state_name,
+                trigger=f"Progress to {state_name}",
             ))
-        prev_state = state
+        prev_state = state_name
     
-    # Add standard terminal states
-    for term_state in [StateType.DISCONTINUED, StateType.WITHDRAWN, StateType.DEATH]:
-        if term_state not in states:
-            states.append(term_state)
+    # Add exit epochs as terminal states
+    terminal_states = []
+    for exit_id in (traversal.exit_epoch_ids or []):
+        exit_name = epoch_id_to_name.get(exit_id)
+        if not exit_name:
+            exit_name = exit_id.replace('_', ' ').replace('epoch ', '').title()
+        terminal_states.append(exit_name)
+        epoch_ids[exit_name] = exit_id
+        if exit_name not in states:
+            states.append(exit_name)
     
-    # Add discontinuation transitions from ON_TREATMENT
-    if StateType.ON_TREATMENT in states:
-        if StateType.DISCONTINUED not in [t.to_state for t in transitions if t.from_state == StateType.ON_TREATMENT]:
-            transitions.append(StateTransition(
-                from_state=StateType.ON_TREATMENT,
-                to_state=StateType.DISCONTINUED,
-                trigger="Discontinuation from treatment",
-            ))
+    # Add standard terminal outcomes if not already present
+    if "Completed" not in terminal_states and prev_state:
+        terminal_states.append("Completed")
+    if "Early Termination" not in terminal_states and "Discontinued" not in terminal_states:
+        terminal_states.append("Early Termination")
+    
+    # Add early exit transitions from treatment states
+    treatment_states = [s for s in states if any(kw in s.lower() for kw in 
+                       ['treatment', 'period', 'dose', 'titration'])]
+    for treatment_state in treatment_states:
+        for term in terminal_states:
+            if term != "Completed":
+                transitions.append(StateTransition(
+                    from_state=treatment_state,
+                    to_state=term,
+                    trigger=f"Subject exits to {term}",
+                ))
     
     # Handle crossover-specific transitions
     if crossover and crossover.is_crossover:
-        # Add washout transition if applicable
-        if crossover.washout_required:
-            transitions.append(StateTransition(
-                from_state=StateType.ON_TREATMENT,
-                to_state=StateType.ON_TREATMENT,
-                trigger="Enter washout period",
-                guard_condition="period_complete AND NOT last_period",
-            ))
+        # Find washout state if present
+        washout_states = [s for s in states if 'washout' in s.lower() or 'wash' in s.lower()]
+        period_states = [s for s in states if 'period' in s.lower()]
+        
+        if washout_states and len(period_states) >= 2:
+            # Add crossover transition through washout
+            for i, period in enumerate(period_states[:-1]):
+                if i < len(washout_states):
+                    transitions.append(StateTransition(
+                        from_state=period,
+                        to_state=washout_states[min(i, len(washout_states)-1)],
+                        trigger="Complete period, enter washout",
+                    ))
     
     return SubjectStateMachine(
         id="sm_1",
-        initial_state=StateType.SCREENING,
-        terminal_states=[StateType.COMPLETED, StateType.DISCONTINUED, 
-                        StateType.WITHDRAWN, StateType.DEATH, StateType.LOST_TO_FOLLOW_UP],
+        initial_state=initial_state,
+        terminal_states=terminal_states if terminal_states else ["Completed", "Early Termination"],
         states=states,
         transitions=transitions,
+        epoch_ids=epoch_ids,
     )
 
 
@@ -270,6 +314,7 @@ def generate_state_machine(
     traversal: Optional[TraversalConstraint] = None,
     crossover: Optional[CrossoverDesign] = None,
     use_llm: bool = True,
+    existing_epochs: Optional[List[Dict[str, Any]]] = None,
 ) -> ExecutionModelResult:
     """
     Generate subject state machine from protocol PDF.
@@ -281,6 +326,7 @@ def generate_state_machine(
         traversal: Pre-extracted traversal constraint
         crossover: Pre-extracted crossover design
         use_llm: Whether to use LLM enhancement
+        existing_epochs: List of actual epoch dicts from USDM for name resolution
         
     Returns:
         ExecutionModelResult with state machine
@@ -291,7 +337,7 @@ def generate_state_machine(
     
     # If we have traversal constraints, build from those
     if traversal:
-        sm = _build_from_traversal(traversal, crossover)
+        sm = _build_from_traversal(traversal, crossover, existing_epochs)
         logger.info(f"Built state machine from traversal: {len(sm.states)} states, {len(sm.transitions)} transitions")
         return ExecutionModelResult(
             success=True,
@@ -408,12 +454,20 @@ Protocol text:
 Return ONLY the JSON."""
 
     try:
-        response = call_llm(
+        result = call_llm(
             prompt=prompt,
             model_name=model,
-            max_tokens=3000,
             temperature=0.1,
         )
+        
+        # Extract response text from dict
+        if isinstance(result, dict):
+            if 'error' in result:
+                logger.warning(f"LLM call error: {result['error']}")
+                return None
+            response = result.get('response', '')
+        else:
+            response = str(result)
         
         if not response:
             return None

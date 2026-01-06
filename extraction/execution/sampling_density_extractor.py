@@ -499,10 +499,28 @@ def _deduplicate_constraints(constraints: List[SamplingConstraint]) -> List[Samp
     unique = []
     
     for c in constraints:
-        key = (c.activity_id, c.min_per_window, tuple(c.timepoints[:5]))
-        if key not in seen:
-            seen.add(key)
-            unique.append(c)
+        # Handle both SamplingConstraint objects and dicts (from LLM)
+        if isinstance(c, dict):
+            activity_id = c.get('activity_id') or c.get('activityId', '')
+            min_per_window = c.get('min_per_window') or c.get('minPerWindow', 0)
+            timepoints = c.get('timepoints', [])[:5]
+            key = (activity_id, min_per_window, tuple(timepoints))
+            if key not in seen:
+                seen.add(key)
+                # Convert dict to SamplingConstraint
+                unique.append(SamplingConstraint(
+                    id=c.get('id', f"sampling_{len(unique)+1}"),
+                    activity_id=activity_id,
+                    min_per_window=min_per_window,
+                    timepoints=c.get('timepoints', []),
+                    window_duration=c.get('window_duration') or c.get('windowDuration'),
+                    source_text=c.get('source_text', ''),
+                ))
+        else:
+            key = (c.activity_id, c.min_per_window, tuple(c.timepoints[:5]))
+            if key not in seen:
+                seen.add(key)
+                unique.append(c)
     
     return unique
 
@@ -558,12 +576,23 @@ Protocol text:
 Return ONLY the JSON."""
 
     try:
-        response = call_llm(
+        result = call_llm(
             prompt=prompt,
             model_name=model,
-            max_tokens=2000,
             temperature=0.1,
         )
+        
+        # Extract response text from dict
+        if isinstance(result, dict):
+            if 'error' in result:
+                logger.warning(f"LLM call error: {result['error']}")
+                return None
+            response = result.get('response', '')
+        else:
+            response = str(result)
+        
+        if not response:
+            return None
         
         import json
         # Extract JSON from response

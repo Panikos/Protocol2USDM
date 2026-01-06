@@ -324,6 +324,8 @@ def extract_time_anchors(
     model: str = "gemini-2.5-pro",
     pages: Optional[List[int]] = None,
     use_llm: bool = True,
+    existing_encounters: Optional[List[Dict[str, Any]]] = None,
+    existing_epochs: Optional[List[Dict[str, Any]]] = None,
 ) -> ExecutionModelResult:
     """
     Extract time anchors from protocol PDF.
@@ -336,6 +338,8 @@ def extract_time_anchors(
         model: LLM model to use (if use_llm=True)
         pages: Specific pages to analyze (auto-detected if None)
         use_llm: Whether to use LLM for enhanced extraction
+        existing_encounters: SoA encounters for context (improves anchor resolution)
+        existing_epochs: SoA epochs for context (improves anchor resolution)
         
     Returns:
         ExecutionModelResult with extracted TimeAnchors

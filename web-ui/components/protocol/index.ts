@@ -8,3 +8,4 @@ export { ExtensionsView } from './ExtensionsView';
 export { AdvancedEntitiesView } from './AdvancedEntitiesView';
 export { ProceduresDevicesView } from './ProceduresDevicesView';
 export { StudySitesView } from './StudySitesView';
+export { FootnotesView } from './FootnotesView';

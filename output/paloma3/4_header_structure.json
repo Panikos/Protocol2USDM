@@ -1,0 +1,314 @@
+{
+  "columnHierarchy": {
+    "epochs": [
+      {
+        "id": "epoch_1",
+        "name": "Screening",
+        "instanceType": "StudyEpoch",
+        "type": {
+          "id": "0559fa87-9fae-463c-91ac-fab0ce08f96c",
+          "code": "C98779",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Screening Epoch",
+          "instanceType": "Code"
+        }
+      },
+      {
+        "id": "epoch_2",
+        "name": "Active Treatment Phasea - One Cycle = 28 days",
+        "instanceType": "StudyEpoch",
+        "type": {
+          "id": "b6415a44-3dba-45f8-9b53-9e03872e320b",
+          "code": "C98780",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Treatment Epoch",
+          "instanceType": "Code"
+        }
+      },
+      {
+        "id": "epoch_3",
+        "name": "End of Treatment/Withdrawalc",
+        "instanceType": "StudyEpoch",
+        "type": {
+          "id": "c0384e41-21de-4768-a187-e22960469f38",
+          "code": "C98780",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Treatment Epoch",
+          "instanceType": "Code"
+        }
+      },
+      {
+        "id": "epoch_4",
+        "name": "Post-Treatment Follow-Upd",
+        "instanceType": "StudyEpoch",
+        "type": {
+          "id": "ea15dbb3-a579-4b0b-a89f-0e23d763f066",
+          "code": "C98780",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Treatment Epoch",
+          "instanceType": "Code"
+        }
+      }
+    ],
+    "encounters": [
+      {
+        "id": "enc_1",
+        "name": "Screening",
+        "instanceType": "Encounter",
+        "type": {
+          "id": "5ada2dcb-09cc-423d-99a8-95b925b2f9a0",
+          "code": "C48262",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Screening",
+          "instanceType": "Code"
+        },
+        "epochId": "epoch_1"
+      },
+      {
+        "id": "enc_2",
+        "name": "Cycles 1 and 2, Day 1b",
+        "instanceType": "Encounter",
+        "type": {
+          "id": "e5a9196b-12bd-417a-9824-4fb64d93549b",
+          "code": "C82517",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Baseline",
+          "instanceType": "Code"
+        },
+        "epochId": "epoch_2"
+      },
+      {
+        "id": "enc_3",
+        "name": "Cycles 1 and 2, Day 15",
+        "instanceType": "Encounter",
+        "type": {
+          "id": "42174382-2002-44b9-9f72-b8e5ac0bd55b",
+          "code": "C82517",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Baseline",
+          "instanceType": "Code"
+        },
+        "epochId": "epoch_2"
+      },
+      {
+        "id": "enc_4",
+        "name": "Cycles ≥3, Day 1",
+        "instanceType": "Encounter",
+        "type": {
+          "id": "d25af8e0-5f36-4dc3-a35d-1019ec974dda",
+          "code": "C82517",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Baseline",
+          "instanceType": "Code"
+        },
+        "epochId": "epoch_2"
+      },
+      {
+        "id": "enc_5",
+        "name": "End of Treatment/Withdrawal",
+        "instanceType": "Encounter",
+        "type": {
+          "id": "0dd52e80-03cd-4ed2-99ee-166737feff45",
+          "code": "C126070",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "End of Study",
+          "instanceType": "Code"
+        },
+        "epochId": "epoch_3"
+      },
+      {
+        "id": "enc_6",
+        "name": "Post-Treatment Follow-Up",
+        "instanceType": "Encounter",
+        "type": {
+          "id": "e0df0714-c8c4-4f54-9e10-90edcf79b2e1",
+          "code": "C99158",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Follow-up",
+          "instanceType": "Code"
+        },
+        "epochId": "epoch_4"
+      }
+    ],
+    "plannedTimepoints": [
+      {
+        "id": "pt_1",
+        "visit": "Within 28 days prior to randomization unless specified otherwise",
+        "epoch": "",
+        "epochId": "",
+        "day": "",
+        "window": null,
+        "encounterId": "enc_1",
+        "instanceType": "Timing"
+      },
+      {
+        "id": "pt_2",
+        "visit": "Day 1b",
+        "epoch": "",
+        "epochId": "",
+        "day": "",
+        "window": null,
+        "encounterId": "enc_2",
+        "instanceType": "Timing"
+      },
+      {
+        "id": "pt_3",
+        "visit": "Day 15",
+        "epoch": "",
+        "epochId": "",
+        "day": "",
+        "window": null,
+        "encounterId": "enc_3",
+        "instanceType": "Timing"
+      },
+      {
+        "id": "pt_4",
+        "visit": "Day 1",
+        "epoch": "",
+        "epochId": "",
+        "day": "",
+        "window": null,
+        "encounterId": "enc_4",
+        "instanceType": "Timing"
+      },
+      {
+        "id": "pt_5",
+        "visit": "End of Treatment/Withdrawalc",
+        "epoch": "",
+        "epochId": "",
+        "day": "",
+        "window": null,
+        "encounterId": "enc_5",
+        "instanceType": "Timing"
+      },
+      {
+        "id": "pt_6",
+        "visit": "Post-Treatment Follow-Upd",
+        "epoch": "",
+        "epochId": "",
+        "day": "",
+        "window": null,
+        "encounterId": "enc_6",
+        "instanceType": "Timing"
+      }
+    ]
+  },
+  "rowGroups": [
+    {
+      "id": "grp_1",
+      "name": "General Assessments",
+      "description": null,
+      "childIds": [],
+      "instanceType": "Activity",
+      "activityNames": [
+        "Informed Consente",
+        "Medical/Oncological Historyf",
+        "Baseline Signs/Symptomsg",
+        "Physical Examination/Vital Signsh",
+        "Ophthalmic Examinationi",
+        "ECOG Performance Status"
+      ]
+    },
+    {
+      "id": "grp_2",
+      "name": "Laboratory Studies",
+      "description": null,
+      "childIds": [],
+      "instanceType": "Activity",
+      "activityNames": [
+        "Hematologyj",
+        "Blood Chemistryj",
+        "Pregnancy test, serum estradiol and FSH (if applicable)",
+        "12-Lead ECG (in triplicate)"
+      ]
+    },
+    {
+      "id": "grp_3",
+      "name": "Disease Assessment",
+      "description": null,
+      "childIds": [],
+      "instanceType": "Activity",
+      "activityNames": [
+        "CT/MRI Scans of Chest, Abdomen, Pelvis, any clinically indicated sites of disease, and of head scans for clinical evaluation of superficial diseasek",
+        "Radionuclide Bone Scan, Whole Bodyl"
+      ]
+    },
+    {
+      "id": "grp_4",
+      "name": "Other Clinical Assessments",
+      "description": null,
+      "childIds": [],
+      "instanceType": "Activity",
+      "activityNames": [
+        "Adverse Event Reportingm"
+      ]
+    },
+    {
+      "id": "grp_5",
+      "name": "Concomitant Medications/Treatments",
+      "description": null,
+      "childIds": [],
+      "instanceType": "Activity",
+      "activityNames": [
+        "Pharmacokinetics (PK)n"
+      ]
+    },
+    {
+      "id": "grp_6",
+      "name": "Patient Reported Outcomes",
+      "description": null,
+      "childIds": [],
+      "instanceType": "Activity",
+      "activityNames": [
+        "EuroQol-5D (EQ-5D)r",
+        "European Organization for Research and Treatment of Cancer Quality of Life Questionnaire (EORTC-QLQ-C30)r",
+        "European Organization for Research and Treatment of Cancer Breast Cancer Module (EORTC-QLQ-BR23)r",
+        "Survival Follow-ups"
+      ]
+    },
+    {
+      "id": "grp_7",
+      "name": "Study Treatment",
+      "description": null,
+      "childIds": [],
+      "instanceType": "Activity",
+      "activityNames": [
+        "Randomization",
+        "Fulvestrant (both treatment arms)t",
+        "Palbociclib or placebo (Arm A only)u",
+        "For pre-/peri-menopausal patients only: Goserelin (both treatment arms, if applicable)v"
+      ]
+    }
+  ],
+  "footnotes": [
+    "a. Active Treatment Phase: Assessments should be performed prior to dosing on the visit day unless otherwise indicated. Acceptable time windows for performing each assessment are described in the column headers. No time window is to be considered for treatment schedule of palbociclib/placebo. One cycle consists of 28 days. A cycle could be longer than 28 days if persistent toxicity delays initiation of the subsequent cycle. Day 1 of any cycle visit should coincide with the day the palbociclib/placebo treatment begins. If there are delays due to toxicity, then the start of the next cycle visit will be delayed until the patient has recovered and can begin study treatment again. Fulvestrant injection will be given every 28 days (+/- 7 days) with the exception of Cycle 1 during which it will be administered on Days 1 and 15 (±2 days allowed according to the protocol visit time windows). Goserelin will be administered every 28 days (+/- number of days allowed according to the protocol visit time windows). The active treatment phase is ongoing as long as the patient is receiving both study drugs (ie, palbociclib/placebo and fulvestrant) or fulvestrant alone.",
+    "b. Cycle 1/Day 1: Blood chemistry, hematology, and physical examination not required if acceptable screening assessment is performed within 7 days prior to randomization.",
+    "c. End of Treatment/Withdrawal: Visit to be performed as soon as possible but no later than 4 weeks from the last dose of investigational products and prior to initiation of any new anticancer therapy. Obtain assessments if not completed during the previous 4 weeks on study.",
+    "d. Post Treatment Follow-Up: Patients who discontinue study treatment should be contacted 28 calendar days (±7 days) after discontinuation of study treatment (palbociclib/placebo or fulvestrant) to assess if there have been any new adverse events and/or any change to any previously reported adverse events. This follow-up should occur 28 calendar days (±7 days) regardless of any new anti-cancer therapy that may have started. Telephone contact is acceptable. Follow-up visits to assess survival status will be conducted every 3 months going forward after approval of Amendment 3. See table footnote s (Survival Follow-up) below.",
+    "e. Informed Consent: Informed consent must be obtained prior to any protocol required assessments being performed (with the exception of certain imaging assessments if meeting the criteria defined in the Screening Section).",
+    "f. Medical/Oncological History: To include information on prior anticancer treatments.",
+    "g. Baseline Signs/Symptoms: Baseline tumor related signs and symptoms will be recorded at the Cycle 1 Day 1 visit prior to initiating treatment and then reported as adverse events during the last if they worsen in severity or increase in frequency.",
+    "h. Physical Examination/Vital Signs: A full physical examination including an examination of all major body systems and breasts, height (at screening only), weight, blood pressure and pulse rate, which may be performed by a physician, registered nurse or other qualified health care provider. Physical examinations will be carried out at Screening, Day 1 of every cycle and the End of Treatment/Withdrawal visit.",
+    "i. Ophthalmic Examinations: Upon approval of Amendment 1, newly enrolled lens grading evaluable patients will undergo an ophthalmic examination by an ophthalmologist at screening, during study treatment on Cycle 4 Day 1, on Cycle 7 Day 1, on Cycle 13 Day 1 (ie, after 3, 6 and 12 months), every 12 months thereafter (ie, Days 1 of Cycles 25, 37, etc.) and at the End of Treatment/Withdrawal visit. Additional ophthalmic examinations may be performed as clinically indicated. It is expected that a minimum of 100 evaluable patients will participate in these examinations. Sites will be informed once these examinations are no longer required for patients newly enrolled in this study. Refer to the Ocular Safety Assessments Section for further details. Upon approval of Amendment 3, ophthalmic tests will continue to be collected.",
+    "j. Laboratory tests: Hematology includes hemoglobin, WBC, absolute neutrophil count, platelet count. Hematology tests must meet retreatment criteria prior to administering palbociclib. Blood chemistry includes AST/ALT, alkaline phosphatase, sodium, potassium, magnesium, total calcium, total bilirubin, blood urea nitrogen (BUN) (or urea), serum creatinine, and albumin. Additional hematology/chemistries panels may be performed as clinically indicated. Upon approval of Amendment 3, hemoglobin A1c will be measured in all patients every 3 cycles (Day 1) going forward (C7D1, C10D1, C13D1, etc) and at the End of Treatment/Withdrawal visit. Pregnancy test (serum) at screening only for women of childbearing potential. Test may be repeated as per request of IRB/IECs or if required by local regulations. Serum estradiol and Follicle stimulating hormone (FSH) levels are analysed at screening to confirm postmenopausal status of women <60 years old and who have been amenorrheic for at least 12 consecutive months. Upon approval of Amendment 3, blood chemistry will be performed every 3 cycles (Day 1) going forward (C7D1, C10D1, C13D1, etc) and at the End of Treatment/Withdrawal visit. Hemoglobin A1c will be tested at the time of blood chemistry. If an adverse event occurs that mandates blood chemistry to be performed for hepatic function abnormality, the additional laboratory data will be recorded in the CRF.",
+    "k. CT/MRI Scans of Chest, Abdomen, Pelvis: Upon approval of Amendment 3, tumor assessments will be performed as per local practice. Refer to the tumor assessment requirement flowchart.",
+    "l. Radionuclide Bone Scan, Whole Body: Upon approval of Amendment 3, tumor assessments will be performed as per local practice. Refer to the tumor assessment requirement flowchart.",
+    "m. Adverse Events (AEs): Serious Adverse events (SAEs) must be reported from the time the patient provides informed consent through and including 28 calendar days after the last administration of the study drug. SAEs occurring after the active reporting period has ended should be reported if the investigator becomes aware of them; at a minimum, all SAEs that the investigator believes have at least a reasonable possibility of being related to study drug are to be reported to the Sponsor. All AEs (serious and non serious) should be recorded on the CRF from the first dose of study treatment through last patient visit. It is expected that telephone contact with the patient will be made in order to assess SAEs and AEs 28 calendar days (+/- 7 days) after the last administration of the study drug.",
+    "n. Pharmacokinetics (PK): In approximately the first 40 patients randomized in the study, plasma PK samples will be drawn pre-dose on Day 1 and Day 15 of Cycle 1 and 2, and Day 1 of Cycle 3 for DDI assessment for palbociclib and fulvestrant (and goserelin if applicable). In all other patients, plasma concentrations will be drawn on Day 15 of Cycle 1 and Cycle 2 for palbociclib only. Additional PK blood samples may be collected from patients experiencing unexpected or serious adverse events, or adverse events that lead to discontinuation.",
+    "r. Patient Reported Outcomes Assessments: All self-assessment questionnaires must be completed by the patients while in the clinic and cannot be taken home. Interviewer administration in clinic may be used under special circumstances.",
+    "s. Survival Follow-Up: Upon approval of Amendment 3, for patients who discontinue study treatment, survival data will be collected every 3 months going forward. Telephone contact is acceptable. During follow-up visits the following data will be recorded in the CRF: 1) start, stop and type of new anticancer therapy; 2) tumor response of new anticancer therapy; 3) date of progression of the disease during or after the new antitumor agent; 4) survival status.",
+    "t. Fulvestrant: To be administered on-site according to the local Summary of Product Characteristics for fulvestrant (Faslodex®). Fulvestrant injection will be given every 28 days (+/- 7 days) with the exception of Cycle 1 during which it will be administered on Days 1 and 15 (±2 days allowed according to the protocol visit time windows).",
+    "u. Palbociclib or Placebo: Patients will be required to return all bottles of palbociclib/placebo as well as the completed patient diary on Day 1 of each cycle for drug accountability.",
+    "v. Goserelin (if applicable): Goserelin will be administered every 28 days (+/- number of days allowed according to the protocol visit time windows). Treatment with goserelin (Zoladex® or generic) as per local practice for all women who are pre- or peri-menopausal at study entry. Patients must have commenced treatment with goserelin or an alternative luteinizing hormone-releasing hormone (LHRH) agonist at least 4 weeks prior to randomization. If patients have not received goserelin as their LHRH agonist prior to study entry, they must switch to goserelin for the duration of the trial. It is recommended to administer goserelin (given every 28 days) on-site when monthly fulvestrant is given. If goserelin is administered at home by the patient, a patient diary will be completed."
+  ]
+}

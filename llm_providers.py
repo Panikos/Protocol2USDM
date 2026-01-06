@@ -101,14 +101,14 @@ class OpenAIProvider(LLMProvider):
     SUPPORTED_MODELS = [
         'gpt-4', 'gpt-4-turbo', 'gpt-4o', 'gpt-4o-mini',
         'o1', 'o1-mini', 'o3', 'o3-mini', 'o3-mini-high',
-        'gpt-5', 'gpt-5-mini', 'gpt-5.1', 'gpt-5.1-mini',  # Future-proofing
+        'gpt-5', 'gpt-5-mini', 'gpt-5.1', 'gpt-5.1-mini', 'gpt-5.2', 'gpt-5.2-mini',
     ]
     
     # Models that don't support temperature parameter
-    NO_TEMP_MODELS = ['o1', 'o1-mini', 'o3', 'o3-mini', 'o3-mini-high', 'gpt-5', 'gpt-5-mini', 'gpt-5.1', 'gpt-5.1-mini']
+    NO_TEMP_MODELS = ['o1', 'o1-mini', 'o3', 'o3-mini', 'o3-mini-high', 'gpt-5', 'gpt-5-mini', 'gpt-5.1', 'gpt-5.1-mini', 'gpt-5.2', 'gpt-5.2-mini']
     
     # Models that use max_completion_tokens instead of max_tokens
-    COMPLETION_TOKENS_MODELS = ['o1', 'o1-mini', 'o3', 'o3-mini', 'o3-mini-high', 'gpt-5', 'gpt-5-mini', 'gpt-5.1', 'gpt-5.1-mini']
+    COMPLETION_TOKENS_MODELS = ['o1', 'o1-mini', 'o3', 'o3-mini', 'o3-mini-high', 'gpt-5', 'gpt-5-mini', 'gpt-5.1', 'gpt-5.1-mini', 'gpt-5.2', 'gpt-5.2-mini']
     
     def __init__(self, model: str, api_key: Optional[str] = None):
         super().__init__(model, api_key)

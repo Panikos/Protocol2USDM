@@ -204,7 +204,7 @@ class TestUsdmTypes:
         header = HeaderStructure(
             epochs=[Epoch(id="epoch_1", name="Screening")],
             encounters=[Encounter(id="enc_1", name="Visit 1", epochId="epoch_1")],
-            plannedTimepoints=[PlannedTimepoint(id="pt_1", name="Visit 1", encounterId="enc_1")]
+            plannedTimepoints=[PlannedTimepoint(id="pt_1", visit="Visit 1", encounterId="enc_1")]
         )
         
         data = header.to_dict()
@@ -218,7 +218,7 @@ class TestUsdmTypes:
         
         timeline = Timeline(
             activities=[Activity(id="act_1", name="Test")],
-            activityTimepoints=[ActivityTimepoint(id="at_1", activityId="act_1", plannedTimepointId="pt_1")]
+            activityTimepoints=[ActivityTimepoint(activityId="act_1", encounterId="enc_1")]
         )
         
         data = timeline.to_dict()
@@ -261,18 +261,87 @@ class TestBackwardCompatibility:
     """Tests for backward compatibility with root-level modules."""
     
     def test_json_utils_compat(self):
-        """Test json_utils backward compatibility."""
-        from json_utils import extract_json_str, clean_llm_json
+        """Test json_utils backward compatibility - now in core.json_utils."""
+        from core.json_utils import extract_json_str, clean_json_response
         
         result = extract_json_str('{"test": true}')
         assert result is not None
         
-        result = clean_llm_json('```json\n{"a": 1}\n```')
+        result = clean_json_response('```json\n{"a": 1}\n```')
         assert '"a": 1' in result
     
     def test_p2u_constants_compat(self):
-        """Test p2u_constants backward compatibility."""
-        from p2u_constants import USDM_VERSION, SYSTEM_NAME
+        """Test p2u_constants backward compatibility - now in core.constants."""
+        from core.constants import USDM_VERSION, SYSTEM_NAME
         
         assert USDM_VERSION == "4.0"
         assert SYSTEM_NAME == "Protocol2USDM"
+
+
+class TestNormalization:
+    """Tests for USDM data normalization functions."""
+    
+    def test_normalize_preserves_standard_code(self):
+        """Test that normalize_usdm_data preserves standardCode on Code objects."""
+        from core.usdm_types_generated import normalize_usdm_data
+        
+        data = {
+            "study": {
+                "versions": [{
+                    "administrableProducts": [{
+                        "id": "prod_1",
+                        "name": "Test Product",
+                        "administrableDoseForm": {
+                            "id": "df_1",
+                            "code": "C42998",
+                            "decode": "Tablet",
+                            "instanceType": "Code",
+                            "standardCode": {
+                                "id": "sc_1",
+                                "code": "C42998",
+                                "decode": "Tablet",
+                                "instanceType": "Code"
+                            }
+                        }
+                    }]
+                }]
+            }
+        }
+        
+        result = normalize_usdm_data(data)
+        
+        # Verify standardCode is preserved
+        prod = result["study"]["versions"][0]["administrableProducts"][0]
+        dose_form = prod["administrableDoseForm"]
+        assert "standardCode" in dose_form
+        assert dose_form["standardCode"]["code"] == "C42998"
+    
+    def test_normalize_adds_standard_code_when_missing(self):
+        """Test that normalize_usdm_data adds standardCode when missing on administrableDoseForm."""
+        from core.usdm_types_generated import normalize_usdm_data
+        
+        data = {
+            "study": {
+                "versions": [{
+                    "administrableProducts": [{
+                        "id": "prod_1",
+                        "name": "Test Product",
+                        "administrableDoseForm": {
+                            "id": "df_1",
+                            "code": "C42998",
+                            "decode": "Tablet",
+                            "instanceType": "Code"
+                        }
+                    }]
+                }]
+            }
+        }
+        
+        result = normalize_usdm_data(data)
+        
+        # Verify standardCode is added
+        prod = result["study"]["versions"][0]["administrableProducts"][0]
+        dose_form = prod["administrableDoseForm"]
+        assert "standardCode" in dose_form
+        assert dose_form["standardCode"]["code"] == "C42998"
+        assert dose_form["standardCode"]["instanceType"] == "Code"

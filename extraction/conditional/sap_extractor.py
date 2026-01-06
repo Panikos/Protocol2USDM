@@ -33,16 +33,17 @@ class AnalysisPopulation:
     instance_type: str = "AnalysisPopulation"
     
     def to_dict(self) -> Dict[str, Any]:
+        # Use definition as description if available, otherwise use description
+        desc = self.definition or self.description or self.name
         result = {
             "id": self.id,
             "name": self.name,
+            "text": desc,  # Required field per USDM schema
             "populationType": self.population_type,
             "instanceType": self.instance_type,
         }
         if self.label:
             result["label"] = self.label
-        # Use definition as description if available, otherwise use description
-        desc = self.definition or self.description
         if desc:
             result["populationDescription"] = desc
         if self.criteria:

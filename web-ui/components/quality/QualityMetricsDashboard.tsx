@@ -253,11 +253,17 @@ function calculateFieldPopulation(
   };
   
   if (design) {
-    checkFields(design.activities as unknown[], ['name', 'description', 'label'], 'Activities');
-    checkFields(design.encounters as unknown[], ['name', 'description', 'epochId'], 'Encounters');
-    checkFields(design.epochs as unknown[], ['name', 'description', 'type'], 'Epochs');
-    checkFields(design.arms as unknown[], ['name', 'description', 'type'], 'Arms');
-    checkFields(design.objectives as unknown[], ['text', 'description', 'level'], 'Objectives');
+    // Only check required/meaningful fields, not optional ones like 'description'
+    // Activities: name is required, label is alternative display name
+    checkFields(design.activities as unknown[], ['name'], 'Activities');
+    // Encounters: name and epochId are essential for SoA
+    checkFields(design.encounters as unknown[], ['name', 'epochId'], 'Encounters');
+    // Epochs: name and epochType define the epoch
+    checkFields(design.epochs as unknown[], ['name', 'epochType'], 'Epochs');
+    // Arms: name and type are essential
+    checkFields(design.arms as unknown[], ['name', 'type'], 'Arms');
+    // Objectives: text and level are essential
+    checkFields(design.objectives as unknown[], ['text', 'level'], 'Objectives');
   }
   
   return metrics;
@@ -284,8 +290,9 @@ function calculateLinkageAccuracy(
   const encounterEpoch = encounters.length > 0 ? (encounterLinked / encounters.length) * 100 : 100;
   
   // Activity → Schedule linkage (check scheduleTimelines)
+  // Only count SoA activities, not procedure enrichment activities
   const scheduleTimelines = (design.scheduleTimelines as { instances?: { activityIds?: string[] }[] }[]) ?? [];
-  const activities = (design.activities as { id: string }[]) ?? [];
+  const allActivities = (design.activities as { id: string; extensionAttributes?: { url?: string; valueString?: string }[] }[]) ?? [];
   const scheduledActivityIds = new Set<string>();
   
   for (const timeline of scheduleTimelines) {
@@ -296,13 +303,22 @@ function calculateLinkageAccuracy(
     }
   }
   
+  // Filter to only SoA activities (exclude procedure_enrichment)
+  // Activities with source='soa' or source='unknown' (backward compat) should be counted
+  const soaActivities = allActivities.filter(act => {
+    const sourceExt = act.extensionAttributes?.find(ext => ext.url?.endsWith('activitySource'));
+    const source = sourceExt?.valueString;
+    // Include if source is 'soa', 'unknown', or not set (backward compatibility)
+    return source !== 'procedure_enrichment';
+  });
+  
   let activityLinked = 0;
-  for (const act of activities) {
+  for (const act of soaActivities) {
     if (scheduledActivityIds.has(act.id)) {
       activityLinked++;
     }
   }
-  const activitySchedule = activities.length > 0 ? (activityLinked / activities.length) * 100 : 100;
+  const activitySchedule = soaActivities.length > 0 ? (activityLinked / soaActivities.length) * 100 : 100;
   
   // Overall
   const overall = (encounterEpoch + activitySchedule) / 2;

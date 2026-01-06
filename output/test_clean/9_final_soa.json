@@ -1,0 +1,3014 @@
+{
+  "usdmVersion": "4.0",
+  "systemName": "Protocol2USDM",
+  "systemVersion": "6.2.0",
+  "study": {
+    "id": "54202665-d166-40db-8472-459f8f0cbc0c",
+    "name": "",
+    "instanceType": "Study",
+    "versions": [
+      {
+        "id": "a19a81c4-b8ba-4517-bd61-a754be0c1e01",
+        "versionIdentifier": "1.0",
+        "rationale": "Initial protocol version",
+        "instanceType": "StudyVersion",
+        "studyDesigns": [
+          {
+            "id": "sd_1",
+            "name": "Study Design",
+            "rationale": "Protocol-defined study design",
+            "instanceType": "InterventionalStudyDesign",
+            "blindingSchema": {
+              "id": "6fb9954b-9925-4f6c-9084-0de1a9bd7333",
+              "instanceType": "AliasCode",
+              "standardCode": {
+                "id": "77fb3555-b847-49d5-be78-93614f245711",
+                "code": "C49656",
+                "codeSystem": "http://www.cdisc.org",
+                "codeSystemVersion": "2024-09-27",
+                "decode": "Open Label",
+                "instanceType": "Code"
+              }
+            },
+            "model": {
+              "id": "74170d57-684c-42af-a92c-89b0e6b9eb78",
+              "code": "C82638",
+              "codeSystem": "http://www.cdisc.org",
+              "codeSystemVersion": "2024-09-27",
+              "decode": "Single Group Study",
+              "instanceType": "Code"
+            },
+            "epochs": [
+              {
+                "id": "epoch_1",
+                "name": "Screening",
+                "instanceType": "StudyEpoch",
+                "type": {
+                  "id": "61f6ea86-2cb6-4c55-8d87-543393a99c2f",
+                  "code": "C98779",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Screening Epoch",
+                  "instanceType": "Code"
+                }
+              },
+              {
+                "id": "epoch_2",
+                "name": "C-I",
+                "instanceType": "StudyEpoch",
+                "type": {
+                  "id": "8813eb9a-6207-4c4a-a941-5f4ffc165cf6",
+                  "code": "C98780",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Treatment Epoch",
+                  "instanceType": "Code"
+                }
+              },
+              {
+                "id": "epoch_3",
+                "name": "Inpatient Period 1",
+                "instanceType": "StudyEpoch",
+                "type": {
+                  "id": "d3ab0f97-85b0-44e9-a39a-b766357da275",
+                  "code": "C98780",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Treatment Epoch",
+                  "instanceType": "Code"
+                }
+              },
+              {
+                "id": "epoch_4",
+                "name": "OP",
+                "instanceType": "StudyEpoch",
+                "type": {
+                  "id": "7ad851cb-8918-49ac-a467-9ac282d292b9",
+                  "code": "C98780",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Treatment Epoch",
+                  "instanceType": "Code"
+                }
+              },
+              {
+                "id": "epoch_5",
+                "name": "Inpatient Period 2",
+                "instanceType": "StudyEpoch",
+                "type": {
+                  "id": "d1215458-2a25-4b07-aac8-66f04ef93316",
+                  "code": "C98780",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Treatment Epoch",
+                  "instanceType": "Code"
+                }
+              },
+              {
+                "id": "epoch_6",
+                "name": "UNS / EOS or ET",
+                "instanceType": "StudyEpoch",
+                "type": {
+                  "id": "afad4cb9-6abc-469c-ba74-cc5a1934b196",
+                  "code": "C98780",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Treatment Epoch",
+                  "instanceType": "Code"
+                }
+              }
+            ],
+            "activities": [
+              {
+                "id": "grp_1",
+                "name": "Eligibility",
+                "instanceType": "Activity",
+                "childIds": [
+                  "act_1",
+                  "act_2",
+                  "act_6",
+                  "act_8",
+                  "act_9",
+                  "act_10"
+                ]
+              },
+              {
+                "id": "grp_3",
+                "name": "Enrollment",
+                "instanceType": "Activity",
+                "childIds": [
+                  "act_16",
+                  "act_17",
+                  "act_18"
+                ]
+              },
+              {
+                "id": "grp_4",
+                "name": "Administration of Study Intervention",
+                "instanceType": "Activity",
+                "childIds": [
+                  "act_19",
+                  "act_20"
+                ]
+              },
+              {
+                "id": "grp_5",
+                "name": "PK/PD Analyseso",
+                "instanceType": "Activity",
+                "childIds": [
+                  "act_23"
+                ]
+              },
+              {
+                "id": "grp_6",
+                "name": "Safety Assessments / Laboratory Analyses",
+                "instanceType": "Activity",
+                "childIds": [
+                  "act_25",
+                  "act_26",
+                  "act_30"
+                ]
+              },
+              {
+                "id": "grp_7",
+                "name": "Balance assessments",
+                "instanceType": "Activity",
+                "childIds": [
+                  "act_32"
+                ]
+              },
+              {
+                "id": "grp_8",
+                "name": "Other",
+                "instanceType": "Activity",
+                "childIds": [
+                  "act_36"
+                ]
+              },
+              {
+                "id": "act_1",
+                "name": "Informed consent",
+                "instanceType": "Activity",
+                "description": "Informed consent"
+              },
+              {
+                "id": "act_2",
+                "name": "Admit to unit",
+                "instanceType": "Activity",
+                "description": "Admit to unit"
+              },
+              {
+                "id": "act_3",
+                "name": "Discharge from unit",
+                "instanceType": "Activity",
+                "description": "Discharge from unit"
+              },
+              {
+                "id": "act_4",
+                "name": "Outpatient visit or phone call",
+                "instanceType": "Activity",
+                "description": "Outpatient visit or phone call"
+              },
+              {
+                "id": "act_5",
+                "name": "Inclusion/exclusion",
+                "instanceType": "Activity",
+                "description": "Inclusion/exclusion"
+              },
+              {
+                "id": "act_6",
+                "name": "Discuss/document contraception",
+                "instanceType": "Activity",
+                "description": "Discuss/document contraception"
+              },
+              {
+                "id": "act_7",
+                "name": "Follicle-stimulating hormone (post-menopausal females only)",
+                "instanceType": "Activity",
+                "description": "Follicle-stimulating hormone (post-menopausal females only)"
+              },
+              {
+                "id": "act_8",
+                "name": "Alcohol test",
+                "instanceType": "Activity",
+                "description": "Alcohol test"
+              },
+              {
+                "id": "act_9",
+                "name": "Urine drug screen",
+                "instanceType": "Activity",
+                "description": "Urine drug screen"
+              },
+              {
+                "id": "act_10",
+                "name": "HIV, hepatitis B and C screen",
+                "instanceType": "Activity",
+                "description": "HIV, hepatitis B and C screen"
+              },
+              {
+                "id": "act_11",
+                "name": "Medical history/demographics",
+                "instanceType": "Activity",
+                "description": "Medical history/demographics"
+              },
+              {
+                "id": "act_12",
+                "name": "WD history",
+                "instanceType": "Activity",
+                "description": "WD history"
+              },
+              {
+                "id": "act_13",
+                "name": "Prior WD treatment",
+                "instanceType": "Activity",
+                "description": "Prior WD treatment"
+              },
+              {
+                "id": "act_14",
+                "name": "Physical examination",
+                "instanceType": "Activity",
+                "description": "Physical examination"
+              },
+              {
+                "id": "act_15",
+                "name": "Height, weight, and BMI",
+                "instanceType": "Activity",
+                "description": "Height, weight, and BMI"
+              },
+              {
+                "id": "act_16",
+                "name": "Enrollment/inclusion",
+                "instanceType": "Activity",
+                "description": "Enrollment/inclusion"
+              },
+              {
+                "id": "act_17",
+                "name": "Discontinue chelation therapy",
+                "instanceType": "Activity",
+                "description": "Discontinue chelation therapy"
+              },
+              {
+                "id": "act_18",
+                "name": "Discontinue zinc therapy",
+                "instanceType": "Activity",
+                "description": "Discontinue zinc therapy"
+              },
+              {
+                "id": "act_19",
+                "name": "ALXN1840 15 mg/day",
+                "instanceType": "Activity",
+                "description": "ALXN1840 15 mg/day"
+              },
+              {
+                "id": "act_20",
+                "name": "ALXN1840 30 mg/day",
+                "instanceType": "Activity",
+                "description": "ALXN1840 30 mg/day"
+              },
+              {
+                "id": "act_21",
+                "name": "Study intervention compliance",
+                "instanceType": "Activity",
+                "description": "Study intervention compliance"
+              },
+              {
+                "id": "act_22",
+                "name": "Blood sampling for PK: Plasma total Mo and PUF-Mo",
+                "instanceType": "Activity",
+                "description": "Blood sampling for PK: Plasma total Mo and PUF-Mo"
+              },
+              {
+                "id": "act_23",
+                "name": "PD: Plasma total and PUF-Cu, LBC, ceruloplasmin, ceruloplasmin-bound Cu",
+                "instanceType": "Activity",
+                "description": "PD: Plasma total and PUF-Cu, LBC, ceruloplasmin, ceruloplasmin-bound Cu"
+              },
+              {
+                "id": "act_24",
+                "name": "Chemistry, hematology, Coagulation",
+                "instanceType": "Activity",
+                "description": "Chemistry, hematology, Coagulation"
+              },
+              {
+                "id": "act_25",
+                "name": "Urinalysis",
+                "instanceType": "Activity",
+                "description": "Urinalysis"
+              },
+              {
+                "id": "act_26",
+                "name": "Urine/serum pregnancy tests",
+                "instanceType": "Activity",
+                "description": "Urine/serum pregnancy tests"
+              },
+              {
+                "id": "act_27",
+                "name": "Retained serum sample (safety)",
+                "instanceType": "Activity",
+                "description": "Retained serum sample (safety)"
+              },
+              {
+                "id": "act_28",
+                "name": "Vitals sign measurements",
+                "instanceType": "Activity",
+                "description": "Vitals sign measurements"
+              },
+              {
+                "id": "act_29",
+                "name": "12-lead ECG (triplicate)",
+                "instanceType": "Activity",
+                "description": "12-lead ECG (triplicate)"
+              },
+              {
+                "id": "act_30",
+                "name": "Adverse events",
+                "instanceType": "Activity",
+                "description": "Adverse events"
+              },
+              {
+                "id": "act_31",
+                "name": "Cu/Mo-controlled meals",
+                "instanceType": "Activity",
+                "description": "Cu/Mo-controlled meals"
+              },
+              {
+                "id": "act_32",
+                "name": "Light exercise regimen",
+                "instanceType": "Activity",
+                "description": "Light exercise regimen"
+              },
+              {
+                "id": "act_33",
+                "name": "Urination and bowel movement monitoring, menstruation checks",
+                "instanceType": "Activity",
+                "description": "Urination and bowel movement monitoring, menstruation checks"
+              },
+              {
+                "id": "act_34",
+                "name": "24-hour urine for Cu and Mo",
+                "instanceType": "Activity",
+                "description": "24-hour urine for Cu and Mo"
+              },
+              {
+                "id": "act_35",
+                "name": "Feces for Cu and Mo",
+                "instanceType": "Activity",
+                "description": "Feces for Cu and Mo"
+              },
+              {
+                "id": "act_36",
+                "name": "Concomitant medication and non-pharmacologic therapy/procedure",
+                "instanceType": "Activity",
+                "description": "Concomitant medication and non-pharmacologic therapy/procedure"
+              }
+            ],
+            "encounters": [
+              {
+                "id": "enc_1",
+                "name": "Screening (-42 to -9)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "e541db25-2c20-434d-87cf-1a0049d136d7",
+                  "code": "C48262",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Screening",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_1"
+              },
+              {
+                "id": "enc_2",
+                "name": "Screening (-21)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "d399d64e-c937-4e2b-8cdc-6e185bd3201f",
+                  "code": "C48262",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Screening",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_1"
+              },
+              {
+                "id": "enc_3",
+                "name": "C-I (-8)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "bce058f3-bdeb-4184-a7aa-feb28cb96d06",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_2"
+              },
+              {
+                "id": "enc_4",
+                "name": "C-I (-7)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "3e5c9075-be37-42d2-8409-41f0c1e4d229",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_2"
+              },
+              {
+                "id": "enc_5",
+                "name": "Inpatient Period 1 (-6 through -1)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "7a8c2106-56bf-42a1-a7c9-162daa374723",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_3"
+              },
+              {
+                "id": "enc_6",
+                "name": "Inpatient Period 1 (Day 1)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "14a52591-9886-4bc2-8763-cb53b6e99cea",
+                  "code": "C82517",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Baseline",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_3"
+              },
+              {
+                "id": "enc_7",
+                "name": "Inpatient Period 1 (Day 2-3)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "c6e8108e-6b8a-476f-8323-0f5945a3b180",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_3"
+              },
+              {
+                "id": "enc_8",
+                "name": "Inpatient Period 1 (Day 4-7)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "172df4c5-3133-4bf0-91a0-04430f532599",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_3"
+              },
+              {
+                "id": "enc_9",
+                "name": "Inpatient Period 1 (Day 8)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "57f94a99-b7d1-4315-adf2-385496377954",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_3"
+              },
+              {
+                "id": "enc_10",
+                "name": "Inpatient Period 1 (Day 9)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "37459e0b-0097-4204-8310-d89114aa7e2b",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_3"
+              },
+              {
+                "id": "enc_11",
+                "name": "OP (Day 10-22)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "ec1a643a-abb9-42ea-a0da-420c4227deed",
+                  "code": "C82517",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Baseline",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_4"
+              },
+              {
+                "id": "enc_12",
+                "name": "OP (Day 23)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "a83b2d0f-f241-47f9-99a1-5ec67674e82b",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_4"
+              },
+              {
+                "id": "enc_13",
+                "name": "Inpatient Period 2 (Day 24)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "3cc48568-2c66-4993-a4d7-78b1d8f8aaa2",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_5"
+              },
+              {
+                "id": "enc_14",
+                "name": "Inpatient Period 2 (Day 25)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "0dc608a1-1609-4d1e-8b78-897a32ebe8fc",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_5"
+              },
+              {
+                "id": "enc_15",
+                "name": "Inpatient Period 2 (Day 26-28)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "ce1acb76-9cbe-490d-933d-e6741077f24e",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_5"
+              },
+              {
+                "id": "enc_16",
+                "name": "Inpatient Period 2 (Day 29)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "2431dfbc-f453-42d7-ab3d-24b353b10bb9",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_5"
+              },
+              {
+                "id": "enc_17",
+                "name": "Inpatient Period 2 (Day 30-35)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "b83c624a-b023-41ba-8b56-5861e9a1d510",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_5"
+              },
+              {
+                "id": "enc_18",
+                "name": "Inpatient Period 2 (Day 36-37)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "d831f14f-eb6d-49b9-8e2f-68fa568a5cc7",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_5"
+              },
+              {
+                "id": "enc_19",
+                "name": "Inpatient Period 2 (Day 38)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "f856cd3e-9f0c-49f6-a0a4-f446bd249f1a",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_5"
+              },
+              {
+                "id": "enc_20",
+                "name": "Inpatient Period 2 (Day 39)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "d2954028-5b80-4b14-874a-663e1c0cf7e7",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_5"
+              },
+              {
+                "id": "enc_21",
+                "name": "Inpatient Period 2 (Day 40)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "5edc8081-1bb7-4e3c-ab7c-097f16eedb5b",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_5"
+              },
+              {
+                "id": "enc_22",
+                "name": "EOS (Day 54+/-2)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "1b1826f3-ef59-4538-bebf-d0010231345a",
+                  "code": "C126070",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "End of Study",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_6"
+              }
+            ],
+            "scheduleTimelines": [
+              {
+                "id": "timeline_1",
+                "name": "Main Schedule Timeline",
+                "mainTimeline": true,
+                "instanceType": "ScheduleTimeline",
+                "entryCondition": "Subject enrolled in study",
+                "entryId": "ec581354-9652-41cd-9a58-6b684a63f30b",
+                "instances": [
+                  {
+                    "id": "ec581354-9652-41cd-9a58-6b684a63f30b",
+                    "activityIds": [
+                      "act_1"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Informed consent @ Screening (-42 to -9)",
+                    "epochId": "epoch_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "d610464e-0d79-4b6e-a70d-aaa63ca385ef",
+                    "activityIds": [
+                      "act_2"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Admit to unit @ C-I (-8)",
+                    "epochId": "epoch_2",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "595de2a9-8d3b-4bb2-9ad7-d1230f29f644",
+                    "activityIds": [
+                      "act_2"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Admit to unit @ OP (Day 23)",
+                    "epochId": "epoch_4",
+                    "encounterId": "enc_12"
+                  },
+                  {
+                    "id": "78ad508d-513c-485c-b7b4-b18caddb7401",
+                    "activityIds": [
+                      "act_3"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Discharge from unit @ Inpatient Period 1 (Day 9)",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_10"
+                  },
+                  {
+                    "id": "bfa4d810-dc94-43b1-ac71-e30e6149c33c",
+                    "activityIds": [
+                      "act_3"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Discharge from unit @ Inpatient Period 2 (Day 40)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_21"
+                  },
+                  {
+                    "id": "763bd4cb-86bf-431f-9552-448bfbb2ee1a",
+                    "activityIds": [
+                      "act_4"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Outpatient visit or phone call @ OP (Day 10-22)",
+                    "epochId": "epoch_4",
+                    "encounterId": "enc_11"
+                  },
+                  {
+                    "id": "686af3cb-e3d8-46b0-8552-1bb3d9b06c4a",
+                    "activityIds": [
+                      "act_5"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Inclusion/exclusion @ Screening (-42 to -9)",
+                    "epochId": "epoch_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "62721b5c-3c4d-49c3-a748-95f17e31726b",
+                    "activityIds": [
+                      "act_5"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Inclusion/exclusion @ C-I (-8)",
+                    "epochId": "epoch_2",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "a0d480dd-66ef-42bc-8fbc-f66932e39360",
+                    "activityIds": [
+                      "act_5"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Inclusion/exclusion @ Inpatient Period 1 (Day 1)",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_6"
+                  },
+                  {
+                    "id": "dc3bebec-800a-4079-9b56-90aaadcbec72",
+                    "activityIds": [
+                      "act_6"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Discuss/document contraception @ Screening (-42 to -9)",
+                    "epochId": "epoch_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "0ef5a4eb-f0dd-4c63-ae3a-ee4b35dbcc08",
+                    "activityIds": [
+                      "act_6"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Discuss/document contraception @ C-I (-8)",
+                    "epochId": "epoch_2",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "4227081e-54b5-460a-9fe3-99c46754c573",
+                    "activityIds": [
+                      "act_6"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Discuss/document contraception @ Inpatient Period 1 (Day 9)",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_10"
+                  },
+                  {
+                    "id": "b56e5c10-a532-48b2-9a5a-34d92b54d07e",
+                    "activityIds": [
+                      "act_6"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Discuss/document contraception @ EOS (Day 54+/-2)",
+                    "epochId": "epoch_6",
+                    "encounterId": "enc_22"
+                  },
+                  {
+                    "id": "6527ac1b-7bcc-4aca-9053-8e926b2dc086",
+                    "activityIds": [
+                      "act_7"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Follicle-stimulating hormone (post-menopausal f... @ Screening (-42 to -9)",
+                    "epochId": "epoch_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "f45958e9-a8ad-4969-b934-b624683ee1be",
+                    "activityIds": [
+                      "act_8"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Alcohol test @ Screening (-42 to -9)",
+                    "epochId": "epoch_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "2f8c3747-ba02-4306-bb9f-87a37691b026",
+                    "activityIds": [
+                      "act_8"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Alcohol test @ C-I (-8)",
+                    "epochId": "epoch_2",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "938de944-28d1-42bf-9217-4e1aaac81516",
+                    "activityIds": [
+                      "act_9"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Urine drug screen @ Screening (-42 to -9)",
+                    "epochId": "epoch_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "b299b047-0ac6-4949-85e9-778abd1531f1",
+                    "activityIds": [
+                      "act_9"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Urine drug screen @ C-I (-8)",
+                    "epochId": "epoch_2",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "15d97df8-4510-445a-b590-06eb66c65415",
+                    "activityIds": [
+                      "act_10"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "HIV, hepatitis B and C screen @ Screening (-42 to -9)",
+                    "epochId": "epoch_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "e1dc645c-283a-4f5e-9e05-e4921713f14d",
+                    "activityIds": [
+                      "act_11"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Medical history/demographics @ Screening (-42 to -9)",
+                    "epochId": "epoch_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "0c42b38b-b7eb-4a6e-bd78-1b462818d4c6",
+                    "activityIds": [
+                      "act_12"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "WD history @ Screening (-42 to -9)",
+                    "epochId": "epoch_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "c2e9f22d-149b-4551-9d73-6d609e14bd53",
+                    "activityIds": [
+                      "act_13"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Prior WD treatment @ Screening (-42 to -9)",
+                    "epochId": "epoch_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "7bd5e45d-fded-46e0-b279-fd1c8695351a",
+                    "activityIds": [
+                      "act_13"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Prior WD treatment @ Inpatient Period 1 (Day 1)",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_6"
+                  },
+                  {
+                    "id": "7399fe03-3d27-4d87-a8a7-142d713e67c9",
+                    "activityIds": [
+                      "act_14"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Physical examination @ Screening (-42 to -9)",
+                    "epochId": "epoch_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "9c5a49df-fcb8-40d2-865a-11f59265b99d",
+                    "activityIds": [
+                      "act_14"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Physical examination @ C-I (-8)",
+                    "epochId": "epoch_2",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "2a8bbab1-43f9-48ad-be63-bbb218efa576",
+                    "activityIds": [
+                      "act_14"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Physical examination @ OP (Day 23)",
+                    "epochId": "epoch_4",
+                    "encounterId": "enc_12"
+                  },
+                  {
+                    "id": "5d015db9-5587-401f-a297-b17d442ffa81",
+                    "activityIds": [
+                      "act_14"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Physical examination @ EOS (Day 54+/-2)",
+                    "epochId": "epoch_6",
+                    "encounterId": "enc_22"
+                  },
+                  {
+                    "id": "ebc12b69-5785-40a8-8da8-5b6cc38889a7",
+                    "activityIds": [
+                      "act_15"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Height, weight, and BMI @ Screening (-42 to -9)",
+                    "epochId": "epoch_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "56831af0-3ffd-46f8-9008-a93c469e1611",
+                    "activityIds": [
+                      "act_15"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Height, weight, and BMI @ C-I (-8)",
+                    "epochId": "epoch_2",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "c3a771aa-9891-438d-8b4e-108860e51d39",
+                    "activityIds": [
+                      "act_15"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Height, weight, and BMI @ OP (Day 23)",
+                    "epochId": "epoch_4",
+                    "encounterId": "enc_12"
+                  },
+                  {
+                    "id": "4ce311b2-72d5-459b-855e-629833aaf4f9",
+                    "activityIds": [
+                      "act_15"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Height, weight, and BMI @ Inpatient Period 2 (Day 40)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_21"
+                  },
+                  {
+                    "id": "46e61edc-5d52-47df-a9e3-98785a9ad4a2",
+                    "activityIds": [
+                      "act_16"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Enrollment/inclusion @ C-I (-7)",
+                    "epochId": "epoch_2",
+                    "encounterId": "enc_4"
+                  },
+                  {
+                    "id": "cc11218a-5935-4e4b-8c54-164b02a947e6",
+                    "activityIds": [
+                      "act_17"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Discontinue chelation therapy @ Inpatient Period 1 (-6 thro...",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_5"
+                  },
+                  {
+                    "id": "f2e61fd1-bfcb-4441-b341-73d4ce2932b5",
+                    "activityIds": [
+                      "act_18"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Discontinue zinc therapy @ Screening (-21)",
+                    "epochId": "epoch_1",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "008db88d-487a-4840-afc4-84e6387dfafd",
+                    "activityIds": [
+                      "act_19"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "ALXN1840 15 mg/day @ Inpatient Period 1 (Day 1)",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_6"
+                  },
+                  {
+                    "id": "2f5ad575-4345-4d5d-993a-a82ceb5ad9a3",
+                    "activityIds": [
+                      "act_19"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "ALXN1840 15 mg/day @ Inpatient Period 1 (Day 2-3)",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_7"
+                  },
+                  {
+                    "id": "b06813bd-d4d9-46c4-98dd-1ceb6f0bc377",
+                    "activityIds": [
+                      "act_19"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "ALXN1840 15 mg/day @ Inpatient Period 1 (Day 4-7)",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_8"
+                  },
+                  {
+                    "id": "0d1fc153-750b-4c8f-b324-1511af41411a",
+                    "activityIds": [
+                      "act_19"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "ALXN1840 15 mg/day @ Inpatient Period 1 (Day 8)",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_9"
+                  },
+                  {
+                    "id": "c283c72f-9e92-440e-8b95-8915b33cc7b6",
+                    "activityIds": [
+                      "act_19"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "ALXN1840 15 mg/day @ Inpatient Period 1 (Day 9)",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_10"
+                  },
+                  {
+                    "id": "8fedf7e0-d47c-49c5-b8e8-d270de6662e0",
+                    "activityIds": [
+                      "act_19"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "ALXN1840 15 mg/day @ OP (Day 10-22)",
+                    "epochId": "epoch_4",
+                    "encounterId": "enc_11"
+                  },
+                  {
+                    "id": "5cd3b1d4-5751-4457-b772-bb73736b8b3b",
+                    "activityIds": [
+                      "act_19"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "ALXN1840 15 mg/day @ OP (Day 23)",
+                    "epochId": "epoch_4",
+                    "encounterId": "enc_12"
+                  },
+                  {
+                    "id": "9e822dde-354f-4b3a-a627-27fbd71e698a",
+                    "activityIds": [
+                      "act_19"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "ALXN1840 15 mg/day @ Inpatient Period 2 (Day 24)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_13"
+                  },
+                  {
+                    "id": "1ee96c4e-c960-46aa-9976-8fc2665a4cbe",
+                    "activityIds": [
+                      "act_19"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "ALXN1840 15 mg/day @ Inpatient Period 2 (Day 25)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_14"
+                  },
+                  {
+                    "id": "895f3c2b-df39-4e8e-8cef-648e2ab8261d",
+                    "activityIds": [
+                      "act_19"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "ALXN1840 15 mg/day @ Inpatient Period 2 (Day 26-28)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_15"
+                  },
+                  {
+                    "id": "8fc93682-38e0-4978-87fe-3218760aed10",
+                    "activityIds": [
+                      "act_20"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "ALXN1840 30 mg/day @ Inpatient Period 2 (Day 29)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_16"
+                  },
+                  {
+                    "id": "9329df96-5f56-408f-ab38-c6dadc152dfd",
+                    "activityIds": [
+                      "act_20"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "ALXN1840 30 mg/day @ Inpatient Period 2 (Day 30-35)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_17"
+                  },
+                  {
+                    "id": "18652239-b6d2-4564-9a56-6a42742fc0f3",
+                    "activityIds": [
+                      "act_20"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "ALXN1840 30 mg/day @ Inpatient Period 2 (Day 36-37)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_18"
+                  },
+                  {
+                    "id": "9a480b7a-b3fb-4ea0-a205-8a600a33483e",
+                    "activityIds": [
+                      "act_20"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "ALXN1840 30 mg/day @ Inpatient Period 2 (Day 38)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_19"
+                  },
+                  {
+                    "id": "a8d88a37-3c49-439b-975e-a96aa0964e26",
+                    "activityIds": [
+                      "act_20"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "ALXN1840 30 mg/day @ Inpatient Period 2 (Day 39)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_20"
+                  },
+                  {
+                    "id": "0603f991-b894-4612-8be1-64846e5b2c5e",
+                    "activityIds": [
+                      "act_21"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Study intervention compliance @ OP (Day 10-22)",
+                    "epochId": "epoch_4",
+                    "encounterId": "enc_11"
+                  },
+                  {
+                    "id": "6d75de1f-e078-47df-9f3e-8d5b26543c4e",
+                    "activityIds": [
+                      "act_21"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Study intervention compliance @ OP (Day 23)",
+                    "epochId": "epoch_4",
+                    "encounterId": "enc_12"
+                  },
+                  {
+                    "id": "22ad2b67-6233-4398-8786-eadb7bd2ffff",
+                    "activityIds": [
+                      "act_22"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Blood sampling for PK: Plasma total Mo and PUF-Mo @ Inpatient Period 1 (Day 1)",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_6"
+                  },
+                  {
+                    "id": "8a1a4dec-900b-4fa9-acc7-1766ff4e6fa2",
+                    "activityIds": [
+                      "act_22"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Blood sampling for PK: Plasma total Mo and PUF-Mo @ Inpatient Period 1 (Day 4-7)",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_8"
+                  },
+                  {
+                    "id": "c5bf2311-1afd-4f60-8158-76372b20b9a5",
+                    "activityIds": [
+                      "act_22"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Blood sampling for PK: Plasma total Mo and PUF-Mo @ Inpatient Period 2 (Day 25)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_14"
+                  },
+                  {
+                    "id": "3bb01ab2-e401-42c4-9c93-6a0a7796c4b2",
+                    "activityIds": [
+                      "act_22"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Blood sampling for PK: Plasma total Mo and PUF-Mo @ Inpatient Period 2 (Day 26-28)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_15"
+                  },
+                  {
+                    "id": "db6a9dd5-a5d8-4b69-8be6-90144b446ac8",
+                    "activityIds": [
+                      "act_22"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Blood sampling for PK: Plasma total Mo and PUF-Mo @ Inpatient Period 2 (Day 29)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_16"
+                  },
+                  {
+                    "id": "3b0ac721-7b00-4464-a483-5b7e1678680b",
+                    "activityIds": [
+                      "act_22"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Blood sampling for PK: Plasma total Mo and PUF-Mo @ Inpatient Period 2 (Day 30-35)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_17"
+                  },
+                  {
+                    "id": "e339cbe3-e7e9-45d6-bfba-9aff0b4d64cc",
+                    "activityIds": [
+                      "act_22"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Blood sampling for PK: Plasma total Mo and PUF-Mo @ Inpatient Period 2 (Day 36-37)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_18"
+                  },
+                  {
+                    "id": "ac820e47-1d0c-4819-8c4e-37f941938f18",
+                    "activityIds": [
+                      "act_22"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Blood sampling for PK: Plasma total Mo and PUF-Mo @ Inpatient Period 2 (Day 38)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_19"
+                  },
+                  {
+                    "id": "18929283-a2a2-4711-9092-0cd6d4bed0a4",
+                    "activityIds": [
+                      "act_22"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Blood sampling for PK: Plasma total Mo and PUF-Mo @ Inpatient Period 2 (Day 39)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_20"
+                  },
+                  {
+                    "id": "2eb8a69f-a915-43ab-a9d6-20f246b7592e",
+                    "activityIds": [
+                      "act_22"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Blood sampling for PK: Plasma total Mo and PUF-Mo @ EOS (Day 54+/-2)",
+                    "epochId": "epoch_6",
+                    "encounterId": "enc_22"
+                  },
+                  {
+                    "id": "1a9444e8-d440-4da5-a4bf-c84e022a157a",
+                    "activityIds": [
+                      "act_24"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Chemistry, hematology, Coagulation @ Screening (-42 to -9)",
+                    "epochId": "epoch_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "3d4421a3-3252-4a77-826b-13cb08613d3b",
+                    "activityIds": [
+                      "act_24"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Chemistry, hematology, Coagulation @ C-I (-8)",
+                    "epochId": "epoch_2",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "4b97cf3c-6507-4b55-9e91-857d6265f02e",
+                    "activityIds": [
+                      "act_24"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Chemistry, hematology, Coagulation @ Inpatient Period 1 (-6 thro...",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_5"
+                  },
+                  {
+                    "id": "07e1d0d7-e05e-46ee-9508-b910aeb2bfef",
+                    "activityIds": [
+                      "act_24"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Chemistry, hematology, Coagulation @ Inpatient Period 1 (Day 8)",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_9"
+                  },
+                  {
+                    "id": "eb73a472-f87b-4c81-a33d-2f12a3e1f828",
+                    "activityIds": [
+                      "act_24"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Chemistry, hematology, Coagulation @ OP (Day 10-22)",
+                    "epochId": "epoch_4",
+                    "encounterId": "enc_11"
+                  },
+                  {
+                    "id": "ad1191f5-6064-4259-8d26-0701e28467f9",
+                    "activityIds": [
+                      "act_24"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Chemistry, hematology, Coagulation @ OP (Day 23)",
+                    "epochId": "epoch_4",
+                    "encounterId": "enc_12"
+                  },
+                  {
+                    "id": "e7fa2fee-4b52-4329-8585-d9b17e80c188",
+                    "activityIds": [
+                      "act_24"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Chemistry, hematology, Coagulation @ Inpatient Period 2 (Day 26-28)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_15"
+                  },
+                  {
+                    "id": "befd5804-d3b6-4917-b363-9e3dfb305602",
+                    "activityIds": [
+                      "act_24"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Chemistry, hematology, Coagulation @ Inpatient Period 2 (Day 30-35)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_17"
+                  },
+                  {
+                    "id": "625d2690-4eb1-4177-9bc9-f9a01f920823",
+                    "activityIds": [
+                      "act_24"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Chemistry, hematology, Coagulation @ Inpatient Period 2 (Day 40)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_21"
+                  },
+                  {
+                    "id": "da83bfb5-eb21-4950-b625-d8c9542363d9",
+                    "activityIds": [
+                      "act_24"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Chemistry, hematology, Coagulation @ EOS (Day 54+/-2)",
+                    "epochId": "epoch_6",
+                    "encounterId": "enc_22"
+                  },
+                  {
+                    "id": "52fe990f-6db4-455a-ae2a-f06c41098f5f",
+                    "activityIds": [
+                      "act_25"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Urinalysis @ Screening (-42 to -9)",
+                    "epochId": "epoch_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "56fb2342-4973-4598-9584-401cc9a2f86b",
+                    "activityIds": [
+                      "act_25"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Urinalysis @ C-I (-8)",
+                    "epochId": "epoch_2",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "7ad96cfc-6cce-474c-9712-d61b3c9a4dce",
+                    "activityIds": [
+                      "act_25"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Urinalysis @ Inpatient Period 1 (Day 8)",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_9"
+                  },
+                  {
+                    "id": "7e6507a2-7d1e-490b-ab35-f840a44e5a2d",
+                    "activityIds": [
+                      "act_25"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Urinalysis @ OP (Day 10-22)",
+                    "epochId": "epoch_4",
+                    "encounterId": "enc_11"
+                  },
+                  {
+                    "id": "a24c0981-134b-4eaf-b074-3dd75604e8fd",
+                    "activityIds": [
+                      "act_25"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Urinalysis @ OP (Day 23)",
+                    "epochId": "epoch_4",
+                    "encounterId": "enc_12"
+                  },
+                  {
+                    "id": "fbb19c8e-543e-4b58-a182-1430b0f2a401",
+                    "activityIds": [
+                      "act_25"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Urinalysis @ Inpatient Period 2 (Day 26-28)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_15"
+                  },
+                  {
+                    "id": "ad10a506-3601-4970-b9cd-a4a20ef509a8",
+                    "activityIds": [
+                      "act_25"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Urinalysis @ Inpatient Period 2 (Day 40)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_21"
+                  },
+                  {
+                    "id": "9dbd0804-90ca-45d4-aafe-5dfceec61bf7",
+                    "activityIds": [
+                      "act_25"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Urinalysis @ EOS (Day 54+/-2)",
+                    "epochId": "epoch_6",
+                    "encounterId": "enc_22"
+                  },
+                  {
+                    "id": "5ab70793-12ab-41e8-bc0f-862a83a93881",
+                    "activityIds": [
+                      "act_26"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Urine/serum pregnancy tests @ Screening (-42 to -9)",
+                    "epochId": "epoch_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "36aad55a-f295-4d8b-adf2-754a7fa8bdd7",
+                    "activityIds": [
+                      "act_26"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Urine/serum pregnancy tests @ C-I (-8)",
+                    "epochId": "epoch_2",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "ecdea802-632c-43bc-b158-2f9eb897b53d",
+                    "activityIds": [
+                      "act_26"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Urine/serum pregnancy tests @ OP (Day 23)",
+                    "epochId": "epoch_4",
+                    "encounterId": "enc_12"
+                  },
+                  {
+                    "id": "ba632edd-c57b-4d68-9f24-fe8145f5d593",
+                    "activityIds": [
+                      "act_26"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Urine/serum pregnancy tests @ EOS (Day 54+/-2)",
+                    "epochId": "epoch_6",
+                    "encounterId": "enc_22"
+                  },
+                  {
+                    "id": "732dd179-a6f2-49b0-b727-6c8a483bfa33",
+                    "activityIds": [
+                      "act_27"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Retained serum sample (safety) @ C-I (-7)",
+                    "epochId": "epoch_2",
+                    "encounterId": "enc_4"
+                  },
+                  {
+                    "id": "1c6e81ae-849a-4e49-8f17-97f8e100203b",
+                    "activityIds": [
+                      "act_28"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Vitals sign measurements @ Screening (-42 to -9)",
+                    "epochId": "epoch_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "6d762574-64fe-40cb-b51c-d4d79110de2b",
+                    "activityIds": [
+                      "act_28"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Vitals sign measurements @ C-I (-7)",
+                    "epochId": "epoch_2",
+                    "encounterId": "enc_4"
+                  },
+                  {
+                    "id": "58f8ec41-e4c0-41be-a48a-52b7b61443d3",
+                    "activityIds": [
+                      "act_28"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Vitals sign measurements @ Inpatient Period 1 (Day 1)",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_6"
+                  },
+                  {
+                    "id": "16d3ead9-a253-4c58-bbf9-6cb2eb06300e",
+                    "activityIds": [
+                      "act_28"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Vitals sign measurements @ Inpatient Period 1 (Day 9)",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_10"
+                  },
+                  {
+                    "id": "1d59d6bd-7366-4175-ab6f-6901795aec17",
+                    "activityIds": [
+                      "act_28"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Vitals sign measurements @ OP (Day 23)",
+                    "epochId": "epoch_4",
+                    "encounterId": "enc_12"
+                  },
+                  {
+                    "id": "e5f9efd1-9f04-43de-9a79-cf3e90928237",
+                    "activityIds": [
+                      "act_28"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Vitals sign measurements @ Inpatient Period 2 (Day 39)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_20"
+                  },
+                  {
+                    "id": "d50a1884-c841-4831-9487-a54522cd5877",
+                    "activityIds": [
+                      "act_28"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Vitals sign measurements @ EOS (Day 54+/-2)",
+                    "epochId": "epoch_6",
+                    "encounterId": "enc_22"
+                  },
+                  {
+                    "id": "780c1591-c0da-43f5-aaf2-f03ba8e4ff8e",
+                    "activityIds": [
+                      "act_29"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "12-lead ECG (triplicate) @ Screening (-42 to -9)",
+                    "epochId": "epoch_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "7a2d7e9e-34db-462a-87d3-75a642e6ecf0",
+                    "activityIds": [
+                      "act_29"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "12-lead ECG (triplicate) @ C-I (-7)",
+                    "epochId": "epoch_2",
+                    "encounterId": "enc_4"
+                  },
+                  {
+                    "id": "12d873f0-b5eb-4aa9-9c73-9b1b8adc1b60",
+                    "activityIds": [
+                      "act_29"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "12-lead ECG (triplicate) @ Inpatient Period 1 (Day 1)",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_6"
+                  },
+                  {
+                    "id": "e5d0b623-528d-4c1a-9257-54dfe2e50049",
+                    "activityIds": [
+                      "act_29"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "12-lead ECG (triplicate) @ Inpatient Period 1 (Day 9)",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_10"
+                  },
+                  {
+                    "id": "cfa8626f-156a-4362-ab71-0a90dc837e2c",
+                    "activityIds": [
+                      "act_29"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "12-lead ECG (triplicate) @ OP (Day 23)",
+                    "epochId": "epoch_4",
+                    "encounterId": "enc_12"
+                  },
+                  {
+                    "id": "b4b5ee09-0690-4fe8-a2ea-321f9ddf015d",
+                    "activityIds": [
+                      "act_29"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "12-lead ECG (triplicate) @ Inpatient Period 2 (Day 39)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_20"
+                  },
+                  {
+                    "id": "a010eb9d-b50c-4df3-8c2e-92ff8312ff07",
+                    "activityIds": [
+                      "act_29"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "12-lead ECG (triplicate) @ EOS (Day 54+/-2)",
+                    "epochId": "epoch_6",
+                    "encounterId": "enc_22"
+                  },
+                  {
+                    "id": "52d8670e-257e-4130-9ec8-725fc2e0a5f1",
+                    "activityIds": [
+                      "act_30"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Adverse events @ Screening (-42 to -9)",
+                    "epochId": "epoch_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "cf7ecaf5-4705-4da3-8c50-7dbaeac679bd",
+                    "activityIds": [
+                      "act_30"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Adverse events @ C-I (-8)",
+                    "epochId": "epoch_2",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "ce02f829-cedd-42d1-ab4e-5cc17794ee2f",
+                    "activityIds": [
+                      "act_30"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Adverse events @ C-I (-7)",
+                    "epochId": "epoch_2",
+                    "encounterId": "enc_4"
+                  },
+                  {
+                    "id": "cca7e134-c041-44c3-98ab-b7194602ceb5",
+                    "activityIds": [
+                      "act_30"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Adverse events @ Inpatient Period 1 (-6 thro...",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_5"
+                  },
+                  {
+                    "id": "d5bad2df-7507-4ac5-8659-3d179799fd1b",
+                    "activityIds": [
+                      "act_30"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Adverse events @ Inpatient Period 1 (Day 1)",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_6"
+                  },
+                  {
+                    "id": "76a65404-9d93-42bb-87db-ad6f8febaa79",
+                    "activityIds": [
+                      "act_30"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Adverse events @ Inpatient Period 1 (Day 2-3)",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_7"
+                  },
+                  {
+                    "id": "dfadfa5d-bbc4-4236-a7cc-1925ee43cc30",
+                    "activityIds": [
+                      "act_30"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Adverse events @ Inpatient Period 1 (Day 4-7)",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_8"
+                  },
+                  {
+                    "id": "cba27e37-f94b-4313-81e1-b7ff62c9b9c4",
+                    "activityIds": [
+                      "act_30"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Adverse events @ Inpatient Period 1 (Day 8)",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_9"
+                  },
+                  {
+                    "id": "675aa281-8c60-42b5-843f-c6043bd1c791",
+                    "activityIds": [
+                      "act_30"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Adverse events @ Inpatient Period 1 (Day 9)",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_10"
+                  },
+                  {
+                    "id": "404bf5aa-16b3-428a-a0d1-3a264e458060",
+                    "activityIds": [
+                      "act_30"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Adverse events @ OP (Day 10-22)",
+                    "epochId": "epoch_4",
+                    "encounterId": "enc_11"
+                  },
+                  {
+                    "id": "d4c36b5e-59ec-48ba-b664-74a55ca08758",
+                    "activityIds": [
+                      "act_30"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Adverse events @ OP (Day 23)",
+                    "epochId": "epoch_4",
+                    "encounterId": "enc_12"
+                  },
+                  {
+                    "id": "5a7839fb-0773-4ee0-a52f-2aff7b303c86",
+                    "activityIds": [
+                      "act_30"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Adverse events @ Inpatient Period 2 (Day 24)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_13"
+                  },
+                  {
+                    "id": "5003ba13-45a5-4ce3-b131-83024bf892b8",
+                    "activityIds": [
+                      "act_30"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Adverse events @ Inpatient Period 2 (Day 25)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_14"
+                  },
+                  {
+                    "id": "ca1fd94d-d7e2-4337-b4a8-3298ee121782",
+                    "activityIds": [
+                      "act_30"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Adverse events @ Inpatient Period 2 (Day 26-28)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_15"
+                  },
+                  {
+                    "id": "ed1b19cc-1f41-4e8e-8813-4fc7110a27a0",
+                    "activityIds": [
+                      "act_30"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Adverse events @ Inpatient Period 2 (Day 29)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_16"
+                  },
+                  {
+                    "id": "2e23c881-79a0-47e8-a821-cf7b95a9d077",
+                    "activityIds": [
+                      "act_30"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Adverse events @ Inpatient Period 2 (Day 30-35)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_17"
+                  },
+                  {
+                    "id": "7e9d45f5-7c45-453d-9b03-a30eb2163dab",
+                    "activityIds": [
+                      "act_30"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Adverse events @ Inpatient Period 2 (Day 36-37)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_18"
+                  },
+                  {
+                    "id": "6a23389d-7cfb-4bf2-9b15-9f402ec26b93",
+                    "activityIds": [
+                      "act_30"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Adverse events @ Inpatient Period 2 (Day 38)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_19"
+                  },
+                  {
+                    "id": "9fc71a5b-e273-41b9-a5a5-fb1212250762",
+                    "activityIds": [
+                      "act_30"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Adverse events @ Inpatient Period 2 (Day 39)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_20"
+                  },
+                  {
+                    "id": "5aea11ba-3d29-4144-8683-c6108400f835",
+                    "activityIds": [
+                      "act_30"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Adverse events @ Inpatient Period 2 (Day 40)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_21"
+                  },
+                  {
+                    "id": "9c9a676c-7ed6-4af3-9c7c-63a607a1f43b",
+                    "activityIds": [
+                      "act_30"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Adverse events @ EOS (Day 54+/-2)",
+                    "epochId": "epoch_6",
+                    "encounterId": "enc_22"
+                  },
+                  {
+                    "id": "68d22a76-9851-459b-bcbb-4c9f15ad40a5",
+                    "activityIds": [
+                      "act_31"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Cu/Mo-controlled meals @ C-I (-7)",
+                    "epochId": "epoch_2",
+                    "encounterId": "enc_4"
+                  },
+                  {
+                    "id": "f8150557-d340-4e56-8412-64cdc2b3baf6",
+                    "activityIds": [
+                      "act_31"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Cu/Mo-controlled meals @ Inpatient Period 1 (-6 thro...",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_5"
+                  },
+                  {
+                    "id": "de07b00c-b14a-48bb-9067-8de3ac65fa68",
+                    "activityIds": [
+                      "act_31"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Cu/Mo-controlled meals @ Inpatient Period 1 (Day 1)",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_6"
+                  },
+                  {
+                    "id": "e420676c-81aa-40ad-8ff4-dd424aec9014",
+                    "activityIds": [
+                      "act_31"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Cu/Mo-controlled meals @ Inpatient Period 1 (Day 2-3)",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_7"
+                  },
+                  {
+                    "id": "19badc83-226f-494a-b890-5fa1d6c21f70",
+                    "activityIds": [
+                      "act_31"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Cu/Mo-controlled meals @ Inpatient Period 1 (Day 4-7)",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_8"
+                  },
+                  {
+                    "id": "62f4436c-5370-4418-9aa8-eff7ca5f3576",
+                    "activityIds": [
+                      "act_31"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Cu/Mo-controlled meals @ Inpatient Period 1 (Day 8)",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_9"
+                  },
+                  {
+                    "id": "ec7da9a3-0dc1-4bbf-b2db-05c9c81be0f1",
+                    "activityIds": [
+                      "act_31"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Cu/Mo-controlled meals @ Inpatient Period 1 (Day 9)",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_10"
+                  },
+                  {
+                    "id": "7f3c34df-6541-4c75-8a4f-3d1695d0c5f2",
+                    "activityIds": [
+                      "act_31"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Cu/Mo-controlled meals @ Inpatient Period 2 (Day 24)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_13"
+                  },
+                  {
+                    "id": "2e429b36-20f9-4639-8503-c55cad2c5e41",
+                    "activityIds": [
+                      "act_31"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Cu/Mo-controlled meals @ Inpatient Period 2 (Day 25)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_14"
+                  },
+                  {
+                    "id": "22b98836-ae1c-41ea-96c1-8b4fe2386ad0",
+                    "activityIds": [
+                      "act_31"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Cu/Mo-controlled meals @ Inpatient Period 2 (Day 26-28)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_15"
+                  },
+                  {
+                    "id": "ebad56ad-fc4c-46cf-b21c-b9e401edaaa9",
+                    "activityIds": [
+                      "act_31"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Cu/Mo-controlled meals @ Inpatient Period 2 (Day 29)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_16"
+                  },
+                  {
+                    "id": "f6d175f9-db5a-4897-a6c7-b3932cf347ac",
+                    "activityIds": [
+                      "act_31"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Cu/Mo-controlled meals @ Inpatient Period 2 (Day 30-35)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_17"
+                  },
+                  {
+                    "id": "1ec095b4-52a1-42a8-b9a3-c034de3d208e",
+                    "activityIds": [
+                      "act_31"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Cu/Mo-controlled meals @ Inpatient Period 2 (Day 36-37)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_18"
+                  },
+                  {
+                    "id": "698542b4-18f5-4490-9d01-3feb0d9f2115",
+                    "activityIds": [
+                      "act_31"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Cu/Mo-controlled meals @ Inpatient Period 2 (Day 38)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_19"
+                  },
+                  {
+                    "id": "eb8aa6ff-7c57-407b-9933-9825234f507f",
+                    "activityIds": [
+                      "act_31"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Cu/Mo-controlled meals @ Inpatient Period 2 (Day 39)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_20"
+                  },
+                  {
+                    "id": "9b5426ca-17c9-4a08-a353-fecfe6dc4995",
+                    "activityIds": [
+                      "act_31"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Cu/Mo-controlled meals @ Inpatient Period 2 (Day 40)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_21"
+                  },
+                  {
+                    "id": "b141d5d2-812e-4d84-903c-2ec5a0e00c99",
+                    "activityIds": [
+                      "act_32"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Light exercise regimen @ C-I (-7)",
+                    "epochId": "epoch_2",
+                    "encounterId": "enc_4"
+                  },
+                  {
+                    "id": "360177af-225c-4c18-866e-26c004ae00f0",
+                    "activityIds": [
+                      "act_32"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Light exercise regimen @ Inpatient Period 1 (-6 thro...",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_5"
+                  },
+                  {
+                    "id": "5ee35c16-6980-45c0-aa49-4425de3d6c69",
+                    "activityIds": [
+                      "act_32"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Light exercise regimen @ Inpatient Period 1 (Day 1)",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_6"
+                  },
+                  {
+                    "id": "73e0c256-f80b-45b4-948b-916cb52d7975",
+                    "activityIds": [
+                      "act_32"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Light exercise regimen @ Inpatient Period 1 (Day 2-3)",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_7"
+                  },
+                  {
+                    "id": "d762e5d3-37e7-41c3-8349-cbd3000e5222",
+                    "activityIds": [
+                      "act_32"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Light exercise regimen @ Inpatient Period 1 (Day 4-7)",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_8"
+                  },
+                  {
+                    "id": "8fba58fb-46e3-45a5-a852-b8eac9cb2462",
+                    "activityIds": [
+                      "act_32"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Light exercise regimen @ Inpatient Period 1 (Day 8)",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_9"
+                  },
+                  {
+                    "id": "9665eadf-735d-4fbf-b91e-4e233820c28e",
+                    "activityIds": [
+                      "act_32"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Light exercise regimen @ Inpatient Period 1 (Day 9)",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_10"
+                  },
+                  {
+                    "id": "fd389305-38a1-49b7-93c9-ed9ae181f5a2",
+                    "activityIds": [
+                      "act_32"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Light exercise regimen @ OP (Day 10-22)",
+                    "epochId": "epoch_4",
+                    "encounterId": "enc_11"
+                  },
+                  {
+                    "id": "6cccd1da-8d28-4cdc-9e4a-b66359c0ddf4",
+                    "activityIds": [
+                      "act_32"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Light exercise regimen @ OP (Day 23)",
+                    "epochId": "epoch_4",
+                    "encounterId": "enc_12"
+                  },
+                  {
+                    "id": "02e14f4b-8ad5-4fbc-9564-6a9d27aa86e4",
+                    "activityIds": [
+                      "act_32"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Light exercise regimen @ Inpatient Period 2 (Day 24)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_13"
+                  },
+                  {
+                    "id": "52cd694c-2a16-4335-abbf-1ac4016d3b54",
+                    "activityIds": [
+                      "act_32"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Light exercise regimen @ Inpatient Period 2 (Day 25)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_14"
+                  },
+                  {
+                    "id": "99ebeda9-ec89-49f0-aa52-ef8f54f43811",
+                    "activityIds": [
+                      "act_32"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Light exercise regimen @ Inpatient Period 2 (Day 26-28)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_15"
+                  },
+                  {
+                    "id": "6a6bae12-cc4c-446c-b74f-ec5bf0bb5012",
+                    "activityIds": [
+                      "act_32"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Light exercise regimen @ Inpatient Period 2 (Day 29)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_16"
+                  },
+                  {
+                    "id": "6cc45d69-c959-427f-9787-1fa25574206b",
+                    "activityIds": [
+                      "act_32"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Light exercise regimen @ Inpatient Period 2 (Day 30-35)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_17"
+                  },
+                  {
+                    "id": "333f2436-9d75-41c7-b087-ff758829a7fd",
+                    "activityIds": [
+                      "act_32"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Light exercise regimen @ Inpatient Period 2 (Day 36-37)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_18"
+                  },
+                  {
+                    "id": "bd06915b-8fbc-4776-ab6e-25a9b968b037",
+                    "activityIds": [
+                      "act_32"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Light exercise regimen @ Inpatient Period 2 (Day 38)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_19"
+                  },
+                  {
+                    "id": "c709cf9f-491e-4531-8aa1-5609fe291fa9",
+                    "activityIds": [
+                      "act_32"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Light exercise regimen @ Inpatient Period 2 (Day 39)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_20"
+                  },
+                  {
+                    "id": "0615a025-c1a3-4e97-97bb-2be81d4e6f35",
+                    "activityIds": [
+                      "act_32"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Light exercise regimen @ Inpatient Period 2 (Day 40)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_21"
+                  },
+                  {
+                    "id": "4cec7d8c-26c2-4cad-a792-194c503ef4dc",
+                    "activityIds": [
+                      "act_33"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Urination and bowel movement monitoring, menstr... @ Inpatient Period 1 (-6 thro...",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_5"
+                  },
+                  {
+                    "id": "48b846e7-885b-4077-9118-bb9c91d28031",
+                    "activityIds": [
+                      "act_33"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Urination and bowel movement monitoring, menstr... @ Inpatient Period 1 (Day 1)",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_6"
+                  },
+                  {
+                    "id": "69fbc956-5b66-41df-816e-ad99ea5f6a33",
+                    "activityIds": [
+                      "act_33"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Urination and bowel movement monitoring, menstr... @ Inpatient Period 1 (Day 2-3)",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_7"
+                  },
+                  {
+                    "id": "f9d51231-e42c-4a38-be4d-b959bc813844",
+                    "activityIds": [
+                      "act_33"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Urination and bowel movement monitoring, menstr... @ Inpatient Period 1 (Day 4-7)",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_8"
+                  },
+                  {
+                    "id": "62a5600e-acf6-461e-84a8-fbb5ed4665aa",
+                    "activityIds": [
+                      "act_33"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Urination and bowel movement monitoring, menstr... @ Inpatient Period 1 (Day 8)",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_9"
+                  },
+                  {
+                    "id": "9a339f62-b060-436d-a0e4-2451c8515679",
+                    "activityIds": [
+                      "act_33"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Urination and bowel movement monitoring, menstr... @ Inpatient Period 1 (Day 9)",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_10"
+                  },
+                  {
+                    "id": "99b41358-abf6-465e-b15e-118f3008334e",
+                    "activityIds": [
+                      "act_33"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Urination and bowel movement monitoring, menstr... @ Inpatient Period 2 (Day 25)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_14"
+                  },
+                  {
+                    "id": "3f47d48a-05c6-41ea-8ecb-8de62fdba9de",
+                    "activityIds": [
+                      "act_33"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Urination and bowel movement monitoring, menstr... @ Inpatient Period 2 (Day 26-28)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_15"
+                  },
+                  {
+                    "id": "4306401e-3135-41af-83d2-67ca68b393a2",
+                    "activityIds": [
+                      "act_33"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Urination and bowel movement monitoring, menstr... @ Inpatient Period 2 (Day 29)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_16"
+                  },
+                  {
+                    "id": "dd6e27e3-0984-4e34-be15-df8ab83d0250",
+                    "activityIds": [
+                      "act_33"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Urination and bowel movement monitoring, menstr... @ Inpatient Period 2 (Day 30-35)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_17"
+                  },
+                  {
+                    "id": "1856c6e5-441f-4441-827d-0812cffcce7f",
+                    "activityIds": [
+                      "act_33"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Urination and bowel movement monitoring, menstr... @ Inpatient Period 2 (Day 36-37)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_18"
+                  },
+                  {
+                    "id": "35bafab7-9567-49e6-84c3-75df7099dab7",
+                    "activityIds": [
+                      "act_33"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Urination and bowel movement monitoring, menstr... @ Inpatient Period 2 (Day 38)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_19"
+                  },
+                  {
+                    "id": "feb4b1e9-d98f-4a97-a8c1-9d85f8b42979",
+                    "activityIds": [
+                      "act_33"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Urination and bowel movement monitoring, menstr... @ Inpatient Period 2 (Day 39)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_20"
+                  },
+                  {
+                    "id": "17bea45e-657f-4c3b-ba7b-0cdb42ec9130",
+                    "activityIds": [
+                      "act_33"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Urination and bowel movement monitoring, menstr... @ Inpatient Period 2 (Day 40)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_21"
+                  },
+                  {
+                    "id": "b7ea2ca1-fb83-440c-81b6-32ec5c481125",
+                    "activityIds": [
+                      "act_34"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "24-hour urine for Cu and Mo @ Inpatient Period 1 (-6 thro...",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_5"
+                  },
+                  {
+                    "id": "d6ea825d-4956-47cd-b3f3-3be746bd2f71",
+                    "activityIds": [
+                      "act_34"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "24-hour urine for Cu and Mo @ Inpatient Period 1 (Day 1)",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_6"
+                  },
+                  {
+                    "id": "7a29211f-96ca-4795-ac22-cef69316dd39",
+                    "activityIds": [
+                      "act_34"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "24-hour urine for Cu and Mo @ Inpatient Period 1 (Day 2-3)",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_7"
+                  },
+                  {
+                    "id": "0cb609c4-079d-4fa4-8d07-2642f0cea7a4",
+                    "activityIds": [
+                      "act_34"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "24-hour urine for Cu and Mo @ Inpatient Period 1 (Day 4-7)",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_8"
+                  },
+                  {
+                    "id": "2da2ec12-e3c3-492d-aa30-10e97c22c856",
+                    "activityIds": [
+                      "act_34"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "24-hour urine for Cu and Mo @ Inpatient Period 1 (Day 8)",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_9"
+                  },
+                  {
+                    "id": "818d9538-f71f-452a-99f0-3d40abfe5729",
+                    "activityIds": [
+                      "act_34"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "24-hour urine for Cu and Mo @ Inpatient Period 1 (Day 9)",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_10"
+                  },
+                  {
+                    "id": "9426a79e-93ea-42f2-a04c-cc8e82e689d3",
+                    "activityIds": [
+                      "act_34"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "24-hour urine for Cu and Mo @ Inpatient Period 2 (Day 25)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_14"
+                  },
+                  {
+                    "id": "01e045a2-475c-4aaa-af80-63330be092f7",
+                    "activityIds": [
+                      "act_34"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "24-hour urine for Cu and Mo @ Inpatient Period 2 (Day 26-28)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_15"
+                  },
+                  {
+                    "id": "48fdccac-0957-4b93-9319-723e35ef1f4b",
+                    "activityIds": [
+                      "act_34"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "24-hour urine for Cu and Mo @ Inpatient Period 2 (Day 29)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_16"
+                  },
+                  {
+                    "id": "98446fff-3a7b-4468-94ea-af7f774b809c",
+                    "activityIds": [
+                      "act_34"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "24-hour urine for Cu and Mo @ Inpatient Period 2 (Day 30-35)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_17"
+                  },
+                  {
+                    "id": "2c4a4737-7164-4191-95a2-679868350ae6",
+                    "activityIds": [
+                      "act_34"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "24-hour urine for Cu and Mo @ Inpatient Period 2 (Day 36-37)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_18"
+                  },
+                  {
+                    "id": "f5ab1d42-c62a-420e-b27c-3272a5aaba3f",
+                    "activityIds": [
+                      "act_34"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "24-hour urine for Cu and Mo @ Inpatient Period 2 (Day 38)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_19"
+                  },
+                  {
+                    "id": "e918dded-7677-41f0-937e-940eaeb713bf",
+                    "activityIds": [
+                      "act_34"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "24-hour urine for Cu and Mo @ Inpatient Period 2 (Day 39)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_20"
+                  },
+                  {
+                    "id": "2ccbc9ce-0757-496b-81c8-7a23a1c859af",
+                    "activityIds": [
+                      "act_34"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "24-hour urine for Cu and Mo @ Inpatient Period 2 (Day 40)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_21"
+                  },
+                  {
+                    "id": "4c45c4f9-31d0-4a52-bae5-814fe5fce1a9",
+                    "activityIds": [
+                      "act_35"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Feces for Cu and Mo @ Inpatient Period 1 (-6 thro...",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_5"
+                  },
+                  {
+                    "id": "c9986bda-2197-4a5a-bcb0-11de40c4768b",
+                    "activityIds": [
+                      "act_35"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Feces for Cu and Mo @ Inpatient Period 1 (Day 1)",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_6"
+                  },
+                  {
+                    "id": "ceed9fa0-d01e-4288-bc2e-0b6cb8bf762a",
+                    "activityIds": [
+                      "act_35"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Feces for Cu and Mo @ Inpatient Period 1 (Day 2-3)",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_7"
+                  },
+                  {
+                    "id": "1634bfd6-f2ac-4f92-965a-0542b2e59ccb",
+                    "activityIds": [
+                      "act_35"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Feces for Cu and Mo @ Inpatient Period 1 (Day 4-7)",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_8"
+                  },
+                  {
+                    "id": "005d620d-02cf-423a-b61f-9b2afeeab67e",
+                    "activityIds": [
+                      "act_35"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Feces for Cu and Mo @ Inpatient Period 1 (Day 8)",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_9"
+                  },
+                  {
+                    "id": "a461e99f-3c3d-4313-8dd6-a1b600edf8d9",
+                    "activityIds": [
+                      "act_35"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Feces for Cu and Mo @ Inpatient Period 1 (Day 9)",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_10"
+                  },
+                  {
+                    "id": "93ea774d-97aa-4e2c-89f7-9de8da8ff79a",
+                    "activityIds": [
+                      "act_35"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Feces for Cu and Mo @ Inpatient Period 2 (Day 25)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_14"
+                  },
+                  {
+                    "id": "5e3f53b6-b2f9-4e4d-ba02-a2c9fc0c7044",
+                    "activityIds": [
+                      "act_35"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Feces for Cu and Mo @ Inpatient Period 2 (Day 26-28)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_15"
+                  },
+                  {
+                    "id": "9ac3bfae-bb91-433b-af43-4c1e4a609626",
+                    "activityIds": [
+                      "act_35"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Feces for Cu and Mo @ Inpatient Period 2 (Day 29)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_16"
+                  },
+                  {
+                    "id": "dc11b876-5d66-4ccb-b905-9ed4c46c104a",
+                    "activityIds": [
+                      "act_35"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Feces for Cu and Mo @ Inpatient Period 2 (Day 30-35)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_17"
+                  },
+                  {
+                    "id": "c4eb62a7-cbac-4bc4-872e-7b7a080f7d62",
+                    "activityIds": [
+                      "act_35"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Feces for Cu and Mo @ Inpatient Period 2 (Day 36-37)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_18"
+                  },
+                  {
+                    "id": "95f035c1-dea2-4863-9799-a68702c825a7",
+                    "activityIds": [
+                      "act_35"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Feces for Cu and Mo @ Inpatient Period 2 (Day 38)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_19"
+                  },
+                  {
+                    "id": "5eb6efb9-92a4-4558-97cf-cac7dc70eee1",
+                    "activityIds": [
+                      "act_35"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Feces for Cu and Mo @ Inpatient Period 2 (Day 39)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_20"
+                  },
+                  {
+                    "id": "41edf52a-36d3-4aa4-a93f-7ad8aaf99081",
+                    "activityIds": [
+                      "act_35"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Feces for Cu and Mo @ Inpatient Period 2 (Day 40)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_21"
+                  },
+                  {
+                    "id": "0050f8fd-0697-451f-a51c-4565d834f136",
+                    "activityIds": [
+                      "act_36"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Concomitant medication and non-pharmacologic th... @ Screening (-42 to -9)",
+                    "epochId": "epoch_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "0b4e6af2-68f8-4e7a-a4bf-d242a4b71c7c",
+                    "activityIds": [
+                      "act_36"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Concomitant medication and non-pharmacologic th... @ C-I (-8)",
+                    "epochId": "epoch_2",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "ff664cae-58d5-4986-b931-24d5262ec9ce",
+                    "activityIds": [
+                      "act_36"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Concomitant medication and non-pharmacologic th... @ C-I (-7)",
+                    "epochId": "epoch_2",
+                    "encounterId": "enc_4"
+                  },
+                  {
+                    "id": "e9046281-4066-4a13-8704-b58422f43405",
+                    "activityIds": [
+                      "act_36"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Concomitant medication and non-pharmacologic th... @ Inpatient Period 1 (-6 thro...",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_5"
+                  },
+                  {
+                    "id": "6c9874fc-f8d7-472b-ad71-b8de30fc7f7a",
+                    "activityIds": [
+                      "act_36"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Concomitant medication and non-pharmacologic th... @ Inpatient Period 1 (Day 1)",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_6"
+                  },
+                  {
+                    "id": "090e116f-844c-4586-b7dc-324557c8d868",
+                    "activityIds": [
+                      "act_36"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Concomitant medication and non-pharmacologic th... @ Inpatient Period 1 (Day 2-3)",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_7"
+                  },
+                  {
+                    "id": "ea3c97a7-2f6a-4234-8397-a9017e71861d",
+                    "activityIds": [
+                      "act_36"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Concomitant medication and non-pharmacologic th... @ Inpatient Period 1 (Day 4-7)",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_8"
+                  },
+                  {
+                    "id": "bc1ac2ac-19fc-4e63-bc81-249dcabd41af",
+                    "activityIds": [
+                      "act_36"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Concomitant medication and non-pharmacologic th... @ Inpatient Period 1 (Day 8)",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_9"
+                  },
+                  {
+                    "id": "ae0326cf-5285-4d40-9643-3dc903210915",
+                    "activityIds": [
+                      "act_36"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Concomitant medication and non-pharmacologic th... @ Inpatient Period 1 (Day 9)",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_10"
+                  },
+                  {
+                    "id": "168862a8-e08b-4008-a93c-b58f8139e704",
+                    "activityIds": [
+                      "act_36"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Concomitant medication and non-pharmacologic th... @ OP (Day 10-22)",
+                    "epochId": "epoch_4",
+                    "encounterId": "enc_11"
+                  },
+                  {
+                    "id": "bc87189c-ae6b-4507-aad5-5f18b5525adf",
+                    "activityIds": [
+                      "act_36"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Concomitant medication and non-pharmacologic th... @ OP (Day 23)",
+                    "epochId": "epoch_4",
+                    "encounterId": "enc_12"
+                  },
+                  {
+                    "id": "4ed135c0-8deb-4eff-a00b-27d14846a6b7",
+                    "activityIds": [
+                      "act_36"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Concomitant medication and non-pharmacologic th... @ Inpatient Period 2 (Day 24)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_13"
+                  },
+                  {
+                    "id": "dfd99fdd-964d-4a4c-aeed-7d76cc44f4f4",
+                    "activityIds": [
+                      "act_36"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Concomitant medication and non-pharmacologic th... @ Inpatient Period 2 (Day 25)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_14"
+                  },
+                  {
+                    "id": "21705a29-4063-44df-b558-19cd14ea7dbd",
+                    "activityIds": [
+                      "act_36"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Concomitant medication and non-pharmacologic th... @ Inpatient Period 2 (Day 26-28)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_15"
+                  },
+                  {
+                    "id": "61639859-875f-43ae-a61c-d8bd89f65307",
+                    "activityIds": [
+                      "act_36"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Concomitant medication and non-pharmacologic th... @ Inpatient Period 2 (Day 29)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_16"
+                  },
+                  {
+                    "id": "d1badc51-0cce-4a36-8579-4846fa37b12a",
+                    "activityIds": [
+                      "act_36"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Concomitant medication and non-pharmacologic th... @ Inpatient Period 2 (Day 30-35)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_17"
+                  },
+                  {
+                    "id": "aae29bfb-74a7-4654-837c-94d6e00aba4f",
+                    "activityIds": [
+                      "act_36"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Concomitant medication and non-pharmacologic th... @ Inpatient Period 2 (Day 36-37)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_18"
+                  },
+                  {
+                    "id": "56babe43-16df-405d-9a3e-4430eef63157",
+                    "activityIds": [
+                      "act_36"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Concomitant medication and non-pharmacologic th... @ Inpatient Period 2 (Day 38)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_19"
+                  },
+                  {
+                    "id": "161d1ab0-f697-49e3-9599-e243c6964853",
+                    "activityIds": [
+                      "act_36"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Concomitant medication and non-pharmacologic th... @ Inpatient Period 2 (Day 39)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_20"
+                  },
+                  {
+                    "id": "288211be-8c63-4587-803c-933fd8fcce22",
+                    "activityIds": [
+                      "act_36"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Concomitant medication and non-pharmacologic th... @ Inpatient Period 2 (Day 40)",
+                    "epochId": "epoch_5",
+                    "encounterId": "enc_21"
+                  },
+                  {
+                    "id": "29d61ccd-9016-4e45-b938-815f2cbaeeee",
+                    "activityIds": [
+                      "act_36"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Concomitant medication and non-pharmacologic th... @ EOS (Day 54+/-2)",
+                    "epochId": "epoch_6",
+                    "encounterId": "enc_22"
+                  }
+                ]
+              }
+            ],
+            "notes": [
+              {
+                "id": "soa_fn_1",
+                "text": "a. Within 32 days of ALXN1840 administration. Details of procedures that may be performed by sites designated as “screening sites” (only in the US) are detailed in Section 8.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_2",
+                "text": "b. Participants will be admitted to the clinical research unit (CRU) at least 10 hours prior to enrollment and initiation of copper- and molybdenum-controlled diet.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_3",
+                "text": "c. At the CRU’s discretion, participants may remain in the CRU or be readmitted on Day 22 with all procedures starting on Day 23.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_4",
+                "text": "d. Unscheduled study visits may occur at any time during the study and may include any study procedure as deemed necessary by the investigator.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_5",
+                "text": "e. Participants are required to return to the CRU Day 54+/-2; participants will be discontinued from ALXN1840 medication by their physician at the latest by the Day 54 follow-up.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_6",
+                "text": "f. Discharge from the unit may occur after completion of all procedures on Day 9 and on Day 40 and after the investigator has reviewed all safety assessment (including safety laboratory tests) and confirmed that the participant is appropriate for discharge.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_7",
+                "text": "g. A single outpatient visit or phone call and safety laboratory assessment should occur between Day 14 and Day 18. A phone call may take place on a different day than the blood draw within the Day 14 through Day 18 period.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_8",
+                "text": "h. If needed to confirm menopause.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_9",
+                "text": "i. Parameters include age and sex. Race and ethnicity will be collected where permitted by local regulations.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_10",
+                "text": "j. Wilson disease history will include diagnosis date, method of diagnosis, history of cirrhosis, details of any previous liver biopsies performed, and treatment received.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_11",
+                "text": "k. A full physical examination will be performed at Screening, at check-in for the study, and at the End of the study/Early Termination Visit. A physical examination should also be performed on any participants with ongoing adverse events prior to discharge from the unit. Otherwise, a symptom-driven physical examination may be performed at other times, at the Principal Investigator’s discretion.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_12",
+                "text": "l. Height at screening only.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_13",
+                "text": "m. While in the CRU, study intervention will be administered after an overnight fast (ie, at least 10 hours) at the same time every morning; drug is to be administered with 240 mL of water and meals should be delayed a minimum of 2 hours after dosing. As an outpatient, participants are expected to take ALXN1840 at approximately the same time daily (+/- 1 hour). Participants should take the medication with a glass of water on an empty stomach; meals should be delayed a minimum of 2 hours after dosing.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_14",
+                "text": "n. During the outpatient period, participants will use SMS text messaging to confirm study intervention administration.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_15",
+                "text": "o. Blood sampling for PK/PD will occur before ALXN1840 administration and represents a predose trough. See Table 2 for PK/PD sampling on Days 1, 25, 29, and 39.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_16",
+                "text": "p. PK/PD collection will include timepoints described in the schedule of PK/PD assessment for Days 1, 25, 29, and 39 (Table 2).",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_17",
+                "text": "q. Samples for serum chemistry will be obtained following a fast of at least 8 hours at the Screening Visit and at check-in. In case of rechecks, and postdose serum chemistry, participants may not have fasted for 6 or 8 hours before the serum chemistry sample is taken.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_18",
+                "text": "r. Laboratory assessment including chemistry, hematology, and coagulation parameters should be performed on Days -8, -1, 8, 23, and 28 only.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_19",
+                "text": "s. Menstruation check is for women only; women of childbearing potential should only be enrolled after a negative serum pregnancy test result at Screening. Additional urine pregnancy testing will be performed for the protocol unless serum testing is required by site policies, local regulation, or Institutional Review Boards (IRBs)/Independent Ethics Committees (IECs) (Section 10.2). In addition to pregnancy tests detailed at the visits in the SoA, females of childbearing potential will be required to perform urine pregnancy tests at least every 4 weeks at their home or the study site throughout their time in the study.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_20",
+                "text": "t. A single 15 mL serum sample will be retained for evaluation in the event of an unexpected safety finding; retained samples may be destroyed after completion of the clinical study report.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_21",
+                "text": "u. Vital signs assessments and ECGs should be performed predose, unless otherwise specified. Vitals signs include body temperature, heart rate, respiratory rate, and systolic and diastolic blood pressure.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_22",
+                "text": "v. Copper- and molybdenum-controlled diet will be initiated after registration/inclusion. Participants will remain on a copper/molybdenum controlled diet throughout both the Inpatient Period 1 (Day -8 to Day 9) and Inpatient Period 2 (Day 23 to Day 40); during this time participants will be strongly encouraged to complete all meals. While not in the CRU, participants will be encouraged to adhere to their usual copper-controlled diet.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_23",
+                "text": "w. For each input/output balance period, 24-hour urine samples are to be collected for measurement of copper and molybdenum.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_24",
+                "text": "x. For fecal samples, each individual sample will be independently collected with record of date, time, and weight of the sample.",
+                "instanceType": "CommentAnnotation"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

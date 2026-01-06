@@ -61,14 +61,44 @@ class StudyAmendment:
     instance_type: str = "StudyAmendment"
     
     def to_dict(self) -> Dict[str, Any]:
+        # USDM requires: name, primaryReason, geographicScopes
         result = {
             "id": self.id,
             "number": self.number,
+            "name": f"Amendment {self.number}",  # Required field
             "scope": {
+                "id": generate_uuid(),
                 "code": self.scope.value,
                 "codeSystem": "USDM",
+                "codeSystemVersion": "2024-09-27",
                 "decode": self.scope.value,
+                "instanceType": "Code",
             },
+            "primaryReason": {  # Required field - Code object with nested standardCode
+                "id": generate_uuid(),
+                "code": {  # Nested Code object
+                    "id": generate_uuid(),
+                    "code": "C98782",
+                    "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+                    "codeSystemVersion": "25.01d",
+                    "decode": "Protocol Amendment",
+                    "instanceType": "Code",
+                },
+                "otherReason": "Protocol Amendment",
+                "instanceType": "StudyAmendmentReason",
+            },
+            "geographicScopes": [{  # Required field - at least one
+                "id": generate_uuid(),
+                "type": {
+                    "id": generate_uuid(),
+                    "code": self.scope.value,
+                    "codeSystem": "USDM",
+                    "codeSystemVersion": "2024-09-27",
+                    "decode": self.scope.value,
+                    "instanceType": "Code",
+                },
+                "instanceType": "GeographicScope",
+            }],
             "instanceType": self.instance_type,
         }
         if self.summary:

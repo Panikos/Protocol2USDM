@@ -4,6 +4,185 @@ All notable changes documented here. Dates in ISO-8601.
 
 ---
 
+## [6.8.0] – 2026-01-02
+
+### Execution Model Promotion to Core USDM
+
+Major architectural change: execution model data (anchors, repetitions, dosing) is now materialized into **core USDM entities**, not just stored in extensions.
+
+#### Problem Addressed
+
+Downstream consumers (synthetic generators) couldn't use execution semantics because they were stored in `extensionAttributes` as JSON strings. Core USDM was incomplete.
+
+#### Solution: ExecutionModelPromoter
+
+| Promotion | Input | Output |
+|-----------|-------|--------|
+| Time Anchors | `x-executionModel-timeAnchors` | `ScheduledActivityInstance` |
+| Repetitions | `x-executionModel-repetitions` | Expanded `ScheduledActivityInstance` per occurrence |
+| Dosing Regimens | `x-executionModel-dosingRegimens` | `Administration` entities linked to interventions |
+| Dangling Refs | `Timing.relativeFromScheduledInstanceId` | Fixed or auto-created anchor instances |
+
+#### Key Contract
+
+**Extensions are now OPTIONAL/DEBUG. Core USDM is self-sufficient.**
+
+#### Files Added/Changed
+
+* `extraction/execution/execution_model_promoter.py` - **NEW** Main promotion logic
+* `extraction/execution/pipeline_integration.py` - Integrated promoter after reconciliation
+* `docs/ARCHITECTURE.md` - Documented promotion architecture
+
+---
+
+## [6.7.3] – 2026-01-02
+
+### New Comprehensive Benchmark Tool
+
+Rewrote benchmark script from scratch with modern architecture.
+
+#### Features
+
+| Feature | Description |
+|---------|-------------|
+| **CLI Arguments** | Accepts golden and extracted paths as arguments |
+| **Auto-detection** | Finds `protocol_usdm.json` in timestamped directories |
+| **Per-entity Metrics** | Precision, recall, F1 for each entity type |
+| **18 Entity Types** | Full coverage of USDM 4.0 entities |
+| **Semantic Matching** | Configurable similarity threshold (default 75%) |
+| **Verbose Mode** | Shows unmatched entities for debugging |
+| **JSON Reports** | Machine-readable output for CI/CD integration |
+
+#### Usage
+
+```bash
+python testing/benchmark.py <golden.json> <extracted_dir/> [--verbose]
+```
+
+#### Files Added
+
+* `testing/benchmark.py` - New comprehensive benchmark tool
+
+---
+
+## [6.7.2] – 2026-01-02
+
+### Full USDM 4.0 Schema Compliance
+
+Achieved **0 validation errors** - full compliance with USDM 4.0 schema.
+
+#### Fixes
+
+| Fix | Description |
+|-----|-------------|
+| **standardCode Preservation** | Fixed `normalize_usdm_data` to preserve `standardCode` on Code objects |
+| **administrableDoseForm Fallback** | Added standardCode injection in fallback intervention path |
+
+#### Web UI Enhancements
+
+| Enhancement | Description |
+|-------------|-------------|
+| **Instance Names in Graph** | Timeline graph shows human-readable instance names |
+| **Instance Names in Tooltips** | SoA table cells show instance names on hover |
+| **Cell Metadata** | Added timingId, epochId to cell data for enhanced linking |
+
+#### Files Changed
+
+* `core/usdm_types_generated.py` - Preserve standardCode during Code normalization
+* `main_v2.py` - Added standardCode injection for fallback products
+* `web-ui/lib/adapters/toGraphModel.ts` - Use instance names for node labels
+* `web-ui/lib/adapters/toSoATableModel.ts` - Add instance metadata to cells
+* `web-ui/components/soa/ProvenanceCellRenderer.tsx` - Show instance names in tooltips
+* `tests/test_core_modules.py` - Added normalization tests (2 new tests)
+
+#### Validation Results
+
+```
+✅ VALIDATION PASSED - 0 errors
+✅ CDISC Conformance: 0 errors, 0 warnings
+✅ 25/25 unit tests passing
+```
+
+---
+
+## [6.7.1] – 2026-01-02
+
+### Additional USDM Schema Fixes
+
+Continued schema compliance improvements addressing validation errors.
+
+#### Fixes
+
+| Fix | Description |
+|-----|-------------|
+| **AnalysisPopulation.text** | Added required `text` field to SAP population extraction |
+| **Timing Required Fields** | Added `name`, `valueLabel`, `relativeToFrom`, `relativeFromScheduledInstanceId` with defaults |
+| **arms Fallback** | Default treatment arm created when not extracted |
+| **studyCells Fallback** | Auto-generated arm×epoch cells when missing |
+| **timingId Linking** | Improved multi-strategy matching (exact name, day number, visit number) |
+
+#### Files Changed
+
+* `extraction/conditional/sap_extractor.py` - Added `text` field to AnalysisPopulation.to_dict()
+* `core/usdm_types_generated.py` - Enhanced Timing class with required USDM fields
+* `main_v2.py` - Added arms/studyCells fallbacks, improved `link_timing_ids_to_instances()`
+
+---
+
+## [6.7.0] – 2026-01-02
+
+### ScheduledActivityInstance USDM Conformance Enhancements
+
+Enhanced `ScheduledActivityInstance` generation to improve USDM 4.0 schema compliance and data quality.
+
+#### New Features
+
+| Enhancement | Description |
+|-------------|-------------|
+| **epochId Population** | Instances now inherit `epochId` from their linked Encounter |
+| **Human-Readable Names** | Instance names changed from `"act_1@enc_1"` to `"Blood Draw @ Day 1"` |
+| **timingId Linking** | Instances linked to Timing entities when scheduling data available |
+| **ScheduleTimeline.timings** | Added `timings` field to ScheduleTimeline class per USDM schema |
+
+#### Files Changed
+
+**Core Types (`core/usdm_types.py`):**
+* `Timeline.to_study_design()` - Enhanced with epochId population and better naming
+* Built encounter→epoch and activity→name lookup maps
+* Name truncation (50/30 chars) to keep instance names reasonable
+
+**Generated Types (`core/usdm_types_generated.py`):**
+* `ScheduleTimeline` - Added `timings: List[Timing]` field
+* `to_dict()` now serializes timings array
+
+**Pipeline (`main_v2.py`):**
+* Added `link_timing_ids_to_instances()` function
+* Multi-strategy matching: exact name → day number → visit number
+* Called after scheduling data is merged into scheduleTimeline
+
+#### Sample Output
+
+```json
+{
+  "id": "uuid",
+  "name": "Physical Examination @ Day 1",
+  "activityIds": ["activity-uuid"],
+  "encounterId": "encounter-uuid",
+  "epochId": "epoch-uuid",
+  "timingId": "timing-uuid",
+  "instanceType": "ScheduledActivityInstance"
+}
+```
+
+#### Reference
+
+Per USDM 4.0 `dataStructure.yml`:
+- `ScheduledActivityInstance.epochId`: 0..1 (optional, reference to StudyEpoch)
+- `ScheduledActivityInstance.timingId`: 0..1 (optional, reference to Timing)
+- `ScheduleTimeline.timings`: 0..* (list of Timing entities)
+
+---
+
 ## [6.6.0] – 2026-01-02
 
 ### USDM Entity Placement Compliance

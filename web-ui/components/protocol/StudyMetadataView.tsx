@@ -110,10 +110,23 @@ export function StudyMetadataView({ usdm }: StudyMetadataViewProps) {
           {identifiers.length > 0 && (
             <div>
               <span className="text-sm text-muted-foreground">Identifiers</span>
-              <div className="flex flex-wrap gap-2 mt-1">
-                {identifiers.map((id, i) => (
-                  <Badge key={i} variant="secondary">{id.text}</Badge>
-                ))}
+              <div className="flex flex-wrap gap-2 mt-2">
+                {identifiers.map((id, i) => {
+                  const idType = id.identifierType?.decode || id.identifierType?.code || '';
+                  const isNCT = idType.includes('NCT') || id.text?.startsWith('NCT');
+                  const isEudraCT = idType.includes('EudraCT') || /^\d{4}-\d{6}-\d{2}$/.test(id.text || '');
+                  return (
+                    <div key={i} className="flex items-center gap-1">
+                      <Badge 
+                        variant={isNCT ? 'default' : isEudraCT ? 'outline' : 'secondary'}
+                        className={isNCT ? 'bg-blue-600' : ''}
+                      >
+                        {idType && <span className="opacity-70 mr-1">{idType}:</span>}
+                        {id.text}
+                      </Badge>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -161,17 +174,39 @@ export function StudyMetadataView({ usdm }: StudyMetadataViewProps) {
         </CardContent>
       </Card>
 
-      {/* Sponsor */}
-      {sponsor && (
+      {/* Organizations */}
+      {organizations.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Building2 className="h-5 w-5" />
-              Sponsor
+              Organizations
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="font-medium">{sponsor.name}</p>
+            <div className="space-y-3">
+              {organizations.map((org, i) => {
+                const orgType = org.type?.decode || org.type?.code || 'Organization';
+                const isSponsor = orgType.toLowerCase().includes('sponsor');
+                const isCRO = orgType.toLowerCase().includes('cro') || orgType.toLowerCase().includes('contract');
+                return (
+                  <div key={i} className="flex items-center justify-between border-b pb-2 last:border-0">
+                    <div>
+                      <p className="font-medium">{org.name}</p>
+                      {org.identifier && (
+                        <p className="text-xs text-muted-foreground">{org.identifier}</p>
+                      )}
+                    </div>
+                    <Badge 
+                      variant={isSponsor ? 'default' : isCRO ? 'outline' : 'secondary'}
+                      className={isSponsor ? 'bg-green-600' : ''}
+                    >
+                      {orgType}
+                    </Badge>
+                  </div>
+                );
+              })}
+            </div>
           </CardContent>
         </Card>
       )}

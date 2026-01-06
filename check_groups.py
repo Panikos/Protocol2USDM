@@ -1,7 +1,7 @@
 """Check activity groups and linking from header_structure through to final output."""
 import json
 
-OUT = 'output/test_final_fixes'
+OUT = 'output/test_claude_opus'
 
 # First check epochs
 print("=== Epochs in Final Output ===")

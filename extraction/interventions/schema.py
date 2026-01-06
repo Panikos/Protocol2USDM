@@ -140,19 +140,59 @@ class AdministrableProduct:
     instance_type: str = "AdministrableProduct"
     
     def to_dict(self) -> Dict[str, Any]:
+        # Map dose forms to NCI codes
+        dose_form_codes = {
+            DoseForm.TABLET: ("C42998", "Tablet"),
+            DoseForm.CAPSULE: ("C25158", "Capsule"),
+            DoseForm.SOLUTION: ("C42986", "Solution"),
+            DoseForm.SUSPENSION: ("C42993", "Suspension"),
+            DoseForm.INJECTION: ("C42945", "Injection"),
+            DoseForm.CREAM: ("C28944", "Cream"),
+            DoseForm.OINTMENT: ("C42966", "Ointment"),
+            DoseForm.GEL: ("C42906", "Gel"),
+            DoseForm.PATCH: ("C42968", "Patch"),
+            DoseForm.POWDER: ("C42970", "Powder"),
+            DoseForm.SPRAY: ("C42989", "Spray"),
+            DoseForm.INHALER: ("C42940", "Inhaler"),
+            DoseForm.OTHER: ("C17998", "Unknown"),
+        }
+        
+        if self.dose_form:
+            code, decode = dose_form_codes.get(self.dose_form, ("C17998", "Unknown"))
+        else:
+            code, decode = "C17998", "Unknown"
+        
         result = {
             "id": self.id,
             "name": self.name,
+            "administrableDoseForm": {  # Required field
+                "id": generate_uuid(),
+                "code": code,
+                "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+                "codeSystemVersion": "25.01d",
+                "decode": decode,
+                "standardCode": {  # Required nested Code
+                    "id": generate_uuid(),
+                    "code": code,
+                    "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+                    "codeSystemVersion": "25.01d",
+                    "decode": decode,
+                    "instanceType": "Code",
+                },
+                "instanceType": "Code",
+            },
+            "productDesignation": {  # Required field
+                "id": generate_uuid(),
+                "code": "C54121",
+                "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+                "codeSystemVersion": "25.01d",
+                "decode": "Investigational Product",
+                "instanceType": "Code",
+            },
             "instanceType": self.instance_type,
         }
         if self.description:
             result["description"] = self.description
-        if self.dose_form:
-            result["doseForm"] = {
-                "code": self.dose_form.value,
-                "codeSystem": "USDM",
-                "decode": self.dose_form.value,
-            }
         if self.strength:
             result["strength"] = self.strength
         if self.substance_ids:
@@ -209,13 +249,35 @@ class StudyIntervention:
     instance_type: str = "StudyIntervention"
     
     def to_dict(self) -> Dict[str, Any]:
+        # Map intervention roles to NCI codes
+        role_codes = {
+            InterventionRole.INVESTIGATIONAL: ("C54121", "Investigational Product"),
+            InterventionRole.COMPARATOR: ("C54129", "Comparator"),
+            InterventionRole.PLACEBO: ("C41132", "Placebo"),
+            InterventionRole.RESCUE: ("C54125", "Rescue Medication"),
+            InterventionRole.CONCOMITANT: ("C54126", "Concomitant Medication"),
+            InterventionRole.BACKGROUND: ("C54127", "Background Therapy"),
+        }
+        code, decode = role_codes.get(self.role, ("C54121", "Investigational Product"))
+        
         result = {
             "id": self.id,
             "name": self.name,
+            "type": {  # Required field
+                "id": generate_uuid(),
+                "code": code,
+                "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+                "codeSystemVersion": "25.01d",
+                "decode": decode,
+                "instanceType": "Code",
+            },
             "role": {
-                "code": self.role.value,
-                "codeSystem": "USDM",
-                "decode": self.role.value,
+                "id": generate_uuid(),
+                "code": code,
+                "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+                "codeSystemVersion": "25.01d",
+                "decode": decode,
+                "instanceType": "Code",
             },
             "instanceType": self.instance_type,
         }

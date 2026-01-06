@@ -22,16 +22,30 @@ Extract ALL title variations found:
 - **Scientific Study Title**: Technical title if different from official
 
 ### 2. Study Identifiers
-Extract ALL identifier numbers:
+Extract ALL identifier numbers found anywhere in the document:
 - **NCT Number**: ClinicalTrials.gov ID (format: NCT########)
-- **Sponsor Protocol Number**: Company internal ID
+- **Sponsor Protocol Number**: Company internal ID (e.g., "ALXN1840-WD-301", "LY3298176")
 - **EudraCT Number**: European registry (format: ####-######-##)
-- **IND/IDE Number**: FDA application numbers
+- **IND/IDE Number**: FDA application numbers (e.g., "IND 123456")
+- **ISRCTN Number**: International registry (format: ISRCTN########)
+- **WHO UTN**: Universal Trial Number
+- **CTIS Number**: EU Clinical Trial Information System
+- **Internal Study ID**: Any other internal reference numbers
+
+For each identifier, note the issuing organization (e.g., ClinicalTrials.gov issues NCT numbers).
 
 ### 3. Organizations
-Identify organizations involved:
-- **Sponsor**: Company/institution funding the study
-- **CRO**: Contract Research Organization if mentioned
+Extract ALL organizations mentioned with their roles:
+- **Sponsor**: Primary funding company/institution
+- **Co-Sponsor**: Additional funding organizations
+- **CRO**: Contract Research Organization managing the trial
+- **Academic Partners**: Universities or research institutions collaborating
+- **Regulatory Agencies**: FDA, EMA, etc. if mentioned
+- **Central Laboratories**: Labs performing central assays
+- **Data Management**: Organizations handling data
+- **Medical Monitor**: Organization providing medical oversight
+
+Look for organizations on the title page, in the synopsis, and in the "Sponsor Information" or "Contact Information" sections.
 
 ### 4. Study Phase & Type
 - Phase (1, 2, 3, 4 or combinations)
@@ -73,11 +87,29 @@ Code fields MUST use the {"code": "...", "codeSystem": "...", "decode": "..."} s
     {
       "id": "sid_1",
       "text": "NCT04123456",
+      "identifierType": "NCT",
+      "issuingOrganization": "ClinicalTrials.gov",
       "instanceType": "StudyIdentifier"
     },
     {
       "id": "sid_2",
       "text": "SPONSOR-2020-001",
+      "identifierType": "SponsorProtocolNumber",
+      "issuingOrganization": "Sponsor",
+      "instanceType": "StudyIdentifier"
+    },
+    {
+      "id": "sid_3",
+      "text": "2020-001234-56",
+      "identifierType": "EudraCT",
+      "issuingOrganization": "EudraCT",
+      "instanceType": "StudyIdentifier"
+    },
+    {
+      "id": "sid_4",
+      "text": "IND 123456",
+      "identifierType": "IND",
+      "issuingOrganization": "FDA",
       "instanceType": "StudyIdentifier"
     }
   ],
@@ -90,6 +122,29 @@ Code fields MUST use the {"code": "...", "codeSystem": "...", "decode": "..."} s
         "codeSystem": "http://www.cdisc.org/USDM/organizationType",
         "decode": "Sponsor"
       },
+      "role": "Sponsor",
+      "instanceType": "Organization"
+    },
+    {
+      "id": "org_2",
+      "name": "PRA Health Sciences",
+      "type": {
+        "code": "CRO",
+        "codeSystem": "http://www.cdisc.org/USDM/organizationType",
+        "decode": "Contract Research Organization"
+      },
+      "role": "CRO",
+      "instanceType": "Organization"
+    },
+    {
+      "id": "org_3",
+      "name": "ClinicalTrials.gov",
+      "type": {
+        "code": "Registry",
+        "codeSystem": "http://www.cdisc.org/USDM/organizationType",
+        "decode": "Clinical Study Registry"
+      },
+      "role": "Registry",
       "instanceType": "Organization"
     }
   ],
@@ -114,10 +169,24 @@ Code fields MUST use the {"code": "...", "codeSystem": "...", "decode": "..."} s
 - StudyAcronym = Study Acronym (e.g., KEYNOTE-001)
 - ScientificStudyTitle = Scientific Study Title
 
+## Identifier Type Codes
+- NCT = ClinicalTrials.gov identifier
+- SponsorProtocolNumber = Sponsor's internal protocol ID
+- EudraCT = European Clinical Trials Database
+- IND = FDA Investigational New Drug application
+- IDE = FDA Investigational Device Exemption
+- ISRCTN = International Standard Randomised Controlled Trial Number
+- CTIS = EU Clinical Trial Information System
+- WHO_UTN = WHO Universal Trial Number
+
 ## Organization Type Codes
-- Sponsor = Study Sponsor
+- Sponsor = Study Sponsor (primary funding source)
+- CoSponsor = Co-Sponsor (additional funding)
 - CRO = Contract Research Organization
-- RegulatoryAuthority = Regulatory Authority
+- RegulatoryAuthority = Regulatory Authority (FDA, EMA, etc.)
+- AcademicInstitution = University or research institution
+- CentralLab = Central laboratory for assays
+- Registry = Clinical study registry (ClinicalTrials.gov, EudraCT)
 
 ## Study Phase Codes
 - Phase1, Phase2, Phase3, Phase4

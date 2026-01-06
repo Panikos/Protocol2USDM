@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { 
@@ -33,7 +33,7 @@ import { exportToCSV, exportToJSON, exportToPDF, formatUSDMForExport } from '@/l
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DraftPublishControls } from '@/components/overlay/DraftPublishControls';
 import { SoAView } from '@/components/soa';
-import { TimelineView } from '@/components/timeline';
+import { TimelineView, ExecutionModelView } from '@/components/timeline';
 import { ProvenanceView } from '@/components/provenance';
 import {
   StudyMetadataView,
@@ -46,6 +46,7 @@ import {
   AdvancedEntitiesView,
   ProceduresDevicesView,
   StudySitesView,
+  FootnotesView,
 } from '@/components/protocol';
 import { QualityMetricsDashboard, ValidationResultsView } from '@/components/quality';
 import { DocumentStructureView, SoAImagesTab } from '@/components/intermediate';
@@ -54,7 +55,7 @@ import { useOverlayStore } from '@/stores/overlayStore';
 import { cn } from '@/lib/utils';
 import type { ProvenanceData } from '@/lib/provenance/types';
 
-type TabId = 'overview' | 'eligibility' | 'objectives' | 'design' | 'interventions' | 'amendments' | 'extensions' | 'entities' | 'procedures' | 'sites' | 'quality' | 'validation' | 'document' | 'images' | 'soa' | 'timeline' | 'provenance';
+type TabId = 'overview' | 'eligibility' | 'objectives' | 'design' | 'interventions' | 'amendments' | 'extensions' | 'entities' | 'procedures' | 'sites' | 'footnotes' | 'quality' | 'validation' | 'document' | 'images' | 'soa' | 'timeline' | 'provenance';
 
 export default function ProtocolDetailPage() {
   const params = useParams();
@@ -199,6 +200,7 @@ export default function ProtocolDetailPage() {
     { id: 'entities', label: 'Entities', icon: <Microscope className="h-4 w-4" /> },
     { id: 'procedures', label: 'Procedures', icon: <Stethoscope className="h-4 w-4" /> },
     { id: 'sites', label: 'Sites', icon: <MapPin className="h-4 w-4" /> },
+    { id: 'footnotes', label: 'Footnotes', icon: <FileText className="h-4 w-4" /> },
   ];
 
   const qualityTabs = [
@@ -341,6 +343,9 @@ export default function ProtocolDetailPage() {
         {activeTab === 'sites' && (
           <StudySitesView usdm={usdm} />
         )}
+        {activeTab === 'footnotes' && (
+          <FootnotesView usdm={usdm} />
+        )}
         {activeTab === 'quality' && (
           <QualityMetricsDashboard usdm={usdm} />
         )}
@@ -357,7 +362,7 @@ export default function ProtocolDetailPage() {
           <SoATab provenance={provenance} />
         )}
         {activeTab === 'timeline' && (
-          <TimelineTab />
+          <TimelineTab intermediateFiles={intermediateFiles} />
         )}
         {activeTab === 'provenance' && (
           <ProvenanceTab provenance={provenance} />
@@ -451,8 +456,47 @@ function SoATab({ provenance }: { provenance: ProvenanceData | null }) {
   return <SoAView provenance={provenance} />;
 }
 
-function TimelineTab() {
-  return <TimelineView />;
+function TimelineTab({ intermediateFiles }: { intermediateFiles: Record<string, unknown> | null }) {
+  const [viewMode, setViewMode] = useState<'execution' | 'graph'>('execution');
+  
+  // Extract execution model data from intermediate files
+  const executionModel = useMemo(() => {
+    const execFile = intermediateFiles?.executionModel as { data?: Record<string, unknown> } | null;
+    return execFile?.data ?? null;
+  }, [intermediateFiles]);
+
+  return (
+    <div className="space-y-4">
+      {/* View Toggle */}
+      <div className="flex items-center gap-2 p-1 bg-muted rounded-lg w-fit">
+        <Button
+          variant={viewMode === 'execution' ? 'default' : 'ghost'}
+          size="sm"
+          onClick={() => setViewMode('execution')}
+          className="flex items-center gap-2"
+        >
+          <Activity className="h-4 w-4" />
+          Execution Model
+        </Button>
+        <Button
+          variant={viewMode === 'graph' ? 'default' : 'ghost'}
+          size="sm"
+          onClick={() => setViewMode('graph')}
+          className="flex items-center gap-2"
+        >
+          <GitBranch className="h-4 w-4" />
+          Graph View
+        </Button>
+      </div>
+
+      {/* Content */}
+      {viewMode === 'execution' ? (
+        <ExecutionModelView />
+      ) : (
+        <TimelineView executionModel={executionModel} />
+      )}
+    </div>
+  );
 }
 
 function ProvenanceTab({ provenance }: { provenance: ProvenanceData | null }) {

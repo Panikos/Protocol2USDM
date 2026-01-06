@@ -384,12 +384,20 @@ def _enhance_with_llm(
     prompt = format_prompt(ENDPOINT_ALGORITHM_PROMPT, protocol_text=text[:8000])
     
     try:
-        response = call_llm(
+        result = call_llm(
             prompt=prompt,
             model_name=model,
-            max_tokens=4000,
             temperature=0.1,
         )
+        
+        # Extract response text from dict
+        if isinstance(result, dict):
+            if 'error' in result:
+                logger.warning(f"LLM call error: {result['error']}")
+                return None
+            response = result.get('response', '')
+        else:
+            response = str(result)
         
         if not response:
             return None

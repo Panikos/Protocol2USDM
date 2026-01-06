@@ -1,0 +1,777 @@
+{
+  "usdmVersion": "4.0",
+  "systemName": "Protocol2USDM",
+  "systemVersion": "0.1.0",
+  "study": {
+    "id": "2381d870-355e-4659-99e7-490061e01fa7",
+    "name": "",
+    "instanceType": "Study",
+    "versions": [
+      {
+        "id": "7f7bf725-3847-4589-ad9b-721eae78bf3a",
+        "versionIdentifier": "1.0",
+        "rationale": "Initial protocol version",
+        "instanceType": "StudyVersion",
+        "studyDesigns": [
+          {
+            "id": "sd_1",
+            "name": "Study Design",
+            "rationale": "Protocol-defined study design",
+            "instanceType": "InterventionalStudyDesign",
+            "blindingSchema": {
+              "id": "ace26d49-0a7c-4896-98db-409a7cec895d",
+              "instanceType": "AliasCode",
+              "standardCode": {
+                "id": "15143a46-d182-4108-a8ab-37dc1254af8f",
+                "code": "C49656",
+                "codeSystem": "http://www.cdisc.org",
+                "codeSystemVersion": "2024-09-27",
+                "decode": "Open Label",
+                "instanceType": "Code"
+              }
+            },
+            "model": {
+              "id": "28ffaf3c-c3b0-4ea4-af86-114b94eac18c",
+              "code": "C82638",
+              "codeSystem": "http://www.cdisc.org",
+              "codeSystemVersion": "2024-09-27",
+              "decode": "Single Group Study",
+              "instanceType": "Code"
+            },
+            "epochs": [
+              {
+                "id": "epoch_1",
+                "name": "Screening",
+                "instanceType": "StudyEpoch",
+                "type": {
+                  "id": "9e3941e7-6f47-4288-b994-4b1d6b3bd5d5",
+                  "code": "C98779",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Screening Epoch",
+                  "instanceType": "Code"
+                }
+              },
+              {
+                "id": "epoch_2",
+                "name": "Active Treatment Phasea - One Cycle = 28 days",
+                "instanceType": "StudyEpoch",
+                "type": {
+                  "id": "9007817a-d3d3-46ee-a1e8-82718bfe60a2",
+                  "code": "C98780",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Treatment Epoch",
+                  "instanceType": "Code"
+                }
+              },
+              {
+                "id": "epoch_3",
+                "name": "End of Treatment/Withdrawalc",
+                "instanceType": "StudyEpoch",
+                "type": {
+                  "id": "678520fb-44ff-4995-bf24-996b95baa3d7",
+                  "code": "C98780",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Treatment Epoch",
+                  "instanceType": "Code"
+                }
+              },
+              {
+                "id": "epoch_4",
+                "name": "Post-Treatment Follow-Upd",
+                "instanceType": "StudyEpoch",
+                "type": {
+                  "id": "048a0189-b05d-4ca4-b3a4-a3de0f8f9770",
+                  "code": "C98780",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Treatment Epoch",
+                  "instanceType": "Code"
+                }
+              }
+            ],
+            "activities": [
+              {
+                "id": "grp_1",
+                "name": "General Assessments",
+                "instanceType": "Activity",
+                "childIds": [
+                  "act_6"
+                ]
+              },
+              {
+                "id": "grp_2",
+                "name": "Laboratory Studies",
+                "instanceType": "Activity",
+                "childIds": [
+                  "act_9",
+                  "act_10"
+                ]
+              },
+              {
+                "id": "grp_7",
+                "name": "Study Treatment",
+                "instanceType": "Activity",
+                "childIds": [
+                  "act_19"
+                ]
+              },
+              {
+                "id": "act_1",
+                "name": "Informed Consent",
+                "instanceType": "Activity",
+                "description": "Informed Consent"
+              },
+              {
+                "id": "act_2",
+                "name": "Medical/Oncological History",
+                "instanceType": "Activity",
+                "description": "Medical/Oncological History"
+              },
+              {
+                "id": "act_3",
+                "name": "Baseline Signs/Symptoms",
+                "instanceType": "Activity",
+                "description": "Baseline Signs/Symptoms"
+              },
+              {
+                "id": "act_4",
+                "name": "Physical Examination/Vital Signs",
+                "instanceType": "Activity",
+                "description": "Physical Examination/Vital Signs"
+              },
+              {
+                "id": "act_5",
+                "name": "Ophthalmic Examination",
+                "instanceType": "Activity",
+                "description": "Ophthalmic Examination"
+              },
+              {
+                "id": "act_6",
+                "name": "ECOG Performance Status",
+                "instanceType": "Activity",
+                "description": "ECOG Performance Status"
+              },
+              {
+                "id": "act_7",
+                "name": "Hematology",
+                "instanceType": "Activity",
+                "description": "Hematology"
+              },
+              {
+                "id": "act_8",
+                "name": "Blood Chemistry",
+                "instanceType": "Activity",
+                "description": "Blood Chemistry"
+              },
+              {
+                "id": "act_9",
+                "name": "Pregnancy test, serum estradiol and FSH (if applicable)",
+                "instanceType": "Activity",
+                "description": "Pregnancy test, serum estradiol and FSH (if applicable)"
+              },
+              {
+                "id": "act_10",
+                "name": "12-Lead ECG (in triplicate)",
+                "instanceType": "Activity",
+                "description": "12-Lead ECG (in triplicate)"
+              },
+              {
+                "id": "act_11",
+                "name": "CT/MRI Scans of Chest, Abdomen, Pelvis, any clinically indicated sites of disease, and of bone lesions; Clinical evaluation of superficial disease",
+                "instanceType": "Activity",
+                "description": "CT/MRI Scans of Chest, Abdomen, Pelvis, any clinically indicated sites of disease, and of bone lesions; Clinical evaluation of superficial disease"
+              },
+              {
+                "id": "act_12",
+                "name": "Radionuclide Bone Scan, Whole Body",
+                "instanceType": "Activity",
+                "description": "Radionuclide Bone Scan, Whole Body"
+              },
+              {
+                "id": "act_13",
+                "name": "Adverse Event Reporting",
+                "instanceType": "Activity",
+                "description": "Adverse Event Reporting"
+              },
+              {
+                "id": "act_14",
+                "name": "Pharmacokinetics (PK)",
+                "instanceType": "Activity",
+                "description": "First 40 patients: Sampling at pre-dose on Day 1 and Day 15 of Cycles 1 and 2, and Day 1 of Cycle 3; all other patients: Pre-dose sampling on Day 15 of Cycles 1 and 2"
+              },
+              {
+                "id": "act_15",
+                "name": "EuroQol-5D (EQ-5D)",
+                "instanceType": "Activity",
+                "description": "Pre-dose on Day 1 of Cycles 1, 2, 3, 4 and Day 1 of every other cycle thereafter starting with Cycle 6 (ie, Cycle 6,8, 10, etc)"
+              },
+              {
+                "id": "act_16",
+                "name": "European Organization for Research and Treatment of Cancer Quality of Life Questionnaire (EORTC-QLQ-C30)",
+                "instanceType": "Activity",
+                "description": "European Organization for Research and Treatment of Cancer Quality of Life Questionnaire (EORTC-QLQ-C30)"
+              },
+              {
+                "id": "act_17",
+                "name": "European Organisation for Research and Treatment of Cancer Breast Cancer Module (EORTC-QLQ-BR23)",
+                "instanceType": "Activity",
+                "description": "European Organisation for Research and Treatment of Cancer Breast Cancer Module (EORTC-QLQ-BR23)"
+              },
+              {
+                "id": "act_18",
+                "name": "Survival Follow-up",
+                "instanceType": "Activity",
+                "description": "Survival Follow-up"
+              },
+              {
+                "id": "act_19",
+                "name": "Randomization",
+                "instanceType": "Activity",
+                "description": "Randomization"
+              },
+              {
+                "id": "act_20",
+                "name": "Fulvestrant (both treatment arms)",
+                "instanceType": "Activity",
+                "description": "IM administration on Days 1 and 15 of Cycle 1, every 28 days (±7 days) thereafter starting from Day 1 of Cycle 1"
+              },
+              {
+                "id": "act_21",
+                "name": "Palbociclib or placebo (Arm A only)",
+                "instanceType": "Activity",
+                "description": "Orally once daily on Days 1 to 21of each Cycle followed by 7 days off treatment (visit windows not applicable to palbociclib/placebo dosing)"
+              },
+              {
+                "id": "act_22",
+                "name": "For pre-/peri-menopausal patients only: Goserelin (both treatment arms, if applicable)",
+                "instanceType": "Activity",
+                "description": "SC administration at least 4 weeks before study treatment start. SC administration every 28 days"
+              }
+            ],
+            "encounters": [
+              {
+                "id": "enc_1",
+                "name": "Screening",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "1d113078-a46b-4362-b0de-367182c17110",
+                  "code": "C48262",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Screening",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_1"
+              },
+              {
+                "id": "enc_2",
+                "name": "Cycles 1 and 2, Day 1b",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "58dd6c78-4ea1-48f4-b934-8e6506925261",
+                  "code": "C82517",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Baseline",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_2"
+              },
+              {
+                "id": "enc_3",
+                "name": "Cycles 1 and 2, Day 15",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "1cad85c1-580c-4177-8d22-db81d8876aab",
+                  "code": "C82517",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Baseline",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_2"
+              },
+              {
+                "id": "enc_4",
+                "name": "Cycles ≥3, Day 1",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "796b8968-bbcb-4cd8-a75e-c648a5293462",
+                  "code": "C82517",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Baseline",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_2"
+              },
+              {
+                "id": "enc_5",
+                "name": "End of Treatment/Withdrawal",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "4b7b6030-f5cc-48fe-b3d7-ac6c2b3d2143",
+                  "code": "C126070",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "End of Study",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_3"
+              },
+              {
+                "id": "enc_6",
+                "name": "Post-Treatment Follow-Up",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "1bbb785c-f21f-4a7f-97aa-dfac8e99ff97",
+                  "code": "C99158",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Follow-up",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_4"
+              }
+            ],
+            "scheduleTimelines": [
+              {
+                "id": "timeline_1",
+                "name": "Main Schedule Timeline",
+                "mainTimeline": true,
+                "instanceType": "ScheduleTimeline",
+                "entryCondition": "Subject enrolled in study",
+                "entryId": "0636baa3-a527-4ca8-b78d-d086b2c9f13c",
+                "instances": [
+                  {
+                    "id": "0636baa3-a527-4ca8-b78d-d086b2c9f13c",
+                    "activityIds": [
+                      "act_1"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Informed Consent @ Screening",
+                    "epochId": "epoch_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "3e875ced-cac8-434f-99ce-5fedc9718db1",
+                    "activityIds": [
+                      "act_2"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Medical/Oncological History @ Screening",
+                    "epochId": "epoch_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "ee57b27e-f4ad-451b-bbfe-da19e794ac44",
+                    "activityIds": [
+                      "act_3"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Baseline Signs/Symptoms @ Cycles 1 and 2, Day 1b",
+                    "epochId": "epoch_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "8b0d1280-5841-4f21-a75c-ab5dcde807d1",
+                    "activityIds": [
+                      "act_4"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Physical Examination/Vital Signs @ Screening",
+                    "epochId": "epoch_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "6abe0888-1327-4947-ab62-1a0a35e246d3",
+                    "activityIds": [
+                      "act_4"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Physical Examination/Vital Signs @ Cycles 1 and 2, Day 1b",
+                    "epochId": "epoch_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "edc8dbc4-6f66-4c9a-9364-4fb50f2a57ad",
+                    "activityIds": [
+                      "act_4"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Physical Examination/Vital Signs @ Cycles ≥3, Day 1",
+                    "epochId": "epoch_2",
+                    "encounterId": "enc_4"
+                  },
+                  {
+                    "id": "a134c4ec-4f54-40f2-9b20-98c6a026d1bb",
+                    "activityIds": [
+                      "act_4"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Physical Examination/Vital Signs @ End of Treatment/Withdrawal",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_5"
+                  },
+                  {
+                    "id": "7add86b9-7a8d-4d0d-9785-10aac97b3197",
+                    "activityIds": [
+                      "act_5"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Ophthalmic Examination @ Screening",
+                    "epochId": "epoch_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "5453cea9-14dd-4c93-a41f-bb1ace171241",
+                    "activityIds": [
+                      "act_5"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Ophthalmic Examination @ Cycles ≥3, Day 1",
+                    "epochId": "epoch_2",
+                    "encounterId": "enc_4"
+                  },
+                  {
+                    "id": "72949239-2c9d-417b-9441-1b5307045825",
+                    "activityIds": [
+                      "act_5"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Ophthalmic Examination @ End of Treatment/Withdrawal",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_5"
+                  },
+                  {
+                    "id": "508ebd90-6653-4c5a-9963-5e83d0587140",
+                    "activityIds": [
+                      "act_6"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "ECOG Performance Status @ Screening",
+                    "epochId": "epoch_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "617f3f32-98bd-48cb-ae29-3c3b51991525",
+                    "activityIds": [
+                      "act_6"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "ECOG Performance Status @ Cycles 1 and 2, Day 1b",
+                    "epochId": "epoch_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "6f9df482-2ba0-4998-8d9d-c221cb736d22",
+                    "activityIds": [
+                      "act_6"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "ECOG Performance Status @ Cycles ≥3, Day 1",
+                    "epochId": "epoch_2",
+                    "encounterId": "enc_4"
+                  },
+                  {
+                    "id": "d3d8d322-adc0-4275-a0e4-419a5ce7ed9d",
+                    "activityIds": [
+                      "act_6"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "ECOG Performance Status @ End of Treatment/Withdrawal",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_5"
+                  },
+                  {
+                    "id": "255e053e-a9bd-47a1-aaa5-8ef96bb7b26c",
+                    "activityIds": [
+                      "act_7"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Hematology @ Screening",
+                    "epochId": "epoch_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "75f38fbd-90ef-46c8-b8d3-53ced405f035",
+                    "activityIds": [
+                      "act_7"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Hematology @ Cycles 1 and 2, Day 1b",
+                    "epochId": "epoch_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "36c4b112-0c1c-465e-bb5d-44ec066de689",
+                    "activityIds": [
+                      "act_7"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Hematology @ Cycles 1 and 2, Day 15",
+                    "epochId": "epoch_2",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "4d863dab-c8d0-4e60-aebf-bc933d24a978",
+                    "activityIds": [
+                      "act_7"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Hematology @ Cycles ≥3, Day 1",
+                    "epochId": "epoch_2",
+                    "encounterId": "enc_4"
+                  },
+                  {
+                    "id": "659c4572-b1ee-4605-8b41-ff05a24fd5d4",
+                    "activityIds": [
+                      "act_7"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Hematology @ End of Treatment/Withdrawal",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_5"
+                  },
+                  {
+                    "id": "db050230-587a-4978-b180-baba7ea5abfa",
+                    "activityIds": [
+                      "act_8"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Blood Chemistry @ Screening",
+                    "epochId": "epoch_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "b2667431-5e40-47ca-82f4-ed2820ef6dae",
+                    "activityIds": [
+                      "act_8"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Blood Chemistry @ Cycles 1 and 2, Day 1b",
+                    "epochId": "epoch_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "9238408d-17ab-443e-8b80-6211de0f7720",
+                    "activityIds": [
+                      "act_8"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Blood Chemistry @ Cycles ≥3, Day 1",
+                    "epochId": "epoch_2",
+                    "encounterId": "enc_4"
+                  },
+                  {
+                    "id": "fb2ccd37-7667-4fa7-b804-0bd58699e409",
+                    "activityIds": [
+                      "act_8"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Blood Chemistry @ End of Treatment/Withdrawal",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_5"
+                  },
+                  {
+                    "id": "1c01517a-f674-429b-a6e8-7a04d09b2e61",
+                    "activityIds": [
+                      "act_9"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Pregnancy test, serum estradiol and FSH (if app... @ Screening",
+                    "epochId": "epoch_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "307561bd-9407-4baa-ad00-c44bdf9eb110",
+                    "activityIds": [
+                      "act_10"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "12-Lead ECG (in triplicate) @ Screening",
+                    "epochId": "epoch_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "fab6031e-91be-4802-9d3e-c3c80089dfa7",
+                    "activityIds": [
+                      "act_10"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "12-Lead ECG (in triplicate) @ End of Treatment/Withdrawal",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_5"
+                  },
+                  {
+                    "id": "1253d18c-3cac-4e8a-a9f6-bbcf207d9569",
+                    "activityIds": [
+                      "act_11"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "CT/MRI Scans of Chest, Abdomen, Pelvis, any cli... @ Screening",
+                    "epochId": "epoch_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "ec580803-82f2-4096-92ad-de5144b888e5",
+                    "activityIds": [
+                      "act_11"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "CT/MRI Scans of Chest, Abdomen, Pelvis, any cli... @ End of Treatment/Withdrawal",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_5"
+                  },
+                  {
+                    "id": "b7230141-5618-481a-9b64-5e75b624f47b",
+                    "activityIds": [
+                      "act_11"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "CT/MRI Scans of Chest, Abdomen, Pelvis, any cli... @ Post-Treatment Follow-Up",
+                    "epochId": "epoch_4",
+                    "encounterId": "enc_6"
+                  },
+                  {
+                    "id": "e0a27a74-3922-4151-982c-583e4ab5da4e",
+                    "activityIds": [
+                      "act_12"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Radionuclide Bone Scan, Whole Body @ Screening",
+                    "epochId": "epoch_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "adc29553-72c8-4d3e-a0c7-0331c5b965db",
+                    "activityIds": [
+                      "act_12"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Radionuclide Bone Scan, Whole Body @ End of Treatment/Withdrawal",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_5"
+                  },
+                  {
+                    "id": "8c712492-01cb-4cb7-ae3a-243a554c654d",
+                    "activityIds": [
+                      "act_12"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Radionuclide Bone Scan, Whole Body @ Post-Treatment Follow-Up",
+                    "epochId": "epoch_4",
+                    "encounterId": "enc_6"
+                  },
+                  {
+                    "id": "efdea9aa-fc98-45d5-84f4-62f206f82796",
+                    "activityIds": [
+                      "act_13"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Adverse Event Reporting @ Cycles 1 and 2, Day 1b",
+                    "epochId": "epoch_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "01da4f79-8794-456c-8ee3-a507037f05d7",
+                    "activityIds": [
+                      "act_13"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Adverse Event Reporting @ Cycles 1 and 2, Day 15",
+                    "epochId": "epoch_2",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "df2a60b2-7c23-4050-bf81-021acfb21d7d",
+                    "activityIds": [
+                      "act_13"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Adverse Event Reporting @ Cycles ≥3, Day 1",
+                    "epochId": "epoch_2",
+                    "encounterId": "enc_4"
+                  },
+                  {
+                    "id": "ca9604da-dc8d-48c4-ac24-5715e4767c6e",
+                    "activityIds": [
+                      "act_13"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Adverse Event Reporting @ End of Treatment/Withdrawal",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_5"
+                  },
+                  {
+                    "id": "e5e1df68-b357-4f1c-84e5-04bdf1c6c64d",
+                    "activityIds": [
+                      "act_13"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Adverse Event Reporting @ Post-Treatment Follow-Up",
+                    "epochId": "epoch_4",
+                    "encounterId": "enc_6"
+                  },
+                  {
+                    "id": "7d141b19-3264-472d-aa82-96106d1e84fa",
+                    "activityIds": [
+                      "act_15"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "EuroQol-5D (EQ-5D) @ End of Treatment/Withdrawal",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_5"
+                  },
+                  {
+                    "id": "153b80e5-0bf6-45a8-b090-ea78b7296f66",
+                    "activityIds": [
+                      "act_16"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "European Organization for Research and Treatmen... @ End of Treatment/Withdrawal",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_5"
+                  },
+                  {
+                    "id": "330206c0-7ae1-4ace-9053-9642490c5492",
+                    "activityIds": [
+                      "act_17"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "European Organisation for Research and Treatmen... @ End of Treatment/Withdrawal",
+                    "epochId": "epoch_3",
+                    "encounterId": "enc_5"
+                  },
+                  {
+                    "id": "444e64ba-903f-4ed8-889a-6787abbc067e",
+                    "activityIds": [
+                      "act_18"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Survival Follow-up @ Post-Treatment Follow-Up",
+                    "epochId": "epoch_4",
+                    "encounterId": "enc_6"
+                  },
+                  {
+                    "id": "b0240344-f770-42ed-b26d-ac1237547d6b",
+                    "activityIds": [
+                      "act_19"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "Randomization @ Cycles 1 and 2, Day 1b",
+                    "epochId": "epoch_2",
+                    "encounterId": "enc_2"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -9,6 +9,9 @@ export interface ProvenanceCellRendererParams extends ICellRendererParams {
   cellMap: Map<string, {
     mark: string | null;
     footnoteRefs: string[];
+    instanceName?: string;  // Human-readable instance name
+    timingId?: string;
+    epochId?: string;
     provenance: {
       source: CellSource;
       needsReview: boolean;
@@ -31,10 +34,16 @@ export function ProvenanceCellRenderer(params: ProvenanceCellRendererParams) {
   const source = cellData?.provenance?.source || 'none';
   const footnotes = cellData?.footnoteRefs || [];
   const needsReview = cellData?.provenance?.needsReview || false;
+  const instanceName = cellData?.instanceName;
 
   // Get background color based on provenance
   const bgColor = getProvenanceBackgroundColor(source);
-  const tooltip = getProvenanceTooltip(source, needsReview);
+  const provenanceText = getProvenanceTooltip(source, needsReview);
+  
+  // Build tooltip with instance name if available
+  const tooltip = instanceName 
+    ? `${instanceName}\n\n${provenanceText}`
+    : provenanceText;
 
   return (
     <div

@@ -1,0 +1,170 @@
+{
+  "success": true,
+  "sourceFile": "input/Alexion_NCT04573309_Wilsons_SAP.pdf",
+  "pagesUsed": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33
+  ],
+  "modelUsed": "claude-opus-4-5",
+  "sapData": {
+    "analysisPopulations": [
+      {
+        "id": "pop_1",
+        "name": "Screened Set",
+        "text": "All participants who signed an informed consent form",
+        "populationType": "Other",
+        "instanceType": "AnalysisPopulation",
+        "label": "SCR",
+        "populationDescription": "All participants who signed an informed consent form",
+        "criteria": "Signed informed consent form"
+      },
+      {
+        "id": "pop_2",
+        "name": "Enrolled Set",
+        "text": "All participants who were enrolled in the study",
+        "populationType": "Other",
+        "instanceType": "AnalysisPopulation",
+        "label": "ENR",
+        "populationDescription": "All participants who were enrolled in the study",
+        "criteria": "Enrolled in study"
+      },
+      {
+        "id": "pop_3",
+        "name": "Full Analysis Set",
+        "text": "All enrolled participants who received at least one dose of ALXN1840 and have at least one post-baseline efficacy assessment",
+        "populationType": "Efficacy",
+        "instanceType": "AnalysisPopulation",
+        "label": "FAS",
+        "populationDescription": "All enrolled participants who received at least one dose of ALXN1840 and have at least one post-baseline efficacy assessment",
+        "criteria": "Enrolled AND received >=1 dose of ALXN1840 AND has >=1 post-baseline efficacy assessment"
+      },
+      {
+        "id": "pop_4",
+        "name": "Per Protocol Set",
+        "text": "All participants in the Full Analysis Set who completed the study without major protocol deviations that could affect the efficacy assessments",
+        "populationType": "Efficacy",
+        "instanceType": "AnalysisPopulation",
+        "label": "PP",
+        "populationDescription": "All participants in the Full Analysis Set who completed the study without major protocol deviations that could affect the efficacy assessments",
+        "criteria": "In FAS AND completed study AND no major protocol deviations affecting efficacy"
+      },
+      {
+        "id": "pop_5",
+        "name": "Safety Set",
+        "text": "All enrolled participants who received at least one dose of ALXN1840",
+        "populationType": "Safety",
+        "instanceType": "AnalysisPopulation",
+        "label": "SAF",
+        "populationDescription": "All enrolled participants who received at least one dose of ALXN1840",
+        "criteria": "Enrolled AND received >=1 dose of ALXN1840"
+      },
+      {
+        "id": "pop_6",
+        "name": "Pharmacokinetic Analysis Set",
+        "text": "All participants in the Safety Set who have at least one evaluable pharmacokinetic sample",
+        "populationType": "PK/PD",
+        "instanceType": "AnalysisPopulation",
+        "label": "PK",
+        "populationDescription": "All participants in the Safety Set who have at least one evaluable pharmacokinetic sample",
+        "criteria": "In Safety Set AND has >=1 evaluable PK sample"
+      },
+      {
+        "id": "pop_7",
+        "name": "Pharmacodynamic Analysis Set",
+        "text": "All participants in the Safety Set who have at least one evaluable pharmacodynamic sample",
+        "populationType": "PK/PD",
+        "instanceType": "AnalysisPopulation",
+        "label": "PD",
+        "populationDescription": "All participants in the Safety Set who have at least one evaluable pharmacodynamic sample",
+        "criteria": "In Safety Set AND has >=1 evaluable PD sample"
+      }
+    ],
+    "characteristics": [
+      {
+        "id": "char_1",
+        "name": "Age",
+        "dataType": "Numeric",
+        "instanceType": "Characteristic",
+        "description": "Age at baseline in years"
+      },
+      {
+        "id": "char_2",
+        "name": "Sex",
+        "dataType": "Categorical",
+        "instanceType": "Characteristic",
+        "description": "Sex of participant"
+      },
+      {
+        "id": "char_3",
+        "name": "Race",
+        "dataType": "Categorical",
+        "instanceType": "Characteristic",
+        "description": "Race of participant"
+      },
+      {
+        "id": "char_4",
+        "name": "Ethnicity",
+        "dataType": "Categorical",
+        "instanceType": "Characteristic",
+        "description": "Ethnicity of participant"
+      },
+      {
+        "id": "char_5",
+        "name": "Body Mass Index",
+        "dataType": "Numeric",
+        "instanceType": "Characteristic",
+        "description": "BMI at baseline"
+      },
+      {
+        "id": "char_6",
+        "name": "Cohort",
+        "dataType": "Categorical",
+        "instanceType": "Characteristic",
+        "description": "Treatment experienced (Cohort 1) or treatment naïve (Cohort 2)"
+      },
+      {
+        "id": "char_7",
+        "name": "Wilson Disease History",
+        "dataType": "Categorical",
+        "instanceType": "Characteristic",
+        "description": "Medical history related to Wilson Disease"
+      }
+    ],
+    "summary": {
+      "populationCount": 7,
+      "characteristicCount": 7
+    }
+  }
+}

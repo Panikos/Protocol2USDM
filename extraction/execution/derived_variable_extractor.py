@@ -411,12 +411,20 @@ Protocol text:
 Return ONLY the JSON."""
 
     try:
-        response = call_llm(
+        result = call_llm(
             prompt=prompt,
             model_name=model,
-            max_tokens=3000,
             temperature=0.1,
         )
+        
+        # Extract response text from dict
+        if isinstance(result, dict):
+            if 'error' in result:
+                logger.warning(f"LLM call error: {result['error']}")
+                return None
+            response = result.get('response', '')
+        else:
+            response = str(result)
         
         if not response:
             return None

@@ -56,22 +56,32 @@ export function ProceduresDevicesView({ usdm }: ProceduresDevicesViewProps) {
   const studyDesigns = (version?.studyDesigns as Record<string, unknown>[]) ?? [];
   const studyDesign = studyDesigns[0] ?? {};
 
-  // Collect procedures from multiple locations:
+  // Collect procedures from multiple locations (with deduplication):
   // 1. studyDesign.procedures (direct array)
   // 2. activities' definedProcedures (nested)
-  const procedures: Procedure[] = [];
+  const procedureMap = new Map<string, Procedure>();
+  
+  // Helper to add procedure with deduplication by ID or name
+  const addProcedure = (proc: Procedure) => {
+    const key = proc.id || proc.name || JSON.stringify(proc);
+    if (!procedureMap.has(key)) {
+      procedureMap.set(key, proc);
+    }
+  };
   
   // Check studyDesign.procedures first
   const directProcedures = (studyDesign.procedures as Procedure[]) ?? [];
-  procedures.push(...directProcedures);
+  directProcedures.forEach(addProcedure);
   
-  // Also check activities' definedProcedures (legacy/nested format)
+  // Also check activities' definedProcedures (nested format)
   const activities = (studyDesign.activities as { definedProcedures?: Procedure[] }[]) ?? [];
   for (const activity of activities) {
     if (activity.definedProcedures) {
-      procedures.push(...activity.definedProcedures);
+      activity.definedProcedures.forEach(addProcedure);
     }
   }
+  
+  const procedures = Array.from(procedureMap.values());
 
   // USDM-compliant: medicalDevices are at studyVersion level (per dataStructure.yml)
   const devices = (version?.medicalDevices as Device[]) ?? 

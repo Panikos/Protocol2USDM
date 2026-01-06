@@ -23,6 +23,7 @@ from .schema import (
     TitleType,
     OrganizationType,
     StudyRoleCode,
+    IdentifierType,
 )
 from .prompts import (
     METADATA_EXTRACTION_PROMPT,
@@ -212,13 +213,22 @@ def _parse_metadata_response(raw: Dict[str, Any]) -> Optional[StudyMetadata]:
                 id_text = id_data.get('text') or id_data.get('value')
                 if id_text:
                     # Find scope organization
-                    registry = id_data.get('registry', 'Unknown')
+                    registry = id_data.get('registry') or id_data.get('issuingOrganization', 'Unknown')
                     scope_id = _find_scope_org(registry, org_id_map, organizations)
                     
+                    # Determine identifier type
+                    id_type = _infer_identifier_type(
+                        id_text,
+                        id_data.get('identifierType'),
+                        id_data.get('issuingOrganization')
+                    )
+                    
                     identifiers.append(StudyIdentifier(
-                        id=id_data.get('id', f"id_{i+1}"),
+                        id=id_data.get('id', f"sid_{i+1}"),
                         text=id_text,
                         scope_id=scope_id,
+                        identifier_type=id_type,
+                        issuing_organization=registry,
                     ))
         
         # Extract roles from organizations
@@ -368,6 +378,87 @@ def _map_role_code(role_str: str) -> StudyRoleCode:
     elif 'site' in role_lower:
         return StudyRoleCode.STUDY_SITE
     return StudyRoleCode.SPONSOR
+
+
+def _infer_identifier_type(
+    text: str,
+    explicit_type: Optional[str],
+    issuing_org: Optional[str],
+) -> Optional[IdentifierType]:
+    """
+    Infer identifier type from text pattern, explicit type, or issuing org.
+    
+    Args:
+        text: The identifier text (e.g., "NCT04573309")
+        explicit_type: Type explicitly specified by LLM
+        issuing_org: Organization that issued the identifier
+        
+    Returns:
+        IdentifierType enum value or None
+    """
+    import re
+    
+    # Check explicit type first
+    if explicit_type:
+        type_lower = explicit_type.lower()
+        if 'nct' in type_lower or 'clinicaltrials' in type_lower:
+            return IdentifierType.NCT
+        elif 'eudract' in type_lower:
+            return IdentifierType.EUDRACT
+        elif 'sponsor' in type_lower or 'protocol' in type_lower:
+            return IdentifierType.SPONSOR_PROTOCOL
+        elif 'ind' in type_lower and 'ide' not in type_lower:
+            return IdentifierType.IND
+        elif 'ide' in type_lower:
+            return IdentifierType.IDE
+        elif 'isrctn' in type_lower:
+            return IdentifierType.ISRCTN
+        elif 'ctis' in type_lower:
+            return IdentifierType.CTIS
+        elif 'utn' in type_lower or 'who' in type_lower:
+            return IdentifierType.WHO_UTN
+    
+    # Infer from text pattern
+    text_upper = text.upper().strip()
+    
+    # NCT pattern: NCT followed by 8 digits
+    if re.match(r'^NCT\d{8}$', text_upper):
+        return IdentifierType.NCT
+    
+    # EudraCT pattern: YYYY-NNNNNN-CC
+    if re.match(r'^\d{4}-\d{6}-\d{2}$', text):
+        return IdentifierType.EUDRACT
+    
+    # ISRCTN pattern
+    if re.match(r'^ISRCTN\d+$', text_upper):
+        return IdentifierType.ISRCTN
+    
+    # IND/IDE patterns
+    if re.match(r'^IND\s*\d+', text_upper):
+        return IdentifierType.IND
+    if re.match(r'^IDE\s*\d+', text_upper):
+        return IdentifierType.IDE
+    
+    # Infer from issuing organization
+    if issuing_org:
+        org_lower = issuing_org.lower()
+        if 'clinicaltrials' in org_lower or 'ct.gov' in org_lower:
+            return IdentifierType.NCT
+        elif 'eudract' in org_lower or 'european' in org_lower:
+            return IdentifierType.EUDRACT
+        elif 'fda' in org_lower:
+            if 'ind' in text.lower():
+                return IdentifierType.IND
+            elif 'ide' in text.lower():
+                return IdentifierType.IDE
+        elif 'sponsor' in org_lower:
+            return IdentifierType.SPONSOR_PROTOCOL
+    
+    # Default to sponsor protocol if it looks like an internal ID
+    if re.match(r'^[A-Z]{2,5}[-_]?\d+', text_upper) or '-' in text:
+        return IdentifierType.SPONSOR_PROTOCOL
+    
+    return IdentifierType.OTHER
 
 
 def _find_scope_org(

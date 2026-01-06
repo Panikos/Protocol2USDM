@@ -1,0 +1,578 @@
+{
+  "success": true,
+  "pagesUsed": [
+    0,
+    1,
+    2,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24
+  ],
+  "modelUsed": "gemini-2.5-pro",
+  "objectivesEndpoints": {
+    "objectives": [
+      {
+        "id": "obj_1",
+        "name": "Primary Efficacy Objective",
+        "text": "To demonstrate the superiority of palbociclib in combination with fulvestrant (with or without goserelin) over fulvestrant alone (with or without goserelin) in prolonging investigator-assessed PFS in women with HR+/HER2-negative metastatic breast cancer whose disease has progressed on prior endocrine therapy.",
+        "level": {
+          "code": "C85826",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Trial Primary Objective",
+          "instanceType": "Code"
+        },
+        "endpointIds": [
+          "ep_1"
+        ],
+        "instanceType": "Objective"
+      },
+      {
+        "id": "obj_2",
+        "name": "Tumor Control Objective",
+        "text": "To compare measures of tumor control between the treatment arms.",
+        "level": {
+          "code": "C85827",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Trial Secondary Objective",
+          "instanceType": "Code"
+        },
+        "endpointIds": [
+          "ep_2",
+          "ep_3",
+          "ep_4",
+          "ep_5",
+          "ep_6"
+        ],
+        "instanceType": "Objective"
+      },
+      {
+        "id": "obj_3",
+        "name": "Safety and Tolerability Objective",
+        "text": "To compare safety and tolerability between the treatment arms.",
+        "level": {
+          "code": "C85827",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Trial Secondary Objective",
+          "instanceType": "Code"
+        },
+        "endpointIds": [
+          "ep_7"
+        ],
+        "instanceType": "Objective"
+      },
+      {
+        "id": "obj_4",
+        "name": "Palbociclib Pharmacokinetic Objective",
+        "text": "To evaluate trough concentrations of palbociclib when given in combination with fulvestrant or fulvestrant plus goserelin, compared to historical palbociclib data.",
+        "level": {
+          "code": "C85827",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Trial Secondary Objective",
+          "instanceType": "Code"
+        },
+        "endpointIds": [
+          "ep_8"
+        ],
+        "instanceType": "Objective"
+      },
+      {
+        "id": "obj_5",
+        "name": "Fulvestrant and Goserelin Pharmacokinetic Objective",
+        "text": "To compare fulvestrant and goserelin trough concentrations when given in combination with palbociclib to those when given without palbociclib.",
+        "level": {
+          "code": "C85827",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Trial Secondary Objective",
+          "instanceType": "Code"
+        },
+        "endpointIds": [
+          "ep_8"
+        ],
+        "instanceType": "Objective"
+      },
+      {
+        "id": "obj_6",
+        "name": "Exposure-Response Objective",
+        "text": "To explore correlations between palbociclib exposures and efficacy/safety findings in this patient population.",
+        "level": {
+          "code": "C85827",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Trial Secondary Objective",
+          "instanceType": "Code"
+        },
+        "endpointIds": [
+          "ep_8"
+        ],
+        "instanceType": "Objective"
+      },
+      {
+        "id": "obj_7",
+        "name": "Patient Reported Outcomes Objective",
+        "text": "To compare Patient Reported Outcomes measures between treatment arms.",
+        "level": {
+          "code": "C85827",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Trial Secondary Objective",
+          "instanceType": "Code"
+        },
+        "endpointIds": [
+          "ep_9"
+        ],
+        "instanceType": "Objective"
+      },
+      {
+        "id": "obj_8",
+        "name": "Biomarker Objective",
+        "text": "To characterize alterations in genes, proteins, and ribonucleic acids (RNAs) relevant to the cell cycle, drug targets, tumor sensitivity and/or resistance.",
+        "level": {
+          "code": "C85827",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Trial Secondary Objective",
+          "instanceType": "Code"
+        },
+        "endpointIds": [
+          "ep_10"
+        ],
+        "instanceType": "Objective"
+      },
+      {
+        "id": "obj_9",
+        "name": "Subgroup Analysis Objective",
+        "text": "To conduct subgroup analysis for primary and secondary endpoints in stratified groups.",
+        "level": {
+          "code": "C85827",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Trial Secondary Objective",
+          "instanceType": "Code"
+        },
+        "endpointIds": [],
+        "instanceType": "Objective"
+      }
+    ],
+    "endpoints": [
+      {
+        "id": "ep_1",
+        "name": "Progression-Free Survival (PFS)",
+        "text": "Progression-Free Survival (PFS) as assessed by the Investigator.",
+        "level": {
+          "code": "C98772",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Primary Outcome Measure",
+          "instanceType": "Code"
+        },
+        "instanceType": "Endpoint",
+        "purpose": "Efficacy"
+      },
+      {
+        "id": "ep_2",
+        "name": "Overall Survival (OS)",
+        "text": "Overall Survival (OS).",
+        "level": {
+          "code": "C98781",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Secondary Outcome Measure",
+          "instanceType": "Code"
+        },
+        "instanceType": "Endpoint",
+        "purpose": "Efficacy"
+      },
+      {
+        "id": "ep_3",
+        "name": "Survival Probabilities",
+        "text": "1-year, 2-year, and 3-year survival probabilities.",
+        "level": {
+          "code": "C98781",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Secondary Outcome Measure",
+          "instanceType": "Code"
+        },
+        "instanceType": "Endpoint",
+        "purpose": "Efficacy"
+      },
+      {
+        "id": "ep_4",
+        "name": "Objective Response (OR)",
+        "text": "Objective Response (OR): Complete Response (CR) or Partial Response (PR).",
+        "level": {
+          "code": "C98781",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Secondary Outcome Measure",
+          "instanceType": "Code"
+        },
+        "instanceType": "Endpoint",
+        "purpose": "Efficacy"
+      },
+      {
+        "id": "ep_5",
+        "name": "Duration of Response (DR)",
+        "text": "Duration of Response (DR).",
+        "level": {
+          "code": "C98781",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Secondary Outcome Measure",
+          "instanceType": "Code"
+        },
+        "instanceType": "Endpoint",
+        "purpose": "Efficacy"
+      },
+      {
+        "id": "ep_6",
+        "name": "Clinical Benefit Response (CBR)",
+        "text": "Clinical Benefit Response (CBR): CR or PR or Stable Disease (SD) ≥24 weeks.",
+        "level": {
+          "code": "C98781",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Secondary Outcome Measure",
+          "instanceType": "Code"
+        },
+        "instanceType": "Endpoint",
+        "purpose": "Efficacy"
+      },
+      {
+        "id": "ep_7",
+        "name": "Adverse Events and Laboratory Abnormalities",
+        "text": "Type, incidence, severity (as graded by the National Cancer Institute Common Terminology Criteria for Adverse Events [NCI CTCAE] v4.0), seriousness and relationship to study medications of Adverse Events (AEs) and any laboratory abnormalities.",
+        "level": {
+          "code": "C98781",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Secondary Outcome Measure",
+          "instanceType": "Code"
+        },
+        "instanceType": "Endpoint",
+        "purpose": "Safety"
+      },
+      {
+        "id": "ep_8",
+        "name": "Trough Plasma Concentrations",
+        "text": "Trough plasma concentration of palbociclib, fulvestrant and goserelin (if applicable) in the subgroup of approximately 40 patients included in the initial safety review.",
+        "level": {
+          "code": "C98781",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Secondary Outcome Measure",
+          "instanceType": "Code"
+        },
+        "instanceType": "Endpoint",
+        "purpose": "Pharmacokinetic"
+      },
+      {
+        "id": "ep_9",
+        "name": "Patient Reported Outcomes (PRO)",
+        "text": "PRO endpoints such as global quality of life symptoms and functioning assessed using the European Organisation for Research and Treatment of Cancer Quality of Life Instrument (EORTC QLQ-C30) and European Organisation for Research and Treatment of Cancer Breast Cancer Module (EORTC QLQ-BR23) and Dimension Health State EuroQoL Score (EQ-5D)and time to deterioration (TTD) in pain endpoint.",
+        "level": {
+          "code": "C98781",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Secondary Outcome Measure",
+          "instanceType": "Code"
+        },
+        "instanceType": "Endpoint",
+        "purpose": "QualityOfLife"
+      },
+      {
+        "id": "ep_10",
+        "name": "Tumor Tissue Biomarkers",
+        "text": "Tumor tissue biomarkers, including genes (eg, copy numbers of CCND1 and CDKN2A, PIK3CA mutations), proteins (eg, Ki67, pRb, CCNE1), and RNA expression (eg, cdk4, cdk6).",
+        "level": {
+          "code": "C98781",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Secondary Outcome Measure",
+          "instanceType": "Code"
+        },
+        "instanceType": "Endpoint",
+        "purpose": "Biomarker"
+      }
+    ],
+    "estimands": [],
+    "summary": {
+      "primaryObjectives": 1,
+      "secondaryObjectives": 8,
+      "exploratoryObjectives": 0,
+      "totalEndpoints": 10,
+      "totalEstimands": 0
+    }
+  },
+  "rawResponse": {
+    "objectives": [
+      {
+        "id": "obj_1",
+        "name": "Primary Efficacy Objective",
+        "text": "To demonstrate the superiority of palbociclib in combination with fulvestrant (with or without goserelin) over fulvestrant alone (with or without goserelin) in prolonging investigator-assessed PFS in women with HR+/HER2-negative metastatic breast cancer whose disease has progressed on prior endocrine therapy.",
+        "level": {
+          "code": "Primary",
+          "codeSystem": "http://www.cdisc.org/USDM/objectiveLevel",
+          "decode": "Primary Objective"
+        },
+        "endpointIds": [
+          "ep_1"
+        ],
+        "instanceType": "Objective"
+      },
+      {
+        "id": "obj_2",
+        "name": "Tumor Control Objective",
+        "text": "To compare measures of tumor control between the treatment arms.",
+        "level": {
+          "code": "Secondary",
+          "codeSystem": "http://www.cdisc.org/USDM/objectiveLevel",
+          "decode": "Secondary Objective"
+        },
+        "endpointIds": [
+          "ep_2",
+          "ep_3",
+          "ep_4",
+          "ep_5",
+          "ep_6"
+        ],
+        "instanceType": "Objective"
+      },
+      {
+        "id": "obj_3",
+        "name": "Safety and Tolerability Objective",
+        "text": "To compare safety and tolerability between the treatment arms.",
+        "level": {
+          "code": "Secondary",
+          "codeSystem": "http://www.cdisc.org/USDM/objectiveLevel",
+          "decode": "Secondary Objective"
+        },
+        "endpointIds": [
+          "ep_7"
+        ],
+        "instanceType": "Objective"
+      },
+      {
+        "id": "obj_4",
+        "name": "Palbociclib Pharmacokinetic Objective",
+        "text": "To evaluate trough concentrations of palbociclib when given in combination with fulvestrant or fulvestrant plus goserelin, compared to historical palbociclib data.",
+        "level": {
+          "code": "Secondary",
+          "codeSystem": "http://www.cdisc.org/USDM/objectiveLevel",
+          "decode": "Secondary Objective"
+        },
+        "endpointIds": [
+          "ep_8"
+        ],
+        "instanceType": "Objective"
+      },
+      {
+        "id": "obj_5",
+        "name": "Fulvestrant and Goserelin Pharmacokinetic Objective",
+        "text": "To compare fulvestrant and goserelin trough concentrations when given in combination with palbociclib to those when given without palbociclib.",
+        "level": {
+          "code": "Secondary",
+          "codeSystem": "http://www.cdisc.org/USDM/objectiveLevel",
+          "decode": "Secondary Objective"
+        },
+        "endpointIds": [
+          "ep_8"
+        ],
+        "instanceType": "Objective"
+      },
+      {
+        "id": "obj_6",
+        "name": "Exposure-Response Objective",
+        "text": "To explore correlations between palbociclib exposures and efficacy/safety findings in this patient population.",
+        "level": {
+          "code": "Secondary",
+          "codeSystem": "http://www.cdisc.org/USDM/objectiveLevel",
+          "decode": "Secondary Objective"
+        },
+        "endpointIds": [
+          "ep_8"
+        ],
+        "instanceType": "Objective"
+      },
+      {
+        "id": "obj_7",
+        "name": "Patient Reported Outcomes Objective",
+        "text": "To compare Patient Reported Outcomes measures between treatment arms.",
+        "level": {
+          "code": "Secondary",
+          "codeSystem": "http://www.cdisc.org/USDM/objectiveLevel",
+          "decode": "Secondary Objective"
+        },
+        "endpointIds": [
+          "ep_9"
+        ],
+        "instanceType": "Objective"
+      },
+      {
+        "id": "obj_8",
+        "name": "Biomarker Objective",
+        "text": "To characterize alterations in genes, proteins, and ribonucleic acids (RNAs) relevant to the cell cycle, drug targets, tumor sensitivity and/or resistance.",
+        "level": {
+          "code": "Secondary",
+          "codeSystem": "http://www.cdisc.org/USDM/objectiveLevel",
+          "decode": "Secondary Objective"
+        },
+        "endpointIds": [
+          "ep_10"
+        ],
+        "instanceType": "Objective"
+      },
+      {
+        "id": "obj_9",
+        "name": "Subgroup Analysis Objective",
+        "text": "To conduct subgroup analysis for primary and secondary endpoints in stratified groups.",
+        "level": {
+          "code": "Secondary",
+          "codeSystem": "http://www.cdisc.org/USDM/objectiveLevel",
+          "decode": "Secondary Objective"
+        },
+        "endpointIds": [],
+        "instanceType": "Objective"
+      }
+    ],
+    "endpoints": [
+      {
+        "id": "ep_1",
+        "name": "Progression-Free Survival (PFS)",
+        "text": "Progression-Free Survival (PFS) as assessed by the Investigator.",
+        "level": {
+          "code": "Primary",
+          "codeSystem": "http://www.cdisc.org/USDM/endpointLevel",
+          "decode": "Primary Endpoint"
+        },
+        "purpose": "Efficacy",
+        "instanceType": "Endpoint"
+      },
+      {
+        "id": "ep_2",
+        "name": "Overall Survival (OS)",
+        "text": "Overall Survival (OS).",
+        "level": {
+          "code": "Secondary",
+          "codeSystem": "http://www.cdisc.org/USDM/endpointLevel",
+          "decode": "Secondary Endpoint"
+        },
+        "purpose": "Efficacy",
+        "instanceType": "Endpoint"
+      },
+      {
+        "id": "ep_3",
+        "name": "Survival Probabilities",
+        "text": "1-year, 2-year, and 3-year survival probabilities.",
+        "level": {
+          "code": "Secondary",
+          "codeSystem": "http://www.cdisc.org/USDM/endpointLevel",
+          "decode": "Secondary Endpoint"
+        },
+        "purpose": "Efficacy",
+        "instanceType": "Endpoint"
+      },
+      {
+        "id": "ep_4",
+        "name": "Objective Response (OR)",
+        "text": "Objective Response (OR): Complete Response (CR) or Partial Response (PR).",
+        "level": {
+          "code": "Secondary",
+          "codeSystem": "http://www.cdisc.org/USDM/endpointLevel",
+          "decode": "Secondary Endpoint"
+        },
+        "purpose": "Efficacy",
+        "instanceType": "Endpoint"
+      },
+      {
+        "id": "ep_5",
+        "name": "Duration of Response (DR)",
+        "text": "Duration of Response (DR).",
+        "level": {
+          "code": "Secondary",
+          "codeSystem": "http://www.cdisc.org/USDM/endpointLevel",
+          "decode": "Secondary Endpoint"
+        },
+        "purpose": "Efficacy",
+        "instanceType": "Endpoint"
+      },
+      {
+        "id": "ep_6",
+        "name": "Clinical Benefit Response (CBR)",
+        "text": "Clinical Benefit Response (CBR): CR or PR or Stable Disease (SD) ≥24 weeks.",
+        "level": {
+          "code": "Secondary",
+          "codeSystem": "http://www.cdisc.org/USDM/endpointLevel",
+          "decode": "Secondary Endpoint"
+        },
+        "purpose": "Efficacy",
+        "instanceType": "Endpoint"
+      },
+      {
+        "id": "ep_7",
+        "name": "Adverse Events and Laboratory Abnormalities",
+        "text": "Type, incidence, severity (as graded by the National Cancer Institute Common Terminology Criteria for Adverse Events [NCI CTCAE] v4.0), seriousness and relationship to study medications of Adverse Events (AEs) and any laboratory abnormalities.",
+        "level": {
+          "code": "Secondary",
+          "codeSystem": "http://www.cdisc.org/USDM/endpointLevel",
+          "decode": "Secondary Endpoint"
+        },
+        "purpose": "Safety",
+        "instanceType": "Endpoint"
+      },
+      {
+        "id": "ep_8",
+        "name": "Trough Plasma Concentrations",
+        "text": "Trough plasma concentration of palbociclib, fulvestrant and goserelin (if applicable) in the subgroup of approximately 40 patients included in the initial safety review.",
+        "level": {
+          "code": "Secondary",
+          "codeSystem": "http://www.cdisc.org/USDM/endpointLevel",
+          "decode": "Secondary Endpoint"
+        },
+        "purpose": "Pharmacokinetic",
+        "instanceType": "Endpoint"
+      },
+      {
+        "id": "ep_9",
+        "name": "Patient Reported Outcomes (PRO)",
+        "text": "PRO endpoints such as global quality of life symptoms and functioning assessed using the European Organisation for Research and Treatment of Cancer Quality of Life Instrument (EORTC QLQ-C30) and European Organisation for Research and Treatment of Cancer Breast Cancer Module (EORTC QLQ-BR23) and Dimension Health State EuroQoL Score (EQ-5D)and time to deterioration (TTD) in pain endpoint.",
+        "level": {
+          "code": "Secondary",
+          "codeSystem": "http://www.cdisc.org/USDM/endpointLevel",
+          "decode": "Secondary Endpoint"
+        },
+        "purpose": "QualityOfLife",
+        "instanceType": "Endpoint"
+      },
+      {
+        "id": "ep_10",
+        "name": "Tumor Tissue Biomarkers",
+        "text": "Tumor tissue biomarkers, including genes (eg, copy numbers of CCND1 and CDKN2A, PIK3CA mutations), proteins (eg, Ki67, pRb, CCNE1), and RNA expression (eg, cdk4, cdk6).",
+        "level": {
+          "code": "Secondary",
+          "codeSystem": "http://www.cdisc.org/USDM/endpointLevel",
+          "decode": "Secondary Endpoint"
+        },
+        "purpose": "Biomarker",
+        "instanceType": "Endpoint"
+      }
+    ],
+    "estimands": []
+  }
+}

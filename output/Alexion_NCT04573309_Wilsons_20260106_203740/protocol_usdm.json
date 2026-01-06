@@ -1,0 +1,1066 @@
+{
+  "usdmVersion": "4.0",
+  "generatedAt": "2026-01-06T20:38:36.357585",
+  "generator": "Protocol2USDM v6.5.0",
+  "study": {
+    "id": "2a6288f6-38ce-444d-b060-9e2233ba0b6a",
+    "instanceType": "Study",
+    "versions": [
+      {
+        "id": "c377a836-d5e5-4e23-a9b8-0f7e486d2859",
+        "instanceType": "StudyVersion",
+        "versionIdentifier": "1.0",
+        "studyDesigns": [
+          {
+            "id": "f3a27d73-6a70-46c7-ad07-c41aa3edafa6",
+            "name": "Study Design",
+            "rationale": "Protocol-defined study design for investigating efficacy and safety",
+            "instanceType": "InterventionalStudyDesign",
+            "population": {
+              "id": "424fae78-b3d1-43dc-b1c4-d8cebf1e9fe3",
+              "instanceType": "StudyDesignPopulation",
+              "name": "Study Population",
+              "description": "Target population for the study as defined by eligibility criteria",
+              "includesHealthySubjects": false
+            },
+            "arms": [
+              {
+                "id": "e353fcb9-5ea0-429d-913b-96bc6f854074",
+                "name": "Treatment Arm",
+                "instanceType": "StudyArm",
+                "dataOriginDescription": "Data collected during study conduct",
+                "description": "Main treatment arm",
+                "type": {
+                  "id": "C174266",
+                  "code": "C174266",
+                  "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+                  "codeSystemVersion": "25.11d",
+                  "decode": "Investigational Arm",
+                  "instanceType": "Code"
+                },
+                "dataOriginType": {
+                  "id": "8fa2d4e7-0db9-497c-91be-cbb5c86b96fb",
+                  "code": "C142493",
+                  "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+                  "codeSystemVersion": "25.01d",
+                  "decode": "Collected",
+                  "instanceType": "Code"
+                }
+              }
+            ],
+            "studyCells": [
+              {
+                "id": "ce74412a-5240-447e-8305-34ef5454f6c6",
+                "armId": "e353fcb9-5ea0-429d-913b-96bc6f854074",
+                "epochId": "ed2e387c-0a92-4987-a596-5d1c4342eb85",
+                "elementIds": [],
+                "instanceType": "StudyCell"
+              }
+            ],
+            "model": {
+              "id": "d2461ab7-8f46-483b-b2a3-4c3ca268ca9d",
+              "code": "C82638",
+              "codeSystem": "http://www.cdisc.org",
+              "codeSystemVersion": "2024-09-27",
+              "decode": "Single Group Study",
+              "instanceType": "Code"
+            },
+            "extensionAttributes": [
+              {
+                "id": "2a8a9ac0-0d09-4535-9d1c-8e16a495215b",
+                "url": "https://protocol2usdm.io/extensions/x-executionModel-entityMaps",
+                "instanceType": "ExtensionAttribute",
+                "valueString": "{\"epochAliases\": {}, \"visitAliases\": {}}"
+              },
+              {
+                "id": "9ee37f84-d184-4062-be69-fc43ea28f095",
+                "url": "https://protocol2usdm.io/extensions/x-executionModel-classifiedIssues",
+                "instanceType": "ExtensionAttribute",
+                "valueString": "[{\"severity\": \"warning\", \"category\": \"traversal_resolution\", \"message\": \"Traversal step 'SCREENING' could not be resolved to an epoch ID\", \"affectedPath\": \"$.traversalConstraints[].requiredSequence\", \"affectedIds\": [\"traversal_1\"], \"suggestion\": \"Create epoch for 'SCREENING' or map to existing epoch\"}, {\"severity\": \"warning\", \"category\": \"traversal_resolution\", \"message\": \"Traversal step 'RUN_IN' could not be resolved to an epoch ID\", \"affectedPath\": \"$.traversalConstraints[].requiredSequence\", \"affectedIds\": [\"traversal_1\"], \"suggestion\": \"Create epoch for 'RUN_IN' or map to existing epoch\"}, {\"severity\": \"warning\", \"category\": \"traversal_resolution\", \"message\": \"Traversal step 'BASELINE' could not be resolved to an epoch ID\", \"affectedPath\": \"$.traversalConstraints[].requiredSequence\", \"affectedIds\": [\"traversal_1\"], \"suggestion\": \"Create epoch for 'BASELINE' or map to existing epoch\"}, {\"severity\": \"warning\", \"category\": \"traversal_resolution\", \"message\": \"Traversal step 'TREATMENT' could not be resolved to an epoch ID\", \"affectedPath\": \"$.traversalConstraints[].requiredSequence\", \"affectedIds\": [\"traversal_1\"], \"suggestion\": \"Create epoch for 'TREATMENT' or map to existing epoch\"}, {\"severity\": \"warning\", \"category\": \"traversal_resolution\", \"message\": \"Traversal step 'MAINTENANCE' could not be resolved to an epoch ID\", \"affectedPath\": \"$.traversalConstraints[].requiredSequence\", \"affectedIds\": [\"traversal_1\"], \"suggestion\": \"Create epoch for 'MAINTENANCE' or map to existing epoch\"}, {\"severity\": \"warning\", \"category\": \"traversal_resolution\", \"message\": \"Traversal step 'FOLLOW_UP' could not be resolved to an epoch ID\", \"affectedPath\": \"$.traversalConstraints[].requiredSequence\", \"affectedIds\": [\"traversal_1\"], \"suggestion\": \"Create epoch for 'FOLLOW_UP' or map to existing epoch\"}, {\"severity\": \"warning\", \"category\": \"traversal_resolution\", \"message\": \"Traversal step 'END_OF_STUDY' could not be resolved to an epoch ID\", \"affectedPath\": \"$.traversalConstraints[].requiredSequence\", \"affectedIds\": [\"traversal_1\"], \"suggestion\": \"Create epoch for 'END_OF_STUDY' or map to existing epoch\"}, {\"severity\": \"blocking\", \"category\": \"visit_window_conflict\", \"message\": \"Multiple visits mapped to Day 1: ['Early Termination', 'Day 1', 'EOS']\", \"affectedPath\": \"$.visitWindows[]\", \"affectedIds\": [\"visit_1\", \"visit_3\", \"visit_14\"], \"suggestion\": \"Re-derive targetDay from visit context or SoA position\"}, {\"severity\": \"warning\", \"category\": \"visit_window_conflict\", \"message\": \"Multiple visits mapped to Day 54: ['Day 54', 'End of Study']\", \"affectedPath\": \"$.visitWindows[]\", \"affectedIds\": [\"visit_12\", \"visit_13\"], \"suggestion\": \"Verify visit scheduling logic\"}]"
+              },
+              {
+                "id": "5967c015-02c0-4918-a364-1cbc65488fb7",
+                "url": "https://protocol2usdm.io/extensions/x-executionModel-timeAnchors",
+                "instanceType": "ExtensionAttribute",
+                "valueString": "[{\"id\": \"anchor_1\", \"definition\": \"Baseline visit/assessment\", \"anchorType\": \"Baseline\", \"timelineId\": null, \"dayValue\": 1, \"sourceText\": \"Baseline Day\"}, {\"id\": \"anchor_2\", \"definition\": \"Informed consent obtained\", \"anchorType\": \"InformedConsent\", \"timelineId\": null, \"dayValue\": 1, \"sourceText\": \"informed consent\"}, {\"id\": \"anchor_3\", \"definition\": \"procedure\", \"anchorType\": \"Custom\", \"timelineId\": null, \"dayValue\": 9, \"sourceText\": \"procedure\"}, {\"id\": \"anchor_collection_1\", \"definition\": \"24-hour collection period\", \"anchorType\": \"CollectionDay\", \"timelineId\": null, \"dayValue\": 1, \"sourceText\": \"24-hour urine\"}]"
+              },
+              {
+                "id": "e545094a-fedc-411a-a810-9781cee8cb1f",
+                "url": "https://protocol2usdm.io/extensions/x-executionModel-repetitions",
+                "instanceType": "ExtensionAttribute",
+                "valueString": "[{\"id\": \"rep_daily_1\", \"type\": \"Daily\", \"interval\": \"P1D\", \"sourceText\": \"daily urine\"}, {\"id\": \"rep_daily_2\", \"type\": \"Daily\", \"interval\": \"P1D\", \"sourceText\": \"once daily\"}, {\"id\": \"rep_daily_4\", \"type\": \"Daily\", \"interval\": \"P1D\", \"sourceText\": \"od\"}, {\"id\": \"rep_daily_67\", \"type\": \"Daily\", \"interval\": \"P1D\", \"sourceText\": \"OD\"}, {\"id\": \"rep_interval_1\", \"type\": \"Interval\", \"interval\": \"PT8H\", \"sourceText\": \"every \\n8 hours\"}, {\"id\": \"rep_window_1\", \"type\": \"Continuous\", \"startOffset\": \"-P4D\", \"endOffset\": \"-P1D\", \"sourceText\": \"Days -4 through -1\"}, {\"id\": \"rep_window_2\", \"type\": \"Continuous\", \"startOffset\": \"-P7D\", \"endOffset\": \"-P5D\", \"sourceText\": \"Day -7 through Day -5\"}, {\"id\": \"rep_window_3\", \"type\": \"Continuous\", \"startOffset\": \"-P4D\", \"endOffset\": \"-P1D\", \"sourceText\": \"Day -4 through Day -1\"}, {\"id\": \"rep_window_5\", \"type\": \"Continuous\", \"startOffset\": \"P1D\", \"endOffset\": \"P8D\", \"sourceText\": \"Day 1 through Day 8\"}, {\"id\": \"rep_window_6\", \"type\": \"Continuous\", \"startOffset\": \"P25D\", \"endOffset\": \"P39D\", \"sourceText\": \"Day 25 through Day 39\"}, {\"id\": \"rep_window_7\", \"type\": \"Continuous\", \"startOffset\": \"P1D\", \"endOffset\": \"P28D\", \"sourceText\": \"Day 1 through Day 28\"}, {\"id\": \"rep_window_8\", \"type\": \"Continuous\", \"startOffset\": \"P29D\", \"endOffset\": \"P39D\", \"sourceText\": \"Day 29 through Day 39\"}, {\"id\": \"rep_window_12\", \"type\": \"Continuous\", \"startOffset\": \"P25D\", \"endOffset\": \"P28D\", \"sourceText\": \"Days 25 through 28\"}, {\"id\": \"rep_window_13\", \"type\": \"Continuous\", \"startOffset\": \"P29D\", \"endOffset\": \"P39D\", \"sourceText\": \"Days 29 through 39\"}, {\"id\": \"rep_window_14\", \"type\": \"Continuous\", \"startOffset\": \"P4D\", \"endOffset\": \"P7D\", \"sourceText\": \"Days 4 - 7\"}, {\"id\": \"rep_window_15\", \"type\": \"Continuous\", \"startOffset\": \"P26D\", \"endOffset\": \"P28D\", \"sourceText\": \"Days 26 - 28\"}, {\"id\": \"rep_window_16\", \"type\": \"Continuous\", \"startOffset\": \"P30D\", \"endOffset\": \"P38D\", \"sourceText\": \"Days 30 - 38\"}, {\"id\": \"rep_window_17\", \"type\": \"Continuous\", \"startOffset\": \"-P8D\", \"endOffset\": \"P9D\", \"sourceText\": \"Day -8 to Day 9\"}, {\"id\": \"rep_window_18\", \"type\": \"Continuous\", \"startOffset\": \"P23D\", \"endOffset\": \"P40D\", \"sourceText\": \"Day 23 to Day 40\"}, {\"id\": \"rep_window_19\", \"type\": \"Continuous\", \"startOffset\": \"P25D\", \"endOffset\": \"P28D\", \"sourceText\": \"Day 25 through Day 28\"}, {\"id\": \"rep_window_20\", \"type\": \"Continuous\", \"startOffset\": \"P36D\", \"endOffset\": \"P39D\", \"sourceText\": \"Day 36 through Day 39\"}, {\"id\": \"rep_window_22\", \"type\": \"Continuous\", \"startOffset\": \"-P7D\", \"endOffset\": \"-P5D\", \"sourceText\": \"Day -7 through \\nDay -5\"}, {\"id\": \"rep_window_29\", \"type\": \"Continuous\", \"startOffset\": \"P1D\", \"endOffset\": \"P9D\", \"sourceText\": \"Days 1 through 9\"}, {\"id\": \"rep_window_30\", \"type\": \"Continuous\", \"startOffset\": \"P31D\", \"endOffset\": \"P35D\", \"sourceText\": \"Days 31 through 35\"}, {\"id\": \"rep_window_32\", \"type\": \"Continuous\", \"startOffset\": \"P36D\", \"endOffset\": \"P39D\", \"sourceText\": \"Days 36 through 39\"}, {\"id\": \"rep_window_33\", \"type\": \"Continuous\", \"startOffset\": \"P9D\", \"endOffset\": \"P23D\", \"sourceText\": \"Day 9 to Day 23\"}, {\"id\": \"rep_window_34\", \"type\": \"Continuous\", \"sourceText\": \"Run-in Period\"}, {\"id\": \"rep_window_39\", \"type\": \"Continuous\", \"sourceText\": \"treatment period\"}, {\"id\": \"rep_window_40\", \"type\": \"Continuous\", \"sourceText\": \"Treatment Period\"}, {\"id\": \"rep_window_46\", \"type\": \"Continuous\", \"sourceText\": \"treatment \\nperiod\"}, {\"id\": \"rep_window_51\", \"type\": \"Continuous\", \"sourceText\": \"dosing period\"}, {\"id\": \"rep_window_52\", \"type\": \"Continuous\", \"sourceText\": \"pretreatment period\"}, {\"id\": \"rep_window_53\", \"type\": \"Continuous\", \"sourceText\": \"post-treatment period\"}, {\"id\": \"rep_window_54\", \"type\": \"Continuous\", \"sourceText\": \"2 hours after\"}, {\"id\": \"rep_window_56\", \"type\": \"Continuous\", \"sourceText\": \"8 hours before\"}, {\"id\": \"rep_window_57\", \"type\": \"Continuous\", \"sourceText\": \"4 hours post\"}, {\"id\": \"rep_window_58\", \"type\": \"Continuous\", \"sourceText\": \"21 days after\"}, {\"id\": \"rep_window_59\", \"type\": \"Continuous\", \"sourceText\": \"Inpatient Period\"}, {\"id\": \"rep_window_60\", \"type\": \"Continuous\", \"sourceText\": \"inpatient Period\"}, {\"id\": \"rep_window_62\", \"type\": \"Continuous\", \"sourceText\": \"Inpatient \\nPeriod\"}, {\"id\": \"rep_window_64\", \"type\": \"Continuous\", \"sourceText\": \"inpatient period\"}, {\"id\": \"rep_window_67\", \"type\": \"Continuous\", \"sourceText\": \"inpatient \\nperiod\"}, {\"id\": \"rep_window_70\", \"type\": \"Continuous\", \"sourceText\": \"balance period\"}, {\"id\": \"rep_window_71\", \"type\": \"Continuous\", \"sourceText\": \"24-hour urine\"}, {\"id\": \"rep_window_72\", \"type\": \"Continuous\", \"sourceText\": \"24-hour collection\"}, {\"id\": \"rep_daily_bound_1\", \"type\": \"Daily\", \"startOffset\": \"-P8D\", \"endOffset\": \"P9D\", \"interval\": \"P1D\", \"count\": 18, \"sourceText\": \"controlled diet (Day -8 to Day 9)\"}, {\"id\": \"rep_daily_bound_3\", \"type\": \"Daily\", \"startOffset\": \"P23D\", \"endOffset\": \"P40D\", \"interval\": \"P1D\", \"count\": 18, \"sourceText\": \"controlled diet (Day 23 to Day 40)\"}, {\"id\": \"rep_daily_bound_5\", \"type\": \"Daily\", \"startOffset\": \"-P7D\", \"endOffset\": \"-P5D\", \"interval\": \"P1D\", \"count\": 3, \"sourceText\": \"controlled diet (Day -7 through \\nDay -5)\"}, {\"id\": \"rep_daily_bound_6\", \"type\": \"Daily\", \"startOffset\": \"-P4D\", \"endOffset\": \"-P1D\", \"interval\": \"P1D\", \"count\": 4, \"sourceText\": \"controlled diet (Day -4 through Day -1)\"}, {\"id\": \"rep_daily_bound_11\", \"type\": \"Daily\", \"startOffset\": \"P3D\", \"endOffset\": \"P15D\", \"interval\": \"P1D\", \"count\": 13, \"sourceText\": \"controlled diet (3 to 15)\"}, {\"id\": \"rep_daily_bound_12\", \"type\": \"Daily\", \"startOffset\": \"P101D\", \"endOffset\": \"P201D\", \"interval\": \"P1D\", \"count\": 101, \"sourceText\": \"copper balance (101-201)\"}, {\"id\": \"rep_daily_bound_13\", \"type\": \"Daily\", \"startOffset\": \"-P4D\", \"endOffset\": \"-P1D\", \"interval\": \"P1D\", \"count\": 4, \"sourceText\": \"copper balance (Days -4 through -1)\"}, {\"id\": \"rep_daily_bound_14\", \"type\": \"Daily\", \"startOffset\": \"-P7D\", \"endOffset\": \"-P5D\", \"interval\": \"P1D\", \"count\": 3, \"sourceText\": \"molybdenum balance (Day -7 through Day -5)\"}, {\"id\": \"rep_daily_bound_15\", \"type\": \"Daily\", \"startOffset\": \"-P4D\", \"endOffset\": \"-P1D\", \"interval\": \"P1D\", \"count\": 4, \"sourceText\": \"molybdenum balance (Day -4 through Day -1)\"}, {\"id\": \"rep_daily_bound_17\", \"type\": \"Daily\", \"startOffset\": \"P1D\", \"endOffset\": \"P8D\", \"interval\": \"P1D\", \"count\": 8, \"sourceText\": \"molybdenum balance (Day 1 through Day 8)\"}, {\"id\": \"rep_daily_bound_18\", \"type\": \"Daily\", \"startOffset\": \"P25D\", \"endOffset\": \"P39D\", \"interval\": \"P1D\", \"count\": 15, \"sourceText\": \"molybdenum balance (Day 25 through Day 39)\"}, {\"id\": \"rep_daily_bound_22\", \"type\": \"Daily\", \"startOffset\": \"-P7D\", \"endOffset\": \"-P5D\", \"interval\": \"P1D\", \"count\": 3, \"sourceText\": \"molybdenum balance (Day -7 through \\nDay -5)\"}, {\"id\": \"rep_daily_bound_24\", \"type\": \"Daily\", \"startOffset\": \"-P8D\", \"endOffset\": \"P9D\", \"interval\": \"P1D\", \"count\": 18, \"sourceText\": \"molybdenum balance (Day -8 to Day 9)\"}, {\"id\": \"rep_daily_bound_25\", \"type\": \"Daily\", \"startOffset\": \"P23D\", \"endOffset\": \"P40D\", \"interval\": \"P1D\", \"count\": 18, \"sourceText\": \"molybdenum balance (Day 23 to Day 40)\"}, {\"id\": \"rep_daily_bound_29\", \"type\": \"Daily\", \"startOffset\": \"P3D\", \"endOffset\": \"P15D\", \"interval\": \"P1D\", \"count\": 13, \"sourceText\": \"copper balance (3 to 15)\"}, {\"id\": \"rep_daily_bound_30\", \"type\": \"Daily\", \"startOffset\": \"P3D\", \"endOffset\": \"P15D\", \"interval\": \"P1D\", \"count\": 13, \"sourceText\": \"molybdenum balance (3 to 15)\"}, {\"id\": \"rep_daily_bound_31\", \"type\": \"Daily\", \"startOffset\": \"P101D\", \"endOffset\": \"P301D\", \"interval\": \"P1D\", \"count\": 201, \"sourceText\": \"molybdenum balance (101-301)\"}, {\"id\": \"rep_daily_bound_32\", \"type\": \"Daily\", \"startOffset\": \"P3D\", \"endOffset\": \"P5D\", \"interval\": \"P1D\", \"count\": 3, \"sourceText\": \"copper \\nbalance (3 - 5)\"}]"
+              },
+              {
+                "id": "cb51bc79-2bea-4dba-91e1-ec0b10c846cd",
+                "url": "https://protocol2usdm.io/extensions/x-executionModel-traversalConstraints",
+                "instanceType": "ExtensionAttribute",
+                "valueString": "[{\"id\": \"traversal_1\", \"requiredSequence\": [], \"allowEarlyExit\": true, \"exitEpochIds\": [], \"mandatoryVisits\": []}]"
+              },
+              {
+                "id": "aafd92e1-70bf-40f7-9ca0-e30ebb8a302f",
+                "url": "https://protocol2usdm.io/extensions/x-footnoteConditions",
+                "instanceType": "ExtensionAttribute",
+                "valueString": "[{\"id\": \"fn_cond_1\", \"conditionType\": \"general\", \"text\": \", and any \\napplicable local regulations\", \"footnoteId\": \"(b)\", \"sourceText\": \", and any \\napplicable local regulations\"}, {\"id\": \"fn_cond_2\", \"conditionType\": \"general\", \"text\": \"and/or Alexion, may place participants at undue risk, in which \\ncase, participants may remain on the\", \"footnoteId\": \"(s)\", \"sourceText\": \"and/or Alexion, may place participants at undue risk, in which \\ncase, participants may remain on the\"}, {\"id\": \"fn_cond_3\", \"conditionType\": \"general\", \"text\": \"Overall Rationale for the Amendment \\nThe main reason for preparation of this amendment was to clarify study procedures occurring \\nacross different sites in the US, so as to facilitate participant recruitment across different regions \\nof the US, and to lessen inconvenience for participants without compromising the quality of the \\nstudy\", \"footnoteId\": \"s.\", \"sourceText\": \"Overall Rationale for the Amendment \\nThe main reason for preparation of this amendment was to clarif\"}, {\"id\": \"fn_cond_4\", \"conditionType\": \"general\", \"text\": \"To align the number of days \\nwith the mention of zinc \\ndiscontinuation elsewhere in the \\nprotocol\", \"footnoteId\": \"c.\", \"sourceText\": \"To align the number of days \\nwith the mention of zinc \\ndiscontinuation elsewhere in the \\nprotocol\"}, {\"id\": \"fn_cond_5\", \"conditionType\": \"general\", \"text\": \"Overall Design \\nThis is a single-arm, open-label, repeat-dose study to evaluate the effects of ALXN\", \"footnoteId\": \"s.\", \"sourceText\": \"Overall Design \\nThis is a single-arm, open-label, repeat-dose study to evaluate the effects of ALXN\"}, {\"id\": \"fn_cond_6\", \"conditionType\": \"general\", \"text\": \"Disclosure Statement: This is an open-label,\", \"footnoteId\": \"e.\", \"sourceText\": \"Disclosure Statement: This is an open-label,\"}, {\"id\": \"fn_cond_7\", \"conditionType\": \"general\", \"text\": \"Number of Participants: \\nThe sample size will be approximately\", \"footnoteId\": \"m.\", \"sourceText\": \"Number of Participants: \\nThe sample size will be approximately\"}, {\"id\": \"fn_cond_8\", \"conditionType\": \"general\", \"text\": \"Intervention Groups and Duration: \\nTreatment-experienced\", \"footnoteId\": \"r.\", \"sourceText\": \"Intervention Groups and Duration: \\nTreatment-experienced\"}, {\"id\": \"fn_cond_9\", \"conditionType\": \"timing_after\", \"text\": \"Following screening and enrollment, \\nparticipants will have a Run-in Period to support diet equilibration\", \"footnoteId\": \"y.\", \"sourceText\": \"Following screening and enrollment, \\nparticipants will have a Run-in Period to support diet equilibr\"}, {\"id\": \"fn_cond_10\", \"conditionType\": \"general\", \"text\": \"Participants will have intake and output collection periods from Day -\", \"footnoteId\": \"t.\", \"sourceText\": \"Participants will have intake and output collection periods from Day -\"}, {\"id\": \"fn_cond_11\", \"conditionType\": \"general\", \"text\": \"Participants may be discharged from the clinical research unit\", \"footnoteId\": \"e.\", \"sourceText\": \"Participants may be discharged from the clinical research unit\"}, {\"id\": \"fn_cond_12\", \"conditionType\": \"frequency_daily\", \"text\": \"In this situation, participants will be given additional investigational product to support \\ndaily dosing throughout the Outpatient Period\", \"footnoteId\": \"l.\", \"sourceText\": \"In this situation, participants will be given additional investigational product to support \\ndaily d\"}, {\"id\": \"fn_cond_13\", \"conditionType\": \"general\", \"text\": \"Race and ethnicity will be collected where permitted by local regulations\", \"footnoteId\": \"x.\", \"sourceText\": \"Race and ethnicity will be collected where permitted by local regulations\"}, {\"id\": \"fn_cond_14\", \"conditionType\": \"general\", \"text\": \"k A full physical examination will be performed at Screening, at check-in for the study, and at the End of the study/Early Termination Visit\", \"footnoteId\": \"d.\", \"sourceText\": \"k A full physical examination will be performed at Screening, at check-in for the study, and at the \"}, {\"id\": \"fn_cond_15\", \"conditionType\": \"general\", \"text\": \"Otherwise, a symptom-driven physical \\nexamination may be performed at other times, at the Principal Investigator’s discretion\", \"footnoteId\": \"t.\", \"sourceText\": \"Otherwise, a symptom-driven physical \\nexamination may be performed at other times, at the Principal \"}, {\"id\": \"fn_cond_16\", \"conditionType\": \"timing_after\", \"text\": \"m While in the CRU, study intervention will be administered after an overnight fast\", \"footnoteId\": \"y.\", \"sourceText\": \"m While in the CRU, study intervention will be administered after an overnight fast\"}, {\"id\": \"fn_cond_17\", \"conditionType\": \"general\", \"text\": \"As an outpatient, participants are expected to take \\nALXN\", \"footnoteId\": \"g.\", \"sourceText\": \"As an outpatient, participants are expected to take \\nALXN\"}, {\"id\": \"fn_cond_18\", \"conditionType\": \"general\", \"text\": \"n During the outpatient period, participants will use SMS text messaging to confirm study intervention administration\", \"footnoteId\": \"g.\", \"sourceText\": \"n During the outpatient period, participants will use SMS text messaging to confirm study interventi\"}, {\"id\": \"fn_cond_19\", \"conditionType\": \"general\", \"text\": \"In case of rechecks, and postdose serum \\nchemistry, participants may not have fasted for\", \"footnoteId\": \"n.\", \"sourceText\": \"In case of rechecks, and postdose serum \\nchemistry, participants may not have fasted for\"}, {\"id\": \"fn_cond_20\", \"conditionType\": \"general\", \"text\": \"r Laboratory assessment including chemistry, hematology, and coagulation parameters should be performed on Days -\", \"footnoteId\": \"n.\", \"sourceText\": \"r Laboratory assessment including chemistry, hematology, and coagulation parameters should be perfor\"}, {\"id\": \"fn_cond_21\", \"conditionType\": \"timing_after\", \"text\": \"s Menstruation check is for women only; women of childbearing potential should only be enrolled after a negative serum pregnancy test result at Screening\", \"footnoteId\": \"y.\", \"sourceText\": \"s Menstruation check is for women only; women of childbearing potential should only be enrolled afte\"}, {\"id\": \"fn_cond_22\", \"conditionType\": \"general\", \"text\": \"u Vital signs measurements and ECGs should be performed predose, unless otherwise specified\", \"footnoteId\": \"t.\", \"sourceText\": \"u Vital signs measurements and ECGs should be performed predose, unless otherwise specified\"}, {\"id\": \"fn_cond_23\", \"conditionType\": \"timing_after\", \"text\": \"v Copper- and molybdenum-controlled diet will be initiated after registration/inclusion\", \"footnoteId\": \"e.\", \"sourceText\": \"v Copper- and molybdenum-controlled diet will be initiated after registration/inclusion\"}, {\"id\": \"fn_cond_24\", \"conditionType\": \"general\", \"text\": \"While not in the CRU, participants will be encouraged to adhere to their usual copper-controlled diet\", \"footnoteId\": \"s.\", \"sourceText\": \"While not in the CRU, participants will be encouraged to adhere to their usual copper-controlled die\"}, {\"id\": \"fn_cond_25\", \"conditionType\": \"general\", \"text\": \"x For fecal samples, each individual sample will be independently collected with record of date, time, and weight of the sample\", \"footnoteId\": \"m.\", \"sourceText\": \"x For fecal samples, each individual sample will be independently collected with record of date, tim\"}, {\"id\": \"fn_cond_26\", \"conditionType\": \"timing_after\", \"text\": \"When multiple procedures are scheduled to occur at the \\nsame time, the following order of events should be strictly adhered to whenever possible: ECG, vital signs, blood \\nsampling\", \"footnoteId\": \"e.\", \"sourceText\": \"When multiple procedures are scheduled to occur at the \\nsame time, the following order of events sho\"}, {\"id\": \"fn_cond_27\", \"conditionType\": \"general\", \"text\": \"Given the robust improvement in copper \\ncontrol, it is hypothesized that doses within the\", \"footnoteId\": \"l.\", \"sourceText\": \"Given the robust improvement in copper \\ncontrol, it is hypothesized that doses within the\"}, {\"id\": \"fn_cond_28\", \"conditionType\": \"general\", \"text\": \"The current study will explore copper balance in response to \\ntreatment with ALXN\", \"footnoteId\": \"e.\", \"sourceText\": \"The current study will explore copper balance in response to \\ntreatment with ALXN\"}, {\"id\": \"fn_cond_29\", \"conditionType\": \"general\", \"text\": \"Copper balance will be assessed for the\", \"footnoteId\": \"e.\", \"sourceText\": \"Copper balance will be assessed for the\"}, {\"id\": \"fn_cond_30\", \"conditionType\": \"general\", \"text\": \"Further dose \\nadjustments will be made as appropriate\", \"footnoteId\": \"y.\", \"sourceText\": \"Further dose \\nadjustments will be made as appropriate\"}, {\"id\": \"fn_cond_31\", \"conditionType\": \"general\", \"text\": \"Deviation from the dose modification guidelines must be agreed with the Alexion Medical \\nMonitor\", \"footnoteId\": \"t.\", \"sourceText\": \"Deviation from the dose modification guidelines must be agreed with the Alexion Medical \\nMonitor\"}, {\"id\": \"fn_cond_32\", \"conditionType\": \"general\", \"text\": \"Over-the-counter medications may be given if they \\nare not expected to impact the outcome of the study\", \"footnoteId\": \"r.\", \"sourceText\": \"Over-the-counter medications may be given if they \\nare not expected to impact the outcome of the stu\"}, {\"id\": \"fn_cond_33\", \"conditionType\": \"general\", \"text\": \"Herbal remedies must be discontinued at least\", \"footnoteId\": \"y.\", \"sourceText\": \"Herbal remedies must be discontinued at least\"}, {\"id\": \"fn_cond_34\", \"conditionType\": \"general\", \"text\": \"St John’s wort \\nAny herbal remedy or dietary supplement containing \\nSt John’s wort\", \"footnoteId\": \"t.\", \"sourceText\": \"St John’s wort \\nAny herbal remedy or dietary supplement containing \\nSt John’s wort\"}, {\"id\": \"fn_cond_35\", \"conditionType\": \"timing_after\", \"text\": \"After EOS Visit\", \"footnoteId\": \"d.\", \"sourceText\": \"After EOS Visit\"}, {\"id\": \"fn_cond_36\", \"conditionType\": \"general\", \"text\": \"Contraception \\nParticipants must consistently and correctly use one or \\nmore of the appropriate contraceptive methods \\ndescribed in Section\", \"footnoteId\": \"t.\", \"sourceText\": \"Contraception \\nParticipants must consistently and correctly use one or \\nmore of the appropriate cont\"}, {\"id\": \"fn_cond_37\", \"conditionType\": \"general\", \"text\": \"A minimal set of screen failure information is \\nrequired to ensure transparent reporting of screen failure participants to meet the Consolidated \\nStandards of Reporting Trials\", \"footnoteId\": \"n.\", \"sourceText\": \"A minimal set of screen failure information is \\nrequired to ensure transparent reporting of screen f\"}, {\"id\": \"fn_cond_38\", \"conditionType\": \"general\", \"text\": \"Minimal information includes demography, screen failure details\", \"footnoteId\": \"s.\", \"sourceText\": \"Minimal information includes demography, screen failure details\"}, {\"id\": \"fn_cond_39\", \"conditionType\": \"general\", \"text\": \"Individuals who do not meet the criteria for participation in this study\", \"footnoteId\": \"d.\", \"sourceText\": \"Individuals who do not meet the criteria for participation in this study\"}, {\"id\": \"fn_cond_40\", \"conditionType\": \"general\", \"text\": \"Rescreened participants are not \\nrequired to reconsent as long as they have signed the latest version of the ICF\", \"footnoteId\": \"r.\", \"sourceText\": \"Rescreened participants are not \\nrequired to reconsent as long as they have signed the latest versio\"}, {\"id\": \"fn_cond_41\", \"conditionType\": \"general\", \"text\": \"If the study intervention is definitively discontinued, the \\nparticipant should remain in the study to be evaluated for safety follow-up\", \"footnoteId\": \"n.\", \"sourceText\": \"If the study intervention is definitively discontinued, the \\nparticipant should remain in the study \"}, {\"id\": \"fn_cond_42\", \"conditionType\": \"general\", \"text\": \"Discontinuation of study intervention for abnormal liver function should be considered by the \\nInvestigator when a participant meets one of the conditions outlined in the Dose Modification \\ncriteria\", \"footnoteId\": \"d.\", \"sourceText\": \"Discontinuation of study intervention for abnormal liver function should be considered by the \\nInves\"}, {\"id\": \"fn_cond_43\", \"conditionType\": \"general\", \"text\": \"If a clinically significant finding is identified\", \"footnoteId\": \"t.\", \"sourceText\": \"If a clinically significant finding is identified\"}, {\"id\": \"fn_cond_44\", \"conditionType\": \"general\", \"text\": \"This review of the ECG printed at the time of collection must \\nbe documented\", \"footnoteId\": \"d.\", \"sourceText\": \"This review of the ECG printed at the time of collection must \\nbe documented\"}, {\"id\": \"fn_cond_45\", \"conditionType\": \"timing_after\", \"text\": \"Participants must be considered for discontinuation from study intervention if any of the \\nfollowing occur during the study: \\n• Serious hypersensitivity reaction; \\n• Severe uncontrolled infection; \\n• Use of disallowed medication; \\n• Pregnancy or planned pregnancy\", \"footnoteId\": \"E.\", \"sourceText\": \"Participants must be considered for discontinuation from study intervention if any of the \\nfollowing\"}, {\"id\": \"fn_cond_46\", \"conditionType\": \"general\", \"text\": \"The study staff should \\nnotify Alexion and their site monitor of all study withdrawals as soon as possible\", \"footnoteId\": \"s.\", \"sourceText\": \"The study staff should \\nnotify Alexion and their site monitor of all study withdrawals as soon as po\"}, {\"id\": \"fn_cond_47\", \"conditionType\": \"general\", \"text\": \"• A participant may withdraw from the study at any time at his/her own request, or may \\nbe withdrawn at any time at the discretion of the Investigator for safety, behavioral, \\ncompliance, or administrative reasons\", \"footnoteId\": \"F.\", \"sourceText\": \"• A participant may withdraw from the study at any time at his/her own request, or may \\nbe withdrawn\"}, {\"id\": \"fn_cond_48\", \"conditionType\": \"general\", \"text\": \"• Immediate safety concerns should be discussed with Alexion immediately upon \\noccurrence or awareness to determine if the participant should continue or \\ndiscontinue study intervention\", \"footnoteId\": \"d.\", \"sourceText\": \"• Immediate safety concerns should be discussed with Alexion immediately upon \\noccurrence or awarene\"}, {\"id\": \"fn_cond_49\", \"conditionType\": \"general\", \"text\": \"• All screening evaluations must be completed and reviewed to confirm that potential \\nparticipants meet all eligibility criteria\", \"footnoteId\": \"t.\", \"sourceText\": \"• All screening evaluations must be completed and reviewed to confirm that potential \\nparticipants m\"}, {\"id\": \"fn_cond_50\", \"conditionType\": \"timing_after\", \"text\": \"• The following only applies to sites in the US\", \"footnoteId\": \"e.\", \"sourceText\": \"• The following only applies to sites in the US\"}, {\"id\": \"fn_cond_51\", \"conditionType\": \"general\", \"text\": \"Some sites may perform screening procedures only and \\nnot any of the remaining study procedures\", \"footnoteId\": \"e.\", \"sourceText\": \"Some sites may perform screening procedures only and \\nnot any of the remaining study procedures\"}, {\"id\": \"fn_cond_52\", \"conditionType\": \"general\", \"text\": \"Site-to-site transfer of the participant will be documented \\naccordingly\", \"footnoteId\": \"r.\", \"sourceText\": \"Site-to-site transfer of the participant will be documented \\naccordingly\"}, {\"id\": \"fn_cond_53\", \"conditionType\": \"general\", \"text\": \"The copper and molybdenum concentration of each sample will be determined by inductively \\ncoupled plasma mass spectrometry\", \"footnoteId\": \"A.\", \"sourceText\": \"The copper and molybdenum concentration of each sample will be determined by inductively \\ncoupled pl\"}, {\"id\": \"fn_cond_54\", \"conditionType\": \"general\", \"text\": \"All participants will drink water from the same large water bottle \\ndispenser\", \"footnoteId\": \"s.\", \"sourceText\": \"All participants will drink water from the same large water bottle \\ndispenser\"}, {\"id\": \"fn_cond_55\", \"conditionType\": \"general\", \"text\": \"Samples will be collected, stored and shipped as detailed in the Laboratory Manual\", \"footnoteId\": \"t.\", \"sourceText\": \"Samples will be collected, stored and shipped as detailed in the Laboratory Manual\"}, {\"id\": \"fn_cond_56\", \"conditionType\": \"general\", \"text\": \"All sample handling procedures will be documented in detail as \\ndescribed in the Laboratory Manual\", \"footnoteId\": \"d.\", \"sourceText\": \"All sample handling procedures will be documented in detail as \\ndescribed in the Laboratory Manual\"}, {\"id\": \"fn_cond_57\", \"conditionType\": \"general\", \"text\": \"Fecal samples will be individually collected, weighed, and stored\", \"footnoteId\": \"l.\", \"sourceText\": \"Fecal samples will be individually collected, weighed, and stored\"}, {\"id\": \"fn_cond_58\", \"conditionType\": \"general\", \"text\": \"Pharmacokinetic collection should occur as close as possible to the scheduled time\", \"footnoteId\": \"l.\", \"sourceText\": \"Pharmacokinetic collection should occur as close as possible to the scheduled time\"}, {\"id\": \"fn_cond_59\", \"conditionType\": \"general\", \"text\": \"• Blood pressure and heart rate measurements will be assessed with a completely \\nautomated device\", \"footnoteId\": \"y.\", \"sourceText\": \"• Blood pressure and heart rate measurements will be assessed with a completely \\nautomated device\"}, {\"id\": \"fn_cond_60\", \"conditionType\": \"general\", \"text\": \"• Vital signs will be measured in a supine position after\", \"footnoteId\": \"s.\", \"sourceText\": \"• Vital signs will be measured in a supine position after\"}, {\"id\": \"fn_cond_61\", \"conditionType\": \"general\", \"text\": \"Vital signs will consist \\nof a single pulse and blood pressure measurement\", \"footnoteId\": \"e.\", \"sourceText\": \"Vital signs will consist \\nof a single pulse and blood pressure measurement\"}, {\"id\": \"fn_cond_62\", \"conditionType\": \"general\", \"text\": \"The average of the blood pressure readings will be \\nrecorded in the CRF\", \"footnoteId\": \"y.\", \"sourceText\": \"The average of the blood pressure readings will be \\nrecorded in the CRF\"}, {\"id\": \"fn_cond_63\", \"conditionType\": \"general\", \"text\": \"As with vital \\nsigns, if ECG interval measurements are abnormal, an additional triplicate will be \\nperformed and recorded in the CRF\", \"footnoteId\": \"y.\", \"sourceText\": \"As with vital \\nsigns, if ECG interval measurements are abnormal, an additional triplicate will be \\np\"}, {\"id\": \"fn_cond_64\", \"conditionType\": \"general\", \"text\": \"• The Investigator must review the laboratory report, document this review, and record any \\nclinically relevant changes occurring during the study in the AE section of the CRF\", \"footnoteId\": \"y.\", \"sourceText\": \"• The Investigator must review the laboratory report, document this review, and record any \\nclinical\"}, {\"id\": \"fn_cond_65\", \"conditionType\": \"general\", \"text\": \"Clinically significant \\nlaboratory values are those deemed by the Investigator to be clinically significant \\nresulting in further evaluation or treatment or those associated with an AE or clinical \\nsigns or symptoms\", \"footnoteId\": \"s.\", \"sourceText\": \"Clinically significant \\nlaboratory values are those deemed by the Investigator to be clinically sign\"}, {\"id\": \"fn_cond_66\", \"conditionType\": \"general\", \"text\": \"− If such values do not return to normal/baseline within a period of time judged \\nreasonable by the Investigator, the etiology should be identified, and Alexion \\nnotified\", \"footnoteId\": \"r.\", \"sourceText\": \"− If such values do not return to normal/baseline within a period of time judged \\nreasonable by the \"}, {\"id\": \"fn_cond_67\", \"conditionType\": \"general\", \"text\": \"− All laboratory values from non-protocol-specified laboratory assessments must \\nalso be recorded in the CRF\", \"footnoteId\": \"A.\", \"sourceText\": \"− All laboratory values from non-protocol-specified laboratory assessments must \\nalso be recorded in\"}, {\"id\": \"fn_cond_68\", \"conditionType\": \"general\", \"text\": \"• Total molybdenum and PUF-molybdenum are surrogate measures of ALXN\", \"footnoteId\": \"d.\", \"sourceText\": \"• Total molybdenum and PUF-molybdenum are surrogate measures of ALXN\"}, {\"id\": \"fn_cond_69\", \"conditionType\": \"general\", \"text\": \"• Excess/additional samples may be stored for up to\", \"footnoteId\": \"y.\", \"sourceText\": \"• Excess/additional samples may be stored for up to\"}, {\"id\": \"fn_cond_70\", \"conditionType\": \"general\", \"text\": \"Blood samples will be collected as described in the SoA\", \"footnoteId\": \"y.\", \"sourceText\": \"Blood samples will be collected as described in the SoA\"}, {\"id\": \"fn_cond_71\", \"conditionType\": \"procedure_conditional\", \"text\": \"Plasma samples will be used for ICP-MS measurement of total copper and \\nPUF-copper, ceruloplasmin, ceruloplasmin-bound copper, and non-ceruloplasmin-bound copper \\nmeasured via PUF-copper, and/or LBC, or assessed via NCC/NCCcorrected methods at the time \\npoints indicated in the SoA\", \"footnoteId\": \"l.\", \"sourceText\": \"Plasma samples will be used for ICP-MS measurement of total copper and \\nPUF-copper, ceruloplasmin, c\"}, {\"id\": \"fn_cond_72\", \"conditionType\": \"general\", \"text\": \"Benefit-Risk Assessment\", \"footnoteId\": \"3.\", \"sourceText\": \"Benefit-Risk Assessment\"}, {\"id\": \"fn_cond_73\", \"conditionType\": \"general\", \"text\": \"Benefit Assessment\", \"footnoteId\": \"2.\", \"sourceText\": \"Benefit Assessment\"}, {\"id\": \"fn_cond_74\", \"conditionType\": \"general\", \"text\": \"Scientific Rationale for Study Design\", \"footnoteId\": \"2.\", \"sourceText\": \"Scientific Rationale for Study Design\"}, {\"id\": \"fn_cond_75\", \"conditionType\": \"general\", \"text\": \"Justification for Dose\", \"footnoteId\": \"3.\", \"sourceText\": \"Justification for Dose\"}, {\"id\": \"fn_cond_76\", \"conditionType\": \"general\", \"text\": \"Lifestyle Considerations\", \"footnoteId\": \"3.\", \"sourceText\": \"Lifestyle Considerations\"}, {\"id\": \"fn_cond_77\", \"conditionType\": \"general\", \"text\": \"Adverse Events: Definitions and Procedures for Recording, Evaluating, \\nFollow-up, and Reporting\", \"footnoteId\": \"3.\", \"sourceText\": \"Adverse Events: Definitions and Procedures for Recording, Evaluating, \\nFollow-up, and Reporting\"}, {\"id\": \"fn_cond_78\", \"conditionType\": \"general\", \"text\": \"Recording and Follow-Up of AE and/or SAE\", \"footnoteId\": \"3.\", \"sourceText\": \"Recording and Follow-Up of AE and/or SAE\"}, {\"id\": \"fn_cond_79\", \"conditionType\": \"general\", \"text\": \"Contraceptive Guidance and Collection of Pregnancy Information\", \"footnoteId\": \"4.\", \"sourceText\": \"Contraceptive Guidance and Collection of Pregnancy Information\"}, {\"id\": \"fn_cond_80\", \"conditionType\": \"general\", \"text\": \"Note: “Enrolled” means all participants who sign the informed consent form\", \"footnoteId\": \"1840.\", \"sourceText\": \"Note: “Enrolled” means all participants who sign the informed consent form\"}, {\"id\": \"fn_cond_81\", \"conditionType\": \"timing_before\", \"text\": \"Before titration to\", \"footnoteId\": \"29.\", \"sourceText\": \"Before titration to\"}, {\"id\": \"fn_cond_82\", \"conditionType\": \"general\", \"text\": \"The \\ncollection periods will support an assessment of both copper and molybdenum balance\", \"footnoteId\": \"39.\", \"sourceText\": \"The \\ncollection periods will support an assessment of both copper and molybdenum balance\"}, {\"id\": \"fn_cond_83\", \"conditionType\": \"frequency_continuous\", \"text\": \"To ensure flexibility, the Outpatient \\nPeriod during Treatment Period\", \"footnoteId\": \"23.\", \"sourceText\": \"To ensure flexibility, the Outpatient \\nPeriod during Treatment Period\"}, {\"id\": \"fn_cond_84\", \"conditionType\": \"general\", \"text\": \"p PK/PD collection will include timepoints described in the schedule of PK/PD assessment for Days\", \"footnoteId\": \"39.\", \"sourceText\": \"p PK/PD collection will include timepoints described in the schedule of PK/PD assessment for Days\"}, {\"id\": \"fn_cond_85\", \"conditionType\": \"general\", \"text\": \"Abbreviations: Cu = copper; LBC = labile bound copper; Mo = molybdenum; PD = pharmacodynamic; \\nPK = pharmacokinetic; PUF = plasma ultrafiltrate\", \"footnoteId\": \"1840.\", \"sourceText\": \"Abbreviations: Cu = copper; LBC = labile bound copper; Mo = molybdenum; PD = pharmacodynamic; \\nPK = \"}, {\"id\": \"fn_cond_86\", \"conditionType\": \"general\", \"text\": \"The multiple collection periods will support assessment of duration of treatment and dose on \\ncopper elimination and overall copper balance\", \"footnoteId\": \"39.\", \"sourceText\": \"The multiple collection periods will support assessment of duration of treatment and dose on \\ncopper\"}, {\"id\": \"fn_cond_87\", \"conditionType\": \"general\", \"text\": \"End of Study Definition \\nA participant is considered to have completed the study if he/she has completed all phases of the \\nstudy including the last scheduled procedure shown in the Schedule of Activities\", \"footnoteId\": \"4.\", \"sourceText\": \"End of Study Definition \\nA participant is considered to have completed the study if he/she has compl\"}, {\"id\": \"fn_cond_88\", \"conditionType\": \"general\", \"text\": \"Start times for \\ncontraceptives vary \\naccording to method used\", \"footnoteId\": \"4.\", \"sourceText\": \"Start times for \\ncontraceptives vary \\naccording to method used\"}, {\"id\": \"fn_cond_89\", \"conditionType\": \"general\", \"text\": \"Abbreviations: CRF = case report form; CRU = clinical research unit; EOS = End of Study; SoA = Schedule of \\nActivities\", \"footnoteId\": \"4.\", \"sourceText\": \"Abbreviations: CRF = case report form; CRU = clinical research unit; EOS = End of Study; SoA = Sched\"}, {\"id\": \"fn_cond_90\", \"conditionType\": \"general\", \"text\": \"Screen Failures  \\nScreen failures are defined as participants who consent to participate in the clinical study but are \\nnot subsequently assigned to study intervention\", \"footnoteId\": \"4.\", \"sourceText\": \"Screen Failures  \\nScreen failures are defined as participants who consent to participate in the clin\"}, {\"id\": \"fn_cond_91\", \"conditionType\": \"general\", \"text\": \"Discontinuation of Study Intervention \\nIn rare instances, it may be necessary for a participant to permanently discontinue\", \"footnoteId\": \"1.\", \"sourceText\": \"Discontinuation of Study Intervention \\nIn rare instances, it may be necessary for a participant to p\"}, {\"id\": \"fn_cond_92\", \"conditionType\": \"timing_before\", \"text\": \"Participant Discontinuation/Withdrawal From the Study \\n• All efforts should be made to ensure participants are willing to comply with study \\nparticipation prior to conducting the screening procedures\", \"footnoteId\": \"2.\", \"sourceText\": \"Participant Discontinuation/Withdrawal From the Study \\n• All efforts should be made to ensure partic\"}, {\"id\": \"fn_cond_93\", \"conditionType\": \"general\", \"text\": \"STUDY ASSESSMENTS AND PROCEDURES \\n• Study procedures and their timing are summarized in the SoA\", \"footnoteId\": \"8.\", \"sourceText\": \"STUDY ASSESSMENTS AND PROCEDURES \\n• Study procedures and their timing are summarized in the SoA\"}, {\"id\": \"fn_cond_94\", \"conditionType\": \"general\", \"text\": \"Efficacy Assessments\", \"footnoteId\": \"1.\", \"sourceText\": \"Efficacy Assessments\"}, {\"id\": \"fn_cond_95\", \"conditionType\": \"general\", \"text\": \"Copper and Molybdenum Balance Measurements \\nCopper and molybdenum balance measurements will be made on all intake\", \"footnoteId\": \"1.\", \"sourceText\": \"Copper and Molybdenum Balance Measurements \\nCopper and molybdenum balance measurements will be made \"}, {\"id\": \"fn_cond_96\", \"conditionType\": \"general\", \"text\": \"Food and Fluid Collection for Copper and Molybdenum Concentrations \\nSamples of all meal and fluid batches will be collected and analyzed for measurement of copper \\nand molybdenum content\", \"footnoteId\": \"1.\", \"sourceText\": \"Food and Fluid Collection for Copper and Molybdenum Concentrations \\nSamples of all meal and fluid ba\"}, {\"id\": \"fn_cond_97\", \"conditionType\": \"general\", \"text\": \"Urine Collection for Measurement of Copper and Molybdenum content \\nUrine samples to measure copper and molybdenum content will be collected periodically as \\ndescribed in the SoA\", \"footnoteId\": \"2.\", \"sourceText\": \"Urine Collection for Measurement of Copper and Molybdenum content \\nUrine samples to measure copper a\"}, {\"id\": \"fn_cond_98\", \"conditionType\": \"general\", \"text\": \"Safety Assessments \\nPlanned time points for all safety assessments are provided in the SoA\", \"footnoteId\": \"2.\", \"sourceText\": \"Safety Assessments \\nPlanned time points for all safety assessments are provided in the SoA\"}, {\"id\": \"fn_cond_99\", \"conditionType\": \"general\", \"text\": \"Physical Examinations \\n• A complete physical examination will include, at a minimum, assessments of the \\ncardiovascular, respiratory, gastrointestinal, and neurological systems\", \"footnoteId\": \"1.\", \"sourceText\": \"Physical Examinations \\n• A complete physical examination will include, at a minimum, assessments of \"}, {\"id\": \"fn_cond_100\", \"conditionType\": \"general\", \"text\": \"Vital Signs \\n• Body temperature, heart rate, respiratory rate, and systolic and diastolic blood pressure\", \"footnoteId\": \"2.\", \"sourceText\": \"Vital Signs \\n• Body temperature, heart rate, respiratory rate, and systolic and diastolic blood pres\"}, {\"id\": \"fn_cond_101\", \"conditionType\": \"general\", \"text\": \"Electrocardiograms \\n• Triplicate\", \"footnoteId\": \"3.\", \"sourceText\": \"Electrocardiograms \\n• Triplicate\"}, {\"id\": \"fn_cond_102\", \"conditionType\": \"general\", \"text\": \"Clinical Safety Laboratory Assessments \\n• See Section\", \"footnoteId\": \"4.\", \"sourceText\": \"Clinical Safety Laboratory Assessments \\n• See Section\"}, {\"id\": \"fn_cond_103\", \"conditionType\": \"timing_after\", \"text\": \"Samples collected for \\nanalyses of plasma concentrations may also be used to evaluate safety aspects related \\nto concerns arising during or after the study\", \"footnoteId\": \"1840.\", \"sourceText\": \"Samples collected for \\nanalyses of plasma concentrations may also be used to evaluate safety aspects\"}, {\"id\": \"fn_cond_104\", \"conditionType\": \"general\", \"text\": \"These samples will not be \\nused for genetic analyses\", \"footnoteId\": \"1840.\", \"sourceText\": \"These samples will not be \\nused for genetic analyses\"}, {\"id\": \"fn_cond_105\", \"conditionType\": \"general\", \"text\": \"Pharmacodynamics \\nPlasma total and PUF-copper, ceruloplasmin, ceruloplasmin-bound copper, and LBC will be \\nassessed during the study\", \"footnoteId\": \"6.\", \"sourceText\": \"Pharmacodynamics \\nPlasma total and PUF-copper, ceruloplasmin, ceruloplasmin-bound copper, and LBC wi\"}, {\"id\": \"fn_cond_106\", \"conditionType\": \"general\", \"text\": \"Genetics \\nGenetics will not be evaluated in this study\", \"footnoteId\": \"7.\", \"sourceText\": \"Genetics \\nGenetics will not be evaluated in this study\"}, {\"id\": \"fn_cond_107\", \"conditionType\": \"general\", \"text\": \"Immunogenicity Assessments \\nNot applicable\", \"footnoteId\": \"9.\", \"sourceText\": \"Immunogenicity Assessments \\nNot applicable\"}, {\"id\": \"fn_cond_108\", \"conditionType\": \"general\", \"text\": \"Health Economics Data and/or Medical Resource Utilization \\nHealth economic and medical resource utilization parameters are not evaluated in this study\", \"footnoteId\": \"10.\", \"sourceText\": \"Health Economics Data and/or Medical Resource Utilization \\nHealth economic and medical resource util\"}]"
+              },
+              {
+                "id": "34982fed-ef8a-4c76-9460-15bbc3148153",
+                "url": "https://protocol2usdm.io/extensions/x-executionModel-endpointAlgorithms",
+                "instanceType": "ExtensionAttribute",
+                "valueString": "[{\"id\": \"ep_1\", \"name\": \"Exploratory Endpoint 1\", \"endpointType\": \"Exploratory\", \"inputs\": [\"PR\", \"CR\", \"OS\"], \"unit\": \"%\", \"sourceText\": \"--- Page 51 ---\\nProtocol Amendment 3.1 (US) \\n \\nALXN1840-WD-204 \\n18 Mar 2022 \\nPage 51 of 74 \\nAlexion Confidential \\n9. \\nSTATISTICAL CONSIDERATIONS \\n9.1. \\nStatistical Hypotheses \\n9.1.1. \\nPrimary Hypothes\"}, {\"id\": \"ep_2\", \"name\": \"analysis will be excluded from the Per \\nProtocol (PP) Set\", \"endpointType\": \"Primary\", \"inputs\": [\"PR\", \"CR\"], \"timeWindow\": {\"reference\": \"the per\", \"duration\": null}, \"algorithm\": \"informed consent form; pd = pharmacodynamic; pk = pharmacokinetic\", \"sourceText\": \"primary endpoint analysis will be excluded from the Per \\nProtocol (PP) Set. Major protocol deviations, and the PP Set, will be \\ndefined, documented, and agreed within Alexion prior to database lock. \\n\"}, {\"id\": \"ep_3\", \"name\": \"of this study is to demonstrate a net negative copper balance with daily \\nrepeat-dose ALXN1840 treat\", \"endpointType\": \"Primary\", \"inputs\": [\"PR\", \"OS\"], \"unit\": \"mg\", \"sourceText\": \"primary objective of this study is to demonstrate a net negative copper balance with daily \\nrepeat-dose ALXN1840 treatment (15 mg and 30 mg) in participants with WD. \\n\"}]"
+              },
+              {
+                "id": "2533702f-62ae-400c-a39f-84ca6aba1938",
+                "url": "https://protocol2usdm.io/extensions/x-executionModel-derivedVariables",
+                "instanceType": "ExtensionAttribute",
+                "valueString": "[{\"id\": \"dv_1\", \"name\": \"will be\", \"variableType\": \"Custom\", \"sourceVariables\": [\"ALT\"], \"derivationRule\": \"the \\ndifference between measured copper input in food and drink and measured copper output in \\nurine and feces\", \"unit\": \"15\", \"sourceText\": \"--- Page 9 ---\\nProtocol Amendment 3.1 (US) \\n \\nALXN1840-WD-204 \\n18 Mar 2022 \\nPage 9 of 74 \\nAlexion Confidential \\n1. \\nPROTOCOL SUMMARY \\n1.1. \\nSynopsis \\nProtocol Title: A Phase 2, Open-label Study to Ass\"}, {\"id\": \"dv_6\", \"name\": \"Derived Variable 6\", \"variableType\": \"Custom\", \"sourceVariables\": [\"pk parameters\", \"on copper\", \"5 times\", \"blood pressure\", \"heart rate\"], \"baselineVisit\": \"day \\n39\", \"analysisWindow\": \"day \\n39\", \"unit\": \"15\", \"sourceText\": \"\\n• Vital sign assessments (blood pressure and heart rate) \\nExploratory \\nDetermine dose response of ALXN1840 15 mg/day \\nand 30 mg/day for copper balance in participants \\nwith WD \\nAssess dose response o\"}, {\"id\": \"dv_7\", \"name\": \"Derived Variable 7\", \"variableType\": \"Custom\", \"baselineVisit\": \"day -4\", \"sourceText\": \"\\n• \\nBaseline Day -4 through Day -1 \"}, {\"id\": \"dv_12\", \"name\": \"copper balance\", \"variableType\": \"ChangeFromBaseline\", \"sourceVariables\": [\"weight\", \"ALT\", \"a \\ntotal\", \"total molybdenum\", \"safety\"], \"derivationRule\": \"the difference between measured copper input in food and drink and measured \\ncopper output in urine and feces\", \"baselineVisit\": \"day 54\", \"analysisWindow\": \"day 54\", \"unit\": \"toxic\", \"sourceText\": \"\\n• \\nEnd of Study Visit Day 54 +/- 2 days  \\nAbbreviations: AP = accumulation period; CRU = clinical research unit; EOS = End of Study; I/O = input/output; \\nPD = pharmacodynamic; PK = pharmacokinetic; S\"}, {\"id\": \"dv_17\", \"name\": \"Derived Variable 17\", \"variableType\": \"Custom\", \"sourceVariables\": [\"pk parameters\", \"on copper\", \"5 times\", \"blood pressure\", \"heart rate\"], \"baselineVisit\": \"day 39\", \"analysisWindow\": \"day 39\", \"unit\": \"15\", \"sourceText\": \"\\n• Vital sign assessments (blood pressure and heart rate) \\nExploratory \\nDetermine dose response of ALXN1840 15 mg/day \\nand 30 mg/day for copper balance in participants \\nwith WD \\nAssess dose response o\"}, {\"id\": \"dv_19\", \"name\": \"will be\", \"variableType\": \"Baseline\", \"sourceVariables\": [\"actual sampling\", \"noncompartmental methods\", \"pk\", \"descriptive statistics\", \"safety analysis\", \"criteria established\", \"world health\", \"ALT\", \"sas\", \"full analysis\", \"fractional intake\", \"AST\", \"heart rate\", \"same methods\"], \"derivationRule\": \"the mean daily copper balance over each of the 4 \\ncollection periods\", \"baselineVisit\": \"day -8\", \"analysisWindow\": \"day 9\", \"unit\": \"15\", \"sourceText\": \"\\n• Cohort 2 (treatment naïve): Patients who have received WD therapy for ≤ 28 days \\nFollowing screening and enrollment, participants will check-in to the CRU on Day -8 for the \\nRun-in Period. The purp\"}, {\"id\": \"dv_26\", \"name\": \"Derived Variable 26\", \"variableType\": \"Custom\", \"sourceVariables\": [\"AST\"], \"baselineVisit\": \"day25\", \"analysisWindow\": \"day 28\", \"unit\": \"15\", \"sourceText\": \"\\n• Accumulation ratio (AR) calculated as: \\nFor 15 mg/day:  \\n− Cmax,Day25/Cmax,Day1 \\n− Ctrough,Day26/Ctrough,Day2 \\n− AUCtau,Day25/AUC tau,Day1  \\nFor 30 mg/day:  \\n− Cmax,Day39/Cmax,Day29,adjusted \\n− Ctr\"}, {\"id\": \"dv_30\", \"name\": \"may be\", \"variableType\": \"PercentChange\", \"sourceVariables\": [\"following \\ndescriptive\", \"any emerging\", \"BMI\", \"ALT\", \"fridericia\", \"heart rate\", \"following descriptive\"], \"derivationRule\": \"sae \\nserious adverse event  \\nsap \\nstatistical analysis plan  \\nsoa \\nschedule of activities \\nsrc \\nsafety review committee \\nsusar \\nsuspected unexpected serious adverse reaction \\nteae \\ntreatment-emergent adverse event  \\nt½ \\nterminal elimination half-life  \\ntlag \\ntime delay between the time of dosing and time of appearance of molybdenum \\nconcentration \\ntmax \\ntime to maximum concentration  \\ntpc \\ntripartite complex \\nttm \\ntetrathiomolybdate \\nuln \\nupper limit of normal \\nuwdrs \\nunified wilson disease rating scale \\nvd/f \\napparent volume of distribution  \\nwd \\nwilson disease  \\nwho \\nworld health organization\", \"unit\": \"15\", \"sourceText\": \"\\n• Apparent volume of distribution (Vd/F). \\nAdditional plasma PK parameters may be calculated if deemed appropriate. \\nPlasma concentrations of total molybdenum and PUF molybdenum vs. time data will be\"}]"
+              },
+              {
+                "id": "e96f3440-3510-4de8-a0cb-75bf9a064add",
+                "url": "https://protocol2usdm.io/extensions/x-executionModel-stateMachine",
+                "instanceType": "ExtensionAttribute",
+                "valueString": "{\"id\": \"sm_1\", \"initialState\": \"Screening\", \"terminalStates\": [\"Early Termination\", \"Completed\"], \"states\": [\"Screening\", \"Run In\", \"Baseline\", \"Treatment\", \"Maintenance\", \"Follow Up\", \"End Of Study\", \"Early Termination\"], \"transitions\": [{\"fromState\": \"Screening\", \"toState\": \"Run In\", \"trigger\": \"Progress to Run In\"}, {\"fromState\": \"Run In\", \"toState\": \"Baseline\", \"trigger\": \"Progress to Baseline\"}, {\"fromState\": \"Baseline\", \"toState\": \"Treatment\", \"trigger\": \"Progress to Treatment\"}, {\"fromState\": \"Treatment\", \"toState\": \"Maintenance\", \"trigger\": \"Progress to Maintenance\"}, {\"fromState\": \"Maintenance\", \"toState\": \"Follow Up\", \"trigger\": \"Progress to Follow Up\"}, {\"fromState\": \"Follow Up\", \"toState\": \"End Of Study\", \"trigger\": \"Progress to End Of Study\"}, {\"fromState\": \"Treatment\", \"toState\": \"Early Termination\", \"trigger\": \"Subject exits to Early Termination\"}], \"epochIds\": {\"Screening\": \"SCREENING\", \"Run In\": \"RUN_IN\", \"Baseline\": \"BASELINE\", \"Treatment\": \"TREATMENT\", \"Maintenance\": \"MAINTENANCE\", \"Follow Up\": \"FOLLOW_UP\", \"End Of Study\": \"END_OF_STUDY\", \"Early Termination\": \"EARLY_TERMINATION\"}}"
+              },
+              {
+                "id": "d7bd3af3-2ffa-465b-8afc-fc0e890b615b",
+                "url": "https://protocol2usdm.io/extensions/x-executionModel-dosingRegimens",
+                "instanceType": "ExtensionAttribute",
+                "valueString": "[{\"id\": \"dosing_1\", \"treatmentName\": \"ALXN1840\", \"frequency\": \"QD\", \"route\": \"Oral\", \"startDay\": 1, \"doseLevels\": [{\"amount\": 30.0, \"unit\": \"mg\"}, {\"amount\": 15.0, \"unit\": \"mg\"}], \"sourceText\": \"Administration of Study Interventionm ALXN1840 15 mg/day           ALXN1840 30 mg/day      Study intervention compliance Xn  PK/PD Analyseso\"}]"
+              },
+              {
+                "id": "7ca3405e-b87a-476c-93a0-0972478317fb",
+                "url": "https://protocol2usdm.io/extensions/x-executionModel-visitWindows",
+                "instanceType": "ExtensionAttribute",
+                "valueString": "[{\"id\": \"visit_4\", \"visitName\": \"screening\", \"targetDay\": -14, \"windowBefore\": 7, \"windowAfter\": 0, \"isRequired\": true, \"visitNumber\": 1, \"sourceText\": \"treatment-naïve participants are eligible for this study. Following screening and enrollment, participants will have a Run-in Period to support diet equilibration (Day -7 through Day -5) and measureme\"}, {\"id\": \"visit_2\", \"visitName\": \"baseline\", \"targetDay\": 0, \"windowBefore\": 1, \"windowAfter\": 1, \"isRequired\": true, \"visitNumber\": 2, \"sourceText\": \"periods versus the pretreatment baseline in participants with WD Change in mean daily copper balance as measured by the\"}, {\"id\": \"visit_1\", \"visitName\": \"Early Termination\", \"targetDay\": 1, \"windowBefore\": 0, \"windowAfter\": 0, \"isRequired\": true, \"visitNumber\": 3, \"sourceText\": \"Assess net copper balance with daily repeat-dose ALXN1840 treatment (15 mg and 30 mg) in participants with Wilson disease (WD)\"}, {\"id\": \"visit_3\", \"visitName\": \"Day 1\", \"targetDay\": 1, \"windowBefore\": 0, \"windowAfter\": 0, \"isRequired\": true, \"visitNumber\": 4, \"sourceText\": \"Note: The accumulation period refers to time from initiation of ALXN1840 (Day 1) to expected steady state at Day 10, based on 5 times the half-life of 2 days. Overall Design\"}, {\"id\": \"visit_13\", \"visitName\": \"End of Study\", \"targetDay\": 54, \"windowBefore\": 2, \"windowAfter\": 2, \"isRequired\": true, \"visitNumber\": 17, \"sourceText\": \"End of Study Visit Day 54 +/- 2 days Abbreviations: AP = accumulation period; CRU = clinical research unit; EOS = End of Study; I/O = input/output; PD = pharmacodynamic; PK = pharmacokinetic; SS = ste\"}, {\"id\": \"visit_18\", \"visitName\": \"Day 7\", \"targetDay\": 7, \"windowBefore\": 3, \"windowAfter\": 3, \"isRequired\": true, \"visitNumber\": 6, \"sourceText\": \"Day 7, indicating the possibility of tissue accumulation, particularly in the setting of high liver copper concentration (Plitz, 2019). If the half-life of ALXN1840 in liver were longer than that of t\"}, {\"id\": \"visit_7\", \"visitName\": \"Day 9\", \"targetDay\": 9, \"windowBefore\": 3, \"windowAfter\": 3, \"isRequired\": true, \"visitNumber\": 7, \"sourceText\": \"Participants may be discharged from the clinical research unit (CRU) on Day 9 to return on Day 22 or Day 23 (predose); all procedures will start on Day 23. To ensure flexibility, the Outpatient Period\"}, {\"id\": \"visit_16\", \"visitName\": \"Day 14\", \"targetDay\": 14, \"windowBefore\": 0, \"windowAfter\": 0, \"isRequired\": true, \"visitNumber\": 8, \"sourceText\": \"g A single outpatient visit or phone call and safety laboratory assessment should occur between Day 14 and Day 18. A phone call may take place on a different day than the blood draw within the Day 14 \"}, {\"id\": \"visit_9\", \"visitName\": \"Day 22\", \"targetDay\": 22, \"windowBefore\": 3, \"windowAfter\": 3, \"isRequired\": true, \"visitNumber\": 9, \"sourceText\": \"who are discharged will be re-admitted on Day 22 or Day 23 for Treatment Period 2 and will remain in house until Day 40. To ensure flexibility, the Outpatient Period may be extended up to an additiona\"}, {\"id\": \"visit_6\", \"visitName\": \"Day 23\", \"targetDay\": 23, \"windowBefore\": 3, \"windowAfter\": 3, \"isRequired\": true, \"visitNumber\": 10, \"sourceText\": \"data through Day 23 for each participant. Participants will have intake and output collection periods from Day -4 through Day -1, from Day 1 through Day 8 (initial 15 mg/day collection period), and Da\"}, {\"id\": \"visit_11\", \"visitName\": \"Day 25\", \"targetDay\": 25, \"windowBefore\": 3, \"windowAfter\": 3, \"isRequired\": true, \"visitNumber\": 11, \"sourceText\": \"Day 25 through Day 39 (Days 25 through 28, I/O for 15 mg; Days 29 through 39, I/O for 30 mg) 5. During these periods all intake (including food and drink) and output (including urine and feces) will b\"}, {\"id\": \"visit_5\", \"visitName\": \"Day 29\", \"targetDay\": 29, \"windowBefore\": 3, \"windowAfter\": 3, \"isRequired\": true, \"visitNumber\": 12, \"sourceText\": \"treatment period of approximately 28 days followed by titration up to 30 mg/day on Day 29. Before titration to 30 mg/day, the Safety Review Committee (SRC) will review available safety data through Da\"}, {\"id\": \"visit_17\", \"visitName\": \"Day 36\", \"targetDay\": 36, \"windowBefore\": 3, \"windowAfter\": 3, \"isRequired\": true, \"visitNumber\": 13, \"sourceText\": \"Day 36 through Day 39 for the 30 mg/day dose: if steady state is achieved, molybdenum(out) will equal molybdenum(in). 2.2.\"}, {\"id\": \"visit_8\", \"visitName\": \"Day 39\", \"targetDay\": 39, \"windowBefore\": 3, \"windowAfter\": 3, \"isRequired\": true, \"visitNumber\": 14, \"sourceText\": \"through Day 39. 2. Participants will be admitted to the CRU for Treatment Period 1 on Day -8 and may be discharged on Day 9 or remain in the CRU for their own safety or to maintain the integrity of th\"}, {\"id\": \"visit_10\", \"visitName\": \"Day 40\", \"targetDay\": 40, \"windowBefore\": 3, \"windowAfter\": 3, \"isRequired\": true, \"visitNumber\": 15, \"sourceText\": \"until Day 40. To ensure flexibility, the Outpatient Period may be extended up to an additional 14 days with Investigator approval. In this situation, participants will be given additional investigatio\"}, {\"id\": \"visit_12\", \"visitName\": \"Day 54\", \"targetDay\": 54, \"windowBefore\": 2, \"windowAfter\": 2, \"isRequired\": true, \"visitNumber\": 16, \"sourceText\": \"End of Study Visit Day 54 +/- 2 days Abbreviations: AP = accumulation period; CRU = clinical research unit; EOS = End of Study; I/O = input/output; PD = pharmacodynamic; PK = pharmacokinetic; SS = ste\"}, {\"id\": \"visit_19\", \"visitName\": \"Week 24\", \"targetDay\": 162, \"windowBefore\": 3, \"windowAfter\": 3, \"isRequired\": true, \"visitNumber\": 18, \"targetWeek\": 24, \"sourceText\": \"for 9 participants at Week 24 when the primary endpoint assessment was conducted, or at the last dose received for participants with early discontinuation. The 15 to 60 mg/day dose range has been demo\"}, {\"id\": \"visit_15\", \"visitName\": \"Follow-up\", \"targetDay\": 365, \"windowBefore\": 7, \"windowAfter\": 7, \"isRequired\": true, \"visitNumber\": 19, \"sourceText\": \"Day 54 follow-up. f Discharge from the unit may occur after completion of all procedures on Day 9 and on Day 40 and after the Investigator has reviewed all safety assessment (including safety laborato\"}]"
+              },
+              {
+                "id": "a57c991b-6c28-43c3-bfdc-1acf3f7050a9",
+                "url": "https://protocol2usdm.io/extensions/x-executionModel-activityBindings",
+                "instanceType": "ExtensionAttribute",
+                "valueString": "[{\"id\": \"binding_1\", \"activityId\": \"controlled_meal\", \"activityName\": \"controlled diet\", \"repetitionId\": \"rep_daily_bound_1\", \"expectedOccurrences\": 18, \"sourceText\": \"Daily controlled_meal from Day -8 to Day 9\"}, {\"id\": \"binding_2\", \"activityId\": \"controlled_meal\", \"activityName\": \"controlled diet\", \"repetitionId\": \"rep_daily_bound_2\", \"expectedOccurrences\": 18, \"sourceText\": \"Daily controlled_meal from Day -8 to Day 9\"}, {\"id\": \"binding_3\", \"activityId\": \"controlled_meal\", \"activityName\": \"controlled diet\", \"repetitionId\": \"rep_daily_bound_3\", \"expectedOccurrences\": 18, \"sourceText\": \"Daily controlled_meal from Day 23 to Day 40\"}, {\"id\": \"binding_4\", \"activityId\": \"controlled_meal\", \"activityName\": \"controlled diet\", \"repetitionId\": \"rep_daily_bound_4\", \"expectedOccurrences\": 18, \"sourceText\": \"Daily controlled_meal from Day 23 to Day 40\"}, {\"id\": \"binding_5\", \"activityId\": \"controlled_meal\", \"activityName\": \"controlled diet\", \"repetitionId\": \"rep_daily_bound_5\", \"expectedOccurrences\": 3, \"sourceText\": \"Daily controlled_meal from Day -7 to Day -5\"}, {\"id\": \"binding_6\", \"activityId\": \"controlled_meal\", \"activityName\": \"controlled diet\", \"repetitionId\": \"rep_daily_bound_6\", \"expectedOccurrences\": 4, \"sourceText\": \"Daily controlled_meal from Day -4 to Day -1\"}, {\"id\": \"binding_7\", \"activityId\": \"controlled_meal\", \"activityName\": \"controlled diet\", \"repetitionId\": \"rep_daily_bound_7\", \"expectedOccurrences\": 18, \"sourceText\": \"Daily controlled_meal from Day -8 to Day 9\"}, {\"id\": \"binding_8\", \"activityId\": \"controlled_meal\", \"activityName\": \"controlled diet\", \"repetitionId\": \"rep_daily_bound_8\", \"expectedOccurrences\": 18, \"sourceText\": \"Daily controlled_meal from Day 23 to Day 40\"}, {\"id\": \"binding_9\", \"activityId\": \"controlled_meal\", \"activityName\": \"controlled diet\", \"repetitionId\": \"rep_daily_bound_9\", \"expectedOccurrences\": 18, \"sourceText\": \"Daily controlled_meal from Day -8 to Day 9\"}, {\"id\": \"binding_10\", \"activityId\": \"controlled_meal\", \"activityName\": \"controlled diet\", \"repetitionId\": \"rep_daily_bound_10\", \"expectedOccurrences\": 18, \"sourceText\": \"Daily controlled_meal from Day 23 to Day 40\"}, {\"id\": \"binding_11\", \"activityId\": \"controlled_meal\", \"activityName\": \"controlled diet\", \"repetitionId\": \"rep_daily_bound_11\", \"expectedOccurrences\": 13, \"sourceText\": \"Daily controlled_meal from Day 3 to Day 15\"}, {\"id\": \"binding_12\", \"activityId\": \"balance_collection\", \"activityName\": \"copper balance\", \"repetitionId\": \"rep_daily_bound_12\", \"expectedOccurrences\": 101, \"sourceText\": \"Daily balance_collection from Day 101 to Day 201\"}, {\"id\": \"binding_13\", \"activityId\": \"balance_collection\", \"activityName\": \"copper balance\", \"repetitionId\": \"rep_daily_bound_13\", \"expectedOccurrences\": 4, \"sourceText\": \"Daily balance_collection from Day -4 to Day -1\"}, {\"id\": \"binding_14\", \"activityId\": \"balance_collection\", \"activityName\": \"molybdenum balance\", \"repetitionId\": \"rep_daily_bound_14\", \"expectedOccurrences\": 3, \"sourceText\": \"Daily balance_collection from Day -7 to Day -5\"}, {\"id\": \"binding_15\", \"activityId\": \"balance_collection\", \"activityName\": \"molybdenum balance\", \"repetitionId\": \"rep_daily_bound_15\", \"expectedOccurrences\": 4, \"sourceText\": \"Daily balance_collection from Day -4 to Day -1\"}, {\"id\": \"binding_16\", \"activityId\": \"balance_collection\", \"activityName\": \"molybdenum balance\", \"repetitionId\": \"rep_daily_bound_16\", \"expectedOccurrences\": 4, \"sourceText\": \"Daily balance_collection from Day -4 to Day -1\"}, {\"id\": \"binding_17\", \"activityId\": \"balance_collection\", \"activityName\": \"molybdenum balance\", \"repetitionId\": \"rep_daily_bound_17\", \"expectedOccurrences\": 8, \"sourceText\": \"Daily balance_collection from Day 1 to Day 8\"}, {\"id\": \"binding_18\", \"activityId\": \"balance_collection\", \"activityName\": \"molybdenum balance\", \"repetitionId\": \"rep_daily_bound_18\", \"expectedOccurrences\": 15, \"sourceText\": \"Daily balance_collection from Day 25 to Day 39\"}, {\"id\": \"binding_19\", \"activityId\": \"balance_collection\", \"activityName\": \"copper balance\", \"repetitionId\": \"rep_daily_bound_19\", \"expectedOccurrences\": 101, \"sourceText\": \"Daily balance_collection from Day 101 to Day 201\"}, {\"id\": \"binding_20\", \"activityId\": \"balance_collection\", \"activityName\": \"copper balance\", \"repetitionId\": \"rep_daily_bound_20\", \"expectedOccurrences\": 101, \"sourceText\": \"Daily balance_collection from Day 101 to Day 201\"}, {\"id\": \"binding_21\", \"activityId\": \"balance_collection\", \"activityName\": \"copper balance\", \"repetitionId\": \"rep_daily_bound_21\", \"expectedOccurrences\": 4, \"sourceText\": \"Daily balance_collection from Day -4 to Day -1\"}, {\"id\": \"binding_22\", \"activityId\": \"balance_collection\", \"activityName\": \"molybdenum balance\", \"repetitionId\": \"rep_daily_bound_22\", \"expectedOccurrences\": 3, \"sourceText\": \"Daily balance_collection from Day -7 to Day -5\"}, {\"id\": \"binding_23\", \"activityId\": \"balance_collection\", \"activityName\": \"molybdenum balance\", \"repetitionId\": \"rep_daily_bound_23\", \"expectedOccurrences\": 4, \"sourceText\": \"Daily balance_collection from Day -4 to Day -1\"}, {\"id\": \"binding_24\", \"activityId\": \"balance_collection\", \"activityName\": \"molybdenum balance\", \"repetitionId\": \"rep_daily_bound_24\", \"expectedOccurrences\": 18, \"sourceText\": \"Daily balance_collection from Day -8 to Day 9\"}, {\"id\": \"binding_25\", \"activityId\": \"balance_collection\", \"activityName\": \"molybdenum balance\", \"repetitionId\": \"rep_daily_bound_25\", \"expectedOccurrences\": 18, \"sourceText\": \"Daily balance_collection from Day 23 to Day 40\"}, {\"id\": \"binding_26\", \"activityId\": \"balance_collection\", \"activityName\": \"molybdenum balance\", \"repetitionId\": \"rep_daily_bound_26\", \"expectedOccurrences\": 4, \"sourceText\": \"Daily balance_collection from Day -4 to Day -1\"}, {\"id\": \"binding_27\", \"activityId\": \"balance_collection\", \"activityName\": \"molybdenum balance\", \"repetitionId\": \"rep_daily_bound_27\", \"expectedOccurrences\": 8, \"sourceText\": \"Daily balance_collection from Day 1 to Day 8\"}, {\"id\": \"binding_28\", \"activityId\": \"balance_collection\", \"activityName\": \"molybdenum balance\", \"repetitionId\": \"rep_daily_bound_28\", \"expectedOccurrences\": 15, \"sourceText\": \"Daily balance_collection from Day 25 to Day 39\"}, {\"id\": \"binding_29\", \"activityId\": \"balance_collection\", \"activityName\": \"copper balance\", \"repetitionId\": \"rep_daily_bound_29\", \"expectedOccurrences\": 13, \"sourceText\": \"Daily balance_collection from Day 3 to Day 15\"}, {\"id\": \"binding_30\", \"activityId\": \"balance_collection\", \"activityName\": \"molybdenum balance\", \"repetitionId\": \"rep_daily_bound_30\", \"expectedOccurrences\": 13, \"sourceText\": \"Daily balance_collection from Day 3 to Day 15\"}, {\"id\": \"binding_31\", \"activityId\": \"balance_collection\", \"activityName\": \"molybdenum balance\", \"repetitionId\": \"rep_daily_bound_31\", \"expectedOccurrences\": 201, \"sourceText\": \"Daily balance_collection from Day 101 to Day 301\"}, {\"id\": \"binding_32\", \"activityId\": \"balance_collection\", \"activityName\": \"copper \\nbalance\", \"repetitionId\": \"rep_daily_bound_32\", \"expectedOccurrences\": 3, \"sourceText\": \"Daily balance_collection from Day 3 to Day 5\"}, {\"id\": \"binding_33\", \"activityId\": \"balance_collection\", \"activityName\": \"copper balance\", \"repetitionId\": \"rep_daily_bound_33\", \"expectedOccurrences\": 101, \"sourceText\": \"Daily balance_collection from Day 101 to Day 201\"}]"
+              },
+              {
+                "id": "c1ea5773-39ec-49db-9c10-de62c39b1af8",
+                "url": "https://protocol2usdm.io/extensions/x-executionModel-analysisWindows",
+                "instanceType": "ExtensionAttribute",
+                "valueString": "[{\"id\": \"window_baseline_1\", \"windowType\": \"baseline\", \"name\": \"Baseline Period\", \"startDay\": 4, \"endDay\": -1, \"description\": \"Pre-treatment baseline from Day 4 to Day -1\", \"sourceText\": \"Baseline Day -4 through Day -1\"}]"
+              }
+            ],
+            "scheduleTimelines": [
+              {
+                "id": "eaba9460-7721-4589-b855-833dac8cab30",
+                "name": "Main Study Timeline",
+                "instances": [
+                  {
+                    "id": "4ef6799f-d9f3-4bdd-9fc3-3d6635d315c8",
+                    "name": "Anchor: Baseline",
+                    "description": "Time anchor for scheduling: Baseline",
+                    "encounterId": "c009fb9e-7ff3-4f74-acad-86e45dadbc63",
+                    "epochId": null,
+                    "activityIds": [],
+                    "instanceType": "ScheduledActivityInstance",
+                    "scheduledDay": 1
+                  },
+                  {
+                    "id": "dbb095e0-efc6-43bc-8367-5c42763bb346",
+                    "name": "Anchor: InformedConsent",
+                    "description": "Time anchor for scheduling: InformedConsent",
+                    "encounterId": "c009fb9e-7ff3-4f74-acad-86e45dadbc63",
+                    "epochId": null,
+                    "activityIds": [],
+                    "instanceType": "ScheduledActivityInstance",
+                    "scheduledDay": 1
+                  },
+                  {
+                    "id": "067dca72-401a-4c50-b4db-8fa3f618ec3a",
+                    "name": "Anchor: Custom",
+                    "description": "Time anchor for scheduling: Custom",
+                    "encounterId": "c009fb9e-7ff3-4f74-acad-86e45dadbc63",
+                    "epochId": null,
+                    "activityIds": [],
+                    "instanceType": "ScheduledActivityInstance",
+                    "scheduledDay": 9
+                  },
+                  {
+                    "id": "9073b964-1c88-48c9-9431-d05ffe3211ab",
+                    "name": "Anchor: CollectionDay",
+                    "description": "Time anchor for scheduling: CollectionDay",
+                    "encounterId": "c009fb9e-7ff3-4f74-acad-86e45dadbc63",
+                    "epochId": null,
+                    "activityIds": [],
+                    "instanceType": "ScheduledActivityInstance",
+                    "scheduledDay": 1
+                  }
+                ],
+                "timings": [],
+                "instanceType": "ScheduleTimeline"
+              }
+            ],
+            "encounters": [
+              {
+                "id": "c009fb9e-7ff3-4f74-acad-86e45dadbc63",
+                "name": "Anchor Reference Point",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "f1bfebee-af9c-4423-b3e4-0a34151f3696",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                }
+              }
+            ],
+            "notes": [
+              {
+                "id": "3193b1d9-2716-49ee-9ede-05e85fa174fb",
+                "text": ", and any \napplicable local regulations",
+                "instanceType": "Note"
+              },
+              {
+                "id": "9544a141-6061-426b-84c7-199c23317257",
+                "text": "and/or Alexion, may place participants at undue risk, in which \ncase, participants may remain on the",
+                "instanceType": "Note"
+              },
+              {
+                "id": "7209bbf4-1231-44bd-95a8-cab581074767",
+                "text": "Overall Rationale for the Amendment \nThe main reason for preparation of this amendment was to clarify study procedures occurring \nacross different sites in the US, so as to facilitate participant recruitment across different regions \nof the US, and to lessen inconvenience for participants without compromising the quality of the \nstudy",
+                "instanceType": "Note"
+              },
+              {
+                "id": "b860989f-306e-40a2-9c6c-1b98bd5356a3",
+                "text": "To align the number of days \nwith the mention of zinc \ndiscontinuation elsewhere in the \nprotocol",
+                "instanceType": "Note"
+              },
+              {
+                "id": "34731eb3-efbb-4bd1-9a7b-c03c66ffa7f8",
+                "text": "Overall Design \nThis is a single-arm, open-label, repeat-dose study to evaluate the effects of ALXN",
+                "instanceType": "Note"
+              },
+              {
+                "id": "29ae4074-71b4-47e2-a75c-3587ef68860b",
+                "text": "Disclosure Statement: This is an open-label,",
+                "instanceType": "Note"
+              },
+              {
+                "id": "f38866a1-d276-4f23-9b54-e3a730ff5ebd",
+                "text": "Number of Participants: \nThe sample size will be approximately",
+                "instanceType": "Note"
+              },
+              {
+                "id": "a1dfe50c-8113-4e89-afec-54ae679c2890",
+                "text": "Intervention Groups and Duration: \nTreatment-experienced",
+                "instanceType": "Note"
+              },
+              {
+                "id": "36cf00db-c534-4f4c-98d9-c325a6d0d52b",
+                "text": "Following screening and enrollment, \nparticipants will have a Run-in Period to support diet equilibration",
+                "instanceType": "Note"
+              },
+              {
+                "id": "388d7949-9860-4934-b688-4bbc4632de32",
+                "text": "Participants will have intake and output collection periods from Day -",
+                "instanceType": "Note"
+              },
+              {
+                "id": "51c8489a-0452-44d3-9592-7b82cd6fddf3",
+                "text": "Participants may be discharged from the clinical research unit",
+                "instanceType": "Note"
+              },
+              {
+                "id": "058ec840-ebff-4dae-8035-d017b1c10264",
+                "text": "In this situation, participants will be given additional investigational product to support \ndaily dosing throughout the Outpatient Period",
+                "instanceType": "Note"
+              },
+              {
+                "id": "332bdaca-4de8-478a-bbca-c34bcbc60b91",
+                "text": "Race and ethnicity will be collected where permitted by local regulations",
+                "instanceType": "Note"
+              },
+              {
+                "id": "40cd9891-0f5c-447c-9aa5-587b3bdc6006",
+                "text": "k A full physical examination will be performed at Screening, at check-in for the study, and at the End of the study/Early Termination Visit",
+                "instanceType": "Note"
+              },
+              {
+                "id": "9f0708da-adb9-46b3-a2eb-6c73ae327665",
+                "text": "Otherwise, a symptom-driven physical \nexamination may be performed at other times, at the Principal Investigator’s discretion",
+                "instanceType": "Note"
+              },
+              {
+                "id": "e0d1aed5-5077-4be5-8d29-d6bbe0d514c4",
+                "text": "m While in the CRU, study intervention will be administered after an overnight fast",
+                "instanceType": "Note"
+              },
+              {
+                "id": "ecb6526d-1298-4a93-a6fc-6b24038ff323",
+                "text": "As an outpatient, participants are expected to take \nALXN",
+                "instanceType": "Note"
+              },
+              {
+                "id": "40158d43-df32-462a-8372-7eeb555cd217",
+                "text": "n During the outpatient period, participants will use SMS text messaging to confirm study intervention administration",
+                "instanceType": "Note"
+              },
+              {
+                "id": "ea4ff35a-8a7c-450a-999a-083bd93d5e29",
+                "text": "In case of rechecks, and postdose serum \nchemistry, participants may not have fasted for",
+                "instanceType": "Note"
+              },
+              {
+                "id": "da8dbb51-3f49-4b1b-ab9c-af501defdc6e",
+                "text": "r Laboratory assessment including chemistry, hematology, and coagulation parameters should be performed on Days -",
+                "instanceType": "Note"
+              },
+              {
+                "id": "6d82d0a5-d615-405e-85ff-23c89f32321b",
+                "text": "s Menstruation check is for women only; women of childbearing potential should only be enrolled after a negative serum pregnancy test result at Screening",
+                "instanceType": "Note"
+              },
+              {
+                "id": "894ebb5e-76f2-4fb0-8426-350183aeed5a",
+                "text": "u Vital signs measurements and ECGs should be performed predose, unless otherwise specified",
+                "instanceType": "Note"
+              },
+              {
+                "id": "810b431e-a784-40ab-bb51-67782262748e",
+                "text": "v Copper- and molybdenum-controlled diet will be initiated after registration/inclusion",
+                "instanceType": "Note"
+              },
+              {
+                "id": "31e99648-8536-463a-a399-e50cbd328616",
+                "text": "While not in the CRU, participants will be encouraged to adhere to their usual copper-controlled diet",
+                "instanceType": "Note"
+              },
+              {
+                "id": "7969869f-016d-43c9-8cc4-8310e3a06a44",
+                "text": "x For fecal samples, each individual sample will be independently collected with record of date, time, and weight of the sample",
+                "instanceType": "Note"
+              },
+              {
+                "id": "d60c9123-c817-42c5-b475-0027d839ad50",
+                "text": "When multiple procedures are scheduled to occur at the \nsame time, the following order of events should be strictly adhered to whenever possible: ECG, vital signs, blood \nsampling",
+                "instanceType": "Note"
+              },
+              {
+                "id": "fe765ce2-8c5f-40c0-829a-41b0e4d57eb5",
+                "text": "Given the robust improvement in copper \ncontrol, it is hypothesized that doses within the",
+                "instanceType": "Note"
+              },
+              {
+                "id": "5bf5be99-46df-4f17-891f-34c32d240857",
+                "text": "The current study will explore copper balance in response to \ntreatment with ALXN",
+                "instanceType": "Note"
+              },
+              {
+                "id": "e98ea954-9ea1-435c-a0f2-b0d8fb637cf6",
+                "text": "Copper balance will be assessed for the",
+                "instanceType": "Note"
+              },
+              {
+                "id": "17a00064-6a11-46a2-adb0-081ed46a9db4",
+                "text": "Further dose \nadjustments will be made as appropriate",
+                "instanceType": "Note"
+              },
+              {
+                "id": "bcce9e89-04a1-43ca-90b9-e21216b6282b",
+                "text": "Deviation from the dose modification guidelines must be agreed with the Alexion Medical \nMonitor",
+                "instanceType": "Note"
+              },
+              {
+                "id": "4800b3c1-d136-4daf-b410-f641796ee6a1",
+                "text": "Over-the-counter medications may be given if they \nare not expected to impact the outcome of the study",
+                "instanceType": "Note"
+              },
+              {
+                "id": "3e420d93-db81-4e7e-918f-0919f87d5a1e",
+                "text": "Herbal remedies must be discontinued at least",
+                "instanceType": "Note"
+              },
+              {
+                "id": "7a209e25-16e4-42e1-bcbb-2d4407d0cc77",
+                "text": "St John’s wort \nAny herbal remedy or dietary supplement containing \nSt John’s wort",
+                "instanceType": "Note"
+              },
+              {
+                "id": "02cf7044-1831-40ab-a5c0-5b580a87c30f",
+                "text": "After EOS Visit",
+                "instanceType": "Note"
+              },
+              {
+                "id": "c5adcbcb-e3e8-4c1a-9c46-90c1e4667ee4",
+                "text": "Contraception \nParticipants must consistently and correctly use one or \nmore of the appropriate contraceptive methods \ndescribed in Section",
+                "instanceType": "Note"
+              },
+              {
+                "id": "3637299f-6297-48b5-817b-df11d3c5a7d4",
+                "text": "A minimal set of screen failure information is \nrequired to ensure transparent reporting of screen failure participants to meet the Consolidated \nStandards of Reporting Trials",
+                "instanceType": "Note"
+              },
+              {
+                "id": "e56125bb-2965-482e-9c3e-9b9f4f88d299",
+                "text": "Minimal information includes demography, screen failure details",
+                "instanceType": "Note"
+              },
+              {
+                "id": "516e2ffd-e6e3-4797-89ab-5aa33d06be31",
+                "text": "Individuals who do not meet the criteria for participation in this study",
+                "instanceType": "Note"
+              },
+              {
+                "id": "ef1a0f28-c60d-46a0-82ab-d7fe3204ea89",
+                "text": "Rescreened participants are not \nrequired to reconsent as long as they have signed the latest version of the ICF",
+                "instanceType": "Note"
+              },
+              {
+                "id": "11af417f-faad-40ec-9b6d-3335c7deabad",
+                "text": "If the study intervention is definitively discontinued, the \nparticipant should remain in the study to be evaluated for safety follow-up",
+                "instanceType": "Note"
+              },
+              {
+                "id": "a2cadc82-e182-4ce9-87d1-2642ab47552f",
+                "text": "Discontinuation of study intervention for abnormal liver function should be considered by the \nInvestigator when a participant meets one of the conditions outlined in the Dose Modification \ncriteria",
+                "instanceType": "Note"
+              },
+              {
+                "id": "5e2a51d7-78b6-42ca-a50f-0e67f41cd14b",
+                "text": "If a clinically significant finding is identified",
+                "instanceType": "Note"
+              },
+              {
+                "id": "09ff1e09-58c3-46fe-8c55-6c74d4bfa4bf",
+                "text": "This review of the ECG printed at the time of collection must \nbe documented",
+                "instanceType": "Note"
+              },
+              {
+                "id": "47312758-53b2-4d72-8cfc-9d2e1e0af2c8",
+                "text": "Participants must be considered for discontinuation from study intervention if any of the \nfollowing occur during the study: \n• Serious hypersensitivity reaction; \n• Severe uncontrolled infection; \n• Use of disallowed medication; \n• Pregnancy or planned pregnancy",
+                "instanceType": "Note"
+              },
+              {
+                "id": "68d15434-5854-4d93-a32b-e0fe72ea6c98",
+                "text": "The study staff should \nnotify Alexion and their site monitor of all study withdrawals as soon as possible",
+                "instanceType": "Note"
+              },
+              {
+                "id": "b3591931-f946-4f08-9b40-7772e62f108e",
+                "text": "• A participant may withdraw from the study at any time at his/her own request, or may \nbe withdrawn at any time at the discretion of the Investigator for safety, behavioral, \ncompliance, or administrative reasons",
+                "instanceType": "Note"
+              },
+              {
+                "id": "7dc134a0-35e0-472e-a1f6-f9c990495568",
+                "text": "• Immediate safety concerns should be discussed with Alexion immediately upon \noccurrence or awareness to determine if the participant should continue or \ndiscontinue study intervention",
+                "instanceType": "Note"
+              },
+              {
+                "id": "eb6eacee-9ae1-4577-911f-bc1dfcc1cdc6",
+                "text": "• All screening evaluations must be completed and reviewed to confirm that potential \nparticipants meet all eligibility criteria",
+                "instanceType": "Note"
+              },
+              {
+                "id": "9f5b33b5-5696-4c21-9b7f-ccdea0904a61",
+                "text": "• The following only applies to sites in the US",
+                "instanceType": "Note"
+              },
+              {
+                "id": "2b2ac9ed-0cde-4dbd-9177-cf474f858aab",
+                "text": "Some sites may perform screening procedures only and \nnot any of the remaining study procedures",
+                "instanceType": "Note"
+              },
+              {
+                "id": "ad87856c-c266-4941-9e71-a63657ef7550",
+                "text": "Site-to-site transfer of the participant will be documented \naccordingly",
+                "instanceType": "Note"
+              },
+              {
+                "id": "92037105-1295-4cbf-951e-4751c8d29bda",
+                "text": "The copper and molybdenum concentration of each sample will be determined by inductively \ncoupled plasma mass spectrometry",
+                "instanceType": "Note"
+              },
+              {
+                "id": "fe1df345-55bd-4c95-b296-164a1cb1104f",
+                "text": "All participants will drink water from the same large water bottle \ndispenser",
+                "instanceType": "Note"
+              },
+              {
+                "id": "90893351-b601-4d19-a8c6-910ad3d2cbd3",
+                "text": "Samples will be collected, stored and shipped as detailed in the Laboratory Manual",
+                "instanceType": "Note"
+              },
+              {
+                "id": "334c9ff5-62cf-4792-8cee-bbad26ab9b7f",
+                "text": "All sample handling procedures will be documented in detail as \ndescribed in the Laboratory Manual",
+                "instanceType": "Note"
+              },
+              {
+                "id": "36c3e1a8-23dd-4faa-980c-2f254bb30086",
+                "text": "Fecal samples will be individually collected, weighed, and stored",
+                "instanceType": "Note"
+              },
+              {
+                "id": "1ba39b51-34c9-4efd-afc4-2d8bd186e1db",
+                "text": "Pharmacokinetic collection should occur as close as possible to the scheduled time",
+                "instanceType": "Note"
+              },
+              {
+                "id": "0c2dfef3-f043-4402-b983-4cb83d8eaa7c",
+                "text": "• Blood pressure and heart rate measurements will be assessed with a completely \nautomated device",
+                "instanceType": "Note"
+              },
+              {
+                "id": "a7325854-0dcc-4b8e-9a8f-a0846a7324eb",
+                "text": "• Vital signs will be measured in a supine position after",
+                "instanceType": "Note"
+              },
+              {
+                "id": "dfae3d7f-66cd-40d1-9c2f-355174aa5239",
+                "text": "Vital signs will consist \nof a single pulse and blood pressure measurement",
+                "instanceType": "Note"
+              },
+              {
+                "id": "9facfa88-f5e1-4f0f-adae-1ba63009531c",
+                "text": "The average of the blood pressure readings will be \nrecorded in the CRF",
+                "instanceType": "Note"
+              },
+              {
+                "id": "0ea75758-2a8f-4579-b5d8-4dd2ac28da23",
+                "text": "As with vital \nsigns, if ECG interval measurements are abnormal, an additional triplicate will be \nperformed and recorded in the CRF",
+                "instanceType": "Note"
+              },
+              {
+                "id": "a8e39674-4bc8-473a-adcc-afe88934568f",
+                "text": "• The Investigator must review the laboratory report, document this review, and record any \nclinically relevant changes occurring during the study in the AE section of the CRF",
+                "instanceType": "Note"
+              },
+              {
+                "id": "0f0d8edd-8895-4ae2-a964-54b632361e6a",
+                "text": "Clinically significant \nlaboratory values are those deemed by the Investigator to be clinically significant \nresulting in further evaluation or treatment or those associated with an AE or clinical \nsigns or symptoms",
+                "instanceType": "Note"
+              },
+              {
+                "id": "9e0fe86d-d695-4852-a65c-74496595f57f",
+                "text": "− If such values do not return to normal/baseline within a period of time judged \nreasonable by the Investigator, the etiology should be identified, and Alexion \nnotified",
+                "instanceType": "Note"
+              },
+              {
+                "id": "05729a4a-8ab4-4815-89cc-13de65eabacd",
+                "text": "− All laboratory values from non-protocol-specified laboratory assessments must \nalso be recorded in the CRF",
+                "instanceType": "Note"
+              },
+              {
+                "id": "a99d7040-14f5-4992-8d39-dde18b6a1a8b",
+                "text": "• Total molybdenum and PUF-molybdenum are surrogate measures of ALXN",
+                "instanceType": "Note"
+              },
+              {
+                "id": "40680302-b5cc-42de-af35-90a1a1a0587e",
+                "text": "• Excess/additional samples may be stored for up to",
+                "instanceType": "Note"
+              },
+              {
+                "id": "7c20188e-7214-4f8b-a6c0-e172764025d8",
+                "text": "Blood samples will be collected as described in the SoA",
+                "instanceType": "Note"
+              },
+              {
+                "id": "59ad8306-9ec0-49c7-bef0-35a8a56c0191",
+                "text": "Plasma samples will be used for ICP-MS measurement of total copper and \nPUF-copper, ceruloplasmin, ceruloplasmin-bound copper, and non-ceruloplasmin-bound copper \nmeasured via PUF-copper, and/or LBC, or assessed via NCC/NCCcorrected methods at the time \npoints indicated in the SoA",
+                "instanceType": "Note"
+              },
+              {
+                "id": "1fec65bd-80ef-4a4b-b3d2-a50c3580d9c8",
+                "text": "Benefit-Risk Assessment",
+                "instanceType": "Note"
+              },
+              {
+                "id": "66bfb610-edd5-4c41-b702-8feb0fa0c634",
+                "text": "Benefit Assessment",
+                "instanceType": "Note"
+              },
+              {
+                "id": "1caab337-ea21-40f0-8e3a-021077a9cd00",
+                "text": "Scientific Rationale for Study Design",
+                "instanceType": "Note"
+              },
+              {
+                "id": "90a97c45-bb3b-41d9-a758-b2b515c49074",
+                "text": "Justification for Dose",
+                "instanceType": "Note"
+              },
+              {
+                "id": "1a43ab8d-d49e-47bc-9ad8-36523ccfc8da",
+                "text": "Lifestyle Considerations",
+                "instanceType": "Note"
+              },
+              {
+                "id": "ce31a60f-17df-47fb-bbc3-aa2293cd3bc8",
+                "text": "Adverse Events: Definitions and Procedures for Recording, Evaluating, \nFollow-up, and Reporting",
+                "instanceType": "Note"
+              },
+              {
+                "id": "923778ad-2cac-4f94-b7c4-b682e0d524e0",
+                "text": "Recording and Follow-Up of AE and/or SAE",
+                "instanceType": "Note"
+              },
+              {
+                "id": "98d4707f-e440-4c01-b4c8-b58ecdf8669c",
+                "text": "Contraceptive Guidance and Collection of Pregnancy Information",
+                "instanceType": "Note"
+              },
+              {
+                "id": "febcec75-b32b-4818-8562-da059e50ace4",
+                "text": "Note: “Enrolled” means all participants who sign the informed consent form",
+                "instanceType": "Note"
+              },
+              {
+                "id": "7fc802cf-c8f2-4ff4-9fa8-d40c84317dae",
+                "text": "Before titration to",
+                "instanceType": "Note"
+              },
+              {
+                "id": "ac586c35-7287-45a7-ae6e-4c1b0e0fc9a4",
+                "text": "The \ncollection periods will support an assessment of both copper and molybdenum balance",
+                "instanceType": "Note"
+              },
+              {
+                "id": "f19569fc-db60-4468-b87c-e2e9be04d2c0",
+                "text": "To ensure flexibility, the Outpatient \nPeriod during Treatment Period",
+                "instanceType": "Note"
+              },
+              {
+                "id": "f1e0f384-7984-41c8-9e6d-ba4a63afeb88",
+                "text": "p PK/PD collection will include timepoints described in the schedule of PK/PD assessment for Days",
+                "instanceType": "Note"
+              },
+              {
+                "id": "91859ce0-c054-4211-88c0-900533f92866",
+                "text": "Abbreviations: Cu = copper; LBC = labile bound copper; Mo = molybdenum; PD = pharmacodynamic; \nPK = pharmacokinetic; PUF = plasma ultrafiltrate",
+                "instanceType": "Note"
+              },
+              {
+                "id": "57c2e438-246b-44a7-8dc5-12e62ceab242",
+                "text": "The multiple collection periods will support assessment of duration of treatment and dose on \ncopper elimination and overall copper balance",
+                "instanceType": "Note"
+              },
+              {
+                "id": "a6b59e67-86c5-432e-b779-73e752691b9a",
+                "text": "End of Study Definition \nA participant is considered to have completed the study if he/she has completed all phases of the \nstudy including the last scheduled procedure shown in the Schedule of Activities",
+                "instanceType": "Note"
+              },
+              {
+                "id": "a0d3fc6b-4f7c-4a46-8f83-fd8350f0beaa",
+                "text": "Start times for \ncontraceptives vary \naccording to method used",
+                "instanceType": "Note"
+              },
+              {
+                "id": "e492375b-96c4-4a17-912f-f21e595c7c52",
+                "text": "Abbreviations: CRF = case report form; CRU = clinical research unit; EOS = End of Study; SoA = Schedule of \nActivities",
+                "instanceType": "Note"
+              },
+              {
+                "id": "4614d759-b4ea-479a-85bc-0bcc316cc542",
+                "text": "Screen Failures  \nScreen failures are defined as participants who consent to participate in the clinical study but are \nnot subsequently assigned to study intervention",
+                "instanceType": "Note"
+              },
+              {
+                "id": "48cd89fb-64ee-4b3c-864a-8e82c8bc677f",
+                "text": "Discontinuation of Study Intervention \nIn rare instances, it may be necessary for a participant to permanently discontinue",
+                "instanceType": "Note"
+              },
+              {
+                "id": "8b51ef84-0e57-49b3-8cf2-cfe8133a73fc",
+                "text": "Participant Discontinuation/Withdrawal From the Study \n• All efforts should be made to ensure participants are willing to comply with study \nparticipation prior to conducting the screening procedures",
+                "instanceType": "Note"
+              },
+              {
+                "id": "89e86091-657f-45a3-a796-cdc0c99fe2f7",
+                "text": "STUDY ASSESSMENTS AND PROCEDURES \n• Study procedures and their timing are summarized in the SoA",
+                "instanceType": "Note"
+              },
+              {
+                "id": "0a423683-b6c9-489b-bb3a-738ec26da34c",
+                "text": "Efficacy Assessments",
+                "instanceType": "Note"
+              },
+              {
+                "id": "5fa18ffb-fd9b-41ac-993b-8e38e888f714",
+                "text": "Copper and Molybdenum Balance Measurements \nCopper and molybdenum balance measurements will be made on all intake",
+                "instanceType": "Note"
+              },
+              {
+                "id": "cd54bcd2-effb-4c19-8f1d-1a061058d0f1",
+                "text": "Food and Fluid Collection for Copper and Molybdenum Concentrations \nSamples of all meal and fluid batches will be collected and analyzed for measurement of copper \nand molybdenum content",
+                "instanceType": "Note"
+              },
+              {
+                "id": "2812a146-7f0d-40b1-b972-5fb475b1f22a",
+                "text": "Urine Collection for Measurement of Copper and Molybdenum content \nUrine samples to measure copper and molybdenum content will be collected periodically as \ndescribed in the SoA",
+                "instanceType": "Note"
+              },
+              {
+                "id": "bc05aa2a-7345-46cf-86c3-27be29f5ad84",
+                "text": "Safety Assessments \nPlanned time points for all safety assessments are provided in the SoA",
+                "instanceType": "Note"
+              },
+              {
+                "id": "05a4c72c-df20-4a26-b0f7-c34206a6834c",
+                "text": "Physical Examinations \n• A complete physical examination will include, at a minimum, assessments of the \ncardiovascular, respiratory, gastrointestinal, and neurological systems",
+                "instanceType": "Note"
+              },
+              {
+                "id": "de75857e-5a51-45fb-ba5d-7316e23d1dc6",
+                "text": "Vital Signs \n• Body temperature, heart rate, respiratory rate, and systolic and diastolic blood pressure",
+                "instanceType": "Note"
+              },
+              {
+                "id": "8c9e8733-ff15-4941-aa03-73b952c9a64d",
+                "text": "Electrocardiograms \n• Triplicate",
+                "instanceType": "Note"
+              },
+              {
+                "id": "b7f7611a-2caa-4f76-9a4d-d8e1490d698f",
+                "text": "Clinical Safety Laboratory Assessments \n• See Section",
+                "instanceType": "Note"
+              },
+              {
+                "id": "5bc751c2-2cdf-4be5-be1c-925bf47e2d14",
+                "text": "Samples collected for \nanalyses of plasma concentrations may also be used to evaluate safety aspects related \nto concerns arising during or after the study",
+                "instanceType": "Note"
+              },
+              {
+                "id": "87f6f92d-3db7-4e4b-aa26-943c27cba229",
+                "text": "These samples will not be \nused for genetic analyses",
+                "instanceType": "Note"
+              },
+              {
+                "id": "9dc16d5a-c1d3-45d8-bdd7-2e05cf371fa0",
+                "text": "Pharmacodynamics \nPlasma total and PUF-copper, ceruloplasmin, ceruloplasmin-bound copper, and LBC will be \nassessed during the study",
+                "instanceType": "Note"
+              },
+              {
+                "id": "61237aca-7c67-4e83-8906-9c0cd8337db3",
+                "text": "Genetics \nGenetics will not be evaluated in this study",
+                "instanceType": "Note"
+              },
+              {
+                "id": "e9d24d84-187d-4f76-a60b-571d3f01e707",
+                "text": "Immunogenicity Assessments \nNot applicable",
+                "instanceType": "Note"
+              },
+              {
+                "id": "623ae791-0a8c-4ac9-9093-c9ffbcab4c39",
+                "text": "Health Economics Data and/or Medical Resource Utilization \nHealth economic and medical resource utilization parameters are not evaluated in this study",
+                "instanceType": "Note"
+              }
+            ],
+            "administrations": [
+              {
+                "id": "9df38627-9238-4c74-9479-6adb12efa641",
+                "name": "ALXN1840 Administration",
+                "instanceType": "Administration",
+                "dose": "30.0 mg / 15.0 mg",
+                "doseFrequency": "QD",
+                "route": {
+                  "id": "1d918344-668e-4a89-bf37-6811053a0ad0",
+                  "code": "Oral",
+                  "codeSystem": "USDM",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Oral",
+                  "instanceType": "Code"
+                },
+                "description": "Administration of Study Interventionm ALXN1840 15 mg/day           ALXN1840 30 mg/day      Study intervention compliance Xn  PK/PD Analyseso"
+              }
+            ]
+          }
+        ],
+        "narrativeContentItems": [],
+        "abbreviations": [],
+        "studySites": [
+          {
+            "id": "1106c33a-569e-43d6-bc24-8ed89be29897",
+            "name": "Massachusetts General Hospital",
+            "status": "Active",
+            "instanceType": "StudySite",
+            "siteNumber": "1",
+            "country": "United States"
+          },
+          {
+            "id": "e2857cde-0fc5-4119-ad4f-59792de90d95",
+            "name": "Yale University Medical Center",
+            "status": "Active",
+            "instanceType": "StudySite",
+            "siteNumber": "2",
+            "country": "United States"
+          },
+          {
+            "id": "ed5cdaff-542f-4266-895d-a36574c36940",
+            "name": "University of Michigan Health",
+            "status": "Active",
+            "instanceType": "StudySite",
+            "siteNumber": "3",
+            "country": "United States"
+          },
+          {
+            "id": "55fed023-8709-4652-a6bc-c5a6743175af",
+            "name": "Cleveland Clinic",
+            "status": "Active",
+            "instanceType": "StudySite",
+            "siteNumber": "4",
+            "country": "United States"
+          },
+          {
+            "id": "350e1f47-818d-4b9f-b99f-dd088803a4d7",
+            "name": "Mount Sinai Hospital",
+            "status": "Active",
+            "instanceType": "StudySite",
+            "siteNumber": "5",
+            "country": "United States"
+          },
+          {
+            "id": "34aa904f-8a52-4d11-90d8-a687eb6b96b3",
+            "name": "University of California San Francisco",
+            "status": "Active",
+            "instanceType": "StudySite",
+            "siteNumber": "6",
+            "country": "United States"
+          },
+          {
+            "id": "ff98f698-aeee-464b-b534-c1ce9c2f8036",
+            "name": "King's College Hospital",
+            "status": "Active",
+            "instanceType": "StudySite",
+            "siteNumber": "7",
+            "country": "United Kingdom"
+          },
+          {
+            "id": "45241fb0-bbd0-43bf-afce-3e21ca860e25",
+            "name": "Charité University Hospital",
+            "status": "Active",
+            "instanceType": "StudySite",
+            "siteNumber": "8",
+            "country": "Germany"
+          },
+          {
+            "id": "3bfdeb71-4537-48ec-926b-49df2359d850",
+            "name": "Hôpital Beaujon",
+            "status": "Active",
+            "instanceType": "StudySite",
+            "siteNumber": "9",
+            "country": "France"
+          },
+          {
+            "id": "3f66f51b-fcbe-44e3-b525-2b928d2a977b",
+            "name": "Hospital Clinic Barcelona",
+            "status": "Active",
+            "instanceType": "StudySite",
+            "siteNumber": "10",
+            "country": "Spain"
+          },
+          {
+            "id": "ed0935a5-fadc-474b-9a77-61b12b881a9b",
+            "name": "University Hospital Zurich",
+            "status": "Active",
+            "instanceType": "StudySite",
+            "siteNumber": "11",
+            "country": "Switzerland"
+          },
+          {
+            "id": "9c093cdc-5cf3-47a9-9853-0e86a6fdfae4",
+            "name": "Tokyo University Hospital",
+            "status": "Active",
+            "instanceType": "StudySite",
+            "siteNumber": "12",
+            "country": "Japan"
+          }
+        ],
+        "roles": [
+          {
+            "id": "c74bd0f2-2767-4972-9bbd-e25cd4b6205d",
+            "roleCode": "Principal Investigator",
+            "organizationId": "1106c33a-569e-43d6-bc24-8ed89be29897",
+            "instanceType": "StudyRole",
+            "personId": "4aa0952d-f240-421f-8a04-9851345f91f9"
+          },
+          {
+            "id": "778199f2-95d6-4764-bca9-d01e47226951",
+            "roleCode": "Principal Investigator",
+            "organizationId": "e2857cde-0fc5-4119-ad4f-59792de90d95",
+            "instanceType": "StudyRole",
+            "personId": "f957d354-4d1a-41ca-82af-e43895b861fc"
+          },
+          {
+            "id": "3e2f2937-453a-4d55-a6a2-ffbcd0830a1f",
+            "roleCode": "Principal Investigator",
+            "organizationId": "ed5cdaff-542f-4266-895d-a36574c36940",
+            "instanceType": "StudyRole",
+            "personId": "17ebdc9c-a251-4fa8-a762-b5f66922b72b"
+          },
+          {
+            "id": "1382ccf0-3871-4043-abc6-36ddf7dbfa61",
+            "roleCode": "Principal Investigator",
+            "organizationId": "55fed023-8709-4652-a6bc-c5a6743175af",
+            "instanceType": "StudyRole",
+            "personId": "54a2d414-35a4-4564-86bc-820d7344cd20"
+          },
+          {
+            "id": "0dd195c3-8bac-445f-b9d9-160c93f0ed37",
+            "roleCode": "Principal Investigator",
+            "organizationId": "350e1f47-818d-4b9f-b99f-dd088803a4d7",
+            "instanceType": "StudyRole",
+            "personId": "7843ac24-8cd5-4627-ba25-feb3f21b9227"
+          },
+          {
+            "id": "3d4721e5-081f-4153-bf0a-0057ba17acdd",
+            "roleCode": "Principal Investigator",
+            "organizationId": "34aa904f-8a52-4d11-90d8-a687eb6b96b3",
+            "instanceType": "StudyRole",
+            "personId": "26b234c8-d1d1-421d-ab8c-e372c9800350"
+          },
+          {
+            "id": "ccdb71fc-cf56-47c6-9d23-4bcc541cfe6e",
+            "roleCode": "Principal Investigator",
+            "organizationId": "ff98f698-aeee-464b-b534-c1ce9c2f8036",
+            "instanceType": "StudyRole",
+            "personId": "4de105f8-a66a-4ffe-a5d6-8c4e06d64231"
+          },
+          {
+            "id": "23f9b5cc-dc22-4107-a5d1-9a6ef8398913",
+            "roleCode": "Principal Investigator",
+            "organizationId": "45241fb0-bbd0-43bf-afce-3e21ca860e25",
+            "instanceType": "StudyRole",
+            "personId": "47eeee62-f2c0-4041-b5ae-246314dc88d0"
+          },
+          {
+            "id": "3a2ab38c-41f9-4a6f-b976-f49b7766915d",
+            "roleCode": "Principal Investigator",
+            "organizationId": "3bfdeb71-4537-48ec-926b-49df2359d850",
+            "instanceType": "StudyRole",
+            "personId": "79792ea1-56dc-4050-ac28-5b795516c80a"
+          },
+          {
+            "id": "0eaf06ae-2079-46dd-9fb3-bd4dad276d8b",
+            "roleCode": "Principal Investigator",
+            "organizationId": "3f66f51b-fcbe-44e3-b525-2b928d2a977b",
+            "instanceType": "StudyRole",
+            "personId": "f9e6daba-652e-4cb6-aebf-31f86df38332"
+          },
+          {
+            "id": "1d07fd8e-0bdd-46d6-b4d9-a7d1832b90b7",
+            "roleCode": "Principal Investigator",
+            "organizationId": "ed0935a5-fadc-474b-9a77-61b12b881a9b",
+            "instanceType": "StudyRole",
+            "personId": "7c59fda7-021f-41a0-9f7a-fc83f6162924"
+          },
+          {
+            "id": "1bc01dcb-fe37-494d-be9c-79901dfc0977",
+            "roleCode": "Principal Investigator",
+            "organizationId": "9c093cdc-5cf3-47a9-9853-0e86a6fdfae4",
+            "instanceType": "StudyRole",
+            "personId": "b2eb1e61-7bfc-496c-80fc-33f81b2ee9b4"
+          }
+        ],
+        "administrations": [
+          {
+            "id": "844e22bd-1fdd-4f42-98a8-8870a3129d64",
+            "name": "Administration of ALXN1840",
+            "description": "RouteOfAdministration.ORAL DosingFrequency.ONCE_DAILY",
+            "instanceType": "Administration",
+            "route": {
+              "id": "45881ccc-e03f-4ec5-8256-414bb2cfa8db",
+              "code": "C38288",
+              "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+              "codeSystemVersion": "2024-09-27",
+              "decode": "Oral",
+              "instanceType": "Code"
+            }
+          }
+        ],
+        "rationale": "Protocol version"
+      }
+    ],
+    "name": "Untitled Study"
+  },
+  "assignedPersons": [
+    {
+      "id": "4aa0952d-f240-421f-8a04-9851345f91f9",
+      "nameId": "ff31f148-65fc-4991-bc81-9cf8c922cf87",
+      "role": "Principal Investigator",
+      "instanceType": "AssignedPerson"
+    },
+    {
+      "id": "f957d354-4d1a-41ca-82af-e43895b861fc",
+      "nameId": "24d1653c-6634-4ea8-ac6e-b1d652134c3d",
+      "role": "Principal Investigator",
+      "instanceType": "AssignedPerson"
+    },
+    {
+      "id": "17ebdc9c-a251-4fa8-a762-b5f66922b72b",
+      "nameId": "6f9c6a5a-76a2-4d9f-b17b-a35c247f2f61",
+      "role": "Principal Investigator",
+      "instanceType": "AssignedPerson"
+    },
+    {
+      "id": "54a2d414-35a4-4564-86bc-820d7344cd20",
+      "nameId": "eeac73c3-db7f-4abc-9e25-1c6157a29a48",
+      "role": "Principal Investigator",
+      "instanceType": "AssignedPerson"
+    },
+    {
+      "id": "7843ac24-8cd5-4627-ba25-feb3f21b9227",
+      "nameId": "6a090c93-7b8c-4c24-91eb-ce38f660ea56",
+      "role": "Principal Investigator",
+      "instanceType": "AssignedPerson"
+    },
+    {
+      "id": "26b234c8-d1d1-421d-ab8c-e372c9800350",
+      "nameId": "0eb79c08-1535-473b-849f-7332db01c44c",
+      "role": "Principal Investigator",
+      "instanceType": "AssignedPerson"
+    },
+    {
+      "id": "4de105f8-a66a-4ffe-a5d6-8c4e06d64231",
+      "nameId": "71290720-d10a-44c1-b5ae-306cc208c615",
+      "role": "Principal Investigator",
+      "instanceType": "AssignedPerson"
+    },
+    {
+      "id": "47eeee62-f2c0-4041-b5ae-246314dc88d0",
+      "nameId": "904790b7-ae2f-4cd9-8e21-1e401d136ffd",
+      "role": "Principal Investigator",
+      "instanceType": "AssignedPerson"
+    },
+    {
+      "id": "79792ea1-56dc-4050-ac28-5b795516c80a",
+      "nameId": "db48bdb0-55c0-42d1-9cc5-89db1013df52",
+      "role": "Principal Investigator",
+      "instanceType": "AssignedPerson"
+    },
+    {
+      "id": "f9e6daba-652e-4cb6-aebf-31f86df38332",
+      "nameId": "9a091a86-020c-46dc-9ec0-123c9d595e6d",
+      "role": "Principal Investigator",
+      "instanceType": "AssignedPerson"
+    },
+    {
+      "id": "7c59fda7-021f-41a0-9f7a-fc83f6162924",
+      "nameId": "77e95960-fd1c-4afe-9087-46b79786c23b",
+      "role": "Principal Investigator",
+      "instanceType": "AssignedPerson"
+    },
+    {
+      "id": "b2eb1e61-7bfc-496c-80fc-33f81b2ee9b4",
+      "nameId": "1d0a253e-bf6e-451d-99b5-6960b30eb35e",
+      "role": "Principal Investigator",
+      "instanceType": "AssignedPerson"
+    }
+  ],
+  "computationalExecution": {
+    "ready": true,
+    "supportedSystems": [
+      "EDC",
+      "ePRO",
+      "CTMS",
+      "RTSM"
+    ],
+    "validationStatus": "issues_found"
+  }
+}

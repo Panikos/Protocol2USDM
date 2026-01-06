@@ -54,19 +54,58 @@ VISIT_PATTERNS = [
 
 # Window patterns: "± 3 days", "+/- 7 days", "within 3 days"
 WINDOW_PATTERNS = [
-    # "± 3 days" or "+/- 3 days"
-    re.compile(r'[±\+/\-]+\s*(\d+)\s*days?', re.IGNORECASE),
+    # "± 3 days" or "+/- 3 days" or "+-3 days"
+    re.compile(r'[±]\s*(\d+)\s*days?', re.IGNORECASE),
+    re.compile(r'\+[\s/]*-\s*(\d+)\s*days?', re.IGNORECASE),
+    # "(±3 days)" - common in tables
+    re.compile(r'\(\s*[±]\s*(\d+)\s*days?\s*\)', re.IGNORECASE),
     # "within 3 days"
     re.compile(r'within\s*(\d+)\s*days?', re.IGNORECASE),
     # "-3 to +3 days" or "3 days before to 3 days after"
-    re.compile(r'[\-−]?\s*(\d+)\s*(?:days?)?\s*(?:to|and)\s*\+?\s*(\d+)\s*days?', re.IGNORECASE),
-    # "window: 7 days"
-    re.compile(r'window[:\s]+(\d+)\s*days?', re.IGNORECASE),
+    re.compile(r'[\-−]\s*(\d+)\s*(?:days?)?\s*(?:to|through|and)\s*\+?\s*(\d+)\s*days?', re.IGNORECASE),
+    # "window: 7 days" or "window of 7 days"
+    re.compile(r'window\s*(?:of|:)?\s*(\d+)\s*days?', re.IGNORECASE),
+    # "3 day window" or "7-day window"
+    re.compile(r'(\d+)[\-\s]?day\s+window', re.IGNORECASE),
+    # "allowable deviation: 3 days"
+    re.compile(r'(?:allowable|allowed)\s+(?:deviation|variance)[:\s]+(\d+)\s*days?', re.IGNORECASE),
 ]
 
 # Day/timing patterns
 DAY_PATTERN = re.compile(r'Day\s*(\d+)', re.IGNORECASE)
 WEEK_PATTERN = re.compile(r'Week\s*(\d+)', re.IGNORECASE)
+
+# Default windows for visit types when not explicitly specified
+DEFAULT_WINDOWS = {
+    'screening': (7, 0),      # Can be up to 7 days early
+    'baseline': (1, 1),       # ±1 day typically
+    'day 1': (0, 0),          # Usually no window for Day 1
+    'randomization': (0, 0),  # Usually no window
+    'follow-up': (7, 7),      # Larger window for follow-up
+    'end of study': (3, 7),   # Some flexibility
+    'end of treatment': (3, 3),
+    'early termination': (0, 0),  # As needed
+    'default': (3, 3),        # Default ±3 days for regular visits
+}
+
+
+def _clean_source_text(text: str) -> str:
+    """Clean source text for better readability."""
+    # Replace multiple whitespace with single space
+    text = re.sub(r'\s+', ' ', text)
+    # Remove X marks from tables
+    text = re.sub(r'\bX\b', '', text)
+    # Trim
+    return text.strip()[:300]
+
+
+def _get_default_window(visit_name: str) -> tuple:
+    """Get default window allowance based on visit type."""
+    name_lower = visit_name.lower()
+    for key, window in DEFAULT_WINDOWS.items():
+        if key in name_lower:
+            return window
+    return DEFAULT_WINDOWS['default']
 
 
 def _get_page_count(pdf_path: str) -> int:
@@ -202,8 +241,8 @@ def extract_visit_windows(
         windows = _merge_windows(soa_windows, windows)
         logger.info(f"After merging with SOA: {len(windows)} visit windows")
     
-    # Sort by target day
-    windows.sort(key=lambda w: w.target_day)
+    # Sort by target day (handle None values)
+    windows.sort(key=lambda w: w.target_day if w.target_day is not None else 0)
     
     # Assign visit numbers if not set
     for idx, window in enumerate(windows):
@@ -249,6 +288,12 @@ def _extract_windows_heuristic(text: str) -> List[VisitWindow]:
                 # Extract window allowance
                 window_before, window_after = _extract_window_allowance(context)
                 
+                # Apply default windows if none found
+                if window_before == 0 and window_after == 0:
+                    default_before, default_after = _get_default_window(visit_name)
+                    window_before = default_before
+                    window_after = default_after
+                
                 # Determine if required
                 is_required = _is_required_visit(visit_name, context)
                 
@@ -260,7 +305,7 @@ def _extract_windows_heuristic(text: str) -> List[VisitWindow]:
                     window_before=window_before,
                     window_after=window_after,
                     is_required=is_required,
-                    source_text=context[:300],
+                    source_text=_clean_source_text(context),
                 )
                 windows.append(window)
                 window_id += 1
@@ -409,7 +454,19 @@ Return JSON format:
 Extract all visits from the schedule. Return valid JSON only."""
 
     try:
-        response = call_llm(prompt, model_name=model)
+        result = call_llm(prompt, model_name=model)
+        
+        # Extract response text from dict
+        if isinstance(result, dict):
+            if 'error' in result:
+                logger.warning(f"LLM call error: {result['error']}")
+                return []
+            response = result.get('response', '')
+        else:
+            response = str(result)
+        
+        if not response:
+            return []
         
         # Parse JSON from response
         json_match = re.search(r'\{[\s\S]*\}', response)
@@ -517,33 +574,74 @@ def _extract_from_soa(soa_data: Dict[str, Any]) -> List[VisitWindow]:
         return []
 
 
+def _normalize_visit_name(name: str) -> str:
+    """Normalize visit name for comparison - extract core identifier."""
+    name_lower = name.lower().strip()
+    # Remove parenthetical suffixes like "(CRU Discharge)", "(Treatment Start)"
+    name_lower = re.sub(r'\s*\([^)]+\)\s*$', '', name_lower)
+    # Remove common suffixes
+    name_lower = re.sub(r'\s*[-/]\s*(discharge|start|return|end|visit).*$', '', name_lower)
+    return name_lower.strip()
+
+
 def _merge_windows(
-    heuristic: List[VisitWindow],
-    llm: List[VisitWindow]
+    primary: List[VisitWindow],
+    secondary: List[VisitWindow]
 ) -> List[VisitWindow]:
-    """Merge heuristic and LLM-extracted windows."""
-    merged = {}
+    """
+    Merge visit windows from two sources, deduplicating by target_day.
     
-    # Add heuristic results
-    for window in heuristic:
-        key = window.visit_name.lower()
-        merged[key] = window
+    Primary source (typically SOA) takes precedence. Secondary visits (LLM/heuristic)
+    are only added if they don't duplicate an existing target_day.
     
-    # Merge/update with LLM results
-    for window in llm:
-        key = window.visit_name.lower()
-        if key in merged:
-            # Enhance existing with LLM details
-            existing = merged[key]
-            # Prefer LLM window if it has values
-            if window.window_before > 0 or window.window_after > 0:
+    For visits on the same day, the one with more complete information is kept.
+    """
+    # First, build a map by target_day from primary source
+    # Use Optional[int] to handle None target_day values
+    by_target_day: Dict[Optional[int], VisitWindow] = {}
+    by_normalized_name: Dict[str, VisitWindow] = {}
+    
+    for window in primary:
+        # Use target_day as primary key for deduplication (None is valid key)
+        target_key = window.target_day if window.target_day is not None else None
+        if target_key not in by_target_day:
+            by_target_day[target_key] = window
+        else:
+            # If we already have a visit on this day, keep the one with better info
+            existing = by_target_day[target_key]
+            # Prefer visit with actual name over generic
+            if len(window.visit_name) > len(existing.visit_name):
+                by_target_day[target_key] = window
+        
+        # Also track by normalized name
+        norm_name = _normalize_visit_name(window.visit_name)
+        if norm_name:
+            by_normalized_name[norm_name] = window
+    
+    # Now merge secondary, avoiding duplicates
+    for window in secondary:
+        norm_name = _normalize_visit_name(window.visit_name)
+        target_key = window.target_day if window.target_day is not None else None
+        
+        # Skip if we already have this target_day
+        if target_key in by_target_day:
+            existing = by_target_day[target_key]
+            # Enhance existing with secondary's details if useful
+            if window.window_before > 0 and existing.window_before == 0:
                 existing.window_before = window.window_before
+            if window.window_after > 0 and existing.window_after == 0:
                 existing.window_after = window.window_after
             if window.epoch and not existing.epoch:
                 existing.epoch = window.epoch
-            if window.target_week and not existing.target_week:
-                existing.target_week = window.target_week
-        else:
-            merged[key] = window
+            continue
+        
+        # Skip if we have a visit with similar normalized name
+        if norm_name and norm_name in by_normalized_name:
+            continue
+        
+        # This is a genuinely new visit, add it
+        by_target_day[target_key] = window
+        if norm_name:
+            by_normalized_name[norm_name] = window
     
-    return list(merged.values())
+    return list(by_target_day.values())
