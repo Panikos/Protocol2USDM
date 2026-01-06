@@ -1677,11 +1677,13 @@ def combine_to_full_usdm(
                     if not ext.get('url', '').endswith('activitySource')
                 ]
                 
-                # Add source marker
+                # Add source marker with required USDM fields
                 source = 'soa' if has_ticks else 'procedure_enrichment'
                 activity['extensionAttributes'].append({
+                    'id': f"ext_source_{act_id[:8] if act_id else 'unknown'}",
                     'url': 'http://example.org/usdm/activitySource',
-                    'valueString': source
+                    'valueString': source,
+                    'instanceType': 'ExtensionAttribute'
                 })
                 
                 if has_ticks:
