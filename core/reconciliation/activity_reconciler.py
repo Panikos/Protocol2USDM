@@ -413,14 +413,16 @@ def reconcile_activities_from_pipeline(
             priority=25
         )
     
-    # Apply footnote conditions
+    # Apply footnote conditions - only add activities with valid names
     if footnote_conditions:
         conditional_activities = []
         for fn in footnote_conditions:
-            if fn.get('activityId') or fn.get('activityName'):
+            activity_name = fn.get('activityName', '').strip()
+            # Only add if we have a valid activity name (not empty)
+            if activity_name:
                 conditional_activities.append({
                     'id': fn.get('activityId'),
-                    'name': fn.get('activityName', ''),
+                    'name': activity_name,
                     'isConditional': True,
                     'conditionText': fn.get('condition', fn.get('text')),
                 })

@@ -516,17 +516,50 @@ class ExecutionModelPromoter:
         return None
     
     def _is_prose_fragment(self, text: str) -> bool:
-        """Check if text is a prose fragment rather than a valid name."""
+        """
+        Check if text is a prose fragment rather than a valid treatment name.
+        
+        Filters out garbage like "for the", "day and", "mg and", "to ALXN1840"
+        that sometimes get extracted as treatment names.
+        """
         if not text:
             return True
         
-        prose_indicators = [
-            'the ', 'is ', 'with ', 'of ', 'for ', 'to ',
-            'reconstituted', 'lyophilized', 'concentration',
-            'administered', 'provided'
-        ]
+        text_clean = text.strip()
         
-        return any(ind in text.lower() for ind in prose_indicators)
+        # Too short to be a real treatment name
+        if len(text_clean) < 3:
+            return True
+        
+        # Starts with common stopwords
+        text_lower = text_clean.lower()
+        stopword_prefixes = [
+            'the ', 'is ', 'with ', 'of ', 'for ', 'to ', 'and ', 'or ',
+            'in ', 'on ', 'at ', 'by ', 'from ', 'as ',
+        ]
+        if any(text_lower.startswith(prefix) for prefix in stopword_prefixes):
+            return True
+        
+        # Is ONLY a stopword
+        pure_stopwords = {'the', 'is', 'with', 'of', 'for', 'to', 'and', 'or', 'in', 'on', 'at', 'by'}
+        if text_lower in pure_stopwords:
+            return True
+        
+        # Just a dose/unit fragment (e.g., "mg and", "15 mg", "day and")
+        if re.match(r'^\d+\s*(mg|ml|mcg|g|kg|iu)?\s*(and|or)?$', text_lower):
+            return True
+        if re.match(r'^(day|week|month)\s*(and|or|$)', text_lower):
+            return True
+        
+        # Contains prose indicators
+        prose_indicators = [
+            'reconstituted', 'lyophilized', 'concentration',
+            'administered', 'provided', 'according to'
+        ]
+        if any(ind in text_lower for ind in prose_indicators):
+            return True
+        
+        return False
     
     def _find_matching_intervention(
         self, 
@@ -561,8 +594,10 @@ class ExecutionModelPromoter:
             'topical': ('C38304', 'Topical'),
         }
         
-        route_lower = route.lower()
-        code, decode = route_codes.get(route_lower, ('C38288', route))
+        # Handle enum objects (extract .value if it's an enum)
+        route_str = route.value if hasattr(route, 'value') else str(route)
+        route_lower = route_str.lower()
+        code, decode = route_codes.get(route_lower, ('C38288', route_str))
         
         return {
             "id": str(uuid.uuid4()),
