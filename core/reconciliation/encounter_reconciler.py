@@ -333,15 +333,22 @@ class EncounterReconciler(BaseReconciler[EncounterContribution, ReconciledEncoun
         )
     
     def _post_reconcile(self, reconciled: List[ReconciledEncounter]) -> List[ReconciledEncounter]:
-        """Sort encounters by study day/week."""
+        """Sort encounters by study day/week and filter out encounters without epochId."""
+        # Filter out encounters without epochId - they can't be displayed in SoA table
+        # These are typically from visit_windows that didn't match any SoA encounter
+        filtered = [e for e in reconciled if e.epoch_id]
+        removed = len(reconciled) - len(filtered)
+        if removed > 0:
+            logger.info(f"Filtered {removed} encounters without epochId (from execution model)")
+        
         def sort_key(e):
             # Sort by study day if available, then by week, then by name
             day = e.study_day if e.study_day is not None else 9999
             week = e.study_week if e.study_week is not None else 9999
             return (day, week, e.name)
         
-        reconciled.sort(key=sort_key)
-        return reconciled
+        filtered.sort(key=sort_key)
+        return filtered
     
     def contribute_from_visit_windows(
         self,

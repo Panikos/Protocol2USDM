@@ -268,10 +268,14 @@ export function toSoATableModel(
   const columnOrder = overlay?.table.columnOrder ?? [];
   const orderedEncounters = orderItems(encounters, columnOrder, 'id');
 
-  // Group columns by epoch
+  // Group columns by epoch - filter out encounters without valid epochId
   const epochEncounters = new Map<string, USDMEncounter[]>();
   for (const enc of orderedEncounters) {
-    const epochId = enc.epochId ?? 'unknown';
+    const epochId = enc.epochId;
+    // Skip encounters without epochId - they can't be displayed properly
+    if (!epochId || !epochMap.has(epochId)) {
+      continue;
+    }
     if (!epochEncounters.has(epochId)) {
       epochEncounters.set(epochId, []);
     }
