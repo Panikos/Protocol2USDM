@@ -117,41 +117,7 @@ export function FootnotesView({ usdm }: FootnotesViewProps) {
         }
       }
       
-      // Then check for other protocol footnotes (from execution model extraction)
-      for (const ext of extensions) {
-        if (ext.url?.includes('footnoteConditions') && ext.valueString) {
-          try {
-            const conditions = JSON.parse(ext.valueString) as FootnoteCondition[];
-            const footnoteMap = new Map<string, string>();
-            
-            for (const cond of conditions) {
-              if (cond.footnoteId && cond.text && !footnoteMap.has(cond.footnoteId)) {
-                footnoteMap.set(cond.footnoteId, cond.text);
-              }
-            }
-            
-            // Sort by footnote ID
-            const sortedEntries = Array.from(footnoteMap.entries()).sort((a, b) => {
-              const aNum = parseFloat(a[0].replace(/[^\d.]/g, ''));
-              const bNum = parseFloat(b[0].replace(/[^\d.]/g, ''));
-              if (!isNaN(aNum) && !isNaN(bNum)) return aNum - bNum;
-              return a[0].localeCompare(b[0]);
-            });
-            
-            if (sortedEntries.length > 0) {
-              groups.push({
-                source: 'Other Protocol Footnotes',
-                footnotes: sortedEntries.map(([id, text]) => ({
-                  id,
-                  text: `${id} ${text}`,
-                })),
-              });
-            }
-          } catch {
-            // Skip malformed JSON
-          }
-        }
-      }
+      // NOTE: Removed x-executionModel-footnoteConditions - authoritative SoA footnotes come from x-soaFootnotes
     }
     
     return groups;

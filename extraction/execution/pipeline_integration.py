@@ -1157,7 +1157,9 @@ def _add_execution_extensions(
             
             resolved_footnotes.append(fc_dict)
         
-        _set_canonical_extension(design, "x-executionModel-footnoteConditions", resolved_footnotes)
+        # NOTE: Removed x-executionModel-footnoteConditions extension
+        # Authoritative SoA footnotes come from 4_header_structure.json via x-soaFootnotes
+        # _set_canonical_extension(design, "x-executionModel-footnoteConditions", resolved_footnotes)
         
         # Promote to native USDM: Attach conditions as notes to activities
         conditions_promoted = 0
