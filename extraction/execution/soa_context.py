@@ -25,6 +25,7 @@ class SoAContext:
     - Timepoints
     - Arms
     - Study cells
+    - Footnotes (authoritative SoA footnotes from vision extraction)
     """
     epochs: List[Dict[str, Any]] = field(default_factory=list)
     encounters: List[Dict[str, Any]] = field(default_factory=list)
@@ -32,6 +33,7 @@ class SoAContext:
     timepoints: List[Dict[str, Any]] = field(default_factory=list)
     arms: List[Dict[str, Any]] = field(default_factory=list)
     study_cells: List[Dict[str, Any]] = field(default_factory=list)
+    footnotes: List[str] = field(default_factory=list)  # Authoritative SoA footnotes
     
     # Lookup maps for quick resolution
     _epoch_by_id: Dict[str, Dict[str, Any]] = field(default_factory=dict)
@@ -103,12 +105,21 @@ class SoAContext:
         """Check if activities are available."""
         return len(self.activities) > 0
     
+    def has_footnotes(self) -> bool:
+        """Check if footnotes are available."""
+        return len(self.footnotes) > 0
+    
     def get_summary(self) -> str:
         """Get a summary of available context."""
-        return (
-            f"SoA Context: {len(self.epochs)} epochs, {len(self.encounters)} encounters, "
-            f"{len(self.activities)} activities, {len(self.timepoints)} timepoints"
-        )
+        parts = [
+            f"{len(self.epochs)} epochs",
+            f"{len(self.encounters)} encounters",
+            f"{len(self.activities)} activities",
+            f"{len(self.timepoints)} timepoints",
+        ]
+        if self.footnotes:
+            parts.append(f"{len(self.footnotes)} footnotes")
+        return f"SoA Context: " + ", ".join(parts)
 
 
 def extract_soa_context(soa_data: Optional[Dict[str, Any]]) -> SoAContext:
@@ -135,6 +146,7 @@ def extract_soa_context(soa_data: Optional[Dict[str, Any]]) -> SoAContext:
     timepoints = soa_data.get('timepoints', [])
     arms = soa_data.get('arms', [])
     study_cells = soa_data.get('studyCells', [])
+    footnotes = soa_data.get('footnotes', [])  # Authoritative SoA footnotes from vision
     
     # Try nested USDM structure: study.versions[].studyDesigns[]
     if not epochs or not encounters:
@@ -169,6 +181,7 @@ def extract_soa_context(soa_data: Optional[Dict[str, Any]]) -> SoAContext:
         timepoints=timepoints,
         arms=arms,
         study_cells=study_cells,
+        footnotes=footnotes,
     )
     
     if context.epochs or context.encounters or context.activities:

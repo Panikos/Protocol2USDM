@@ -185,10 +185,15 @@ def extract_execution_model(
         errors.append(f"Traversal: {traversal_result.error}")
     
     # 6. Extract footnote conditions (Phase 2)
+    # Use authoritative SoA footnotes from vision extraction if available
     logger.info("Step 6/10: Extracting footnote conditions...")
+    soa_footnotes = soa_context.footnotes if soa_context.has_footnotes() else None
+    if soa_footnotes:
+        logger.info(f"  Using {len(soa_footnotes)} authoritative SoA footnotes from vision extraction")
     footnote_result = extract_footnote_conditions(
         pdf_path=pdf_path,
         model=model,
+        footnotes=soa_footnotes,  # Pass authoritative SoA footnotes instead of re-extracting
         use_llm=enable_llm,
         existing_activities=soa_context.activities if soa_context.has_activities() else None,
     )
@@ -1157,9 +1162,10 @@ def _add_execution_extensions(
             
             resolved_footnotes.append(fc_dict)
         
-        # NOTE: Removed x-executionModel-footnoteConditions extension
-        # Authoritative SoA footnotes come from 4_header_structure.json via x-soaFootnotes
-        # _set_canonical_extension(design, "x-executionModel-footnoteConditions", resolved_footnotes)
+        # Store structured footnote conditions with resolved activity/encounter IDs
+        # These are parsed from authoritative SoA footnotes (vision-extracted)
+        if resolved_footnotes:
+            _set_canonical_extension(design, "x-footnoteConditions", resolved_footnotes)
         
         # Promote to native USDM: Attach conditions as notes to activities
         conditions_promoted = 0
