@@ -191,6 +191,33 @@ export function SoAView({ provenance }: SoAViewProps) {
           </CardContent>
         </Card>
       )}
+
+      {/* Procedure Activities (from execution model enrichment) */}
+      {tableModel.procedureActivities.length > 0 && (
+        <Card>
+          <CardHeader className="py-3">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <span>Procedure Activities</span>
+              <span className="text-xs font-normal text-muted-foreground">
+                ({tableModel.procedureActivities.length} activities from protocol enrichment - not in SoA table)
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="py-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 text-sm">
+              {tableModel.procedureActivities.map((activity) => (
+                <div
+                  key={activity.id}
+                  className="px-2 py-1 bg-muted rounded text-muted-foreground"
+                  title={activity.description || activity.name}
+                >
+                  {activity.label || activity.name}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
