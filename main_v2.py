@@ -1478,15 +1478,19 @@ def combine_to_full_usdm(
                 study_design["characteristics"] = sap['characteristics']
             logger.info("  Using previously extracted SAP populations")
     
-    # Add Sites data (conditional)
+    # Add Sites data (conditional) - place in studyVersion per UI expectations
     if expansion_results and expansion_results.get('sites'):
         r = expansion_results['sites']
         if r.success and r.data:
             data_dict = r.data.to_dict()
             if data_dict.get('studySites'):
-                combined["studySites"] = data_dict['studySites']
+                # Place in studyVersion for UI to find
+                study_version["studySites"] = data_dict['studySites']
             if data_dict.get('studyRoles'):
-                combined["studyRoles"] = data_dict['studyRoles']
+                # Roles go in studyVersion per schema
+                if "roles" not in study_version:
+                    study_version["roles"] = []
+                study_version["roles"].extend(data_dict['studyRoles'])
             if data_dict.get('assignedPersons'):
                 combined["assignedPersons"] = data_dict['assignedPersons']
     
