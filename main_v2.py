@@ -821,6 +821,26 @@ def validate_and_fix_schema(
             # Convert provenance IDs using the same id_map
             converted_provenance = convert_provenance_to_uuids(orig_provenance, id_map)
             
+            # Populate encounter/activity name mappings from USDM data
+            # This ensures UI can resolve UUIDs to display names
+            try:
+                sd = data.get('study', {}).get('versions', [{}])[0].get('studyDesigns', [{}])[0]
+                if 'entities' not in converted_provenance:
+                    converted_provenance['entities'] = {}
+                
+                # Add encounters with names
+                converted_provenance['entities']['encounters'] = {
+                    enc.get('id'): enc.get('name', 'Unknown')
+                    for enc in sd.get('encounters', []) if enc.get('id')
+                }
+                # Add activities with names
+                converted_provenance['entities']['activities'] = {
+                    act.get('id'): act.get('name') or act.get('label', 'Unknown')
+                    for act in sd.get('activities', []) if act.get('id')
+                }
+            except Exception:
+                pass  # Keep original entities if extraction fails
+            
             # Save as protocol_usdm_provenance.json (paired with protocol_usdm.json)
             prov_output_path = os.path.join(output_dir, "protocol_usdm_provenance.json")
             with open(prov_output_path, 'w', encoding='utf-8') as f:
