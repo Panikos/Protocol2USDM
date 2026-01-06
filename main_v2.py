@@ -1744,6 +1744,37 @@ def combine_to_full_usdm(
     except Exception as e:
         logger.warning(f"  ⚠ Procedure-Activity linking skipped: {e}")
     
+    # Add authoritative SoA footnotes from header_structure.json
+    # These are vision-extracted and verified, separate from execution model footnotes
+    try:
+        header_structure_path = os.path.join(output_dir, "4_header_structure.json")
+        if os.path.exists(header_structure_path):
+            with open(header_structure_path, 'r', encoding='utf-8') as f:
+                header_data = json.load(f)
+            
+            soa_footnotes = header_data.get('footnotes', [])
+            if soa_footnotes:
+                # Store as separate extension - authoritative SoA footnotes
+                if 'extensionAttributes' not in study_design:
+                    study_design['extensionAttributes'] = []
+                
+                # Remove any existing SoA footnotes extension
+                study_design['extensionAttributes'] = [
+                    ext for ext in study_design['extensionAttributes']
+                    if not ext.get('url', '').endswith('soaFootnotes')
+                ]
+                
+                # Add authoritative SoA footnotes
+                study_design['extensionAttributes'].append({
+                    'id': f"ext_soa_footnotes_{study_design.get('id', 'sd')[:8]}",
+                    'url': 'https://protocol2usdm.io/extensions/x-soaFootnotes',
+                    'valueString': json.dumps(soa_footnotes),
+                    'instanceType': 'ExtensionAttribute'
+                })
+                logger.info(f"  ✓ Added {len(soa_footnotes)} authoritative SoA footnotes from header structure")
+    except Exception as e:
+        logger.warning(f"  ⚠ SoA footnotes addition skipped: {e}")
+    
     # Save combined output as protocol_usdm.json (golden standard)
     output_path = os.path.join(output_dir, "protocol_usdm.json")
     with open(output_path, 'w', encoding='utf-8') as f:

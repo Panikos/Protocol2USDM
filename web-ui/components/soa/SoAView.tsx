@@ -123,8 +123,26 @@ export function SoAView({ provenance }: SoAViewProps) {
     URL.revokeObjectURL(url);
   }, [tableModel]);
 
-  // Get footnotes from provenance
-  const footnotes = provenance?.footnotes || [];
+  // Get footnotes - prefer authoritative SoA footnotes from USDM extension, fall back to provenance
+  const footnotes = useMemo(() => {
+    // First check for authoritative SoA footnotes in studyDesign.extensionAttributes
+    if (studyDesign?.extensionAttributes) {
+      for (const ext of studyDesign.extensionAttributes) {
+        if (ext.url?.includes('soaFootnotes') && ext.valueString) {
+          try {
+            const soaFns = JSON.parse(ext.valueString as string) as string[];
+            if (soaFns.length > 0) {
+              return soaFns;
+            }
+          } catch {
+            // Skip malformed JSON
+          }
+        }
+      }
+    }
+    // Fall back to provenance footnotes
+    return provenance?.footnotes || [];
+  }, [studyDesign, provenance]);
 
   // Get selected cell footnotes
   const selectedFootnoteRefs = selectedCell?.cell?.footnoteRefs;

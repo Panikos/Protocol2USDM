@@ -97,6 +97,27 @@ export function FootnotesView({ usdm }: FootnotesViewProps) {
         valueString?: string;
       }>) ?? [];
       
+      // First check for authoritative SoA footnotes (from header_structure vision extraction)
+      for (const ext of extensions) {
+        if (ext.url?.includes('soaFootnotes') && ext.valueString) {
+          try {
+            const soaFns = JSON.parse(ext.valueString) as string[];
+            if (soaFns.length > 0) {
+              groups.unshift({
+                source: 'Schedule of Activities',
+                footnotes: soaFns.map((text, idx) => ({
+                  id: `soa_fn_${idx + 1}`,
+                  text,
+                })),
+              });
+            }
+          } catch {
+            // Skip malformed JSON
+          }
+        }
+      }
+      
+      // Then check for other protocol footnotes (from execution model extraction)
       for (const ext of extensions) {
         if (ext.url?.includes('footnoteConditions') && ext.valueString) {
           try {
@@ -118,8 +139,8 @@ export function FootnotesView({ usdm }: FootnotesViewProps) {
             });
             
             if (sortedEntries.length > 0) {
-              groups.unshift({
-                source: 'Schedule of Activities',
+              groups.push({
+                source: 'Other Protocol Footnotes',
                 footnotes: sortedEntries.map(([id, text]) => ({
                   id,
                   text: `${id} ${text}`,
