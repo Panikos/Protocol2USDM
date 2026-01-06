@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Table, BookOpen } from 'lucide-react';
+import { FileText, Table, BookOpen, List } from 'lucide-react';
 
 interface FootnotesViewProps {
   usdm: Record<string, unknown> | null;
@@ -120,6 +120,26 @@ export function FootnotesView({ usdm }: FootnotesViewProps) {
       // NOTE: Removed x-executionModel-footnoteConditions - authoritative SoA footnotes come from x-soaFootnotes
     }
     
+    // 3. Add abbreviations from StudyVersion
+    const study = usdm.study as Record<string, unknown> | undefined;
+    const versions = (study?.versions as unknown[]) ?? [];
+    const version = versions[0] as Record<string, unknown> | undefined;
+    const abbreviations = (version?.abbreviations as Array<{
+      id?: string;
+      abbreviatedText?: string;
+      expandedText?: string;
+    }>) ?? [];
+    
+    if (abbreviations.length > 0) {
+      groups.push({
+        source: 'Protocol Abbreviations',
+        footnotes: abbreviations.map((ab, idx) => ({
+          id: ab.id || `abbrev_${idx}`,
+          text: `${ab.abbreviatedText}: ${ab.expandedText}`,
+        })),
+      });
+    }
+    
     return groups;
   }, [usdm]);
   
@@ -162,6 +182,8 @@ export function FootnotesView({ usdm }: FootnotesViewProps) {
             <CardTitle className="flex items-center gap-2 text-base">
               {group.source === 'Schedule of Activities' ? (
                 <Table className="h-4 w-4" />
+              ) : group.source === 'Protocol Abbreviations' ? (
+                <List className="h-4 w-4" />
               ) : (
                 <BookOpen className="h-4 w-4" />
               )}
