@@ -365,7 +365,9 @@ class GeminiProvider(LLMProvider):
         # Map model aliases to actual model IDs
         model_id = self.VERTEX_MODEL_ALIASES.get(self.model, self.model)
         
-        # Build config with safety settings disabled
+        # Build config with safety settings completely disabled
+        # Per https://ai.google.dev/gemini-api/docs/safety-settings
+        # BLOCK_NONE = don't block any content regardless of probability
         config = genai_types.GenerateContentConfig(
             temperature=gen_config_dict.get("temperature", 0.0),
             max_output_tokens=gen_config_dict.get("max_output_tokens"),
@@ -375,20 +377,20 @@ class GeminiProvider(LLMProvider):
             # Disable all safety filters for clinical/medical content
             safety_settings=[
                 genai_types.SafetySetting(
-                    category="HARM_CATEGORY_HATE_SPEECH",
-                    threshold="OFF"
+                    category=genai_types.HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+                    threshold=genai_types.HarmBlockThreshold.BLOCK_NONE,
                 ),
                 genai_types.SafetySetting(
-                    category="HARM_CATEGORY_DANGEROUS_CONTENT",
-                    threshold="OFF"
+                    category=genai_types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+                    threshold=genai_types.HarmBlockThreshold.BLOCK_NONE,
                 ),
                 genai_types.SafetySetting(
-                    category="HARM_CATEGORY_SEXUALLY_EXPLICIT",
-                    threshold="OFF"
+                    category=genai_types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+                    threshold=genai_types.HarmBlockThreshold.BLOCK_NONE,
                 ),
                 genai_types.SafetySetting(
-                    category="HARM_CATEGORY_HARASSMENT",
-                    threshold="OFF"
+                    category=genai_types.HarmCategory.HARM_CATEGORY_HARASSMENT,
+                    threshold=genai_types.HarmBlockThreshold.BLOCK_NONE,
                 ),
             ],
         )
