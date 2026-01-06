@@ -2,11 +2,21 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from '@/components/ui/hover-card';
 import { 
   MapPin, 
   Building2,
   Globe,
   Users,
+  Hash,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Info,
 } from 'lucide-react';
 
 interface StudySitesViewProps {
@@ -21,8 +31,11 @@ interface StudySite {
   country?: string;
   region?: string;
   city?: string;
-  address?: string;
+  address?: string | { line?: string; city?: string; state?: string; postalCode?: string; country?: string };
   organization?: { name?: string };
+  organizationId?: string;
+  siteNumber?: string;
+  status?: string;
   instanceType?: string;
 }
 
@@ -170,28 +183,121 @@ export function StudySitesView({ usdm }: StudySitesViewProps) {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {studySites.map((site, i) => (
-                <div key={i} className="p-3 bg-muted rounded-lg">
-                  <div className="flex items-start justify-between">
-                    <div className="font-medium">
-                      {site.name || `Site ${i + 1}`}
+              {studySites.map((site, i) => {
+                const hasDetails = site.siteNumber || site.status || site.id || site.description || 
+                  (typeof site.address === 'object' && site.address);
+                
+                const StatusIcon = site.status === 'Active' ? CheckCircle : 
+                  site.status === 'Inactive' ? XCircle : Clock;
+                const statusColor = site.status === 'Active' ? 'text-green-600' : 
+                  site.status === 'Inactive' ? 'text-red-600' : 'text-yellow-600';
+                
+                const siteCard = (
+                  <div className={`p-3 bg-muted rounded-lg ${hasDetails ? 'cursor-pointer hover:bg-muted/80 transition-colors' : ''}`}>
+                    <div className="flex items-start justify-between">
+                      <div className="font-medium flex items-center gap-2">
+                        {site.name || `Site ${i + 1}`}
+                        {hasDetails && <Info className="h-3 w-3 text-muted-foreground" />}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {site.siteNumber && (
+                          <Badge variant="outline" className="text-xs">
+                            <Hash className="h-3 w-3 mr-1" />
+                            {site.siteNumber}
+                          </Badge>
+                        )}
+                        {site.status && (
+                          <Badge variant={site.status === 'Active' ? 'default' : 'secondary'} className="text-xs">
+                            <StatusIcon className={`h-3 w-3 mr-1 ${statusColor}`} />
+                            {site.status}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
-                    {site.identifier && (
-                      <Badge variant="outline">{site.identifier}</Badge>
+                    {site.organization?.name && (
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {site.organization.name}
+                      </p>
                     )}
+                    <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                      {site.city && <span>{site.city}</span>}
+                      {site.city && site.country && <span>•</span>}
+                      {site.country && <span>{site.country}</span>}
+                    </div>
                   </div>
-                  {site.organization?.name && (
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {site.organization.name}
-                    </p>
-                  )}
-                  <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-                    {site.city && <span>{site.city}</span>}
-                    {site.city && site.country && <span>•</span>}
-                    {site.country && <span>{site.country}</span>}
-                  </div>
-                </div>
-              ))}
+                );
+                
+                if (!hasDetails) {
+                  return <div key={i}>{siteCard}</div>;
+                }
+                
+                return (
+                  <HoverCard key={i} openDelay={200}>
+                    <HoverCardTrigger asChild>
+                      {siteCard}
+                    </HoverCardTrigger>
+                    <HoverCardContent className="w-80" side="top">
+                      <div className="space-y-3">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <h4 className="font-semibold">{site.name || `Site ${i + 1}`}</h4>
+                            {site.siteNumber && (
+                              <p className="text-sm text-muted-foreground">Site #{site.siteNumber}</p>
+                            )}
+                          </div>
+                          {site.status && (
+                            <Badge variant={site.status === 'Active' ? 'default' : 'secondary'}>
+                              {site.status}
+                            </Badge>
+                          )}
+                        </div>
+                        
+                        <div className="space-y-2 text-sm">
+                          {site.description && (
+                            <div>
+                              <span className="font-medium">Description:</span>
+                              <p className="text-muted-foreground">{site.description}</p>
+                            </div>
+                          )}
+                          
+                          {typeof site.address === 'object' && site.address && (
+                            <div>
+                              <span className="font-medium">Address:</span>
+                              <p className="text-muted-foreground">
+                                {[site.address.line, site.address.city, site.address.state, site.address.postalCode, site.address.country]
+                                  .filter(Boolean)
+                                  .join(', ')}
+                              </p>
+                            </div>
+                          )}
+                          
+                          {typeof site.address === 'string' && site.address && (
+                            <div>
+                              <span className="font-medium">Address:</span>
+                              <p className="text-muted-foreground">{site.address}</p>
+                            </div>
+                          )}
+                          
+                          {site.country && (
+                            <div className="flex items-center gap-2">
+                              <Globe className="h-4 w-4 text-muted-foreground" />
+                              <span>{site.country}</span>
+                            </div>
+                          )}
+                          
+                          {site.id && (
+                            <div className="pt-2 border-t">
+                              <span className="text-xs text-muted-foreground font-mono">
+                                ID: {site.id.substring(0, 8)}...
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </HoverCardContent>
+                  </HoverCard>
+                );
+              })}
             </div>
           </CardContent>
         </Card>
@@ -216,7 +322,9 @@ export function StudySitesView({ usdm }: StudySitesViewProps) {
                       {org.name || `Organization ${i + 1}`}
                     </div>
                     {org.type && (
-                      <Badge variant="outline">{org.type}</Badge>
+                      <Badge variant="outline">
+                        {typeof org.type === 'string' ? org.type : (org.type.decode || org.type.code || 'Unknown')}
+                      </Badge>
                     )}
                   </div>
                   {org.identifier && (
