@@ -293,11 +293,14 @@ def extract_soa_from_text(
         
         # Safety filter: remove any activities matching group header names
         group_names = {g.name.lower() for g in header_structure.activityGroups}
+        logger.debug(f"  Filter check: {len(header_structure.activityGroups)} groups, group_names={group_names}")
         original_count = len(activities)
         activities = [a for a in activities if a.name.lower() not in group_names]
         if len(activities) < original_count:
             removed = original_count - len(activities)
             logger.info(f"  Filtered out {removed} group headers that were incorrectly extracted as activities")
+        elif group_names:
+            logger.debug(f"  No group headers filtered (0 matches from {len(group_names)} group names)")
         
         # Extract activity timepoints
         activity_timepoints = [

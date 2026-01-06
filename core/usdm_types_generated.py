@@ -1421,12 +1421,20 @@ def create_wrapper_input(
     if hasattr(data, 'to_study_design'):
         study_design = data.to_study_design()
         version = StudyVersion(studyDesigns=[study_design])
-        return {
+        result = {
             "usdmVersion": usdm_version,
             "systemName": system_name,
             "systemVersion": system_version,
             "study": Study(versions=[version]).to_dict()
         }
+        # Preserve activityGroups from Timeline (not in USDM spec but needed for UI)
+        if hasattr(data, 'activityGroups') and data.activityGroups:
+            sd = result["study"]["versions"][0]["studyDesigns"][0]
+            sd["activityGroups"] = [
+                g.to_dict() if hasattr(g, 'to_dict') else g 
+                for g in data.activityGroups
+            ]
+        return result
     
     if isinstance(data, StudyVersion):
         return {
