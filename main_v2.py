@@ -2148,6 +2148,19 @@ Examples:
                 with open(existing_soa, 'r', encoding='utf-8') as f:
                     soa_data = json.load(f)
         
+        # Add authoritative SoA footnotes from header_structure to soa_data
+        # This enables execution model to use correct footnotes instead of re-extracting
+        if soa_data:
+            header_path = os.path.join(output_dir, "4_header_structure.json")
+            if os.path.exists(header_path):
+                try:
+                    with open(header_path, 'r', encoding='utf-8') as f:
+                        header_data = json.load(f)
+                    if header_data.get('footnotes'):
+                        soa_data['footnotes'] = header_data['footnotes']
+                except Exception:
+                    pass
+        
         # Print SoA results
         if result:
             print()
