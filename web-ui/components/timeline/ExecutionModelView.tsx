@@ -382,7 +382,7 @@ export function ExecutionModelView({ executionModel }: ExecutionModelViewProps) 
         {activeTab === 'overview' && <OverviewPanel data={execModel} />}
         {activeTab === 'anchors' && <TimeAnchorsPanel anchors={execModel.timeAnchors ?? []} />}
         {activeTab === 'visits' && <VisitWindowsPanel visits={execModel.visitWindows ?? []} anchors={execModel.timeAnchors ?? []} />}
-        {activeTab === 'conditions' && <ConditionsPanel conditions={execModel.footnoteConditions ?? []} />}
+        {activeTab === 'conditions' && <ConditionsPanel conditions={execModel.footnoteConditions ?? []} studyDesign={studyDesign} />}
         {activeTab === 'repetitions' && <RepetitionsPanel repetitions={execModel.repetitions ?? []} />}
         {activeTab === 'dosing' && <DosingPanel regimens={execModel.dosingRegimens ?? []} />}
         {activeTab === 'statemachine' && <StateMachinePanel stateMachine={execModel.stateMachine} studyExits={execModel.studyExits ?? []} />}
@@ -1107,11 +1107,58 @@ function VisitWindowsPanel({ visits, anchors = [] }: { visits: VisitWindow[]; an
 // Conditions Panel - Enhanced with search, filter, expand/collapse
 // ============================================================================
 
-function ConditionsPanel({ conditions }: { conditions: FootnoteCondition[] }) {
+function ConditionsPanel({ conditions, studyDesign }: { conditions: FootnoteCondition[]; studyDesign?: USDMStudyDesign }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [showAll, setShowAll] = useState(false);
+
+  // Build entity name maps for ID resolution
+  const entityNameMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    
+    // Activities
+    const activities = studyDesign?.activities ?? [];
+    for (const act of activities) {
+      if (act.id) {
+        map[act.id] = act.name || act.label || 'Unknown Activity';
+      }
+    }
+    // Also handle act_N format
+    activities.forEach((act, idx) => {
+      map[`act_${idx + 1}`] = act.name || act.label || `Activity ${idx + 1}`;
+    });
+    
+    // Activity Groups
+    const groups = studyDesign?.activityGroups ?? [];
+    for (const grp of groups) {
+      if (grp.id) {
+        map[grp.id] = grp.name || 'Unknown Group';
+      }
+    }
+    // Also handle grp_N format
+    groups.forEach((grp, idx) => {
+      map[`grp_${idx + 1}`] = grp.name || `Group ${idx + 1}`;
+    });
+    
+    // Encounters
+    const encounters = studyDesign?.encounters ?? [];
+    for (const enc of encounters) {
+      if (enc.id) {
+        map[enc.id] = enc.name || 'Unknown Visit';
+      }
+    }
+    encounters.forEach((enc, idx) => {
+      map[`enc_${idx + 1}`] = enc.name || `Visit ${idx + 1}`;
+    });
+    
+    return map;
+  }, [studyDesign]);
+
+  // Helper to resolve ID to name
+  const resolveEntityName = (id: string): string => {
+    return entityNameMap[id] || id;
+  };
 
   // Group conditions by type
   const groupedByType = useMemo(() => {
@@ -1307,7 +1354,7 @@ function ConditionsPanel({ conditions }: { conditions: FootnoteCondition[] }) {
                                 <span className="text-xs text-muted-foreground">Applies to:</span>
                                 {cond.appliesToActivityIds.map(actId => (
                                   <Badge key={actId} variant="secondary" className="text-xs">
-                                    {actId}
+                                    {resolveEntityName(actId)}
                                   </Badge>
                                 ))}
                               </div>
