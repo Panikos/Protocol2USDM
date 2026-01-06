@@ -380,16 +380,21 @@ def reconcile_activities_from_pipeline(
     procedure_activities: Optional[List[Dict[str, Any]]] = None,
     execution_repetitions: Optional[List[Dict[str, Any]]] = None,
     footnote_conditions: Optional[List[Dict[str, Any]]] = None,
+    activity_group_names: Optional[List[str]] = None,
 ) -> List[Dict[str, Any]]:
     """
     Convenience function for pipeline integration.
     
+    Reconciles activities from multiple sources using exact matching.
+    Uses high threshold to preserve SoA activities as authoritative.
+    
     Args:
-        soa_activities: Activities from SoA extraction
+        soa_activities: Activities from SoA extraction (authoritative)
         procedure_activities: Activities from procedures extractor
         execution_repetitions: Repetition patterns from execution model
-        footnote_conditions: Conditional footnotes for activities
-    
+        footnote_conditions: Footnote conditions from execution model
+        activity_group_names: List of activity group names to filter out
+        
     Returns:
         List of reconciled activity dictionaries
     """
@@ -397,8 +402,14 @@ def reconcile_activities_from_pipeline(
     # SoA activities are authoritative and should not be merged with procedure activities
     reconciler = ActivityReconciler(match_threshold=1.0)
     
-    if soa_activities:
-        reconciler.contribute("soa", soa_activities, priority=10)
+    # Filter out group headers from SoA activities if group names provided
+    filtered_soa = soa_activities
+    if soa_activities and activity_group_names:
+        group_names_lower = {n.lower() for n in activity_group_names}
+        filtered_soa = [a for a in soa_activities if a.get('name', '').lower() not in group_names_lower]
+    
+    if filtered_soa:
+        reconciler.contribute("soa", filtered_soa, priority=10)
     
     if procedure_activities:
         reconciler.contribute_from_procedures(procedure_activities, priority=20)

@@ -1594,11 +1594,14 @@ def combine_to_full_usdm(
             if execution_data and hasattr(execution_data, 'footnote_conditions'):
                 footnote_conditions = [f.__dict__ if hasattr(f, '__dict__') else f 
                                       for f in (execution_data.footnote_conditions or [])]
+            # Get activity group names to filter out group headers from activities
+            activity_group_names = [g.get('name') for g in study_design.get('activityGroups', [])]
             reconciled_activities = reconcile_activities_from_pipeline(
                 soa_activities=soa_activities,
                 procedure_activities=procedure_activities,
                 execution_repetitions=execution_repetitions,
                 footnote_conditions=footnote_conditions,
+                activity_group_names=activity_group_names,
             )
             if reconciled_activities:
                 study_design["activities"] = reconciled_activities
