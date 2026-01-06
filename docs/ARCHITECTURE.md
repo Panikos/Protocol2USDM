@@ -970,3 +970,169 @@ The layer automatically generates aliases from:
 - Direct name mapping (e.g., "Screening" → SCREENING)
 - Semantic content detection (e.g., name contains "screen" → SCREENING)
 - Period number extraction (e.g., "Period 1" → PERIOD_1)
+
+---
+
+## Footnotes & Abbreviations Architecture
+
+The pipeline extracts footnotes and abbreviations from multiple sources with clear authority hierarchy.
+
+### Source Hierarchy
+
+| Source | Location | Authority | Content |
+|--------|----------|-----------|---------|
+| **SoA Footnotes** | `4_header_structure.json` | Authoritative | Vision-extracted footnotes (a-x) from SoA table |
+| **Protocol Footnotes** | `13_document_structure.json` | Supplementary | Footnotes from other protocol sections |
+| **Abbreviations** | `7_narrative_structure.json` | Authoritative | Abbreviations from front matter + SoA table |
+
+### USDM Storage
+
+| Data | USDM Location | Extension URL |
+|------|---------------|---------------|
+| **SoA Footnotes** | `studyDesign.extensionAttributes[]` | `x-soaFootnotes` |
+| **Footnote Conditions** | `studyDesign.extensionAttributes[]` | `x-footnoteConditions` |
+| **Protocol Footnotes** | `studyDesign.notes[]` | N/A (core USDM) |
+| **Abbreviations** | `studyVersion.abbreviations[]` | N/A (core USDM) |
+
+### Data Flow
+
+```
+Vision Extraction (4_header_structure.json)
+    └── footnotes: ["a. Only at screening", "b. If clinically indicated", ...]
+                ↓
+    main_v2.py: Merge into soa_data before execution phases
+                ↓
+    Execution Model: extract_footnote_conditions(footnotes=soa_footnotes)
+                ↓
+    x-footnoteConditions: Structured parsing with appliesToActivityIds
+                ↓
+    x-soaFootnotes: Raw authoritative list for UI display
+```
+
+### Abbreviation Extraction
+
+The narrative extractor finds abbreviations from:
+- Front matter "List of Abbreviations" pages
+- SoA table "Abbreviations:" line (page 16+)
+
+**Page finder patterns:**
+```python
+structure_keywords = [
+    r'list\s+of\s+abbreviations',
+    r'abbreviations\s*:',           # SoA table format
+    r'schedule\s+of\s+activities',  # Include SoA pages
+]
+```
+
+### UI Display (FootnotesView.tsx)
+
+Groups footnotes by source:
+1. **Schedule of Activities** - from `x-soaFootnotes`
+2. **Other Protocol Sections** - from `commentAnnotations` 
+3. **Protocol Abbreviations** - from `studyVersion.abbreviations`
+
+---
+
+## Provenance Entity Name Mappings
+
+Provenance files store entity ID-to-name mappings for UI display.
+
+### Problem
+
+Provenance tracks cells as `activityId|encounterId` (UUIDs), but the UI needs display names.
+
+### Solution
+
+When creating `protocol_usdm_provenance.json`, entity name mappings are populated from the USDM:
+
+```python
+converted_provenance['entities']['encounters'] = {
+    enc.get('id'): enc.get('name', 'Unknown')
+    for enc in sd.get('encounters', [])
+}
+converted_provenance['entities']['activities'] = {
+    act.get('id'): act.get('name') or act.get('label', 'Unknown')
+    for act in sd.get('activities', [])
+}
+```
+
+### Provenance File Format (Updated)
+
+```json
+{
+  "entities": {
+    "activities": { "<uuid>": "Activity Name" },
+    "encounters": { "<uuid>": "Day 1" },
+    "epochs": { "<uuid>": "Treatment" }
+  },
+  "cells": {
+    "<activity_uuid>|<encounter_uuid>": "text|vision|both"
+  },
+  "cellFootnotes": {
+    "<activity_uuid>|<encounter_uuid>": ["a", "m"]
+  }
+}
+```
+
+### UI Resolution (ProvenanceExplorer.tsx)
+
+```typescript
+const encounterName = provenance.entities?.encounters?.[encounterId] || encounterId;
+```
+
+---
+
+## UI ID-to-Name Resolution
+
+Multiple UI components resolve entity IDs to display names.
+
+### Components with Resolution
+
+| Component | Resolves | Source |
+|-----------|----------|--------|
+| **ConditionsPanel** | `appliesToActivityIds` | `studyDesign.activities`, `activityGroups` |
+| **ActivitySchedulePanel** | `activityIds`, `encounterId` | `studyDesign.activities`, `encounters` |
+| **ProvenanceExplorer** | `visitId` | `provenance.entities.encounters` |
+| **TraversalPanel** | `epochId`, `encounterId` | `studyDesign.epochs`, `encounters` |
+
+### Resolution Pattern
+
+```typescript
+// Build entity name map
+const entityNameMap = useMemo(() => {
+  const map: Record<string, string> = {};
+  
+  // Handle both UUID and sequential ID formats (act_1, grp_2)
+  activities.forEach((act, idx) => {
+    map[act.id] = act.name || act.label;
+    map[`act_${idx + 1}`] = act.name || act.label;
+  });
+  
+  groups.forEach((grp, idx) => {
+    map[grp.id] = grp.name;
+    map[`grp_${idx + 1}`] = grp.name;
+  });
+  
+  return map;
+}, [studyDesign]);
+
+// Resolve ID to name
+const resolveEntityName = (id: string): string => {
+  return entityNameMap[id] || id;
+};
+```
+
+### Execution Model Anchor Deduplication
+
+The `CollectionDay` anchor type is deduplicated to avoid UI warnings:
+
+```python
+# Only create ONE CollectionDay anchor per protocol
+if collection_sources:
+    anchors.append(TimeAnchor(
+        id="anchor_collection_1",
+        definition="24-hour collection period",
+        anchor_type=AnchorType.COLLECTION_DAY,
+        source_text=collection_sources[0],
+    ))
+```
