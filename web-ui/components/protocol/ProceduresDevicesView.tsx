@@ -56,9 +56,17 @@ export function ProceduresDevicesView({ usdm }: ProceduresDevicesViewProps) {
   const studyDesigns = (version?.studyDesigns as Record<string, unknown>[]) ?? [];
   const studyDesign = studyDesigns[0] ?? {};
 
-  // Collect procedures from all activities' definedProcedures
-  const activities = (studyDesign.activities as { definedProcedures?: Procedure[] }[]) ?? [];
+  // Collect procedures from multiple locations:
+  // 1. studyDesign.procedures (direct array)
+  // 2. activities' definedProcedures (nested)
   const procedures: Procedure[] = [];
+  
+  // Check studyDesign.procedures first
+  const directProcedures = (studyDesign.procedures as Procedure[]) ?? [];
+  procedures.push(...directProcedures);
+  
+  // Also check activities' definedProcedures (legacy/nested format)
+  const activities = (studyDesign.activities as { definedProcedures?: Procedure[] }[]) ?? [];
   for (const activity of activities) {
     if (activity.definedProcedures) {
       procedures.push(...activity.definedProcedures);
