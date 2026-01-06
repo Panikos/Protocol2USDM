@@ -26,6 +26,14 @@ import google.generativeai as genai
 from google.generativeai.types import HarmCategory, HarmBlockThreshold
 import anthropic
 
+# For Gemini 3 models via Vertex AI (requires global endpoint)
+try:
+    from google import genai as genai_new
+    from google.genai import types as genai_types
+    HAS_GENAI_SDK = True
+except ImportError:
+    HAS_GENAI_SDK = False
+
 
 @dataclass
 class LLMConfig:
@@ -255,8 +263,11 @@ class GeminiProvider(LLMProvider):
         'gemini-3-pro': 'gemini-3-pro-preview',
     }
     
-    # Models that are only available via AI Studio (not Vertex AI yet)
-    AI_STUDIO_ONLY_MODELS = ['gemini-3-flash', 'gemini-3-pro', 'gemini-3-flash-preview', 'gemini-3-pro-preview']
+    # Models that require global endpoint (not regional like us-central1)
+    GLOBAL_ENDPOINT_MODELS = ['gemini-3-flash', 'gemini-3-pro', 'gemini-3-flash-preview', 'gemini-3-pro-preview']
+    
+    # Models that are only available via AI Studio (not Vertex AI)
+    AI_STUDIO_ONLY_MODELS = []  # Empty - route all models through Vertex AI when available
     
     # Safety settings: disable all safety filters for clinical content
     SAFETY_SETTINGS = {
@@ -269,20 +280,28 @@ class GeminiProvider(LLMProvider):
     def __init__(self, model: str, api_key: Optional[str] = None):
         super().__init__(model, api_key)
         
-        # Check for Vertex AI configuration (but Gemini 3 models need AI Studio)
+        # Check for Vertex AI configuration
         has_vertex_config = bool(os.environ.get("GOOGLE_CLOUD_PROJECT"))
         is_ai_studio_only = model in self.AI_STUDIO_ONLY_MODELS
+        is_gemini3 = model in self.GLOBAL_ENDPOINT_MODELS
         
         self.use_vertex = has_vertex_config and not is_ai_studio_only
+        self.use_genai_sdk = is_gemini3 and HAS_GENAI_SDK and self.use_vertex
         
-        if self.use_vertex:
-            # Configure for Vertex AI
+        if self.use_genai_sdk:
+            # Gemini 3 models use google-genai SDK with Vertex AI backend
+            # Set environment variables for the SDK
+            os.environ['GOOGLE_GENAI_USE_VERTEXAI'] = 'True'
+            os.environ['GOOGLE_CLOUD_LOCATION'] = 'global'  # Gemini 3 requires global
+            self._genai_client = genai_new.Client()
+        elif self.use_vertex:
+            # Configure for Vertex AI (older models)
             import vertexai
             project = os.environ.get("GOOGLE_CLOUD_PROJECT")
             location = os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1")
             vertexai.init(project=project, location=location)
         else:
-            # Configure for Google AI Studio (required for Gemini 3 models)
+            # Configure for Google AI Studio
             genai.configure(api_key=self.api_key)
     
     def _get_api_key_from_env(self) -> str:
@@ -334,10 +353,72 @@ class GeminiProvider(LLMProvider):
         # Convert messages to Gemini format
         full_prompt = self._format_messages_for_gemini(messages)
         
-        if self.use_vertex:
+        if self.use_genai_sdk:
+            return self._generate_genai_sdk(full_prompt, gen_config_dict)
+        elif self.use_vertex:
             return self._generate_vertex(full_prompt, gen_config_dict)
         else:
             return self._generate_ai_studio(full_prompt, gen_config_dict)
+    
+    def _generate_genai_sdk(self, prompt: str, gen_config_dict: dict) -> LLMResponse:
+        """Generate using google-genai SDK with Vertex AI backend (for Gemini 3 models)."""
+        # Map model aliases to actual model IDs
+        model_id = self.VERTEX_MODEL_ALIASES.get(self.model, self.model)
+        
+        # Build config with safety settings disabled
+        config = genai_types.GenerateContentConfig(
+            temperature=gen_config_dict.get("temperature", 0.0),
+            max_output_tokens=gen_config_dict.get("max_output_tokens"),
+            stop_sequences=gen_config_dict.get("stop_sequences"),
+            top_p=gen_config_dict.get("top_p"),
+            response_mime_type=gen_config_dict.get("response_mime_type"),
+            # Disable all safety filters for clinical/medical content
+            safety_settings=[
+                genai_types.SafetySetting(
+                    category="HARM_CATEGORY_HATE_SPEECH",
+                    threshold="OFF"
+                ),
+                genai_types.SafetySetting(
+                    category="HARM_CATEGORY_DANGEROUS_CONTENT",
+                    threshold="OFF"
+                ),
+                genai_types.SafetySetting(
+                    category="HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                    threshold="OFF"
+                ),
+                genai_types.SafetySetting(
+                    category="HARM_CATEGORY_HARASSMENT",
+                    threshold="OFF"
+                ),
+            ],
+        )
+        
+        try:
+            response = self._genai_client.models.generate_content(
+                model=model_id,
+                contents=prompt,
+                config=config,
+            )
+            
+            # Extract usage information
+            usage = None
+            if hasattr(response, 'usage_metadata') and response.usage_metadata:
+                usage = {
+                    "prompt_tokens": getattr(response.usage_metadata, 'prompt_token_count', 0),
+                    "completion_tokens": getattr(response.usage_metadata, 'candidates_token_count', 0),
+                    "total_tokens": getattr(response.usage_metadata, 'total_token_count', 0),
+                }
+            
+            return LLMResponse(
+                content=response.text,
+                model=self.model,
+                usage=usage,
+                finish_reason=str(response.candidates[0].finish_reason) if response.candidates else None,
+                raw_response=response
+            )
+        
+        except Exception as e:
+            raise RuntimeError(f"Gemini 3 (google-genai SDK) call failed for model '{self.model}': {e}")
     
     def _generate_vertex(self, prompt: str, gen_config_dict: dict) -> LLMResponse:
         """Generate using Vertex AI with safety controls disabled."""
