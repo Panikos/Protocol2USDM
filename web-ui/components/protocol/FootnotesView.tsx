@@ -120,10 +120,7 @@ export function FootnotesView({ usdm }: FootnotesViewProps) {
       // NOTE: Removed x-executionModel-footnoteConditions - authoritative SoA footnotes come from x-soaFootnotes
     }
     
-    // 3. Add abbreviations from StudyVersion
-    const study = usdm.study as Record<string, unknown> | undefined;
-    const versions = (study?.versions as unknown[]) ?? [];
-    const version = versions[0] as Record<string, unknown> | undefined;
+    // 3. Add abbreviations from StudyVersion (reuse version from above)
     const abbreviations = (version?.abbreviations as Array<{
       id?: string;
       abbreviatedText?: string;
