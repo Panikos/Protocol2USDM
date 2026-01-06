@@ -1649,6 +1649,32 @@ def combine_to_full_usdm(
     except Exception as e:
         logger.warning(f"  ⚠ Entity reconciliation skipped: {e}")
     
+    # Filter out activities without ticks (from procedure reconciler, not from SoA)
+    # These activities shouldn't appear in SoA table as they have no schedule
+    try:
+        scheduleTimelines = study_design.get('scheduleTimelines', [])
+        if scheduleTimelines:
+            instances = scheduleTimelines[0].get('instances', [])
+            activity_ids_with_ticks = set()
+            for inst in instances:
+                activity_ids_with_ticks.update(inst.get('activityIds', []))
+            
+            all_activities = study_design.get('activities', [])
+            activities_with_ticks = [a for a in all_activities if a.get('id') in activity_ids_with_ticks]
+            removed_count = len(all_activities) - len(activities_with_ticks)
+            
+            if removed_count > 0:
+                study_design['activities'] = activities_with_ticks
+                logger.info(f"  ✓ Filtered {removed_count} activities without ticks (procedure enrichment)")
+                
+                # Also update activityGroups.childIds to only include activities with ticks
+                for group in study_design.get('activityGroups', []):
+                    child_ids = group.get('childIds', [])
+                    filtered_child_ids = [cid for cid in child_ids if cid in activity_ids_with_ticks]
+                    group['childIds'] = filtered_child_ids
+    except Exception as e:
+        logger.warning(f"  ⚠ Activity filtering skipped: {e}")
+    
     # Save combined output as protocol_usdm.json (golden standard)
     output_path = os.path.join(output_dir, "protocol_usdm.json")
     with open(output_path, 'w', encoding='utf-8') as f:
