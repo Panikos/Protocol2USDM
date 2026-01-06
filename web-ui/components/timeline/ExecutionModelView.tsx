@@ -2659,9 +2659,14 @@ function ActivitySchedulePanel({
                                 </Badge>
                               )}
                               {inst.activityIds && inst.activityIds.length > 0 && (
-                                <Badge variant="secondary" className="text-xs">
-                                  {inst.activityIds.length} linked activit{inst.activityIds.length === 1 ? 'y' : 'ies'}
-                                </Badge>
+                                <div className="flex flex-wrap gap-1">
+                                  {inst.activityIds.map(actId => (
+                                    <Badge key={actId} variant="secondary" className="text-xs">
+                                      <Activity className="h-3 w-3 mr-1" />
+                                      {resolveActivityName(actId)}
+                                    </Badge>
+                                  ))}
+                                </div>
                               )}
                             </div>
                           </div>
