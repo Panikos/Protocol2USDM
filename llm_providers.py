@@ -236,7 +236,7 @@ class GeminiProvider(LLMProvider):
     """
     
     SUPPORTED_MODELS = [
-        # Gemini 3.x
+        # Gemini 3.x (preview) - use -preview suffix on Vertex AI
         'gemini-3-pro', 'gemini-3-flash', 'gemini-3-pro-preview', 'gemini-3-flash-preview',
         # Gemini 2.5 (stable)
         'gemini-2.5-pro', 'gemini-2.5-flash',
@@ -248,6 +248,12 @@ class GeminiProvider(LLMProvider):
         # Legacy
         'gemini-pro', 'gemini-pro-vision',
     ]
+    
+    # Vertex AI model name mappings (aliases -> actual model IDs)
+    VERTEX_MODEL_ALIASES = {
+        'gemini-3-flash': 'gemini-3-flash-preview',
+        'gemini-3-pro': 'gemini-3-pro-preview',
+    }
     
     # Safety settings: disable all safety filters for clinical content
     SAFETY_SETTINGS = {
@@ -345,8 +351,11 @@ class GeminiProvider(LLMProvider):
             HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
         }
         
+        # Map model aliases to actual Vertex AI model IDs
+        vertex_model = self.VERTEX_MODEL_ALIASES.get(self.model, self.model)
+        
         # Create model instance (safety_settings passed to generate_content, not constructor)
-        model = GenerativeModel(self.model)
+        model = GenerativeModel(vertex_model)
         
         try:
             # Pass safety_settings to generate_content() per Vertex AI pattern
