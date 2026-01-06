@@ -301,13 +301,16 @@ class ActivityReconciler(BaseReconciler[ActivityContribution, ReconciledActivity
         )
     
     def _post_reconcile(self, reconciled: List[ReconciledActivity]) -> List[ReconciledActivity]:
-        """Sort activities by group and name."""
+        """Filter out invalid activities and sort by group and name."""
+        # Filter out activities with empty names (invalid for USDM schema)
+        valid = [a for a in reconciled if a.name and a.name.strip()]
+        
         # Sort by group (None last), then by name
-        reconciled.sort(key=lambda a: (
+        valid.sort(key=lambda a: (
             a.group_name or "zzz",  # None groups last
             a.name
         ))
-        return reconciled
+        return valid
     
     def contribute_from_procedures(
         self,
