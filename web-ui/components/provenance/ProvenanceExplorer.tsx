@@ -38,8 +38,8 @@ export function ProvenanceExplorer({
 
   // Build provenance items grouped by activity
   const provenanceItems = useMemo(() => {
-    if (!provenance?.activityTimepoints) return [];
-
+    if (!provenance) return [];
+    
     const items: Array<{
       activityId: string;
       activityName: string;
@@ -51,30 +51,76 @@ export function ProvenanceExplorer({
       }>;
     }> = [];
 
-    for (const activity of activities) {
-      const activityProv = provenance.activityTimepoints[activity.id];
-      if (!activityProv) continue;
-
-      const cells: typeof items[0]['cells'] = [];
+    // Support new format: provenance.cells with "activityId|encounterId" keys
+    if (provenance.cells) {
+      const activityCellsMap = new Map<string, Array<{ visitId: string; source: CellSource }>>();
       
-      for (const [visitId, source] of Object.entries(activityProv)) {
-        const encounter = encounters.find(e => e.id === visitId);
-        const footnotes = provenance.cellFootnotes?.[activity.id]?.[visitId] || [];
+      for (const [key, source] of Object.entries(provenance.cells)) {
+        const [activityId, visitId] = key.split('|');
+        if (!activityId || !visitId) continue;
         
-        cells.push({
-          visitId,
-          visitName: encounter?.name || visitId,
-          source: source as CellSource,
-          footnotes,
-        });
+        if (!activityCellsMap.has(activityId)) {
+          activityCellsMap.set(activityId, []);
+        }
+        activityCellsMap.get(activityId)!.push({ visitId, source: source as CellSource });
       }
-
-      if (cells.length > 0) {
-        items.push({
-          activityId: activity.id,
-          activityName: activity.name,
-          cells,
+      
+      for (const activity of activities) {
+        const cellsData = activityCellsMap.get(activity.id);
+        if (!cellsData) continue;
+        
+        const cells = cellsData.map(({ visitId, source }) => {
+          const encounter = encounters.find(e => e.id === visitId);
+          const footnoteKey = `${activity.id}|${visitId}`;
+          const footnotes = (provenance.cellFootnotes as Record<string, string[]>)?.[footnoteKey] || [];
+          
+          return {
+            visitId,
+            visitName: encounter?.name || visitId,
+            source,
+            footnotes,
+          };
         });
+        
+        if (cells.length > 0) {
+          items.push({
+            activityId: activity.id,
+            activityName: activity.name,
+            cells,
+          });
+        }
+      }
+      
+      return items;
+    }
+    
+    // Legacy format: provenance.activityTimepoints
+    if (provenance.activityTimepoints) {
+      for (const activity of activities) {
+        const activityProv = provenance.activityTimepoints[activity.id];
+        if (!activityProv) continue;
+
+        const cells: typeof items[0]['cells'] = [];
+        
+        for (const [visitId, source] of Object.entries(activityProv)) {
+          const encounter = encounters.find(e => e.id === visitId);
+          const footnotes = (provenance.cellFootnotes as Record<string, Record<string, string[]>>)?.[activity.id]?.[visitId] || [];
+          
+          cells.push({
+            visitId,
+            visitName: encounter?.name || visitId,
+            source: source as CellSource,
+            footnotes,
+          });
+        }
+
+        if (cells.length > 0) {
+          items.push({
+            activityId: activity.id,
+            activityName: activity.name,
+            cells,
+          });
+        }
       }
     }
 
@@ -224,24 +270,7 @@ export function ProvenanceExplorer({
         )}
       </div>
 
-      {/* Footnotes */}
-      {provenance?.footnotes && provenance.footnotes.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">SoA Footnotes</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2 text-sm">
-              {provenance.footnotes.map((fn, i) => (
-                <div key={i} className="flex gap-2">
-                  <span className="font-medium text-blue-600">[{i + 1}]</span>
-                  <span className="text-muted-foreground">{fn}</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* SoA Footnotes removed - displayed in Advanced -> Footnotes section instead */}
     </div>
   );
 }
