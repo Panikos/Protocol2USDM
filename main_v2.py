@@ -1649,8 +1649,8 @@ def combine_to_full_usdm(
     except Exception as e:
         logger.warning(f"  ⚠ Entity reconciliation skipped: {e}")
     
-    # Filter out activities without ticks (from procedure reconciler, not from SoA)
-    # These activities shouldn't appear in SoA table as they have no schedule
+    # Mark activities with their source (soa vs procedure_enrichment) for UI filtering
+    # Keep all activities in USDM but let UI decide how to display them
     try:
         scheduleTimelines = study_design.get('scheduleTimelines', [])
         if scheduleTimelines:
@@ -1660,20 +1660,44 @@ def combine_to_full_usdm(
                 activity_ids_with_ticks.update(inst.get('activityIds', []))
             
             all_activities = study_design.get('activities', [])
-            activities_with_ticks = [a for a in all_activities if a.get('id') in activity_ids_with_ticks]
-            removed_count = len(all_activities) - len(activities_with_ticks)
+            soa_count = 0
+            procedure_count = 0
             
-            if removed_count > 0:
-                study_design['activities'] = activities_with_ticks
-                logger.info(f"  ✓ Filtered {removed_count} activities without ticks (procedure enrichment)")
+            for activity in all_activities:
+                act_id = activity.get('id')
+                has_ticks = act_id in activity_ids_with_ticks
                 
-                # Also update activityGroups.childIds to only include activities with ticks
-                for group in study_design.get('activityGroups', []):
-                    child_ids = group.get('childIds', [])
-                    filtered_child_ids = [cid for cid in child_ids if cid in activity_ids_with_ticks]
-                    group['childIds'] = filtered_child_ids
+                # Add source extension attribute
+                if 'extensionAttributes' not in activity:
+                    activity['extensionAttributes'] = []
+                
+                # Remove existing activitySource if present
+                activity['extensionAttributes'] = [
+                    ext for ext in activity['extensionAttributes']
+                    if not ext.get('url', '').endswith('activitySource')
+                ]
+                
+                # Add source marker
+                source = 'soa' if has_ticks else 'procedure_enrichment'
+                activity['extensionAttributes'].append({
+                    'url': 'http://example.org/usdm/activitySource',
+                    'valueString': source
+                })
+                
+                if has_ticks:
+                    soa_count += 1
+                else:
+                    procedure_count += 1
+            
+            logger.info(f"  ✓ Marked activities: {soa_count} SoA, {procedure_count} procedure enrichment")
+            
+            # Update activityGroups.childIds to only include SoA activities (for SoA table grouping)
+            for group in study_design.get('activityGroups', []):
+                child_ids = group.get('childIds', [])
+                filtered_child_ids = [cid for cid in child_ids if cid in activity_ids_with_ticks]
+                group['childIds'] = filtered_child_ids
     except Exception as e:
-        logger.warning(f"  ⚠ Activity filtering skipped: {e}")
+        logger.warning(f"  ⚠ Activity source marking skipped: {e}")
     
     # Save combined output as protocol_usdm.json (golden standard)
     output_path = os.path.join(output_dir, "protocol_usdm.json")

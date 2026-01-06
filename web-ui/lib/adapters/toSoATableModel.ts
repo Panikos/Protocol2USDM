@@ -50,6 +50,20 @@ export interface SoATableModel {
   cells: Map<string, SoACell>;
   rowGroups: { id: string; name: string; activityIds: string[] }[];
   columnGroups: { id: string; name: string; visitIds: string[] }[];
+  procedureActivities: USDMActivity[];  // Activities from procedure enrichment (no SoA ticks)
+}
+
+// Helper to check if activity is from SoA (has ticks) vs procedure enrichment
+function getActivitySource(activity: USDMActivity): 'soa' | 'procedure_enrichment' | 'unknown' {
+  const exts = (activity as Record<string, unknown>).extensionAttributes as Array<{url?: string; valueString?: string}> | undefined;
+  if (exts) {
+    for (const ext of exts) {
+      if (ext.url?.endsWith('activitySource')) {
+        return ext.valueString as 'soa' | 'procedure_enrichment' || 'unknown';
+      }
+    }
+  }
+  return 'unknown';
 }
 
 // Helper to create cell key
@@ -69,12 +83,25 @@ export function toSoATableModel(
     cells: new Map(),
     rowGroups: [],
     columnGroups: [],
+    procedureActivities: [],
   };
 
   if (!studyDesign) return model;
 
   // Extract components
-  const activities = studyDesign.activities ?? [];
+  const allActivities = studyDesign.activities ?? [];
+  
+  // Separate SoA activities from procedure enrichment activities
+  const activities: USDMActivity[] = [];
+  for (const activity of allActivities) {
+    const source = getActivitySource(activity);
+    if (source === 'procedure_enrichment') {
+      model.procedureActivities.push(activity);
+    } else {
+      // Include 'soa' and 'unknown' (for backward compatibility)
+      activities.push(activity);
+    }
+  }
   const activityGroups = studyDesign.activityGroups ?? [];
   const encounters = studyDesign.encounters ?? [];
   const epochs = studyDesign.epochs ?? [];
