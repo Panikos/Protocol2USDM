@@ -388,11 +388,14 @@ class GeminiProvider(LLMProvider):
             raise RuntimeError(f"Vertex AI Gemini call failed for model '{self.model}': {e}")
     
     def _generate_ai_studio(self, prompt: str, gen_config_dict: dict) -> LLMResponse:
-        """Generate using Google AI Studio (fallback)."""
+        """Generate using Google AI Studio (for Gemini 3 models)."""
         generation_config = genai.types.GenerationConfig(**gen_config_dict)
         
+        # Map model aliases to actual AI Studio model IDs (same as Vertex)
+        ai_studio_model = self.VERTEX_MODEL_ALIASES.get(self.model, self.model)
+        
         model = genai.GenerativeModel(
-            self.model,
+            ai_studio_model,
             generation_config=generation_config,
             safety_settings=self.SAFETY_SETTINGS,
         )
