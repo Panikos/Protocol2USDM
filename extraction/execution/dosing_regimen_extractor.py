@@ -80,6 +80,50 @@ DURATION_PATTERN = re.compile(
     re.IGNORECASE
 )
 
+# Dose range pattern (e.g., "750-1500", "100 to 200")
+DOSE_RANGE_PATTERN = re.compile(
+    r'^(\d+(?:\.\d+)?)\s*[-–—to]+\s*(\d+(?:\.\d+)?)$',
+    re.IGNORECASE
+)
+
+
+def _parse_dose_amount(value: Any) -> Tuple[float, Optional[float]]:
+    """
+    Parse a dose amount that may be a number, string, or range.
+    
+    Args:
+        value: The dose amount (int, float, or string like '750-1500')
+        
+    Returns:
+        Tuple of (amount, max_amount) where max_amount is None for single values
+    """
+    if value is None:
+        return 0.0, None
+    
+    # Already a number
+    if isinstance(value, (int, float)):
+        return float(value), None
+    
+    # String - check for range
+    value_str = str(value).strip()
+    
+    # Try range pattern first
+    range_match = DOSE_RANGE_PATTERN.match(value_str)
+    if range_match:
+        min_val = float(range_match.group(1))
+        max_val = float(range_match.group(2))
+        return min_val, max_val
+    
+    # Try simple float conversion
+    try:
+        return float(value_str), None
+    except ValueError:
+        # Extract first number from string
+        num_match = re.search(r'(\d+(?:\.\d+)?)', value_str)
+        if num_match:
+            return float(num_match.group(1)), None
+        return 0.0, None
+
 
 def _get_page_count(pdf_path: str) -> int:
     """Get total page count of PDF."""
@@ -142,6 +186,8 @@ def extract_dosing_regimens(
     pdf_path: str,
     model: str = "gemini-2.5-pro",
     use_llm: bool = True,
+    existing_interventions: Optional[List[Dict[str, Any]]] = None,
+    existing_arms: Optional[List[Dict[str, Any]]] = None,
 ) -> ExecutionModelResult:
     """
     Extract dosing regimens from a protocol PDF.
@@ -150,6 +196,8 @@ def extract_dosing_regimens(
         pdf_path: Path to the protocol PDF
         model: LLM model to use for enhancement
         use_llm: Whether to use LLM for extraction
+        existing_interventions: SoA interventions to bind dosing to actual treatments
+        existing_arms: SoA arms for arm-specific dosing context
         
     Returns:
         ExecutionModelResult with dosing regimens
@@ -198,6 +246,65 @@ def extract_dosing_regimens(
         pages_used=pages,
         model_used=model if use_llm else "heuristic",
     )
+
+
+def _clean_source_text(text: str) -> str:
+    """Clean source text for better readability."""
+    # Replace multiple whitespace with single space
+    text = re.sub(r'\s+', ' ', text)
+    # Remove X marks from tables
+    text = re.sub(r'\bX\b', '', text)
+    # Trim
+    return text.strip()[:300]
+
+
+def _extract_titration_schedule(text: str) -> Optional[str]:
+    """Extract titration/escalation schedule from text."""
+    text_lower = text.lower()
+    
+    # Titration patterns
+    patterns = [
+        r'(titrat\w+[^.]{10,100}\.)',  # "Titration... ."
+        r'(dose\s+escalat\w+[^.]{10,100}\.)',  # "Dose escalation... ."
+        r'(increas\w+\s+(?:by|to)\s+\d+\s*(?:mg|mcg)[^.]{5,80}\.)',  # "Increase by/to X mg..."
+        r'(start\w*\s+(?:at|with)\s+\d+\s*(?:mg|mcg)[^.]{5,80}\.)',  # "Start at/with X mg..."
+        r'(adjust\w*\s+(?:to|by)\s+\d+\s*(?:mg|mcg)[^.]{5,80}\.)',  # "Adjust to/by X mg..."
+        r'(target\s+dose[^.]{5,80}\.)',  # "Target dose..."
+        r'(maintenance\s+dose[^.]{5,80}\.)',  # "Maintenance dose..."
+    ]
+    
+    for pattern in patterns:
+        match = re.search(pattern, text_lower)
+        if match:
+            return match.group(1).strip().capitalize()
+    
+    return None
+
+
+def _extract_dose_modifications(text: str) -> List[str]:
+    """Extract dose modification rules from text."""
+    modifications = []
+    text_lower = text.lower()
+    
+    # Modification patterns
+    patterns = [
+        r'(reduce\s+(?:dose|by)[^.]{10,100}\.)',  # "Reduce dose/by..."
+        r'(discontinue[^.]{10,100}\.)',  # "Discontinue..."
+        r'(hold\s+(?:dose|treatment)[^.]{10,100}\.)',  # "Hold dose..."
+        r'(if\s+(?:adverse|toxicity|intoleran)[^.]{10,100}\.)',  # Conditional modifications
+        r'(dose\s+reduction[^.]{10,100}\.)',  # "Dose reduction..."
+        r'(renal\s+(?:impairment|insufficiency)[^.]{10,100}\.)',  # Renal-based
+        r'(hepatic\s+(?:impairment|insufficiency)[^.]{10,100}\.)',  # Hepatic-based
+    ]
+    
+    for pattern in patterns:
+        match = re.search(pattern, text_lower)
+        if match:
+            mod = match.group(1).strip().capitalize()
+            if mod not in modifications:
+                modifications.append(mod)
+    
+    return modifications[:5]  # Limit to 5
 
 
 def _extract_regimens_heuristic(text: str) -> List[DosingRegimen]:
@@ -291,6 +398,12 @@ def _extract_regimens_heuristic(text: str) -> List[DosingRegimen]:
         # Detect duration
         duration = _detect_duration(context)
         
+        # Detect titration schedule
+        titration = _extract_titration_schedule(context)
+        
+        # Detect dose modifications
+        modifications = _extract_dose_modifications(context)
+        
         # Create dose level
         dose_levels = [DoseLevel(
             amount=dose_amount,
@@ -303,6 +416,16 @@ def _extract_regimens_heuristic(text: str) -> List[DosingRegimen]:
             if amt != dose_amount:
                 dose_levels.append(DoseLevel(amount=amt, unit=dose_unit))
         
+        # Find max/min doses if present
+        max_dose = None
+        min_dose = None
+        max_match = re.search(r'max(?:imum)?\s+(?:dose\s+)?(?:of\s+)?(\d+(?:\.\d+)?)\s*' + re.escape(dose_unit), context, re.IGNORECASE)
+        min_match = re.search(r'min(?:imum)?\s+(?:dose\s+)?(?:of\s+)?(\d+(?:\.\d+)?)\s*' + re.escape(dose_unit), context, re.IGNORECASE)
+        if max_match:
+            max_dose = float(max_match.group(1))
+        if min_match:
+            min_dose = float(min_match.group(1))
+        
         regimen = DosingRegimen(
             id=f"dosing_{regimen_id}",
             treatment_name=treatment_name,
@@ -310,7 +433,11 @@ def _extract_regimens_heuristic(text: str) -> List[DosingRegimen]:
             frequency=frequency,
             route=route,
             duration_description=duration,
-            source_text=context[:300],
+            titration_schedule=titration,
+            dose_modifications=modifications,
+            max_dose=max_dose,
+            min_dose=min_dose,
+            source_text=_clean_source_text(context),
         )
         regimens.append(regimen)
         regimen_id += 1
@@ -400,7 +527,19 @@ Return JSON format:
 Extract all distinct treatment regimens. Return valid JSON only."""
 
     try:
-        response = call_llm(prompt, model_name=model)
+        result = call_llm(prompt, model_name=model)
+        
+        # Extract response text from dict
+        if isinstance(result, dict):
+            if 'error' in result:
+                logger.warning(f"LLM call error: {result['error']}")
+                return []
+            response = result.get('response', '')
+        else:
+            response = str(result)
+        
+        if not response:
+            return []
         
         # Parse JSON from response
         json_match = re.search(r'\{[\s\S]*\}', response)
@@ -414,10 +553,17 @@ Extract all distinct treatment regimens. Return valid JSON only."""
             # Parse doses
             dose_levels = []
             for dose in item.get('doses', []):
+                # Handle dose ranges like '750-1500'
+                amount, max_amount = _parse_dose_amount(dose.get('amount', 0))
+                description = dose.get('description')
+                if max_amount is not None:
+                    # Add range info to description
+                    range_desc = f"{amount}-{max_amount} {dose.get('unit', 'mg')}"
+                    description = f"{range_desc}" if not description else f"{range_desc}: {description}"
                 dose_levels.append(DoseLevel(
-                    amount=float(dose.get('amount', 0)),
+                    amount=amount,
                     unit=dose.get('unit', 'mg'),
-                    description=dose.get('description'),
+                    description=description,
                 ))
             
             # Parse frequency
