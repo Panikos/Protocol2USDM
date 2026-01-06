@@ -39,11 +39,11 @@ class NarrativeExtractionResult:
 
 def find_structure_pages(
     pdf_path: str,
-    max_pages: int = 20,
+    max_pages: int = 30,
 ) -> List[int]:
     """
     Find pages containing document structure (TOC, abbreviations).
-    Usually in the first 10-20 pages.
+    Usually in the first 10-20 pages, but SoA abbreviations may be on page 16+.
     """
     import fitz
     
@@ -51,9 +51,11 @@ def find_structure_pages(
         r'table\s+of\s+contents',
         r'list\s+of\s+abbreviations',
         r'abbreviations?\s+and\s+definitions?',
+        r'abbreviations\s*:',  # SoA table abbreviations format
         r'glossary',
         r'synopsis',
         r'protocol\s+summary',
+        r'schedule\s+of\s+activities',  # Include SoA pages for abbreviations
     ]
     
     pattern = re.compile('|'.join(structure_keywords), re.IGNORECASE)
