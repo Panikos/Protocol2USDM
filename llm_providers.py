@@ -255,6 +255,9 @@ class GeminiProvider(LLMProvider):
         'gemini-3-pro': 'gemini-3-pro-preview',
     }
     
+    # Models that are only available via AI Studio (not Vertex AI yet)
+    AI_STUDIO_ONLY_MODELS = ['gemini-3-flash', 'gemini-3-pro', 'gemini-3-flash-preview', 'gemini-3-pro-preview']
+    
     # Safety settings: disable all safety filters for clinical content
     SAFETY_SETTINGS = {
         HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
@@ -266,8 +269,11 @@ class GeminiProvider(LLMProvider):
     def __init__(self, model: str, api_key: Optional[str] = None):
         super().__init__(model, api_key)
         
-        # Check for Vertex AI configuration
-        self.use_vertex = bool(os.environ.get("GOOGLE_CLOUD_PROJECT"))
+        # Check for Vertex AI configuration (but Gemini 3 models need AI Studio)
+        has_vertex_config = bool(os.environ.get("GOOGLE_CLOUD_PROJECT"))
+        is_ai_studio_only = model in self.AI_STUDIO_ONLY_MODELS
+        
+        self.use_vertex = has_vertex_config and not is_ai_studio_only
         
         if self.use_vertex:
             # Configure for Vertex AI
@@ -276,18 +282,15 @@ class GeminiProvider(LLMProvider):
             location = os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1")
             vertexai.init(project=project, location=location)
         else:
-            # Configure for Google AI Studio
+            # Configure for Google AI Studio (required for Gemini 3 models)
             genai.configure(api_key=self.api_key)
     
     def _get_api_key_from_env(self) -> str:
-        """Get Google API key from environment (for AI Studio fallback)."""
-        # Vertex AI uses ADC, not API key
-        if os.environ.get("GOOGLE_CLOUD_PROJECT"):
-            return "vertex-ai"  # Placeholder, uses ADC
-        
+        """Get Google API key from environment."""
+        # Always need API key for AI Studio (including Gemini 3 models)
         api_key = os.environ.get("GOOGLE_API_KEY")
         if not api_key:
-            raise ValueError("GOOGLE_API_KEY environment variable not set (or use GOOGLE_CLOUD_PROJECT for Vertex AI)")
+            raise ValueError("GOOGLE_API_KEY environment variable not set")
         return api_key
     
     def supports_json_mode(self) -> bool:
