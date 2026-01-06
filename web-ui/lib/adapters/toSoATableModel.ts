@@ -1,6 +1,7 @@
 import type { 
   USDMStudyDesign, 
   USDMActivity, 
+  USDMActivityGroup,
   USDMEncounter, 
   USDMEpoch,
   USDMScheduleTimeline,
@@ -34,6 +35,9 @@ export interface SoACell {
   visitId: string;
   mark: 'X' | 'Xa' | 'Xb' | 'O' | '' | null;
   footnoteRefs: string[];
+  instanceName?: string;  // Human-readable instance name (e.g., "Blood Draw @ Day 1")
+  timingId?: string;      // Link to timing entity
+  epochId?: string;       // Link to epoch entity
   provenance: {
     source: CellSource;
     needsReview: boolean;
@@ -71,6 +75,7 @@ export function toSoATableModel(
 
   // Extract components
   const activities = studyDesign.activities ?? [];
+  const activityGroups = studyDesign.activityGroups ?? [];
   const encounters = studyDesign.encounters ?? [];
   const epochs = studyDesign.epochs ?? [];
   const scheduleTimelines = studyDesign.scheduleTimelines ?? [];
@@ -83,20 +88,119 @@ export function toSoATableModel(
   const rowOrder = overlay?.table.rowOrder ?? [];
   const orderedActivities = orderItems(activities, rowOrder, 'id');
   
-  // Identify parent activities (those with childIds)
+  // Build activity to group mapping from activityGroups
+  const activityToGroup = new Map<string, USDMActivityGroup>();
+  for (const group of activityGroups) {
+    for (const activityId of group.activityIds ?? []) {
+      activityToGroup.set(activityId, group);
+    }
+  }
+
+  // Also check for parent activities with childIds (legacy format)
   const allChildIds = new Set<string>();
   activities.forEach(a => {
     if (a.childIds) {
       a.childIds.forEach(id => allChildIds.add(id));
     }
   });
-
-  // Build row groups from parent activities
   const parentActivities = activities.filter(a => a.childIds && a.childIds.length > 0);
-  
+
   let rowIndex = 0;
-  if (parentActivities.length > 0) {
-    // Hierarchical structure
+  
+  // Build activity to group mapping from multiple sources
+  // 1. activityGroupId on activity
+  // 2. activityIds on group
+  // 3. extensionAttributes with group info
+  const activityIdToGroupId = new Map<string, string>();
+  
+  // Strategy 1: Check activityGroupId on each activity
+  for (const activity of activities) {
+    const groupId = (activity as Record<string, unknown>).activityGroupId as string | undefined;
+    if (groupId) {
+      activityIdToGroupId.set(activity.id, groupId);
+    }
+  }
+  
+  // Strategy 2: Check activityIds/childIds on each group
+  for (const group of activityGroups) {
+    // Support both activityIds (legacy) and childIds (USDM format)
+    const groupActivityIds = group.activityIds ?? group.childIds ?? [];
+    for (const activityId of groupActivityIds) {
+      activityIdToGroupId.set(activityId, group.id);
+    }
+  }
+  
+  // Strategy 3: Check extensionAttributes for group info
+  for (const activity of activities) {
+    if (activityIdToGroupId.has(activity.id)) continue;
+    const exts = (activity as Record<string, unknown>).extensionAttributes as Array<{url?: string; valueString?: string}> | undefined;
+    if (exts) {
+      for (const ext of exts) {
+        if (ext.url?.includes('activityGroup') && ext.valueString) {
+          // Find matching group by name
+          const matchingGroup = activityGroups.find(g => 
+            g.name.toLowerCase() === ext.valueString?.toLowerCase() ||
+            g.id === ext.valueString
+          );
+          if (matchingGroup) {
+            activityIdToGroupId.set(activity.id, matchingGroup.id);
+          }
+        }
+      }
+    }
+  }
+  
+  // Use activityGroups if available, otherwise fall back to parent activities
+  if (activityGroups.length > 0) {
+    // Group-based structure from activityGroups
+    const groupedActivityIds = new Set<string>();
+    const groupIdMap = new Map(activityGroups.map(g => [g.id, g]));
+    
+    // First, build groups with their activities
+    for (const group of activityGroups) {
+      // Find all activities that belong to this group
+      const groupActivityIds: string[] = [];
+      for (const [actId, grpId] of activityIdToGroupId) {
+        if (grpId === group.id) {
+          groupActivityIds.push(actId);
+        }
+      }
+      
+      model.rowGroups.push({
+        id: group.id,
+        name: group.name,
+        activityIds: groupActivityIds.length > 0 ? groupActivityIds : (group.activityIds ?? group.childIds ?? []),
+      });
+
+      for (const activityId of groupActivityIds) {
+        const activity = activityMap.get(activityId);
+        if (activity) {
+          model.rows.push({
+            id: activity.id,
+            name: activity.label ?? activity.name,
+            groupId: group.id,
+            groupName: group.name,
+            order: rowIndex++,
+            isGroup: false,
+          });
+          groupedActivityIds.add(activityId);
+        }
+      }
+    }
+    
+    // Add ungrouped activities at the end
+    for (const activity of orderedActivities) {
+      if (!groupedActivityIds.has(activity.id) && !allChildIds.has(activity.id)) {
+        model.rows.push({
+          id: activity.id,
+          name: activity.label ?? activity.name,
+          order: rowIndex++,
+          isGroup: false,
+        });
+      }
+    }
+  } else if (parentActivities.length > 0) {
+    // Legacy: Hierarchical structure from parent activities with childIds
     for (const parent of parentActivities) {
       const groupName = parent.label ?? parent.name;
       model.rowGroups.push({
@@ -176,7 +280,8 @@ export function toSoATableModel(
   for (const row of model.rows) {
     for (const col of model.columns) {
       const key = cellKey(row.id, col.id);
-      const hasLink = activityEncounterLinks.has(key);
+      const instanceMeta = activityEncounterLinks.get(key);
+      const hasLink = instanceMeta !== undefined;
       
       // Get provenance for this cell - check both formats
       // New format: provenance.cells["activityId|encounterId"]
@@ -197,6 +302,9 @@ export function toSoATableModel(
         visitId: col.id,
         mark: hasLink ? 'X' : null,
         footnoteRefs: Array.isArray(footnoteRefs) ? footnoteRefs : [],
+        instanceName: instanceMeta?.name,
+        timingId: instanceMeta?.timingId,
+        epochId: instanceMeta?.epochId,
         provenance: {
           source: cellProv ?? (hasLink ? 'none' : 'none'),
           needsReview: cellProv === 'needs_review' || cellProv === 'vision' || 
@@ -209,11 +317,18 @@ export function toSoATableModel(
   return model;
 }
 
-// Extract activity-encounter links from scheduleTimelines
+// Instance metadata for enhanced cell display
+interface InstanceMeta {
+  name?: string;
+  timingId?: string;
+  epochId?: string;
+}
+
+// Extract activity-encounter links from scheduleTimelines with metadata
 function extractActivityEncounterLinks(
   scheduleTimelines: USDMScheduleTimeline[]
-): Set<string> {
-  const links = new Set<string>();
+): Map<string, InstanceMeta> {
+  const links = new Map<string, InstanceMeta>();
 
   for (const timeline of scheduleTimelines) {
     for (const instance of timeline.instances ?? []) {
@@ -227,7 +342,12 @@ function extractActivityEncounterLinks(
         (instance.activityId ? [instance.activityId] : []);
       
       for (const actId of activityIds) {
-        links.add(cellKey(actId, encounterId));
+        const key = cellKey(actId, encounterId);
+        links.set(key, {
+          name: instance.name,
+          timingId: instance.timingId,
+          epochId: instance.epochId,
+        });
       }
     }
   }

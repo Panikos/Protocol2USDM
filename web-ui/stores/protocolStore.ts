@@ -14,11 +14,21 @@ export interface USDMStudyVersion {
   studyDesigns: USDMStudyDesign[];
 }
 
+export interface USDMActivityGroup {
+  id: string;
+  name: string;
+  instanceType?: string;
+  activityIds?: string[];  // Legacy format
+  childIds?: string[];     // USDM format (ActivityGroup uses childIds)
+  [key: string]: unknown;
+}
+
 export interface USDMStudyDesign {
   id: string;
   name: string;
   instanceType: string;
   activities?: USDMActivity[];
+  activityGroups?: USDMActivityGroup[];
   encounters?: USDMEncounter[];
   epochs?: USDMEpoch[];
   scheduleTimelines?: USDMScheduleTimeline[];
