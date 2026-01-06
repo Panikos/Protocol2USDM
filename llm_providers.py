@@ -323,27 +323,30 @@ class GeminiProvider(LLMProvider):
             return self._generate_ai_studio(full_prompt, gen_config_dict)
     
     def _generate_vertex(self, prompt: str, gen_config_dict: dict) -> LLMResponse:
-        """Generate using Vertex AI."""
-        from vertexai.generative_models import GenerativeModel, GenerationConfig, HarmCategory as VHarmCategory, HarmBlockThreshold as VHarmBlockThreshold
+        """Generate using Vertex AI with safety controls disabled."""
+        from vertexai.generative_models import GenerativeModel, GenerationConfig, HarmCategory, HarmBlockThreshold
         
         generation_config = GenerationConfig(**gen_config_dict)
         
-        # Vertex AI safety settings
+        # Vertex AI safety settings - BLOCK_NONE for medical/clinical content
+        # Reference: https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/configure-safety-filters
         safety_settings = {
-            VHarmCategory.HARM_CATEGORY_HARASSMENT: VHarmBlockThreshold.OFF,
-            VHarmCategory.HARM_CATEGORY_HATE_SPEECH: VHarmBlockThreshold.OFF,
-            VHarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: VHarmBlockThreshold.OFF,
-            VHarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: VHarmBlockThreshold.OFF,
+            HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+            HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
+            HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
+            HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
         }
         
-        model = GenerativeModel(
-            self.model,
-            generation_config=generation_config,
-            safety_settings=safety_settings,
-        )
+        # Create model instance (safety_settings passed to generate_content, not constructor)
+        model = GenerativeModel(self.model)
         
         try:
-            response = model.generate_content(prompt)
+            # Pass safety_settings to generate_content() per Vertex AI pattern
+            response = model.generate_content(
+                prompt,
+                generation_config=generation_config,
+                safety_settings=safety_settings,
+            )
             
             usage = None
             if hasattr(response, 'usage_metadata') and response.usage_metadata:
