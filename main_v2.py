@@ -1607,6 +1607,45 @@ def combine_to_full_usdm(
                 study_design["activities"] = reconciled_activities
                 logger.info(f"  ✓ Reconciled {len(reconciled_activities)} activities")
                 
+                # Update activityGroups.childIds to point to reconciled activity IDs
+                # Build mapping from activity name to new ID
+                activity_name_to_new_id = {}
+                for act in reconciled_activities:
+                    act_name = act.get('name', '').lower().strip()
+                    if act_name:
+                        activity_name_to_new_id[act_name] = act.get('id')
+                
+                # Update childIds in each group
+                activity_groups = study_design.get('activityGroups', [])
+                for group in activity_groups:
+                    old_child_ids = group.get('childIds', [])
+                    new_child_ids = []
+                    
+                    # Also get activityNames from group for matching
+                    group_activity_names = group.get('activityNames', [])
+                    
+                    # Strategy 1: Map old childIds to new IDs via name matching
+                    for old_id in old_child_ids:
+                        # Find the activity with this old ID in original soa_activities
+                        matched_name = None
+                        for orig_act in soa_activities:
+                            if orig_act.get('id') == old_id:
+                                matched_name = orig_act.get('name', '').lower().strip()
+                                break
+                        
+                        if matched_name and matched_name in activity_name_to_new_id:
+                            new_child_ids.append(activity_name_to_new_id[matched_name])
+                    
+                    # Strategy 2: If no matches, try matching by activityNames from header
+                    if not new_child_ids and group_activity_names:
+                        for act_name in group_activity_names:
+                            act_name_lower = act_name.lower().strip()
+                            if act_name_lower in activity_name_to_new_id:
+                                new_child_ids.append(activity_name_to_new_id[act_name_lower])
+                    
+                    if new_child_ids:
+                        group['childIds'] = new_child_ids
+                
     except Exception as e:
         logger.warning(f"  ⚠ Entity reconciliation skipped: {e}")
     
