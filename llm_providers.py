@@ -15,6 +15,7 @@ from dataclasses import dataclass
 import os
 from openai import OpenAI
 import google.generativeai as genai
+from google.generativeai.types import HarmCategory, HarmBlockThreshold
 import anthropic
 
 
@@ -215,15 +216,20 @@ class GeminiProvider(LLMProvider):
     """
     Google Gemini provider supporting Gemini 1.5, 2.x, and 3.x models.
     
+    Routes through Vertex AI when GOOGLE_CLOUD_PROJECT is set.
+    All safety controls are disabled for clinical protocol extraction.
+    
     Features:
     - Native JSON mode (response_mime_type)
     - Long context windows
     - Multimodal support
+    - Vertex AI routing (enterprise)
+    - Safety controls disabled
     """
     
     SUPPORTED_MODELS = [
-        # Gemini 3.x (preview)
-        'gemini-3-pro-preview',
+        # Gemini 3.x
+        'gemini-3-pro', 'gemini-3-flash', 'gemini-3-pro-preview', 'gemini-3-flash-preview',
         # Gemini 2.5 (stable)
         'gemini-2.5-pro', 'gemini-2.5-flash',
         # Gemini 2.0
@@ -235,15 +241,39 @@ class GeminiProvider(LLMProvider):
         'gemini-pro', 'gemini-pro-vision',
     ]
     
+    # Safety settings: disable all safety filters for clinical content
+    SAFETY_SETTINGS = {
+        HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+        HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+        HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
+        HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
+    }
+    
     def __init__(self, model: str, api_key: Optional[str] = None):
         super().__init__(model, api_key)
-        genai.configure(api_key=self.api_key)
+        
+        # Check for Vertex AI configuration
+        self.use_vertex = bool(os.environ.get("GOOGLE_CLOUD_PROJECT"))
+        
+        if self.use_vertex:
+            # Configure for Vertex AI
+            import vertexai
+            project = os.environ.get("GOOGLE_CLOUD_PROJECT")
+            location = os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1")
+            vertexai.init(project=project, location=location)
+        else:
+            # Configure for Google AI Studio
+            genai.configure(api_key=self.api_key)
     
     def _get_api_key_from_env(self) -> str:
-        """Get Google API key from environment."""
+        """Get Google API key from environment (for AI Studio fallback)."""
+        # Vertex AI uses ADC, not API key
+        if os.environ.get("GOOGLE_CLOUD_PROJECT"):
+            return "vertex-ai"  # Placeholder, uses ADC
+        
         api_key = os.environ.get("GOOGLE_API_KEY")
         if not api_key:
-            raise ValueError("GOOGLE_API_KEY environment variable not set")
+            raise ValueError("GOOGLE_API_KEY environment variable not set (or use GOOGLE_CLOUD_PROJECT for Vertex AI)")
         return api_key
     
     def supports_json_mode(self) -> bool:
@@ -256,7 +286,7 @@ class GeminiProvider(LLMProvider):
         config: Optional[LLMConfig] = None
     ) -> LLMResponse:
         """
-        Generate completion using Gemini API.
+        Generate completion using Gemini API (Vertex AI or AI Studio).
         
         Args:
             messages: List of message dicts with 'role' and 'content'
@@ -284,24 +314,37 @@ class GeminiProvider(LLMProvider):
         if config.json_mode and self.supports_json_mode():
             gen_config_dict["response_mime_type"] = "application/json"
         
-        generation_config = genai.types.GenerationConfig(**gen_config_dict)
-        
         # Convert messages to Gemini format
-        # Gemini expects a single prompt string, not message history
-        # Combine system and user messages
         full_prompt = self._format_messages_for_gemini(messages)
         
-        # Create model instance
-        model = genai.GenerativeModel(
+        if self.use_vertex:
+            return self._generate_vertex(full_prompt, gen_config_dict)
+        else:
+            return self._generate_ai_studio(full_prompt, gen_config_dict)
+    
+    def _generate_vertex(self, prompt: str, gen_config_dict: dict) -> LLMResponse:
+        """Generate using Vertex AI."""
+        from vertexai.generative_models import GenerativeModel, GenerationConfig, HarmCategory as VHarmCategory, HarmBlockThreshold as VHarmBlockThreshold
+        
+        generation_config = GenerationConfig(**gen_config_dict)
+        
+        # Vertex AI safety settings
+        safety_settings = {
+            VHarmCategory.HARM_CATEGORY_HARASSMENT: VHarmBlockThreshold.OFF,
+            VHarmCategory.HARM_CATEGORY_HATE_SPEECH: VHarmBlockThreshold.OFF,
+            VHarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: VHarmBlockThreshold.OFF,
+            VHarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: VHarmBlockThreshold.OFF,
+        }
+        
+        model = GenerativeModel(
             self.model,
-            generation_config=generation_config
+            generation_config=generation_config,
+            safety_settings=safety_settings,
         )
         
-        # Make API call
         try:
-            response = model.generate_content(full_prompt)
+            response = model.generate_content(prompt)
             
-            # Extract usage information (if available)
             usage = None
             if hasattr(response, 'usage_metadata') and response.usage_metadata:
                 usage = {
@@ -319,7 +362,39 @@ class GeminiProvider(LLMProvider):
             )
         
         except Exception as e:
-            raise RuntimeError(f"Gemini API call failed for model '{self.model}': {e}")
+            raise RuntimeError(f"Vertex AI Gemini call failed for model '{self.model}': {e}")
+    
+    def _generate_ai_studio(self, prompt: str, gen_config_dict: dict) -> LLMResponse:
+        """Generate using Google AI Studio (fallback)."""
+        generation_config = genai.types.GenerationConfig(**gen_config_dict)
+        
+        model = genai.GenerativeModel(
+            self.model,
+            generation_config=generation_config,
+            safety_settings=self.SAFETY_SETTINGS,
+        )
+        
+        try:
+            response = model.generate_content(prompt)
+            
+            usage = None
+            if hasattr(response, 'usage_metadata') and response.usage_metadata:
+                usage = {
+                    "prompt_tokens": response.usage_metadata.prompt_token_count,
+                    "completion_tokens": response.usage_metadata.candidates_token_count,
+                    "total_tokens": response.usage_metadata.total_token_count
+                }
+            
+            return LLMResponse(
+                content=response.text,
+                model=self.model,
+                usage=usage,
+                finish_reason=str(response.candidates[0].finish_reason) if response.candidates else None,
+                raw_response=response
+            )
+        
+        except Exception as e:
+            raise RuntimeError(f"Gemini AI Studio call failed for model '{self.model}': {e}")
     
     def _format_messages_for_gemini(self, messages: List[Dict[str, str]]) -> str:
         """
