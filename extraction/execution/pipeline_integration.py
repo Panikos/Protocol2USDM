@@ -33,6 +33,7 @@ from .stratification_extractor import extract_stratification
 from .entity_resolver import EntityResolver, EntityResolutionContext, create_resolution_context_from_design
 from .reconciliation_layer import ReconciliationLayer, reconcile_usdm_with_execution_model
 from .soa_context import SoAContext, extract_soa_context
+from .execution_model_promoter import ExecutionModelPromoter, promote_execution_model
 
 logger = logging.getLogger(__name__)
 
@@ -89,12 +90,14 @@ def extract_execution_model(
     if soa_context.has_epochs() or soa_context.has_encounters():
         logger.info(f"SoA context available: {soa_context.get_summary()}")
     
-    # 1. Extract time anchors
+    # 1. Extract time anchors (with SoA context for better resolution)
     logger.info("Step 1/10: Extracting time anchors...")
     anchor_result = extract_time_anchors(
         pdf_path=pdf_path,
         model=model,
         use_llm=enable_llm,
+        existing_encounters=soa_context.encounters if soa_context.has_encounters() else None,
+        existing_epochs=soa_context.epochs if soa_context.has_epochs() else None,
     )
     
     if anchor_result.success:
@@ -104,12 +107,14 @@ def extract_execution_model(
         logger.warning(f"  ✗ Time anchor extraction failed: {anchor_result.error}")
         errors.append(f"TimeAnchor: {anchor_result.error}")
     
-    # 2. Extract repetitions
+    # 2. Extract repetitions (with SoA context for activity binding)
     logger.info("Step 2/10: Extracting repetition patterns...")
     repetition_result = extract_repetitions(
         pdf_path=pdf_path,
         model=model,
         use_llm=enable_llm,
+        existing_activities=soa_context.activities if soa_context.has_activities() else None,
+        existing_encounters=soa_context.encounters if soa_context.has_encounters() else None,
     )
     
     if repetition_result.success:
@@ -241,6 +246,7 @@ def extract_execution_model(
         traversal=traversal_for_sm,
         crossover=crossover_for_sm,
         use_llm=enable_llm,
+        existing_epochs=soa_context.epochs if soa_context else None,
     )
     
     if state_machine_result.success and state_machine_result.data.state_machine:
@@ -250,12 +256,14 @@ def extract_execution_model(
     else:
         logger.info("  ○ No state machine generated")
     
-    # 10. Extract dosing regimens (Phase 4)
+    # 10. Extract dosing regimens (Phase 4) - with SoA context for intervention binding
     logger.info("Step 10/13: Extracting dosing regimens...")
     dosing_result = extract_dosing_regimens(
         pdf_path=pdf_path,
         model=model,
         use_llm=enable_llm,
+        existing_interventions=None,  # Will be populated from pipeline_context when available
+        existing_arms=soa_context.arms if soa_context.arms else None,
     )
     
     if dosing_result.success and dosing_result.data.dosing_regimens:
@@ -481,6 +489,37 @@ def enrich_usdm_with_execution_model(
         except Exception as e:
             logger.warning(f"Reconciliation layer failed: {e}")
         
+        # NEW: Promote execution model to core USDM (not just extensions)
+        # This ensures downstream consumers can use core USDM without parsing extensions
+        try:
+            # Get study_version for Administration entities
+            study_version = None
+            if 'study' in enriched and 'versions' in enriched['study']:
+                study_version = enriched['study']['versions'][0]
+            
+            if study_version:
+                promoted_design, promoted_version, promotion_result = promote_execution_model(
+                    design, study_version, execution_data
+                )
+                design.update(promoted_design)
+                study_version.update(promoted_version)
+                
+                if promotion_result.anchors_created > 0 or promotion_result.instances_created > 0:
+                    logger.info(f"  Promoted to core: {promotion_result.anchors_created} anchors, "
+                               f"{promotion_result.instances_created} instances, "
+                               f"{promotion_result.administrations_created} administrations")
+                
+                if promotion_result.references_fixed > 0:
+                    logger.info(f"  Fixed {promotion_result.references_fixed} dangling timing references")
+                
+                # Store any promotion issues
+                if promotion_result.issues:
+                    design.setdefault('extensionAttributes', []).append(_create_extension_attribute(
+                        "x-executionModel-promotionIssues", promotion_result.issues
+                    ))
+        except Exception as e:
+            logger.warning(f"Execution model promotion failed: {e}")
+        
         # Add all execution extensions (remaining data not promoted to core)
         _add_execution_extensions(design, execution_data)
         
@@ -533,14 +572,16 @@ def _resolve_to_epoch_id(
         return new_epoch['id']
     
     if label_upper in ['EARLY_TERMINATION', 'ET', 'DISCONTINUED', 'WITHDRAWAL']:
-        new_epoch = _create_terminal_epoch('epoch_early_termination', 'Early Termination')
-        if 'epochs' not in design:
-            design['epochs'] = []
-        existing = [e for e in design['epochs'] if 'early_termination' in e.get('id', '').lower()]
+        # Check if already exists in SoA epochs - don't create if not present
+        # SoA header_structure is authoritative for epochs
+        existing = [e for e in design.get('epochs', []) 
+                   if 'early_termination' in e.get('id', '').lower() 
+                   or 'early termination' in e.get('name', '').lower()]
         if existing:
             return existing[0]['id']
-        design['epochs'].append(new_epoch)
-        return new_epoch['id']
+        # Don't create new terminal epochs - SoA is authoritative
+        logger.debug(f"Skipping creation of 'Early Termination' epoch - not in SoA")
+        return None
     
     # Fuzzy match existing epochs
     for epoch in design.get('epochs', []):
@@ -651,7 +692,10 @@ def _create_abstract_epoch(epoch_id: str, epoch_name: str) -> Dict[str, Any]:
     }
 
 
-def _create_extension_attribute(name: str, value: Any) -> Dict[str, Any]:
+def _create_extension_attribute(
+    name: str,
+    value: Any,
+) -> Dict[str, Any]:
     """
     Create a properly formatted USDM ExtensionAttribute per official schema.
     
@@ -687,11 +731,136 @@ def _create_extension_attribute(name: str, value: Any) -> Dict[str, Any]:
     return ext
 
 
+def _set_canonical_extension(
+    design: Dict[str, Any],
+    name: str,
+    value: Any,
+) -> None:
+    """
+    Set a CANONICAL extension attribute, replacing any existing instance.
+    
+    This enforces exactly ONE instance per extension type, addressing the
+    duplication issue where multiple copies of the same extension were created.
+    
+    Args:
+        design: StudyDesign dict to modify
+        name: Extension name (e.g., "x-executionModel-stateMachine")
+        value: Value to set (will be serialized appropriately)
+    """
+    if 'extensionAttributes' not in design:
+        design['extensionAttributes'] = []
+    
+    url = f"https://protocol2usdm.io/extensions/{name}"
+    
+    # Remove any existing extension with this URL
+    design['extensionAttributes'] = [
+        ext for ext in design['extensionAttributes']
+        if ext.get('url') != url
+    ]
+    
+    # Add the canonical instance
+    design['extensionAttributes'].append(_create_extension_attribute(name, value))
+
+
+def _validate_dosing_regimen(regimen: Dict[str, Any]) -> bool:
+    """
+    Validate a dosing regimen to filter out sentence fragments and invalid entries.
+    
+    This acts as a GATEKEEPER to prevent garbage like "for the", "day and",
+    "mg and" from being treated as dosing regimens.
+    
+    Returns True if the regimen is valid, False if it should be discarded.
+    """
+    # Must have a treatment name
+    treatment_name = regimen.get('treatmentName', '') or regimen.get('treatment_name', '')
+    if not treatment_name:
+        return False
+    
+    # Treatment name must be substantial (not a fragment)
+    if len(treatment_name.strip()) < 3:
+        return False
+    
+    # Reject common sentence fragments
+    STOPWORD_PATTERNS = [
+        r'^(for|the|and|or|to|of|in|on|at|by|with|from|as|is|are|was|were)\s',
+        r'^\s*(for|the|and|or|to|of)$',
+        r'^\d+\s*(mg|ml|mcg|g|kg)\s*(and|or)?$',
+        r'^(day|week|month)\s*(and|or)?',
+        r'^\s*$',
+    ]
+    
+    import re
+    name_lower = treatment_name.lower().strip()
+    for pattern in STOPWORD_PATTERNS:
+        if re.match(pattern, name_lower, re.IGNORECASE):
+            logger.debug(f"Filtering invalid dosing regimen: '{treatment_name}'")
+            return False
+    
+    # Must have at least one of: dose, frequency, or route
+    has_dose = bool(regimen.get('dose') or regimen.get('doseLevels') or regimen.get('dose_levels'))
+    has_frequency = bool(regimen.get('frequency'))
+    has_route = bool(regimen.get('route'))
+    
+    if not (has_dose or has_frequency or has_route):
+        logger.debug(f"Filtering incomplete dosing regimen: '{treatment_name}'")
+        return False
+    
+    return True
+
+
+def _consolidate_dosing_regimens(regimens: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Consolidate dosing regimens: validate, deduplicate, and merge fragments.
+    
+    This ensures exactly ONE canonical regimen per intervention per arm.
+    """
+    if not regimens:
+        return []
+    
+    # First pass: filter out invalid regimens
+    valid_regimens = [r for r in regimens if _validate_dosing_regimen(r)]
+    
+    if len(valid_regimens) < len(regimens):
+        logger.info(f"Filtered {len(regimens) - len(valid_regimens)} invalid dosing regimens")
+    
+    # Second pass: deduplicate by treatment name
+    seen = {}
+    for regimen in valid_regimens:
+        treatment_name = (regimen.get('treatmentName') or regimen.get('treatment_name', '')).strip().lower()
+        
+        if treatment_name not in seen:
+            seen[treatment_name] = regimen
+        else:
+            # Merge: keep the one with more complete information
+            existing = seen[treatment_name]
+            existing_score = sum([
+                bool(existing.get('dose') or existing.get('doseLevels')),
+                bool(existing.get('frequency')),
+                bool(existing.get('route')),
+                bool(existing.get('armId') or existing.get('arm_id')),
+            ])
+            new_score = sum([
+                bool(regimen.get('dose') or regimen.get('doseLevels')),
+                bool(regimen.get('frequency')),
+                bool(regimen.get('route')),
+                bool(regimen.get('armId') or regimen.get('arm_id')),
+            ])
+            if new_score > existing_score:
+                seen[treatment_name] = regimen
+    
+    consolidated = list(seen.values())
+    if len(consolidated) < len(valid_regimens):
+        logger.info(f"Consolidated {len(valid_regimens)} -> {len(consolidated)} dosing regimens")
+    
+    return consolidated
+
+
 def _add_execution_extensions(
     design: Dict[str, Any],
     execution_data: ExecutionModelData,
 ) -> None:
     """Add execution model extensions to a study design."""
+    # ... (rest of the code remains the same)
     
     # FIX A: If crossover detected, update the BASE model (not just extension)
     # This ensures downstream consumers that only read base USDM behave correctly
@@ -710,26 +879,20 @@ def _add_execution_extensions(
     if 'extensionAttributes' not in design:
         design['extensionAttributes'] = []
     
-    # Add time anchors
+    # Add time anchors (use canonical setter to prevent duplicates)
     if execution_data.time_anchors:
-        design['extensionAttributes'].append(_create_extension_attribute(
-            "x-executionModel-timeAnchors",
-            [a.to_dict() for a in execution_data.time_anchors]
-        ))
+        _set_canonical_extension(design, "x-executionModel-timeAnchors",
+            [a.to_dict() for a in execution_data.time_anchors])
     
-    # Add repetitions
+    # Add repetitions (use canonical setter to prevent duplicates)
     if execution_data.repetitions:
-        design['extensionAttributes'].append(_create_extension_attribute(
-            "x-executionModel-repetitions",
-            [r.to_dict() for r in execution_data.repetitions]
-        ))
+        _set_canonical_extension(design, "x-executionModel-repetitions",
+            [r.to_dict() for r in execution_data.repetitions])
     
-    # Add sampling constraints
+    # Add sampling constraints (use canonical setter to prevent duplicates)
     if execution_data.sampling_constraints:
-        design['extensionAttributes'].append(_create_extension_attribute(
-            "x-executionModel-samplingConstraints",
-            [s.to_dict() for s in execution_data.sampling_constraints]
-        ))
+        _set_canonical_extension(design, "x-executionModel-samplingConstraints",
+            [s.to_dict() for s in execution_data.sampling_constraints])
     
     # Add execution type classifications to activities
     if execution_data.execution_types:
@@ -808,9 +971,7 @@ def _add_execution_extensions(
                         logger.info(f"Promoted crossover {washout_name} to first-class USDM epoch")
         
         # Still store extension for full crossover details (sequences, etc.)
-        design['extensionAttributes'].append(_create_extension_attribute(
-            "x-executionModel-crossoverDesign", cd.to_dict()
-        ))
+        _set_canonical_extension(design, "x-executionModel-crossoverDesign", cd.to_dict())
     
     # Phase 2: Add traversal constraints (using LLM-based entity resolution)
     if execution_data.traversal_constraints:
@@ -905,9 +1066,7 @@ def _add_execution_extensions(
                 if step not in epoch_ids and not step.startswith('epoch_'):
                     logger.error(f"UNRESOLVED traversal step after resolution: {step}")
         
-        design['extensionAttributes'].append(_create_extension_attribute(
-            "x-executionModel-traversalConstraints", resolved_constraints
-        ))
+        _set_canonical_extension(design, "x-executionModel-traversalConstraints", resolved_constraints)
     
     # Phase 2: Add footnote conditions with resolved activity/encounter IDs
     # Also promote to native USDM by attaching as activity notes
@@ -998,9 +1157,7 @@ def _add_execution_extensions(
             
             resolved_footnotes.append(fc_dict)
         
-        design['extensionAttributes'].append(_create_extension_attribute(
-            "x-executionModel-footnoteConditions", resolved_footnotes
-        ))
+        _set_canonical_extension(design, "x-executionModel-footnoteConditions", resolved_footnotes)
         
         # Promote to native USDM: Attach conditions as notes to activities
         conditions_promoted = 0
@@ -1036,33 +1193,29 @@ def _add_execution_extensions(
                 design['notes'].append(note)
             logger.info(f"Promoted {len(protocol_wide_footnotes)} protocol-wide footnotes to StudyDesign.notes[]")
     
-    # Phase 3: Add endpoint algorithms
+    # Phase 3: Add endpoint algorithms (canonical - one per design)
     if execution_data.endpoint_algorithms:
-        design['extensionAttributes'].append(_create_extension_attribute(
-            "x-executionModel-endpointAlgorithms",
-            [ep.to_dict() for ep in execution_data.endpoint_algorithms]
-        ))
+        _set_canonical_extension(design, "x-executionModel-endpointAlgorithms",
+            [ep.to_dict() for ep in execution_data.endpoint_algorithms])
     
-    # Phase 3: Add derived variables
+    # Phase 3: Add derived variables (canonical - one per design)
     if execution_data.derived_variables:
-        design['extensionAttributes'].append(_create_extension_attribute(
-            "x-executionModel-derivedVariables",
-            [dv.to_dict() for dv in execution_data.derived_variables]
-        ))
+        _set_canonical_extension(design, "x-executionModel-derivedVariables",
+            [dv.to_dict() for dv in execution_data.derived_variables])
     
-    # Phase 3: Add state machine
+    # Phase 3: Add state machine (canonical - exactly one per design)
     if execution_data.state_machine:
-        design['extensionAttributes'].append(_create_extension_attribute(
-            "x-executionModel-stateMachine", execution_data.state_machine.to_dict()
-        ))
+        _set_canonical_extension(design, "x-executionModel-stateMachine",
+            execution_data.state_machine.to_dict())
     
     # Phase 4: Promote dosing regimens to native USDM Administration entities
     if execution_data.dosing_regimens:
-        # Also keep as extension for full details
-        design['extensionAttributes'].append(_create_extension_attribute(
-            "x-executionModel-dosingRegimens",
-            [dr.to_dict() for dr in execution_data.dosing_regimens]
-        ))
+        # CONSOLIDATION: Validate and deduplicate dosing regimens before storing
+        raw_regimens = [dr.to_dict() for dr in execution_data.dosing_regimens]
+        consolidated_regimens = _consolidate_dosing_regimens(raw_regimens)
+        
+        # Store canonical consolidated regimens (one extension, no duplicates)
+        _set_canonical_extension(design, "x-executionModel-dosingRegimens", consolidated_regimens)
         
         # Promote to native USDM: Create Administration entities and link to interventions
         promoted_administrations = []
@@ -1126,15 +1279,12 @@ def _add_execution_extensions(
         vw_output = getattr(execution_data, '_fixed_visit_windows', None)
         if vw_output is None:
             vw_output = [vw.to_dict() for vw in execution_data.visit_windows]
-        design['extensionAttributes'].append(_create_extension_attribute(
-            "x-executionModel-visitWindows", vw_output
-        ))
+        _set_canonical_extension(design, "x-executionModel-visitWindows", vw_output)
     
-    # Phase 4: Add randomization scheme
+    # Phase 4: Add randomization scheme (canonical - one per design)
     if execution_data.randomization_scheme:
-        design['extensionAttributes'].append(_create_extension_attribute(
-            "x-executionModel-randomizationScheme", execution_data.randomization_scheme.to_dict()
-        ))
+        _set_canonical_extension(design, "x-executionModel-randomizationScheme",
+            execution_data.randomization_scheme.to_dict())
     
     # FIX 1: Ensure all bound repetitions exist before processing bindings
     # Build map of existing repetitions
@@ -1189,9 +1339,7 @@ def _add_execution_extensions(
             resolved_bindings.append(ab_dict)
         
         if resolved_bindings:
-            design['extensionAttributes'].append(_create_extension_attribute(
-                "x-executionModel-activityBindings", resolved_bindings
-            ))
+            _set_canonical_extension(design, "x-executionModel-activityBindings", resolved_bindings)
     
     # FIX C: Also add bindings directly to activities for easy lookup
     if execution_data.activity_bindings:
@@ -1218,24 +1366,18 @@ def _add_execution_extensions(
     
     # FIX A: Add titration schedules (operationalized dose transitions)
     if execution_data.titration_schedules:
-        design['extensionAttributes'].append(_create_extension_attribute(
-            "x-executionModel-titrationSchedules",
-            [ts.to_dict() for ts in execution_data.titration_schedules]
-        ))
+        _set_canonical_extension(design, "x-executionModel-titrationSchedules",
+            [ts.to_dict() for ts in execution_data.titration_schedules])
     
     # FIX B: Add instance bindings (repetition → ScheduledActivityInstance)
     if execution_data.instance_bindings:
-        design['extensionAttributes'].append(_create_extension_attribute(
-            "x-executionModel-instanceBindings",
-            [ib.to_dict() for ib in execution_data.instance_bindings]
-        ))
+        _set_canonical_extension(design, "x-executionModel-instanceBindings",
+            [ib.to_dict() for ib in execution_data.instance_bindings])
     
     # FIX 3: Add analysis windows
     if execution_data.analysis_windows:
-        design['extensionAttributes'].append(_create_extension_attribute(
-            "x-executionModel-analysisWindows",
-            [aw.to_dict() for aw in execution_data.analysis_windows]
-        ))
+        _set_canonical_extension(design, "x-executionModel-analysisWindows",
+            [aw.to_dict() for aw in execution_data.analysis_windows])
 
 
 def validate_execution_model_integrity(
