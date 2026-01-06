@@ -31,6 +31,10 @@ try:
     from google import genai as genai_new
     from google.genai import types as genai_types
     HAS_GENAI_SDK = True
+    # Suppress verbose SDK logging (project/location precedence, AFC enabled messages)
+    import logging
+    logging.getLogger("google.genai").setLevel(logging.WARNING)
+    logging.getLogger("httpx").setLevel(logging.WARNING)
 except ImportError:
     HAS_GENAI_SDK = False
 
