@@ -684,31 +684,31 @@ def _detect_collection_day_anchors(text: str) -> List[TimeAnchor]:
         (r'(?:morning|am)\s+(?:of\s+)?day\s+\d+\s+to\s+(?:morning|am)\s+(?:of\s+)?day\s+\d+', 'morning_anchor'),
     ]
     
+    # Collect all source texts for CollectionDay anchor
+    collection_sources = []
+    
     for pattern, anchor_type in collection_patterns:
         matches = re.finditer(pattern, text, re.IGNORECASE)
-        
         for match in matches:
-            anchors.append(TimeAnchor(
-                id=f"anchor_collection_{len(anchors)+1}",
-                definition=f"24-hour collection day boundary ({anchor_type})",
-                anchor_type=AnchorType.COLLECTION_DAY,
-                source_text=match.group(),
-            ))
+            collection_sources.append(match.group())
     
     # Also detect generic 24-hour collection mentions
     generic_24h = re.finditer(
         r'(?:complete\s+)?24[\-\s]?hour\s+(?:urine|stool|feces|collection)',
         text, re.IGNORECASE
     )
-    
     for match in generic_24h:
-        if not any(a.source_text == match.group() for a in anchors):
-            anchors.append(TimeAnchor(
-                id=f"anchor_collection_{len(anchors)+1}",
-                definition="24-hour collection period",
-                anchor_type=AnchorType.COLLECTION_DAY,
-                source_text=match.group(),
-            ))
+        if match.group() not in collection_sources:
+            collection_sources.append(match.group())
+    
+    # Create only ONE CollectionDay anchor (they're all the same concept)
+    if collection_sources:
+        anchors.append(TimeAnchor(
+            id="anchor_collection_1",
+            definition="24-hour collection period",
+            anchor_type=AnchorType.COLLECTION_DAY,
+            source_text=collection_sources[0],  # Use first match as source
+        ))
     
     return anchors
 
