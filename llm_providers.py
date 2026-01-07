@@ -294,15 +294,22 @@ class GeminiProvider(LLMProvider):
         
         if self.use_genai_sdk:
             # Gemini 3 models use google-genai SDK with Vertex AI backend
-            # Set environment variables for the SDK
-            os.environ['GOOGLE_GENAI_USE_VERTEXAI'] = 'True'
-            os.environ['GOOGLE_CLOUD_LOCATION'] = 'global'  # Gemini 3 requires global
-            self._genai_client = genai_new.Client()
+            # Use explicit client config instead of environment variables to avoid
+            # polluting the environment for other models (like gemini-2.5-pro fallback)
+            project = os.environ.get("GOOGLE_CLOUD_PROJECT")
+            self._genai_client = genai_new.Client(
+                vertexai=True,
+                project=project,
+                location='global',  # Gemini 3 requires global endpoint
+            )
         elif self.use_vertex:
             # Configure for Vertex AI (older models)
             import vertexai
             project = os.environ.get("GOOGLE_CLOUD_PROJECT")
+            # Ensure we use regional endpoint, not global (which may have been set by Gemini 3)
             location = os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1")
+            if location == 'global':
+                location = 'us-central1'  # Fallback to us-central1 for non-Gemini-3 models
             vertexai.init(project=project, location=location)
         else:
             # Configure for Google AI Studio
