@@ -258,8 +258,8 @@ function calculateFieldPopulation(
     checkFields(design.activities as unknown[], ['name'], 'Activities');
     // Encounters: name and epochId are essential for SoA
     checkFields(design.encounters as unknown[], ['name', 'epochId'], 'Encounters');
-    // Epochs: name and epochType define the epoch
-    checkFields(design.epochs as unknown[], ['name', 'epochType'], 'Epochs');
+    // Epochs: name is the essential field (epochType often not populated from extraction)
+    checkFields(design.epochs as unknown[], ['name'], 'Epochs');
     // Arms: name and type are essential
     checkFields(design.arms as unknown[], ['name', 'type'], 'Arms');
     // Objectives: text and level are essential
