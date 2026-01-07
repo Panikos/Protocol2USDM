@@ -28,9 +28,17 @@ from .text_extractor import extract_soa_from_text, build_usdm_output, save_extra
 from .validator import validate_extraction, apply_validation_fixes, save_validation_result
 
 from core.provenance import ProvenanceTracker, get_provenance_path
+from core.superscript_utils import normalize_soa_with_footnotes
 from core.constants import USDM_VERSION
 
 logger = logging.getLogger(__name__)
+
+# Models that need fallback to gemini-2.5-pro for SoA text extraction
+# These models have issues with structured JSON output format compliance
+SOA_FALLBACK_MODELS = {
+    'gemini-3-flash-preview': 'gemini-2.5-pro',
+    'gemini-3-flash': 'gemini-2.5-pro',
+}
 
 
 @dataclass
@@ -209,10 +217,16 @@ def run_extraction_pipeline(
         # ═══════════════════════════════════════════════════════════════
         logger.info("Step 2: Extracting SoA data from text...")
         
+        # Check if model needs fallback for SoA text extraction
+        soa_model = config.model_name
+        if config.model_name in SOA_FALLBACK_MODELS:
+            soa_model = SOA_FALLBACK_MODELS[config.model_name]
+            logger.info(f"  Using fallback model for SoA text extraction: {soa_model}")
+        
         text_result = extract_soa_from_text(
             protocol_text=protocol_text,
             header_structure=header_structure,
-            model_name=config.model_name,
+            model_name=soa_model,
         )
         
         if not text_result.success:
@@ -305,6 +319,24 @@ def run_extraction_pipeline(
         )
         
         final_output = create_wrapper_input(final_timeline)
+        
+        # ═══════════════════════════════════════════════════════════════
+        # STEP 4b: Normalize superscripts in entity names
+        # ═══════════════════════════════════════════════════════════════
+        # Gemini 3 extracts superscript footnote refs in names (e.g., "UNS¹ EOS or ETᵃ")
+        # This preserves the data while creating clean names for downstream matching
+        # Also validates footnote refs against actual footnotes to catch OCR errors
+        try:
+            norm_results = normalize_soa_with_footnotes(final_output)
+            logger.info(f"  Normalized superscripts: {norm_results['epochs_cleaned']} epochs, "
+                       f"{norm_results['encounters_cleaned']} encounters, "
+                       f"{norm_results['activities_cleaned']} activities")
+            if norm_results.get('footnote_corrections'):
+                for corr in norm_results['footnote_corrections']:
+                    logger.info(f"    Corrected footnote ref: {corr['original']} → {corr['corrected']} "
+                               f"in '{corr['entity']}'")
+        except Exception as e:
+            logger.warning(f"  Superscript normalization failed (non-fatal): {e}")
         
         # Save final output
         with open(paths['final'], 'w', encoding='utf-8') as f:
