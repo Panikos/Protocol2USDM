@@ -907,38 +907,102 @@ function VisitWindowsPanel({
   const [sortBy, setSortBy] = useState<'day' | 'name' | 'number'>('day');
   const [sortAsc, setSortAsc] = useState(true);
 
-  // Build encounter name to epoch name map from USDM
-  const encounterEpochMap = useMemo(() => {
-    const map: Record<string, string> = {};
+  // Build day-to-epoch mapping from USDM encounters
+  const dayToEpochMap = useMemo(() => {
+    const dayRanges: Array<{ minDay: number; maxDay: number; epochName: string }> = [];
     const encounters = (studyDesign?.encounters ?? []) as Array<{ name?: string; epochId?: string }>;
+    
     for (const enc of encounters) {
-      if (enc.name && enc.epochId) {
-        const epochName = epochNameMap[enc.epochId];
-        if (epochName) {
-          // Normalize visit name for matching (lowercase, trim)
-          map[enc.name.toLowerCase().trim()] = epochName;
-        }
+      if (!enc.name || !enc.epochId) continue;
+      const epochName = epochNameMap[enc.epochId];
+      if (!epochName) continue;
+      
+      const name = enc.name;
+      
+      // Parse day patterns from encounter names
+      // Pattern: "Day X" or "Day X-Y" or "Day X through Y" or "Screening (-42 to -9)"
+      let minDay: number | null = null;
+      let maxDay: number | null = null;
+      
+      // Match "Day -7", "Day 1", "Day 23"
+      const singleDayMatch = name.match(/Day\s+(-?\d+)(?!\s*[-through])/i);
+      if (singleDayMatch) {
+        minDay = maxDay = parseInt(singleDayMatch[1], 10);
+      }
+      
+      // Match "Day 10-22", "Day 2-3"
+      const rangeDashMatch = name.match(/Day\s+(-?\d+)\s*-\s*(-?\d+)/i);
+      if (rangeDashMatch) {
+        minDay = parseInt(rangeDashMatch[1], 10);
+        maxDay = parseInt(rangeDashMatch[2], 10);
+      }
+      
+      // Match "Day -6 through -5", "Day 37-38"
+      const rangeThroughMatch = name.match(/Day\s+(-?\d+)\s+through\s+(-?\d+)/i);
+      if (rangeThroughMatch) {
+        minDay = parseInt(rangeThroughMatch[1], 10);
+        maxDay = parseInt(rangeThroughMatch[2], 10);
+      }
+      
+      // Match "Screening (-42 to -9)" or "(-21)"
+      const parenRangeMatch = name.match(/\((-?\d+)\s*(?:to\s*(-?\d+))?\)/);
+      if (parenRangeMatch) {
+        minDay = parseInt(parenRangeMatch[1], 10);
+        maxDay = parenRangeMatch[2] ? parseInt(parenRangeMatch[2], 10) : minDay;
+      }
+      
+      // Match "Check-in (-8)"
+      const checkInMatch = name.match(/Check-in\s*\((-?\d+)\)/i);
+      if (checkInMatch) {
+        minDay = maxDay = parseInt(checkInMatch[1], 10);
+      }
+      
+      if (minDay !== null && maxDay !== null) {
+        // Ensure minDay <= maxDay
+        if (minDay > maxDay) [minDay, maxDay] = [maxDay, minDay];
+        dayRanges.push({ minDay, maxDay, epochName });
       }
     }
-    return map;
+    
+    return dayRanges;
   }, [studyDesign, epochNameMap]);
 
-  // Resolve epoch name for a visit - try USDM first, fallback to generic
+  // Resolve epoch name for a visit based on target day
   const resolveEpochName = (visit: VisitWindow): string | undefined => {
-    // Try to match visit name to USDM encounter
-    const normalizedName = visit.visitName.toLowerCase().trim();
-    if (encounterEpochMap[normalizedName]) {
-      return encounterEpochMap[normalizedName];
+    const targetDay = visit.targetDay;
+    
+    // Find epoch that contains this day
+    for (const range of dayToEpochMap) {
+      if (targetDay >= range.minDay && targetDay <= range.maxDay) {
+        return range.epochName;
+      }
     }
-    // Fallback to generic epoch from execution model
-    return visit.epoch;
+    
+    // Special case: Screening for very negative days
+    if (targetDay <= -9) {
+      const screeningEpoch = dayToEpochMap.find(r => r.epochName.toLowerCase().includes('screening'));
+      if (screeningEpoch) return screeningEpoch.epochName;
+    }
+    
+    // Special case: Early termination / EOS
+    if (visit.visitName.toLowerCase().includes('early termination') || 
+        visit.visitName.toLowerCase().includes('eos')) {
+      const eosEpoch = dayToEpochMap.find(r => 
+        r.epochName.toLowerCase().includes('eos') || 
+        r.epochName.toLowerCase().includes('termination')
+      );
+      if (eosEpoch) return eosEpoch.epochName;
+    }
+    
+    // Fallback to generic epoch from execution model (but filter out non-USDM ones)
+    return undefined;
   };
 
   // Get unique epochs for stats (using resolved names)
   const epochs = useMemo(() => {
     const set = new Set(visits.map(v => resolveEpochName(v)).filter(Boolean));
     return Array.from(set);
-  }, [visits, encounterEpochMap]);
+  }, [visits, dayToEpochMap]);
 
   // Filter and sort visits
   const filteredVisits = useMemo(() => {
@@ -2380,6 +2444,38 @@ function ActivitySchedulePanel({
 
   const resolveEncounterName = (encounterId: string): string => {
     return encounterNameMap[encounterId] || encounterId.slice(0, 8) + '...';
+  };
+
+  // Derive human-readable instance name from activity and encounter
+  const resolveInstanceName = (inst: ScheduledInstance): string => {
+    // If instance has activity IDs, use the first activity name
+    if (inst.activityIds && inst.activityIds.length > 0) {
+      const activityName = resolveActivityName(inst.activityIds[0]);
+      // If the name looks like a raw ID pattern (act_X@enc_Y), derive from components
+      if (!inst.name || inst.name.match(/^act_\d+@enc_\d+$/)) {
+        return activityName;
+      }
+    }
+    // If name starts with "Auto-anchor", keep it as is
+    if (inst.name?.startsWith('Auto-anchor')) {
+      return inst.name;
+    }
+    // Check if name looks like ID pattern
+    if (inst.name?.match(/^act_\d+@enc_\d+$/)) {
+      // Parse and resolve
+      const parts = inst.name.split('@');
+      if (parts.length === 2) {
+        const actMatch = parts[0].match(/act_(\d+)/);
+        const encMatch = parts[1].match(/enc_(\d+)/);
+        if (actMatch && encMatch) {
+          const actIdx = parseInt(actMatch[1], 10) - 1;
+          const activities = (studyDesign?.activities ?? []) as Array<{ name?: string }>;
+          const actName = activities[actIdx]?.name || parts[0];
+          return actName;
+        }
+      }
+    }
+    return inst.name || 'Unknown';
   };
 
   // Get ordered epoch list
