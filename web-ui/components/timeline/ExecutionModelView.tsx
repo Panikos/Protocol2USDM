@@ -978,6 +978,42 @@ function VisitWindowsPanel({
       }
     }
     
+    // Handle gaps: find nearest surrounding epochs
+    // If both neighbors have same epoch, use that epoch (e.g., Day 0 between Day -1 and Day 1)
+    if (dayToEpochMap.length > 0) {
+      let closestBefore: { dist: number; epoch: string } | null = null;
+      let closestAfter: { dist: number; epoch: string } | null = null;
+      
+      for (const range of dayToEpochMap) {
+        // Range ends before targetDay
+        if (range.maxDay < targetDay) {
+          const dist = targetDay - range.maxDay;
+          if (!closestBefore || dist < closestBefore.dist) {
+            closestBefore = { dist, epoch: range.epochName };
+          }
+        }
+        // Range starts after targetDay
+        if (range.minDay > targetDay) {
+          const dist = range.minDay - targetDay;
+          if (!closestAfter || dist < closestAfter.dist) {
+            closestAfter = { dist, epoch: range.epochName };
+          }
+        }
+      }
+      
+      // If both neighbors have the same epoch, use it (fills gaps like Day 0)
+      if (closestBefore && closestAfter && closestBefore.epoch === closestAfter.epoch) {
+        return closestBefore.epoch;
+      }
+      
+      // Use the closer neighbor
+      if (closestBefore && closestAfter) {
+        return closestBefore.dist <= closestAfter.dist ? closestBefore.epoch : closestAfter.epoch;
+      }
+      if (closestBefore) return closestBefore.epoch;
+      if (closestAfter) return closestAfter.epoch;
+    }
+    
     // Special case: Screening for very negative days
     if (targetDay <= -9) {
       const screeningEpoch = dayToEpochMap.find(r => r.epochName.toLowerCase().includes('screening'));
@@ -995,14 +1031,6 @@ function VisitWindowsPanel({
         visit.visitName.toLowerCase().includes('end of study') ||
         visit.visitName.toLowerCase().includes('follow')) {
       if (eosEpoch) return eosEpoch.epochName;
-    }
-    
-    // Late-study visits (beyond last defined day) -> assign to EOS/follow-up epoch
-    if (dayToEpochMap.length > 0) {
-      const maxDay = Math.max(...dayToEpochMap.map(r => r.maxDay));
-      if (targetDay > maxDay && eosEpoch) {
-        return eosEpoch.epochName;
-      }
     }
     
     // Fallback to generic epoch from execution model (but filter out non-USDM ones)
