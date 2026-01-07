@@ -984,14 +984,25 @@ function VisitWindowsPanel({
       if (screeningEpoch) return screeningEpoch.epochName;
     }
     
-    // Special case: Early termination / EOS
+    // Special case: Early termination / EOS / End of Study / Follow-up
+    const eosEpoch = dayToEpochMap.find(r => 
+      r.epochName.toLowerCase().includes('eos') || 
+      r.epochName.toLowerCase().includes('termination')
+    );
+    
     if (visit.visitName.toLowerCase().includes('early termination') || 
-        visit.visitName.toLowerCase().includes('eos')) {
-      const eosEpoch = dayToEpochMap.find(r => 
-        r.epochName.toLowerCase().includes('eos') || 
-        r.epochName.toLowerCase().includes('termination')
-      );
+        visit.visitName.toLowerCase().includes('eos') ||
+        visit.visitName.toLowerCase().includes('end of study') ||
+        visit.visitName.toLowerCase().includes('follow')) {
       if (eosEpoch) return eosEpoch.epochName;
+    }
+    
+    // Late-study visits (beyond last defined day) -> assign to EOS/follow-up epoch
+    if (dayToEpochMap.length > 0) {
+      const maxDay = Math.max(...dayToEpochMap.map(r => r.maxDay));
+      if (targetDay > maxDay && eosEpoch) {
+        return eosEpoch.epochName;
+      }
     }
     
     // Fallback to generic epoch from execution model (but filter out non-USDM ones)
@@ -2508,14 +2519,15 @@ function ActivitySchedulePanel({
     if (searchTerm) {
       const lower = searchTerm.toLowerCase();
       result = result.filter(inst => 
-        inst.name.toLowerCase().includes(lower) ||
+        resolveInstanceName(inst).toLowerCase().includes(lower) ||
         inst.epochId?.toLowerCase().includes(lower) ||
-        inst.activityIds?.some(aid => resolveActivityName(aid).toLowerCase().includes(lower))
+        inst.activityIds?.some(aid => resolveActivityName(aid).toLowerCase().includes(lower)) ||
+        (inst.encounterId && resolveEncounterName(inst.encounterId).toLowerCase().includes(lower))
       );
     }
     
     return result;
-  }, [instances, searchTerm, selectedEpoch, resolveActivityName]);
+  }, [instances, searchTerm, selectedEpoch, resolveActivityName, resolveEncounterName, resolveInstanceName]);
 
   // Group by epoch
   const groupedByEpoch = useMemo(() => {
@@ -2783,7 +2795,7 @@ function ActivitySchedulePanel({
                       <div key={inst.id} className="px-4 py-3 hover:bg-muted/30 transition-colors">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
-                            <p className="font-medium text-sm">{inst.name}</p>
+                            <p className="font-medium text-sm">{resolveInstanceName(inst)}</p>
                             <div className="flex flex-wrap gap-2 mt-1.5">
                               {inst.encounterId && (
                                 <Badge variant="outline" className="text-xs">
