@@ -36,6 +36,48 @@ from core.constants import USDM_VERSION, SYSTEM_NAME, SYSTEM_VERSION
 
 logger = logging.getLogger(__name__)
 
+MAX_EXTRACTION_RETRIES = 2  # Retry if response format is invalid
+
+
+def validate_extraction_response(data: dict, min_activities: int = 1) -> tuple[bool, str]:
+    """
+    Validate that LLM response has expected structure.
+    
+    Returns:
+        (is_valid, error_message)
+    """
+    # Check for required top-level keys
+    if 'activities' not in data:
+        # Check if model returned nested USDM structure instead
+        if 'study' in data or 'studyDesigns' in data or 'activityGroups' in data:
+            return False, "Response has wrong structure (nested USDM format instead of flat {activities, activityTimepoints})"
+        return False, "Missing 'activities' key in response"
+    
+    if not isinstance(data.get('activities'), list):
+        return False, "'activities' must be an array"
+    
+    activities = data.get('activities', [])
+    
+    # Check minimum activities
+    if len(activities) < min_activities:
+        return False, f"Expected at least {min_activities} activities, got {len(activities)}"
+    
+    # Validate activity structure
+    for i, act in enumerate(activities):
+        if not isinstance(act, dict):
+            return False, f"Activity {i} is not an object"
+        if 'id' not in act:
+            return False, f"Activity {i} missing 'id'"
+        if 'name' not in act:
+            return False, f"Activity {i} missing 'name'"
+    
+    # Check activityTimepoints if present
+    timepoints = data.get('activityTimepoints', [])
+    if not isinstance(timepoints, list):
+        return False, "'activityTimepoints' must be an array"
+    
+    return True, ""
+
 
 def build_extraction_prompt(header_structure: HeaderStructure) -> str:
     """
@@ -205,7 +247,28 @@ PK/PD Analyses           <- group header (grp_3)
   - Only include if superscript is present on the tick mark
 - `instanceType`: Must be "ActivityTimepoint"
 
-Output ONLY the JSON object, no explanations or markdown fences."""
+Output ONLY the JSON object, no explanations or markdown fences.
+
+## STRICT FORMAT REQUIREMENTS
+
+**YOUR OUTPUT MUST BE EXACTLY THIS STRUCTURE:**
+```
+{{
+  "activities": [...],
+  "activityTimepoints": [...]
+}}
+```
+
+**DO NOT:**
+- Wrap in "study", "studyDesigns", or any USDM container
+- Use "activityGroups" with "activityNames" arrays
+- Add any other top-level keys
+- Return nested structures
+
+**DO:**
+- Return FLAT JSON with only "activities" and "activityTimepoints" at root
+- Each activity must have: id, name, activityGroupId, instanceType
+- Each timepoint must have: id, activityId, encounterId, instanceType"""
 
 
 @dataclass
@@ -260,6 +323,9 @@ def extract_soa_from_text(
     provenance.metadata['model'] = model_name
     provenance.metadata['extraction_type'] = 'text'
     
+    # Estimate minimum expected activities from header structure
+    min_expected = max(1, len(header_structure.activityGroups) * 2)  # At least 2 per group
+    
     try:
         # Build prompt with header structure embedded
         prompt = build_extraction_prompt(header_structure)
@@ -267,8 +333,8 @@ def extract_soa_from_text(
         # Get LLM client
         client = get_llm_client(model_name)
         
-        # Build messages
-        messages = [
+        # Build base messages
+        base_messages = [
             {"role": "system", "content": "You are an expert in clinical trial protocols and CDISC USDM standards."},
             {"role": "user", "content": f"{prompt}\n\nPROTOCOL TEXT:\n\n{protocol_text}"}
         ]
@@ -279,12 +345,54 @@ def extract_soa_from_text(
             json_mode=True,
         )
         
-        # Generate response
-        response = client.generate(messages, config)
-        raw_response = response.content
+        raw_response = ""
+        data = {}
+        last_error = ""
         
-        # Parse response
-        data = parse_llm_json(raw_response, fallback={})
+        # Retry loop with validation
+        for attempt in range(MAX_EXTRACTION_RETRIES + 1):
+            messages = base_messages.copy()
+            
+            # Add correction prompt on retry
+            if attempt > 0 and last_error:
+                logger.warning(f"  Retry {attempt}/{MAX_EXTRACTION_RETRIES}: {last_error}")
+                correction = f"""Your previous response had an invalid format: {last_error}
+
+REMINDER: You MUST return ONLY this structure:
+{{
+  "activities": [
+    {{"id": "act_1", "name": "...", "activityGroupId": "grp_1", "instanceType": "Activity"}},
+    ...
+  ],
+  "activityTimepoints": [
+    {{"id": "at_1", "activityId": "act_1", "encounterId": "enc_1", "instanceType": "ActivityTimepoint"}},
+    ...
+  ]
+}}
+
+DO NOT wrap in "study" or any other container. Return FLAT JSON only."""
+                messages.append({"role": "assistant", "content": raw_response[:500] + "..."})
+                messages.append({"role": "user", "content": correction})
+            
+            # Generate response
+            response = client.generate(messages, config)
+            raw_response = response.content
+            
+            # Parse response
+            data = parse_llm_json(raw_response, fallback={})
+            
+            # Validate response structure
+            is_valid, error_msg = validate_extraction_response(data, min_activities=min_expected)
+            
+            if is_valid:
+                logger.info(f"  Response validated on attempt {attempt + 1}")
+                break
+            else:
+                last_error = error_msg
+                if attempt == MAX_EXTRACTION_RETRIES:
+                    logger.error(f"  Extraction failed validation after {MAX_EXTRACTION_RETRIES + 1} attempts: {error_msg}")
+                    # Log what we got for debugging
+                    logger.error(f"  Response keys: {list(data.keys()) if isinstance(data, dict) else 'not a dict'}")
         
         # Extract activities
         activities = [
@@ -316,13 +424,19 @@ def extract_soa_from_text(
         
         logger.info(f"Extracted {len(activities)} activities, {len(activity_timepoints)} ticks")
         
+        # Determine success based on validation
+        extraction_success = len(activities) >= min_expected
+        if not extraction_success:
+            logger.warning(f"  Extraction returned fewer activities ({len(activities)}) than expected ({min_expected})")
+        
         return TextExtractionResult(
             activities=activities,
             activity_timepoints=activity_timepoints,
             raw_response=raw_response,
             model_used=model_name,
-            success=True,
+            success=extraction_success,
             provenance=provenance,
+            error=last_error if not extraction_success else None,
         )
         
     except Exception as e:
