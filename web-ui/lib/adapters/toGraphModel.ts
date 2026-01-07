@@ -157,21 +157,51 @@ export function toGraphModel(
   const traversalConstraint = executionModel?.traversalConstraints?.[0];
   if (traversalConstraint?.requiredSequence && traversalConstraint.requiredSequence.length > 0) {
     const requiredSequence = traversalConstraint.requiredSequence;
-    // Map epoch_N format to actual epoch by index
+    
+    // Build name-based lookup for fallback matching
+    const epochByName = new Map<string, string>();
+    for (const epoch of allEpochs) {
+      const normalized = epoch.name.toUpperCase().replace(/[\s-]/g, '_');
+      const stripped = epoch.name.toUpperCase().replace(/[\s_-]/g, ''); // No separators
+      epochByName.set(normalized, epoch.id);
+      epochByName.set(stripped, epoch.id);
+      epochByName.set(epoch.name.toUpperCase(), epoch.id);
+      epochByName.set(epoch.name.toLowerCase(), epoch.id);
+    }
+    
+    // Map epoch references to actual epoch IDs
     const filteredEpochIds = new Set<string>();
     for (const seqId of requiredSequence) {
+      // 1. epoch_N format -> index lookup
       const match = seqId.match(/epoch_(\d+)/);
       if (match) {
         const idx = parseInt(match[1], 10) - 1;
         if (allEpochs[idx]) {
           filteredEpochIds.add(allEpochs[idx].id);
         }
-      } else {
-        // Direct ID reference
+        continue;
+      }
+      
+      // 2. Direct UUID reference
+      if (allEpochs.some(e => e.id === seqId)) {
         filteredEpochIds.add(seqId);
+        continue;
+      }
+      
+      // 3. Name-based fallback (handles "SCREENING", "washout", "WASHOUT", etc.)
+      const normalized = seqId.toUpperCase().replace(/[\s-]/g, '_');
+      const stripped = seqId.toUpperCase().replace(/[\s_-]/g, ''); // No separators
+      const matchedId = epochByName.get(normalized) || epochByName.get(stripped) || epochByName.get(seqId.toUpperCase()) || epochByName.get(seqId.toLowerCase());
+      if (matchedId) {
+        filteredEpochIds.add(matchedId);
       }
     }
-    epochs = allEpochs.filter(e => filteredEpochIds.has(e.id));
+    
+    // Only filter if we found at least one valid epoch (graceful fallback)
+    if (filteredEpochIds.size > 0) {
+      epochs = allEpochs.filter(e => filteredEpochIds.has(e.id));
+    }
+    // If no epochs matched, keep all epochs (don't show blank graph)
   }
 
   // Build maps

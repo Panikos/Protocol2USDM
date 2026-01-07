@@ -459,7 +459,7 @@ def _analyze_with_claude(
         
         response = client.messages.create(
             model=model_name,
-            max_tokens=4096,
+            max_tokens=8192,  # Increased from 4096 to capture all footnotes (a-x)
             system=system,
             messages=[{"role": "user", "content": content}]
         )

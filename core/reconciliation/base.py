@@ -24,8 +24,8 @@ def normalize_for_matching(name: str) -> str:
     """Normalize entity name for fuzzy matching."""
     # Lowercase
     name = name.lower()
-    # Remove special chars except spaces
-    name = re.sub(r'[^a-z0-9\s]', '', name)
+    # Remove special chars except spaces and hyphens (preserve hyphens for day ranges like "Day 2-3")
+    name = re.sub(r'[^a-z0-9\s\-]', '', name)
     # Normalize whitespace
     name = ' '.join(name.split())
     return name

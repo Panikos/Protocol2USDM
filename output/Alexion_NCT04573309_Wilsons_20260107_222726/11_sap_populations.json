@@ -1,0 +1,165 @@
+{
+  "success": true,
+  "sourceFile": "input/Alexion_NCT04573309_Wilsons_SAP.pdf",
+  "pagesUsed": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33
+  ],
+  "modelUsed": "gemini-3-flash-preview",
+  "sapData": {
+    "analysisPopulations": [
+      {
+        "id": "pop_1",
+        "name": "Screened Set",
+        "text": "All participants who signed an informed consent form and check-in to the clinical research unit (CRU) on Day -8 for the Run-in Period.",
+        "populationType": "Other",
+        "instanceType": "AnalysisPopulation",
+        "label": "Screened Set",
+        "populationDescription": "All participants who signed an informed consent form and check-in to the clinical research unit (CRU) on Day -8 for the Run-in Period.",
+        "criteria": "Signed ICF AND checked into CRU on Day -8"
+      },
+      {
+        "id": "pop_2",
+        "name": "Enrolled Set",
+        "text": "Participants eligible for the study who are enrolled on Day -7 and initiated on a copper- and molybdenum-controlled diet.",
+        "populationType": "Other",
+        "instanceType": "AnalysisPopulation",
+        "label": "Enrolled Set",
+        "populationDescription": "Participants eligible for the study who are enrolled on Day -7 and initiated on a copper- and molybdenum-controlled diet.",
+        "criteria": "Eligible AND enrolled on Day -7 AND initiated on controlled diet"
+      },
+      {
+        "id": "pop_3",
+        "name": "Full Analysis Set",
+        "text": "The primary analysis set used to describe the second and subsequent analysis of interim data from Study ALXN1840-WD-204 to support regulatory submissions, typically including all enrolled participants with Wilson Disease (WD) who receive study treatment.",
+        "populationType": "Efficacy",
+        "instanceType": "AnalysisPopulation",
+        "label": "FA",
+        "populationDescription": "The primary analysis set used to describe the second and subsequent analysis of interim data from Study ALXN1840-WD-204 to support regulatory submissions, typically including all enrolled participants with Wilson Disease (WD) who receive study treatment.",
+        "criteria": "Enrolled AND diagnosed with Wilson Disease AND treated with ALXN1840"
+      },
+      {
+        "id": "pop_4",
+        "name": "Per Protocol Set",
+        "text": "A subset of the Full Analysis Set used for sensitivity analyses, requiring a minimum of at least 3 participants for analysis to be performed.",
+        "populationType": "Efficacy",
+        "instanceType": "AnalysisPopulation",
+        "label": "PP",
+        "populationDescription": "A subset of the Full Analysis Set used for sensitivity analyses, requiring a minimum of at least 3 participants for analysis to be performed.",
+        "criteria": "Subset of FA AND no major protocol deviations AND N >= 3"
+      },
+      {
+        "id": "pop_5",
+        "name": "Safety Set",
+        "text": "All participants for whom safety data is reviewed by the SRC, including those who receive ALXN1840 doses of 15 mg/day and 30 mg/day.",
+        "populationType": "Safety",
+        "instanceType": "AnalysisPopulation",
+        "label": "Safety Set",
+        "populationDescription": "All participants for whom safety data is reviewed by the SRC, including those who receive ALXN1840 doses of 15 mg/day and 30 mg/day.",
+        "criteria": "Received at least one dose of study drug"
+      },
+      {
+        "id": "pop_6",
+        "name": "Pharmacokinetic Analysis Set",
+        "text": "Participants who have blood sampling for pharmacokinetic (PK) concentration analyses over the 24-hour dosing period on Days 1, 25, 29, and 39, including pre-dose samples during accumulation and at steady state.",
+        "populationType": "PK/PD",
+        "instanceType": "AnalysisPopulation",
+        "label": "PK Analysis Set",
+        "populationDescription": "Participants who have blood sampling for pharmacokinetic (PK) concentration analyses over the 24-hour dosing period on Days 1, 25, 29, and 39, including pre-dose samples during accumulation and at steady state.",
+        "criteria": "Received study drug AND has evaluable PK blood samples"
+      },
+      {
+        "id": "pop_7",
+        "name": "Pharmacodynamic Analysis Set",
+        "text": "Participants who have blood sampling for pharmacodynamic (PD) concentration analyses over the 24-hour dosing period on Days 1, 25, 29, and 39, including assessments of plasma total and labile bound copper (LBC).",
+        "populationType": "PK/PD",
+        "instanceType": "AnalysisPopulation",
+        "label": "PD Analysis Set",
+        "populationDescription": "Participants who have blood sampling for pharmacodynamic (PD) concentration analyses over the 24-hour dosing period on Days 1, 25, 29, and 39, including assessments of plasma total and labile bound copper (LBC).",
+        "criteria": "Received study drug AND has evaluable PD blood samples"
+      }
+    ],
+    "characteristics": [
+      {
+        "id": "char_1",
+        "name": "Age",
+        "code": "AGE",
+        "codeSystem": "http://www.cdisc.org/baseline-characteristics",
+        "codeSystemVersion": "2024-03-29",
+        "decode": "Age",
+        "dataType": "Numeric",
+        "instanceType": "Characteristic",
+        "description": "Age at baseline in years"
+      },
+      {
+        "id": "char_2",
+        "name": "Wilson Disease History",
+        "code": "WILSON_DISEASE_HISTO",
+        "codeSystem": "http://www.cdisc.org/baseline-characteristics",
+        "codeSystemVersion": "2024-03-29",
+        "decode": "Wilson Disease History",
+        "dataType": "Categorical",
+        "instanceType": "Characteristic",
+        "description": "History of Wilson Disease (WD) including treatment-experienced and treatment-naïve status"
+      },
+      {
+        "id": "char_3",
+        "name": "Body Mass Index",
+        "code": "BODY_MASS_INDEX",
+        "codeSystem": "http://www.cdisc.org/baseline-characteristics",
+        "codeSystemVersion": "2024-03-29",
+        "decode": "Body Mass Index",
+        "dataType": "Numeric",
+        "instanceType": "Characteristic",
+        "description": "Body mass index calculated at baseline"
+      },
+      {
+        "id": "char_4",
+        "name": "Prior WD Medications",
+        "code": "PRIOR_WD_MEDICATIONS",
+        "codeSystem": "http://www.cdisc.org/baseline-characteristics",
+        "codeSystemVersion": "2024-03-29",
+        "decode": "Prior WD Medications",
+        "dataType": "Categorical",
+        "instanceType": "Characteristic",
+        "description": "Prior medications used to treat Wilson Disease"
+      }
+    ],
+    "summary": {
+      "populationCount": 7,
+      "characteristicCount": 4
+    }
+  }
+}

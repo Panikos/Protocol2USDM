@@ -1104,19 +1104,20 @@ def _add_execution_extensions(
             fc_dict = fc.to_dict()
             
             # First: try to resolve any existing activity refs from LLM
-            resolved_activity_ids = []
+            resolved_activity_ids = set()  # Use set to avoid duplicates
             if fc.applies_to_activity_ids:
                 for act in fc.applies_to_activity_ids:
                     if act in activity_ids_set:
-                        resolved_activity_ids.append(act)
+                        resolved_activity_ids.add(act)
                     elif act.lower() in activity_names:
-                        resolved_activity_ids.append(activity_names[act.lower()])
+                        resolved_activity_ids.add(activity_names[act.lower()])
                     else:
                         # Fuzzy match
                         for a_name, a_id in activity_names.items():
                             if act.lower() in a_name or a_name in act.lower():
-                                resolved_activity_ids.append(a_id)
+                                resolved_activity_ids.add(a_id)
                                 break
+            resolved_activity_ids = list(resolved_activity_ids)  # Convert back to list
             
             # Second: if no activity refs yet, extract from footnote text
             if not resolved_activity_ids and fc.text:

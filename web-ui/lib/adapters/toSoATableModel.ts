@@ -44,6 +44,16 @@ export interface SoACell {
   };
 }
 
+// Enrichment instance info for display
+export interface EnrichmentInstance {
+  id: string;
+  name: string;
+  activityName?: string;
+  encounterName?: string;
+  scheduledDay?: number;
+  epochName?: string;
+}
+
 export interface SoATableModel {
   rows: SoARow[];
   columns: SoAColumn[];
@@ -51,6 +61,7 @@ export interface SoATableModel {
   rowGroups: { id: string; name: string; activityIds: string[] }[];
   columnGroups: { id: string; name: string; visitIds: string[] }[];
   procedureActivities: USDMActivity[];  // Activities from procedure enrichment (no SoA ticks)
+  enrichmentInstances: EnrichmentInstance[];  // Instances from execution model (not in PDF SoA)
 }
 
 // Helper to check if activity is from SoA (has ticks) vs procedure enrichment
@@ -84,6 +95,7 @@ export function toSoATableModel(
     rowGroups: [],
     columnGroups: [],
     procedureActivities: [],
+    enrichmentInstances: [],
   };
 
   if (!studyDesign) return model;
@@ -328,6 +340,24 @@ export function toSoATableModel(
       const footnoteRefs = provenance?.cellFootnotes?.[key] ?? 
                           provenance?.cellFootnotes?.[row.id]?.[col.id] ?? [];
       
+      // Determine provenance source:
+      // - If provenance exists, use it
+      // - If link exists but no provenance AND it's an enrichment instance, don't mark as orphan
+      // - If link exists but no provenance AND it's NOT enrichment, mark as orphan ('none')
+      const isEnrichmentCell = instanceMeta?.isEnrichment ?? false;
+      let effectiveSource: CellSource;
+      if (cellProv) {
+        effectiveSource = cellProv;
+      } else if (hasLink && isEnrichmentCell) {
+        // Enrichment instances don't need SoA provenance - mark as confirmed
+        effectiveSource = 'both';
+      } else if (hasLink) {
+        // SoA instance without provenance - orphan
+        effectiveSource = 'none';
+      } else {
+        effectiveSource = 'none';
+      }
+
       model.cells.set(key, {
         activityId: row.id,
         visitId: col.id,
@@ -337,10 +367,45 @@ export function toSoATableModel(
         timingId: instanceMeta?.timingId,
         epochId: instanceMeta?.epochId,
         provenance: {
-          source: cellProv ?? (hasLink ? 'none' : 'none'),
+          source: effectiveSource,
           needsReview: cellProv === 'needs_review' || cellProv === 'vision' || 
-                       (hasLink && !cellProv),
+                       (hasLink && !cellProv && !isEnrichmentCell),
         },
+      });
+    }
+  }
+
+  // Extract enrichment instances for separate display
+  const allActivityMap = new Map(allActivities.map(a => [a.id, a]));
+  const encounterMap = new Map(encounters.map(e => [e.id, e]));
+  // Note: epochMap already defined above
+  
+  for (const timeline of scheduleTimelines) {
+    for (const instance of timeline.instances ?? []) {
+      if (instance.instanceType !== 'ScheduledActivityInstance') continue;
+      if (!isEnrichmentInstance(instance as Record<string, unknown>)) continue;
+      
+      // Get activity names
+      const activityNames = (instance.activityIds ?? [])
+        .map(id => allActivityMap.get(id)?.name || allActivityMap.get(id)?.label)
+        .filter(Boolean)
+        .join(', ');
+      
+      // Get encounter name
+      const encounter = instance.encounterId ? encounterMap.get(instance.encounterId) : undefined;
+      const encounterName = encounter?.name;
+      
+      // Get epoch name
+      const epoch = instance.epochId ? epochMap.get(instance.epochId) : undefined;
+      const epochName = epoch?.name;
+      
+      model.enrichmentInstances.push({
+        id: instance.id,
+        name: instance.name || `Instance ${instance.id.substring(0, 8)}`,
+        activityName: activityNames || undefined,
+        encounterName,
+        scheduledDay: instance.scheduledDay,
+        epochName,
       });
     }
   }
@@ -355,11 +420,29 @@ interface InstanceMeta {
   epochId?: string;
 }
 
+// Check if instance is from execution model enrichment (not original SoA)
+function isEnrichmentInstance(instance: Record<string, unknown>): boolean {
+  const exts = instance.extensionAttributes as Array<{url?: string; valueString?: string}> | undefined;
+  if (exts) {
+    for (const ext of exts) {
+      if (ext.url?.endsWith('instanceSource') && ext.valueString === 'execution_model') {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+// Instance metadata for enhanced cell display
+interface InstanceMetaWithSource extends InstanceMeta {
+  isEnrichment: boolean;
+}
+
 // Extract activity-encounter links from scheduleTimelines with metadata
 function extractActivityEncounterLinks(
   scheduleTimelines: USDMScheduleTimeline[]
-): Map<string, InstanceMeta> {
-  const links = new Map<string, InstanceMeta>();
+): Map<string, InstanceMetaWithSource> {
+  const links = new Map<string, InstanceMetaWithSource>();
 
   for (const timeline of scheduleTimelines) {
     for (const instance of timeline.instances ?? []) {
@@ -368,16 +451,22 @@ function extractActivityEncounterLinks(
       const encounterId = instance.encounterId;
       if (!encounterId) continue;
 
+      // Check if this is an enrichment instance
+      const isEnrichment = isEnrichmentInstance(instance as Record<string, unknown>);
+
       // Handle both singular and plural activity IDs
       const activityIds = instance.activityIds ?? 
         (instance.activityId ? [instance.activityId] : []);
       
       for (const actId of activityIds) {
         const key = cellKey(actId, encounterId);
+        // Don't overwrite SoA instance with enrichment instance
+        if (links.has(key) && isEnrichment) continue;
         links.set(key, {
           name: instance.name,
           timingId: instance.timingId,
           epochId: instance.epochId,
+          isEnrichment,
         });
       }
     }

@@ -210,7 +210,52 @@ export function SoAView({ provenance }: SoAViewProps) {
         </Card>
       )}
 
-      {/* Protocol Activities not in SoA (from execution model enrichment) */}
+      {/* Enrichment Instances (from execution model) */}
+      {tableModel.enrichmentInstances.length > 0 && (
+        <Card>
+          <CardHeader className="py-3">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <span>Enrichment Instances</span>
+              <span className="text-xs font-normal text-muted-foreground">
+                ({tableModel.enrichmentInstances.length} schedule instances inferred from execution model, not in PDF SoA)
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="py-3">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b text-left text-muted-foreground">
+                    <th className="pb-2 pr-4 font-medium">Instance</th>
+                    <th className="pb-2 pr-4 font-medium">Activity</th>
+                    <th className="pb-2 pr-4 font-medium">Visit</th>
+                    <th className="pb-2 pr-4 font-medium">Day</th>
+                    <th className="pb-2 font-medium">Epoch</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {tableModel.enrichmentInstances.slice(0, 20).map((inst) => (
+                    <tr key={inst.id} className="border-b border-muted/50 hover:bg-muted/20">
+                      <td className="py-1.5 pr-4">{inst.name}</td>
+                      <td className="py-1.5 pr-4 text-muted-foreground">{inst.activityName || '-'}</td>
+                      <td className="py-1.5 pr-4 text-muted-foreground">{inst.encounterName || '-'}</td>
+                      <td className="py-1.5 pr-4 text-muted-foreground">{inst.scheduledDay ?? '-'}</td>
+                      <td className="py-1.5 text-muted-foreground">{inst.epochName || '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {tableModel.enrichmentInstances.length > 20 && (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Showing 20 of {tableModel.enrichmentInstances.length} enrichment instances
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Protocol Activities not in SoA (from procedure enrichment) */}
       {tableModel.procedureActivities.length > 0 && (
         <Card>
           <CardHeader className="py-3">

@@ -346,6 +346,18 @@ def convert_ids_to_uuids(data: dict, id_map: dict = None) -> dict:
                 elif key.endswith('Ids') and isinstance(value, list):
                     # Handle ID arrays like activityIds, childIds
                     result[key] = [get_or_create_uuid(v) if is_simple_id(v) else v for v in value]
+                elif key == 'valueString' and isinstance(value, str):
+                    # Handle JSON-encoded data in extension attribute valueString
+                    # This contains footnote conditions, execution model data, etc.
+                    try:
+                        if value.startswith('[') or value.startswith('{'):
+                            parsed = json.loads(value)
+                            converted_parsed = convert_recursive(parsed)
+                            result[key] = json.dumps(converted_parsed)
+                        else:
+                            result[key] = value
+                    except (json.JSONDecodeError, TypeError):
+                        result[key] = value
                 elif isinstance(value, (dict, list)):
                     result[key] = convert_recursive(value)
                 else:
@@ -533,7 +545,12 @@ def build_name_to_id_map(data: dict) -> dict:
     return name_map
 
 
-def convert_provenance_to_uuids(provenance_data: dict, id_map: dict) -> dict:
+def convert_provenance_to_uuids(
+    provenance_data: dict, 
+    id_map: dict,
+    soa_data: dict = None,
+    usdm_data: dict = None
+) -> dict:
     """
     Convert provenance IDs to UUIDs using the same id_map from convert_ids_to_uuids.
     
@@ -543,10 +560,13 @@ def convert_provenance_to_uuids(provenance_data: dict, id_map: dict) -> dict:
     Handles both:
     - New format: enc_N (encounterId directly from extraction)
     - Legacy format: pt_N (plannedTimepointId, backward compat)
+    - Name-based fallback: If act_N not in id_map, match by activity name
     
     Args:
         provenance_data: Original provenance dict (entities, cells, cellFootnotes, metadata)
         id_map: ID mapping from convert_ids_to_uuids {simple_id: uuid}
+        soa_data: Original 9_final_soa.json data (for activity name lookup)
+        usdm_data: Final USDM data after ID conversion (for target UUID lookup)
         
     Returns:
         New provenance dict with all IDs converted to UUIDs
@@ -565,8 +585,54 @@ def convert_provenance_to_uuids(provenance_data: dict, id_map: dict) -> dict:
             # Map pt_N directly to enc_N's UUID (backward compat)
             pt_to_enc_uuid[f"pt_{n}"] = uuid_val
     
+    # Build name-based activity mapping for reconciliation cases
+    # When SoA activities get replaced by procedure activities with different IDs
+    act_name_to_uuid = {}
+    soa_act_id_to_name = {}
+    
+    if soa_data and usdm_data:
+        # Get SOA activity names by ID
+        try:
+            soa_sd = soa_data.get('study', {}).get('versions', [{}])[0].get('studyDesigns', [{}])[0]
+            for act in soa_sd.get('activities', []):
+                act_id = act.get('id')
+                act_name = act.get('name', '').lower().strip()
+                if act_id and act_name:
+                    soa_act_id_to_name[act_id] = act_name
+        except Exception:
+            pass
+        
+        # Get USDM activity UUIDs by name
+        try:
+            usdm_sd = usdm_data.get('study', {}).get('versions', [{}])[0].get('studyDesigns', [{}])[0]
+            for act in usdm_sd.get('activities', []):
+                act_id = act.get('id')
+                act_name = act.get('name', '').lower().strip()
+                if act_id and act_name:
+                    act_name_to_uuid[act_name] = act_id
+        except Exception:
+            pass
+    
+    # Build set of valid USDM activity UUIDs for validation
+    usdm_activity_ids = set(act_name_to_uuid.values()) if act_name_to_uuid else set()
+    
     def convert_id(old_id: str) -> str:
-        """Convert ID using id_map, return original if not found."""
+        """Convert ID using id_map, with name-based fallback for replaced activities."""
+        # Direct lookup first
+        if old_id in id_map:
+            mapped_uuid = id_map[old_id]
+            # Verify the mapped UUID exists in USDM (may not if activity was replaced)
+            if not usdm_activity_ids or mapped_uuid in usdm_activity_ids:
+                return mapped_uuid
+            # UUID from id_map doesn't exist in USDM - fall through to name-based
+        
+        # Name-based fallback for act_N IDs that got replaced during reconciliation
+        if old_id.startswith('act_') and soa_act_id_to_name and act_name_to_uuid:
+            act_name = soa_act_id_to_name.get(old_id)
+            if act_name and act_name in act_name_to_uuid:
+                return act_name_to_uuid[act_name]
+        
+        # Return original or id_map result if nothing else works
         return id_map.get(old_id, old_id)
     
     def convert_timepoint_id(old_id: str) -> str:
@@ -785,7 +851,9 @@ def validate_and_fix_schema(
         Tuple of (fixed_data, validation_result, fixer_result)
     """
     from validation import (
-        validate_usdm_dict, HAS_USDM, USDM_VERSION,  # Official validation
+        validate_usdm_dict,  # Schema validation only
+        validate_usdm_semantic,  # Schema + cross-reference checks
+        HAS_USDM, USDM_VERSION,
     )
     from core.usdm_types_generated import normalize_usdm_data
     
@@ -814,12 +882,21 @@ def validate_and_fix_schema(
         # Generate protocol_usdm_provenance.json with converted IDs
         # This ensures provenance keys match protocol_usdm.json exactly
         orig_provenance_path = os.path.join(output_dir, "9_final_soa_provenance.json")
+        soa_path = os.path.join(output_dir, "9_final_soa.json")
         if os.path.exists(orig_provenance_path):
             with open(orig_provenance_path, 'r', encoding='utf-8') as f:
                 orig_provenance = json.load(f)
             
-            # Convert provenance IDs using the same id_map
-            converted_provenance = convert_provenance_to_uuids(orig_provenance, id_map)
+            # Load SOA data for name-based activity mapping
+            soa_data = None
+            if os.path.exists(soa_path):
+                with open(soa_path, 'r', encoding='utf-8') as f:
+                    soa_data = json.load(f)
+            
+            # Convert provenance IDs using id_map + name-based fallback for replaced activities
+            converted_provenance = convert_provenance_to_uuids(
+                orig_provenance, id_map, soa_data=soa_data, usdm_data=data
+            )
             
             # Populate encounter/activity name mappings from USDM data
             # This ensures UI can resolve UUIDs to display names
@@ -838,6 +915,15 @@ def validate_and_fix_schema(
                     act.get('id'): act.get('name') or act.get('label', 'Unknown')
                     for act in sd.get('activities', []) if act.get('id')
                 }
+                # Add epochs with names
+                converted_provenance['entities']['epochs'] = {
+                    epoch.get('id'): epoch.get('name', 'Unknown')
+                    for epoch in sd.get('epochs', []) if epoch.get('id')
+                }
+                
+                # Note: We do NOT add provenance for enrichment-created instances.
+                # The SoA provenance should only track original PDF ticks.
+                # Enrichment instances are separate from SoA.
             except Exception:
                 pass  # Keep original entities if extraction fails
             
@@ -852,30 +938,52 @@ def validate_and_fix_schema(
     
     # Step 3: Validate with official usdm package (authoritative)
     logger.info("\n[3/3] Official USDM Package Validation...")
-    usdm_result = None
+    schema_result = None  # Schema-only validation
+    usdm_result = None    # Schema + semantic validation
     
     if HAS_USDM:
         logger.info(f"      Using usdm package (USDM {USDM_VERSION})")
         try:
-            usdm_result = validate_usdm_dict(fixed_data)
+            # 3a. Schema validation (structure/types only) → schema_validation.json
+            logger.info("      [3a] Schema validation (structure/types)...")
+            schema_result = validate_usdm_dict(fixed_data)
+            
+            if schema_result.valid:
+                logger.info("          ✓ Schema validation PASSED")
+            else:
+                logger.warning(f"          ✗ Schema validation: {schema_result.error_count} errors")
+            
+            # 3b. Semantic validation (schema + cross-references) → usdm_validation.json
+            logger.info("      [3b] Semantic validation (cross-references)...")
+            usdm_result = validate_usdm_semantic(fixed_data)
+            
+            # Count semantic-only issues (warnings about references)
+            xref_errors = len([i for i in usdm_result.issues if i.error_type in 
+                             ('dangling_reference', 'orphaned_entity', 'missing_relationship')])
             
             if usdm_result.valid:
-                logger.info("      ✓ VALIDATION PASSED")
+                logger.info("          ✓ Semantic validation PASSED")
             else:
-                logger.warning(f"      ✗ VALIDATION FAILED: {usdm_result.error_count} errors")
-                # Group and summarize errors
-                error_types = {}
-                for issue in usdm_result.issues:
-                    error_types[issue.error_type] = error_types.get(issue.error_type, 0) + 1
-                for etype, count in sorted(error_types.items(), key=lambda x: -x[1])[:5]:
-                    logger.warning(f"        - {etype}: {count}x")
-                if len(error_types) > 5:
-                    logger.warning(f"        ... and {len(error_types) - 5} more error types")
+                logger.warning(f"          ✗ Semantic validation: {usdm_result.error_count} errors, {usdm_result.warning_count} warnings")
+                if xref_errors:
+                    logger.info(f"          ({xref_errors} cross-reference issues)")
             
-            # Save detailed validation result
+            # Group and summarize errors
+            error_types = {}
+            for issue in usdm_result.issues:
+                error_types[issue.error_type] = error_types.get(issue.error_type, 0) + 1
+            for etype, count in sorted(error_types.items(), key=lambda x: -x[1])[:5]:
+                logger.warning(f"        - {etype}: {count}x")
+            if len(error_types) > 5:
+                logger.warning(f"        ... and {len(error_types) - 5} more error types")
+            
+            # Save semantic validation result (schema + cross-references)
             validation_output = os.path.join(output_dir, "usdm_validation.json")
+            usdm_output = usdm_result.to_dict()
+            usdm_output['validator_type'] = 'usdm_pydantic_semantic'  # Indicate semantic checks included
+            usdm_output['includes_cross_references'] = True
             with open(validation_output, 'w', encoding='utf-8') as f:
-                json.dump(usdm_result.to_dict(), f, indent=2)
+                json.dump(usdm_output, f, indent=2)
             logger.info(f"      Results saved to: usdm_validation.json")
                 
         except Exception as e:
@@ -886,7 +994,8 @@ def validate_and_fix_schema(
     
     logger.info("=" * 60)
     
-    return fixed_data, usdm_result, fixer_result, usdm_result, id_map if convert_to_uuids else {}
+    # Return schema_result for schema_validation.json, usdm_result for usdm_validation.json
+    return fixed_data, schema_result, fixer_result, usdm_result, id_map if convert_to_uuids else {}
 
 
 def load_previous_extractions(output_dir: str) -> dict:
@@ -1486,6 +1595,11 @@ def combine_to_full_usdm(
             if data_dict.get('studySites'):
                 # Place in studyVersion for UI to find
                 study_version["studySites"] = data_dict['studySites']
+            if data_dict.get('organizations'):
+                # Organizations go in studyVersion - required for StudyRole.organizationId references
+                if "organizations" not in study_version:
+                    study_version["organizations"] = []
+                study_version["organizations"].extend(data_dict['organizations'])
             if data_dict.get('studyRoles'):
                 # Roles go in studyVersion per schema
                 if "roles" not in study_version:
@@ -1528,6 +1642,13 @@ def combine_to_full_usdm(
     # Assemble final USDM v4.0 structure: study.versions[0] contains all data
     combined["study"]["versions"] = [study_version]
     
+    # IMPORTANT: Save original SoA epoch names BEFORE enrichment
+    # SoA/header is authoritative for epochs - enrichment should not add new epochs
+    original_soa_epoch_names = set()
+    pre_enrich_design = combined.get("study", {}).get("versions", [{}])[0].get("studyDesigns", [{}])[0]
+    for epoch in pre_enrich_design.get("epochs", []):
+        original_soa_epoch_names.add(epoch.get("name", "").lower().strip())
+    
     # Add Execution Model (Phase 14) - enrich studyDesigns with execution semantics
     # Must be done AFTER study.versions is assembled so enrich can find studyDesigns
     execution_data = None
@@ -1538,6 +1659,22 @@ def combine_to_full_usdm(
             combined = enrich_usdm_with_execution_model(combined, r.data)
             execution_data = r.data
             logger.info(f"  ✓ Enriched USDM with execution model (Phase 14)")
+            
+            # Filter out any epochs added by enrichment that weren't in original SoA
+            # SoA/header is authoritative for epochs
+            post_enrich_design = combined.get("study", {}).get("versions", [{}])[0].get("studyDesigns", [{}])[0]
+            if original_soa_epoch_names and post_enrich_design.get("epochs"):
+                original_epochs = []
+                removed_epochs = []
+                for epoch in post_enrich_design.get("epochs", []):
+                    epoch_name = epoch.get("name", "").lower().strip()
+                    if epoch_name in original_soa_epoch_names:
+                        original_epochs.append(epoch)
+                    else:
+                        removed_epochs.append(epoch.get("name", "Unknown"))
+                if removed_epochs:
+                    post_enrich_design["epochs"] = original_epochs
+                    logger.info(f"  ✓ Filtered {len(removed_epochs)} non-SoA epochs: {removed_epochs}")
     
     # Reconcile Epochs (Phase 15) - merge epoch sources, identify main flow
     # This runs after execution model so we have traversal constraints
@@ -1593,8 +1730,52 @@ def combine_to_full_usdm(
                 visit_windows=visit_windows,
             )
             if reconciled_encounters:
+                # Build set of valid encounter IDs after reconciliation
+                valid_encounter_ids = {enc.get('id') for enc in reconciled_encounters}
+                old_encounter_ids = {enc.get('id') for enc in soa_encounters}
+                removed_encounter_ids = old_encounter_ids - valid_encounter_ids
+                
+                # Fix dangling encounterId references in schedule instances
+                if removed_encounter_ids:
+                    scheduleTimelines = study_design.get('scheduleTimelines', [])
+                    if scheduleTimelines:
+                        instances = scheduleTimelines[0].get('instances', [])
+                        # Find a fallback encounter (first valid one)
+                        fallback_encounter_id = next(iter(valid_encounter_ids), None)
+                        fixed_refs = 0
+                        for inst in instances:
+                            enc_id = inst.get('encounterId')
+                            if enc_id and enc_id in removed_encounter_ids and fallback_encounter_id:
+                                inst['encounterId'] = fallback_encounter_id
+                                fixed_refs += 1
+                        if fixed_refs > 0:
+                            logger.info(f"  ✓ Fixed {fixed_refs} dangling encounterId references")
+                
                 study_design["encounters"] = reconciled_encounters
                 logger.info(f"  ✓ Reconciled {len(reconciled_encounters)} encounters")
+                
+                # Populate epochId on schedule instances from their encounter's epochId
+                # This ensures UI can group instances by epoch
+                enc_to_epoch = {enc.get('id'): enc.get('epochId') for enc in reconciled_encounters}
+                # Get first epoch as fallback for instances without valid encounterId
+                epochs = study_design.get('epochs', [])
+                fallback_epoch_id = epochs[0].get('id') if epochs else None
+                scheduleTimelines = study_design.get('scheduleTimelines', [])
+                if scheduleTimelines:
+                    instances = scheduleTimelines[0].get('instances', [])
+                    epoch_set = 0
+                    for inst in instances:
+                        if not inst.get('epochId'):
+                            enc_id = inst.get('encounterId')
+                            if enc_id and enc_id in enc_to_epoch:
+                                inst['epochId'] = enc_to_epoch[enc_id]
+                                epoch_set += 1
+                            elif fallback_epoch_id:
+                                # Execution model instances without encounterId get first epoch
+                                inst['epochId'] = fallback_epoch_id
+                                epoch_set += 1
+                    if epoch_set > 0:
+                        logger.info(f"  ✓ Set epochId on {epoch_set} schedule instances")
         
         # Activity reconciliation - now preserves original IDs
         soa_activities = study_design.get("activities", [])
@@ -1669,6 +1850,34 @@ def combine_to_full_usdm(
                     
                     if new_child_ids:
                         group['childIds'] = new_child_ids
+                
+                # CRITICAL: Update scheduleTimelines.instances.activityIds to match reconciled IDs
+                # Build mapping from old activity ID to new ID
+                old_id_to_new_id = {}
+                for orig_act in soa_activities:
+                    orig_name = orig_act.get('name', '').lower().strip()
+                    orig_id = orig_act.get('id')
+                    if orig_name and orig_id and orig_name in activity_name_to_new_id:
+                        old_id_to_new_id[orig_id] = activity_name_to_new_id[orig_name]
+                
+                # Update activityIds in schedule instances
+                scheduleTimelines = study_design.get('scheduleTimelines', [])
+                updated_instances = 0
+                for timeline in scheduleTimelines:
+                    for inst in timeline.get('instances', []):
+                        old_act_ids = inst.get('activityIds', [])
+                        new_act_ids = []
+                        for old_id in old_act_ids:
+                            if old_id in old_id_to_new_id:
+                                new_act_ids.append(old_id_to_new_id[old_id])
+                            else:
+                                new_act_ids.append(old_id)  # Keep unchanged if not mapped
+                        if new_act_ids != old_act_ids:
+                            inst['activityIds'] = new_act_ids
+                            updated_instances += 1
+                
+                if updated_instances > 0:
+                    logger.info(f"  ✓ Updated activityIds in {updated_instances} schedule instances")
                 
     except Exception as e:
         logger.warning(f"  ⚠ Entity reconciliation skipped: {e}")

@@ -25,6 +25,8 @@ from .usdm_validator import (
     USDMValidator,
     validate_usdm_file,
     validate_usdm_dict,
+    validate_usdm_semantic,  # Schema + cross-reference checks
+    validate_cross_references,  # Cross-reference checks only
     ValidationResult,
     ValidationIssue,
     ValidationSeverity,
@@ -59,6 +61,8 @@ __all__ = [
     'validate_usdm',
     'validate_usdm_file',
     'validate_usdm_dict',
+    'validate_usdm_semantic',  # Schema + cross-reference checks
+    'validate_cross_references',  # Cross-reference checks only
     'ValidationResult',
     'ValidationIssue',
     'ValidationSeverity',

@@ -69,15 +69,59 @@ class StudyRole:
     instance_type: str = "StudyRole"
     
     def to_dict(self) -> Dict[str, Any]:
+        # Map role codes to USDM-compliant name and code
+        role_names = {
+            "PI": ("Principal Investigator", "C71086"),
+            "Sub-I": ("Sub-Investigator", "C54625"),
+            "Coordinator": ("Study Coordinator", "C51826"),
+            "CRA": ("Clinical Research Associate", "C25461"),
+            "Sponsor": ("Sponsor", "C70793"),
+        }
+        name, code = role_names.get(self.role_code, (self.role_code, "C25461"))
+        
         result = {
             "id": self.id,
-            "roleCode": self.role_code,
+            "name": name,  # Required by USDM
+            "code": {  # Required by USDM - Code object
+                "id": f"code_{self.id}",
+                "code": code,
+                "codeSystem": "http://www.cdisc.org",
+                "decode": name,
+                "instanceType": "Code"
+            },
             "organizationId": self.organization_id,
             "instanceType": self.instance_type,
         }
         if self.person_id:
             result["personId"] = self.person_id
         return result
+
+
+@dataclass
+class Organization:
+    """USDM Organization entity - required for StudyRole references."""
+    id: str
+    name: str
+    type_code: str = "C70793"  # Clinical Study Site
+    identifier: str = ""  # Will be set from site_number
+    instance_type: str = "Organization"
+    
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "id": self.id,
+            "name": self.name,
+            "identifierScheme": "SITE_NUMBER",  # Required by USDM
+            "identifier": self.identifier or self.id,  # Required by USDM
+            "type": {
+                "id": f"orgtype_{self.id}",
+                "code": self.type_code,
+                "codeSystem": "http://www.cdisc.org",
+                "codeSystemVersion": "2024-03-29",
+                "decode": "Clinical Study Site",
+                "instanceType": "Code"
+            },
+            "instanceType": self.instance_type,
+        }
 
 
 @dataclass
@@ -117,6 +161,7 @@ class SitesData:
     roles: List[StudyRole] = field(default_factory=list)
     persons: List[AssignedPerson] = field(default_factory=list)
     names: List[PersonName] = field(default_factory=list)
+    organizations: List[Organization] = field(default_factory=list)
     
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -124,10 +169,12 @@ class SitesData:
             "studyRoles": [r.to_dict() for r in self.roles],
             "assignedPersons": [p.to_dict() for p in self.persons],
             "personNames": [n.to_dict() for n in self.names],
+            "organizations": [o.to_dict() for o in self.organizations],
             "summary": {
                 "siteCount": len(self.sites),
                 "roleCount": len(self.roles),
                 "personCount": len(self.persons),
+                "organizationCount": len(self.organizations),
             }
         }
 
@@ -194,15 +241,29 @@ def extract_from_sites(
         roles = []
         persons = []
         names = []
+        organizations = []
         
         for idx, row in df.iterrows():
             site_id = f"site_{idx+1}"
+            org_id = f"org_{idx+1}"  # Organization ID for this site
             
-            # Extract site
+            site_name = str(row.get('site_name', row.get('name', f'Site {idx+1}')))
+            site_number = str(row.get('site_number', row.get('site_id', f'{idx+1}')))
+            
+            # Create Organization entity (required for StudyRole.organizationId reference)
+            org = Organization(
+                id=org_id,
+                name=site_name,
+                identifier=site_number,  # Use site number as identifier
+            )
+            organizations.append(org)
+            
+            # Extract site with reference to organization
             site = StudySite(
                 id=site_id,
-                name=str(row.get('site_name', row.get('name', f'Site {idx+1}'))),
+                name=site_name,
                 site_number=str(row.get('site_number', row.get('site_id', ''))),
+                organization_id=org_id,  # Link to organization
                 country=str(row.get('country', '')),
                 status=str(row.get('status', 'Active')),
             )
@@ -232,7 +293,7 @@ def extract_from_sites(
                 role = StudyRole(
                     id=f"role_{idx+1}",
                     role_code="Principal Investigator",
-                    organization_id=site_id,
+                    organization_id=org_id,  # Reference organization, not site
                     person_id=person_id,
                 )
                 roles.append(role)
@@ -242,6 +303,7 @@ def extract_from_sites(
             roles=roles,
             persons=persons,
             names=names,
+            organizations=organizations,
         )
         
         result = SitesExtractionResult(

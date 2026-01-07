@@ -165,6 +165,13 @@ class ExecutionModelPromoter:
                 "epochId": self._find_first_treatment_epoch_id(design),
                 "activityIds": [],  # Anchors may not have activities
                 "instanceType": "ScheduledActivityInstance",
+                # Mark as enrichment-created so UI can distinguish from SoA instances
+                "extensionAttributes": [{
+                    "id": f"ext_source_{instance_id[:8]}",
+                    "url": "http://example.org/usdm/instanceSource",
+                    "instanceType": "ExtensionAttribute",
+                    "valueString": "execution_model"
+                }]
             }
             
             # Add day value if available
@@ -256,6 +263,13 @@ class ExecutionModelPromoter:
                         "encounterId": encounter_id,
                         "scheduledDay": day,
                         "instanceType": "ScheduledActivityInstance",
+                        # Mark as enrichment-created so UI can distinguish from SoA instances
+                        "extensionAttributes": [{
+                            "id": f"ext_source_{instance_id[:8]}",
+                            "url": "http://example.org/usdm/instanceSource",
+                            "instanceType": "ExtensionAttribute",
+                            "valueString": "execution_model"
+                        }]
                     }
                     instances.append(instance)
                     created_instances.append(instance_id)
@@ -406,6 +420,13 @@ class ExecutionModelPromoter:
                         "name": f"Auto-anchor for {timing_name}",
                         "activityIds": [],
                         "instanceType": "ScheduledActivityInstance",
+                        # Mark as enrichment-created so UI can distinguish from SoA instances
+                        "extensionAttributes": [{
+                            "id": f"ext_source_{ref_id[:8]}",
+                            "url": "http://example.org/usdm/instanceSource",
+                            "instanceType": "ExtensionAttribute",
+                            "valueString": "execution_model"
+                        }]
                     }
                     instances.append(anchor_instance)
                     existing_instance_ids.add(ref_id)

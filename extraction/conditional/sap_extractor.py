@@ -58,12 +58,19 @@ class Characteristic:
     name: str
     description: Optional[str] = None
     data_type: str = "Text"
+    code: str = ""  # Will be set from name if not provided
     instance_type: str = "Characteristic"
     
     def to_dict(self) -> Dict[str, Any]:
+        # USDM requires Characteristic to have Code fields
+        char_code = self.code or self.name.upper().replace(" ", "_")[:20]
         return {
             "id": self.id,
             "name": self.name,
+            "code": char_code,  # Required by USDM
+            "codeSystem": "http://www.cdisc.org/baseline-characteristics",  # Required
+            "codeSystemVersion": "2024-03-29",  # Required
+            "decode": self.name,  # Required - human readable name
             "dataType": self.data_type,
             "instanceType": self.instance_type,
             "description": self.description,

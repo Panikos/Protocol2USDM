@@ -189,10 +189,10 @@ class ActivityReconciler(BaseReconciler[ActivityContribution, ReconciledActivity
     Reconciler for activity data from multiple sources.
     
     Priority order (default):
-    - SoA: 10 (base activities with tick marks)
-    - Procedures: 20 (detailed procedure info)
-    - Execution Model: 25 (repetition patterns, timing)
+    - SoA: 100 (highest - preserves original IDs for provenance tracking)
     - Footnotes: 30 (conditional logic)
+    - Execution Model: 25 (repetition patterns, timing)
+    - Procedures: 20 (detailed procedure info, lower priority)
     """
     
     def _create_contribution(
@@ -408,9 +408,12 @@ def reconcile_activities_from_pipeline(
         group_names_lower = {n.lower() for n in activity_group_names}
         filtered_soa = [a for a in soa_activities if a.get('name', '').lower() not in group_names_lower]
     
+    # SoA activities get highest priority to preserve their original IDs
+    # This is critical for provenance tracking - provenance keys use SoA act_N IDs
     if filtered_soa:
-        reconciler.contribute("soa", filtered_soa, priority=10)
+        reconciler.contribute("soa", filtered_soa, priority=100)
     
+    # Procedure activities add detail but use lower priority so SoA IDs are preserved
     if procedure_activities:
         reconciler.contribute_from_procedures(procedure_activities, priority=20)
     
