@@ -381,7 +381,7 @@ export function ExecutionModelView({ executionModel }: ExecutionModelViewProps) 
       <div className="min-h-[500px]">
         {activeTab === 'overview' && <OverviewPanel data={execModel} />}
         {activeTab === 'anchors' && <TimeAnchorsPanel anchors={execModel.timeAnchors ?? []} />}
-        {activeTab === 'visits' && <VisitWindowsPanel visits={execModel.visitWindows ?? []} anchors={execModel.timeAnchors ?? []} />}
+        {activeTab === 'visits' && <VisitWindowsPanel visits={execModel.visitWindows ?? []} anchors={execModel.timeAnchors ?? []} epochNameMap={epochNameMap} studyDesign={studyDesign} />}
         {activeTab === 'conditions' && <ConditionsPanel conditions={execModel.footnoteConditions ?? []} studyDesign={studyDesign} />}
         {activeTab === 'repetitions' && <RepetitionsPanel repetitions={execModel.repetitions ?? []} />}
         {activeTab === 'dosing' && <DosingPanel regimens={execModel.dosingRegimens ?? []} />}
@@ -891,17 +891,54 @@ function TimeAnchorsPanel({ anchors }: { anchors: TimeAnchor[] }) {
 // Visit Windows Panel - Enhanced with search, filter, and sorting
 // ============================================================================
 
-function VisitWindowsPanel({ visits, anchors = [] }: { visits: VisitWindow[]; anchors?: TimeAnchor[] }) {
+function VisitWindowsPanel({ 
+  visits, 
+  anchors = [], 
+  epochNameMap = {},
+  studyDesign 
+}: { 
+  visits: VisitWindow[]; 
+  anchors?: TimeAnchor[];
+  epochNameMap?: Record<string, string>;
+  studyDesign?: Record<string, unknown>;
+}) {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterRequired, setFilterRequired] = useState<'all' | 'required' | 'optional'>('all');
   const [sortBy, setSortBy] = useState<'day' | 'name' | 'number'>('day');
   const [sortAsc, setSortAsc] = useState(true);
 
-  // Get unique epochs for stats
+  // Build encounter name to epoch name map from USDM
+  const encounterEpochMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    const encounters = (studyDesign?.encounters ?? []) as Array<{ name?: string; epochId?: string }>;
+    for (const enc of encounters) {
+      if (enc.name && enc.epochId) {
+        const epochName = epochNameMap[enc.epochId];
+        if (epochName) {
+          // Normalize visit name for matching (lowercase, trim)
+          map[enc.name.toLowerCase().trim()] = epochName;
+        }
+      }
+    }
+    return map;
+  }, [studyDesign, epochNameMap]);
+
+  // Resolve epoch name for a visit - try USDM first, fallback to generic
+  const resolveEpochName = (visit: VisitWindow): string | undefined => {
+    // Try to match visit name to USDM encounter
+    const normalizedName = visit.visitName.toLowerCase().trim();
+    if (encounterEpochMap[normalizedName]) {
+      return encounterEpochMap[normalizedName];
+    }
+    // Fallback to generic epoch from execution model
+    return visit.epoch;
+  };
+
+  // Get unique epochs for stats (using resolved names)
   const epochs = useMemo(() => {
-    const set = new Set(visits.map(v => v.epoch).filter(Boolean));
+    const set = new Set(visits.map(v => resolveEpochName(v)).filter(Boolean));
     return Array.from(set);
-  }, [visits]);
+  }, [visits, encounterEpochMap]);
 
   // Filter and sort visits
   const filteredVisits = useMemo(() => {
@@ -912,7 +949,7 @@ function VisitWindowsPanel({ visits, anchors = [] }: { visits: VisitWindow[]; an
       const query = searchQuery.toLowerCase();
       result = result.filter(v => 
         v.visitName.toLowerCase().includes(query) ||
-        v.epoch?.toLowerCase().includes(query)
+        resolveEpochName(v)?.toLowerCase().includes(query)
       );
     }
 
@@ -1083,7 +1120,7 @@ function VisitWindowsPanel({ visits, anchors = [] }: { visits: VisitWindow[]; an
                         <Badge variant="secondary">Optional</Badge>
                       )}
                     </td>
-                    <td className="py-3 px-4 text-muted-foreground">{visit.epoch ?? '-'}</td>
+                    <td className="py-3 px-4 text-muted-foreground">{resolveEpochName(visit) ?? '-'}</td>
                   </tr>
                 ))}
               </tbody>
