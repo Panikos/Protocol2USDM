@@ -86,6 +86,15 @@ The execution model captures information that goes beyond static protocol struct
 | **Dense Windows** | Intensive sampling periods | Identify high-frequency collection |
 | **Sparse Sampling** | Population PK designs | Recognize reduced sampling |
 
+## Model Selection (v6.9+)
+
+When running with `gemini-3-flash-preview`, the execution model extractors use the main model for all phases. The SoA extraction fallback only affects the Schedule of Activities text extraction step, not the execution model extraction.
+
+**Recommended command:**
+```bash
+python main_v2.py protocol.pdf --complete --model gemini-3-flash-preview
+```
+
 ## Installation
 
 The module is included in Protocol2USDMv3. No additional installation required.

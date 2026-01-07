@@ -1,9 +1,9 @@
 # Protocol2USDM User Guide
 
-**Version:** 6.5.0  
-**Last Updated:** 2025-11-30
+**Version:** 6.9.0  
+**Last Updated:** 2026-01-07
 
-> **📢 What's New in v6.5.0:** External evaluation score **88%** (7/8 checks passing)! Key fixes: encounterId alignment (enc_N instead of pt_N), StudyIdentifier type auto-inference (NCT, EudraCT, IND, Sponsor), and all 28 NCI terminology codes EVS-verified. The pipeline extracts the **full protocol** including metadata, eligibility, objectives, study design, interventions, and more.
+> **📢 What's New in v6.9.0:** Full **Gemini 3 Flash** support with intelligent fallback! When using `gemini-3-flash-preview`, the pipeline automatically falls back to `gemini-2.5-pro` for SoA text extraction (where Gemini 3 Flash has JSON compliance issues). New response validation with retry logic ensures robust extraction. Best run achieved **36 activities, 216 ticks, 12/12 expansion phases passing**.
 
 ---
 
@@ -31,8 +31,8 @@ pip install -r requirements.txt
 echo "OPENAI_API_KEY=sk-..." > .env
 echo "GOOGLE_API_KEY=AIza..." >> .env
 
-# Run full protocol extraction with viewer
-python main_v2.py .\input\Alexion_NCT04573309_Wilsons.pdf --full-protocol --sap .\input\Alexion_NCT04573309_Wilsons_SAP.pdf --model gemini-2.5-pro --view
+# Run full protocol extraction with viewer (recommended)
+python main_v2.py .\input\Alexion_NCT04573309_Wilsons.pdf --complete --sap .\input\Alexion_NCT04573309_Wilsons_SAP.pdf --sites .\input\Alexion_NCT04573309_Wilsons_sites.csv --model gemini-3-flash-preview --view
 ```
 
 **Expected runtime:** 3-8 minutes for full protocol extraction
@@ -428,22 +428,56 @@ python main_v2.py protocol.pdf --conformance
 
 | Model | Provider | Speed | Best For |
 |-------|----------|-------|----------|
-| `gpt-5.1` | OpenAI | Medium | **Default - Best reliability** |
+| `gemini-3-flash-preview` | Google | **Fast** | **Recommended - Best speed/quality** |
+| `gemini-2.5-pro` | Google | Medium | Reliable fallback |
 | `gemini-3-pro-preview` | Google | Slow | Thorough extraction |
-| `gemini-2.5-pro` | Google | Fast | Good balance |
 | `gpt-4o` | OpenAI | Medium | OpenAI preference |
+| `claude-sonnet-4-20250514` | Anthropic | Medium | Anthropic preference |
+
+### Gemini 3 Flash with Intelligent Fallback
+
+When using `gemini-3-flash-preview`, the pipeline automatically uses `gemini-2.5-pro` for SoA text extraction only. This is because Gemini 3 Flash has issues with the specific JSON output format required for SoA extraction.
+
+**What happens:**
+1. SoA header analysis → Uses `gemini-3-flash-preview` ✓
+2. SoA text extraction → Falls back to `gemini-2.5-pro` (automatic)
+3. All expansion phases → Uses `gemini-3-flash-preview` ✓
+
+**Log output:**
+```
+[INFO] Step 2: Extracting SoA data from text...
+[INFO]   Using fallback model for SoA text extraction: gemini-2.5-pro
+```
+
+### Vertex AI Configuration (Required for Gemini)
+
+Gemini models require Vertex AI for clinical protocol extraction (to properly disable safety controls):
+
+```bash
+# In .env file
+GOOGLE_CLOUD_PROJECT=your-project-id
+GOOGLE_CLOUD_LOCATION=us-central1  # or your preferred region
+GOOGLE_API_KEY=AIzaSy...  # Still needed for authentication
+```
 
 ### Benchmark Results
 
-| Model | Success Rate | Avg Time |
-|-------|-------------|----------|
-| GPT-5.1 | 100% | 92s |
-| Gemini-3-pro-preview | 75% | 400s |
+| Model | Success Rate | SoA Extraction | Expansion Phases |
+|-------|-------------|----------------|------------------|
+| gemini-3-flash-preview | 100% | via fallback | All 12 ✓ |
+| gemini-2.5-pro | 100% | Native | All 12 ✓ |
+| gemini-3-pro-preview | 75% | via fallback | All 12 ✓ |
 
 ### Specifying Model
 ```bash
-python main_v2.py protocol.pdf --model gpt-5.1
-python main_v2.py protocol.pdf --model gemini-3-pro-preview
+# Recommended: Gemini 3 Flash (uses fallback for SoA automatically)
+python main_v2.py protocol.pdf --model gemini-3-flash-preview
+
+# Alternative: Direct Gemini 2.5 Pro
+python main_v2.py protocol.pdf --model gemini-2.5-pro
+
+# Full extraction with SAP and sites
+python main_v2.py protocol.pdf --complete --sap sap.pdf --sites sites.csv --model gemini-3-flash-preview
 ```
 
 ---
@@ -529,4 +563,4 @@ A: Check logs in `output/<protocol>/`, capture error messages, report to maintai
 
 ---
 
-**Last Updated:** 2025-11-28
+**Last Updated:** 2026-01-07

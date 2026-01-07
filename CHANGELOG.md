@@ -4,6 +4,106 @@ All notable changes documented here. Dates in ISO-8601.
 
 ---
 
+## [6.9.0] – 2026-01-07
+
+### Gemini 3 Flash Support with Intelligent Fallback
+
+Added full support for `gemini-3-flash-preview` model with automatic fallback to `gemini-2.5-pro` for SoA text extraction due to JSON format compliance issues.
+
+#### New Features
+
+| Feature | Description |
+|---------|-------------|
+| **Gemini 3 Flash Support** | Full support for `gemini-3-flash-preview` as primary model |
+| **SoA Extraction Fallback** | Automatic fallback to `gemini-2.5-pro` for SoA text extraction |
+| **Response Validation** | New validation system checks LLM response structure |
+| **Retry Logic** | Up to 2 retries with correction prompts on validation failure |
+| **Stricter Prompts** | Enhanced prompt guardrails for JSON format compliance |
+
+#### SoA Extraction Fallback
+
+When using `gemini-3-flash-preview` or `gemini-3-flash`, the pipeline automatically uses `gemini-2.5-pro` for SoA text extraction only. This is because Gemini 3 Flash models have issues with structured JSON output format compliance for the complex SoA extraction task.
+
+```python
+# In extraction/pipeline.py
+SOA_FALLBACK_MODELS = {
+    'gemini-3-flash-preview': 'gemini-2.5-pro',
+    'gemini-3-flash': 'gemini-2.5-pro',
+}
+```
+
+**Log output:**
+```
+[INFO] Step 2: Extracting SoA data from text...
+[INFO]   Using fallback model for SoA text extraction: gemini-2.5-pro
+```
+
+#### Response Validation & Retry
+
+New `validate_extraction_response()` function in `extraction/text_extractor.py`:
+
+| Check | Description |
+|-------|-------------|
+| Root keys | Verifies `activities` key exists at root level |
+| Wrong structure | Detects nested USDM format instead of flat `{activities, activityTimepoints}` |
+| Minimum activities | Ensures at least `2 * num_groups` activities extracted |
+| Activity structure | Validates each activity has `id` and `name` |
+
+On validation failure, retry with correction prompt:
+```
+Your previous response had an invalid format: {error}
+REMINDER: Return FLAT JSON with only "activities" and "activityTimepoints" at root
+```
+
+#### Environment Pollution Fix
+
+Fixed issue where Gemini 3's global endpoint setting polluted the environment for fallback models:
+
+**Before:** `os.environ['GOOGLE_CLOUD_LOCATION'] = 'global'` caused gemini-2.5-pro to fail
+**After:** Use explicit `Client(vertexai=True, project=..., location='global')` for Gemini 3 only
+
+#### Visit Windows Epoch Resolution
+
+Enhanced `resolveEpochName()` in `ExecutionModelView.tsx`:
+
+| Fix | Description |
+|-----|-------------|
+| Late-study visits | Day 162, Day 365 now assigned to EOS epoch |
+| Gap filling | Day 0 (Baseline) resolved by interpolating from nearest neighbors |
+| Day-based matching | Uses `dayToEpochMap` from USDM encounters instead of name matching |
+
+#### Files Changed
+
+**Core:**
+* `extraction/pipeline.py` - Added `SOA_FALLBACK_MODELS` and fallback logic
+* `extraction/text_extractor.py` - Added `validate_extraction_response()`, retry logic, stricter prompts
+* `llm_providers.py` - Fixed environment pollution, explicit Gemini 3 client config
+
+**Web UI:**
+* `web-ui/components/timeline/ExecutionModelView.tsx` - Enhanced `resolveEpochName()` with day-based matching
+
+#### Best Run Results (Commit ef3e0a0)
+
+```bash
+python main_v2.py input/Alexion_NCT04573309_Wilsons.pdf --complete \
+  --sap input/Alexion_NCT04573309_Wilsons_SAP.pdf \
+  --sites input/Alexion_NCT04573309_Wilsons_sites.csv \
+  --model gemini-3-flash-preview
+```
+
+| Metric | Result |
+|--------|--------|
+| SoA Activities | 36 |
+| SoA Ticks | 216 |
+| Expansion Phases | 12/12 ✓ |
+| Schema Validation | PASSED ✓ |
+| Semantic Validation | PASSED ✓ |
+| Reconciled Epochs | 7 |
+| Reconciled Encounters | 24 |
+| Reconciled Activities | 43 |
+
+---
+
 ## [6.8.0] – 2026-01-02
 
 ### Execution Model Promotion to Core USDM

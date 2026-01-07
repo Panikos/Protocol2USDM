@@ -146,12 +146,23 @@ npm run lint
 npm run build
 ```
 
+## Recent Updates (v6.9)
+
+### Execution Model View Enhancements
+- **Visit Windows Epoch Resolution**: Day-based epoch matching from USDM encounters
+- **Late-study visits**: Day 162, Day 365 now correctly assigned to EOS epoch
+- **Gap filling**: Day 0 (Baseline) resolved by interpolating from nearest neighbors
+
+### Quality Metrics Dashboard
+- Fixed epoch field checking to only validate `name` (not `epochType` which is often empty)
+- Improved field population rate accuracy
+
 ## Milestones
 
 - [x] **M1**: Next.js setup, schemas, stores, API routes
-- [ ] **M2**: AG Grid SoA table with provenance
-- [ ] **M3**: Cytoscape.js timeline diagram
-- [ ] **M4**: Provenance explorer, PDF viewer
+- [x] **M2**: AG Grid SoA table with provenance
+- [x] **M3**: Cytoscape.js timeline diagram
+- [x] **M4**: Execution Model view with visit windows
 - [ ] **M5**: Semantic editing workflow
 
 ## License

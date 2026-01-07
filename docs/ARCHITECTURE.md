@@ -73,6 +73,89 @@ This YAML file contains:
 └─────────────────────────────────────────────────────────────────┘
 ```
 
+## SoA Extraction Model Fallback (v6.9+)
+
+Certain models have issues with the complex JSON output format required for SoA text extraction. The pipeline automatically falls back to a more reliable model for this specific step.
+
+### Fallback Configuration
+
+```python
+# In extraction/pipeline.py
+SOA_FALLBACK_MODELS = {
+    'gemini-3-flash-preview': 'gemini-2.5-pro',
+    'gemini-3-flash': 'gemini-2.5-pro',
+}
+```
+
+### How It Works
+
+```
+Main Model: gemini-3-flash-preview
+                    │
+Step 1: Header Analysis ────► gemini-3-flash-preview (works fine)
+                    │
+Step 2: Text Extraction ───► gemini-2.5-pro (automatic fallback)
+                    │
+Step 3-6: Continue ─────────► gemini-3-flash-preview
+```
+
+**Why?** Gemini 3 Flash models have issues complying with the specific flat JSON structure required:
+```json
+{
+  "activities": [...],
+  "activityTimepoints": [...]
+}
+```
+Instead, they often return nested USDM-like structures with `study.studyDesigns.activityGroups`, which breaks extraction.
+
+### Response Validation & Retry
+
+The `extract_soa_from_text()` function now includes validation and retry logic:
+
+```python
+# In extraction/text_extractor.py
+def validate_extraction_response(data: dict, min_activities: int = 1) -> tuple[bool, str]:
+    """Validate LLM response structure for SoA extraction."""
+    # Check for required root key
+    if 'activities' not in data:
+        return False, "Missing 'activities' key at root"
+    
+    # Detect wrong nested structure
+    if 'study' in data or 'studyDesigns' in data:
+        return False, "Wrong format: nested USDM structure instead of flat JSON"
+    
+    # Ensure minimum activities
+    activities = data.get('activities', [])
+    if len(activities) < min_activities:
+        return False, f"Too few activities: {len(activities)} < {min_activities}"
+    
+    return True, ""
+```
+
+On validation failure, retry up to 2 times with correction prompt:
+```
+Your previous response had an invalid format: {error}
+REMINDER: Return FLAT JSON with only "activities" and "activityTimepoints" at root
+```
+
+### Vertex AI Endpoint Isolation
+
+Fixed environment pollution issue where Gemini 3's global endpoint setting affected fallback models:
+
+```python
+# Before (problematic):
+os.environ['GOOGLE_CLOUD_LOCATION'] = 'global'  # Pollutes env
+
+# After (fixed):
+self._genai_client = genai_new.Client(
+    vertexai=True,
+    project=project,
+    location='global',  # Explicit, doesn't pollute env
+)
+```
+
+---
+
 ## Core Modules
 
 ### `core/usdm_schema_loader.py`
