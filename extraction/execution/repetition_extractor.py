@@ -891,6 +891,7 @@ Return ONLY the JSON."""
             prompt=prompt,
             model_name=model,
             json_mode=True,
+            extractor_name="repetition",
             temperature=0.1,
         )
         response = result.get('response', '')
@@ -905,10 +906,13 @@ Return ONLY the JSON."""
         
         repetitions = []
         for i, rep_data in enumerate(data.get('repetitions', [])):
-            try:
-                rep_type = RepetitionType(rep_data.get('type', 'Daily'))
-            except ValueError:
-                rep_type = RepetitionType.DAILY
+            rep_type_str = rep_data.get('type')
+            rep_type = RepetitionType.UNKNOWN  # Default to UNKNOWN if not extracted
+            if rep_type_str:
+                try:
+                    rep_type = RepetitionType(rep_type_str)
+                except ValueError:
+                    rep_type = RepetitionType.UNKNOWN
             
             repetitions.append(Repetition(
                 id=f"rep_llm_{i+1}",

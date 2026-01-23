@@ -470,7 +470,8 @@ export function ValidationResultsView({ protocolId }: ValidationResultsViewProps
             </div>
             
             {data.usdm.usdm_version_expected && data.usdm.usdm_version_found && 
-             data.usdm.usdm_version_expected !== data.usdm.usdm_version_found && (
+             data.usdm.usdm_version_expected.split('.').slice(0, 2).join('.') !== 
+             data.usdm.usdm_version_found.split('.').slice(0, 2).join('.') && (
               <div className="p-2 bg-amber-50 border border-amber-200 rounded text-sm mb-4">
                 <span className="font-medium">Version mismatch:</span>{' '}
                 Expected {data.usdm.usdm_version_expected}, found {data.usdm.usdm_version_found}

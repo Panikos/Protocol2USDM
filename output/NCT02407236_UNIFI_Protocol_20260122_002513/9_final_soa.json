@@ -1,0 +1,304 @@
+{
+  "usdmVersion": "4.0",
+  "systemName": "Protocol2USDM",
+  "systemVersion": "6.2.0",
+  "study": {
+    "id": "151651fc-e027-4bec-bb38-0801cd585913",
+    "name": "",
+    "instanceType": "Study",
+    "versions": [
+      {
+        "id": "dc1e9c46-6ce9-4f75-a28e-4e39c86da26d",
+        "versionIdentifier": "1.0",
+        "rationale": "Initial protocol version",
+        "instanceType": "StudyVersion",
+        "studyDesigns": [
+          {
+            "id": "sd_1",
+            "name": "Study Design",
+            "rationale": "Protocol-defined study design",
+            "instanceType": "InterventionalStudyDesign",
+            "blindingSchema": {
+              "id": "23682002-14db-4533-9066-4e341966205f",
+              "instanceType": "AliasCode",
+              "standardCode": {
+                "id": "5c1b75ce-edc3-4020-923a-341f38860537",
+                "code": "C49656",
+                "codeSystem": "http://www.cdisc.org",
+                "codeSystemVersion": "2024-09-27",
+                "decode": "Open Label",
+                "instanceType": "Code"
+              }
+            },
+            "model": {
+              "id": "03e834ef-9c9f-4c05-9004-a99eb332314f",
+              "code": "C82638",
+              "codeSystem": "http://www.cdisc.org",
+              "codeSystemVersion": "2024-09-27",
+              "decode": "Single Group Study",
+              "instanceType": "Code"
+            },
+            "epochs": [
+              {
+                "id": "epoch_1",
+                "name": "Maintenance Study",
+                "instanceType": "StudyEpoch",
+                "type": {
+                  "id": "31aa0b39-1fc8-437f-9f02-430ad6bafdee",
+                  "code": "C98780",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Treatment Epoch",
+                  "instanceType": "Code"
+                }
+              }
+            ],
+            "activities": [
+              {
+                "id": "grp_1",
+                "name": "Major secondary endpoints",
+                "instanceType": "Activity",
+                "childIds": [
+                  "act_1",
+                  "act_2",
+                  "act_3",
+                  "act_4"
+                ]
+              },
+              {
+                "id": "act_1",
+                "name": "Maintenance of clinical response through Week 44",
+                "instanceType": "Activity",
+                "description": "To evaluate the efficacy of ustekinumab in maintaining clinical response in subjects induced into clinical response with ustekinumab."
+              },
+              {
+                "id": "act_2",
+                "name": "Endoscopic healing at Week 44",
+                "instanceType": "Activity",
+                "description": "To evaluate endoscopic healing (ie, improvement in the endoscopic appearance of the mucosa) in subjects induced into clinical response with ustekinumab."
+              },
+              {
+                "id": "act_3",
+                "name": "Clinical remission and not receiving concomitant corticosteroids at Week 44",
+                "instanceType": "Activity",
+                "description": "To evaluate the efficacy of ustekinumab in achieving corticosteroid-free clinical remission in subjects induced into clinical response with ustekinumab."
+              },
+              {
+                "id": "act_4",
+                "name": "Maintenance of clinical remission through Week 44 among the subjects who had achieved clinical remission at maintenance baseline (both global and US definitions)",
+                "instanceType": "Activity",
+                "description": "To evaluate the efficacy of ustekinumab in maintaining clinical remission in subjects induced into clinical remission with ustekinumab."
+              }
+            ],
+            "encounters": [
+              {
+                "id": "enc_1",
+                "name": "Placebo SC",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "cd3594d5-3d1b-431f-abe2-0cfda17637c9",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_1"
+              },
+              {
+                "id": "enc_2",
+                "name": "Ustekinumab 90 mg SC q12w",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "42d9ffb1-dad7-4457-b3cd-ff6ce913167e",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_1"
+              },
+              {
+                "id": "enc_3",
+                "name": "Ustekinumab 90 mg SC q8w",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "c82de512-73b4-4608-a982-58993a503617",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_1"
+              }
+            ],
+            "scheduleTimelines": [
+              {
+                "id": "timeline_1",
+                "name": "Main Schedule Timeline",
+                "mainTimeline": true,
+                "instanceType": "ScheduleTimeline",
+                "entryCondition": "Subject enrolled in study",
+                "entryId": "9f2bbc87-7241-4ecd-bf68-584fe8412911",
+                "instances": [
+                  {
+                    "id": "9f2bbc87-7241-4ecd-bf68-584fe8412911",
+                    "activityIds": [
+                      "act_1"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_1@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "f14fa4c7-9bc0-40d9-b8b3-f8b2f48d1e2e",
+                    "activityIds": [
+                      "act_1"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_1@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "dd0b68df-9edb-4575-a8c8-11d81bf3d4e3",
+                    "activityIds": [
+                      "act_1"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_1@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "fbe879c1-6367-4487-8906-5124f7804ed6",
+                    "activityIds": [
+                      "act_2"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_2@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "72186762-3af0-472e-a83a-1285e02c23ac",
+                    "activityIds": [
+                      "act_2"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_2@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "136772a9-c2f8-42c2-8f3e-c171c2c8efc1",
+                    "activityIds": [
+                      "act_2"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_2@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "61437c50-3d21-4101-a6fe-e76fdce92d0d",
+                    "activityIds": [
+                      "act_3"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_3@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "5ded2739-b82f-46bd-9136-58a635a396b8",
+                    "activityIds": [
+                      "act_3"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_3@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "69609285-d52f-4814-966f-e62aa1dc716b",
+                    "activityIds": [
+                      "act_3"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_3@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "5d2785cc-77ef-4cc6-8243-fec957234e49",
+                    "activityIds": [
+                      "act_4"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_4@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "3a9caef6-6822-45e2-bbab-0c7f8730599a",
+                    "activityIds": [
+                      "act_4"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_4@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "1552b127-f230-433a-ae55-e80a4003dd23",
+                    "activityIds": [
+                      "act_4"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_4@enc_3",
+                    "encounterId": "enc_3"
+                  }
+                ]
+              }
+            ],
+            "notes": [
+              {
+                "id": "soa_fn_1",
+                "text": "a: Based on testing the SC ustekinumab 90 mg q8w group versus placebo at α=0.05 (2-sided).",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_2",
+                "text": "b: It is estimated that about 37% of subjects in the primary population (40 subjects per treatment group) will be in clinical remission at Week 0 of maintenance.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_3",
+                "text": "i: Temperature, pulse/heart rate, respiratory rate, and blood pressure.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_4",
+                "text": "k: Respiratory rate was added in the appropriate footnotes in each of the Time and Events Schedules.",
+                "instanceType": "CommentAnnotation"
+              }
+            ],
+            "activityGroups": [
+              {
+                "id": "grp_1",
+                "name": "Major secondary endpoints",
+                "description": null,
+                "childIds": [
+                  "act_1",
+                  "act_2",
+                  "act_3",
+                  "act_4"
+                ],
+                "instanceType": "Activity",
+                "activityNames": [
+                  "Maintenance of clinical response through Week 44",
+                  "Endoscopic healing at Week 44",
+                  "Clinical remission and not receiving concomitant corticosteroids at Week 44",
+                  "Maintenance of clinical remission through Week 44 among the subjects who had achieved clinical remission at maintenance baseline (both global and US definitions)"
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -50,6 +50,7 @@ class DoseForm(Enum):
 
 class InterventionRole(Enum):
     """USDM intervention role codes."""
+    UNKNOWN = ""  # Not extracted from source
     INVESTIGATIONAL = "Investigational Product"
     COMPARATOR = "Comparator"
     PLACEBO = "Placebo"

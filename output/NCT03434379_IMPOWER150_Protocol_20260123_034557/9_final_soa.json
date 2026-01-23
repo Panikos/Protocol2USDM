@@ -1,0 +1,1199 @@
+{
+  "usdmVersion": "4.0",
+  "systemName": "Protocol2USDM",
+  "systemVersion": "6.2.0",
+  "study": {
+    "id": "f6e63b1e-553a-40c2-a944-70d91aead9dd",
+    "name": "",
+    "instanceType": "Study",
+    "versions": [
+      {
+        "id": "2cddb06e-1db9-4b83-97dd-60d335a92958",
+        "versionIdentifier": "1.0",
+        "rationale": "Initial protocol version",
+        "instanceType": "StudyVersion",
+        "studyDesigns": [
+          {
+            "id": "sd_1",
+            "name": "Study Design",
+            "rationale": "Protocol-defined study design",
+            "instanceType": "InterventionalStudyDesign",
+            "blindingSchema": {
+              "id": "9ca61c13-9b83-4d22-b180-b357a34807d5",
+              "instanceType": "AliasCode",
+              "standardCode": {
+                "id": "5d054075-4de6-4f05-b81a-a43bd7d8a14c",
+                "code": "C49656",
+                "codeSystem": "http://www.cdisc.org",
+                "codeSystemVersion": "2024-09-27",
+                "decode": "Open Label",
+                "instanceType": "Code"
+              }
+            },
+            "model": {
+              "id": "0d21c6b5-5317-4461-82e9-8c4a049f9872",
+              "code": "C82638",
+              "codeSystem": "http://www.cdisc.org",
+              "codeSystemVersion": "2024-09-27",
+              "decode": "Single Group Study",
+              "instanceType": "Code"
+            },
+            "epochs": [
+              {
+                "id": "epoch_1",
+                "name": "Screening",
+                "instanceType": "StudyEpoch",
+                "type": {
+                  "id": "80b4e17d-74a2-4186-9e7f-e1c9da6164fe",
+                  "code": "C98779",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Screening Epoch",
+                  "instanceType": "Code"
+                }
+              },
+              {
+                "id": "epoch_2",
+                "name": "Treatment Phase (Q3W)",
+                "instanceType": "StudyEpoch",
+                "type": {
+                  "id": "d3dd75c3-3a5b-4f00-84af-dc79776fd0fd",
+                  "code": "C98780",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Treatment Epoch",
+                  "instanceType": "Code"
+                }
+              },
+              {
+                "id": "epoch_3",
+                "name": "Treatment Discontinuation",
+                "instanceType": "StudyEpoch",
+                "type": {
+                  "id": "70a70d75-594a-4116-aa47-9bd15ad19614",
+                  "code": "C98780",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Treatment Epoch",
+                  "instanceType": "Code"
+                }
+              },
+              {
+                "id": "epoch_4",
+                "name": "Survival Follow-Up",
+                "instanceType": "StudyEpoch",
+                "type": {
+                  "id": "8039be35-831a-45c1-9868-58eb442f6e63",
+                  "code": "C98781",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Follow-up Epoch",
+                  "instanceType": "Code"
+                }
+              }
+            ],
+            "activities": [
+              {
+                "id": "grp_1",
+                "name": "General Assessments",
+                "instanceType": "Activity",
+                "childIds": [
+                  "act_1",
+                  "act_2",
+                  "act_3",
+                  "act_4",
+                  "act_5",
+                  "act_6",
+                  "act_7",
+                  "act_8",
+                  "act_9",
+                  "act_10",
+                  "act_11",
+                  "act_12",
+                  "act_13"
+                ]
+              },
+              {
+                "id": "grp_2",
+                "name": "Laboratory Assessments",
+                "instanceType": "Activity",
+                "childIds": [
+                  "act_14",
+                  "act_15",
+                  "act_16",
+                  "act_17",
+                  "act_18",
+                  "act_19",
+                  "act_20",
+                  "act_21",
+                  "act_22"
+                ]
+              },
+              {
+                "id": "grp_3",
+                "name": "Specialized Samples and Treatment",
+                "instanceType": "Activity",
+                "childIds": [
+                  "act_23",
+                  "act_24",
+                  "act_25",
+                  "act_26",
+                  "act_27",
+                  "act_28",
+                  "act_29",
+                  "act_30",
+                  "act_31",
+                  "act_32"
+                ]
+              },
+              {
+                "id": "act_1",
+                "name": "Signed Informed Consent Form(s)",
+                "instanceType": "Activity",
+                "description": "Written informed consent can be obtained up to 30 days prior to study entry and is required before performing any study-specific tests or procedures."
+              },
+              {
+                "id": "act_2",
+                "name": "Review of eligibility criteria",
+                "instanceType": "Activity",
+                "description": "Review of eligibility criteria"
+              },
+              {
+                "id": "act_3",
+                "name": "Medical, surgical, and cancer histories, including demographic information",
+                "instanceType": "Activity",
+                "description": "Cancer history includes stage, date of diagnosis, and prior anti-tumor treatment. Demographic information includes age and self-reported race/ethnicity."
+              },
+              {
+                "id": "act_4",
+                "name": "Complete physical examination",
+                "instanceType": "Activity",
+                "description": "A complete physical examination at screening should include the evaluation of head, eye, ear, nose, and throat and cardiovascular, dermatologic, musculoskeletal, respiratory, gastrointestinal, genitourinary, and neurologic systems."
+              },
+              {
+                "id": "act_5",
+                "name": "Limited physical examination",
+                "instanceType": "Activity",
+                "description": "A limited physical examination will be performed at other visits to assess changes from baseline abnormalities and any new abnormalities."
+              },
+              {
+                "id": "act_6",
+                "name": "ECOG Performance Status",
+                "instanceType": "Activity",
+                "description": "ECOG Performance Status"
+              },
+              {
+                "id": "act_7",
+                "name": "Patient-reported outcomes",
+                "instanceType": "Activity",
+                "description": "The EORTC QLQ-C30, EORTC QLQ-HCC18, and EQ-5D-5L questionnaires."
+              },
+              {
+                "id": "act_8",
+                "name": "Tumor assessment",
+                "instanceType": "Activity",
+                "description": "Radiologic imaging performed during the screening period and every 6 weeks thereafter."
+              },
+              {
+                "id": "act_9",
+                "name": "Vital signs",
+                "instanceType": "Activity",
+                "description": "Vital signs include heart rate, respiratory rate, blood pressure, and temperature."
+              },
+              {
+                "id": "act_10",
+                "name": "Weight",
+                "instanceType": "Activity",
+                "description": "Weight"
+              },
+              {
+                "id": "act_11",
+                "name": "Height",
+                "instanceType": "Activity",
+                "description": "Height"
+              },
+              {
+                "id": "act_12",
+                "name": "12-lead ECG",
+                "instanceType": "Activity",
+                "description": "Patients should be resting and in a supine position for at least 10 minutes prior to each ECG collection."
+              },
+              {
+                "id": "act_13",
+                "name": "EGD",
+                "instanceType": "Activity",
+                "description": "All patients must undergo an EGD and all size of varices must be assessed and treated."
+              },
+              {
+                "id": "act_14",
+                "name": "Hematology",
+                "instanceType": "Activity",
+                "description": "Hematology consists of CBC, including RBC count, hemoglobin, hematocrit, WBC count with differential, and platelet count."
+              },
+              {
+                "id": "act_15",
+                "name": "Serum chemistry",
+                "instanceType": "Activity",
+                "description": "Serum chemistry includes bicarbonate, sodium, potassium, magnesium, chloride, glucose, BUN, creatinine, total protein, albumin, phosphorus, calcium, total bilirubin, alkaline phosphatase, ALT, AST, and LDH."
+              },
+              {
+                "id": "act_16",
+                "name": "HIV, HBV, HCV serology",
+                "instanceType": "Activity",
+                "description": "HBsAg, HBcAb, and HBsAb should be collected during screening and tested locally."
+              },
+              {
+                "id": "act_17",
+                "name": "Quantitative HBsAg, HBV DNA, HCV RNA",
+                "instanceType": "Activity",
+                "description": "Tested during screening; Cycle 5, Day 1; Cycle 9, Day 1; and at treatment discontinuation."
+              },
+              {
+                "id": "act_18",
+                "name": "α-fetoprotein",
+                "instanceType": "Activity",
+                "description": "α-fetoprotein"
+              },
+              {
+                "id": "act_19",
+                "name": "Coagulation panel (aPTT, INR)",
+                "instanceType": "Activity",
+                "description": "Coagulation panel"
+              },
+              {
+                "id": "act_20",
+                "name": "Urinalysis",
+                "instanceType": "Activity",
+                "description": "Urine dipstick includes specific gravity, pH, glucose, protein, ketones, and blood."
+              },
+              {
+                "id": "act_21",
+                "name": "TSH, free T3, free T4",
+                "instanceType": "Activity",
+                "description": "Thyroid function tests every 4 cycles."
+              },
+              {
+                "id": "act_22",
+                "name": "Pregnancy test",
+                "instanceType": "Activity",
+                "description": "Serum pregnancy test within 14 days before Cycle 1, Day 1; Urine pregnancy test thereafter."
+              },
+              {
+                "id": "act_23",
+                "name": "Serum PK sample",
+                "instanceType": "Activity",
+                "description": "Atezolizumab PK (serum)"
+              },
+              {
+                "id": "act_24",
+                "name": "Serum ADA sample",
+                "instanceType": "Activity",
+                "description": "Atezolizumab ADA (serum)"
+              },
+              {
+                "id": "act_25",
+                "name": "Pharmacodynamic samples for biomarkers",
+                "instanceType": "Activity",
+                "description": "Biomarker (plasma, serum)"
+              },
+              {
+                "id": "act_26",
+                "name": "Plasma sample for RBR (optional)",
+                "instanceType": "Activity",
+                "description": "Any time (at investigator's discretion)"
+              },
+              {
+                "id": "act_27",
+                "name": "Archival tumor tissue sample (or optional fresh biopsy if archival tissue is not available) for biomarkers",
+                "instanceType": "Activity",
+                "description": "Archival tumor tissue sample"
+              },
+              {
+                "id": "act_28",
+                "name": "Concomitant medications",
+                "instanceType": "Activity",
+                "description": "Any prescription medications or over-the-counter medications."
+              },
+              {
+                "id": "act_29",
+                "name": "Adverse events",
+                "instanceType": "Activity",
+                "description": "All adverse events will be reported until 30 days after the last dose of study treatment."
+              },
+              {
+                "id": "act_30",
+                "name": "Study treatment infusion",
+                "instanceType": "Activity",
+                "description": "Atezolizumab and bevacizumab infusions."
+              },
+              {
+                "id": "act_31",
+                "name": "Sorafenib dispensing",
+                "instanceType": "Activity",
+                "description": "Sorafenib is taken by mouth twice a day continuously."
+              },
+              {
+                "id": "act_32",
+                "name": "Survival and anti-cancer therapy follow-up",
+                "instanceType": "Activity",
+                "description": "Collected via telephone calls, patient medical records, and/or clinic visits approximately every 3 months."
+              }
+            ],
+            "encounters": [
+              {
+                "id": "enc_1",
+                "name": "Screening (-28 to -1)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "6f51edfc-0710-432c-b452-67d0875eb345",
+                  "code": "C48262",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Screening",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_1"
+              },
+              {
+                "id": "enc_2",
+                "name": "Screening (-7 to -1)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "f7d6fadd-546c-452e-80e8-641a042ce6f2",
+                  "code": "C48262",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Screening",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_1"
+              },
+              {
+                "id": "enc_3",
+                "name": "Day 1 of Each Cycle",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "54772239-f98c-4673-8a84-24d5c6a706fd",
+                  "code": "C82517",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Baseline",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_2"
+              },
+              {
+                "id": "enc_4",
+                "name": "Treatment Discontinuation (≤ 30 Days after Last Dose)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "0b7a8369-f497-47a0-87b0-717ceab8a253",
+                  "code": "C49631",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Early Termination",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_3"
+              },
+              {
+                "id": "enc_5",
+                "name": "Survival Follow-Up",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "f766c513-ff64-424f-a369-163609fef36b",
+                  "code": "C99158",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Follow-up",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_4"
+              }
+            ],
+            "scheduleTimelines": [
+              {
+                "id": "timeline_1",
+                "name": "Main Schedule Timeline",
+                "mainTimeline": true,
+                "instanceType": "ScheduleTimeline",
+                "entryCondition": "Subject enrolled in study",
+                "entryId": "7bf94b90-ea30-4217-acd8-c408b4b4e0fe",
+                "instances": [
+                  {
+                    "id": "7bf94b90-ea30-4217-acd8-c408b4b4e0fe",
+                    "activityIds": [
+                      "act_1"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_1@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "14b719e7-4eae-470b-952f-7f3eb81d6203",
+                    "activityIds": [
+                      "act_2"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_2@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "0465fb8c-f279-4a4b-97f2-634bb66c049d",
+                    "activityIds": [
+                      "act_3"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_3@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "ab18a351-0698-4f67-9c01-e380afd39f6f",
+                    "activityIds": [
+                      "act_4"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_4@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "f2f5ce28-b743-4868-a01d-d0049ea0a38a",
+                    "activityIds": [
+                      "act_5"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_5@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "b4abad21-0c1f-4894-8c19-18263b269bd5",
+                    "activityIds": [
+                      "act_5"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_5@enc_4",
+                    "encounterId": "enc_4"
+                  },
+                  {
+                    "id": "7714bb2f-257d-4e15-bb40-744a484e1da5",
+                    "activityIds": [
+                      "act_6"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_6@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "6424977f-4601-4d04-bbe9-bf465a397d89",
+                    "activityIds": [
+                      "act_6"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_6@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "a4c71fe0-1c39-4208-8cc6-33de722085d6",
+                    "activityIds": [
+                      "act_6"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_6@enc_4",
+                    "encounterId": "enc_4"
+                  },
+                  {
+                    "id": "48ff2ecf-5466-4bfd-a6b5-cbaba9913fba",
+                    "activityIds": [
+                      "act_7"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_7@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "bf08cad5-06bd-4c60-b21a-a8ec738279e3",
+                    "activityIds": [
+                      "act_7"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_7@enc_4",
+                    "encounterId": "enc_4"
+                  },
+                  {
+                    "id": "74e16af1-301f-4c1a-8bc4-326c1d3c87e5",
+                    "activityIds": [
+                      "act_7"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_7@enc_5",
+                    "encounterId": "enc_5"
+                  },
+                  {
+                    "id": "850cc669-254f-423a-b587-45b855ca5cd0",
+                    "activityIds": [
+                      "act_8"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_8@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "89504c9c-6fc9-4d7b-9877-99e04e819e51",
+                    "activityIds": [
+                      "act_8"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_8@enc_4",
+                    "encounterId": "enc_4"
+                  },
+                  {
+                    "id": "1646e9b7-a587-45ee-ab8d-58fff1b23632",
+                    "activityIds": [
+                      "act_8"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_8@enc_5",
+                    "encounterId": "enc_5"
+                  },
+                  {
+                    "id": "4998d26a-ba0b-48cb-90d3-7ffbf92221f4",
+                    "activityIds": [
+                      "act_9"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_9@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "dda8c0f9-5ad1-42df-a5a5-5ff53d2c2edc",
+                    "activityIds": [
+                      "act_9"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_9@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "a31b8a32-749c-45bf-9be6-4e1a6f612043",
+                    "activityIds": [
+                      "act_9"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_9@enc_4",
+                    "encounterId": "enc_4"
+                  },
+                  {
+                    "id": "1e98ced0-0dbe-48c8-aa91-2845f6643654",
+                    "activityIds": [
+                      "act_10"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_10@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "576fb323-b4e4-44ff-a869-1a4bdba85757",
+                    "activityIds": [
+                      "act_10"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_10@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "cb901b8b-7d76-4bf1-b569-b68a2747d7c8",
+                    "activityIds": [
+                      "act_10"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_10@enc_4",
+                    "encounterId": "enc_4"
+                  },
+                  {
+                    "id": "73d392ff-d708-4072-8d44-34576cd41644",
+                    "activityIds": [
+                      "act_11"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_11@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "c1cb4809-d931-40c4-bb1b-aa087ff84633",
+                    "activityIds": [
+                      "act_12"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_12@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "31eb8744-ac6f-4da3-9178-fdab19047358",
+                    "activityIds": [
+                      "act_13"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_13@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "e28bf89e-5fc3-4668-ae30-0b4e500bfb7f",
+                    "activityIds": [
+                      "act_14"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_14@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "50d6aab3-5c3b-4bcc-b640-d5f134cee7d9",
+                    "activityIds": [
+                      "act_14"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_14@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "8e03fbbf-bec4-4e3f-b07e-63ac3f441675",
+                    "activityIds": [
+                      "act_14"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_14@enc_4",
+                    "encounterId": "enc_4"
+                  },
+                  {
+                    "id": "8263b919-b919-459f-ae19-7e1825f7c9a8",
+                    "activityIds": [
+                      "act_15"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_15@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "b2f6a232-55d1-4885-86c3-4eb3554ae0f1",
+                    "activityIds": [
+                      "act_15"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_15@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "33069d7a-fb08-48fe-9fe0-924b0c64b37a",
+                    "activityIds": [
+                      "act_15"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_15@enc_4",
+                    "encounterId": "enc_4"
+                  },
+                  {
+                    "id": "b146254f-d876-42cb-b707-b8bbd3c8f2f4",
+                    "activityIds": [
+                      "act_16"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_16@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "d208a9c2-52b9-479e-b2af-e1a1f207790f",
+                    "activityIds": [
+                      "act_17"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_17@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "75c633cc-4101-4763-9126-a57e345b3d40",
+                    "activityIds": [
+                      "act_17"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_17@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "7a7d4f87-d9e1-4743-a817-23ddf8f56e69",
+                    "activityIds": [
+                      "act_17"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_17@enc_4",
+                    "encounterId": "enc_4"
+                  },
+                  {
+                    "id": "2d98bb7d-9009-464d-b49b-51af2663e4a4",
+                    "activityIds": [
+                      "act_18"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_18@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "b17cfb1a-3a74-4446-9653-520709e12541",
+                    "activityIds": [
+                      "act_18"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_18@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "3f94be65-2f1f-4f9c-80b4-05767e2ab5ac",
+                    "activityIds": [
+                      "act_18"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_18@enc_4",
+                    "encounterId": "enc_4"
+                  },
+                  {
+                    "id": "88bee622-a4d1-4eba-a708-47b9bc8274c0",
+                    "activityIds": [
+                      "act_19"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_19@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "bbe7ea6e-4b9c-44ef-8e96-ecd3c8cd040b",
+                    "activityIds": [
+                      "act_19"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_19@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "541e74cf-c433-4b58-af10-adab4e2bfd61",
+                    "activityIds": [
+                      "act_19"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_19@enc_4",
+                    "encounterId": "enc_4"
+                  },
+                  {
+                    "id": "725c834b-d03b-40d4-afac-7ef5b11b22d6",
+                    "activityIds": [
+                      "act_20"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_20@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "bf307c6e-addf-4230-81c0-459c311598ab",
+                    "activityIds": [
+                      "act_20"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_20@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "2e4f50a8-970b-4572-96fa-7e79b87f5180",
+                    "activityIds": [
+                      "act_20"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_20@enc_4",
+                    "encounterId": "enc_4"
+                  },
+                  {
+                    "id": "9bac07dc-1363-47d5-8b05-3f6ab4c793fc",
+                    "activityIds": [
+                      "act_21"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_21@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "20cd15e4-7b3d-4a45-b22b-7f893fd847d4",
+                    "activityIds": [
+                      "act_21"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_21@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "954192f2-2918-40e4-aeb7-6daabeca403b",
+                    "activityIds": [
+                      "act_21"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_21@enc_4",
+                    "encounterId": "enc_4"
+                  },
+                  {
+                    "id": "f2dd3ba9-8194-44cd-97be-b62c3e53a249",
+                    "activityIds": [
+                      "act_22"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_22@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "b19c4823-cd0c-4d66-9d21-f3d579d6d4f1",
+                    "activityIds": [
+                      "act_22"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_22@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "4148c569-24c9-4846-8799-4178cb4c3d6d",
+                    "activityIds": [
+                      "act_22"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_22@enc_4",
+                    "encounterId": "enc_4"
+                  },
+                  {
+                    "id": "919b2019-1b86-4c1f-b63f-566a0bd1ad93",
+                    "activityIds": [
+                      "act_25"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_25@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "582a41d1-5d5f-4fb8-b2fd-1edc22a59086",
+                    "activityIds": [
+                      "act_27"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_27@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "61111aca-ad5a-451c-8776-baa5e7e13de8",
+                    "activityIds": [
+                      "act_28"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_28@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "048f49ad-6a5f-4351-a959-e5566d48bdb4",
+                    "activityIds": [
+                      "act_28"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_28@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "33a8c82d-cf76-46fd-8029-6a862a3c6a83",
+                    "activityIds": [
+                      "act_28"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_28@enc_4",
+                    "encounterId": "enc_4"
+                  },
+                  {
+                    "id": "1ed9cce8-0645-4099-ac5b-7e173cb4357b",
+                    "activityIds": [
+                      "act_29"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_29@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "eca480a3-6834-4fdb-b235-b42c8a2978a5",
+                    "activityIds": [
+                      "act_29"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_29@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "b6b2c4d1-67c1-4b9f-9c40-cf710c1cdaa7",
+                    "activityIds": [
+                      "act_29"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_29@enc_4",
+                    "encounterId": "enc_4"
+                  },
+                  {
+                    "id": "871d39d2-3200-4407-b07f-117727068f0d",
+                    "activityIds": [
+                      "act_30"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_30@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "690cbd21-ed4f-4740-ab37-97503d576b3b",
+                    "activityIds": [
+                      "act_31"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_31@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "797502f5-a9f4-41c7-82a8-3cea980a472e",
+                    "activityIds": [
+                      "act_32"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_32@enc_5",
+                    "encounterId": "enc_5"
+                  }
+                ]
+              }
+            ],
+            "notes": [
+              {
+                "id": "soa_fn_1",
+                "text": "a. The first dosing date (Cycle 1, Day 1) should occur within 3 business days from randomization, with the exception of the emergence of an adverse event for which dosing may be postponed. All visits and infusions thereafter may be administered with a window of ± 3 days.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_2",
+                "text": "b. Written informed consent can be obtained up to 30 days prior to study entry and is required before performing any study-specific tests or procedures. Results of standard of care tests or examinations performed prior to obtaining informed consent and per protocol relevant window may be used for screening assessments rather than repeating such tests. Screening local laboratory assessments obtained ≤ 96 hours prior to the initiation of study treatment do not have to be repeated for Cycle 1. Test results should be reviewed prior to administration of study treatment.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_3",
+                "text": "c. Patients will be asked to return to the clinic 30 days after the last dose of study treatment for an end-of-treatment visit. After this visit, serious adverse events and protocol defined adverse events of special interest, regardless of attribution, will be recorded until 90 days after the last dose of study treatment or until initiation of another systemic anti-cancer therapy, whichever occurs first. Ongoing adverse events thought to be related to study treatment will be followed until the event has resolved to baseline grade or better, the event is assessed by the investigator as stable, new anti-cancer treatment is initiated, the patient is lost to follow-up, the patient withdraws consent, or it is determined that the study treatment or participation is not the cause of the adverse event. Scans performed within 6 weeks prior to the treatment discontinuation visit do not need to be repeated.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_4",
+                "text": "d. Cancer history includes stage, date of diagnosis, and prior anti-tumor treatment. Demographic information includes age and self-reported race/ethnicity. Reproductive status and smoking history should also be captured.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_5",
+                "text": "e. A complete physical examination at screening should include the evaluation of head, eye, ear, nose, and throat and cardiovascular, dermatologic, musculoskeletal, respiratory, gastrointestinal, genitourinary, and neurologic systems. Changes in abnormalities noted at baseline should be recorded at the end of the visit. New or worsened abnormalities should be recorded as adverse events if appropriate.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_6",
+                "text": "f. A limited physical examination will be performed at other visits to assess changes from baseline abnormalities and any new abnormalities and to evaluate patient-reported symptoms. New or worsened abnormalities should be recorded as adverse events if appropriate.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_7",
+                "text": "g. ECOG Performance Status, limited physical examination, local laboratory assessments, and PROs may be obtained ≤ 96 hours before Day 1 of each cycle.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_8",
+                "text": "h. The EORTC QLQ-C30, EORTC QLQ-HCC18, and EQ-5D-5L questionnaires will be completed by all patients on paper starting on Day 1 of Cycle 1 and Day 1 of every cycle thereafter. All PRO questionnaires scheduled for administration during a clinic visit are required to be completed by the patient at the investigational site at the start of the clinic visit before discussion of the patient's health state, lab results or health record, before administration of study treatment, and/or prior to any other study assessment(s). This is to avoid any potential bias to patients' responses to ensure that the validity of the instrument is not compromised and that data quality meets regulatory requirements. Interview assessment by a member of the clinic staff will be allowed if the patient is not able to complete the measure on their own. Study personnel should review all questionnaires for completeness before the patient leaves the investigational site. During survival follow-up, all PRO questionnaires will be completed every 3 months (for 1 year), unless the patient withdraws consent or the Sponsor terminates the study. PRO questionnaires during the survival follow-up period may be completed at the investigational site should the patient come in for a clinic visit or be administered via interview in telephone calls.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_9",
+                "text": "i. All measurable and evaluable lesions should be assessed and documented at the screening visit. Radiologic imaging performed during the screening period should consist of 1) CT and/or MRI of the chest/abdomen/pelvis and brain, 2) bone scan or PET scan as clinically indicated, and 3) any other imaging studies (CT scan of the neck, plain films, etc.) as clinically indicated by the treating physician. The same radiographic procedures and technique must be used throughout the study for each patient (e.g., if the patient had CT chest/abdomen/pelvis performed during screening, then she should subsequently undergo CT performed with use of the same radiologic protocol throughout the remainder of the study). Results must be reviewed by the investigator before dosing at the next cycle. Tumor assessments will be performed at baseline, every 6 weeks (± 1 week) for the first 54 weeks following the initiation of study treatment, and every 9 weeks (± 1 week) thereafter, with additional scans as clinically indicated. All known sites of disease documented at screening should be re-assessed at each subsequent tumor evaluation. Tumor response will be evaluated by the investigator with use of RECIST version 1.1 and imRECIST. In the absence of disease progression, tumor assessments should continue regardless of whether patients discontinue study treatment or start new anti-cancer treatment, unless the patient dies, withdraws consent, or the study is terminated by the Sponsor, whichever occurs first.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_10",
+                "text": "j. Vital signs include heart rate, respiratory rate, blood pressure, and temperature. For patients randomized to Arm A, on days of study treatment administration (atezolizumab and bevacizumab), the patient's vital signs should be determined up to 60 minutes before all infusions. Vital signs will be measured at the end of bevacizumab infusion and 2 (± 1) hours after end of the infusion and will also be collected during and after every infusion of atezolizumab if clinically indicated.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_11",
+                "text": "k. The dose of bevacizumab will be based on the patient's weight (in kilograms) measured ≤ 14 days prior to baseline (the initiation of study treatment) and will remain the same throughout the study unless there is a weight change of > 10% from baseline. If re-baseline is needed the latest baseline weight should always be used to calculate percent change in weight for all subsequent doses.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_12",
+                "text": "l. Patients should be resting and in a supine position for at least 10 minutes prior to each ECG collection.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_13",
+                "text": "m. All patients must undergo an EGD and all size of varices (small to large) must be assessed and treated per local standard of care prior to enrollment.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_14",
+                "text": "n. Hematology consists of CBC, including RBC count, hemoglobin, hematocrit, WBC count with differential (neutrophils, eosinophils, lymphocytes, monocytes, basophils, and other cells), and platelet count. A manual differential can be done if clinically indicated.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_15",
+                "text": "o. Serum chemistry includes bicarbonate or total carbon dioxide (if considered standard of care for the region), sodium, potassium, magnesium, chloride, glucose, BUN or urea, creatinine, total protein, albumin, phosphorus, calcium, total bilirubin, alkaline phosphatase, ALT, AST, and LDH.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_16",
+                "text": "p. All patients will be tested for HIV locally prior to the inclusion into the study and if not in contradiction with local legislation; HIV-positive patients will be excluded from the clinical study. HBsAg, HBcAb, and HBsAb should be collected during screening and tested locally. HBV DNA must be collected prior to Cycle 1, Day 1 in patients who have negative serology for HBsAg and positive serology for anti-HBcAb.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_17",
+                "text": "q. Only if patient tests positive for HBsAg, HBcAb, quantitative HBsAg and HBV DNA will be tested during screening; Cycle 5, Day 1; Cycle 9, Day 1; and at treatment discontinuation. Quantitative HBsAg will be tested by central laboratory. If a patient tests positive for HCV antibody at screening, quantitative HCV RNA must be tested locally at screening, Cycle 5 Day 1, Cycle 9 Day 1, and at treatment discontinuation.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_18",
+                "text": "r. Urine dipstick includes specific gravity, pH, glucose, protein, ketones, and blood and should be repeated before every cycle during treatment. Urine dipstick for proteinuria must be < 2+ within 7 days prior to initiation of study treatment. Patients discovered to have ≥ 2+ proteinuria on dipstick urinalysis at baseline should undergo a 24-hour urine collection and must demonstrate < 1 g of protein in 24 hours.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_19",
+                "text": "s. Serum pregnancy test within 14 days before Cycle 1, Day 1.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_20",
+                "text": "t. Urine pregnancy test; if a urine pregnancy test is positive, it must be confirmed by a serum pregnancy test.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_21",
+                "text": "u. Concomitant medications include any prescription medications or over-the-counter medications. At screening, any medications the patient has used within the 7 days prior to initiation of study treatment should be documented. At subsequent visits, changes to current medications or medications used since the last documentation of medications will be recorded.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_22",
+                "text": "v. After informed consent has been obtained but prior to initiation of study drug, only serious adverse events caused by a protocol-mandated intervention should be reported. After initiation of study drug, all adverse events will be reported until 30 days after the last dose of study treatment or until initiation of another anti-cancer therapy, whichever occurs first. Serious adverse events and adverse events of special interest will continue to be reported until 90 days after the last dose of study treatment or until initiation of new anti-cancer therapy, whichever occurs first. After this period, investigators should report any serious adverse events and adverse events of special interest that are believed to be related to prior treatment with study drug. The investigator should follow each adverse event until the event has resolved to baseline grade or better, the event is assessed as stable by the investigator, new systemic anti-cancer treatment is initiated, the patient is lost to follow-up, the patient withdraws consent, or it is determined that the study treatment or participation is not the cause of the adverse event. Every effort should be made to follow all serious adverse events considered to be related to study drug or study-related procedures until a final outcome can be reported.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_23",
+                "text": "w. The initial dose of atezolizumab will be delivered over 60 (± 15) minutes. If the first infusion is tolerated without infusion-associated adverse events, the second infusion may be delivered over 30 (± 10) minutes. If the 30-minute infusion is well-tolerated, all subsequent infusions may be delivered over 30 (± 10) minutes. The initial dose of bevacizumab will be delivered over 90 (± 15) minutes. If the first infusion is tolerated without infusion-associated adverse events, the second infusion may be delivered over 60 (± 10) minutes. If the 60-minute infusion is well-tolerated, all subsequent infusions may be delivered over 30 (± 10) minutes. For patients randomized to Arm A, atezolizumab will be administered first followed by bevacizumab, with a minimum of 5 minutes between dosing. In the absence of unacceptable toxicity, patients may continue study treatment until there is evidence of disease progression or lack of clinical benefit.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_24",
+                "text": "x. Sorafenib is taken by mouth twice a day continuously.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_25",
+                "text": "y. Survival follow-up information will be collected via telephone calls, patient medical records, and/or clinic visits approximately every 3 months (± 21 days) until death, loss to follow-up, or until study termination by the Sponsor. All patients will be followed for survival and new anti-cancer therapy (including targeted therapy and immunotherapy) information unless the patient requests to be withdrawn from follow-up; this request must be documented in the source documents and signed by the investigator. If the patient withdraws from study, the study staff may use a public information source (e.g., county records) to obtain information about survival status only.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_26",
+                "text": "z. Local laboratory assessments from each cycle must be reviewed prior to study treatment administration for each cycle.",
+                "instanceType": "CommentAnnotation"
+              }
+            ],
+            "activityGroups": [
+              {
+                "id": "grp_1",
+                "name": "General Assessments",
+                "description": null,
+                "childIds": [
+                  "act_1",
+                  "act_2",
+                  "act_3",
+                  "act_4",
+                  "act_5",
+                  "act_6",
+                  "act_7",
+                  "act_8",
+                  "act_9",
+                  "act_10",
+                  "act_11",
+                  "act_12",
+                  "act_13"
+                ],
+                "instanceType": "Activity",
+                "activityNames": [
+                  "Signed Informed Consent Form(s)",
+                  "Review of eligibility criteria",
+                  "Medical, surgical, and cancer histories, including demographic information",
+                  "Complete physical examination",
+                  "Limited physical examination",
+                  "ECOG Performance Status",
+                  "Patient-reported outcomes",
+                  "Tumor assessment",
+                  "Vital signs",
+                  "Weight",
+                  "Height",
+                  "12-lead ECG",
+                  "EGD"
+                ]
+              },
+              {
+                "id": "grp_2",
+                "name": "Laboratory Assessments",
+                "description": null,
+                "childIds": [
+                  "act_14",
+                  "act_15",
+                  "act_16",
+                  "act_17",
+                  "act_18",
+                  "act_19",
+                  "act_20",
+                  "act_21",
+                  "act_22"
+                ],
+                "instanceType": "Activity",
+                "activityNames": [
+                  "Hematology",
+                  "Serum chemistry",
+                  "HIV, HBV, HCV serology",
+                  "Quantitative HBsAg, HBV DNA, HCV RNA",
+                  "α-fetoprotein",
+                  "Coagulation panel (aPTT, INR)",
+                  "Urinalysis",
+                  "TSH, free T3, free T4",
+                  "Pregnancy test"
+                ]
+              },
+              {
+                "id": "grp_3",
+                "name": "Specialized Samples and Treatment",
+                "description": null,
+                "childIds": [
+                  "act_23",
+                  "act_24",
+                  "act_25",
+                  "act_26",
+                  "act_27",
+                  "act_28",
+                  "act_29",
+                  "act_30",
+                  "act_31",
+                  "act_32"
+                ],
+                "instanceType": "Activity",
+                "activityNames": [
+                  "Serum PK sample",
+                  "Serum ADA sample",
+                  "Pharmacodynamic samples for biomarkers",
+                  "Plasma sample for RBR (optional)",
+                  "Archival tumor tissue sample (or optional fresh biopsy if archival tissue is not available) for biomarkers",
+                  "Concomitant medications",
+                  "Adverse events",
+                  "Study treatment infusion",
+                  "Sorafenib dispensing",
+                  "Survival and anti-cancer therapy follow-up"
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

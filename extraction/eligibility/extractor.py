@@ -178,20 +178,65 @@ def extract_eligibility_criteria(
         
         prompt = build_eligibility_extraction_prompt(protocol_text, context_hints=context_hints)
         
-        response = call_llm(
-            prompt=prompt,
-            model_name=model_name,
-            json_mode=True,
-        )
+        # Try extraction with retry for truncated responses
+        # Increased from 2 to 4 retries to handle very long eligibility sections
+        max_retries = 4
+        raw_response = None
+        accumulated_response = ""
         
-        if 'error' in response:
-            result.error = response['error']
-            return result
+        for attempt in range(max_retries + 1):
+            if attempt == 0:
+                current_prompt = prompt
+            else:
+                # Retry with continuation prompt - show more context for better continuation
+                logger.info(f"Retry {attempt}/{max_retries}: Requesting continuation...")
+                # Show last 3000 chars for better context
+                context_window = min(3000, len(accumulated_response))
+                current_prompt = (
+                    f"Your previous response was truncated. Here is the end of what you generated:\n\n"
+                    f"```json\n{accumulated_response[-context_window:]}\n```\n\n"
+                    f"Please complete the JSON response. Continue EXACTLY from where you left off. "
+                    f"Do NOT repeat any content already generated. Output ONLY the remaining JSON to complete the structure. "
+                    f"Ensure all arrays and objects are properly closed."
+                )
+            
+            response = call_llm(
+                prompt=current_prompt,
+                model_name=model_name,
+                json_mode=True,
+                extractor_name="eligibility",
+            )
+            
+            if 'error' in response:
+                result.error = response['error']
+                return result
+            
+            response_text = response.get('response', '')
+            
+            # If this is a continuation, accumulate and try to merge
+            if attempt > 0 and response_text:
+                # Accumulate the continuation
+                accumulated_response = accumulated_response.rstrip() + response_text.lstrip()
+                raw_response = _parse_json_response(accumulated_response)
+                if raw_response:
+                    logger.info(f"Successfully parsed combined response after {attempt} continuation(s)")
+                    break
+            else:
+                accumulated_response = response_text
+                raw_response = _parse_json_response(response_text)
+                if raw_response:
+                    break
+                    
+                # Check if truncated and worth retrying
+                try:
+                    json.loads(response_text.strip())
+                except json.JSONDecodeError as e:
+                    if not _is_truncated_json(response_text, e):
+                        # Not truncation, don't retry
+                        break
         
-        # Parse response
-        raw_response = _parse_json_response(response.get('response', ''))
         if not raw_response:
-            result.error = "Failed to parse LLM response as JSON"
+            result.error = "Failed to parse LLM response as JSON (possibly truncated)"
             return result
         
         result.raw_response = raw_response
@@ -213,6 +258,19 @@ def extract_eligibility_criteria(
     return result
 
 
+def _is_truncated_json(text: str, error: json.JSONDecodeError) -> bool:
+    """Check if JSON parse error is due to truncation (incomplete output)."""
+    error_msg = str(error).lower()
+    # Common truncation indicators
+    truncation_patterns = [
+        'unterminated string',
+        'expecting',
+        'end of data',
+        'unexpected end',
+    ]
+    return any(p in error_msg for p in truncation_patterns)
+
+
 def _parse_json_response(response_text: str) -> Optional[Dict[str, Any]]:
     """Parse JSON from LLM response, handling markdown code blocks."""
     if not response_text:
@@ -229,6 +287,11 @@ def _parse_json_response(response_text: str) -> Optional[Dict[str, Any]]:
         return json.loads(response_text)
     except json.JSONDecodeError as e:
         logger.warning(f"Failed to parse JSON response: {e}")
+        
+        # Check if this looks like truncation
+        if _is_truncated_json(response_text, e):
+            logger.warning("Response appears to be truncated (max_tokens hit)")
+        
         return None
 
 
@@ -249,7 +312,7 @@ def _parse_usdm_eligibility_format(raw: Dict[str, Any]) -> Optional[EligibilityD
             if isinstance(item, dict) and item.get('id'):
                 item_lookup[item['id']] = item
         
-        for crit_data in raw.get('criteria', []):
+        for crit_data in (raw.get('criteria') or raw.get('eligibilityCriteria') or []):
             if not isinstance(crit_data, dict):
                 continue
             
@@ -359,6 +422,14 @@ def _parse_eligibility_response(raw: Dict[str, Any]) -> Optional[EligibilityData
     2. Legacy format: separate 'inclusionCriteria' and 'exclusionCriteria' arrays
     """
     try:
+        # Handle case where LLM returns a list instead of a dict
+        if isinstance(raw, list):
+            if len(raw) == 1 and isinstance(raw[0], dict):
+                raw = raw[0]
+            else:
+                # Assume list contains criteria directly
+                raw = {'eligibilityCriteria': raw}
+        
         # Check for new USDM-compliant format (flat criteria list with category codes)
         # Accept both 'criteria' and 'eligibilityCriteria' keys
         criteria_list = raw.get('criteria') or raw.get('eligibilityCriteria') or []

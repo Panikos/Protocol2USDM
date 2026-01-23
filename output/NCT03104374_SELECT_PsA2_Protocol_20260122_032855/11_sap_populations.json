@@ -1,0 +1,175 @@
+{
+  "success": true,
+  "sourceFile": "C:\\Users\\panik\\Documents\\GitHub\\Protcol2USDMv3\\input\\trial\\NCT03104374_SELECT_PsA2\\NCT03104374_SELECT_PsA2_SAP.pdf",
+  "pagesUsed": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39
+  ],
+  "modelUsed": "gemini-3-flash-preview",
+  "sapData": {
+    "analysisPopulations": [
+      {
+        "id": "pop_1",
+        "name": "Full Analysis Set",
+        "text": "The Full Analysis Set (FAS) includes all randomized subjects who received at least one dose of study drug.",
+        "populationType": "Efficacy",
+        "instanceType": "AnalysisPopulation",
+        "label": "FAS",
+        "populationDescription": "The Full Analysis Set (FAS) includes all randomized subjects who received at least one dose of study drug.",
+        "criteria": "Randomized AND received >= 1 dose of study drug"
+      },
+      {
+        "id": "pop_2",
+        "name": "Per Protocol Analysis Set",
+        "text": "The Per Protocol Analysis Set represents a subset of the FAS and consists of all FAS subjects who did not have any major protocol deviations that are determined to have a potential impact on the primary efficacy endpoint up to Week 12 in Period 1 of the study.",
+        "populationType": "Efficacy",
+        "instanceType": "AnalysisPopulation",
+        "label": "PP",
+        "populationDescription": "The Per Protocol Analysis Set represents a subset of the FAS and consists of all FAS subjects who did not have any major protocol deviations that are determined to have a potential impact on the primary efficacy endpoint up to Week 12 in Period 1 of the study.",
+        "criteria": "Included in FAS AND no major protocol deviations impacting primary efficacy endpoint through Week 12"
+      },
+      {
+        "id": "pop_3",
+        "name": "Safety Analysis Set",
+        "text": "The Safety Analysis Set consists of all subjects who received at least one dose of study drug. For the Safety Analysis Set, subjects will be analyzed \"as treated,\" regardless of the treatment randomized.",
+        "populationType": "Safety",
+        "instanceType": "AnalysisPopulation",
+        "label": "SAF",
+        "populationDescription": "The Safety Analysis Set consists of all subjects who received at least one dose of study drug. For the Safety Analysis Set, subjects will be analyzed \"as treated,\" regardless of the treatment randomized.",
+        "criteria": "Received >= 1 dose of study drug"
+      }
+    ],
+    "characteristics": [
+      {
+        "id": "char_1",
+        "name": "Sex",
+        "code": "SEX",
+        "codeSystem": "http://www.cdisc.org/baseline-characteristics",
+        "codeSystemVersion": "2024-03-29",
+        "decode": "Sex",
+        "dataType": "Categorical",
+        "instanceType": "Characteristic",
+        "description": "Male or female"
+      },
+      {
+        "id": "char_2",
+        "name": "Age",
+        "code": "AGE",
+        "codeSystem": "http://www.cdisc.org/baseline-characteristics",
+        "codeSystemVersion": "2024-03-29",
+        "decode": "Age",
+        "dataType": "Numeric",
+        "instanceType": "Characteristic",
+        "description": "Age in years at baseline"
+      },
+      {
+        "id": "char_3",
+        "name": "Race",
+        "code": "RACE",
+        "codeSystem": "http://www.cdisc.org/baseline-characteristics",
+        "codeSystemVersion": "2024-03-29",
+        "decode": "Race",
+        "dataType": "Categorical",
+        "instanceType": "Characteristic",
+        "description": "White, Black or African American, American Indian or Alaska Native, Native Hawaiian or Other Pacific Islander, Asian, Other"
+      },
+      {
+        "id": "char_4",
+        "name": "Body Mass Index (BMI)",
+        "code": "BODY_MASS_INDEX_(BMI",
+        "codeSystem": "http://www.cdisc.org/baseline-characteristics",
+        "codeSystemVersion": "2024-03-29",
+        "decode": "Body Mass Index (BMI)",
+        "dataType": "Numeric",
+        "instanceType": "Characteristic",
+        "description": "Weight in kg divided by height in meters squared"
+      },
+      {
+        "id": "char_5",
+        "name": "Duration of PsA symptoms",
+        "code": "DURATION_OF_PSA_SYMP",
+        "codeSystem": "http://www.cdisc.org/baseline-characteristics",
+        "codeSystemVersion": "2024-03-29",
+        "decode": "Duration of PsA symptoms",
+        "dataType": "Numeric",
+        "instanceType": "Characteristic",
+        "description": "Duration of Psoriatic Arthritis symptoms in years"
+      },
+      {
+        "id": "char_6",
+        "name": "Tender joint count (TJC68)",
+        "code": "TENDER_JOINT_COUNT_(",
+        "codeSystem": "http://www.cdisc.org/baseline-characteristics",
+        "codeSystemVersion": "2024-03-29",
+        "decode": "Tender joint count (TJC68)",
+        "dataType": "Numeric",
+        "instanceType": "Characteristic",
+        "description": "Number of tender joints out of 68 assessed joints"
+      },
+      {
+        "id": "char_7",
+        "name": "Swollen joint count (SJC66)",
+        "code": "SWOLLEN_JOINT_COUNT_",
+        "codeSystem": "http://www.cdisc.org/baseline-characteristics",
+        "codeSystemVersion": "2024-03-29",
+        "decode": "Swollen joint count (SJC66)",
+        "dataType": "Numeric",
+        "instanceType": "Characteristic",
+        "description": "Number of swollen joints out of 66 assessed joints"
+      },
+      {
+        "id": "char_8",
+        "name": "High sensitivity C-reactive protein (hsCRP)",
+        "code": "HIGH_SENSITIVITY_C-R",
+        "codeSystem": "http://www.cdisc.org/baseline-characteristics",
+        "codeSystemVersion": "2024-03-29",
+        "decode": "High sensitivity C-reactive protein (hsCRP)",
+        "dataType": "Numeric",
+        "instanceType": "Characteristic",
+        "description": "Baseline hsCRP level"
+      }
+    ],
+    "summary": {
+      "populationCount": 3,
+      "characteristicCount": 8
+    }
+  }
+}

@@ -1,0 +1,110 @@
+{
+  "success": true,
+  "sourceFile": "C:\\Users\\panik\\Documents\\GitHub\\Protcol2USDMv3\\input\\trial\\NCT02564263_IMPASSION130\\NCT02564263_IMPASSION130_SAP.pdf",
+  "pagesUsed": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30
+  ],
+  "modelUsed": "gemini-3-flash-preview",
+  "sapData": {
+    "analysisPopulations": [
+      {
+        "id": "pop_1",
+        "name": "Intention-to-Treat population",
+        "text": "The Intention-to-Treat (ITT) population will serve as the population for primary efficacy analysis. All randomized subjects will be included in this population. Subjects will be included in the treatment group to which they are randomized.",
+        "populationType": "Efficacy",
+        "instanceType": "AnalysisPopulation",
+        "label": "ITT",
+        "populationDescription": "The Intention-to-Treat (ITT) population will serve as the population for primary efficacy analysis. All randomized subjects will be included in this population. Subjects will be included in the treatment group to which they are randomized.",
+        "criteria": "All randomized subjects"
+      },
+      {
+        "id": "pop_2",
+        "name": "All Subjects as Treated population",
+        "text": "The ASaT population consists of all randomized subjects who received at least one dose of study treatment. Subjects will be included in the treatment group corresponding to the study treatment they actually received for the analysis of safety data using the ASaT population.",
+        "populationType": "Safety",
+        "instanceType": "AnalysisPopulation",
+        "label": "ASaT",
+        "populationDescription": "The ASaT population consists of all randomized subjects who received at least one dose of study treatment. Subjects will be included in the treatment group corresponding to the study treatment they actually received for the analysis of safety data using the ASaT population.",
+        "criteria": "Randomized AND received >=1 dose of study treatment"
+      },
+      {
+        "id": "pop_3",
+        "name": "China Cohort (Efficacy)",
+        "text": "The Chinese subjects randomized after the enrollment of the Global Cohort is closed will not be included in the above primary efficacy analysis population which is based on the Global Cohort. The China Cohort will also be analyzed separately per local regulatory requirement.",
+        "populationType": "Efficacy",
+        "instanceType": "AnalysisPopulation",
+        "label": "China Cohort",
+        "populationDescription": "The Chinese subjects randomized after the enrollment of the Global Cohort is closed will not be included in the above primary efficacy analysis population which is based on the Global Cohort. The China Cohort will also be analyzed separately per local regulatory requirement.",
+        "criteria": "Chinese subjects randomized after Global Cohort enrollment closed"
+      },
+      {
+        "id": "pop_4",
+        "name": "China Cohort (Safety)",
+        "text": "The Chinese subjects randomized and treated in the China extension enrollment period will not be included in the above primary safety analysis population. The China Cohort will also be analyzed separately per local regulatory requirement.",
+        "populationType": "Safety",
+        "instanceType": "AnalysisPopulation",
+        "label": "China Cohort",
+        "populationDescription": "The Chinese subjects randomized and treated in the China extension enrollment period will not be included in the above primary safety analysis population. The China Cohort will also be analyzed separately per local regulatory requirement.",
+        "criteria": "Chinese subjects randomized and treated in the China extension enrollment period"
+      }
+    ],
+    "characteristics": [
+      {
+        "id": "char_1",
+        "name": "PD-L1 Status",
+        "code": "PD-L1_STATUS",
+        "codeSystem": "http://www.cdisc.org/baseline-characteristics",
+        "codeSystemVersion": "2024-03-29",
+        "decode": "PD-L1 Status",
+        "dataType": "Categorical",
+        "instanceType": "Characteristic",
+        "description": "Combined Positive Score (CPS) for PD-L1 expression, specifically looking at CPS >= 10"
+      },
+      {
+        "id": "char_2",
+        "name": "Histology",
+        "code": "HISTOLOGY",
+        "codeSystem": "http://www.cdisc.org/baseline-characteristics",
+        "codeSystemVersion": "2024-03-29",
+        "decode": "Histology",
+        "dataType": "Categorical",
+        "instanceType": "Characteristic",
+        "description": "Type of esophageal cancer: Squamous Cell Carcinoma or Adenocarcinoma"
+      }
+    ],
+    "summary": {
+      "populationCount": 4,
+      "characteristicCount": 2
+    }
+  }
+}

@@ -1,0 +1,374 @@
+{
+  "success": true,
+  "pagesUsed": [
+    2,
+    3,
+    4,
+    12,
+    13,
+    14,
+    15
+  ],
+  "modelUsed": "gemini-3-flash-preview",
+  "objectivesEndpoints": {
+    "objectives": [
+      {
+        "id": "obj_1",
+        "name": "Primary Efficacy Objective",
+        "text": "To detect a RRR of in the incidence of severe COVID-19/death in the AZD7442 group compared to the placebo group",
+        "level": {
+          "code": "C85826",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Trial Primary Objective",
+          "instanceType": "Code"
+        },
+        "endpointIds": [
+          "ep_1"
+        ],
+        "instanceType": "Objective"
+      },
+      {
+        "id": "obj_2",
+        "name": "Secondary Efficacy Objective",
+        "text": "To evaluate the efficacy of AZD7442 compared to placebo in the primary analysis population",
+        "level": {
+          "code": "C85827",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Trial Secondary Objective",
+          "instanceType": "Code"
+        },
+        "endpointIds": [
+          "ep_2"
+        ],
+        "instanceType": "Objective"
+      },
+      {
+        "id": "obj_3",
+        "name": "Safety Objective",
+        "text": "To evaluate the safety and tolerability of a single IM dose of AZD7442",
+        "level": {
+          "code": "C85827",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Trial Secondary Objective",
+          "instanceType": "Code"
+        },
+        "endpointIds": [
+          "ep_3"
+        ],
+        "instanceType": "Objective"
+      }
+    ],
+    "endpoints": [
+      {
+        "id": "ep_1",
+        "name": "Primary Efficacy Endpoint",
+        "text": "A composite of either severe COVID-19 or death from any cause through Day 29. Severe COVID-19 is characterized by a minimum of either pneumonia (fever, cough, tachypnea, or dyspnea, AND lung infiltrates) or hypoxemia (SpO2 < 90% in room air and/or severe respiratory distress) and a WHO Clinical Progression Scale score of 5 or higher",
+        "level": {
+          "code": "C98772",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Primary Outcome Measure",
+          "instanceType": "Code"
+        },
+        "instanceType": "Endpoint",
+        "purpose": "Efficacy"
+      },
+      {
+        "id": "ep_2",
+        "name": "Secondary Efficacy Endpoint",
+        "text": "Incidence of severe COVID-19/death in the primary analysis population",
+        "level": {
+          "code": "C98781",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Secondary Outcome Measure",
+          "instanceType": "Code"
+        },
+        "instanceType": "Endpoint",
+        "purpose": "Efficacy"
+      },
+      {
+        "id": "ep_3",
+        "name": "Safety Endpoint",
+        "text": "Safety data through Day 8 from the participants in the sentinel group and monitoring for hypersensitivity reactions",
+        "level": {
+          "code": "C98781",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Secondary Outcome Measure",
+          "instanceType": "Code"
+        },
+        "instanceType": "Endpoint",
+        "purpose": "Safety"
+      }
+    ],
+    "estimands": [
+      {
+        "id": "est_1",
+        "name": "Primary Efficacy Estimand",
+        "populationSummary": "Adult patients with COVID-19 at high-risk of progression (modified full analysis set) Summary measure: Relative Risk Reduction (RRR) using CMH method.",
+        "analysisPopulationId": "est_1_pop",
+        "variableOfInterestId": "ep_1",
+        "interventionIds": [
+          "est_1_int"
+        ],
+        "intercurrentEvents": [
+          {
+            "id": "ice_1",
+            "name": "Death from any cause",
+            "text": "Death occurring through Day 29",
+            "strategy": "Composite",
+            "instanceType": "IntercurrentEvent"
+          },
+          {
+            "id": "ice_2",
+            "name": "Treatment discontinuation",
+            "text": "Participant discontinues study or intervention prior to Day 29",
+            "strategy": "Treatment Policy",
+            "instanceType": "IntercurrentEvent"
+          }
+        ],
+        "instanceType": "Estimand",
+        "treatment": "AZD7442 600 mg IM single dose vs Placebo",
+        "analysisPopulation": "Adult patients with COVID-19 at high-risk of progression (modified full analysis set)",
+        "variableOfInterest": "A composite of either severe COVID-19 or death from any cause through Day 29",
+        "summaryMeasure": "Relative Risk Reduction (RRR) using CMH method"
+      },
+      {
+        "id": "est_2",
+        "name": "Secondary Efficacy Estimand",
+        "populationSummary": "Adult patients with COVID-19 (primary analysis population) Summary measure: Relative Risk Reduction (RRR).",
+        "analysisPopulationId": "est_2_pop",
+        "variableOfInterestId": "ep_2",
+        "interventionIds": [
+          "est_2_int"
+        ],
+        "intercurrentEvents": [
+          {
+            "id": "ice_3",
+            "name": "Death from any cause",
+            "text": "Death occurring during the analysis period",
+            "strategy": "Composite",
+            "instanceType": "IntercurrentEvent"
+          }
+        ],
+        "instanceType": "Estimand",
+        "treatment": "AZD7442 600 mg IM single dose vs Placebo",
+        "analysisPopulation": "Adult patients with COVID-19 (primary analysis population)",
+        "variableOfInterest": "Incidence of severe COVID-19 or death",
+        "summaryMeasure": "Relative Risk Reduction (RRR)"
+      },
+      {
+        "id": "est_3",
+        "name": "Safety Estimand - Sentinel Group",
+        "populationSummary": "First 20 participants dosed (Sentinel Group) Summary measure: Incidence and frequency of adverse events.",
+        "analysisPopulationId": "est_3_pop",
+        "variableOfInterestId": "ep_3",
+        "interventionIds": [
+          "est_3_int"
+        ],
+        "intercurrentEvents": [
+          {
+            "id": "ice_4",
+            "name": "Treatment discontinuation",
+            "text": "Discontinuation of monitoring before Day 8",
+            "strategy": "While on Treatment",
+            "instanceType": "IntercurrentEvent"
+          }
+        ],
+        "instanceType": "Estimand",
+        "treatment": "AZD7442 600 mg IM single dose vs Placebo",
+        "analysisPopulation": "First 20 participants dosed (Sentinel Group)",
+        "variableOfInterest": "Safety data and hypersensitivity monitoring through Day 8",
+        "summaryMeasure": "Incidence and frequency of adverse events"
+      }
+    ],
+    "summary": {
+      "primaryObjectives": 1,
+      "secondaryObjectives": 2,
+      "exploratoryObjectives": 0,
+      "totalEndpoints": 3,
+      "totalEstimands": 3
+    }
+  },
+  "rawResponse": {
+    "objectives": [
+      {
+        "id": "obj_1",
+        "name": "Primary Efficacy Objective",
+        "text": "To detect a RRR of in the incidence of severe COVID-19/death in the AZD7442 group compared to the placebo group",
+        "level": {
+          "code": "C85826",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Trial Primary Objective",
+          "instanceType": "Code"
+        },
+        "endpointIds": [
+          "ep_1"
+        ],
+        "instanceType": "Objective"
+      },
+      {
+        "id": "obj_2",
+        "name": "Secondary Efficacy Objective",
+        "text": "To evaluate the efficacy of AZD7442 compared to placebo in the primary analysis population",
+        "level": {
+          "code": "C85827",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Trial Secondary Objective",
+          "instanceType": "Code"
+        },
+        "endpointIds": [
+          "ep_2"
+        ],
+        "instanceType": "Objective"
+      },
+      {
+        "id": "obj_3",
+        "name": "Safety Objective",
+        "text": "To evaluate the safety and tolerability of a single IM dose of AZD7442",
+        "level": {
+          "code": "C85827",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Trial Secondary Objective",
+          "instanceType": "Code"
+        },
+        "endpointIds": [
+          "ep_3"
+        ],
+        "instanceType": "Objective"
+      }
+    ],
+    "endpoints": [
+      {
+        "id": "ep_1",
+        "name": "Primary Efficacy Endpoint",
+        "text": "A composite of either severe COVID-19 or death from any cause through Day 29. Severe COVID-19 is characterized by a minimum of either pneumonia (fever, cough, tachypnea, or dyspnea, AND lung infiltrates) or hypoxemia (SpO2 < 90% in room air and/or severe respiratory distress) and a WHO Clinical Progression Scale score of 5 or higher",
+        "level": {
+          "code": "C98772",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Primary Outcome Measure",
+          "instanceType": "Code"
+        },
+        "instanceType": "Endpoint",
+        "purpose": "Efficacy"
+      },
+      {
+        "id": "ep_2",
+        "name": "Secondary Efficacy Endpoint",
+        "text": "Incidence of severe COVID-19/death in the primary analysis population",
+        "level": {
+          "code": "C98781",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Secondary Outcome Measure",
+          "instanceType": "Code"
+        },
+        "instanceType": "Endpoint",
+        "purpose": "Efficacy"
+      },
+      {
+        "id": "ep_3",
+        "name": "Safety Endpoint",
+        "text": "Safety data through Day 8 from the participants in the sentinel group and monitoring for hypersensitivity reactions",
+        "level": {
+          "code": "C98781",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Secondary Outcome Measure",
+          "instanceType": "Code"
+        },
+        "instanceType": "Endpoint",
+        "purpose": "Safety"
+      }
+    ],
+    "estimands": [
+      {
+        "id": "est_1",
+        "name": "Primary Efficacy Estimand",
+        "populationSummary": "Adult patients with COVID-19 at high-risk of progression (modified full analysis set) Summary measure: Relative Risk Reduction (RRR) using CMH method.",
+        "analysisPopulationId": "est_1_pop",
+        "variableOfInterestId": "ep_1",
+        "interventionIds": [
+          "est_1_int"
+        ],
+        "intercurrentEvents": [
+          {
+            "id": "ice_1",
+            "name": "Death from any cause",
+            "text": "Death occurring through Day 29",
+            "strategy": "Composite",
+            "instanceType": "IntercurrentEvent"
+          },
+          {
+            "id": "ice_2",
+            "name": "Treatment discontinuation",
+            "text": "Participant discontinues study or intervention prior to Day 29",
+            "strategy": "Treatment Policy",
+            "instanceType": "IntercurrentEvent"
+          }
+        ],
+        "instanceType": "Estimand",
+        "treatment": "AZD7442 600 mg IM single dose vs Placebo",
+        "analysisPopulation": "Adult patients with COVID-19 at high-risk of progression (modified full analysis set)",
+        "variableOfInterest": "A composite of either severe COVID-19 or death from any cause through Day 29",
+        "summaryMeasure": "Relative Risk Reduction (RRR) using CMH method"
+      },
+      {
+        "id": "est_2",
+        "name": "Secondary Efficacy Estimand",
+        "populationSummary": "Adult patients with COVID-19 (primary analysis population) Summary measure: Relative Risk Reduction (RRR).",
+        "analysisPopulationId": "est_2_pop",
+        "variableOfInterestId": "ep_2",
+        "interventionIds": [
+          "est_2_int"
+        ],
+        "intercurrentEvents": [
+          {
+            "id": "ice_3",
+            "name": "Death from any cause",
+            "text": "Death occurring during the analysis period",
+            "strategy": "Composite",
+            "instanceType": "IntercurrentEvent"
+          }
+        ],
+        "instanceType": "Estimand",
+        "treatment": "AZD7442 600 mg IM single dose vs Placebo",
+        "analysisPopulation": "Adult patients with COVID-19 (primary analysis population)",
+        "variableOfInterest": "Incidence of severe COVID-19 or death",
+        "summaryMeasure": "Relative Risk Reduction (RRR)"
+      },
+      {
+        "id": "est_3",
+        "name": "Safety Estimand - Sentinel Group",
+        "populationSummary": "First 20 participants dosed (Sentinel Group) Summary measure: Incidence and frequency of adverse events.",
+        "analysisPopulationId": "est_3_pop",
+        "variableOfInterestId": "ep_3",
+        "interventionIds": [
+          "est_3_int"
+        ],
+        "intercurrentEvents": [
+          {
+            "id": "ice_4",
+            "name": "Treatment discontinuation",
+            "text": "Discontinuation of monitoring before Day 8",
+            "strategy": "While on Treatment",
+            "instanceType": "IntercurrentEvent"
+          }
+        ],
+        "instanceType": "Estimand",
+        "treatment": "AZD7442 600 mg IM single dose vs Placebo",
+        "analysisPopulation": "First 20 participants dosed (Sentinel Group)",
+        "variableOfInterest": "Safety data and hypersensitivity monitoring through Day 8",
+        "summaryMeasure": "Incidence and frequency of adverse events"
+      }
+    ]
+  }
+}

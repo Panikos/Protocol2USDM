@@ -17,6 +17,7 @@ from core.usdm_types import generate_uuid, Code
 
 class ImpactLevel(Enum):
     """Level of amendment impact."""
+    UNKNOWN = ""  # Not extracted from source
     MAJOR = "Major"
     MINOR = "Minor"
     ADMINISTRATIVE = "Administrative"
@@ -24,6 +25,7 @@ class ImpactLevel(Enum):
 
 class ChangeType(Enum):
     """Type of protocol change."""
+    UNKNOWN = ""  # Not extracted from source
     ADDITION = "Addition"
     DELETION = "Deletion"
     MODIFICATION = "Modification"
@@ -32,6 +34,7 @@ class ChangeType(Enum):
 
 class ReasonCategory(Enum):
     """Category of amendment reason."""
+    UNKNOWN = ""  # Not extracted from source
     SAFETY = "Safety"
     EFFICACY = "Efficacy"
     REGULATORY = "Regulatory"

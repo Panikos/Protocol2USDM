@@ -1,0 +1,314 @@
+{
+  "success": true,
+  "pagesUsed": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19
+  ],
+  "modelUsed": "gemini-3-flash-preview",
+  "eligibility": {
+    "eligibilityCriterionItems": [
+      {
+        "id": "eci_1",
+        "name": "Age and Weight Requirement",
+        "text": "Subjects aged 12 years and over with a body weight ≥40 kg.",
+        "instanceType": "EligibilityCriterionItem"
+      },
+      {
+        "id": "eci_2",
+        "name": "Atopic Dermatitis Diagnosis",
+        "text": "Moderate to severe atopic dermatitis as defined per the inclusion criteria (Appendix 2).",
+        "instanceType": "EligibilityCriterionItem"
+      },
+      {
+        "id": "eci_3",
+        "name": "Disease Severity",
+        "text": "Moderate to severe AD determined by pruritus NRS severity score on the day of baseline visit.",
+        "instanceType": "EligibilityCriterionItem"
+      },
+      {
+        "id": "eci_4",
+        "name": "Chest X-ray Requirement",
+        "text": "A chest X-ray is required unless previously performed and documented within 12 weeks prior to Study Day 1.",
+        "instanceType": "EligibilityCriterionItem"
+      },
+      {
+        "id": "eci_5",
+        "name": "Hypersensitivity Exclusion",
+        "text": "Known hypersensitivity to PF-04965842 or any study drug excipients.",
+        "instanceType": "EligibilityCriterionItem"
+      },
+      {
+        "id": "eci_6",
+        "name": "Hepatitis B DNA Exclusion",
+        "text": "Subjects who are hepatitis B surface antigen (HBsAg) negative, hepatitis B core antibody (HBcAb) positive, and hepatitis B surface antibody (HBsAb) positive at Screening who have HBV DNA above the lower limit of quantification (LLQ).",
+        "instanceType": "EligibilityCriterionItem"
+      }
+    ],
+    "eligibilityCriteria": [
+      {
+        "id": "ec_1",
+        "identifier": "I1",
+        "category": {
+          "code": "Inclusion",
+          "codeSystem": "USDM",
+          "decode": "Inclusion"
+        },
+        "criterionItemId": "eci_1",
+        "instanceType": "EligibilityCriterion",
+        "name": "Age and Weight Requirement",
+        "nextId": "ec_2"
+      },
+      {
+        "id": "ec_2",
+        "identifier": "I2",
+        "category": {
+          "code": "Inclusion",
+          "codeSystem": "USDM",
+          "decode": "Inclusion"
+        },
+        "criterionItemId": "eci_2",
+        "instanceType": "EligibilityCriterion",
+        "name": "Atopic Dermatitis Diagnosis",
+        "previousId": "ec_1",
+        "nextId": "ec_3"
+      },
+      {
+        "id": "ec_3",
+        "identifier": "I3",
+        "category": {
+          "code": "Inclusion",
+          "codeSystem": "USDM",
+          "decode": "Inclusion"
+        },
+        "criterionItemId": "eci_3",
+        "instanceType": "EligibilityCriterion",
+        "name": "Disease Severity",
+        "previousId": "ec_2"
+      },
+      {
+        "id": "ec_4",
+        "identifier": "E18",
+        "category": {
+          "code": "Exclusion",
+          "codeSystem": "USDM",
+          "decode": "Exclusion"
+        },
+        "criterionItemId": "eci_4",
+        "instanceType": "EligibilityCriterion",
+        "name": "Chest X-ray Requirement",
+        "nextId": "ec_5"
+      },
+      {
+        "id": "ec_5",
+        "identifier": "E23",
+        "category": {
+          "code": "Exclusion",
+          "codeSystem": "USDM",
+          "decode": "Exclusion"
+        },
+        "criterionItemId": "eci_5",
+        "instanceType": "EligibilityCriterion",
+        "name": "Hypersensitivity Exclusion",
+        "previousId": "ec_4",
+        "nextId": "ec_6"
+      },
+      {
+        "id": "ec_6",
+        "identifier": "E24",
+        "category": {
+          "code": "Exclusion",
+          "codeSystem": "USDM",
+          "decode": "Exclusion"
+        },
+        "criterionItemId": "eci_6",
+        "instanceType": "EligibilityCriterion",
+        "name": "Hepatitis B DNA Exclusion",
+        "previousId": "ec_5"
+      }
+    ],
+    "summary": {
+      "inclusionCount": 3,
+      "exclusionCount": 3,
+      "totalCount": 6
+    },
+    "population": {
+      "id": "pop_1",
+      "name": "Study Population",
+      "includesHealthySubjects": false,
+      "criterionIds": [
+        "ec_1",
+        "ec_2",
+        "ec_3",
+        "ec_4",
+        "ec_5",
+        "ec_6"
+      ],
+      "instanceType": "StudyDesignPopulation",
+      "description": "Target population defined by eligibility criteria"
+    }
+  },
+  "rawResponse": {
+    "eligibilityCriteria": [
+      {
+        "id": "ec_1",
+        "name": "Age and Weight Requirement",
+        "identifier": "I1",
+        "category": {
+          "code": "Inclusion",
+          "codeSystem": "http://www.cdisc.org/USDM/criterionCategory",
+          "decode": "Inclusion Criterion"
+        },
+        "criterionItemId": "eci_1",
+        "instanceType": "EligibilityCriterion"
+      },
+      {
+        "id": "ec_2",
+        "name": "Atopic Dermatitis Diagnosis",
+        "identifier": "I2",
+        "category": {
+          "code": "Inclusion",
+          "codeSystem": "http://www.cdisc.org/USDM/criterionCategory",
+          "decode": "Inclusion Criterion"
+        },
+        "criterionItemId": "eci_2",
+        "instanceType": "EligibilityCriterion"
+      },
+      {
+        "id": "ec_3",
+        "name": "Disease Severity",
+        "identifier": "I3",
+        "category": {
+          "code": "Inclusion",
+          "codeSystem": "http://www.cdisc.org/USDM/criterionCategory",
+          "decode": "Inclusion Criterion"
+        },
+        "criterionItemId": "eci_3",
+        "instanceType": "EligibilityCriterion"
+      },
+      {
+        "id": "ec_4",
+        "name": "Chest X-ray Requirement",
+        "identifier": "E18",
+        "category": {
+          "code": "Exclusion",
+          "codeSystem": "http://www.cdisc.org/USDM/criterionCategory",
+          "decode": "Exclusion Criterion"
+        },
+        "criterionItemId": "eci_4",
+        "instanceType": "EligibilityCriterion"
+      },
+      {
+        "id": "ec_5",
+        "name": "Hypersensitivity Exclusion",
+        "identifier": "E23",
+        "category": {
+          "code": "Exclusion",
+          "codeSystem": "http://www.cdisc.org/USDM/criterionCategory",
+          "decode": "Exclusion Criterion"
+        },
+        "criterionItemId": "eci_5",
+        "instanceType": "EligibilityCriterion"
+      },
+      {
+        "id": "ec_6",
+        "name": "Hepatitis B DNA Exclusion",
+        "identifier": "E24",
+        "category": {
+          "code": "Exclusion",
+          "codeSystem": "http://www.cdisc.org/USDM/criterionCategory",
+          "decode": "Exclusion Criterion"
+        },
+        "criterionItemId": "eci_6",
+        "instanceType": "EligibilityCriterion"
+      }
+    ],
+    "eligibilityCriterionItems": [
+      {
+        "id": "eci_1",
+        "name": "Age and Weight Requirement",
+        "text": "Subjects aged 12 years and over with a body weight ≥40 kg.",
+        "instanceType": "EligibilityCriterionItem"
+      },
+      {
+        "id": "eci_2",
+        "name": "Atopic Dermatitis Diagnosis",
+        "text": "Moderate to severe atopic dermatitis as defined per the inclusion criteria (Appendix 2).",
+        "instanceType": "EligibilityCriterionItem"
+      },
+      {
+        "id": "eci_3",
+        "name": "Disease Severity",
+        "text": "Moderate to severe AD determined by pruritus NRS severity score on the day of baseline visit.",
+        "instanceType": "EligibilityCriterionItem"
+      },
+      {
+        "id": "eci_4",
+        "name": "Chest X-ray Requirement",
+        "text": "A chest X-ray is required unless previously performed and documented within 12 weeks prior to Study Day 1.",
+        "instanceType": "EligibilityCriterionItem"
+      },
+      {
+        "id": "eci_5",
+        "name": "Hypersensitivity Exclusion",
+        "text": "Known hypersensitivity to PF-04965842 or any study drug excipients.",
+        "instanceType": "EligibilityCriterionItem"
+      },
+      {
+        "id": "eci_6",
+        "name": "Hepatitis B DNA Exclusion",
+        "text": "Subjects who are hepatitis B surface antigen (HBsAg) negative, hepatitis B core antibody (HBcAb) positive, and hepatitis B surface antibody (HBsAb) positive at Screening who have HBV DNA above the lower limit of quantification (LLQ).",
+        "instanceType": "EligibilityCriterionItem"
+      }
+    ],
+    "population": {
+      "id": "pop_1",
+      "name": "Study Population",
+      "includesHealthySubjects": false,
+      "plannedEnrollmentNumber": {
+        "maxValue": 1370,
+        "instanceType": "Range"
+      },
+      "plannedMinimumAge": "P12Y",
+      "plannedMaximumAge": null,
+      "plannedSex": [
+        {
+          "code": "Male",
+          "codeSystem": "http://www.cdisc.org/USDM/sex",
+          "decode": "Male"
+        },
+        {
+          "code": "Female",
+          "codeSystem": "http://www.cdisc.org/USDM/sex",
+          "decode": "Female"
+        }
+      ],
+      "criterionIds": [
+        "ec_1",
+        "ec_2",
+        "ec_3",
+        "ec_4",
+        "ec_5",
+        "ec_6"
+      ],
+      "instanceType": "StudyDesignPopulation"
+    }
+  }
+}

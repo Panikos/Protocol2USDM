@@ -14,7 +14,7 @@ import re
 from pathlib import Path
 from typing import Dict, Any, Optional, List
 
-from .schema import ExecutionModelData, ExecutionModelResult
+from .schema import ExecutionModelData, ExecutionModelResult, ExecutionModelExtension
 from .validation import validate_execution_model, ValidationResult
 from .export import export_to_csv, save_report
 from .time_anchor_extractor import extract_time_anchors
@@ -34,6 +34,8 @@ from .entity_resolver import EntityResolver, EntityResolutionContext, create_res
 from .reconciliation_layer import ReconciliationLayer, reconcile_usdm_with_execution_model
 from .soa_context import SoAContext, extract_soa_context
 from .execution_model_promoter import ExecutionModelPromoter, promote_execution_model
+
+from .processing_warnings import get_processing_warnings, _add_processing_warning
 
 logger = logging.getLogger(__name__)
 
@@ -528,6 +530,12 @@ def enrich_usdm_with_execution_model(
         # Add all execution extensions (remaining data not promoted to core)
         _add_execution_extensions(design, execution_data)
         
+        # NEW: Propagate timing windows to encounters for downstream access
+        # This addresses feedback that generators must traverse timing graphs
+        windows_propagated = propagate_windows_to_encounters(design)
+        if windows_propagated > 0:
+            logger.info(f"  Propagated timing windows to {windows_propagated} encounters")
+        
         # FIX 5: Run integrity validation before finalizing
         integrity_issues = validate_execution_model_integrity(execution_data, design)
         if integrity_issues:
@@ -535,6 +543,18 @@ def enrich_usdm_with_execution_model(
             design['extensionAttributes'].append(_create_extension_attribute(
                 "x-executionModel-integrityIssues", integrity_issues
             ))
+        
+        # NEW (P2): Add unified typed ExecutionModelExtension
+        # This outputs the full execution model as a typed structure (not JSON string)
+        # alongside the existing x-executionModel-* extensions for backward compatibility
+        from datetime import datetime
+        typed_extension = ExecutionModelExtension(
+            extractionTimestamp=datetime.utcnow().isoformat(),
+            data=execution_data,
+            integrityIssues=[{"issue": i} for i in integrity_issues] if integrity_issues else [],
+        )
+        design.setdefault('extensionAttributes', []).append(typed_extension.to_usdm_extension())
+        logger.info("  Added unified typed ExecutionModelExtension")
     
     return enriched
 
@@ -595,6 +615,12 @@ def _resolve_to_epoch_id(
             return epoch['id']
     
     logger.warning(f"Could not resolve epoch label '{label}' to any ID")
+    _add_processing_warning(
+        category="epoch_resolution_failed",
+        message=f"Could not resolve epoch label '{label}' to any ID",
+        context="execution_model_promotion",
+        details={'epoch_label': label}
+    )
     return None
 
 
@@ -618,21 +644,80 @@ def _resolve_to_encounter_id(
         if enc.get('name', '').lower() == visit_lower:
             return enc['id']
     
-    # Fuzzy match
+    # Fuzzy match - Phase 1: substring containment
     for enc in encounters:
         enc_name = enc.get('name', '').lower()
         # Check if key terms match
         if visit_lower in enc_name or enc_name in visit_lower:
             return enc['id']
-        # Handle common patterns
-        if 'end of study' in visit_lower and ('eos' in enc_name or 'end' in enc_name):
-            return enc['id']
-        if 'screening' in visit_lower and 'screen' in enc_name:
-            return enc['id']
-        if 'day 1' in visit_lower and ('day 1' in enc_name or 'baseline' in enc_name):
-            return enc['id']
+    
+    # Fuzzy match - Phase 2: common patterns and aliases
+    for enc in encounters:
+        enc_name = enc.get('name', '').lower()
+        
+        # End of Study / EOS / Final Visit
+        if any(x in visit_lower for x in ['end of study', 'eos', 'final visit', 'study completion', 'termination']):
+            if any(x in enc_name for x in ['end', 'eos', 'final', 'termination', 'completion', 'last']):
+                return enc['id']
+        
+        # Screening
+        if 'screening' in visit_lower or 'screen' in visit_lower:
+            if 'screen' in enc_name:
+                return enc['id']
+        
+        # Day 1 / Baseline / Randomization
+        if any(x in visit_lower for x in ['day 1', 'day1', 'baseline', 'randomization', 'randomisation']):
+            if any(x in enc_name for x in ['day 1', 'day1', 'baseline', 'random', 'week 0', 'visit 1']):
+                return enc['id']
+        
+        # Follow-up / Safety follow-up
+        if 'follow' in visit_lower or 'safety' in visit_lower:
+            if 'follow' in enc_name or 'safety' in enc_name:
+                return enc['id']
+        
+        # End of Treatment / EOT
+        if any(x in visit_lower for x in ['end of treatment', 'eot', 'treatment end']):
+            if any(x in enc_name for x in ['end of treatment', 'eot', 'treatment end', 'last dose']):
+                return enc['id']
+    
+    # Fuzzy match - Phase 3: Week/Visit number extraction
+    import re
+    visit_week_match = re.search(r'week\s*[i-]?\s*(\d+)', visit_lower)
+    visit_num_match = re.search(r'visit\s*(\d+)', visit_lower)
+    visit_day_match = re.search(r'day\s*(\d+)', visit_lower)
+    
+    if visit_week_match:
+        week_num = visit_week_match.group(1)
+        for enc in encounters:
+            enc_name = enc.get('name', '').lower()
+            # Match "Week 4", "Induction Week 4", "Week I-4", etc.
+            if re.search(rf'week\s*[i-]?\s*{week_num}\b', enc_name):
+                return enc['id']
+            # Match "(I-4)" pattern
+            if f'({week_num})' in enc_name or f'i-{week_num}' in enc_name or f'-{week_num}' in enc_name:
+                return enc['id']
+    
+    if visit_num_match:
+        visit_num = visit_num_match.group(1)
+        for enc in encounters:
+            enc_name = enc.get('name', '').lower()
+            if re.search(rf'visit\s*{visit_num}\b', enc_name):
+                return enc['id']
+    
+    if visit_day_match:
+        day_num = visit_day_match.group(1)
+        for enc in encounters:
+            enc_name = enc.get('name', '').lower()
+            if re.search(rf'day\s*{day_num}\b', enc_name):
+                return enc['id']
     
     logger.warning(f"Could not resolve visit '{visit_name}' to encounter ID")
+    _add_processing_warning(
+        category="visit_resolution_failed",
+        message=f"Could not resolve visit '{visit_name}' to encounter ID",
+        context="execution_model_promotion",
+        details={'visit_name': visit_name, 'available_encounters': [e.get('name') for e in encounters[:5]]}
+    )
     return None
 
 
@@ -1586,3 +1671,103 @@ def create_execution_model_summary(
             lines.append(f"  • Stratification: {factors}")
     
     return "\n".join(lines)
+
+
+def propagate_windows_to_encounters(design: Dict[str, Any]) -> int:
+    """
+    Denormalize timing windows to encounters for easy downstream access.
+    
+    This addresses the architectural feedback that visit windows only live in 
+    Timing objects, forcing generators to traverse timing graphs. After this,
+    each encounter exposes its effective window directly.
+    
+    Adds to each encounter:
+      - effectiveWindowLower: int (days before nominal, typically negative)
+      - effectiveWindowUpper: int (days after nominal, typically positive)
+      - scheduledDay: int (nominal study day, derived from timing)
+    
+    Args:
+        design: StudyDesign dict to modify in-place
+        
+    Returns:
+        Number of encounters updated with window information
+    """
+    import json
+    
+    # Build timing map from all sources
+    timing_map: Dict[str, Dict[str, Any]] = {}
+    
+    # 1. Collect timings from schedule timelines
+    for timeline in design.get('scheduleTimelines', []):
+        for timing in timeline.get('timings', []):
+            timing_map[timing.get('id', '')] = timing
+    
+    # 2. Collect from root-level timings
+    for timing in design.get('timings', []):
+        timing_map[timing.get('id', '')] = timing
+    
+    # 3. Collect from visit windows extension
+    visit_windows_ext = None
+    for ext in design.get('extensionAttributes', []):
+        if 'visitWindows' in ext.get('url', ''):
+            try:
+                visit_windows = json.loads(ext.get('valueString', '[]'))
+                # Build name-based lookup for visit windows
+                for vw in visit_windows:
+                    visit_name = vw.get('visitName', '').lower()
+                    if visit_name:
+                        timing_map[f"vw_{visit_name}"] = {
+                            'value': vw.get('targetDay'),
+                            'windowLower': -abs(vw.get('windowBefore', 0)) if vw.get('windowBefore') else None,
+                            'windowUpper': vw.get('windowAfter'),
+                        }
+            except json.JSONDecodeError:
+                pass
+    
+    updated_count = 0
+    
+    for encounter in design.get('encounters', []):
+        enc_id = encounter.get('id', '')
+        enc_name = encounter.get('name', '')
+        enc_name_lower = enc_name.lower()
+        
+        # Try to find timing by scheduledAtTimingId
+        timing_id = encounter.get('scheduledAtTimingId')
+        timing = timing_map.get(timing_id) if timing_id else None
+        
+        # If no direct link, try name-based matching with visit windows
+        if not timing:
+            timing = timing_map.get(f"vw_{enc_name_lower}")
+        
+        # Try fuzzy name matching
+        if not timing:
+            for key, t in timing_map.items():
+                t_name = t.get('name', '').lower() if isinstance(t, dict) else ''
+                if enc_name_lower and (enc_name_lower in t_name or t_name in enc_name_lower):
+                    timing = t
+                    break
+        
+        if timing:
+            # Propagate window bounds
+            if timing.get('windowLower') is not None:
+                encounter['effectiveWindowLower'] = timing['windowLower']
+            if timing.get('windowUpper') is not None:
+                encounter['effectiveWindowUpper'] = timing['windowUpper']
+            
+            # Propagate scheduled day
+            if timing.get('value') is not None:
+                encounter['scheduledDay'] = timing['value']
+            
+            updated_count += 1
+        
+        # Also try to extract day from encounter name if not found
+        if 'scheduledDay' not in encounter:
+            import re
+            day_match = re.search(r'day\s*[-]?\s*(\d+)', enc_name_lower)
+            if day_match:
+                encounter['scheduledDay'] = int(day_match.group(1))
+    
+    if updated_count > 0:
+        logger.info(f"Propagated timing windows to {updated_count} encounters")
+    
+    return updated_count

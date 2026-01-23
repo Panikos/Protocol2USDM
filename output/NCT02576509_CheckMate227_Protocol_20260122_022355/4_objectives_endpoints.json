@@ -1,0 +1,496 @@
+{
+  "success": true,
+  "pagesUsed": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    18,
+    19,
+    20
+  ],
+  "modelUsed": "gemini-3-flash-preview",
+  "objectivesEndpoints": {
+    "objectives": [
+      {
+        "id": "obj_1",
+        "name": "Primary Objective",
+        "text": "To compare the overall survival (OS) of nivolumab to sorafenib in subjects with advanced HCC who have not received prior systemic therapy.",
+        "level": {
+          "code": "C85826",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Trial Primary Objective",
+          "instanceType": "Code"
+        },
+        "endpointIds": [
+          "ep_1"
+        ],
+        "instanceType": "Objective"
+      },
+      {
+        "id": "obj_2",
+        "name": "Secondary Objective 1",
+        "text": "To compare the objective response rate (ORR) of nivolumab to sorafenib. ORR will be determined from assessment by a blinded independent central review (BICR) based on RECIST 1.1.",
+        "level": {
+          "code": "C85827",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Trial Secondary Objective",
+          "instanceType": "Code"
+        },
+        "endpointIds": [
+          "ep_2"
+        ],
+        "instanceType": "Objective"
+      },
+      {
+        "id": "obj_3",
+        "name": "Secondary Objective 2",
+        "text": "To compare progression free survival (PFS) of nivolumab and sorafenib. PFS will be determined from assessments by a blinded independent central review (BICR) based on RECIST 1.1",
+        "level": {
+          "code": "C85827",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Trial Secondary Objective",
+          "instanceType": "Code"
+        },
+        "endpointIds": [
+          "ep_3"
+        ],
+        "instanceType": "Objective"
+      },
+      {
+        "id": "obj_4",
+        "name": "Secondary Objective 3",
+        "text": "To evaluate the relationship between tumor PD-L1 expression and efficacy",
+        "level": {
+          "code": "C85827",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Trial Secondary Objective",
+          "instanceType": "Code"
+        },
+        "endpointIds": [
+          "ep_4"
+        ],
+        "instanceType": "Objective"
+      },
+      {
+        "id": "obj_5",
+        "name": "Exploratory Objective",
+        "text": "evaluating the correlation of tumor inflammation with efficacy",
+        "level": {
+          "code": "C163559",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Trial Exploratory Objective",
+          "instanceType": "Code"
+        },
+        "endpointIds": [],
+        "instanceType": "Objective"
+      }
+    ],
+    "endpoints": [
+      {
+        "id": "ep_1",
+        "name": "Overall Survival (OS)",
+        "text": "OS is defined as the time from the date of randomization to the date of death due to any cause in all randomized subjects. Subjects who are alive will be censored at the last known alive dates.",
+        "level": {
+          "code": "C98772",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Primary Outcome Measure",
+          "instanceType": "Code"
+        },
+        "instanceType": "Endpoint",
+        "purpose": "Efficacy"
+      },
+      {
+        "id": "ep_2",
+        "name": "Objective Response Rate (ORR)",
+        "text": "ORR, as determined based on BICR-assessed tumor response according to RECIST 1.1, is defined as the proportion of all randomized subjects whose best overall response (BOR) is either a CR or PR.",
+        "level": {
+          "code": "C98781",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Secondary Outcome Measure",
+          "instanceType": "Code"
+        },
+        "instanceType": "Endpoint",
+        "purpose": "Efficacy"
+      },
+      {
+        "id": "ep_3",
+        "name": "Progression-Free Survival (PFS)",
+        "text": "PFS is defined as the time from the date of randomization to the date of the first objectively documented tumor progression as assessed by BICR according to RECIST 1.1 or death due to any cause.",
+        "level": {
+          "code": "C98781",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Secondary Outcome Measure",
+          "instanceType": "Code"
+        },
+        "instanceType": "Endpoint",
+        "purpose": "Efficacy"
+      },
+      {
+        "id": "ep_4",
+        "name": "PD-L1 expression",
+        "text": "The objective of evaluating the relationship between PD-L1 expression and efficacy will be measured by efficacy based on PD-L1 expression. Definition of PD-L1 expression will be described in the SAP.",
+        "level": {
+          "code": "C98781",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Secondary Outcome Measure",
+          "instanceType": "Code"
+        },
+        "instanceType": "Endpoint",
+        "purpose": "Biomarker"
+      }
+    ],
+    "estimands": [
+      {
+        "id": "est_1",
+        "name": "Primary Efficacy Estimand (OS)",
+        "populationSummary": "Adult patients with advanced hepatocellular carcinoma (HCC) who have not received prior systemic therapy (All randomized subjects) Summary measure: Hazard ratio (HR) estimated via stratified Cox proportional hazards model.",
+        "analysisPopulationId": "est_1_pop",
+        "variableOfInterestId": "ep_1",
+        "interventionIds": [
+          "est_1_int"
+        ],
+        "intercurrentEvents": [
+          {
+            "id": "ice_1",
+            "name": "Treatment discontinuation",
+            "text": "Discontinuation of study drug due to toxicity or other reasons",
+            "strategy": "Treatment Policy",
+            "instanceType": "IntercurrentEvent"
+          },
+          {
+            "id": "ice_2",
+            "name": "Subsequent anti-cancer therapy",
+            "text": "Initiation of new systemic or local anti-cancer therapies after study drug",
+            "strategy": "Treatment Policy",
+            "instanceType": "IntercurrentEvent"
+          }
+        ],
+        "instanceType": "Estimand",
+        "treatment": "Nivolumab 240 mg IV every 2 weeks vs Sorafenib 400 mg PO BID",
+        "analysisPopulation": "Adult patients with advanced hepatocellular carcinoma (HCC) who have not received prior systemic therapy (All randomized subjects)",
+        "variableOfInterest": "Overall Survival (OS), defined as the time from the date of randomization to the date of death due to any cause",
+        "summaryMeasure": "Hazard ratio (HR) estimated via stratified Cox proportional hazards model"
+      },
+      {
+        "id": "est_2",
+        "name": "Secondary Efficacy Estimand (ORR)",
+        "populationSummary": "Adult patients with advanced hepatocellular carcinoma (HCC) who have not received prior systemic therapy (All randomized subjects) Summary measure: Odds ratio estimated via Cochran-Mantel-Haenszel (CMH) test.",
+        "analysisPopulationId": "est_2_pop",
+        "variableOfInterestId": "ep_2",
+        "interventionIds": [
+          "est_2_int"
+        ],
+        "intercurrentEvents": [
+          {
+            "id": "ice_3",
+            "name": "Subsequent anti-cancer therapy",
+            "text": "Initiation of subsequent anti-cancer therapy prior to documented progression",
+            "strategy": "Composite",
+            "instanceType": "IntercurrentEvent"
+          },
+          {
+            "id": "ice_4",
+            "name": "Death",
+            "text": "Death prior to objective response",
+            "strategy": "Composite",
+            "instanceType": "IntercurrentEvent"
+          }
+        ],
+        "instanceType": "Estimand",
+        "treatment": "Nivolumab 240 mg IV every 2 weeks vs Sorafenib 400 mg PO BID",
+        "analysisPopulation": "Adult patients with advanced hepatocellular carcinoma (HCC) who have not received prior systemic therapy (All randomized subjects)",
+        "variableOfInterest": "Objective Response Rate (ORR), defined as the proportion of subjects with a BOR of CR or PR per BICR RECIST 1.1",
+        "summaryMeasure": "Odds ratio estimated via Cochran-Mantel-Haenszel (CMH) test"
+      },
+      {
+        "id": "est_3",
+        "name": "Secondary Efficacy Estimand (PFS)",
+        "populationSummary": "Adult patients with advanced hepatocellular carcinoma (HCC) who have not received prior systemic therapy (All randomized subjects) Summary measure: Hazard ratio (HR) estimated via stratified Cox proportional hazards model.",
+        "analysisPopulationId": "est_3_pop",
+        "variableOfInterestId": "ep_3",
+        "interventionIds": [
+          "est_3_int"
+        ],
+        "intercurrentEvents": [
+          {
+            "id": "ice_5",
+            "name": "Subsequent anti-cancer therapy",
+            "text": "Initiation of subsequent anti-cancer therapy without prior reported progression",
+            "strategy": "Hypothetical",
+            "instanceType": "IntercurrentEvent"
+          },
+          {
+            "id": "ice_6",
+            "name": "Death",
+            "text": "Death due to any cause",
+            "strategy": "Composite",
+            "instanceType": "IntercurrentEvent"
+          }
+        ],
+        "instanceType": "Estimand",
+        "treatment": "Nivolumab 240 mg IV every 2 weeks vs Sorafenib 400 mg PO BID",
+        "analysisPopulation": "Adult patients with advanced hepatocellular carcinoma (HCC) who have not received prior systemic therapy (All randomized subjects)",
+        "variableOfInterest": "Progression-Free Survival (PFS), defined as the time from randomization to first documented tumor progression or death",
+        "summaryMeasure": "Hazard ratio (HR) estimated via stratified Cox proportional hazards model"
+      }
+    ],
+    "summary": {
+      "primaryObjectives": 1,
+      "secondaryObjectives": 3,
+      "exploratoryObjectives": 1,
+      "totalEndpoints": 4,
+      "totalEstimands": 3
+    }
+  },
+  "rawResponse": {
+    "objectives": [
+      {
+        "id": "obj_1",
+        "name": "Primary Objective",
+        "text": "To compare the overall survival (OS) of nivolumab to sorafenib in subjects with advanced HCC who have not received prior systemic therapy.",
+        "level": {
+          "code": "C85826",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Trial Primary Objective",
+          "instanceType": "Code"
+        },
+        "endpointIds": [
+          "ep_1"
+        ],
+        "instanceType": "Objective"
+      },
+      {
+        "id": "obj_2",
+        "name": "Secondary Objective 1",
+        "text": "To compare the objective response rate (ORR) of nivolumab to sorafenib. ORR will be determined from assessment by a blinded independent central review (BICR) based on RECIST 1.1.",
+        "level": {
+          "code": "C85827",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Trial Secondary Objective",
+          "instanceType": "Code"
+        },
+        "endpointIds": [
+          "ep_2"
+        ],
+        "instanceType": "Objective"
+      },
+      {
+        "id": "obj_3",
+        "name": "Secondary Objective 2",
+        "text": "To compare progression free survival (PFS) of nivolumab and sorafenib. PFS will be determined from assessments by a blinded independent central review (BICR) based on RECIST 1.1",
+        "level": {
+          "code": "C85827",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Trial Secondary Objective",
+          "instanceType": "Code"
+        },
+        "endpointIds": [
+          "ep_3"
+        ],
+        "instanceType": "Objective"
+      },
+      {
+        "id": "obj_4",
+        "name": "Secondary Objective 3",
+        "text": "To evaluate the relationship between tumor PD-L1 expression and efficacy",
+        "level": {
+          "code": "C85827",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Trial Secondary Objective",
+          "instanceType": "Code"
+        },
+        "endpointIds": [
+          "ep_4"
+        ],
+        "instanceType": "Objective"
+      },
+      {
+        "id": "obj_5",
+        "name": "Exploratory Objective",
+        "text": "evaluating the correlation of tumor inflammation with efficacy",
+        "level": {
+          "code": "C163559",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Trial Exploratory Objective",
+          "instanceType": "Code"
+        },
+        "endpointIds": [],
+        "instanceType": "Objective"
+      }
+    ],
+    "endpoints": [
+      {
+        "id": "ep_1",
+        "name": "Overall Survival (OS)",
+        "text": "OS is defined as the time from the date of randomization to the date of death due to any cause in all randomized subjects. Subjects who are alive will be censored at the last known alive dates.",
+        "level": {
+          "code": "C98772",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Primary Outcome Measure",
+          "instanceType": "Code"
+        },
+        "instanceType": "Endpoint",
+        "purpose": "Efficacy"
+      },
+      {
+        "id": "ep_2",
+        "name": "Objective Response Rate (ORR)",
+        "text": "ORR, as determined based on BICR-assessed tumor response according to RECIST 1.1, is defined as the proportion of all randomized subjects whose best overall response (BOR) is either a CR or PR.",
+        "level": {
+          "code": "C98781",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Secondary Outcome Measure",
+          "instanceType": "Code"
+        },
+        "instanceType": "Endpoint",
+        "purpose": "Efficacy"
+      },
+      {
+        "id": "ep_3",
+        "name": "Progression-Free Survival (PFS)",
+        "text": "PFS is defined as the time from the date of randomization to the date of the first objectively documented tumor progression as assessed by BICR according to RECIST 1.1 or death due to any cause.",
+        "level": {
+          "code": "C98781",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Secondary Outcome Measure",
+          "instanceType": "Code"
+        },
+        "instanceType": "Endpoint",
+        "purpose": "Efficacy"
+      },
+      {
+        "id": "ep_4",
+        "name": "PD-L1 expression",
+        "text": "The objective of evaluating the relationship between PD-L1 expression and efficacy will be measured by efficacy based on PD-L1 expression. Definition of PD-L1 expression will be described in the SAP.",
+        "level": {
+          "code": "C98781",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Secondary Outcome Measure",
+          "instanceType": "Code"
+        },
+        "instanceType": "Endpoint",
+        "purpose": "Biomarker"
+      }
+    ],
+    "estimands": [
+      {
+        "id": "est_1",
+        "name": "Primary Efficacy Estimand (OS)",
+        "populationSummary": "Adult patients with advanced hepatocellular carcinoma (HCC) who have not received prior systemic therapy (All randomized subjects) Summary measure: Hazard ratio (HR) estimated via stratified Cox proportional hazards model.",
+        "analysisPopulationId": "est_1_pop",
+        "variableOfInterestId": "ep_1",
+        "interventionIds": [
+          "est_1_int"
+        ],
+        "intercurrentEvents": [
+          {
+            "id": "ice_1",
+            "name": "Treatment discontinuation",
+            "text": "Discontinuation of study drug due to toxicity or other reasons",
+            "strategy": "Treatment Policy",
+            "instanceType": "IntercurrentEvent"
+          },
+          {
+            "id": "ice_2",
+            "name": "Subsequent anti-cancer therapy",
+            "text": "Initiation of new systemic or local anti-cancer therapies after study drug",
+            "strategy": "Treatment Policy",
+            "instanceType": "IntercurrentEvent"
+          }
+        ],
+        "instanceType": "Estimand",
+        "treatment": "Nivolumab 240 mg IV every 2 weeks vs Sorafenib 400 mg PO BID",
+        "analysisPopulation": "Adult patients with advanced hepatocellular carcinoma (HCC) who have not received prior systemic therapy (All randomized subjects)",
+        "variableOfInterest": "Overall Survival (OS), defined as the time from the date of randomization to the date of death due to any cause",
+        "summaryMeasure": "Hazard ratio (HR) estimated via stratified Cox proportional hazards model"
+      },
+      {
+        "id": "est_2",
+        "name": "Secondary Efficacy Estimand (ORR)",
+        "populationSummary": "Adult patients with advanced hepatocellular carcinoma (HCC) who have not received prior systemic therapy (All randomized subjects) Summary measure: Odds ratio estimated via Cochran-Mantel-Haenszel (CMH) test.",
+        "analysisPopulationId": "est_2_pop",
+        "variableOfInterestId": "ep_2",
+        "interventionIds": [
+          "est_2_int"
+        ],
+        "intercurrentEvents": [
+          {
+            "id": "ice_3",
+            "name": "Subsequent anti-cancer therapy",
+            "text": "Initiation of subsequent anti-cancer therapy prior to documented progression",
+            "strategy": "Composite",
+            "instanceType": "IntercurrentEvent"
+          },
+          {
+            "id": "ice_4",
+            "name": "Death",
+            "text": "Death prior to objective response",
+            "strategy": "Composite",
+            "instanceType": "IntercurrentEvent"
+          }
+        ],
+        "instanceType": "Estimand",
+        "treatment": "Nivolumab 240 mg IV every 2 weeks vs Sorafenib 400 mg PO BID",
+        "analysisPopulation": "Adult patients with advanced hepatocellular carcinoma (HCC) who have not received prior systemic therapy (All randomized subjects)",
+        "variableOfInterest": "Objective Response Rate (ORR), defined as the proportion of subjects with a BOR of CR or PR per BICR RECIST 1.1",
+        "summaryMeasure": "Odds ratio estimated via Cochran-Mantel-Haenszel (CMH) test"
+      },
+      {
+        "id": "est_3",
+        "name": "Secondary Efficacy Estimand (PFS)",
+        "populationSummary": "Adult patients with advanced hepatocellular carcinoma (HCC) who have not received prior systemic therapy (All randomized subjects) Summary measure: Hazard ratio (HR) estimated via stratified Cox proportional hazards model.",
+        "analysisPopulationId": "est_3_pop",
+        "variableOfInterestId": "ep_3",
+        "interventionIds": [
+          "est_3_int"
+        ],
+        "intercurrentEvents": [
+          {
+            "id": "ice_5",
+            "name": "Subsequent anti-cancer therapy",
+            "text": "Initiation of subsequent anti-cancer therapy without prior reported progression",
+            "strategy": "Hypothetical",
+            "instanceType": "IntercurrentEvent"
+          },
+          {
+            "id": "ice_6",
+            "name": "Death",
+            "text": "Death due to any cause",
+            "strategy": "Composite",
+            "instanceType": "IntercurrentEvent"
+          }
+        ],
+        "instanceType": "Estimand",
+        "treatment": "Nivolumab 240 mg IV every 2 weeks vs Sorafenib 400 mg PO BID",
+        "analysisPopulation": "Adult patients with advanced hepatocellular carcinoma (HCC) who have not received prior systemic therapy (All randomized subjects)",
+        "variableOfInterest": "Progression-Free Survival (PFS), defined as the time from randomization to first documented tumor progression or death",
+        "summaryMeasure": "Hazard ratio (HR) estimated via stratified Cox proportional hazards model"
+      }
+    ]
+  }
+}

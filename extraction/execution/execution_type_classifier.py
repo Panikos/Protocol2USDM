@@ -447,6 +447,7 @@ Return ONLY the JSON."""
             prompt=prompt,
             model_name=model,
             json_mode=True,
+            extractor_name="execution_type",
             temperature=0.1,
         )
         response = result.get('response', '')

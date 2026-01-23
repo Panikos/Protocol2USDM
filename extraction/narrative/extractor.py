@@ -159,33 +159,154 @@ def extract_narrative_structure(
 
 
 def _extract_abbreviations(protocol_text: str, model_name: str) -> Optional[Dict]:
-    """Extract abbreviations using LLM."""
+    """Extract abbreviations using LLM with retry logic for truncation."""
     prompt = build_abbreviations_extraction_prompt(protocol_text)
     
-    response = call_llm(prompt=prompt, model_name=model_name, json_mode=True)
+    # Retry logic for truncated responses
+    max_retries = 3
+    accumulated_response = ""
     
-    if 'error' in response:
-        logger.warning(f"Abbreviation extraction failed: {response['error']}")
-        return None
+    for attempt in range(max_retries + 1):
+        if attempt == 0:
+            current_prompt = prompt
+        else:
+            logger.info(f"Abbreviations retry {attempt}/{max_retries}: Requesting continuation...")
+            # Find a good merge point - last complete line ending with comma or bracket
+            merge_point = accumulated_response.rfind(',\n')
+            if merge_point == -1:
+                merge_point = accumulated_response.rfind('[\n')
+            if merge_point == -1:
+                merge_point = max(0, len(accumulated_response) - 500)
+            
+            context = accumulated_response[merge_point:] if merge_point > 0 else accumulated_response[-500:]
+            current_prompt = (
+                f"Your previous response was truncated. Here is the end:\n\n"
+                f"```json\n{context}\n```\n\n"
+                f"Continue EXACTLY from where you left off. Output ONLY the remaining JSON to complete the array/object. "
+                f"Do NOT repeat any content. Start your response with the next item or closing bracket."
+            )
+        
+        response = call_llm(prompt=current_prompt, model_name=model_name, json_mode=True, extractor_name="narrative")
+        
+        if 'error' in response:
+            logger.warning(f"Abbreviation extraction failed: {response['error']}")
+            return None
+        
+        response_text = response.get('response', '')
+        
+        if attempt > 0 and response_text:
+            # Smart merge: find overlap and concatenate
+            merged = _smart_merge_json(accumulated_response, response_text)
+            accumulated_response = merged
+            result = _parse_json_response(accumulated_response)
+            if result:
+                logger.info(f"Successfully parsed abbreviations after {attempt} continuation(s)")
+                return result
+        else:
+            accumulated_response = response_text
+            result = _parse_json_response(response_text)
+            if result:
+                return result
+            # Check if truncated
+            if response_text and not response_text.rstrip().endswith('}'):
+                continue
+            break
     
-    return _parse_json_response(response.get('response', ''))
+    return None
+
+
+def _smart_merge_json(base: str, continuation: str) -> str:
+    """Merge truncated JSON with continuation, handling overlaps."""
+    base = base.rstrip()
+    continuation = continuation.lstrip()
+    
+    # Remove markdown code blocks from continuation
+    if continuation.startswith('```'):
+        lines = continuation.split('\n')
+        continuation = '\n'.join(lines[1:])
+        if continuation.rstrip().endswith('```'):
+            continuation = continuation.rstrip()[:-3].rstrip()
+    
+    # If continuation starts with closing brackets, append directly
+    if continuation and continuation[0] in '}]':
+        return base + continuation
+    
+    # If base ends mid-string or mid-value, try to find merge point
+    # Look for overlap (continuation might repeat some content)
+    for overlap_len in range(min(100, len(base), len(continuation)), 10, -10):
+        if base.endswith(continuation[:overlap_len]):
+            return base + continuation[overlap_len:]
+    
+    # No overlap found - check if we need a comma
+    if base and continuation:
+        # If base ends with value and continuation starts with new item
+        if base[-1] in '"}0123456789' and continuation[0] == '{':
+            return base + ',\n' + continuation
+        if base[-1] == ',' or continuation[0] == ',':
+            return base + continuation
+    
+    return base + continuation
 
 
 def _extract_structure(protocol_text: str, model_name: str) -> Optional[Dict]:
-    """Extract document structure using LLM."""
+    """Extract document structure using LLM with retry logic for truncation."""
     prompt = build_structure_extraction_prompt(protocol_text)
     
-    response = call_llm(prompt=prompt, model_name=model_name, json_mode=True)
+    # Retry logic for truncated responses
+    max_retries = 3
+    accumulated_response = ""
     
-    if 'error' in response:
-        logger.warning(f"Structure extraction failed: {response['error']}")
-        return None
+    for attempt in range(max_retries + 1):
+        if attempt == 0:
+            current_prompt = prompt
+        else:
+            logger.info(f"Structure retry {attempt}/{max_retries}: Requesting continuation...")
+            # Find a good merge point - last complete line ending with comma or bracket
+            merge_point = accumulated_response.rfind(',\n')
+            if merge_point == -1:
+                merge_point = accumulated_response.rfind('[\n')
+            if merge_point == -1:
+                merge_point = max(0, len(accumulated_response) - 500)
+            
+            context = accumulated_response[merge_point:] if merge_point > 0 else accumulated_response[-500:]
+            current_prompt = (
+                f"Your previous response was truncated. Here is the end:\n\n"
+                f"```json\n{context}\n```\n\n"
+                f"Continue EXACTLY from where you left off. Output ONLY the remaining JSON to complete the array/object. "
+                f"Do NOT repeat any content. Start your response with the next item or closing bracket."
+            )
+        
+        response = call_llm(prompt=current_prompt, model_name=model_name, json_mode=True, extractor_name="narrative")
+        
+        if 'error' in response:
+            logger.warning(f"Structure extraction failed: {response['error']}")
+            return None
+        
+        response_text = response.get('response', '')
+        
+        if attempt > 0 and response_text:
+            # Smart merge: find overlap and concatenate
+            merged = _smart_merge_json(accumulated_response, response_text)
+            accumulated_response = merged
+            result = _parse_json_response(accumulated_response)
+            if result:
+                logger.info(f"Successfully parsed structure after {attempt} continuation(s)")
+                return result
+        else:
+            accumulated_response = response_text
+            result = _parse_json_response(response_text)
+            if result:
+                return result
+            # Check if truncated
+            if response_text and not response_text.rstrip().endswith('}'):
+                continue
+            break
     
-    return _parse_json_response(response.get('response', ''))
+    return None
 
 
 def _parse_json_response(response_text: str) -> Optional[Dict[str, Any]]:
-    """Parse JSON from LLM response, handling markdown code blocks."""
+    """Parse JSON from LLM response, handling markdown code blocks and repairing common errors."""
     if not response_text:
         return None
         
@@ -198,8 +319,45 @@ def _parse_json_response(response_text: str) -> Optional[Dict[str, Any]]:
     try:
         return json.loads(response_text)
     except json.JSONDecodeError as e:
+        # Try to repair common JSON errors
+        repaired = _repair_json(response_text)
+        if repaired:
+            try:
+                return json.loads(repaired)
+            except json.JSONDecodeError:
+                pass
         logger.warning(f"Failed to parse JSON response: {e}")
         return None
+
+
+def _repair_json(text: str) -> Optional[str]:
+    """Attempt to repair common JSON syntax errors."""
+    if not text:
+        return None
+    
+    # Fix missing commas between array elements: }{ -> },{
+    text = re.sub(r'\}\s*\{', '},{', text)
+    
+    # Fix missing commas between array elements: "]["  -> ],[ 
+    text = re.sub(r'\]\s*\[', '],[', text)
+    
+    # Fix missing commas after strings followed by quotes: ""\s*" -> "", "
+    text = re.sub(r'"\s*\n\s*"', '",\n"', text)
+    
+    # Fix trailing commas before closing brackets: ,] -> ]
+    text = re.sub(r',\s*\]', ']', text)
+    text = re.sub(r',\s*\}', '}', text)
+    
+    # Try to close unclosed arrays/objects
+    open_braces = text.count('{') - text.count('}')
+    open_brackets = text.count('[') - text.count(']')
+    
+    if open_braces > 0:
+        text = text.rstrip() + '}' * open_braces
+    if open_brackets > 0:
+        text = text.rstrip() + ']' * open_brackets
+    
+    return text
 
 
 def _build_narrative_data(

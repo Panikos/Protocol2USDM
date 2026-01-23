@@ -1,0 +1,916 @@
+{
+  "success": true,
+  "pagesUsed": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    41,
+    43,
+    44,
+    45,
+    46,
+    47,
+    51,
+    54,
+    57,
+    58,
+    59,
+    60,
+    61,
+    62,
+    63,
+    64,
+    65,
+    66,
+    67,
+    68,
+    69,
+    71,
+    76,
+    89,
+    93,
+    94,
+    95,
+    100,
+    102,
+    104,
+    105,
+    106
+  ],
+  "modelUsed": "gemini-3-flash-preview",
+  "data": {
+    "timeAnchors": [
+      {
+        "id": "anchor_1",
+        "definition": "First administration of investigational product",
+        "anchorType": "FirstDose",
+        "timelineId": null,
+        "dayValue": 1,
+        "sourceText": "first \ndose of study medication"
+      },
+      {
+        "id": "anchor_2",
+        "definition": "Date of subject randomization",
+        "anchorType": "Randomization",
+        "timelineId": null,
+        "dayValue": 1,
+        "sourceText": "day of randomization"
+      },
+      {
+        "id": "anchor_llm_1",
+        "definition": "The start of the first dosing cycle for the assigned treatment",
+        "anchorType": "Day1",
+        "timelineId": null,
+        "dayValue": 1,
+        "sourceText": "After a screening phase of up to 28 days, eligible subjects will receive treatment beginning on Day 1 of each 3-week dosing cycle for pembrolizumab or investigator’s choice of paclitaxel (Days 1, 8, and 15 of every 28-day cycle), docetaxel (Day 1, every 21-day cycle), or irinotecan (Day 1, every 14-day cycle)."
+      },
+      {
+        "id": "anchor_3",
+        "definition": "Screening visit",
+        "anchorType": "Screening",
+        "timelineId": null,
+        "dayValue": 1,
+        "sourceText": "screening visit"
+      },
+      {
+        "id": "anchor_4",
+        "definition": "Informed consent obtained",
+        "anchorType": "InformedConsent",
+        "timelineId": null,
+        "dayValue": 1,
+        "sourceText": "informed \nconsent"
+      },
+      {
+        "id": "anchor_5",
+        "definition": "procedure",
+        "anchorType": "Custom",
+        "timelineId": null,
+        "dayValue": 1,
+        "sourceText": "procedure"
+      }
+    ],
+    "repetitions": [
+      {
+        "id": "rep_daily_1",
+        "type": "Daily",
+        "interval": "P1D",
+        "sourceText": "od"
+      },
+      {
+        "id": "rep_interval_1",
+        "type": "Interval",
+        "sourceText": "tid"
+      },
+      {
+        "id": "rep_cycle_1",
+        "type": "Cycle",
+        "cycleLength": "P28D",
+        "sourceText": "28-day \ncycle"
+      },
+      {
+        "id": "rep_cycle_2",
+        "type": "Cycle",
+        "cycleLength": "P21D",
+        "exitCondition": "Disease progression",
+        "sourceText": "21-day cycle"
+      },
+      {
+        "id": "rep_cycle_3",
+        "type": "Cycle",
+        "cycleLength": "P14D",
+        "exitCondition": "Disease progression",
+        "sourceText": "14-day cycle"
+      },
+      {
+        "id": "rep_cycle_4",
+        "type": "Cycle",
+        "cycleLength": "P3D",
+        "sourceText": "repeated every 3 weeks"
+      },
+      {
+        "id": "rep_cycle_7",
+        "type": "Cycle",
+        "sourceText": "Cycle 1 Day 1"
+      },
+      {
+        "id": "rep_cycle_11",
+        "type": "Cycle",
+        "exitCondition": "Disease progression",
+        "sourceText": "until progression"
+      },
+      {
+        "id": "rep_window_1",
+        "type": "Continuous",
+        "sourceText": "screening phase"
+      },
+      {
+        "id": "rep_window_2",
+        "type": "Continuous",
+        "sourceText": "Treatment Period"
+      },
+      {
+        "id": "rep_window_3",
+        "type": "Continuous",
+        "sourceText": "120 days after"
+      },
+      {
+        "id": "rep_window_4",
+        "type": "Continuous",
+        "sourceText": "180 days after"
+      },
+      {
+        "id": "rep_window_5",
+        "type": "Continuous",
+        "sourceText": "3 days after"
+      },
+      {
+        "id": "rep_window_6",
+        "type": "Continuous",
+        "sourceText": "3 days before"
+      },
+      {
+        "id": "rep_window_10",
+        "type": "Continuous",
+        "sourceText": "30 days before"
+      },
+      {
+        "id": "rep_window_11",
+        "type": "Continuous",
+        "sourceText": "30 days after"
+      },
+      {
+        "id": "rep_llm_1",
+        "type": "Cycle",
+        "startOffset": "P0D",
+        "interval": "P21D",
+        "minObservations": 1,
+        "exitCondition": "End of treatment or disease progression",
+        "sourceText": "Arm 1: Pembrolizumab (MK-3475) 200 mg IV every 3-weeks"
+      },
+      {
+        "id": "rep_llm_2",
+        "type": "Cycle",
+        "startOffset": "P0D",
+        "interval": "P28D",
+        "minObservations": 3,
+        "exitCondition": "End of treatment or disease progression",
+        "sourceText": "Paclitaxel 80-100 mg/m2 on Days 1, 8, and 15 of every 28-day (4-week) cycle"
+      },
+      {
+        "id": "rep_llm_3",
+        "type": "Cycle",
+        "startOffset": "P0D",
+        "interval": "P21D",
+        "minObservations": 1,
+        "exitCondition": "End of treatment or disease progression",
+        "sourceText": "Docetaxel 75 mg/m2 on Day 1 of every 21-day (3-week) cycle"
+      },
+      {
+        "id": "rep_llm_4",
+        "type": "Cycle",
+        "startOffset": "P0D",
+        "interval": "P14D",
+        "minObservations": 1,
+        "exitCondition": "End of treatment or disease progression",
+        "sourceText": "Irinotecan 180 mg/m2 on Day 1 of every 14-day (2-week) cycle"
+      },
+      {
+        "id": "rep_llm_5",
+        "type": "Continuous",
+        "startOffset": "-P28D",
+        "endOffset": "P0D",
+        "interval": "P28D",
+        "minObservations": 1,
+        "exitCondition": "Completion of eligibility verification",
+        "sourceText": "After a screening phase of up to 28 days, eligible subjects will receive treatment beginning on Day 1"
+      }
+    ],
+    "samplingConstraints": [],
+    "traversalConstraints": [
+      {
+        "id": "traversal_1",
+        "requiredSequence": [
+          "SCREENING",
+          "INITIAL_TREATMENT_PHASE",
+          "POST_TREATMENT_FOLLOW_UP",
+          "SAFETY_FOLLOW_UP",
+          "SURVIVAL_FOLLOW_UP"
+        ],
+        "allowEarlyExit": true,
+        "exitEpochIds": [
+          "EARLY_TERMINATION"
+        ],
+        "mandatoryVisits": [
+          "Screening",
+          "End of Study",
+          "Safety Follow-up Visit",
+          "End of Treatment",
+          "Day 1",
+          "Survival Follow-up",
+          "Randomization"
+        ],
+        "sourceText": "[{'condition': 'Subject achieves Complete Response (CR) and meets criteria for discontinuation', 'path': ['DISCONTINUATION_AFTER_CR', 'FOLLOW_UP']}, {'condition': 'Subject experiences disease progression after initial response', 'path': ['SECOND_COURSE_PHASE', 'RETREATMENT_WITH_PEMBROLIZUMAB']}, {'condition': 'Subject experiences AE requiring discontinuation', 'path': ['WITHDRAWAL_DISCONTINUATION', 'SAFETY_FOLLOW_UP']}]"
+      }
+    ],
+    "executionTypes": [
+      {
+        "activityId": "Blood Collection",
+        "executionType": "Single",
+        "rationale": "SINGLE signals: 2"
+      },
+      {
+        "activityId": "Vital Signs",
+        "executionType": "Single",
+        "rationale": "SINGLE signals: 1"
+      },
+      {
+        "activityId": "Electrocardiogram",
+        "executionType": "Single",
+        "rationale": "SINGLE signals: 1"
+      },
+      {
+        "activityId": "Pe",
+        "executionType": "Single",
+        "rationale": "No strong signals detected"
+      },
+      {
+        "activityId": "Adverse Event",
+        "executionType": "Single",
+        "rationale": "SINGLE signals: 2"
+      },
+      {
+        "activityId": "Concomitant Medications",
+        "executionType": "Episode",
+        "rationale": "EPISODE signals: 4; SINGLE signals: 4; RECURRING signals: 1"
+      },
+      {
+        "activityId": "Laboratory Assessments",
+        "executionType": "Single",
+        "rationale": "SINGLE signals: 2"
+      },
+      {
+        "activityId": "Pharmacokinetic",
+        "executionType": "Recurring",
+        "rationale": "SINGLE signals: 2; RECURRING signals: 14"
+      },
+      {
+        "activityId": "Pharmacodynamic",
+        "executionType": "Single",
+        "rationale": "SINGLE signals: 2"
+      },
+      {
+        "activityId": "Drug Administration",
+        "executionType": "Episode",
+        "rationale": "EPISODE signals: 3"
+      },
+      {
+        "activityId": "Imaging",
+        "executionType": "Single",
+        "rationale": "SINGLE signals: 2"
+      },
+      {
+        "activityId": "Tissue Sample",
+        "executionType": "Episode",
+        "rationale": "EPISODE signals: 1; SINGLE signals: 1"
+      },
+      {
+        "activityId": "Diary",
+        "executionType": "Single",
+        "rationale": "SINGLE signals: 2; RECURRING signals: 2"
+      },
+      {
+        "activityId": "Screening Assessment",
+        "executionType": "Single",
+        "rationale": "Entry criteria and diagnosis are evaluated once at the start of the trial to determine eligibility."
+      },
+      {
+        "activityId": "Patient Reported Outcomes",
+        "executionType": "Single",
+        "rationale": "PROs in Phase III oncology trials are typically scheduled at specific intervals or visits throughout the treatment period."
+      },
+      {
+        "activityId": "Safety Endpoints",
+        "executionType": "Single",
+        "rationale": "Safety monitoring occurs repeatedly at each study visit throughout the duration of the trial."
+      },
+      {
+        "activityId": "Immune-related RECIST (irRECIST) Assessment",
+        "executionType": "Single",
+        "rationale": "irRECIST involves conditional workflows where treatment may continue until a target is reached or progression is confirmed by a subsequent scan."
+      },
+      {
+        "activityId": "Primary Efficacy Endpoints",
+        "executionType": "Single",
+        "rationale": "Efficacy assessments (such as tumor imaging) are performed at scheduled intervals throughout the study."
+      }
+    ],
+    "footnoteConditions": [
+      {
+        "id": "fn_cond_1",
+        "conditionType": "timing_after",
+        "text": "a. After centrally verified PD, or the start of new anticancer treatment; contacts are approximately every 9 weeks by telephone.",
+        "footnoteId": "fn_1",
+        "sourceText": "a. After centrally verified PD, or the start of new anticancer treatment; contacts are approximately"
+      },
+      {
+        "id": "fn_cond_2",
+        "conditionType": "timing_after",
+        "text": "b. Cycle 1 treatment must be given within 3 days of allocation. Trial treatment of pembrolizumab may be administered up to 3 days after randomization.",
+        "footnoteId": "fn_2",
+        "sourceText": "b. Cycle 1 treatment must be given within 3 days of allocation. Trial treatment of pembrolizumab may"
+      },
+      {
+        "id": "fn_cond_3",
+        "conditionType": "timing_after",
+        "text": "c. SAEs will be followed through 90 days following cessation of treatment, or 30 days if the subject initiates new anticancer therapy.",
+        "footnoteId": "fn_3",
+        "sourceText": "c. SAEs will be followed through 90 days following cessation of treatment, or 30 days if the subject"
+      },
+      {
+        "id": "fn_cond_4",
+        "conditionType": "procedure_timepoints",
+        "text": "d. Height will be measured at Visit 1 only.",
+        "footnoteId": "fn_4",
+        "sourceText": "d. Height will be measured at Visit 1 only."
+      },
+      {
+        "id": "fn_cond_5",
+        "conditionType": "timing_before",
+        "text": "e. ECOG Performance Status and Laboratory tests for screening are to be performed within 3 days prior to the first dose.",
+        "footnoteId": "fn_5",
+        "sourceText": "e. ECOG Performance Status and Laboratory tests for screening are to be performed within 3 days prio"
+      },
+      {
+        "id": "fn_cond_6",
+        "conditionType": "timing_after",
+        "text": "f. PROs are to be performed at Cycle 1, Cycle 2, Cycle 3, Cycle 4, Cycle 5, and Cycle 7. After Cycle 7, PROs are to be performed every 3 cycles.",
+        "footnoteId": "fn_6",
+        "sourceText": "f. PROs are to be performed at Cycle 1, Cycle 2, Cycle 3, Cycle 4, Cycle 5, and Cycle 7. After Cycle"
+      },
+      {
+        "id": "fn_cond_7",
+        "conditionType": "timing_before",
+        "text": "g. For women of reproductive potential, a urine or serum pregnancy test should be performed within 72 hours prior to Day 1 of each treatment cycle.",
+        "footnoteId": "fn_7",
+        "structuredCondition": "timing.before(day 1 of each treatment cycle., PT72M)",
+        "timingConstraint": "PT72H",
+        "sourceText": "g. For women of reproductive potential, a urine or serum pregnancy test should be performed within 7"
+      },
+      {
+        "id": "fn_cond_8",
+        "conditionType": "general",
+        "text": "h. Urinalysis and thyroid function tests are performed Day 1 of every other cycle. CBC and Chemistry to be performed every cycle.",
+        "footnoteId": "fn_8",
+        "sourceText": "h. Urinalysis and thyroid function tests are performed Day 1 of every other cycle. CBC and Chemistry"
+      },
+      {
+        "id": "fn_cond_9",
+        "conditionType": "general",
+        "text": "i. Detailed instructions for the collection and management of specimens are provided in the Central Lab Manual.",
+        "footnoteId": "fn_9",
+        "sourceText": "i. Detailed instructions for the collection and management of specimens are provided in the Central "
+      },
+      {
+        "id": "fn_cond_10",
+        "conditionType": "timing_at",
+        "text": "j. Whole blood samples for correlative studies (DNA and RNA) should be collected pre-dose on Day 1 of Cycle 1, Cycle 2, and Cycle 3.",
+        "footnoteId": "fn_10",
+        "sourceText": "j. Whole blood samples for correlative studies (DNA and RNA) should be collected pre-dose on Day 1 o"
+      },
+      {
+        "id": "fn_cond_11",
+        "conditionType": "general",
+        "text": "k. Newly-obtained tissue is preferred (no intervening treatment involving the site of tissue biopsy once tissue biopsy is obtained).",
+        "footnoteId": "fn_11",
+        "sourceText": "k. Newly-obtained tissue is preferred (no intervening treatment involving the site of tissue biopsy "
+      },
+      {
+        "id": "fn_cond_12",
+        "conditionType": "general",
+        "text": "l. Archival tumor tissue will also be requested (where available) to assess the clinical utility of immune-related GEP assessment.",
+        "footnoteId": "fn_12",
+        "sourceText": "l. Archival tumor tissue will also be requested (where available) to assess the clinical utility of "
+      },
+      {
+        "id": "fn_cond_13",
+        "conditionType": "timing_before",
+        "text": "m. Screening tumor imaging will be performed within 14 days prior to randomization.",
+        "footnoteId": "fn_13",
+        "sourceText": "m. Screening tumor imaging will be performed within 14 days prior to randomization."
+      },
+      {
+        "id": "fn_cond_14",
+        "conditionType": "general",
+        "text": "n. The first on-study imaging time point will be performed at 9 weeks (63 days ± 7 days) calculated from the date of allocation.",
+        "footnoteId": "fn_14",
+        "sourceText": "n. The first on-study imaging time point will be performed at 9 weeks (63 days ± 7 days) calculated "
+      }
+    ],
+    "endpointAlgorithms": [
+      {
+        "id": "ep_1",
+        "name": "Primary: Overall Survival (OS)",
+        "endpointType": "Primary",
+        "inputs": [
+          "Date of Death",
+          "Date of Randomization"
+        ],
+        "timeWindow": {
+          "reference": "Randomization",
+          "duration": "Until death from any cause"
+        },
+        "algorithm": "Date of Death - Date of Randomization",
+        "successCriteria": "Statistically significant increase in time to death compared to control",
+        "sourceText": "Overall Survival (OS)"
+      },
+      {
+        "id": "ep_2",
+        "name": "Secondary: Progression-Free Survival (PFS)",
+        "endpointType": "Secondary",
+        "inputs": [
+          "Date of Disease Progression",
+          "Date of Death",
+          "Date of Randomization"
+        ],
+        "timeWindow": {
+          "reference": "Randomization",
+          "duration": "Until first instance of progression or death"
+        },
+        "algorithm": "min(Date of Disease Progression, Date of Death) - Date of Randomization",
+        "successCriteria": "Statistically significant increase in time to progression or death compared to control",
+        "sourceText": "Progression-Free Survival (PFS)"
+      },
+      {
+        "id": "ep_3",
+        "name": "Secondary: Objective Response Rate (ORR)",
+        "endpointType": "Secondary",
+        "inputs": [
+          "Complete Response (CR) count",
+          "Partial Response (PR) count",
+          "Total number of subjects"
+        ],
+        "timeWindow": {
+          "reference": "Baseline",
+          "duration": "During trial treatment period"
+        },
+        "algorithm": "(Number of subjects with CR + Number of subjects with PR) / Total number of subjects",
+        "successCriteria": "Proportion of subjects achieving CR or PR based on RECIST 1.1",
+        "sourceText": "Objective Response Rate (ORR)"
+      }
+    ],
+    "derivedVariables": [
+      {
+        "id": "dv_1",
+        "name": "Percent Change in Body Surface Area",
+        "variableType": "PercentChange",
+        "sourceVariables": [
+          "Body Surface Area"
+        ],
+        "derivationRule": "((Current BSA - Baseline BSA) / Baseline BSA) * 100",
+        "baselineDefinition": "Body surface area measured at baseline prior to first dose",
+        "baselineVisit": "Baseline",
+        "analysisWindow": "Prior to each dosing cycle",
+        "imputationRule": "Not specified",
+        "unit": "%"
+      },
+      {
+        "id": "dv_2",
+        "name": "Recalculated Paclitaxel Dose",
+        "variableType": "Custom",
+        "sourceVariables": [
+          "Body Surface Area",
+          "Baseline Body Surface Area"
+        ],
+        "derivationRule": "If BSA change from baseline or last recalculation is >= 10%, dose = (80-100 mg/m2 * current BSA). If < 10%, recalculation is optional.",
+        "baselineDefinition": "Body surface area at baseline",
+        "baselineVisit": "Baseline",
+        "analysisWindow": "Days 1, 8, and 15 of each 28-day cycle",
+        "imputationRule": "Not specified",
+        "unit": "mg"
+      },
+      {
+        "id": "dv_3",
+        "name": "Recalculated Docetaxel Dose",
+        "variableType": "Custom",
+        "sourceVariables": [
+          "Body Surface Area",
+          "Baseline Body Surface Area"
+        ],
+        "derivationRule": "If BSA change from baseline or last recalculation is >= 10%, dose = (75 mg/m2 * current BSA). If < 10%, recalculation is optional.",
+        "baselineDefinition": "Body surface area at baseline",
+        "baselineVisit": "Baseline",
+        "analysisWindow": "Day 1 of each 21-day cycle",
+        "imputationRule": "Not specified",
+        "unit": "mg"
+      },
+      {
+        "id": "dv_4",
+        "name": "Recalculated Irinotecan Dose",
+        "variableType": "Custom",
+        "sourceVariables": [
+          "Body Surface Area",
+          "Baseline Body Surface Area"
+        ],
+        "derivationRule": "If BSA change from baseline or last recalculation is >= 10%, dose = (180 mg/m2 * current BSA). If < 10%, recalculation is optional.",
+        "baselineDefinition": "Body surface area at baseline",
+        "baselineVisit": "Baseline",
+        "analysisWindow": "Day 1 of each 14-day cycle",
+        "imputationRule": "Not specified",
+        "unit": "mg"
+      }
+    ],
+    "stateMachine": {
+      "id": "sm_1",
+      "initialState": "Screening",
+      "terminalStates": [
+        "Early Termination",
+        "Completed"
+      ],
+      "states": [
+        "Screening",
+        "Initial Treatment Phase",
+        "Post Treatment Follow Up",
+        "Safety Follow Up",
+        "Survival Follow Up",
+        "Early Termination"
+      ],
+      "transitions": [
+        {
+          "fromState": "Screening",
+          "toState": "Initial Treatment Phase",
+          "trigger": "Progress to Initial Treatment Phase"
+        },
+        {
+          "fromState": "Initial Treatment Phase",
+          "toState": "Post Treatment Follow Up",
+          "trigger": "Progress to Post Treatment Follow Up"
+        },
+        {
+          "fromState": "Post Treatment Follow Up",
+          "toState": "Safety Follow Up",
+          "trigger": "Progress to Safety Follow Up"
+        },
+        {
+          "fromState": "Safety Follow Up",
+          "toState": "Survival Follow Up",
+          "trigger": "Progress to Survival Follow Up"
+        },
+        {
+          "fromState": "Initial Treatment Phase",
+          "toState": "Early Termination",
+          "trigger": "Subject exits to Early Termination"
+        },
+        {
+          "fromState": "Post Treatment Follow Up",
+          "toState": "Early Termination",
+          "trigger": "Subject exits to Early Termination"
+        }
+      ],
+      "epochIds": {
+        "Screening": "SCREENING",
+        "Initial Treatment Phase": "INITIAL_TREATMENT_PHASE",
+        "Post Treatment Follow Up": "POST_TREATMENT_FOLLOW_UP",
+        "Safety Follow Up": "SAFETY_FOLLOW_UP",
+        "Survival Follow Up": "SURVIVAL_FOLLOW_UP",
+        "Early Termination": "EARLY_TERMINATION"
+      }
+    },
+    "dosingRegimens": [
+      {
+        "id": "dosing_1",
+        "treatmentName": "Docetaxel",
+        "frequency": "QD",
+        "route": "IV",
+        "startDay": 1,
+        "doseLevels": [
+          {
+            "amount": 75.0,
+            "unit": "mg"
+          },
+          {
+            "amount": 200.0,
+            "unit": "mg"
+          },
+          {
+            "amount": 180.0,
+            "unit": "mg"
+          },
+          {
+            "amount": 100.0,
+            "unit": "mg"
+          }
+        ],
+        "doseModifications": [
+          "Dose modification for toxicity as per section 5.2.1.2.2"
+        ],
+        "sourceText": "pen-label Treatment Groups Arm 1: Pembrolizumab (MK-3475) 200 mg IV every 3-weeks Arm 2: Investigator’s choice of: - Paclitaxel 80-100 mg/m2 on Days 1, 8, and 15 of every 28-day (4-week) cycle, OR - D"
+      },
+      {
+        "id": "dosing_2",
+        "treatmentName": "Irinotecan",
+        "frequency": "QD",
+        "route": "IV",
+        "startDay": 1,
+        "doseLevels": [
+          {
+            "amount": 180.0,
+            "unit": "mg"
+          },
+          {
+            "amount": 75.0,
+            "unit": "mg"
+          },
+          {
+            "amount": 100.0,
+            "unit": "mg"
+          }
+        ],
+        "doseModifications": [
+          "Dose modification for toxicity as per section 5.2.1.2.2"
+        ],
+        "sourceText": "IV every 3-weeks Arm 2: Investigator’s choice of: - Paclitaxel 80-100 mg/m2 on Days 1, 8, and 15 of every 28-day (4-week) cycle, OR - Docetaxel 75 mg/m2 on Day 1 of every 21-day (3-week) cycle, OR - I"
+      },
+      {
+        "id": "dosing_3",
+        "treatmentName": "Pembrolizumab",
+        "frequency": "Q3W",
+        "route": "Oral",
+        "startDay": 1,
+        "doseLevels": [
+          {
+            "amount": 200.0,
+            "unit": "mg"
+          }
+        ],
+        "durationDescription": "3 weeks",
+        "sourceText": "pe I adenocarcinoma of the EGJ who have progressed on one previous line of standard therapy. 1) Objective: to compare OS in subjects with squamous cell carcinoma of the esophagus. Hypothesis (H1): Pem"
+      },
+      {
+        "id": "dosing_llm_1",
+        "treatmentName": "Pembrolizumab (MK-3475)",
+        "frequency": "Q3W",
+        "route": "IV",
+        "startDay": 1,
+        "doseLevels": [
+          {
+            "amount": 200.0,
+            "unit": "mg",
+            "description": "Fixed dose"
+          }
+        ],
+        "durationDescription": "Until progression or unacceptable toxicity",
+        "doseModifications": [
+          "Withhold, Treat, or Discontinue based on Immune-Related Events"
+        ]
+      },
+      {
+        "id": "dosing_llm_2",
+        "treatmentName": "Paclitaxel",
+        "frequency": "QW",
+        "route": "IV",
+        "startDay": 1,
+        "doseModifications": [
+          "Dose modification for toxicity as per section 5.2.1.2.2"
+        ]
+      }
+    ],
+    "visitWindows": [
+      {
+        "id": "visit_2",
+        "visitName": "Screening",
+        "targetDay": -14,
+        "windowBefore": 7,
+        "windowAfter": 28,
+        "isRequired": true,
+        "visitNumber": 1,
+        "epoch": "Screening",
+        "sourceText": "Screening...................................................................................................... 89 Treatment Period....................................................................."
+      },
+      {
+        "id": "visit_3",
+        "visitName": "Early Termination",
+        "targetDay": null,
+        "windowBefore": 0,
+        "windowAfter": 0,
+        "isRequired": true,
+        "visitNumber": 2,
+        "sourceText": "Safety Follow-up Visits ........................................................................ 91 7.1.6.3.2 Follow-up Visits ........................................................................."
+      },
+      {
+        "id": "visit_5",
+        "visitName": "end of treatment",
+        "targetDay": null,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 3,
+        "sourceText": "After the end of treatment, each subject will be followed for 30 days for adverse event monitoring. Serious adverse events (SAE) will be collected for 90 days after the end of treatment or for 30 days"
+      },
+      {
+        "id": "visit_7",
+        "visitName": "Visit 4",
+        "targetDay": null,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 4,
+        "sourceText": "(CTCAEv4.0) Action With Pembrolizumab"
+      },
+      {
+        "id": "visit_8",
+        "visitName": "baseline",
+        "targetDay": 0,
+        "windowBefore": 1,
+        "windowAfter": 1,
+        "isRequired": true,
+        "visitNumber": 5,
+        "sourceText": "baseline or is stable) Grade 3 or 4 Permanently"
+      },
+      {
+        "id": "visit_9",
+        "visitName": "Visit 1",
+        "targetDay": null,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 6,
+        "sourceText": "(Visit 1) 1 2"
+      },
+      {
+        "id": "visit_llm_3",
+        "visitName": "Safety Follow-up",
+        "targetDay": null,
+        "windowBefore": null,
+        "windowAfter": null,
+        "isRequired": true,
+        "visitNumber": 3,
+        "epoch": "Post-Trial Visits"
+      },
+      {
+        "id": "visit_llm_5",
+        "visitName": "Survival Follow-up",
+        "targetDay": null,
+        "windowBefore": null,
+        "windowAfter": null,
+        "isRequired": true,
+        "visitNumber": 5,
+        "epoch": "Post-Trial Visits"
+      },
+      {
+        "id": "visit_6",
+        "visitName": "randomization",
+        "targetDay": 1,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 9,
+        "sourceText": "Trial treatment for Cycle 1 should begin within 3 days of randomization. However, every effort should be made to begin trial treatment on day of randomization. All supplies indicated in Table 2 above "
+      },
+      {
+        "id": "visit_11",
+        "visitName": "Day 15",
+        "targetDay": 15,
+        "windowBefore": 7,
+        "windowAfter": 7,
+        "isRequired": true,
+        "visitNumber": 10,
+        "sourceText": "2-Day 15, Cycle 3-Day 8, Cycle 4-Day 1, Cycle 5-Day 15, Cycle 7-Day 22, Cycle 10-Day 1, and Cycle 12-Day 8. PROs are to be performed up to a year or End of Treatment, whichever comes first, and the 30"
+      },
+      {
+        "id": "visit_10",
+        "visitName": "Week 18",
+        "targetDay": 120,
+        "windowBefore": 7,
+        "windowAfter": 7,
+        "isRequired": true,
+        "visitNumber": 11,
+        "targetWeek": 18,
+        "sourceText": "and Cycle 7. After Cycle 7 (Week 18), PROs are to be performed every 3 cycles (e.g., Week 27, Week 36, Week 45). PROs are to be performed up to a year or End of Treatment, whichever comes first, and t"
+      },
+      {
+        "id": "visit_1",
+        "visitName": "Follow-up",
+        "targetDay": 365,
+        "windowBefore": 7,
+        "windowAfter": 7,
+        "isRequired": true,
+        "visitNumber": 12,
+        "epoch": "Post-Trial Visits",
+        "sourceText": "Lost to Follow-up.................................................................................. 88 7.1.5.2 Blinding/Unblinding ....................................................................."
+      }
+    ],
+    "randomizationScheme": {
+      "id": "randomization_1",
+      "ratio": "1:1",
+      "method": "Stratified randomization",
+      "centralRandomization": true,
+      "stratificationFactors": [
+        {
+          "id": "strat_1",
+          "name": "Region",
+          "categories": [
+            "North America",
+            "Europe",
+            "Asia",
+            "Rest of World"
+          ],
+          "isBlocking": false,
+          "sourceText": "tumor histology and by \ngeographic region (see section 5"
+        },
+        {
+          "id": "strat_llm_1",
+          "name": "Tumor histology",
+          "categories": [
+            "Adenocarcinoma",
+            "Squamous cell carcinoma"
+          ],
+          "isBlocking": false
+        },
+        {
+          "id": "strat_llm_2",
+          "name": "Geographic region",
+          "categories": null,
+          "isBlocking": false
+        }
+      ],
+      "sourceText": "Product:  MK-3475 \n3\nProtocol/Amendment No.: 181-06 \nMK-3475-181-06 Final Protocol\n25-Jun-2021\nConfidential\n4.2.3.5.1\nBiomarker Research for Primary Objectives........................................ "
+    }
+  }
+}

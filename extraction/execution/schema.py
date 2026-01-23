@@ -29,8 +29,23 @@ class AnchorType(Enum):
     CUSTOM = "Custom"
 
 
+class AnchorClassification(Enum):
+    """
+    Classification of anchors by their semantic nature.
+    
+    This determines how anchors are promoted to USDM:
+    - VISIT: Must resolve to an existing encounter (creates ScheduledActivityInstance)
+    - EVENT: Links to an activity occurrence (e.g., first dose of drug)
+    - CONCEPTUAL: Pure timing reference with no physical visit/activity
+    """
+    VISIT = "Visit"          # Real visit/encounter (e.g., Day 1 Visit, Screening)
+    EVENT = "Event"          # Activity event (e.g., First Dose, Randomization)
+    CONCEPTUAL = "Conceptual"  # Abstract timing point (e.g., "Study Start")
+
+
 class RepetitionType(Enum):
     """Types of repetition patterns."""
+    UNKNOWN = ""  # Not extracted from source
     DAILY = "Daily"
     INTERVAL = "Interval"
     CYCLE = "Cycle"
@@ -79,6 +94,62 @@ class StateType(Enum):
     DEATH = "Death"
 
 
+def _classify_anchor(anchor_type: AnchorType) -> 'AnchorClassification':
+    """
+    Automatically classify an anchor based on its type.
+    
+    This determines how the anchor should be promoted to USDM:
+    - VISIT anchors become ScheduledActivityInstances with encounters
+    - EVENT anchors attach to existing activities
+    - CONCEPTUAL anchors remain as pure timing references (no instances)
+    """
+    # Visit-based anchors (represent physical visits)
+    if anchor_type in (
+        AnchorType.SCREENING,
+        AnchorType.DAY_1,
+        AnchorType.BASELINE,
+    ):
+        return AnchorClassification.VISIT
+    
+    # Event-based anchors (represent activity occurrences)
+    if anchor_type in (
+        AnchorType.FIRST_DOSE,
+        AnchorType.TREATMENT_START,
+        AnchorType.RANDOMIZATION,
+        AnchorType.INFORMED_CONSENT,
+        AnchorType.ENROLLMENT,
+    ):
+        return AnchorClassification.EVENT
+    
+    # Conceptual anchors (abstract timing points)
+    if anchor_type in (
+        AnchorType.CYCLE_START,
+        AnchorType.COLLECTION_DAY,
+        AnchorType.CUSTOM,
+    ):
+        return AnchorClassification.CONCEPTUAL
+    
+    # Default to conceptual for unknown types
+    return AnchorClassification.CONCEPTUAL
+
+
+# Canonical intra-day ordering for Day 1 events
+# Lower number = happens first within the same day
+INTRA_DAY_ORDER: Dict[AnchorType, int] = {
+    AnchorType.INFORMED_CONSENT: 10,   # Must happen first
+    AnchorType.SCREENING: 20,          # After consent
+    AnchorType.ENROLLMENT: 30,         # After screening
+    AnchorType.RANDOMIZATION: 40,      # After enrollment
+    AnchorType.BASELINE: 50,           # After randomization
+    AnchorType.FIRST_DOSE: 60,         # After baseline assessments
+    AnchorType.TREATMENT_START: 60,    # Same as first dose
+    AnchorType.CYCLE_START: 70,        # Cycle context after dose
+    AnchorType.DAY_1: 80,              # Generic Day 1 reference
+    AnchorType.COLLECTION_DAY: 90,     # Collection windows
+    AnchorType.CUSTOM: 100,            # Custom anchors last
+}
+
+
 @dataclass
 class TimeAnchor:
     """
@@ -91,26 +162,51 @@ class TimeAnchor:
         id: Unique identifier
         definition: Human-readable definition (e.g., "First administration of study drug")
         anchor_type: Categorized anchor type
+        classification: How this anchor should be promoted (VISIT/EVENT/CONCEPTUAL)
         timeline_id: Timeline this anchor applies to (None = study-wide)
         day_value: Numeric day value (e.g., 1 for Day 1)
+        intra_day_order: Ordering within the same day (lower = earlier)
+        relative_to_anchor_id: For ordering, this anchor follows another
         source_text: Original text from protocol
+        encounter_id: Resolved encounter ID (for VISIT anchors)
+        activity_id: Resolved activity ID (for EVENT anchors)
     """
     id: str
     definition: str
     anchor_type: AnchorType = AnchorType.DAY_1
+    classification: Optional[AnchorClassification] = None
     timeline_id: Optional[str] = None
     day_value: int = 1
+    intra_day_order: Optional[int] = None  # Intra-day sequencing (lower = earlier)
+    relative_to_anchor_id: Optional[str] = None  # For explicit ordering chains
     source_text: Optional[str] = None
+    encounter_id: Optional[str] = None  # Resolved for VISIT anchors
+    activity_id: Optional[str] = None   # Resolved for EVENT anchors
+    
+    def __post_init__(self):
+        # Auto-classify if not explicitly set
+        if self.classification is None:
+            self.classification = _classify_anchor(self.anchor_type)
+        # Auto-assign intra-day order from canonical ordering
+        if self.intra_day_order is None:
+            self.intra_day_order = INTRA_DAY_ORDER.get(self.anchor_type, 100)
     
     def to_dict(self) -> Dict[str, Any]:
-        return {
+        result = {
             "id": self.id,
             "definition": self.definition,
             "anchorType": self.anchor_type.value,
+            "classification": self.classification.value if self.classification else None,
             "timelineId": self.timeline_id,
             "dayValue": self.day_value,
+            "intraDayOrder": self.intra_day_order,
             "sourceText": self.source_text,
+            "encounterId": self.encounter_id,
+            "activityId": self.activity_id,
         }
+        if self.relative_to_anchor_id:
+            result["relativeToAnchorId"] = self.relative_to_anchor_id
+        return result
     
     def to_extension(self) -> Dict[str, Any]:
         """Convert to USDM extensionAttributes format."""
@@ -122,13 +218,25 @@ class TimeAnchor:
     
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'TimeAnchor':
+        classification = None
+        if data.get('classification'):
+            try:
+                classification = AnchorClassification(data['classification'])
+            except ValueError:
+                pass
+        
         return cls(
             id=data.get('id', ''),
             definition=data.get('definition', ''),
             anchor_type=AnchorType(data.get('anchorType', 'Day1')),
+            classification=classification,
             timeline_id=data.get('timelineId'),
             day_value=data.get('dayValue', 1),
+            intra_day_order=data.get('intraDayOrder'),
+            relative_to_anchor_id=data.get('relativeToAnchorId'),
             source_text=data.get('sourceText'),
+            encounter_id=data.get('encounterId'),
+            activity_id=data.get('activityId'),
         )
 
 
@@ -869,6 +977,7 @@ class ExecutionTypeAssignment:
 
 class DosingFrequency(Enum):
     """Dosing frequency patterns."""
+    UNKNOWN = ""  # Not extracted from source - should trigger processing warning
     ONCE_DAILY = "QD"
     TWICE_DAILY = "BID"
     THREE_TIMES_DAILY = "TID"
@@ -887,6 +996,7 @@ class DosingFrequency(Enum):
 
 class RouteOfAdministration(Enum):
     """Routes of drug administration."""
+    UNKNOWN = ""  # Not extracted from source - should trigger processing warning
     ORAL = "Oral"
     INTRAVENOUS = "IV"
     SUBCUTANEOUS = "SC"
@@ -942,8 +1052,8 @@ class DosingRegimen:
     id: str
     treatment_name: str
     dose_levels: List[DoseLevel] = field(default_factory=list)
-    frequency: DosingFrequency = DosingFrequency.ONCE_DAILY
-    route: RouteOfAdministration = RouteOfAdministration.ORAL
+    frequency: DosingFrequency = DosingFrequency.UNKNOWN  # UNKNOWN = not extracted from source
+    route: RouteOfAdministration = RouteOfAdministration.UNKNOWN  # UNKNOWN = not extracted from source
     start_day: int = 1
     end_day: Optional[int] = None
     duration_description: Optional[str] = None  # e.g., "24 weeks"
@@ -1249,3 +1359,142 @@ class ExecutionModelResult:
         if self.error:
             result["error"] = self.error
         return result
+
+
+# =============================================================================
+# TYPED EXECUTION MODEL EXTENSION (P2 Improvement)
+# Replaces scattered x-executionModel-* extensions with single typed structure
+# =============================================================================
+
+EXECUTION_MODEL_SCHEMA_VERSION = "1.0.0"
+
+@dataclass
+class ExecutionModelExtension:
+    """
+    Unified typed extension for execution model data.
+    
+    This addresses the architectural feedback that execution model data is
+    "trapped in JSON valueString" by providing a single typed structure that
+    can be output directly (not as a JSON string).
+    
+    Attributes:
+        schemaVersion: Version of this extension schema
+        extractionTimestamp: When the execution model was extracted
+        data: The actual execution model data
+        metadata: Extraction metadata (model used, pages, etc.)
+        integrityIssues: Any issues found during validation
+    """
+    schemaVersion: str = EXECUTION_MODEL_SCHEMA_VERSION
+    extractionTimestamp: Optional[str] = None
+    data: Optional[ExecutionModelData] = None
+    metadata: Dict[str, Any] = field(default_factory=dict)
+    integrityIssues: List[Dict[str, Any]] = field(default_factory=list)
+    promotionResult: Optional[Dict[str, Any]] = None
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Convert to dict for USDM extension output.
+        
+        This outputs the STRUCTURE directly, not as a JSON valueString.
+        """
+        result: Dict[str, Any] = {
+            "schemaVersion": self.schemaVersion,
+        }
+        if self.extractionTimestamp:
+            result["extractionTimestamp"] = self.extractionTimestamp
+        if self.data:
+            result["executionModel"] = self.data.to_dict()
+        if self.metadata:
+            result["metadata"] = self.metadata
+        if self.integrityIssues:
+            result["integrityIssues"] = self.integrityIssues
+        if self.promotionResult:
+            result["promotionResult"] = self.promotionResult
+        return result
+    
+    def to_usdm_extension(self) -> Dict[str, Any]:
+        """
+        Create USDM extensionAttribute with typed structure.
+        
+        Instead of valueString with JSON, uses valueObject for typed data.
+        """
+        import uuid
+        return {
+            "id": f"ext_execution_model_{uuid.uuid4()}",
+            "url": "https://protocol2usdm.io/extensions/x-executionModel",
+            "instanceType": "ExtensionAttribute",
+            # New: valueObject instead of valueString
+            "valueObject": self.to_dict(),
+        }
+    
+    @classmethod
+    def from_extraction_result(
+        cls,
+        result: 'ExecutionModelResult',
+        timestamp: Optional[str] = None,
+    ) -> 'ExecutionModelExtension':
+        """Create from an extraction result."""
+        from datetime import datetime
+        return cls(
+            extractionTimestamp=timestamp or datetime.utcnow().isoformat(),
+            data=result.data,
+            metadata={
+                "success": result.success,
+                "pagesUsed": result.pages_used,
+                "modelUsed": result.model_used,
+                "error": result.error,
+            } if result else {},
+        )
+
+
+def get_execution_model_json_schema() -> Dict[str, Any]:
+    """
+    Return JSON Schema for validating ExecutionModelExtension.
+    
+    This enables downstream consumers to validate the execution model structure.
+    """
+    return {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "https://protocol2usdm.io/schemas/execution-model-extension.json",
+        "title": "ExecutionModelExtension",
+        "description": "Typed execution model extension for USDM",
+        "type": "object",
+        "properties": {
+            "schemaVersion": {
+                "type": "string",
+                "description": "Schema version (semver)",
+                "pattern": "^\\d+\\.\\d+\\.\\d+$"
+            },
+            "extractionTimestamp": {
+                "type": "string",
+                "format": "date-time"
+            },
+            "executionModel": {
+                "type": "object",
+                "description": "The execution model data",
+                "properties": {
+                    "timeAnchors": {"type": "array"},
+                    "repetitions": {"type": "array"},
+                    "samplingConstraints": {"type": "array"},
+                    "traversalConstraints": {"type": "array"},
+                    "executionTypes": {"type": "array"},
+                    "crossoverDesign": {"type": "object"},
+                    "footnoteConditions": {"type": "array"},
+                    "endpointAlgorithms": {"type": "array"},
+                    "derivedVariables": {"type": "array"},
+                    "stateMachine": {"type": "object"},
+                    "dosingRegimens": {"type": "array"},
+                    "visitWindows": {"type": "array"},
+                    "randomizationScheme": {"type": "object"},
+                    "activityBindings": {"type": "array"},
+                    "analysisWindows": {"type": "array"},
+                    "titrationSchedules": {"type": "array"},
+                    "instanceBindings": {"type": "array"},
+                }
+            },
+            "metadata": {"type": "object"},
+            "integrityIssues": {"type": "array"},
+            "promotionResult": {"type": "object"},
+        },
+        "required": ["schemaVersion"],
+    }

@@ -115,6 +115,40 @@ ELIGIBILITY_CODES: Dict[str, Dict[str, str]] = {
 
 
 # =============================================================================
+# STUDY MODEL CODES (SDESIGN) - Verified against NIH EVS API
+# Source: CDISC Protocol Controlled Terminology
+# =============================================================================
+
+STUDY_MODEL_CODES: Dict[str, Dict[str, str]] = {
+    "parallel": {
+        "code": "C82639",
+        "decode": "Parallel Study",
+        "description": "A study in which groups of participants receive different interventions simultaneously.",
+    },
+    "crossover": {
+        "code": "C49649",
+        "decode": "Crossover Study",
+        "description": "A study in which each subject receives each treatment in sequence.",
+    },
+    "single group": {
+        "code": "C82638",
+        "decode": "Single Group Study",
+        "description": "A study in which all subjects receive the same intervention.",
+    },
+    "factorial": {
+        "code": "C82640",
+        "decode": "Factorial Study",
+        "description": "A study in which two or more interventions, each with two or more levels, are evaluated in combination.",
+    },
+    "sequential": {
+        "code": "C139287",
+        "decode": "Sequential Study",
+        "description": "A study in which groups of participants receive different interventions in sequence.",
+    },
+}
+
+
+# =============================================================================
 # STUDY ARM TYPE CODES - Verified against NIH EVS API
 # =============================================================================
 

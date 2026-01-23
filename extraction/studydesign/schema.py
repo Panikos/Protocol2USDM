@@ -17,6 +17,7 @@ from core.usdm_types import generate_uuid, Code
 
 class ArmType(Enum):
     """USDM StudyArm type codes."""
+    UNKNOWN = ""  # Not extracted from source
     EXPERIMENTAL = "Experimental Arm"
     ACTIVE_COMPARATOR = "Active Comparator Arm"
     PLACEBO_COMPARATOR = "Placebo Comparator Arm"
@@ -27,6 +28,7 @@ class ArmType(Enum):
 
 class BlindingSchema(Enum):
     """USDM blinding schema codes."""
+    UNKNOWN = ""  # Not extracted from source
     OPEN_LABEL = "Open Label"
     SINGLE_BLIND = "Single Blind"
     DOUBLE_BLIND = "Double Blind"
@@ -36,6 +38,7 @@ class BlindingSchema(Enum):
 
 class RandomizationType(Enum):
     """USDM randomization type codes."""
+    UNKNOWN = ""  # Not extracted from source
     RANDOMIZED = "Randomized"
     NON_RANDOMIZED = "Non-Randomized"
 
@@ -131,6 +134,33 @@ class StudyArm:
                     "url": "x-doseEpochs",
                     "valueString": str([de.to_dict() for de in self.dose_epochs])
                 })
+        return result
+
+
+@dataclass
+class StudyElement:
+    """
+    USDM StudyElement entity.
+    
+    A basic building block for time within a clinical study comprising
+    a description of what happens to the subject during the element.
+    """
+    id: str
+    name: str
+    description: Optional[str] = None
+    label: Optional[str] = None
+    instance_type: str = "StudyElement"
+    
+    def to_dict(self) -> Dict[str, Any]:
+        result = {
+            "id": self.id,
+            "name": self.name,
+            "instanceType": self.instance_type,
+        }
+        if self.description:
+            result["description"] = self.description
+        if self.label:
+            result["label"] = self.label
         return result
 
 
@@ -301,16 +331,21 @@ class StudyDesignData:
     # Cohorts
     cohorts: List[StudyCohort] = field(default_factory=list)
     
+    # Elements (treatment periods within cells)
+    elements: List[StudyElement] = field(default_factory=list)
+    
     def to_dict(self) -> Dict[str, Any]:
         """Convert to USDM-compatible dictionary structure."""
         result = {
             "studyArms": [a.to_dict() for a in self.arms],
             "studyCells": [c.to_dict() for c in self.cells],
             "studyCohorts": [c.to_dict() for c in self.cohorts],
+            "studyElements": [e.to_dict() for e in self.elements],
             "summary": {
                 "armCount": len(self.arms),
                 "cellCount": len(self.cells),
                 "cohortCount": len(self.cohorts),
+                "elementCount": len(self.elements),
             }
         }
         if self.study_design:

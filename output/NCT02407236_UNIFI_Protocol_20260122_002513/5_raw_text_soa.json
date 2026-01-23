@@ -1,0 +1,277 @@
+{
+  "usdmVersion": "4.0",
+  "systemName": "Protocol2USDM",
+  "systemVersion": "0.1.0",
+  "study": {
+    "id": "c8bd220c-5bb5-450b-91e4-d117b02e27b3",
+    "name": "",
+    "instanceType": "Study",
+    "versions": [
+      {
+        "id": "268d72fd-7f4c-4998-9124-c8d7ae759d4d",
+        "versionIdentifier": "1.0",
+        "rationale": "Initial protocol version",
+        "instanceType": "StudyVersion",
+        "studyDesigns": [
+          {
+            "id": "sd_1",
+            "name": "Study Design",
+            "rationale": "Protocol-defined study design",
+            "instanceType": "InterventionalStudyDesign",
+            "blindingSchema": {
+              "id": "8f980354-ee2a-49ab-8c4d-977822094197",
+              "instanceType": "AliasCode",
+              "standardCode": {
+                "id": "87a126c1-5eb2-474d-a472-c4c523be4ad4",
+                "code": "C49656",
+                "codeSystem": "http://www.cdisc.org",
+                "codeSystemVersion": "2024-09-27",
+                "decode": "Open Label",
+                "instanceType": "Code"
+              }
+            },
+            "model": {
+              "id": "c068c976-9aa2-4a37-b37a-9a7b67cc82b6",
+              "code": "C82638",
+              "codeSystem": "http://www.cdisc.org",
+              "codeSystemVersion": "2024-09-27",
+              "decode": "Single Group Study",
+              "instanceType": "Code"
+            },
+            "epochs": [
+              {
+                "id": "epoch_1",
+                "name": "Maintenance Study",
+                "instanceType": "StudyEpoch",
+                "type": {
+                  "id": "dcc00b3f-527b-4426-8ea4-35d93ac1c750",
+                  "code": "C98780",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Treatment Epoch",
+                  "instanceType": "Code"
+                }
+              }
+            ],
+            "activities": [
+              {
+                "id": "grp_1",
+                "name": "Major secondary endpoints",
+                "instanceType": "Activity",
+                "childIds": [
+                  "act_1",
+                  "act_2",
+                  "act_3",
+                  "act_4"
+                ]
+              },
+              {
+                "id": "act_1",
+                "name": "Maintenance of clinical response through Week 44",
+                "instanceType": "Activity",
+                "description": "To evaluate the efficacy of ustekinumab in maintaining clinical response in subjects induced into clinical response with ustekinumab."
+              },
+              {
+                "id": "act_2",
+                "name": "Endoscopic healing at Week 44",
+                "instanceType": "Activity",
+                "description": "To evaluate endoscopic healing (ie, improvement in the endoscopic appearance of the mucosa) in subjects induced into clinical response with ustekinumab."
+              },
+              {
+                "id": "act_3",
+                "name": "Clinical remission and not receiving concomitant corticosteroids at Week 44",
+                "instanceType": "Activity",
+                "description": "To evaluate the efficacy of ustekinumab in achieving corticosteroid-free clinical remission in subjects induced into clinical response with ustekinumab."
+              },
+              {
+                "id": "act_4",
+                "name": "Maintenance of clinical remission through Week 44 among the subjects who had achieved clinical remission at maintenance baseline (both global and US definitions)",
+                "instanceType": "Activity",
+                "description": "To evaluate the efficacy of ustekinumab in maintaining clinical remission in subjects induced into clinical remission with ustekinumab."
+              }
+            ],
+            "encounters": [
+              {
+                "id": "enc_1",
+                "name": "Placebo SC",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "e70f9308-e30b-45d8-a077-c8225baf3720",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_1"
+              },
+              {
+                "id": "enc_2",
+                "name": "Ustekinumab 90 mg SC q12w",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "9b6df316-12ab-4720-a5a8-53b7bd59b898",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_1"
+              },
+              {
+                "id": "enc_3",
+                "name": "Ustekinumab 90 mg SC q8w",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "73c45a3e-345d-4395-a35d-02ef8066c704",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_1"
+              }
+            ],
+            "scheduleTimelines": [
+              {
+                "id": "timeline_1",
+                "name": "Main Schedule Timeline",
+                "mainTimeline": true,
+                "instanceType": "ScheduleTimeline",
+                "entryCondition": "Subject enrolled in study",
+                "entryId": "f14cd1a0-f201-4e53-9683-253486aa1481",
+                "instances": [
+                  {
+                    "id": "f14cd1a0-f201-4e53-9683-253486aa1481",
+                    "activityIds": [
+                      "act_1"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_1@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "6a60d47e-b2d5-4c54-9d71-dd3385aadcb5",
+                    "activityIds": [
+                      "act_1"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_1@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "8f2e8a48-1c0b-4436-9e5c-7f1d8d32cc40",
+                    "activityIds": [
+                      "act_1"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_1@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "4456ce0d-04aa-449b-a1ac-429e59ecf7cf",
+                    "activityIds": [
+                      "act_2"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_2@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "8235e70c-1f76-49c0-90f0-c9a63ad5958c",
+                    "activityIds": [
+                      "act_2"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_2@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "b10e130f-ff25-408b-ab53-c292aad280d5",
+                    "activityIds": [
+                      "act_2"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_2@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "a15dc27e-4264-4db2-b3cf-3db890d7b429",
+                    "activityIds": [
+                      "act_3"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_3@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "22b8021e-a0e2-4c2b-b9f3-790f90727945",
+                    "activityIds": [
+                      "act_3"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_3@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "499bf632-f06e-40de-84bc-88428eeb35a4",
+                    "activityIds": [
+                      "act_3"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_3@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "af263ee7-2b16-4578-baca-2726b02ee242",
+                    "activityIds": [
+                      "act_4"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_4@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "f3964939-26f5-4b5c-9336-bbf62c8b28b4",
+                    "activityIds": [
+                      "act_4"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_4@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "9534493a-50f9-4995-acfd-fc956dbadd03",
+                    "activityIds": [
+                      "act_4"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_4@enc_3",
+                    "encounterId": "enc_3"
+                  }
+                ]
+              }
+            ],
+            "activityGroups": [
+              {
+                "id": "grp_1",
+                "name": "Major secondary endpoints",
+                "description": null,
+                "childIds": [],
+                "instanceType": "Activity",
+                "activityNames": [
+                  "Maintenance of clinical response through Week 44",
+                  "Endoscopic healing at Week 44",
+                  "Clinical remission and not receiving concomitant corticosteroids at Week 44",
+                  "Maintenance of clinical remission through Week 44 among the subjects who had achieved clinical remission at maintenance baseline (both global and US definitions)"
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

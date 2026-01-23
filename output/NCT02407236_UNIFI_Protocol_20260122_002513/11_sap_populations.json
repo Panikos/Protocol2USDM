@@ -1,0 +1,141 @@
+{
+  "success": true,
+  "sourceFile": "C:\\Users\\panik\\Documents\\GitHub\\Protcol2USDMv3\\input\\trial\\NCT02407236_UNIFI\\NCT02407236_UNIFI_SAP.pdf",
+  "pagesUsed": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39
+  ],
+  "modelUsed": "gemini-3-flash-preview",
+  "sapData": {
+    "analysisPopulations": [
+      {
+        "id": "pop_1",
+        "name": "Primary Population",
+        "text": "Subjects who are in clinical response to IV ustekinumab during induction will comprise the primary population in the maintenance study; this population will include the following: Subjects who are randomized to receive ustekinumab at Week 0 of the induction study and are in clinical response at I-8; Subjects who are randomized to receive placebo at Week 0 of the induction study and are not in clinical response at I-8, but are in clinical response at I-16 after receiving an induction dose of IV ustekinumab (~6 mg/kg) at I-8. Note that subjects who are delayed clinical responders to ustekinumab induction (i.e., the subjects who are randomized to ustekinumab at Week 0 of the induction study, not in clinical response at I-8 but are in clinical response at I-16 after receiving 1 dose of ustekinumab 90 mg SC at I-8) will not be included in the primary population.",
+        "populationType": "Efficacy",
+        "instanceType": "AnalysisPopulation",
+        "label": "Primary Population",
+        "populationDescription": "Subjects who are in clinical response to IV ustekinumab during induction will comprise the primary population in the maintenance study; this population will include the following: Subjects who are randomized to receive ustekinumab at Week 0 of the induction study and are in clinical response at I-8; Subjects who are randomized to receive placebo at Week 0 of the induction study and are not in clinical response at I-8, but are in clinical response at I-16 after receiving an induction dose of IV ustekinumab (~6 mg/kg) at I-8. Note that subjects who are delayed clinical responders to ustekinumab induction (i.e., the subjects who are randomized to ustekinumab at Week 0 of the induction study, not in clinical response at I-8 but are in clinical response at I-16 after receiving 1 dose of ustekinumab 90 mg SC at I-8) will not be included in the primary population.",
+        "criteria": "In clinical response to IV ustekinumab induction (either at Week 8 or Week 16) AND randomized to maintenance treatment"
+      },
+      {
+        "id": "pop_2",
+        "name": "Non-randomized Analysis Set",
+        "text": "Includes subjects entering the maintenance study who are not part of the primary population, specifically: Subjects who are in clinical response to placebo IV induction (who will receive placebo SC) and subjects who are delayed responders to ustekinumab induction (who will receive ustekinumab 90 mg SC q8w).",
+        "populationType": "Efficacy",
+        "instanceType": "AnalysisPopulation",
+        "label": "Non-randomized Analysis Set",
+        "populationDescription": "Includes subjects entering the maintenance study who are not part of the primary population, specifically: Subjects who are in clinical response to placebo IV induction (who will receive placebo SC) and subjects who are delayed responders to ustekinumab induction (who will receive ustekinumab 90 mg SC q8w).",
+        "criteria": "Clinical responders to placebo IV induction OR delayed responders to ustekinumab induction (response at I-16 after SC dose)"
+      },
+      {
+        "id": "pop_3",
+        "name": "Safety Analysis Set",
+        "text": "The definition of the Safety Analysis Set is referenced in section 2.3.2. Based on the trial design, it includes all subjects who receive at least one dose of SC study agent at the maintenance Week 0/baseline (M-0) visit.",
+        "populationType": "Safety",
+        "instanceType": "AnalysisPopulation",
+        "label": "SAF",
+        "populationDescription": "The definition of the Safety Analysis Set is referenced in section 2.3.2. Based on the trial design, it includes all subjects who receive at least one dose of SC study agent at the maintenance Week 0/baseline (M-0) visit.",
+        "criteria": "Received >=1 dose of study agent in the maintenance study"
+      },
+      {
+        "id": "pop_4",
+        "name": "Pharmacokinetics Analysis Set",
+        "text": "The definition of the Pharmacokinetics Analysis Set is referenced in section 2.3.3. It typically includes all subjects who received study drug and had at least one evaluable PK sample.",
+        "populationType": "PK/PD",
+        "instanceType": "AnalysisPopulation",
+        "label": "PK",
+        "populationDescription": "The definition of the Pharmacokinetics Analysis Set is referenced in section 2.3.3. It typically includes all subjects who received study drug and had at least one evaluable PK sample.",
+        "criteria": "Received study drug AND evaluable PK samples"
+      }
+    ],
+    "characteristics": [
+      {
+        "id": "char_1",
+        "name": "Clinical Remission Status at Maintenance Baseline",
+        "code": "CLINICAL_REMISSION_S",
+        "codeSystem": "http://www.cdisc.org/baseline-characteristics",
+        "codeSystemVersion": "2024-03-29",
+        "decode": "Clinical Remission Status at Maintenance Baseline",
+        "dataType": "Boolean",
+        "instanceType": "Characteristic",
+        "description": "Whether the subject is in clinical remission at the start of the maintenance study (Yes/No)"
+      },
+      {
+        "id": "char_2",
+        "name": "Oral Corticosteroid Use at Maintenance Baseline",
+        "code": "ORAL_CORTICOSTEROID_",
+        "codeSystem": "http://www.cdisc.org/baseline-characteristics",
+        "codeSystemVersion": "2024-03-29",
+        "decode": "Oral Corticosteroid Use at Maintenance Baseline",
+        "dataType": "Boolean",
+        "instanceType": "Characteristic",
+        "description": "Whether the subject is using oral corticosteroids at the start of the maintenance study (Yes/No)"
+      },
+      {
+        "id": "char_3",
+        "name": "Induction Treatment",
+        "code": "INDUCTION_TREATMENT",
+        "codeSystem": "http://www.cdisc.org/baseline-characteristics",
+        "codeSystemVersion": "2024-03-29",
+        "decode": "Induction Treatment",
+        "dataType": "String",
+        "instanceType": "Characteristic",
+        "description": "The specific treatment regimen received during the induction phase (Placebo IV, Ustekinumab 130 mg IV, or Ustekinumab ~6 mg/kg IV)"
+      },
+      {
+        "id": "char_4",
+        "name": "Biologic Failure Status",
+        "code": "BIOLOGIC_FAILURE_STA",
+        "codeSystem": "http://www.cdisc.org/baseline-characteristics",
+        "codeSystemVersion": "2024-03-29",
+        "decode": "Biologic Failure Status",
+        "dataType": "String",
+        "instanceType": "Characteristic",
+        "description": "Classification of subjects based on prior biologic therapy response (Biologic-naïve, failure to at least 1 anti-TNF, or failure to both anti-TNF and vedolizumab)"
+      }
+    ],
+    "summary": {
+      "populationCount": 4,
+      "characteristicCount": 4
+    }
+  }
+}

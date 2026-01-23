@@ -146,6 +146,7 @@ def _extract_with_text(
         response = call_llm(
             prompt=prompt,
             model_name=model_name,
+            extractor_name="metadata",
         )
         
         if response and 'response' in response:

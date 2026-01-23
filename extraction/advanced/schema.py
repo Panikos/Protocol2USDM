@@ -101,8 +101,8 @@ class StudyAmendment:
             }],
             "instanceType": self.instance_type,
         }
-        if self.summary:
-            result["summary"] = self.summary
+        # summary is required in USDM 4.0
+        result["summary"] = self.summary if self.summary else f"Amendment {self.number} to the protocol"
         if self.effective_date:
             result["effectiveDate"] = self.effective_date
         if self.reason_ids:

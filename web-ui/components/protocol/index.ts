@@ -9,3 +9,5 @@ export { AdvancedEntitiesView } from './AdvancedEntitiesView';
 export { ProceduresDevicesView } from './ProceduresDevicesView';
 export { StudySitesView } from './StudySitesView';
 export { FootnotesView } from './FootnotesView';
+export { ScheduleTimelineView } from './ScheduleTimelineView';
+export { NarrativeView } from './NarrativeView';

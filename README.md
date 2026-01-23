@@ -39,17 +39,17 @@ Protocol2USDM is an automated pipeline that extracts, validates, and structures 
 ## 🚀 Try It Now
 
 ```bash
-python main_v2.py .\input\Alexion_NCT04573309_Wilsons.pdf --full-protocol --enrich --sap .\input\Alexion_NCT04573309_Wilsons_SAP.pdf --model claude-opus-4-5 --view
+python main_v2.py .\input\Alexion_NCT04573309_Wilsons.pdf --full-protocol --enrich --sap .\input\Alexion_NCT04573309_Wilsons_SAP.pdf --model claude-opus-4-5
 ```
 
 Or with Gemini:
 ```bash
-python main_v2.py .\input\Alexion_NCT04573309_Wilsons.pdf --full-protocol --enrich --sap .\input\Alexion_NCT04573309_Wilsons_SAP.pdf --model gemini-3-pro-preview --view
+python main_v2.py .\input\Alexion_NCT04573309_Wilsons.pdf --full-protocol --enrich --sap .\input\Alexion_NCT04573309_Wilsons_SAP.pdf --model gemini-3-pro-preview
 ```
 
 > **💡 Recommended Models:** `claude-opus-4-5` or `gemini-3-pro-preview` produce the best results. GPT-5.1 is currently not recommended due to inconsistent output quality.
 
-This extracts the full protocol, enriches entities with NCI terminology codes, includes SAP analysis populations, and launches the interactive viewer.
+This extracts the full protocol, enriches entities with NCI terminology codes, and includes SAP analysis populations.
 
 ---
 
@@ -63,7 +63,7 @@ This extracts the full protocol, enriches entities with NCI terminology codes, i
 - **SoA Footnotes**: Captured and stored as `CommentAnnotation` objects in `StudyDesign.notes`
 - **Rich Provenance**: Every cell tagged with source (text/vision/both) for confidence tracking
 - **CDISC CORE Validation**: Built-in conformance checking with local engine
-- **Interactive Viewer**: Streamlit-based SoA review interface with collapsible sections
+- **Web UI**: Modern React-based protocol viewer with SoA visualization
 
 ### Extraction Capabilities (v6.6)
 
@@ -135,11 +135,11 @@ CLAUDE_API_KEY=...
 
 # 4. Run the pipeline
 ```bash
-python main_v2.py .\input\Alexion_NCT04573309_Wilsons.pdf --full-protocol --enrich --sap .\input\Alexion_NCT04573309_Wilsons_SAP.pdf --model claude-opus-4-5 --view
+python main_v2.py .\input\Alexion_NCT04573309_Wilsons.pdf --full-protocol --enrich --sap .\input\Alexion_NCT04573309_Wilsons_SAP.pdf --model claude-opus-4-5
 ```
 
-# 5. View results
-streamlit run soa_streamlit_viewer.py
+# 5. View results in web UI
+cd web-ui && npm run dev
 ```
 
 ---
@@ -243,8 +243,6 @@ python main_v2.py protocol.pdf --conformance         # Step 9: CORE conformance
 --no-validate              Skip vision validation
 --remove-hallucinations    Remove cells not confirmed by vision (default: keep all)
 --confidence-threshold     Confidence threshold for hallucination removal (default: 0.7)
---view                     Launch Streamlit viewer after extraction
---no-view                  Don't launch viewer (default behavior)
 --verbose, -v              Enable verbose output
 --update-evs-cache         Update EVS terminology cache before enrichment
 --update-cache             Update CDISC CORE rules cache (requires CDISC_API_KEY)
@@ -331,7 +329,7 @@ For detailed output structure and entity relationships, see [docs/ARCHITECTURE.m
 
 ### Provenance Tracking
 
-Provenance metadata is stored separately in `9_final_soa_provenance.json` and visualized in the Streamlit viewer:
+Provenance metadata is stored separately in `9_final_soa_provenance.json` and visualized in the web UI:
 
 | Source | Color | Meaning |
 |--------|-------|---------|
@@ -340,10 +338,7 @@ Provenance metadata is stored separately in `9_final_soa_provenance.json` and vi
 | `vision` | 🟧 Orange | Vision-only (possible hallucination, needs review) |
 | (none) | 🔴 Red | Orphaned (no provenance data) |
 
-View provenance in the interactive viewer:
-```bash
-streamlit run soa_streamlit_viewer.py
-```
+View provenance in the web UI by running `cd web-ui && npm run dev`.
 
 **Note:** By default, all text-extracted cells are kept in the output. Use `--remove-hallucinations` to exclude cells not confirmed by vision.
 
@@ -362,19 +357,22 @@ Footnotes extracted from SoA tables are stored in `StudyDesign.notes` as USDM v4
 
 ## Viewing Results
 
-Launch the interactive Streamlit viewer:
+Launch the web UI:
 
 ```bash
-streamlit run soa_streamlit_viewer.py
+cd web-ui
+npm install
+npm run dev
 ```
+
+Then open http://localhost:3000 in your browser.
 
 **Features:**
 - Visual SoA table with color-coded provenance
 - Epoch and encounter groupings
-- Filtering by activity/timepoint
-- Quality metrics dashboard
-- Validation & conformance results tab
-- Raw JSON inspection
+- Protocol metadata display
+- Eligibility criteria view
+- Study design visualization
 
 ---
 
@@ -425,7 +423,7 @@ Protocol2USDMv3/
 ├── testing/                  # Benchmarking & integration tests
 ├── utilities/                # Setup scripts
 ├── docs/                     # Architecture documentation
-├── soa_streamlit_viewer.py   # Interactive viewer
+├── web-ui/                   # React-based protocol viewer
 ├── tools/core/               # CDISC CORE engine
 └── output/                   # Pipeline outputs
 ```

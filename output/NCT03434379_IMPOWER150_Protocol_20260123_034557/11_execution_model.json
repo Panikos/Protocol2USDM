@@ -1,0 +1,1018 @@
+{
+  "success": true,
+  "pagesUsed": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    51,
+    53,
+    54,
+    56,
+    58,
+    59,
+    60,
+    61,
+    62,
+    68,
+    69,
+    70,
+    73,
+    76,
+    79,
+    98,
+    99,
+    101
+  ],
+  "modelUsed": "gemini-3-flash-preview",
+  "data": {
+    "timeAnchors": [
+      {
+        "id": "anchor_1",
+        "definition": "First administration of investigational product",
+        "anchorType": "FirstDose",
+        "classification": "Event",
+        "timelineId": null,
+        "dayValue": 1,
+        "intraDayOrder": 60,
+        "sourceText": "first dose of study treatment",
+        "encounterId": null,
+        "activityId": null
+      },
+      {
+        "id": "anchor_llm_1",
+        "definition": "The date on which the patient is assigned to a treatment group through the randomization process",
+        "anchorType": "Randomization",
+        "classification": "Event",
+        "timelineId": null,
+        "dayValue": 1,
+        "intraDayOrder": 40,
+        "sourceText": "OS, defined as the time from randomization to death from any cause",
+        "encounterId": null,
+        "activityId": null
+      },
+      {
+        "id": "anchor_2",
+        "definition": "Informed consent obtained",
+        "anchorType": "InformedConsent",
+        "classification": "Event",
+        "timelineId": null,
+        "dayValue": 1,
+        "intraDayOrder": 10,
+        "sourceText": "Informed Consent",
+        "encounterId": null,
+        "activityId": null
+      },
+      {
+        "id": "anchor_3",
+        "definition": "procedure",
+        "anchorType": "Custom",
+        "classification": "Conceptual",
+        "timelineId": null,
+        "dayValue": 1,
+        "intraDayOrder": 100,
+        "sourceText": "procedure",
+        "encounterId": null,
+        "activityId": null
+      }
+    ],
+    "repetitions": [
+      {
+        "id": "rep_daily_1",
+        "type": "Daily",
+        "interval": "P1D",
+        "sourceText": "od"
+      },
+      {
+        "id": "rep_interval_1",
+        "type": "Interval",
+        "sourceText": "BID"
+      },
+      {
+        "id": "rep_cycle_1",
+        "type": "Cycle",
+        "cycleLength": "P21D",
+        "sourceText": "21-day cycle"
+      },
+      {
+        "id": "rep_cycle_4",
+        "type": "Cycle",
+        "cycleLength": "P3D",
+        "sourceText": "3-week cycle"
+      },
+      {
+        "id": "rep_cycle_15",
+        "type": "Cycle",
+        "exitCondition": "Disease progression",
+        "sourceText": "until disease progression"
+      },
+      {
+        "id": "rep_cycle_18",
+        "type": "Cycle",
+        "exitCondition": "Disease progression",
+        "sourceText": "until disease \nprogression"
+      },
+      {
+        "id": "rep_cycle_19",
+        "type": "Cycle",
+        "exitCondition": "Unacceptable toxicity",
+        "sourceText": "until unacceptable toxicity"
+      },
+      {
+        "id": "rep_cycle_20",
+        "type": "Cycle",
+        "exitCondition": "Unacceptable toxicity",
+        "sourceText": "until unacceptable \ntoxicity"
+      },
+      {
+        "id": "rep_cycle_21",
+        "type": "Cycle",
+        "exitCondition": "Disease progression",
+        "sourceText": "until death"
+      },
+      {
+        "id": "rep_llm_1",
+        "type": "Cycle",
+        "startOffset": "P0D",
+        "interval": "P21D",
+        "minObservations": 2,
+        "exitCondition": "death from any cause within 3 weeks",
+        "sourceText": "Mean and mean changes from baseline score (by cycle) in all the subscales of the EORTC QLQ-C30 and QLQ-HCC18"
+      },
+      {
+        "id": "rep_llm_2",
+        "type": "Continuous",
+        "startOffset": "P0D",
+        "interval": "P21D",
+        "minObservations": 2,
+        "exitCondition": "death from any cause within 3 weeks",
+        "sourceText": "TTD maintained for 2 consecutive timepoints, or 1 timepoint followed by death from any cause within 3 weeks"
+      },
+      {
+        "id": "rep_llm_3",
+        "type": "Interval",
+        "startOffset": "P0D",
+        "minObservations": 2,
+        "sourceText": "Timing for Vital Sign Measurements for First and Subsequent Infusions"
+      },
+      {
+        "id": "rep_llm_4",
+        "type": "Interval",
+        "startOffset": "P0D",
+        "minObservations": 2,
+        "sourceText": "Serum concentration of atezolizumab at specified timepoints"
+      }
+    ],
+    "samplingConstraints": [],
+    "traversalConstraints": [
+      {
+        "id": "traversal_1",
+        "requiredSequence": [
+          "SCREENING",
+          "TREATMENT",
+          "SAFETY_FOLLOW_UP",
+          "SURVIVAL_FOLLOW_UP",
+          "END_OF_STUDY"
+        ],
+        "allowEarlyExit": true,
+        "exitEpochIds": [
+          "EARLY_TERMINATION"
+        ],
+        "mandatoryVisits": [
+          "Safety Follow-up Visit",
+          "Screening",
+          "Cycle 1 Day 1",
+          "Day 1",
+          "End of Study",
+          "Treatment Discontinuation Visit"
+        ],
+        "sourceText": "[{'condition': 'Adverse Event requiring discontinuation', 'path': ['STUDY_TREATMENT_DISCONTINUATION', 'SAFETY_FOLLOW_UP', 'SURVIVAL_FOLLOW_UP']}, {'condition': 'Withdrawal of consent', 'path': ['PATIENT_DISCONTINUATION_FROM_STUDY']}]"
+      }
+    ],
+    "executionTypes": [
+      {
+        "activityId": "Serum Sample",
+        "executionType": "Single",
+        "rationale": "SINGLE signals: 1"
+      },
+      {
+        "activityId": "Vital Signs",
+        "executionType": "Window",
+        "rationale": "WINDOW signals: 2; SINGLE signals: 1"
+      },
+      {
+        "activityId": "Electrocardiogram",
+        "executionType": "Single",
+        "rationale": "No strong signals detected"
+      },
+      {
+        "activityId": "Pe",
+        "executionType": "Single",
+        "rationale": "SINGLE signals: 3"
+      },
+      {
+        "activityId": "Adverse Events",
+        "executionType": "Single",
+        "rationale": "No strong signals detected"
+      },
+      {
+        "activityId": "Concomitant Medication",
+        "executionType": "Single",
+        "rationale": "SINGLE signals: 1"
+      },
+      {
+        "activityId": "Laboratory Test",
+        "executionType": "Single",
+        "rationale": "WINDOW signals: 2; SINGLE signals: 3"
+      },
+      {
+        "activityId": "Pharmacokinetic",
+        "executionType": "Window",
+        "rationale": "WINDOW signals: 1"
+      },
+      {
+        "activityId": "Pharmacodynamic",
+        "executionType": "Recurring",
+        "rationale": "RECURRING signals: 2"
+      },
+      {
+        "activityId": "Drug Administration",
+        "executionType": "Single",
+        "rationale": "No strong signals detected"
+      },
+      {
+        "activityId": "Imaging",
+        "executionType": "Episode",
+        "rationale": "EPISODE signals: 1; SINGLE signals: 1; RECURRING signals: 1"
+      },
+      {
+        "activityId": "Tissue Sample",
+        "executionType": "Single",
+        "rationale": "SINGLE signals: 1"
+      },
+      {
+        "activityId": "Questionnaire",
+        "executionType": "Single",
+        "rationale": "No strong signals detected"
+      },
+      {
+        "activityId": "Overall Survival (OS) Analysis",
+        "executionType": "Window",
+        "rationale": "Described as pre-planned interim analyses and subsequent analyses once statistical significance is reached, indicating a continuous monitoring period."
+      },
+      {
+        "activityId": "Management of Dermatologic Events",
+        "executionType": "Episode",
+        "rationale": "Guidelines for Grade 3 events and Stevens-Johnson syndrome involve conditional workflows and decision points based on the severity of the reaction."
+      },
+      {
+        "activityId": "Management of Infusion-Related Reactions",
+        "executionType": "Episode",
+        "rationale": "Requires specific management actions and decision-making protocols triggered by the occurrence of a reaction."
+      },
+      {
+        "activityId": "Screening for Severe Infection",
+        "executionType": "Single",
+        "rationale": "Assessment of infection within 4 weeks prior to initiation of study treatment to determine eligibility."
+      },
+      {
+        "activityId": "Safety Monitoring (Safety Plan)",
+        "executionType": "Recurring",
+        "rationale": "Ongoing assessment of patient safety and risks (including COVID-19) throughout the study participation."
+      }
+    ],
+    "footnoteConditions": [
+      {
+        "id": "fn_cond_1",
+        "conditionType": "timing_after",
+        "text": "a. The first dosing date (Cycle 1, Day 1) should occur within 3 business days from randomization, with the exception of the emergence of an adverse event for which dosing may be postponed. All visits and infusions thereafter may be administered with a window of ± 3 days.",
+        "footnoteId": "fn_1",
+        "structuredCondition": "timing.after(randomization, P3D) && timing.window(subsequent_visits, P3D)",
+        "appliesToActivityIds": [
+          "Dosing",
+          "All visits",
+          "Infusions"
+        ],
+        "sourceText": "a. The first dosing date (Cycle 1, Day 1) should occur within 3 business days from randomization, wi"
+      },
+      {
+        "id": "fn_cond_2",
+        "conditionType": "timing_before",
+        "text": "b. Written informed consent can be obtained up to 30 days prior to study entry and is required before performing any study-specific tests or procedures. Results of standard of care tests or examinations performed prior to obtaining informed consent and per protocol relevant window may be used for screening assessments rather than repeating such tests. Screening local laboratory assessments obtained ≤ 96 hours prior to the initiation of study treatment do not have to be repeated for Cycle 1. Test results should be reviewed prior to administration of study treatment.",
+        "footnoteId": "fn_2",
+        "structuredCondition": "timing.before(the initiation of study treatment do not have to be repeated for cycle 1. test results should be reviewed prior to administration of study treatment., PT96M)",
+        "appliesToActivityIds": [
+          "Informed Consent",
+          "Local laboratory assessments"
+        ],
+        "timingConstraint": "PT96H",
+        "sourceText": "b. Written informed consent can be obtained up to 30 days prior to study entry and is required befor"
+      },
+      {
+        "id": "fn_cond_3",
+        "conditionType": "timing_before",
+        "text": "c. Patients will be asked to return to the clinic 30 days after the last dose of study treatment for an end-of-treatment visit. After this visit, serious adverse events and protocol defined adverse events of special interest, regardless of attribution, will be recorded until 90 days after the last dose of study treatment or until initiation of another systemic anti-cancer therapy, whichever occurs first. Ongoing adverse events thought to be related to study treatment will be followed until the event has resolved to baseline grade or better, the event is assessed by the investigator as stable, new anti-cancer treatment is initiated, the patient is lost to follow-up, the patient withdraws consent, or it is determined that the study treatment or participation is not the cause of the adverse event. Scans performed within 6 weeks prior to the treatment discontinuation visit do not need to be repeated.",
+        "footnoteId": "fn_3",
+        "structuredCondition": "timing.after(last_dose, P30D) && timing.after(last_dose, P90D)",
+        "appliesToActivityIds": [
+          "End-of-treatment visit",
+          "AE reporting",
+          "Scans"
+        ],
+        "sourceText": "c. Patients will be asked to return to the clinic 30 days after the last dose of study treatment for"
+      },
+      {
+        "id": "fn_cond_4",
+        "conditionType": "general",
+        "text": "d. Cancer history includes stage, date of diagnosis, and prior anti-tumor treatment. Demographic information includes age and self-reported race/ethnicity. Reproductive status and smoking history should also be captured.",
+        "footnoteId": "fn_4",
+        "sourceText": "d. Cancer history includes stage, date of diagnosis, and prior anti-tumor treatment. Demographic inf"
+      },
+      {
+        "id": "fn_cond_5",
+        "conditionType": "general",
+        "text": "e. A complete physical examination at screening should include the evaluation of head, eye, ear, nose, and throat and cardiovascular, dermatologic, musculoskeletal, respiratory, gastrointestinal, genitourinary, and neurologic systems. Changes in abnormalities noted at baseline should be recorded at the end of the visit. New or worsened abnormalities should be recorded as adverse events if appropriate.",
+        "footnoteId": "fn_5",
+        "sourceText": "e. A complete physical examination at screening should include the evaluation of head, eye, ear, nos"
+      },
+      {
+        "id": "fn_cond_6",
+        "conditionType": "general",
+        "text": "f. A limited physical examination will be performed at other visits to assess changes from baseline abnormalities and any new abnormalities and to evaluate patient-reported symptoms. New or worsened abnormalities should be recorded as adverse events if appropriate.",
+        "footnoteId": "fn_6",
+        "sourceText": "f. A limited physical examination will be performed at other visits to assess changes from baseline "
+      },
+      {
+        "id": "fn_cond_7",
+        "conditionType": "timing_before",
+        "text": "g. ECOG Performance Status, limited physical examination, local laboratory assessments, and PROs may be obtained ≤ 96 hours before Day 1 of each cycle.",
+        "footnoteId": "fn_7",
+        "structuredCondition": "timing.before(day 1 of each cycle., PT96M)",
+        "appliesToActivityIds": [
+          "ECOG Performance Status",
+          "Physical examination",
+          "Local laboratory assessments",
+          "PROs"
+        ],
+        "timingConstraint": "PT96H",
+        "sourceText": "g. ECOG Performance Status, limited physical examination, local laboratory assessments, and PROs may"
+      },
+      {
+        "id": "fn_cond_8",
+        "conditionType": "timing_before",
+        "text": "h. The EORTC QLQ-C30, EORTC QLQ-HCC18, and EQ-5D-5L questionnaires will be completed by all patients on paper starting on Day 1 of Cycle 1 and Day 1 of every cycle thereafter. All PRO questionnaires scheduled for administration during a clinic visit are required to be completed by the patient at the investigational site at the start of the clinic visit before discussion of the patient's health state, lab results or health record, before administration of study treatment, and/or prior to any other study assessment(s). This is to avoid any potential bias to patients' responses to ensure that the validity of the instrument is not compromised and that data quality meets regulatory requirements. Interview assessment by a member of the clinic staff will be allowed if the patient is not able to complete the measure on their own. Study personnel should review all questionnaires for completeness before the patient leaves the investigational site. During survival follow-up, all PRO questionnaires will be completed every 3 months (for 1 year), unless the patient withdraws consent or the Sponsor terminates the study. PRO questionnaires during the survival follow-up period may be completed at the investigational site should the patient come in for a clinic visit or be administered via interview in telephone calls.",
+        "footnoteId": "fn_8",
+        "structuredCondition": "sequence.before(treatment_administration) && sequence.before(health_discussion)",
+        "appliesToActivityIds": [
+          "PRO questionnaires",
+          "EORTC QLQ-C30",
+          "EORTC QLQ-HCC18",
+          "EQ-5D-5L"
+        ],
+        "sourceText": "h. The EORTC QLQ-C30, EORTC QLQ-HCC18, and EQ-5D-5L questionnaires will be completed by all patients"
+      },
+      {
+        "id": "fn_cond_9",
+        "conditionType": "timing_before",
+        "text": "i. All measurable and evaluable lesions should be assessed and documented at the screening visit. Radiologic imaging performed during the screening period should consist of 1) CT and/or MRI of the chest/abdomen/pelvis and brain, 2) bone scan or PET scan as clinically indicated, and 3) any other imaging studies (CT scan of the neck, plain films, etc.) as clinically indicated by the treating physician. The same radiographic procedures and technique must be used throughout the study for each patient (e.g., if the patient had CT chest/abdomen/pelvis performed during screening, then she should subsequently undergo CT performed with use of the same radiologic protocol throughout the remainder of the study). Results must be reviewed by the investigator before dosing at the next cycle. Tumor assessments will be performed at baseline, every 6 weeks (± 1 week) for the first 54 weeks following the initiation of study treatment, and every 9 weeks (± 1 week) thereafter, with additional scans as clinically indicated. All known sites of disease documented at screening should be re-assessed at each subsequent tumor evaluation. Tumor response will be evaluated by the investigator with use of RECIST version 1.1 and imRECIST. In the absence of disease progression, tumor assessments should continue regardless of whether patients discontinue study treatment or start new anti-cancer treatment, unless the patient dies, withdraws consent, or the study is terminated by the Sponsor, whichever occurs first.",
+        "footnoteId": "fn_9",
+        "structuredCondition": "frequency.interval(P6W, P1W) && frequency.interval(P9W, P1W)",
+        "appliesToActivityIds": [
+          "Tumor assessments",
+          "Radiologic imaging"
+        ],
+        "sourceText": "i. All measurable and evaluable lesions should be assessed and documented at the screening visit. Ra"
+      },
+      {
+        "id": "fn_cond_10",
+        "conditionType": "timing_before",
+        "text": "j. Vital signs include heart rate, respiratory rate, blood pressure, and temperature. For patients randomized to Arm A, on days of study treatment administration (atezolizumab and bevacizumab), the patient's vital signs should be determined up to 60 minutes before all infusions. Vital signs will be measured at the end of bevacizumab infusion and 2 (± 1) hours after end of the infusion and will also be collected during and after every infusion of atezolizumab if clinically indicated.",
+        "footnoteId": "fn_10",
+        "structuredCondition": "timing.before(all infusions. vital signs will be measured at the end of bevacizumab infusion and 2 (± 1) hours after end of the infusion and will also be collected during and after every infusion of atezolizumab if clinically indicated., PT60M)",
+        "appliesToActivityIds": [
+          "Vital signs"
+        ],
+        "timingConstraint": "PT60H",
+        "sourceText": "j. Vital signs include heart rate, respiratory rate, blood pressure, and temperature. For patients r"
+      },
+      {
+        "id": "fn_cond_11",
+        "conditionType": "timing_before",
+        "text": "k. The dose of bevacizumab will be based on the patient's weight (in kilograms) measured ≤ 14 days prior to baseline (the initiation of study treatment) and will remain the same throughout the study unless there is a weight change of > 10% from baseline. If re-baseline is needed the latest baseline weight should always be used to calculate percent change in weight for all subsequent doses.",
+        "footnoteId": "fn_11",
+        "structuredCondition": "if(weight_change > 0.10) { recalculate_dose() }",
+        "appliesToActivityIds": [
+          "Bevacizumab dosing",
+          "Weight measurement"
+        ],
+        "sourceText": "k. The dose of bevacizumab will be based on the patient's weight (in kilograms) measured ≤ 14 days p"
+      },
+      {
+        "id": "fn_cond_12",
+        "conditionType": "timing_before",
+        "text": "l. Patients should be resting and in a supine position for at least 10 minutes prior to each ECG collection.",
+        "footnoteId": "fn_12",
+        "structuredCondition": "timing.before(each ecg collection., PT10M)",
+        "appliesToActivityIds": [
+          "ECG"
+        ],
+        "timingConstraint": "PT10M",
+        "sourceText": "l. Patients should be resting and in a supine position for at least 10 minutes prior to each ECG col"
+      },
+      {
+        "id": "fn_cond_13",
+        "conditionType": "timing_before",
+        "text": "m. All patients must undergo an EGD and all size of varices (small to large) must be assessed and treated per local standard of care prior to enrollment.",
+        "footnoteId": "fn_13",
+        "sourceText": "m. All patients must undergo an EGD and all size of varices (small to large) must be assessed and tr"
+      },
+      {
+        "id": "fn_cond_14",
+        "conditionType": "procedure_conditional",
+        "text": "n. Hematology consists of CBC, including RBC count, hemoglobin, hematocrit, WBC count with differential (neutrophils, eosinophils, lymphocytes, monocytes, basophils, and other cells), and platelet count. A manual differential can be done if clinically indicated.",
+        "footnoteId": "fn_14",
+        "sourceText": "n. Hematology consists of CBC, including RBC count, hemoglobin, hematocrit, WBC count with different"
+      },
+      {
+        "id": "fn_cond_15",
+        "conditionType": "general",
+        "text": "o. Serum chemistry includes bicarbonate or total carbon dioxide (if considered standard of care for the region), sodium, potassium, magnesium, chloride, glucose, BUN or urea, creatinine, total protein, albumin, phosphorus, calcium, total bilirubin, alkaline phosphatase, ALT, AST, and LDH.",
+        "footnoteId": "fn_15",
+        "sourceText": "o. Serum chemistry includes bicarbonate or total carbon dioxide (if considered standard of care for "
+      },
+      {
+        "id": "fn_cond_16",
+        "conditionType": "timing_before",
+        "text": "p. All patients will be tested for HIV locally prior to the inclusion into the study and if not in contradiction with local legislation; HIV-positive patients will be excluded from the clinical study. HBsAg, HBcAb, and HBsAb should be collected during screening and tested locally. HBV DNA must be collected prior to Cycle 1, Day 1 in patients who have negative serology for HBsAg and positive serology for anti-HBcAb.",
+        "footnoteId": "fn_16",
+        "sourceText": "p. All patients will be tested for HIV locally prior to the inclusion into the study and if not in c"
+      },
+      {
+        "id": "fn_cond_17",
+        "conditionType": "general",
+        "text": "q. Only if patient tests positive for HBsAg, HBcAb, quantitative HBsAg and HBV DNA will be tested during screening; Cycle 5, Day 1; Cycle 9, Day 1; and at treatment discontinuation. Quantitative HBsAg will be tested by central laboratory. If a patient tests positive for HCV antibody at screening, quantitative HCV RNA must be tested locally at screening, Cycle 5 Day 1, Cycle 9 Day 1, and at treatment discontinuation.",
+        "footnoteId": "fn_17",
+        "sourceText": "q. Only if patient tests positive for HBsAg, HBcAb, quantitative HBsAg and HBV DNA will be tested du"
+      },
+      {
+        "id": "fn_cond_18",
+        "conditionType": "timing_before",
+        "text": "r. Urine dipstick includes specific gravity, pH, glucose, protein, ketones, and blood and should be repeated before every cycle during treatment. Urine dipstick for proteinuria must be < 2+ within 7 days prior to initiation of study treatment. Patients discovered to have ≥ 2+ proteinuria on dipstick urinalysis at baseline should undergo a 24-hour urine collection and must demonstrate < 1 g of protein in 24 hours.",
+        "footnoteId": "fn_18",
+        "structuredCondition": "timing.before(treatment_initiation, P7D)",
+        "appliesToActivityIds": [
+          "Urine dipstick"
+        ],
+        "timingConstraint": "PT24H",
+        "sourceText": "r. Urine dipstick includes specific gravity, pH, glucose, protein, ketones, and blood and should be "
+      },
+      {
+        "id": "fn_cond_19",
+        "conditionType": "timing_before",
+        "text": "s. Serum pregnancy test within 14 days before Cycle 1, Day 1.",
+        "footnoteId": "fn_19",
+        "structuredCondition": "timing.before(Cycle_1_Day_1, P14D)",
+        "appliesToActivityIds": [
+          "Serum pregnancy test"
+        ],
+        "sourceText": "s. Serum pregnancy test within 14 days before Cycle 1, Day 1."
+      },
+      {
+        "id": "fn_cond_20",
+        "conditionType": "general",
+        "text": "t. Urine pregnancy test; if a urine pregnancy test is positive, it must be confirmed by a serum pregnancy test.",
+        "footnoteId": "fn_20",
+        "sourceText": "t. Urine pregnancy test; if a urine pregnancy test is positive, it must be confirmed by a serum preg"
+      },
+      {
+        "id": "fn_cond_21",
+        "conditionType": "timing_before",
+        "text": "u. Concomitant medications include any prescription medications or over-the-counter medications. At screening, any medications the patient has used within the 7 days prior to initiation of study treatment should be documented. At subsequent visits, changes to current medications or medications used since the last documentation of medications will be recorded.",
+        "footnoteId": "fn_21",
+        "sourceText": "u. Concomitant medications include any prescription medications or over-the-counter medications. At "
+      },
+      {
+        "id": "fn_cond_22",
+        "conditionType": "timing_before",
+        "text": "v. After informed consent has been obtained but prior to initiation of study drug, only serious adverse events caused by a protocol-mandated intervention should be reported. After initiation of study drug, all adverse events will be reported until 30 days after the last dose of study treatment or until initiation of another anti-cancer therapy, whichever occurs first. Serious adverse events and adverse events of special interest will continue to be reported until 90 days after the last dose of study treatment or until initiation of new anti-cancer therapy, whichever occurs first. After this period, investigators should report any serious adverse events and adverse events of special interest that are believed to be related to prior treatment with study drug. The investigator should follow each adverse event until the event has resolved to baseline grade or better, the event is assessed as stable by the investigator, new systemic anti-cancer treatment is initiated, the patient is lost to follow-up, the patient withdraws consent, or it is determined that the study treatment or participation is not the cause of the adverse event. Every effort should be made to follow all serious adverse events considered to be related to study drug or study-related procedures until a final outcome can be reported.",
+        "footnoteId": "fn_22",
+        "sourceText": "v. After informed consent has been obtained but prior to initiation of study drug, only serious adve"
+      },
+      {
+        "id": "fn_cond_23",
+        "conditionType": "sequence",
+        "text": "w. The initial dose of atezolizumab will be delivered over 60 (± 15) minutes. If the first infusion is tolerated without infusion-associated adverse events, the second infusion may be delivered over 30 (± 10) minutes. If the 30-minute infusion is well-tolerated, all subsequent infusions may be delivered over 30 (± 10) minutes. The initial dose of bevacizumab will be delivered over 90 (± 15) minutes. If the first infusion is tolerated without infusion-associated adverse events, the second infusion may be delivered over 60 (± 10) minutes. If the 60-minute infusion is well-tolerated, all subsequent infusions may be delivered over 30 (± 10) minutes. For patients randomized to Arm A, atezolizumab will be administered first followed by bevacizumab, with a minimum of 5 minutes between dosing. In the absence of unacceptable toxicity, patients may continue study treatment until there is evidence of disease progression or lack of clinical benefit.",
+        "footnoteId": "fn_23",
+        "structuredCondition": "timing.duration(atezolizumab, PT60M) && timing.duration(bevacizumab, PT90M) && timing.gap(PT5M)",
+        "appliesToActivityIds": [
+          "Atezolizumab infusion",
+          "Bevacizumab infusion"
+        ],
+        "timingConstraint": "PT5M",
+        "sourceText": "w. The initial dose of atezolizumab will be delivered over 60 (± 15) minutes. If the first infusion "
+      },
+      {
+        "id": "fn_cond_24",
+        "conditionType": "general",
+        "text": "x. Sorafenib is taken by mouth twice a day continuously.",
+        "footnoteId": "fn_24",
+        "sourceText": "x. Sorafenib is taken by mouth twice a day continuously."
+      },
+      {
+        "id": "fn_cond_25",
+        "conditionType": "general",
+        "text": "y. Survival follow-up information will be collected via telephone calls, patient medical records, and/or clinic visits approximately every 3 months (± 21 days) until death, loss to follow-up, or until study termination by the Sponsor. All patients will be followed for survival and new anti-cancer therapy (including targeted therapy and immunotherapy) information unless the patient requests to be withdrawn from follow-up; this request must be documented in the source documents and signed by the investigator. If the patient withdraws from study, the study staff may use a public information source (e.g., county records) to obtain information about survival status only.",
+        "footnoteId": "fn_25",
+        "sourceText": "y. Survival follow-up information will be collected via telephone calls, patient medical records, an"
+      },
+      {
+        "id": "fn_cond_26",
+        "conditionType": "timing_before",
+        "text": "z. Local laboratory assessments from each cycle must be reviewed prior to study treatment administration for each cycle.",
+        "footnoteId": "fn_26",
+        "sourceText": "z. Local laboratory assessments from each cycle must be reviewed prior to study treatment administra"
+      }
+    ],
+    "endpointAlgorithms": [
+      {
+        "id": "ep_1",
+        "name": "Co-Primary: Overall Survival (OS)",
+        "endpointType": "Primary",
+        "inputs": [
+          "date of randomization",
+          "date of death",
+          "last date known alive",
+          "data cutoff date"
+        ],
+        "timeWindow": {
+          "reference": "randomization",
+          "duration": "until death or data cutoff"
+        },
+        "algorithm": "date_of_death - date_of_randomization",
+        "successCriteria": "Statistically significant improvement (2-sided alpha = 0.048) via stratified log-rank test",
+        "sourceText": "Overall survival is defined as the time from the date of randomization to the date of death from any cause. Patients who are alive at the time of the analysis data cutoff will be censored at the last "
+      },
+      {
+        "id": "ep_2",
+        "name": "Co-Primary: Progression-Free Survival (PFS)",
+        "endpointType": "Primary",
+        "inputs": [
+          "date of randomization",
+          "date of first IRF-assessed disease progression",
+          "date of death",
+          "RECIST v1.1 criteria"
+        ],
+        "timeWindow": {
+          "reference": "randomization",
+          "duration": "until progression or death"
+        },
+        "algorithm": "min(date_of_progression, date_of_death) - date_of_randomization",
+        "successCriteria": "Statistically significant improvement (2-sided alpha = 0.002) via stratified log-rank test",
+        "sourceText": "The primary efficacy objective for this study is to evaluate the efficacy of atezolizumab in combination with bevacizumab compared with sorafenib on the basis of the co-primary efficacy endpoints of O"
+      }
+    ],
+    "derivedVariables": [
+      {
+        "id": "dv_1",
+        "name": "Mean change from baseline in EORTC QLQ-C30 subscales",
+        "variableType": "ChangeFromBaseline",
+        "sourceVariables": [
+          "EORTC QLQ-C30 subscale scores"
+        ],
+        "derivationRule": "Post-baseline score - Baseline score",
+        "baselineDefinition": "Score at baseline (pre-treatment)",
+        "baselineVisit": "Baseline",
+        "analysisWindow": "By cycle",
+        "imputationRule": "Not specified",
+        "unit": "Score"
+      },
+      {
+        "id": "dv_2",
+        "name": "Mean change from baseline in EORTC QLQ-HCC18 subscales",
+        "variableType": "ChangeFromBaseline",
+        "sourceVariables": [
+          "EORTC QLQ-HCC18 subscale scores"
+        ],
+        "derivationRule": "Post-baseline score - Baseline score",
+        "baselineDefinition": "Score at baseline (pre-treatment)",
+        "baselineVisit": "Baseline",
+        "analysisWindow": "By cycle",
+        "imputationRule": "Not specified",
+        "unit": "Score"
+      },
+      {
+        "id": "dv_3",
+        "name": "Clinically meaningful change in select QLQ-C30 and QLQ-HCC18 scales",
+        "variableType": "Categorical",
+        "sourceVariables": [
+          "GHS/QoL",
+          "Physical function",
+          "Role function",
+          "Appetite loss",
+          "Diarrhea",
+          "Fatigue",
+          "Pain",
+          "Jaundice"
+        ],
+        "derivationRule": "Proportion of patients meeting a predefined threshold for clinically meaningful change",
+        "baselineDefinition": "Baseline score for the specific scale",
+        "baselineVisit": "Baseline",
+        "analysisWindow": "Study duration",
+        "imputationRule": "Not specified",
+        "unit": "Proportion"
+      },
+      {
+        "id": "dv_4",
+        "name": "Time to Deterioration (TTD) in select QLQ-C30 and QLQ-HCC18 scales",
+        "variableType": "TimeToEvent",
+        "sourceVariables": [
+          "Appetite loss",
+          "Diarrhea",
+          "Fatigue",
+          "Pain",
+          "Jaundice"
+        ],
+        "derivationRule": "Time from randomization to deterioration maintained for 2 consecutive timepoints, or 1 timepoint followed by death from any cause within 3 weeks",
+        "baselineDefinition": "Baseline score for the specific scale",
+        "baselineVisit": "Baseline",
+        "analysisWindow": "Study duration",
+        "imputationRule": "Not specified",
+        "unit": "Days/Months"
+      },
+      {
+        "id": "dv_5",
+        "name": "Time to Deterioration (TTD) in HRQoL/GHS, physical function, and role function",
+        "variableType": "TimeToEvent",
+        "sourceVariables": [
+          "HRQoL/GHS",
+          "Physical function",
+          "Role function"
+        ],
+        "derivationRule": "Time from randomization to deterioration maintained for 2 consecutive timepoints, or 1 timepoint followed by death from any cause within 3 weeks",
+        "baselineDefinition": "Baseline score for the specific scale",
+        "baselineVisit": "Baseline",
+        "analysisWindow": "Study duration",
+        "imputationRule": "Not specified",
+        "unit": "Days/Months"
+      },
+      {
+        "id": "dv_6",
+        "name": "Presence of ADAs to atezolizumab relative to baseline",
+        "variableType": "Categorical",
+        "sourceVariables": [
+          "Anti-drug antibody (ADA) status"
+        ],
+        "derivationRule": "Comparison of post-baseline ADA presence vs. baseline ADA presence",
+        "baselineDefinition": "ADA status at baseline",
+        "baselineVisit": "Baseline",
+        "analysisWindow": "During the study",
+        "imputationRule": "Not specified",
+        "unit": "Presence/Absence"
+      },
+      {
+        "id": "dv_7",
+        "name": "Health utility and VAS scores (EQ-5D-5L)",
+        "variableType": "Custom",
+        "sourceVariables": [
+          "EQ-5D-5L questionnaire items"
+        ],
+        "derivationRule": "Utility scores generated from EQ-5D-5L responses and Visual Analog Scale (VAS) scores",
+        "baselineDefinition": "Baseline EQ-5D-5L assessment",
+        "baselineVisit": "Baseline",
+        "analysisWindow": "Study duration",
+        "imputationRule": "Not specified",
+        "unit": "Utility index / 0-100 scale"
+      }
+    ],
+    "stateMachine": {
+      "id": "sm_1",
+      "initialState": "Screening",
+      "terminalStates": [
+        "Early Termination",
+        "Completed"
+      ],
+      "states": [
+        "Screening",
+        "Treatment",
+        "Safety Follow Up",
+        "Survival Follow Up",
+        "End Of Study",
+        "Early Termination"
+      ],
+      "transitions": [
+        {
+          "fromState": "Screening",
+          "toState": "Treatment",
+          "trigger": "Progress to Treatment"
+        },
+        {
+          "fromState": "Treatment",
+          "toState": "Safety Follow Up",
+          "trigger": "Progress to Safety Follow Up"
+        },
+        {
+          "fromState": "Safety Follow Up",
+          "toState": "Survival Follow Up",
+          "trigger": "Progress to Survival Follow Up"
+        },
+        {
+          "fromState": "Survival Follow Up",
+          "toState": "End Of Study",
+          "trigger": "Progress to End Of Study"
+        },
+        {
+          "fromState": "Treatment",
+          "toState": "Early Termination",
+          "trigger": "Subject exits to Early Termination"
+        }
+      ],
+      "epochIds": {
+        "Screening": "SCREENING",
+        "Treatment": "TREATMENT",
+        "Safety Follow Up": "SAFETY_FOLLOW_UP",
+        "Survival Follow Up": "SURVIVAL_FOLLOW_UP",
+        "End Of Study": "END_OF_STUDY",
+        "Early Termination": "EARLY_TERMINATION"
+      }
+    },
+    "dosingRegimens": [
+      {
+        "id": "dosing_1",
+        "treatmentName": "Atezolizumab",
+        "frequency": "BID",
+        "route": "Oral",
+        "startDay": 1,
+        "doseLevels": [
+          {
+            "amount": 1200.0,
+            "unit": "mg"
+          },
+          {
+            "amount": 400.0,
+            "unit": "mg"
+          },
+          {
+            "amount": 15.0,
+            "unit": "mg"
+          }
+        ],
+        "durationDescription": "3 weeks",
+        "doseModifications": [
+          "Dose management for Grade 3 dermatologic events",
+          "Management for Stevens-Johnson syndrome or toxic epidermal necrolysis",
+          "Management for Hepatic Events"
+        ],
+        "sourceText": "or metastatic HCC who have received no prior systemic treatment. This study will enroll approximately 480 patients randomized in a 2:1 ratio to one of two treatment arms:  Arm A (experimental arm): A"
+      },
+      {
+        "id": "dosing_2",
+        "treatmentName": "Sorafenib",
+        "frequency": "BID",
+        "route": "Oral",
+        "startDay": 1,
+        "doseLevels": [
+          {
+            "amount": 400.0,
+            "unit": "mg"
+          },
+          {
+            "amount": 1200.0,
+            "unit": "mg"
+          },
+          {
+            "amount": 15.0,
+            "unit": "mg"
+          }
+        ],
+        "durationDescription": "3 weeks",
+        "doseModifications": [
+          "Dose reduction for treatment-emergent toxicities"
+        ],
+        "sourceText": "reatment arms:  Arm A (experimental arm): Atezolizumab 1200 mg IV infusion every 3 weeks (Q3W; dosed in 3-week cycles) and bevacizumab 15 mg/kg Q3W (dosed in 3-week cycles)  Arm B (control arm): Sor"
+      },
+      {
+        "id": "dosing_3",
+        "treatmentName": "Patients received",
+        "frequency": "Q3W",
+        "route": "Oral",
+        "startDay": 1,
+        "doseLevels": [
+          {
+            "amount": 1200.0,
+            "unit": "mg"
+          },
+          {
+            "amount": 15.0,
+            "unit": "mg"
+          }
+        ],
+        "sourceText": "with metastatic cancer. Arm A is designed to test the combination of atezolizumab and bevacizumab in patients with locally advanced or metastatic HCC who have not received prior systemic therapy. Pati"
+      },
+      {
+        "id": "dosing_llm_2",
+        "treatmentName": "Bevacizumab",
+        "frequency": "Q3W",
+        "route": "IV",
+        "startDay": 1,
+        "doseLevels": [
+          {
+            "amount": 15.0,
+            "unit": "mg/kg",
+            "description": "Weight-based dose"
+          }
+        ],
+        "durationDescription": "Until loss of clinical benefit or unacceptable toxicity",
+        "doseModifications": [
+          "Dose modifications for toxicity as per protocol guidelines"
+        ]
+      }
+    ],
+    "visitWindows": [
+      {
+        "id": "visit_2",
+        "visitName": "screening",
+        "targetDay": -14,
+        "windowBefore": 7,
+        "windowAfter": 0,
+        "isRequired": true,
+        "visitNumber": 1,
+        "epoch": "Screening",
+        "sourceText": "Negative HIV test at screening  Documented virology status of hepatitis, as confirmed by screening hepatitis B virus (HBV)"
+      },
+      {
+        "id": "visit_1",
+        "visitName": "baseline",
+        "targetDay": 0,
+        "windowBefore": 1,
+        "windowAfter": 1,
+        "isRequired": true,
+        "visitNumber": 2,
+        "epoch": "Screening",
+        "sourceText": "Patients discovered to have 2proteinuria on dipstick urinalysis at baseline should undergo a 24-hour urine collection and must demonstrate 1 g of protein in 24 hours."
+      },
+      {
+        "id": "visit_3",
+        "visitName": "Early Termination",
+        "targetDay": null,
+        "windowBefore": 0,
+        "windowAfter": 0,
+        "isRequired": true,
+        "visitNumber": 3,
+        "sourceText": "heterosexual intercourse) or use contraceptive methods with a failure rate of 1% per year during the treatment period and for at least 5 months after the last dose of atezolizumab, 6 months after the"
+      },
+      {
+        "id": "visit_4",
+        "visitName": "Visit 1",
+        "targetDay": null,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 4,
+        "sourceText": "Measurable disease, per RECIST v1.1, must be present outside the CNS. – The patient has no history of intracranial hemorrhage or spinal cord hemorrhage."
+      },
+      {
+        "id": "visit_5",
+        "visitName": "eot",
+        "targetDay": null,
+        "windowBefore": 28,
+        "windowAfter": 28,
+        "isRequired": true,
+        "visitNumber": 5,
+        "sourceText": "The patient has not undergone stereotactic, whole-brain radiotherapy, and/or neurosurgical resection within 28 days prior to initiation of study treatment. –"
+      },
+      {
+        "id": "visit_6",
+        "visitName": "End of Study",
+        "targetDay": null,
+        "windowBefore": 3,
+        "windowAfter": 7,
+        "isRequired": true,
+        "visitNumber": 6,
+        "sourceText": "End of Study The end of this study is defined as the date when the last patient, last visit (LPLV) occurs (i.e., last patient in the global and extended China enrollment phases combined) or safety"
+      },
+      {
+        "id": "visit_9",
+        "visitName": "randomization",
+        "targetDay": 1,
+        "windowBefore": 0,
+        "windowAfter": 0,
+        "isRequired": true,
+        "visitNumber": 7,
+        "sourceText": "Overall survival is defined as the time from the date of randomization to the date of death from any cause. Patients who are alive at the time of the analysis data cutoff will be censored at the last "
+      },
+      {
+        "id": "visit_7",
+        "visitName": "Follow-up",
+        "targetDay": 365,
+        "windowBefore": 7,
+        "windowAfter": 7,
+        "isRequired": true,
+        "visitNumber": 8,
+        "sourceText": "follow-up is received from the last patient (global and extended China enrollment phases combined), whichever occurs later. In addition, the Sponsor may decide to terminate the study at any time."
+      }
+    ],
+    "randomizationScheme": {
+      "id": "randomization_1",
+      "ratio": "2:1",
+      "method": "Stratified randomization",
+      "centralRandomization": true,
+      "stratificationFactors": [
+        {
+          "id": "strat_1",
+          "name": "Region",
+          "categories": [
+            "North America",
+            "Europe",
+            "Asia",
+            "Rest of World"
+          ],
+          "isBlocking": false,
+          "sourceText": "geographic region (asia excluding japan vs"
+        },
+        {
+          "id": "strat_llm_1",
+          "name": "Geographic region",
+          "categories": [
+            "Asia excluding Japan",
+            "rest of world"
+          ],
+          "isBlocking": false
+        },
+        {
+          "id": "strat_llm_2",
+          "name": "Macrovascular invasion and/or extrahepatic spread",
+          "categories": [
+            "presence",
+            "absence"
+          ],
+          "isBlocking": false
+        },
+        {
+          "id": "strat_llm_3",
+          "name": "Baseline α-fetoprotein",
+          "categories": [
+            "<400 ng/mL",
+            "≥400 ng/mL"
+          ],
+          "isBlocking": false
+        },
+        {
+          "id": "strat_llm_4",
+          "name": "Eastern Cooperative Oncology Group Performance Status",
+          "categories": [
+            "0",
+            "1"
+          ],
+          "isBlocking": false
+        }
+      ],
+      "sourceText": "Atezolizumab—F. Hoffmann-La Roche Ltd\n4/Protocol YO40245, Version 6\n3.3.7\nRationale for Stratification...................................................... 47\n3.3.7.1\nGeographic Region..............."
+    }
+  }
+}

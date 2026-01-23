@@ -387,7 +387,7 @@ def _enhance_with_llm(
         result = call_llm(
             prompt=prompt,
             model_name=model,
-            temperature=0.1,
+            extractor_name="endpoint",
         )
         
         # Extract response text from dict

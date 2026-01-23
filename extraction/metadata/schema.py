@@ -17,6 +17,7 @@ from core.usdm_types import generate_uuid, Code
 
 class TitleType(Enum):
     """USDM StudyTitle types."""
+    UNKNOWN = ""  # Not extracted from source
     BRIEF = "Brief Study Title"
     OFFICIAL = "Official Study Title"
     PUBLIC = "Public Study Title"
@@ -26,6 +27,7 @@ class TitleType(Enum):
 
 class OrganizationType(Enum):
     """USDM Organization types."""
+    UNKNOWN = ""  # Not extracted from source
     REGULATORY_AGENCY = "Regulatory Agency"
     PHARMACEUTICAL_COMPANY = "Pharmaceutical Company"
     CRO = "Contract Research Organization"
@@ -39,6 +41,7 @@ class OrganizationType(Enum):
 
 class StudyRoleCode(Enum):
     """USDM StudyRole codes."""
+    UNKNOWN = ""  # Not extracted from source
     SPONSOR = "Sponsor"
     CO_SPONSOR = "Co-Sponsor"
     LOCAL_SPONSOR = "Local Sponsor"

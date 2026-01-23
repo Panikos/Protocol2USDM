@@ -1540,13 +1540,18 @@ def normalize_usdm_data(data: Dict[str, Any]) -> Dict[str, Any]:
         return arm.to_dict()
     
     def normalize_study_identifier(obj: Dict) -> Dict:
-        """Normalize a StudyIdentifier to include type field."""
+        """Normalize a StudyIdentifier to include type field and ensure scopeId."""
         if not obj or not isinstance(obj, dict):
             return obj
+        # Ensure scopeId is present (required by USDM 4.0 schema)
+        scope_id = obj.get("scopeId")
+        if not scope_id:
+            # Use a placeholder org reference - will be validated later
+            scope_id = "org_sponsor_default"
         si = StudyIdentifier(
             id=obj.get("id") or None,
             text=obj.get("text", ""),
-            scopeId=obj.get("scopeId"),
+            scopeId=scope_id,
             type=Code.from_dict(obj.get("type")) if obj.get("type") else None,
         )
         return si.to_dict()

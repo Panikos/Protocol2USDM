@@ -1,0 +1,336 @@
+{
+  "success": true,
+  "pagesUsed": [
+    3,
+    10,
+    11,
+    12,
+    20,
+    21,
+    26,
+    29,
+    30,
+    39,
+    41,
+    43,
+    46,
+    47,
+    48,
+    49,
+    53
+  ],
+  "modelUsed": "gemini-3-flash-preview",
+  "confidence": 1.0,
+  "scheduling": {
+    "timings": [
+      {
+        "id": "timing_1",
+        "name": "Screening Lead-in Window",
+        "type": {
+          "id": "21927ed4-5459-409a-b70b-a17c8055ec8a",
+          "code": "C71152",
+          "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+          "codeSystemVersion": "25.01d",
+          "decode": "Between",
+          "instanceType": "Code"
+        },
+        "value": "P1W",
+        "valueLabel": "1 weeks",
+        "relativeToFrom": {
+          "id": "1d1b14b0-7811-403f-9846-48e46897e60d",
+          "code": "C71158",
+          "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+          "codeSystemVersion": "25.01d",
+          "decode": "Screening",
+          "instanceType": "Code"
+        },
+        "relativeFromScheduledInstanceId": "91161532-4abb-471c-ac5e-61cc208e84b5",
+        "instanceType": "Timing",
+        "windowLower": "-P3W",
+        "windowUpper": "-P2W"
+      },
+      {
+        "id": "timing_2",
+        "name": "Visit 2 Allowable Deviation",
+        "type": {
+          "id": "914ba90f-a8ac-4dac-b5ce-90f5faee6b9f",
+          "code": "C71148",
+          "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+          "codeSystemVersion": "25.01d",
+          "decode": "Fixed Reference",
+          "instanceType": "Code"
+        },
+        "value": "-P2W",
+        "valueLabel": "-2 weeks",
+        "relativeToFrom": {
+          "id": "891484d0-9572-4468-8082-3098aad48a35",
+          "code": "C71154",
+          "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+          "codeSystemVersion": "25.01d",
+          "decode": "Randomization",
+          "instanceType": "Code"
+        },
+        "relativeFromScheduledInstanceId": "6f0902fd-c824-4fec-adef-9f2271377f41",
+        "instanceType": "Timing",
+        "windowLower": "-P3W",
+        "windowUpper": "P3W"
+      },
+      {
+        "id": "timing_3",
+        "name": "Standard Visit Window (Weeks 0-20)",
+        "type": {
+          "id": "1655d737-628c-42de-b513-a75f6215da61",
+          "code": "C71148",
+          "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+          "codeSystemVersion": "25.01d",
+          "decode": "Fixed Reference",
+          "instanceType": "Code"
+        },
+        "value": "P0D",
+        "valueLabel": "Day 0",
+        "relativeToFrom": {
+          "id": "72e94e61-6c2c-47fc-b67d-89bdafef1e42",
+          "code": "C71154",
+          "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+          "codeSystemVersion": "25.01d",
+          "decode": "Randomization",
+          "instanceType": "Code"
+        },
+        "relativeFromScheduledInstanceId": "839a899c-b8d9-4d3b-9c7f-65bbe6d324d8",
+        "instanceType": "Timing",
+        "windowLower": "-P3D",
+        "windowUpper": "P3D"
+      },
+      {
+        "id": "timing_4",
+        "name": "Extended Visit Window (Weeks 23-104)",
+        "type": {
+          "id": "8cd35b33-17dd-4ba2-86ff-8759e16d37c1",
+          "code": "C71148",
+          "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+          "codeSystemVersion": "25.01d",
+          "decode": "Fixed Reference",
+          "instanceType": "Code"
+        },
+        "value": "P0D",
+        "valueLabel": "Day 0",
+        "relativeToFrom": {
+          "id": "67c7e658-0050-4730-9f8b-e2467c03b172",
+          "code": "C71154",
+          "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+          "codeSystemVersion": "25.01d",
+          "decode": "Randomization",
+          "instanceType": "Code"
+        },
+        "relativeFromScheduledInstanceId": "71634e93-9e8c-407c-842e-5fcd1d626da6",
+        "instanceType": "Timing",
+        "windowLower": "-P7D",
+        "windowUpper": "P7D"
+      },
+      {
+        "id": "timing_5",
+        "name": "Safety Follow-up Visit",
+        "type": {
+          "id": "43126f8b-e2c7-4c6d-b6b3-3945c380257e",
+          "code": "C71150",
+          "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+          "codeSystemVersion": "25.01d",
+          "decode": "After",
+          "instanceType": "Code"
+        },
+        "value": "P4W",
+        "valueLabel": "4 weeks",
+        "relativeToFrom": {
+          "id": "0836b007-386f-4131-af57-1eed1fe83cfb",
+          "code": "C71156",
+          "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+          "codeSystemVersion": "25.01d",
+          "decode": "Last Dose",
+          "instanceType": "Code"
+        },
+        "relativeFromScheduledInstanceId": "70278d31-728f-4b4c-bbe6-a8b628e43e15",
+        "instanceType": "Timing",
+        "windowLower": "-P3W",
+        "windowUpper": "P3W"
+      },
+      {
+        "id": "timing_6",
+        "name": "Final Treatment Visit (FTV)",
+        "type": {
+          "id": "de50392d-3a63-45b1-a495-9b57ecbda71e",
+          "code": "C71151",
+          "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+          "codeSystemVersion": "25.01d",
+          "decode": "Within",
+          "instanceType": "Code"
+        },
+        "value": "P30D",
+        "valueLabel": "Day 30",
+        "relativeToFrom": {
+          "id": "b2902790-6973-4479-aca8-6c23ebceb0dd",
+          "code": "C71153",
+          "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+          "codeSystemVersion": "25.01d",
+          "decode": "Study Start",
+          "instanceType": "Code"
+        },
+        "relativeFromScheduledInstanceId": "393ede15-476a-4b41-92f6-09d35274ccc3",
+        "instanceType": "Timing",
+        "windowLower": "P0D",
+        "windowUpper": "P30D"
+      },
+      {
+        "id": "timing_7",
+        "name": "Dose Escalation Interval",
+        "type": {
+          "id": "97b122ba-8193-475e-b18a-9c45c6b3a8f4",
+          "code": "C71148",
+          "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+          "codeSystemVersion": "25.01d",
+          "decode": "Fixed Reference",
+          "instanceType": "Code"
+        },
+        "value": "P4W",
+        "valueLabel": "4 weeks",
+        "relativeToFrom": {
+          "id": "eb8e2934-3257-4dae-b635-e3c372387680",
+          "code": "C71153",
+          "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+          "codeSystemVersion": "25.01d",
+          "decode": "Study Start",
+          "instanceType": "Code"
+        },
+        "relativeFromScheduledInstanceId": "e7fb8718-edb5-4808-8c8e-ef0e24bff9c6",
+        "instanceType": "Timing",
+        "windowLower": "P0W",
+        "windowUpper": "P0W"
+      }
+    ],
+    "conditions": [
+      {
+        "id": "cond_1",
+        "name": "Severe Persistent Hyperglycemia (0-8 weeks)",
+        "instanceType": "Condition",
+        "description": "Criteria for rescue therapy initiation in early treatment",
+        "text": "Average daily BG >270 mg/dL (>15.0 mmol/L) over consecutive 2-week period"
+      },
+      {
+        "id": "cond_2",
+        "name": "Severe Persistent Hyperglycemia (8-16 weeks)",
+        "instanceType": "Condition",
+        "description": "Criteria for rescue therapy initiation in mid treatment",
+        "text": "Average daily BG >240 mg/dL (>13.3 mmol/L) over consecutive 2-week period"
+      },
+      {
+        "id": "cond_3",
+        "name": "Severe Persistent Hyperglycemia (>16 weeks)",
+        "instanceType": "Condition",
+        "description": "Criteria for rescue therapy initiation in late treatment",
+        "text": "Average daily BG >200 mg/dL (>11.1 mmol/L) over consecutive 2-week period"
+      },
+      {
+        "id": "cond_4",
+        "name": "HbA1c Rescue Criteria",
+        "instanceType": "Condition",
+        "description": "HbA1c based rescue trigger",
+        "text": "HbA1c >= 8.5% on 2 consecutive measurements separated by at least 8 weeks after week 24"
+      },
+      {
+        "id": "cond_5",
+        "name": "Hepatic Discontinuation Criteria",
+        "instanceType": "Condition",
+        "description": "Liver function test thresholds for stopping study drug",
+        "text": "ALT/AST >8x ULN, or >5x ULN for 2 weeks, or >3x ULN with TBL >2x ULN or INR >1.5"
+      }
+    ],
+    "conditionAssignments": [],
+    "transitionRules": [
+      {
+        "id": "trans_1",
+        "name": "Screening to Lead-in",
+        "instanceType": "TransitionRule",
+        "transitionType": "Epoch Transition",
+        "fromElementId": "Visit_1",
+        "toElementId": "Visit_2",
+        "text": "Review of screening laboratory results and establishment of patient eligibility"
+      },
+      {
+        "id": "trans_2",
+        "name": "Randomization",
+        "instanceType": "TransitionRule",
+        "transitionType": "Epoch Transition",
+        "fromElementId": "Study_Period_I",
+        "toElementId": "Study_Period_II",
+        "text": "Completion of baseline assessments and dilated fundoscopic exam"
+      },
+      {
+        "id": "trans_3",
+        "name": "Rescue Therapy Initiation",
+        "instanceType": "TransitionRule",
+        "transitionType": "Rescue Therapy",
+        "text": "Initiation of new glucose-lowering intervention while continuing study drug due to severe persistent hyperglycemia"
+      },
+      {
+        "id": "trans_4",
+        "name": "Dose Re-escalation after Interruption",
+        "instanceType": "TransitionRule",
+        "transitionType": "Dose Modification",
+        "text": "If >=3 doses missed, restart at 5 mg and escalate every 4 weeks"
+      }
+    ],
+    "scheduleTimelineExits": [
+      {
+        "id": "exit_1",
+        "name": "Permanent Discontinuation",
+        "exitType": "Early Termination",
+        "instanceType": "ScheduleTimelineExit",
+        "description": "Discontinuation due to Pancreatitis, MTC diagnosis, pregnancy, or T1DM diagnosis"
+      },
+      {
+        "id": "exit_2",
+        "name": "Study Completion Criteria",
+        "exitType": "Completion",
+        "instanceType": "ScheduleTimelineExit",
+        "description": "52 weeks post last patient randomized AND 300 patients reach 78 weeks AND 110 CV events occur"
+      },
+      {
+        "id": "exit_3",
+        "name": "Lost to Follow-up",
+        "exitType": "Early Termination",
+        "instanceType": "ScheduleTimelineExit",
+        "description": "Repeated failure to return for scheduled visits and unable to be contacted"
+      }
+    ],
+    "scheduledDecisionInstances": [
+      {
+        "id": "dec_1",
+        "name": "Rescue Therapy Assessment",
+        "timepointId": "Weekly",
+        "instanceType": "ScheduledDecisionInstance",
+        "description": "Investigator evaluation of persistent hyperglycemia for rescue intervention",
+        "conditionIds": [
+          "cond_1",
+          "cond_2",
+          "cond_3",
+          "cond_4"
+        ]
+      },
+      {
+        "id": "dec_2",
+        "name": "Hepatic Safety Review",
+        "timepointId": "Any Visit",
+        "instanceType": "ScheduledDecisionInstance",
+        "description": "Decision to permanently discontinue study drug based on liver test abnormalities",
+        "conditionIds": [
+          "cond_5"
+        ]
+      }
+    ],
+    "summary": {
+      "timingCount": 7,
+      "conditionCount": 5,
+      "transitionRuleCount": 4,
+      "exitCount": 3
+    }
+  }
+}

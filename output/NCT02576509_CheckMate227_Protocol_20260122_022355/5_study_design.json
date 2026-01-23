@@ -1,0 +1,295 @@
+{
+  "success": true,
+  "pagesUsed": [
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29
+  ],
+  "modelUsed": "gemini-3-flash-preview",
+  "studyDesignStructure": {
+    "studyArms": [
+      {
+        "id": "arm_1",
+        "name": "Nivolumab Arm",
+        "type": {
+          "code": "Experimental Arm",
+          "codeSystem": "USDM",
+          "decode": "Experimental Arm"
+        },
+        "instanceType": "StudyArm",
+        "description": "Nivolumab 240 mg administered as a 30-minute IV infusion every 2 weeks until disease progression or unacceptable toxicity."
+      },
+      {
+        "id": "arm_2",
+        "name": "Sorafenib Arm",
+        "type": {
+          "code": "Active Comparator Arm",
+          "codeSystem": "USDM",
+          "decode": "Active Comparator Arm"
+        },
+        "instanceType": "StudyArm",
+        "description": "Sorafenib 400 mg administered orally twice a day (BID) until disease progression or unacceptable toxicity."
+      }
+    ],
+    "studyCells": [
+      {
+        "id": "cell_1",
+        "armId": "arm_1",
+        "epochId": "epoch_1",
+        "elementIds": [
+          "elem_1"
+        ],
+        "instanceType": "StudyCell"
+      },
+      {
+        "id": "cell_2",
+        "armId": "arm_1",
+        "epochId": "epoch_2",
+        "elementIds": [
+          "elem_2"
+        ],
+        "instanceType": "StudyCell"
+      },
+      {
+        "id": "cell_3",
+        "armId": "arm_1",
+        "epochId": "epoch_3",
+        "elementIds": [
+          "elem_3"
+        ],
+        "instanceType": "StudyCell"
+      },
+      {
+        "id": "cell_4",
+        "armId": "arm_2",
+        "epochId": "epoch_1",
+        "elementIds": [
+          "elem_4"
+        ],
+        "instanceType": "StudyCell"
+      },
+      {
+        "id": "cell_5",
+        "armId": "arm_2",
+        "epochId": "epoch_2",
+        "elementIds": [
+          "elem_5"
+        ],
+        "instanceType": "StudyCell"
+      },
+      {
+        "id": "cell_6",
+        "armId": "arm_2",
+        "epochId": "epoch_3",
+        "elementIds": [
+          "elem_6"
+        ],
+        "instanceType": "StudyCell"
+      }
+    ],
+    "studyCohorts": [
+      {
+        "id": "cohort_1",
+        "name": "HCV-HCC",
+        "instanceType": "StudyCohort",
+        "characteristic": "Active or resolved HCV infection as evidenced by detectable HCV RNA or antibody"
+      },
+      {
+        "id": "cohort_2",
+        "name": "HBV-HCC",
+        "instanceType": "StudyCohort",
+        "characteristic": "Resolved or Chronic HBV infection with HBV DNA < 100 IU/mL and on antiviral therapy"
+      },
+      {
+        "id": "cohort_3",
+        "name": "Non-viral HCC",
+        "instanceType": "StudyCohort",
+        "characteristic": "HCC with no history of hepatitis virus infection"
+      }
+    ],
+    "studyElements": [
+      {
+        "id": "elem_1",
+        "name": "Nivolumab Arm - Screening",
+        "instanceType": "StudyElement",
+        "description": "Treatment period for Nivolumab Arm during Screening"
+      },
+      {
+        "id": "elem_2",
+        "name": "Nivolumab Arm - Treatment Phase",
+        "instanceType": "StudyElement",
+        "description": "Treatment period for Nivolumab Arm during Treatment Phase"
+      },
+      {
+        "id": "elem_3",
+        "name": "Nivolumab Arm - Follow-up Phase",
+        "instanceType": "StudyElement",
+        "description": "Treatment period for Nivolumab Arm during Follow-up Phase"
+      },
+      {
+        "id": "elem_4",
+        "name": "Sorafenib Arm - Screening",
+        "instanceType": "StudyElement",
+        "description": "Treatment period for Sorafenib Arm during Screening"
+      },
+      {
+        "id": "elem_5",
+        "name": "Sorafenib Arm - Treatment Phase",
+        "instanceType": "StudyElement",
+        "description": "Treatment period for Sorafenib Arm during Treatment Phase"
+      },
+      {
+        "id": "elem_6",
+        "name": "Sorafenib Arm - Follow-up Phase",
+        "instanceType": "StudyElement",
+        "description": "Treatment period for Sorafenib Arm during Follow-up Phase"
+      }
+    ],
+    "summary": {
+      "armCount": 2,
+      "cellCount": 6,
+      "cohortCount": 3,
+      "elementCount": 6
+    },
+    "studyDesign": {
+      "id": "sd_1",
+      "name": "Study Design",
+      "instanceType": "InterventionalStudyDesign",
+      "trialIntentTypes": [
+        {
+          "code": "Treatment",
+          "codeSystem": "USDM",
+          "decode": "Treatment"
+        }
+      ],
+      "trialType": {
+        "code": "Interventional",
+        "codeSystem": "USDM",
+        "decode": "Interventional"
+      },
+      "blindingSchema": {
+        "code": "Open Label",
+        "codeSystem": "USDM",
+        "decode": "Open Label"
+      },
+      "maskedRoles": [
+        "Outcome Assessor"
+      ],
+      "randomizationType": {
+        "code": "Randomized",
+        "codeSystem": "USDM",
+        "decode": "Randomized"
+      },
+      "allocationRatio": {
+        "ratio": "1:1"
+      },
+      "stratificationFactors": [
+        "Etiology (HCV vs. non-HCV)",
+        "Vascular invasion and/or extrahepatic spread (present vs. absent)",
+        "Geography (Asia vs. Non-Asia)"
+      ],
+      "controlType": {
+        "code": "Active Control",
+        "codeSystem": "USDM",
+        "decode": "Active Control"
+      },
+      "armIds": [
+        "arm_1",
+        "arm_2"
+      ],
+      "cohortIds": [
+        "cohort_1",
+        "cohort_2",
+        "cohort_3"
+      ],
+      "therapeuticAreas": [
+        "Oncology",
+        "Hepatology"
+      ]
+    }
+  },
+  "rawResponse": {
+    "studyDesign": {
+      "type": "Interventional",
+      "trialIntentTypes": [
+        "Treatment"
+      ],
+      "blinding": {
+        "schema": "Open Label",
+        "maskedRoles": [
+          "Outcome Assessor"
+        ]
+      },
+      "randomization": {
+        "type": "Randomized",
+        "allocationRatio": "1:1",
+        "stratificationFactors": [
+          "Etiology (HCV vs. non-HCV)",
+          "Vascular invasion and/or extrahepatic spread (present vs. absent)",
+          "Geography (Asia vs. Non-Asia)"
+        ]
+      },
+      "controlType": "Active Control",
+      "therapeuticAreas": [
+        "Oncology",
+        "Hepatology"
+      ]
+    },
+    "arms": [
+      {
+        "name": "Nivolumab Arm",
+        "type": "Experimental Arm",
+        "description": "Nivolumab 240 mg administered as a 30-minute IV infusion every 2 weeks until disease progression or unacceptable toxicity.",
+        "isTitration": false,
+        "doseEpochs": null
+      },
+      {
+        "name": "Sorafenib Arm",
+        "type": "Active Comparator",
+        "description": "Sorafenib 400 mg administered orally twice a day (BID) until disease progression or unacceptable toxicity.",
+        "isTitration": false,
+        "doseEpochs": null
+      }
+    ],
+    "cohorts": [
+      {
+        "name": "HCV-HCC",
+        "characteristic": "Active or resolved HCV infection as evidenced by detectable HCV RNA or antibody"
+      },
+      {
+        "name": "HBV-HCC",
+        "characteristic": "Resolved or Chronic HBV infection with HBV DNA < 100 IU/mL and on antiviral therapy"
+      },
+      {
+        "name": "Non-viral HCC",
+        "characteristic": "HCC with no history of hepatitis virus infection"
+      }
+    ],
+    "epochs": [
+      {
+        "name": "Screening",
+        "description": "Begins with signing of ICF; includes eligibility assessment and tumor tissue submission."
+      },
+      {
+        "name": "Treatment Phase",
+        "description": "Begins with randomization; subjects receive either Nivolumab or Sorafenib until progression or toxicity."
+      },
+      {
+        "name": "Follow-up Phase",
+        "description": "Includes two safety visits (35 and 80 days post-last dose) and survival follow-up every 3 months."
+      }
+    ]
+  }
+}

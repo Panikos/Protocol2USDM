@@ -432,6 +432,7 @@ Return ONLY the JSON, no explanation."""
             prompt=prompt,
             model_name=model,
             json_mode=True,
+            extractor_name="time_anchor",
             temperature=0.1,
         )
         response = result.get('response', '')
@@ -447,11 +448,13 @@ Return ONLY the JSON, no explanation."""
         
         anchor_data = data.get('timeAnchor', {})
         if anchor_data:
-            anchor_type_str = anchor_data.get('anchorType', 'Day1')
-            try:
-                anchor_type = AnchorType(anchor_type_str)
-            except ValueError:
-                anchor_type = AnchorType.CUSTOM
+            anchor_type_str = anchor_data.get('anchorType')
+            anchor_type = AnchorType.CUSTOM  # Default to CUSTOM if not extracted
+            if anchor_type_str:
+                try:
+                    anchor_type = AnchorType(anchor_type_str)
+                except ValueError:
+                    anchor_type = AnchorType.CUSTOM
             
             return [TimeAnchor(
                 id="anchor_llm_1",

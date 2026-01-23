@@ -1,8 +1,10 @@
 'use client';
 
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Building2, Calendar, FlaskConical, Users, FileText } from 'lucide-react';
+import { Building2, Calendar, FlaskConical, Users, FileText, BookOpen, ChevronDown, ChevronRight, Globe, Tag } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface StudyMetadataViewProps {
   usdm: Record<string, unknown> | null;
@@ -22,6 +24,19 @@ interface Organization {
   id: string;
   name: string;
   type?: { decode?: string };
+}
+
+interface Abbreviation {
+  id?: string;
+  abbreviatedText: string;
+  expandedText: string;
+}
+
+interface Characteristic {
+  id?: string;
+  name?: string;
+  text?: string;
+  value?: string;
 }
 
 export function StudyMetadataView({ usdm }: StudyMetadataViewProps) {
@@ -74,6 +89,31 @@ export function StudyMetadataView({ usdm }: StudyMetadataViewProps) {
 
   // Extract dates
   const dateValues = (version.dateValues as { name?: string; dateValue?: string; type?: { decode?: string } }[]) ?? [];
+
+  // Extract abbreviations
+  const abbreviations = (version.abbreviations as Abbreviation[]) ?? [];
+
+  // Extract characteristics
+  const characteristics = (design?.characteristics as Characteristic[]) ?? [];
+
+  // Extract conditions (medical conditions)
+  const conditions = (version.conditions as { name?: string; description?: string; codes?: { decode?: string }[] }[]) ?? [];
+
+  // State for collapsible sections
+  const [showAllAbbreviations, setShowAllAbbreviations] = useState(false);
+  const [showAllOrgs, setShowAllOrgs] = useState(false);
+
+  // Sort abbreviations alphabetically
+  const sortedAbbreviations = [...abbreviations].sort((a, b) => 
+    (a.abbreviatedText || '').localeCompare(b.abbreviatedText || '')
+  );
+  const displayedAbbreviations = showAllAbbreviations ? sortedAbbreviations : sortedAbbreviations.slice(0, 10);
+
+  // Categorize organizations
+  const sponsors = organizations.filter(o => o.type?.decode?.toLowerCase().includes('sponsor'));
+  const cros = organizations.filter(o => o.type?.decode?.toLowerCase().includes('cro') || o.type?.decode?.toLowerCase().includes('contract'));
+  const otherOrgs = organizations.filter(o => !sponsors.includes(o) && !cros.includes(o));
+  const displayedOrgs = showAllOrgs ? organizations : [...sponsors, ...cros].slice(0, 5);
 
   return (
     <div className="space-y-6">
@@ -174,18 +214,19 @@ export function StudyMetadataView({ usdm }: StudyMetadataViewProps) {
         </CardContent>
       </Card>
 
-      {/* Organizations */}
+      {/* Organizations - Collapsible */}
       {organizations.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Building2 className="h-5 w-5" />
               Organizations
+              <Badge variant="secondary">{organizations.length}</Badge>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {organizations.map((org, i) => {
+              {displayedOrgs.map((org, i) => {
                 const orgType = org.type?.decode || org.type?.code || 'Organization';
                 const isSponsor = orgType.toLowerCase().includes('sponsor');
                 const isCRO = orgType.toLowerCase().includes('cro') || orgType.toLowerCase().includes('contract');
@@ -207,6 +248,24 @@ export function StudyMetadataView({ usdm }: StudyMetadataViewProps) {
                 );
               })}
             </div>
+            {organizations.length > 5 && (
+              <button
+                onClick={() => setShowAllOrgs(!showAllOrgs)}
+                className="mt-4 flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400"
+              >
+                {showAllOrgs ? (
+                  <>
+                    <ChevronDown className="h-4 w-4" />
+                    Show less
+                  </>
+                ) : (
+                  <>
+                    <ChevronRight className="h-4 w-4" />
+                    Show all {organizations.length} organizations
+                  </>
+                )}
+              </button>
+            )}
           </CardContent>
         </Card>
       )}
@@ -258,6 +317,108 @@ export function StudyMetadataView({ usdm }: StudyMetadataViewProps) {
                 )}
               </div>
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Medical Conditions */}
+      {conditions.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Tag className="h-5 w-5" />
+              Medical Conditions
+              <Badge variant="secondary">{conditions.length}</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {conditions.map((cond, i) => (
+                <div key={i} className="p-3 bg-muted rounded-lg">
+                  <div className="font-medium">{cond.name || `Condition ${i + 1}`}</div>
+                  {cond.description && (
+                    <p className="text-sm text-muted-foreground mt-1">{cond.description}</p>
+                  )}
+                  {cond.codes && cond.codes.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {cond.codes.map((code, j) => (
+                        <Badge key={j} variant="outline" className="text-xs">
+                          {code.decode}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Study Characteristics */}
+      {characteristics.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Tag className="h-5 w-5" />
+              Study Characteristics
+              <Badge variant="secondary">{characteristics.length}</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {characteristics.map((char, i) => (
+                <div key={i} className="p-3 bg-muted rounded-lg">
+                  <div className="font-medium text-sm text-muted-foreground">
+                    {char.name || `Characteristic ${i + 1}`}
+                  </div>
+                  <div className="mt-1">{char.text || char.value || 'N/A'}</div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Abbreviations - Collapsible */}
+      {abbreviations.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BookOpen className="h-5 w-5" />
+              Abbreviations Glossary
+              <Badge variant="secondary">{abbreviations.length}</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+              {displayedAbbreviations.map((abbr, i) => (
+                <div key={i} className="flex items-start gap-2 p-2 rounded hover:bg-muted">
+                  <Badge variant="outline" className="shrink-0 font-mono">
+                    {abbr.abbreviatedText}
+                  </Badge>
+                  <span className="text-sm text-muted-foreground">{abbr.expandedText}</span>
+                </div>
+              ))}
+            </div>
+            {abbreviations.length > 10 && (
+              <button
+                onClick={() => setShowAllAbbreviations(!showAllAbbreviations)}
+                className="mt-4 flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400"
+              >
+                {showAllAbbreviations ? (
+                  <>
+                    <ChevronDown className="h-4 w-4" />
+                    Show less
+                  </>
+                ) : (
+                  <>
+                    <ChevronRight className="h-4 w-4" />
+                    Show all {abbreviations.length} abbreviations
+                  </>
+                )}
+              </button>
+            )}
           </CardContent>
         </Card>
       )}

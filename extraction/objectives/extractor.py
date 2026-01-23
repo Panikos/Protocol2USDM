@@ -23,7 +23,7 @@ from .schema import (
     EndpointLevel,
     IntercurrentEventStrategy,
 )
-from .prompts import build_objectives_extraction_prompt
+from .prompts import build_objectives_extraction_prompt, build_estimands_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -112,9 +112,13 @@ def extract_objectives_endpoints(
     protocol_text: Optional[str] = None,
     study_indication: Optional[str] = None,
     study_phase: Optional[str] = None,
+    extract_estimands: bool = True,
 ) -> ObjectivesExtractionResult:
     """
-    Extract objectives and endpoints from a protocol PDF.
+    Extract objectives and endpoints from a protocol PDF using two-phase approach.
+    
+    Phase 1: Extract objectives and endpoints (core - always runs)
+    Phase 2: Extract estimands with endpoint context (optional enhancement)
     
     Args:
         pdf_path: Path to the protocol PDF
@@ -123,6 +127,7 @@ def extract_objectives_endpoints(
         protocol_text: Optional pre-extracted text
         study_indication: Indication from metadata for context
         study_phase: Study phase from metadata for context
+        extract_estimands: Whether to run Phase 2 estimands extraction (default True)
         
     Returns:
         ObjectivesExtractionResult with extracted data
@@ -149,9 +154,6 @@ def extract_objectives_endpoints(
             result.error = "Failed to extract text from PDF"
             return result
         
-        # Call LLM for extraction
-        logger.info("Extracting objectives and endpoints with LLM...")
-        
         # Build context hints from prior extractions
         context_hints = ""
         if study_indication:
@@ -159,42 +161,319 @@ def extract_objectives_endpoints(
         if study_phase:
             context_hints += f"\nStudy phase: {study_phase}"
         
-        prompt = build_objectives_extraction_prompt(protocol_text, context_hints=context_hints)
+        # =====================================================================
+        # PHASE 1: Extract objectives and endpoints (core)
+        # =====================================================================
+        logger.info("Phase 1: Extracting objectives and endpoints...")
         
-        response = call_llm(
-            prompt=prompt,
+        phase1_response = _extract_with_retry(
+            prompt=build_objectives_extraction_prompt(protocol_text, context_hints=context_hints),
             model_name=model_name,
-            json_mode=True,
+            phase_name="objectives",
+            max_retries=3,
         )
         
-        if 'error' in response:
-            result.error = response['error']
+        if phase1_response is None:
+            result.error = "Phase 1 failed: Could not parse objectives/endpoints JSON"
             return result
         
-        # Parse response
-        raw_response = _parse_json_response(response.get('response', ''))
-        if not raw_response:
-            result.error = "Failed to parse LLM response as JSON"
+        # Parse Phase 1 results
+        objectives_data = _parse_objectives_only(phase1_response)
+        if objectives_data is None:
+            result.error = "Phase 1 failed: Could not parse objectives structure"
             return result
         
-        result.raw_response = raw_response
+        logger.info(
+            f"Phase 1 complete: {objectives_data.primary_objectives_count} primary, "
+            f"{objectives_data.secondary_objectives_count} secondary, "
+            f"{objectives_data.exploratory_objectives_count} exploratory objectives, "
+            f"{len(objectives_data.endpoints)} endpoints"
+        )
         
-        # Convert to structured data
-        result.data = _parse_objectives_response(raw_response)
-        result.success = result.data is not None
-        
-        if result.success:
-            logger.info(
-                f"Extracted {result.data.primary_objectives_count} primary, "
-                f"{result.data.secondary_objectives_count} secondary, "
-                f"{result.data.exploratory_objectives_count} exploratory objectives"
+        # =====================================================================
+        # PHASE 2: Extract estimands with endpoint context (optional)
+        # =====================================================================
+        if extract_estimands and objectives_data.endpoints:
+            logger.info("Phase 2: Extracting estimands with endpoint context...")
+            
+            # Build endpoint context for Phase 2
+            endpoints_for_context = [ep.to_dict() for ep in objectives_data.endpoints]
+            
+            phase2_response = _extract_with_retry(
+                prompt=build_estimands_prompt(protocol_text, endpoints_for_context, context_hints),
+                model_name=model_name,
+                phase_name="estimands",
+                max_retries=2,
             )
+            
+            if phase2_response and phase2_response.get('estimands'):
+                estimands = _parse_estimands(phase2_response)
+                objectives_data.estimands = estimands
+                logger.info(f"Phase 2 complete: {len(estimands)} estimands extracted")
+            else:
+                logger.warning("Phase 2: No estimands extracted (non-fatal)")
+        
+        # Store combined raw response
+        result.raw_response = {
+            "objectives": [o.to_dict() for o in objectives_data.objectives],
+            "endpoints": [e.to_dict() for e in objectives_data.endpoints],
+            "estimands": [est.to_dict() for est in objectives_data.estimands],
+        }
+        
+        result.data = objectives_data
+        result.success = True
+        
+        logger.info(
+            f"Extraction complete: {result.data.primary_objectives_count} primary, "
+            f"{result.data.secondary_objectives_count} secondary, "
+            f"{result.data.exploratory_objectives_count} exploratory objectives"
+        )
         
     except Exception as e:
         logger.error(f"Objectives extraction failed: {e}")
         result.error = str(e)
         
     return result
+
+
+def _extract_with_retry(
+    prompt: str,
+    model_name: str,
+    phase_name: str,
+    max_retries: int = 3,
+) -> Optional[Dict[str, Any]]:
+    """
+    Call LLM with retry logic for truncated responses.
+    
+    Args:
+        prompt: The extraction prompt
+        model_name: LLM model to use
+        phase_name: Name for logging (e.g., "objectives", "estimands")
+        max_retries: Maximum continuation retries
+        
+    Returns:
+        Parsed JSON response or None if failed
+    """
+    accumulated_response = ""
+    
+    for attempt in range(max_retries + 1):
+        if attempt == 0:
+            current_prompt = prompt
+        else:
+            logger.info(f"{phase_name} retry {attempt}/{max_retries}: Requesting continuation...")
+            context_window = min(3000, len(accumulated_response))
+            current_prompt = (
+                f"Your previous response was truncated. Here is the end of what you generated:\n\n"
+                f"```json\n{accumulated_response[-context_window:]}\n```\n\n"
+                f"Please complete the JSON response. Continue EXACTLY from where you left off. "
+                f"Do NOT repeat any content already generated. Output ONLY the remaining JSON."
+            )
+        
+        response = call_llm(
+            prompt=current_prompt,
+            model_name=model_name,
+            json_mode=True,
+            extractor_name=phase_name,
+        )
+        
+        if 'error' in response:
+            logger.error(f"{phase_name} LLM error: {response['error']}")
+            return None
+        
+        response_text = response.get('response', '')
+        
+        if attempt > 0 and response_text:
+            accumulated_response = accumulated_response.rstrip() + response_text.lstrip()
+            parsed = _parse_json_response(accumulated_response)
+            if parsed:
+                logger.info(f"{phase_name}: Parsed after {attempt} continuation(s)")
+                return parsed
+        else:
+            accumulated_response = response_text
+            parsed = _parse_json_response(response_text)
+            if parsed:
+                return parsed
+                
+            # Check if truncated
+            if response_text and not response_text.rstrip().endswith('}'):
+                continue  # Likely truncated, retry
+            break  # Not truncated, just failed
+    
+    return None
+
+
+def _parse_objectives_only(raw: Dict[str, Any]) -> Optional[ObjectivesData]:
+    """Parse Phase 1 response (objectives + endpoints only, no estimands)."""
+    try:
+        objectives = []
+        endpoints = []
+        
+        primary_count = 0
+        secondary_count = 0
+        exploratory_count = 0
+        
+        # Ensure raw is a dict
+        if not isinstance(raw, dict):
+            logger.error(f"Expected dict but got {type(raw).__name__}")
+            return None
+        
+        # Parse objectives with level codes
+        for obj_data in raw.get('objectives', []):
+            # Skip non-dict items
+            if not isinstance(obj_data, dict):
+                logger.warning(f"Skipping non-dict objective item: {type(obj_data).__name__}")
+                continue
+            level_data = obj_data.get('level', {})
+            level_code = level_data.get('code') if isinstance(level_data, dict) else (str(level_data) if level_data else '')
+            
+            level = ObjectiveLevel.UNKNOWN
+            if level_code:
+                if 'Primary' in level_code:
+                    level = ObjectiveLevel.PRIMARY
+                    primary_count += 1
+                elif 'Secondary' in level_code:
+                    level = ObjectiveLevel.SECONDARY
+                    secondary_count += 1
+                elif 'Exploratory' in level_code:
+                    level = ObjectiveLevel.EXPLORATORY
+                    exploratory_count += 1
+            
+            objectives.append(Objective(
+                id=obj_data.get('id', f"obj_{len(objectives)+1}"),
+                name=obj_data.get('name', ''),
+                text=obj_data.get('text', ''),
+                level=level,
+                endpoint_ids=obj_data.get('endpointIds', []),
+            ))
+        
+        # Parse endpoints with level codes
+        for ep_data in raw.get('endpoints', []):
+            # Skip non-dict items
+            if not isinstance(ep_data, dict):
+                logger.warning(f"Skipping non-dict endpoint item: {type(ep_data).__name__}")
+                continue
+            level_data = ep_data.get('level', {})
+            level_code = level_data.get('code') if isinstance(level_data, dict) else (str(level_data) if level_data else '')
+            
+            level = EndpointLevel.UNKNOWN
+            if level_code:
+                if 'Primary' in level_code:
+                    level = EndpointLevel.PRIMARY
+                elif 'Secondary' in level_code:
+                    level = EndpointLevel.SECONDARY
+                elif 'Exploratory' in level_code:
+                    level = EndpointLevel.EXPLORATORY
+            
+            endpoints.append(Endpoint(
+                id=ep_data.get('id', f"ep_{len(endpoints)+1}"),
+                name=ep_data.get('name', ''),
+                text=ep_data.get('text', ''),
+                level=level,
+                purpose=ep_data.get('purpose'),
+            ))
+        
+        return ObjectivesData(
+            objectives=objectives,
+            endpoints=endpoints,
+            estimands=[],  # Populated in Phase 2
+            primary_objectives_count=primary_count,
+            secondary_objectives_count=secondary_count,
+            exploratory_objectives_count=exploratory_count,
+        )
+        
+    except Exception as e:
+        logger.error(f"Failed to parse objectives: {e}")
+        return None
+
+
+def _parse_estimands(raw: Dict[str, Any]) -> List[Estimand]:
+    """Parse Phase 2 response (estimands only)."""
+    estimands = []
+    
+    try:
+        for est_data in raw.get('estimands', []):
+            endpoint_id = est_data.get('endpointId')
+            
+            # Parse intercurrent events
+            ice_list = []
+            for ie_data in est_data.get('intercurrentEvents', []):
+                if isinstance(ie_data, dict):
+                    strategy_data = ie_data.get('strategy', {})
+                    strategy_code = strategy_data.get('code', 'TreatmentPolicy') if isinstance(strategy_data, dict) else str(strategy_data)
+                    strategy = _map_strategy(strategy_code)
+                    ice_text = ie_data.get('text') or ie_data.get('description') or ie_data.get('name', 'Intercurrent event')
+                    ice_list.append(IntercurrentEvent(
+                        id=ie_data.get('id', f"ice_{len(estimands)+1}_{len(ice_list)+1}"),
+                        name=ie_data.get('name', 'Intercurrent Event'),
+                        text=ice_text,
+                        strategy=strategy,
+                        description=ie_data.get('description'),
+                        label=ie_data.get('label'),
+                    ))
+            
+            pop_text = est_data.get('population', est_data.get('populationSummary', 'Study population as defined by eligibility criteria'))
+            
+            estimands.append(Estimand(
+                id=est_data.get('id', f"est_{len(estimands)+1}"),
+                name=est_data.get('name', ''),
+                label=est_data.get('label'),
+                description=est_data.get('description'),
+                population_summary=pop_text,
+                analysis_population_id=est_data.get('analysisPopulationId'),
+                variable_of_interest_id=endpoint_id,
+                intervention_ids=est_data.get('interventionIds', []),
+                intercurrent_events=ice_list,
+                summary_measure=est_data.get('summaryMeasure'),
+                treatment=est_data.get('treatment'),
+                analysis_population=est_data.get('analysisPopulation') or est_data.get('population'),
+                variable_of_interest=est_data.get('variableOfInterest'),
+                endpoint_id=endpoint_id,
+            ))
+    
+    except Exception as e:
+        logger.error(f"Failed to parse estimands: {e}")
+    
+    return estimands
+
+
+def _repair_json(json_str: str) -> str:
+    """Attempt to repair common JSON syntax errors."""
+    repaired = json_str
+    
+    # Fix unterminated strings - close them before newlines or end
+    # This handles cases like: "text that was cut off
+    lines = repaired.split('\n')
+    fixed_lines = []
+    for line in lines:
+        # Count quotes in line (excluding escaped quotes)
+        quote_count = len(re.findall(r'(?<!\\)"', line))
+        if quote_count % 2 == 1:
+            # Odd number of quotes - line has unterminated string
+            line = line.rstrip() + '"'
+        fixed_lines.append(line)
+    repaired = '\n'.join(fixed_lines)
+    
+    # Fix missing commas between elements
+    repaired = re.sub(r'"\s*\n\s*"', '",\n"', repaired)
+    repaired = re.sub(r'}\s*\n\s*{', '},\n{', repaired)
+    repaired = re.sub(r']\s*\n\s*"', '],\n"', repaired)
+    repaired = re.sub(r'"\s*\n\s*{', '",\n{', repaired)
+    repaired = re.sub(r'}\s*\n\s*"', '},\n"', repaired)
+    
+    # Fix trailing commas before closing brackets
+    repaired = re.sub(r',\s*}', '}', repaired)
+    repaired = re.sub(r',\s*]', ']', repaired)
+    
+    # Ensure proper closing brackets
+    open_braces = repaired.count('{') - repaired.count('}')
+    open_brackets = repaired.count('[') - repaired.count(']')
+    
+    if open_braces > 0:
+        repaired = repaired.rstrip() + '}' * open_braces
+    if open_brackets > 0:
+        repaired = repaired.rstrip() + ']' * open_brackets
+    
+    return repaired
 
 
 def _parse_json_response(response_text: str) -> Optional[Dict[str, Any]]:
@@ -209,11 +488,45 @@ def _parse_json_response(response_text: str) -> Optional[Dict[str, Any]]:
     
     response_text = response_text.strip()
     
+    def normalize_result(result):
+        """Ensure result is a dict with expected structure."""
+        if isinstance(result, dict):
+            return result
+        elif isinstance(result, list):
+            # LLM returned a list - try to determine what it contains
+            logger.warning(f"LLM returned list instead of dict ({len(result)} items), attempting to normalize")
+            if result and isinstance(result[0], dict):
+                first_item = result[0]
+                # Check if first item IS the expected dict structure (wrapped in list)
+                if 'objectives' in first_item or 'endpoints' in first_item:
+                    logger.info("Found wrapped dict structure in list, extracting first item")
+                    return first_item
+                # Otherwise check if these are objectives or endpoints based on structure
+                if 'endpointIds' in first_item or ('level' in first_item and 'text' in first_item):
+                    # Looks like a list of objectives
+                    return {"objectives": result, "endpoints": []}
+                elif 'purpose' in first_item:
+                    # Looks like a list of endpoints
+                    return {"objectives": [], "endpoints": result}
+            # Default: assume it's objectives
+            return {"objectives": result, "endpoints": []}
+        return None
+    
     try:
-        return json.loads(response_text)
+        result = json.loads(response_text)
+        return normalize_result(result)
     except json.JSONDecodeError as e:
         logger.warning(f"Failed to parse JSON response: {e}")
-        return None
+        
+        # Try to repair and parse again
+        try:
+            repaired = _repair_json(response_text)
+            result = json.loads(repaired)
+            logger.info("Successfully parsed JSON after repair")
+            return normalize_result(result)
+        except json.JSONDecodeError as e2:
+            logger.warning(f"JSON repair also failed: {e2}")
+            return None
 
 
 def _parse_usdm_format(raw: Dict[str, Any]) -> Optional[ObjectivesData]:
@@ -227,21 +540,23 @@ def _parse_usdm_format(raw: Dict[str, Any]) -> Optional[ObjectivesData]:
         secondary_count = 0
         exploratory_count = 0
         
-        # Parse objectives with level codes
+        # Parse objectives with level codes - use UNKNOWN if not extracted
         for obj_data in raw.get('objectives', []):
             level_data = obj_data.get('level', {})
-            level_code = level_data.get('code', 'Primary') if isinstance(level_data, dict) else str(level_data)
+            level_code = level_data.get('code') if isinstance(level_data, dict) else (str(level_data) if level_data else '')
             
-            # Map level code to enum
-            if 'Primary' in level_code:
-                level = ObjectiveLevel.PRIMARY
-                primary_count += 1
-            elif 'Secondary' in level_code:
-                level = ObjectiveLevel.SECONDARY
-                secondary_count += 1
-            else:
-                level = ObjectiveLevel.EXPLORATORY
-                exploratory_count += 1
+            # Map level code to enum - default to UNKNOWN if not specified
+            level = ObjectiveLevel.UNKNOWN
+            if level_code:
+                if 'Primary' in level_code:
+                    level = ObjectiveLevel.PRIMARY
+                    primary_count += 1
+                elif 'Secondary' in level_code:
+                    level = ObjectiveLevel.SECONDARY
+                    secondary_count += 1
+                elif 'Exploratory' in level_code:
+                    level = ObjectiveLevel.EXPLORATORY
+                    exploratory_count += 1
             
             objectives.append(Objective(
                 id=obj_data.get('id', f"obj_{len(objectives)+1}"),
@@ -251,17 +566,19 @@ def _parse_usdm_format(raw: Dict[str, Any]) -> Optional[ObjectivesData]:
                 endpoint_ids=obj_data.get('endpointIds', []),
             ))
         
-        # Parse endpoints with level codes
+        # Parse endpoints with level codes - use UNKNOWN if not extracted
         for ep_data in raw.get('endpoints', []):
             level_data = ep_data.get('level', {})
-            level_code = level_data.get('code', 'Primary') if isinstance(level_data, dict) else str(level_data)
+            level_code = level_data.get('code') if isinstance(level_data, dict) else (str(level_data) if level_data else '')
             
-            if 'Primary' in level_code:
-                level = EndpointLevel.PRIMARY
-            elif 'Secondary' in level_code:
-                level = EndpointLevel.SECONDARY
-            else:
-                level = EndpointLevel.EXPLORATORY
+            level = EndpointLevel.UNKNOWN
+            if level_code:
+                if 'Primary' in level_code:
+                    level = EndpointLevel.PRIMARY
+                elif 'Secondary' in level_code:
+                    level = EndpointLevel.SECONDARY
+                elif 'Exploratory' in level_code:
+                    level = EndpointLevel.EXPLORATORY
             
             endpoints.append(Endpoint(
                 id=ep_data.get('id', f"ep_{len(endpoints)+1}"),
@@ -271,17 +588,49 @@ def _parse_usdm_format(raw: Dict[str, Any]) -> Optional[ObjectivesData]:
                 purpose=ep_data.get('purpose'),
             ))
         
-        # Parse estimands if present
+        # Parse estimands if present - with full ICH E9(R1) attributes aligned to USDM 4.0
         for est_data in raw.get('estimands', []):
+            endpoint_id = est_data.get('endpointId')
+            
+            # Parse intercurrent events - USDM 4.0 requires: id, name, text, strategy
+            ice_list = []
+            for ie_data in est_data.get('intercurrentEvents', []):
+                if isinstance(ie_data, dict):
+                    strategy_data = ie_data.get('strategy', {})
+                    strategy_code = strategy_data.get('code', 'TreatmentPolicy') if isinstance(strategy_data, dict) else str(strategy_data)
+                    strategy = _map_strategy(strategy_code)
+                    # text is required in USDM 4.0 - use description or name as fallback
+                    ice_text = ie_data.get('text') or ie_data.get('description') or ie_data.get('name', 'Intercurrent event')
+                    ice_list.append(IntercurrentEvent(
+                        id=ie_data.get('id', f"ice_{len(estimands)+1}_{len(ice_list)+1}"),
+                        name=ie_data.get('name', 'Intercurrent Event'),
+                        text=ice_text,  # Required in USDM 4.0
+                        strategy=strategy,
+                        description=ie_data.get('description'),
+                        label=ie_data.get('label'),
+                    ))
+            
+            # Population summary in USDM 4.0 is the population-level summary (ICH E9 attribute 5)
+            # It should describe both the population AND how the effect is summarized
+            pop_text = est_data.get('population', est_data.get('populationSummary', 'Study population as defined by eligibility criteria'))
+            
             estimands.append(Estimand(
                 id=est_data.get('id', f"est_{len(estimands)+1}"),
                 name=est_data.get('name', ''),
-                objective_id=est_data.get('objectiveId'),
-                endpoint_id=est_data.get('endpointId'),
-                population=est_data.get('population'),
-                analysis_population=est_data.get('analysisPopulation'),
+                label=est_data.get('label'),
+                description=est_data.get('description'),
+                # USDM 4.0 required fields
+                population_summary=pop_text,
+                analysis_population_id=est_data.get('analysisPopulationId'),
+                variable_of_interest_id=endpoint_id,
+                intervention_ids=est_data.get('interventionIds', []),
+                intercurrent_events=ice_list,
+                # Extension fields for ICH E9(R1) context
+                summary_measure=est_data.get('summaryMeasure'),
                 treatment=est_data.get('treatment'),
+                analysis_population=est_data.get('analysisPopulation') or est_data.get('population'),
                 variable_of_interest=est_data.get('variableOfInterest'),
+                endpoint_id=endpoint_id,
             ))
         
         logger.info(f"Parsed USDM format: {primary_count} primary, {secondary_count} secondary, {exploratory_count} exploratory objectives")
@@ -308,6 +657,14 @@ def _parse_objectives_response(raw: Dict[str, Any]) -> Optional[ObjectivesData]:
     2. Legacy format: grouped by 'primaryObjectives', 'secondaryObjectives', etc.
     """
     try:
+        # Handle case where LLM returns a list instead of a dict
+        if isinstance(raw, list):
+            if len(raw) == 1 and isinstance(raw[0], dict):
+                raw = raw[0]
+            else:
+                # Assume list contains objectives directly
+                raw = {'objectives': raw}
+        
         # Check for new USDM-compliant format (flat objectives list with level codes)
         if raw.get('objectives') and isinstance(raw['objectives'], list) and len(raw['objectives']) > 0:
             first_obj = raw['objectives'][0]
@@ -415,7 +772,7 @@ def _parse_objectives_response(raw: Dict[str, Any]) -> Optional[ObjectivesData]:
         
         exploratory_count = len([o for o in objectives if o.level == ObjectiveLevel.EXPLORATORY])
         
-        # Process estimands (if present)
+        # Process estimands (if present) - aligned with USDM 4.0
         est_counter = 1
         for est_data in raw.get('estimands', []):
             if not isinstance(est_data, dict):
@@ -425,16 +782,20 @@ def _parse_objectives_response(raw: Dict[str, Any]) -> Optional[ObjectivesData]:
             for ie_data in est_data.get('intercurrentEvents', []):
                 if isinstance(ie_data, dict):
                     strategy = _map_strategy(ie_data.get('strategy', 'Treatment Policy'))
+                    event_name = ie_data.get('event') or ie_data.get('name', 'Intercurrent Event')
+                    event_text = ie_data.get('text') or ie_data.get('description') or event_name
                     ice_list.append(IntercurrentEvent(
                         id=f"ice_{est_counter}_{len(ice_list)+1}",
-                        name=ie_data.get('event', 'Intercurrent Event'),
-                        description=ie_data.get('event', ''),
+                        name=event_name,
+                        text=event_text,  # Required in USDM 4.0
                         strategy=strategy,
+                        description=ie_data.get('description'),
                     ))
             
             estimands.append(Estimand(
                 id=f"est_{est_counter}",
                 name=est_data.get('name', f'Estimand {est_counter}'),
+                population_summary=est_data.get('population', 'Study population as defined by eligibility criteria'),
                 summary_measure=est_data.get('summaryMeasure', 'Unknown'),
                 analysis_population=est_data.get('population'),
                 treatment=est_data.get('treatment'),

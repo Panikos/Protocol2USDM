@@ -152,7 +152,7 @@ class EntityResolver:
             result = call_llm(
                 full_prompt,
                 json_mode=True,
-                temperature=0.1  # Low temperature for consistent resolution
+                extractor_name="entity_resolver",  # Uses semantic task config
             )
             response = result.get('response', '')
             if result.get('error'):
@@ -298,7 +298,7 @@ If a concept has no matching epoch, set epochId and epochName to null."""
 Return JSON array with mappings (same format as epoch resolution)."""
         
         try:
-            result = call_llm(prompt, json_mode=True, temperature=0.1)
+            result = call_llm(prompt, json_mode=True, extractor_name="entity_resolver")
             response = result.get('response', '')
             if result.get('error'):
                 logger.error(f"LLM visit resolution error: {result.get('error')}")

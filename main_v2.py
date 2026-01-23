@@ -42,6 +42,9 @@ logger = logging.getLogger(__name__)
 from extraction import run_from_files, PipelineConfig, PipelineResult
 from core.constants import DEFAULT_MODEL
 
+# Import token usage tracker
+from llm_providers import usage_tracker
+
 # Import expansion modules
 from extraction.metadata import extract_study_metadata
 from extraction.metadata.extractor import save_metadata_result
@@ -58,6 +61,7 @@ from extraction.narrative.extractor import save_narrative_result
 from extraction.advanced import extract_advanced_entities
 from extraction.advanced.extractor import save_advanced_result
 from extraction.execution import extract_execution_model
+from extraction.execution.pipeline_integration import get_processing_warnings
 from core.reconciliation import (
     EpochReconciler, reconcile_epochs_from_pipeline,
     ActivityReconciler, reconcile_activities_from_pipeline,
@@ -107,6 +111,7 @@ def run_expansion_phases(
     
     if phases.get('metadata'):
         logger.info("\n--- Expansion: Study Metadata (Phase 2) ---")
+        usage_tracker.set_phase("Metadata")
         result = extract_study_metadata(pdf_path, model_name=model)
         save_metadata_result(result, os.path.join(output_dir, "2_study_metadata.json"))
         results['metadata'] = result
@@ -120,6 +125,7 @@ def run_expansion_phases(
     
     if phases.get('eligibility'):
         logger.info("\n--- Expansion: Eligibility Criteria (Phase 1) ---")
+        usage_tracker.set_phase("Eligibility")
         result = extract_eligibility_criteria(
             pdf_path, 
             model_name=model,
@@ -137,6 +143,7 @@ def run_expansion_phases(
     
     if phases.get('objectives'):
         logger.info("\n--- Expansion: Objectives & Endpoints (Phase 3) ---")
+        usage_tracker.set_phase("Objectives")
         result = extract_objectives_endpoints(
             pdf_path, 
             model_name=model,
@@ -154,6 +161,7 @@ def run_expansion_phases(
     
     if phases.get('studydesign'):
         logger.info("\n--- Expansion: Study Design (Phase 4) ---")
+        usage_tracker.set_phase("StudyDesign")
         result = extract_study_design(
             pdf_path, 
             model_name=model,
@@ -171,6 +179,7 @@ def run_expansion_phases(
     
     if phases.get('interventions'):
         logger.info("\n--- Expansion: Interventions (Phase 5) ---")
+        usage_tracker.set_phase("Interventions")
         result = extract_interventions(
             pdf_path, 
             model_name=model,
@@ -188,6 +197,7 @@ def run_expansion_phases(
     
     if phases.get('narrative'):
         logger.info("\n--- Expansion: Narrative Structure (Phase 7) ---")
+        usage_tracker.set_phase("Narrative")
         result = extract_narrative_structure(pdf_path, model_name=model)
         save_narrative_result(result, os.path.join(output_dir, "7_narrative_structure.json"))
         results['narrative'] = result
@@ -199,6 +209,7 @@ def run_expansion_phases(
     
     if phases.get('advanced'):
         logger.info("\n--- Expansion: Advanced Entities (Phase 8) ---")
+        usage_tracker.set_phase("Advanced")
         result = extract_advanced_entities(pdf_path, model_name=model)
         save_advanced_result(result, os.path.join(output_dir, "8_advanced_entities.json"))
         results['advanced'] = result
@@ -210,6 +221,7 @@ def run_expansion_phases(
     
     if phases.get('procedures'):
         logger.info("\n--- Expansion: Procedures & Devices (Phase 10) ---")
+        usage_tracker.set_phase("Procedures")
         try:
             from extraction.procedures import extract_procedures_devices
             result = extract_procedures_devices(pdf_path, model=model, output_dir=output_dir)
@@ -224,6 +236,7 @@ def run_expansion_phases(
     
     if phases.get('scheduling'):
         logger.info("\n--- Expansion: Scheduling Logic (Phase 11) ---")
+        usage_tracker.set_phase("Scheduling")
         try:
             from extraction.scheduling import extract_scheduling
             result = extract_scheduling(pdf_path, model=model, output_dir=output_dir)
@@ -238,6 +251,7 @@ def run_expansion_phases(
     
     if phases.get('docstructure'):
         logger.info("\n--- Expansion: Document Structure (Phase 12) ---")
+        usage_tracker.set_phase("DocStructure")
         try:
             from extraction.document_structure import extract_document_structure
             result = extract_document_structure(pdf_path, model=model, output_dir=output_dir)
@@ -252,6 +266,7 @@ def run_expansion_phases(
     
     if phases.get('amendmentdetails'):
         logger.info("\n--- Expansion: Amendment Details (Phase 13) ---")
+        usage_tracker.set_phase("AmendmentDetails")
         try:
             from extraction.amendments import extract_amendment_details
             result = extract_amendment_details(pdf_path, model=model, output_dir=output_dir)
@@ -266,6 +281,7 @@ def run_expansion_phases(
     
     if phases.get('execution'):
         logger.info("\n--- Expansion: Execution Model (Phase 14) ---")
+        usage_tracker.set_phase("ExecutionModel")
         result = extract_execution_model(
             pdf_path, 
             model=model, 
@@ -1045,6 +1061,7 @@ def combine_to_full_usdm(
     output_dir: str,
     soa_data: dict = None,
     expansion_results: dict = None,
+    pdf_path: str = None,
 ) -> dict:
     """
     Combine SoA and expansion results into unified USDM JSON.
@@ -1117,6 +1134,41 @@ def combine_to_full_usdm(
                 combined["_temp_indications"] = md['indications']
             logger.info("  Using previously extracted metadata")
     
+    # Ensure required USDM 4.0 fields have fallback defaults
+    if "titles" not in study_version:
+        # Extract filename for default title
+        pdf_name = Path(pdf_path).stem if pdf_path else "Unknown Protocol"
+        study_version["titles"] = [{
+            "id": str(uuid.uuid4()),
+            "instanceType": "StudyTitle",
+            "text": pdf_name,
+            "type": {"code": "C99905x1", "codeSystem": "http://www.cdisc.org", "decode": "Official Study Title"}
+        }]
+        logger.warning("  Using fallback default for titles (metadata extraction failed)")
+    
+    if "studyIdentifiers" not in study_version:
+        # Create default sponsor organization for scope reference
+        sponsor_org_id = str(uuid.uuid4())
+        if "organizations" not in study_version:
+            study_version["organizations"] = []
+        study_version["organizations"].append({
+            "id": sponsor_org_id,
+            "instanceType": "Organization",
+            "name": "Sponsor",
+            "identifier": "SPONSOR",
+            "identifierScheme": "DUNS",
+            "type": {"code": "C70793", "codeSystem": "http://www.cdisc.org", "decode": "Clinical Study Sponsor"}
+        })
+        # Create identifier with scopeId referencing the sponsor org (USDM 4.0 format)
+        study_version["studyIdentifiers"] = [{
+            "id": str(uuid.uuid4()),
+            "instanceType": "StudyIdentifier",
+            "text": "UNKNOWN",
+            "scopeId": sponsor_org_id,
+            "type": {"code": "C132351", "codeSystem": "http://www.cdisc.org", "decode": "Sponsor Protocol Identifier"}
+        }]
+        logger.warning("  Using fallback default for studyIdentifiers (metadata extraction failed)")
+    
     # Build StudyDesign container with all required fields
     study_design = {
         "id": "sd_1", 
@@ -1140,6 +1192,37 @@ def combine_to_full_usdm(
             study_design["arms"] = [a.to_dict() for a in sd.arms]
             study_design["studyCohorts"] = [c.to_dict() for c in sd.cohorts]
             study_design["studyCells"] = [c.to_dict() for c in sd.cells]
+            study_design["studyElements"] = [e.to_dict() for e in sd.elements]
+            # Create Masking entities from blinding data
+            if sd.study_design and sd.study_design.blinding_schema:
+                masking_entities = []
+                blinding_value = sd.study_design.blinding_schema.value
+                is_masked = blinding_value and 'Open' not in blinding_value
+                masked_roles = sd.study_design.masked_roles if sd.study_design.masked_roles else []
+                # Create a Masking entity for each role, or one general if no roles specified
+                if masked_roles:
+                    for i, role in enumerate(masked_roles):
+                        masking_entities.append({
+                            "id": f"mask_{i+1}",
+                            "text": f"{role} is masked in this {blinding_value} study",
+                            "isMasked": True,
+                            "instanceType": "Masking"
+                        })
+                elif is_masked:
+                    masking_entities.append({
+                        "id": "mask_1",
+                        "text": f"This is a {blinding_value} study",
+                        "isMasked": True,
+                        "instanceType": "Masking"
+                    })
+                else:
+                    masking_entities.append({
+                        "id": "mask_1",
+                        "text": "This is an Open Label study with no masking",
+                        "isMasked": False,
+                        "instanceType": "Masking"
+                    })
+                study_design["maskingRoles"] = masking_entities
             studydesign_added = True
     
     # Fallback to previously extracted study design
@@ -1157,6 +1240,35 @@ def combine_to_full_usdm(
                 study_design["studyCohorts"] = sd['cohorts']
             if sd.get('cells'):
                 study_design["studyCells"] = sd['cells']
+            # Create Masking entities from fallback blinding data
+            if sd.get('blindingSchema'):
+                blinding_code = sd['blindingSchema'].get('code', '')
+                is_masked = blinding_code and 'Open' not in blinding_code
+                masked_roles = sd.get('maskedRoles', [])
+                masking_entities = []
+                if masked_roles:
+                    for i, role in enumerate(masked_roles):
+                        masking_entities.append({
+                            "id": f"mask_{i+1}",
+                            "text": f"{role} is masked in this {blinding_code} study",
+                            "isMasked": True,
+                            "instanceType": "Masking"
+                        })
+                elif is_masked:
+                    masking_entities.append({
+                        "id": "mask_1",
+                        "text": f"This is a {blinding_code} study",
+                        "isMasked": True,
+                        "instanceType": "Masking"
+                    })
+                else:
+                    masking_entities.append({
+                        "id": "mask_1",
+                        "text": "This is an Open Label study with no masking",
+                        "isMasked": False,
+                        "instanceType": "Masking"
+                    })
+                study_design["maskingRoles"] = masking_entities
             logger.info("  Using previously extracted study design")
     
     # Add Eligibility Criteria
@@ -1280,7 +1392,8 @@ def combine_to_full_usdm(
         if "study" in soa_data:
             try:
                 sds = soa_data["study"]["versions"][0].get("studyDesigns", [])
-                if sds and (sds[0].get("activities") or sds[0].get("scheduleTimelines")):
+                # Check for any SoA-related content (activities, timelines, epochs, or encounters)
+                if sds and (sds[0].get("activities") or sds[0].get("scheduleTimelines") or sds[0].get("epochs") or sds[0].get("encounters")):
                     soa_schedule = sds[0]
             except (KeyError, IndexError, TypeError):
                 pass
@@ -1305,6 +1418,15 @@ def combine_to_full_usdm(
             for key in soa_keys:
                 if key in soa_schedule and soa_schedule[key]:
                     study_design[key] = soa_schedule[key]
+            
+            # Ensure scheduleTimelines have required USDM 4.0 fields
+            for timeline in study_design.get('scheduleTimelines', []):
+                if 'mainTimeline' not in timeline:
+                    timeline['mainTimeline'] = True
+                if 'entryCondition' not in timeline:
+                    timeline['entryCondition'] = "Subject meets all inclusion criteria and none of the exclusion criteria"
+                if 'entryId' not in timeline:
+                    timeline['entryId'] = timeline.get('id', 'timeline_1')
     
     # Ensure arms is always present (required by USDM schema for InterventionalStudyDesign)
     if "arms" not in study_design or not study_design["arms"]:
@@ -1330,6 +1452,23 @@ def combine_to_full_usdm(
             },
             "dataOriginDescription": "Data collected during study conduct",
             "instanceType": "StudyArm"
+        }]
+    
+    # Ensure epochs is always present (required by USDM schema)
+    if "epochs" not in study_design or not study_design["epochs"]:
+        study_design["epochs"] = [{
+            "id": "epoch_1",
+            "name": "Treatment Period",
+            "description": "Main treatment period of the study",
+            "instanceType": "StudyEpoch",
+            "type": {
+                "id": "code_epoch_type_1",
+                "code": "C101526",
+                "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+                "codeSystemVersion": "25.01d",
+                "decode": "Treatment Epoch",
+                "instanceType": "Code"
+            }
         }]
     
     # Ensure studyCells is always present (required by USDM schema)
@@ -1397,8 +1536,9 @@ def combine_to_full_usdm(
     if expansion_results and expansion_results.get('narrative'):
         r = expansion_results['narrative']
         if r.success and r.data:
-            # USDM-compliant: narrativeContentItems go to studyVersion (per dataStructure.yml)
-            study_version["narrativeContentItems"] = [s.to_dict() for s in r.data.sections]
+            # USDM-compliant: narrativeContents are sections, narrativeContentItems are subsections
+            study_version["narrativeContents"] = [s.to_dict() for s in r.data.sections]
+            study_version["narrativeContentItems"] = [i.to_dict() for i in r.data.items]
             study_version["abbreviations"] = [a.to_dict() for a in r.data.abbreviations]
             if r.data.document:
                 combined["studyDefinitionDocument"] = r.data.document.to_dict()
@@ -1409,10 +1549,12 @@ def combine_to_full_usdm(
         prev = previous_extractions['narrative']
         if prev.get('narrative'):
             narr = prev['narrative']
+            # Handle narrativeContents (sections)
+            if narr.get('narrativeContents'):
+                study_version["narrativeContents"] = narr['narrativeContents']
+            # Handle narrativeContentItems (subsections)
             if narr.get('narrativeContentItems'):
                 study_version["narrativeContentItems"] = narr['narrativeContentItems']
-            elif narr.get('narrativeContents'):
-                study_version["narrativeContentItems"] = narr['narrativeContents']
             if narr.get('abbreviations'):
                 study_version["abbreviations"] = narr['abbreviations']
             if narr.get('studyDefinitionDocument'):
@@ -1673,14 +1815,39 @@ def combine_to_full_usdm(
                     else:
                         removed_epochs.append(epoch.get("name", "Unknown"))
                 if removed_epochs:
+                    # Collect IDs of removed epochs for cleanup
+                    removed_epoch_ids = set()
+                    for epoch in post_enrich_design.get("epochs", []):
+                        if epoch.get("name", "").lower().strip() not in original_soa_epoch_names:
+                            removed_epoch_ids.add(epoch.get("id"))
+                    
                     post_enrich_design["epochs"] = original_epochs
                     logger.info(f"  ✓ Filtered {len(removed_epochs)} non-SoA epochs: {removed_epochs}")
+                    
+                    # Clean up scheduleTimelines that reference removed epochs
+                    if removed_epoch_ids:
+                        timelines = post_enrich_design.get("scheduleTimelines", [])
+                        for timeline in timelines:
+                            instances = timeline.get("instances", [])
+                            cleaned_instances = [
+                                inst for inst in instances 
+                                if inst.get("epochId") not in removed_epoch_ids
+                            ]
+                            if len(cleaned_instances) < len(instances):
+                                timeline["instances"] = cleaned_instances
+                                logger.info(f"  ✓ Cleaned {len(instances) - len(cleaned_instances)} timeline instances referencing removed epochs")
     
     # Reconcile Epochs (Phase 15) - merge epoch sources, identify main flow
     # This runs after execution model so we have traversal constraints
     try:
         study_design = combined.get("study", {}).get("versions", [{}])[0].get("studyDesigns", [{}])[0]
         soa_epochs = study_design.get("epochs", [])
+        soa_encounters = study_design.get("encounters", [])
+        
+        # Enrich epoch names with clinical type (e.g., "Study Period I | Screening/Lead-in")
+        if soa_epochs:
+            from core.epoch_reconciler import enrich_epoch_names_with_clinical_type
+            enrich_epoch_names_with_clinical_type(soa_epochs, soa_encounters)
         
         # Extract traversal sequence from execution model if available
         traversal_sequence = None
@@ -1717,6 +1884,19 @@ def combine_to_full_usdm(
                     if ext.get("url", "").endswith("epochCategory")
                 )]
                 logger.info(f"  ✓ Reconciled {len(reconciled_epochs)} epochs ({len(main_epochs)} main, {len(reconciled_epochs) - len(main_epochs)} sub)")
+                
+                # Fix dangling epochId references in encounters
+                valid_epoch_ids = {e.get('id') for e in reconciled_epochs}
+                fallback_epoch_id = reconciled_epochs[0].get('id') if reconciled_epochs else None
+                encounters = study_design.get("encounters", [])
+                fixed_epoch_refs = 0
+                for enc in encounters:
+                    epoch_id = enc.get('epochId')
+                    if epoch_id and epoch_id not in valid_epoch_ids and fallback_epoch_id:
+                        enc['epochId'] = fallback_epoch_id
+                        fixed_epoch_refs += 1
+                if fixed_epoch_refs > 0:
+                    logger.info(f"  ✓ Fixed {fixed_epoch_refs} dangling epochId references in encounters")
         
         # Encounter reconciliation - now preserves original IDs
         soa_encounters = study_design.get("encounters", [])
@@ -1879,6 +2059,26 @@ def combine_to_full_usdm(
                 if updated_instances > 0:
                     logger.info(f"  ✓ Updated activityIds in {updated_instances} schedule instances")
                 
+                # Fix dangling activityIds - remove references to activities that don't exist
+                valid_activity_ids = {a.get('id') for a in reconciled_activities}
+                fixed_dangling = 0
+                for timeline in scheduleTimelines:
+                    for inst in timeline.get('instances', []):
+                        act_ids = inst.get('activityIds', [])
+                        # Filter to only valid activity IDs
+                        valid_ids = [aid for aid in act_ids if aid in valid_activity_ids]
+                        if len(valid_ids) != len(act_ids):
+                            if valid_ids:
+                                inst['activityIds'] = valid_ids
+                            else:
+                                # If no valid IDs, use first activity as fallback
+                                fallback = next(iter(valid_activity_ids), None)
+                                if fallback:
+                                    inst['activityIds'] = [fallback]
+                            fixed_dangling += 1
+                if fixed_dangling > 0:
+                    logger.info(f"  ✓ Fixed {fixed_dangling} dangling activityIds in schedule instances")
+                
     except Exception as e:
         logger.warning(f"  ⚠ Entity reconciliation skipped: {e}")
     
@@ -1940,7 +2140,49 @@ def combine_to_full_usdm(
         procedures = study_design.get('procedures', [])
         activities = study_design.get('activities', [])
         
+        def sanitize_procedure_code(proc):
+            """Ensure procedure code fields are valid strings, not null."""
+            code = proc.get('code')
+            if code and isinstance(code, dict):
+                # Check if code has null values that need fixing
+                if not code.get('code'):
+                    # Use NCI code based on procedure type
+                    proc_type = proc.get('procedureType', 'Clinical Procedure')
+                    type_codes = {
+                        'Diagnostic Procedure': ('C25391', 'Diagnostic Procedure'),
+                        'Therapeutic Procedure': ('C49236', 'Therapeutic Procedure'),
+                        'Surgical Procedure': ('C17173', 'Surgical Procedure'),
+                        'Biospecimen Collection': ('C70793', 'Biospecimen Collection'),
+                        'Imaging Technique': ('C17369', 'Imaging Technique'),
+                        'Monitoring': ('C25548', 'Monitoring'),
+                        'Assessment': ('C25218', 'Assessment'),
+                    }
+                    default_code, default_decode = type_codes.get(proc_type, ('C25218', 'Clinical Procedure'))
+                    proc['code'] = {
+                        'id': code.get('id') or str(uuid.uuid4()),
+                        'code': default_code,
+                        'codeSystem': 'http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl',
+                        'codeSystemVersion': '25.01d',
+                        'decode': default_decode,
+                        'instanceType': 'Code',
+                    }
+                else:
+                    # Ensure no null values in existing code
+                    proc['code'] = {
+                        'id': code.get('id') or str(uuid.uuid4()),
+                        'code': code.get('code') or '',
+                        'codeSystem': code.get('codeSystem') or '',
+                        'codeSystemVersion': code.get('codeSystemVersion') or '',
+                        'decode': code.get('decode') or proc.get('name', ''),
+                        'instanceType': 'Code',
+                    }
+            return proc
+        
         if procedures and activities:
+            # Sanitize all procedure codes first
+            for proc in procedures:
+                sanitize_procedure_code(proc)
+            
             # Build name-based lookup for procedures
             proc_by_name = {}
             for proc in procedures:
@@ -2076,18 +2318,6 @@ Examples:
         "--verbose", "-v",
         action="store_true",
         help="Enable verbose output"
-    )
-    
-    parser.add_argument(
-        "--view",
-        action="store_true",
-        help="Launch Streamlit viewer after extraction"
-    )
-    
-    parser.add_argument(
-        "--no-view",
-        action="store_true",
-        help="Don't launch Streamlit viewer (default behavior)"
     )
     
     parser.add_argument(
@@ -2362,6 +2592,7 @@ Examples:
             logger.info("\n" + "="*60)
             logger.info("SCHEDULE OF ACTIVITIES EXTRACTION")
             logger.info("="*60)
+            usage_tracker.set_phase("SoA_Extraction")
             result = run_from_files(
                 pdf_path=args.pdf_path,
                 output_dir=output_dir,
@@ -2383,16 +2614,81 @@ Examples:
         
         # Add authoritative SoA footnotes from header_structure to soa_data
         # This enables execution model to use correct footnotes instead of re-extracting
-        if soa_data:
-            header_path = os.path.join(output_dir, "4_header_structure.json")
-            if os.path.exists(header_path):
-                try:
-                    with open(header_path, 'r', encoding='utf-8') as f:
-                        header_data = json.load(f)
-                    if header_data.get('footnotes'):
-                        soa_data['footnotes'] = header_data['footnotes']
-                except Exception:
-                    pass
+        header_path = os.path.join(output_dir, "4_header_structure.json")
+        header_data = None
+        if os.path.exists(header_path):
+            try:
+                with open(header_path, 'r', encoding='utf-8') as f:
+                    header_data = json.load(f)
+            except Exception:
+                pass
+        
+        if soa_data and header_data:
+            if header_data.get('footnotes'):
+                soa_data['footnotes'] = header_data['footnotes']
+        
+        # Hybrid footnote extraction: supplement vision-extracted footnotes with PDF text extraction
+        # Vision extraction often misses footnotes on continuation pages or appendices
+        try:
+            from extraction.execution.footnote_condition_extractor import _extract_footnote_text
+            from core.pdf_utils import extract_text_from_pages, get_page_count
+            
+            vision_footnotes = header_data.get('footnotes', []) if header_data else []
+            vision_footnote_markers = set()
+            for fn in vision_footnotes:
+                # Extract marker (a., b., etc.) from footnote text
+                import re
+                marker_match = re.match(r'^([a-z])[\.\)]', fn.strip().lower())
+                if marker_match:
+                    vision_footnote_markers.add(marker_match.group(1))
+            
+            # Extract footnotes from PDF text around SoA pages
+            soa_pages = []
+            soa_images_dir = os.path.join(output_dir, "3_soa_images")
+            if os.path.exists(soa_images_dir):
+                for img_file in os.listdir(soa_images_dir):
+                    page_match = re.search(r'page_(\d+)', img_file)
+                    if page_match:
+                        soa_pages.append(int(page_match.group(1)))
+            
+            if soa_pages:
+                # Expand range to include pages before and after SoA (for appendix footnotes)
+                min_page = max(0, min(soa_pages) - 2)
+                max_page = min(get_page_count(args.pdf_path), max(soa_pages) + 10)
+                pages_to_scan = list(range(min_page, max_page))
+                
+                pdf_text = extract_text_from_pages(args.pdf_path, pages_to_scan)
+                if pdf_text:
+                    pdf_footnotes = _extract_footnote_text(pdf_text)
+                    
+                    # Merge: add PDF footnotes that weren't captured by vision
+                    merged_footnotes = list(vision_footnotes)
+                    added_count = 0
+                    for marker, content in pdf_footnotes:
+                        marker_clean = marker.lower().strip('[]().^')
+                        if marker_clean not in vision_footnote_markers and len(marker_clean) == 1:
+                            # Format as "marker. content" to match vision format
+                            formatted = f"{marker_clean}. {content}"
+                            merged_footnotes.append(formatted)
+                            vision_footnote_markers.add(marker_clean)
+                            added_count += 1
+                    
+                    if added_count > 0:
+                        logger.info(f"Hybrid footnote extraction: added {added_count} footnotes from PDF text (total: {len(merged_footnotes)})")
+                        if soa_data:
+                            soa_data['footnotes'] = merged_footnotes
+                        if header_data:
+                            header_data['footnotes'] = merged_footnotes
+                            # Update header_structure.json with merged footnotes
+                            with open(header_path, 'w', encoding='utf-8') as f:
+                                json.dump(header_data, f, indent=2)
+        except Exception as e:
+            logger.debug(f"Hybrid footnote extraction skipped: {e}")
+        
+        # Note: If SoA text extraction fails, we do NOT create a fallback soa_data
+        # with empty activities. The header_structure epochs/encounters will be
+        # integrated during the expansion phases instead. Creating a fallback here
+        # would wipe out any activities that might be extracted from other sources.
         
         # Print SoA results
         if result:
@@ -2481,7 +2777,7 @@ Examples:
             logger.info("\n" + "="*60)
             logger.info("COMBINING OUTPUTS")
             logger.info("="*60)
-            combined_data, combined_usdm_path = combine_to_full_usdm(output_dir, soa_data, expansion_results)
+            combined_data, combined_usdm_path = combine_to_full_usdm(output_dir, soa_data, expansion_results, args.pdf_path)
             
             # ═══════════════════════════════════════════════════════════════
             # SCHEMA VALIDATION & AUTO-FIX (integrated into combine phase)
@@ -2664,13 +2960,6 @@ Examples:
                 with open(combined_usdm_path, 'w', encoding='utf-8') as f:
                     json.dump(final_data, f, indent=2, ensure_ascii=False)
         
-        # Launch Streamlit viewer if requested
-        if args.view:
-            if combined_usdm_path and os.path.exists(combined_usdm_path):
-                launch_viewer(combined_usdm_path)
-            elif result and result.success and result.output_path:
-                launch_viewer(result.output_path)
-        
         # Determine overall success
         soa_success = result.success if result else True  # If no SoA, consider it OK
         expansion_success = all(r.success for k, r in expansion_results.items() if k != '_pipeline_context' and hasattr(r, 'success')) if expansion_results else True
@@ -2697,9 +2986,73 @@ Examples:
             if schema_fixer_result and schema_fixer_result.fixed_issues > 0:
                 logger.info(f"  Auto-fixed: {schema_fixer_result.fixed_issues} issues")
         
+        # Collect all processing issues from SoA result, expansion results, and execution model
+        all_processing_issues = []
+        if result and hasattr(result, 'processing_issues') and result.processing_issues:
+            all_processing_issues.extend(result.processing_issues)
+        
+        # Collect execution model warnings (visit/epoch resolution failures, etc.)
+        execution_warnings = get_processing_warnings()
+        
+        # Convert execution warnings to ProcessingIssue-like dicts for unified reporting
+        all_issues_for_report = []
+        
+        # Add SoA processing issues (these are ProcessingIssue objects)
+        for issue in all_processing_issues:
+            all_issues_for_report.append({
+                'phase': issue.phase,
+                'issue_type': issue.issue_type,
+                'message': issue.message,
+                'is_known_limitation': issue.is_known_limitation,
+                'fallback_used': issue.fallback_used,
+            })
+        
+        # Add execution model warnings (these are dicts)
+        for warn in execution_warnings:
+            all_issues_for_report.append({
+                'phase': warn.get('phase', 'execution_model'),
+                'issue_type': warn.get('issue_type', 'warning'),
+                'message': warn.get('message', ''),
+                'is_known_limitation': False,
+                'fallback_used': None,
+                'details': warn.get('details', {}),
+            })
+        
+        # Report processing issues if any
+        if all_issues_for_report:
+            logger.info("")
+            logger.warning("⚠ PROCESSING ISSUES (non-blocking):")
+            for issue in all_issues_for_report:
+                known_tag = " [KNOWN LIMITATION]" if issue.get('is_known_limitation') else ""
+                logger.warning(f"  • {issue['phase']}: {issue['issue_type']}{known_tag}")
+                logger.warning(f"    {issue['message']}")
+                if issue.get('fallback_used'):
+                    logger.info(f"    Fallback: {issue['fallback_used']}")
+            
+            # Save processing issues to file
+            processing_report_path = os.path.join(output_dir, "processing_report.json")
+            with open(processing_report_path, 'w') as f:
+                json.dump({
+                    'processing_issues': all_issues_for_report,
+                    'total_issues': len(all_issues_for_report),
+                    'known_limitations': sum(1 for i in all_issues_for_report if i.get('is_known_limitation')),
+                    'visit_resolution_failures': sum(1 for i in all_issues_for_report if i.get('issue_type') == 'visit_resolution_failed'),
+                    'epoch_resolution_failures': sum(1 for i in all_issues_for_report if i.get('issue_type') == 'epoch_resolution_failed'),
+                }, f, indent=2)
+            logger.info(f"  Processing report: {processing_report_path}")
+        
         if combined_usdm_path:
             logger.info(f"Golden Standard Output: {combined_usdm_path}")
         logger.info("="*60)
+        
+        # Print token usage summary
+        if usage_tracker.call_count > 0:
+            usage_tracker.print_summary(model=config.model_name)
+            # Save usage to file
+            usage_file = os.path.join(output_dir, "token_usage.json")
+            with open(usage_file, 'w') as f:
+                json.dump(usage_tracker.get_summary(), f, indent=2)
+            logger.info(f"Token usage saved to: {usage_file}")
         
         sys.exit(0 if overall_success else 1)
         
@@ -2709,29 +3062,6 @@ Examples:
             import traceback
             traceback.print_exc()
         sys.exit(1)
-
-
-def launch_viewer(soa_path: str):
-    """Launch the Streamlit SoA viewer."""
-    import subprocess
-    
-    viewer_script = os.path.join(os.path.dirname(__file__), "soa_streamlit_viewer.py")
-    
-    if not os.path.exists(viewer_script):
-        logger.warning(f"Viewer not found: {viewer_script}")
-        return
-    
-    logger.info(f"Launching SoA viewer...")
-    
-    try:
-        subprocess.Popen(
-            ["streamlit", "run", viewer_script, "--", soa_path],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
-    except Exception as e:
-        logger.warning(f"Could not launch viewer: {e}")
-        logger.info(f"Run manually: streamlit run soa_viewer.py -- {soa_path}")
 
 
 if __name__ == "__main__":

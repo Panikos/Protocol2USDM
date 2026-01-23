@@ -47,6 +47,8 @@ import {
   ProceduresDevicesView,
   StudySitesView,
   FootnotesView,
+  ScheduleTimelineView,
+  NarrativeView,
 } from '@/components/protocol';
 import { QualityMetricsDashboard, ValidationResultsView } from '@/components/quality';
 import { DocumentStructureView, SoAImagesTab } from '@/components/intermediate';
@@ -55,7 +57,7 @@ import { useOverlayStore } from '@/stores/overlayStore';
 import { cn } from '@/lib/utils';
 import type { ProvenanceData } from '@/lib/provenance/types';
 
-type TabId = 'overview' | 'eligibility' | 'objectives' | 'design' | 'interventions' | 'amendments' | 'extensions' | 'entities' | 'procedures' | 'sites' | 'footnotes' | 'quality' | 'validation' | 'document' | 'images' | 'soa' | 'timeline' | 'provenance';
+type TabId = 'overview' | 'eligibility' | 'objectives' | 'design' | 'interventions' | 'amendments' | 'extensions' | 'entities' | 'procedures' | 'sites' | 'footnotes' | 'quality' | 'validation' | 'document' | 'images' | 'soa' | 'timeline' | 'provenance' | 'schedule' | 'narrative';
 
 export default function ProtocolDetailPage() {
   const params = useParams();
@@ -201,6 +203,8 @@ export default function ProtocolDetailPage() {
     { id: 'procedures', label: 'Procedures', icon: <Stethoscope className="h-4 w-4" /> },
     { id: 'sites', label: 'Sites', icon: <MapPin className="h-4 w-4" /> },
     { id: 'footnotes', label: 'Footnotes', icon: <FileText className="h-4 w-4" /> },
+    { id: 'schedule', label: 'Schedule', icon: <Activity className="h-4 w-4" /> },
+    { id: 'narrative', label: 'Narrative', icon: <BookOpen className="h-4 w-4" /> },
   ];
 
   const qualityTabs = [
@@ -366,6 +370,12 @@ export default function ProtocolDetailPage() {
         )}
         {activeTab === 'provenance' && (
           <ProvenanceTab provenance={provenance} />
+        )}
+        {activeTab === 'schedule' && (
+          <ScheduleTimelineView usdm={usdm} />
+        )}
+        {activeTab === 'narrative' && (
+          <NarrativeView usdm={usdm} />
         )}
       </main>
     </div>

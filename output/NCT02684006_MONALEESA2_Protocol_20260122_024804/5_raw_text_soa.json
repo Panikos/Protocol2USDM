@@ -1,0 +1,515 @@
+{
+  "usdmVersion": "4.0",
+  "systemName": "Protocol2USDM",
+  "systemVersion": "0.1.0",
+  "study": {
+    "id": "ac190a5c-6647-4dbf-a7f5-5f7b5c848fe7",
+    "name": "",
+    "instanceType": "Study",
+    "versions": [
+      {
+        "id": "552dc5ec-ef2e-432e-b584-b7d16975924b",
+        "versionIdentifier": "1.0",
+        "rationale": "Initial protocol version",
+        "instanceType": "StudyVersion",
+        "studyDesigns": [
+          {
+            "id": "sd_1",
+            "name": "Study Design",
+            "rationale": "Protocol-defined study design",
+            "instanceType": "InterventionalStudyDesign",
+            "blindingSchema": {
+              "id": "b5b9eb66-117e-4fa2-8d7b-bb44e4fc5c53",
+              "instanceType": "AliasCode",
+              "standardCode": {
+                "id": "7ff4d54d-26e0-4994-9276-70ca721166de",
+                "code": "C49656",
+                "codeSystem": "http://www.cdisc.org",
+                "codeSystemVersion": "2024-09-27",
+                "decode": "Open Label",
+                "instanceType": "Code"
+              }
+            },
+            "model": {
+              "id": "3ad95318-8794-4133-9209-ac79234af097",
+              "code": "C82638",
+              "codeSystem": "http://www.cdisc.org",
+              "codeSystemVersion": "2024-09-27",
+              "decode": "Single Group Study",
+              "instanceType": "Code"
+            },
+            "epochs": [
+              {
+                "id": "epoch_1",
+                "name": "Screening",
+                "instanceType": "StudyEpoch",
+                "type": {
+                  "id": "f8292a47-f86a-4d6e-b90a-9e5b36ceb266",
+                  "code": "C98779",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Screening Epoch",
+                  "instanceType": "Code"
+                }
+              },
+              {
+                "id": "epoch_2",
+                "name": "Study Treatment",
+                "instanceType": "StudyEpoch",
+                "type": {
+                  "id": "bca6e3a5-c4bb-4dcc-b33e-7f94ba38e75c",
+                  "code": "C98780",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Treatment Epoch",
+                  "instanceType": "Code"
+                }
+              }
+            ],
+            "activities": [
+              {
+                "id": "grp_1",
+                "name": "Clinical Assessments",
+                "instanceType": "Activity",
+                "childIds": [
+                  "act_1",
+                  "act_2",
+                  "act_3",
+                  "act_4",
+                  "act_5",
+                  "act_6",
+                  "act_7"
+                ]
+              },
+              {
+                "id": "grp_2",
+                "name": "Laboratory Studies",
+                "instanceType": "Activity",
+                "childIds": [
+                  "act_8",
+                  "act_9",
+                  "act_10"
+                ]
+              },
+              {
+                "id": "grp_4",
+                "name": "Disease Assessments",
+                "instanceType": "Activity",
+                "childIds": [
+                  "act_11"
+                ]
+              },
+              {
+                "id": "grp_5",
+                "name": "Other Clinical Assessments",
+                "instanceType": "Activity",
+                "childIds": [
+                  "act_12",
+                  "act_13"
+                ]
+              },
+              {
+                "id": "grp_7",
+                "name": "Other Samplings",
+                "instanceType": "Activity",
+                "childIds": [
+                  "act_14",
+                  "act_15",
+                  "act_16"
+                ]
+              },
+              {
+                "id": "act_1",
+                "name": "Informed Consent",
+                "instanceType": "Activity",
+                "description": "Must be obtained prior to undergoing any study-specific procedure."
+              },
+              {
+                "id": "act_2",
+                "name": "Medical/Oncological History",
+                "instanceType": "Activity",
+                "description": "To include information on prior systemic adjuvant or neoadjuvant therapy regimens, surgery, and radiation therapy."
+              },
+              {
+                "id": "act_3",
+                "name": "Baseline Signs/Symptoms",
+                "instanceType": "Activity",
+                "description": "To be recorded pre-dose on Cycle 1 Day 1."
+              },
+              {
+                "id": "act_4",
+                "name": "Physical Examination",
+                "instanceType": "Activity",
+                "description": "Includes an examination of major body systems and weight."
+              },
+              {
+                "id": "act_5",
+                "name": "ECOG Performance Status",
+                "instanceType": "Activity",
+                "description": "Eastern Cooperative Oncology Group Performance Status"
+              },
+              {
+                "id": "act_6",
+                "name": "Contraception Check",
+                "instanceType": "Activity",
+                "description": "Affirmation of correct use of contraception."
+              },
+              {
+                "id": "act_7",
+                "name": "Vital Signs",
+                "instanceType": "Activity",
+                "description": "Blood pressure and pulse rate."
+              },
+              {
+                "id": "act_8",
+                "name": "Hematology",
+                "instanceType": "Activity",
+                "description": "Laboratory assessment of blood components."
+              },
+              {
+                "id": "act_9",
+                "name": "Blood Chemistry-Full panel",
+                "instanceType": "Activity",
+                "description": "Comprehensive metabolic panel."
+              },
+              {
+                "id": "act_10",
+                "name": "Serum/Urine Pregnancy Test",
+                "instanceType": "Activity",
+                "description": "For female patients of childbearing potential."
+              },
+              {
+                "id": "act_11",
+                "name": "Tumor Assessments (including scans)",
+                "instanceType": "Activity",
+                "description": "CT or MRI of chest, abdomen and pelvis."
+              },
+              {
+                "id": "act_12",
+                "name": "Adverse Events",
+                "instanceType": "Activity",
+                "description": "Documentation of AEs and SAEs."
+              },
+              {
+                "id": "act_13",
+                "name": "Concomitant Medications/Treatments",
+                "instanceType": "Activity",
+                "description": "Recording of all concurrent medications."
+              },
+              {
+                "id": "act_14",
+                "name": "Mandatory Archival FFPE Tumor Tissue",
+                "instanceType": "Activity",
+                "description": "Submission of archival tumor tissue."
+              },
+              {
+                "id": "act_15",
+                "name": "Mandatory Recent FFPE Tumor Tissue Block",
+                "instanceType": "Activity",
+                "description": "Submission of recent tumor tissue block."
+              },
+              {
+                "id": "act_16",
+                "name": "Anti-Avelumab Antibodies and Neutralizing Antibodies",
+                "instanceType": "Activity",
+                "description": "Immunogenicity testing for Arm A only."
+              }
+            ],
+            "encounters": [
+              {
+                "id": "enc_1",
+                "name": "Screening (≤28 Days Prior to Randomization)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "cde7a3d2-4f50-47e4-8dbe-9edac7d65105",
+                  "code": "C48262",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Screening",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_1"
+              },
+              {
+                "id": "enc_2",
+                "name": "Cycle 1 Day 1",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "524e63af-376d-4288-bdcd-1b785c3cd6f6",
+                  "code": "C82517",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Baseline",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_2"
+              },
+              {
+                "id": "enc_3",
+                "name": "Cycle 1 Day 15 (±3 days)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "10a2e392-bde4-410f-88fe-ee7e041b4b25",
+                  "code": "C82517",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Baseline",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_2"
+              },
+              {
+                "id": "enc_4",
+                "name": "Cycle 1 Day 29 (±3 days)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "d811f7a2-15cb-4e2a-89d0-24e05658c350",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_2"
+              },
+              {
+                "id": "enc_5",
+                "name": "Cycles ≥2 Day 1 (±3 days)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "44c68ed2-de6c-446d-9ff1-74367a35ef1a",
+                  "code": "C82517",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Baseline",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_2"
+              },
+              {
+                "id": "enc_6",
+                "name": "Cycles ≥2 Day 15 (±3 days)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "115d31d6-f81c-4f36-b74b-a8e345b3a81d",
+                  "code": "C82517",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Baseline",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_2"
+              },
+              {
+                "id": "enc_7",
+                "name": "Cycles ≥2 Day 29 (±3 days)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "500af609-e5e7-4c7e-a98c-4d5dc63726b1",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_2"
+              }
+            ],
+            "scheduleTimelines": [
+              {
+                "id": "timeline_1",
+                "name": "Main Schedule Timeline",
+                "mainTimeline": true,
+                "instanceType": "ScheduleTimeline",
+                "entryCondition": "Subject enrolled in study",
+                "entryId": "808b1876-6a2b-415b-8cac-ea5d34f9ea27",
+                "instances": [
+                  {
+                    "id": "808b1876-6a2b-415b-8cac-ea5d34f9ea27",
+                    "activityIds": [
+                      "act_1"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_1@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "ee8a2ee7-7bb0-43f7-a383-af779db66eb9",
+                    "activityIds": [
+                      "act_2"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_2@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "263fe031-265b-4f68-867e-b15452a618e5",
+                    "activityIds": [
+                      "act_14"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_14@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "b1c866bb-a08b-41b5-bdce-c57306e09b9a",
+                    "activityIds": [
+                      "act_15"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_15@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "baeff1c9-bd6f-4f9a-be76-f7805d92f218",
+                    "activityIds": [
+                      "act_16"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_16@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "89a2f87e-82fb-4f6b-8d0d-9c6f089eeeca",
+                    "activityIds": [
+                      "act_16"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_16@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "1cfda9b2-5b96-4ad7-a2d7-71835d7dfa2a",
+                    "activityIds": [
+                      "act_16"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_16@enc_4",
+                    "encounterId": "enc_4"
+                  },
+                  {
+                    "id": "c04203b2-d9d8-49ae-8f59-1d165b8c58f1",
+                    "activityIds": [
+                      "act_16"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_16@enc_5",
+                    "encounterId": "enc_5"
+                  },
+                  {
+                    "id": "5154a1dd-3081-4d91-8250-d39118dee4c3",
+                    "activityIds": [
+                      "act_16"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_16@enc_7",
+                    "encounterId": "enc_7"
+                  }
+                ]
+              }
+            ],
+            "activityGroups": [
+              {
+                "id": "grp_1",
+                "name": "Clinical Assessments",
+                "description": null,
+                "childIds": [],
+                "instanceType": "Activity",
+                "activityNames": [
+                  "Informed Consent",
+                  "Medical/Oncological History",
+                  "Baseline Signs/Symptoms",
+                  "Physical Examination",
+                  "ECOG Performance Status",
+                  "Contraception Check",
+                  "Vital Signs",
+                  "Blood Pressure Home Monitoring"
+                ]
+              },
+              {
+                "id": "grp_2",
+                "name": "Laboratory Studies",
+                "description": null,
+                "childIds": [],
+                "instanceType": "Activity",
+                "activityNames": [
+                  "Coagulation",
+                  "Hematology",
+                  "Blood Chemistry-Full panel",
+                  "Blood Chemistry- Core Panel",
+                  "Thyroid Function Tests",
+                  "ACTH",
+                  "HBV, HCV Tests",
+                  "Serum/Urine Pregnancy Test",
+                  "Urinalysis"
+                ]
+              },
+              {
+                "id": "grp_3",
+                "name": "Cardiac Monitoring",
+                "description": null,
+                "childIds": [],
+                "instanceType": "Activity",
+                "activityNames": [
+                  "12-lead ECG",
+                  "MUGA Scan or ECHO",
+                  "Cardiac Enzymes"
+                ]
+              },
+              {
+                "id": "grp_4",
+                "name": "Disease Assessments",
+                "description": null,
+                "childIds": [],
+                "instanceType": "Activity",
+                "activityNames": [
+                  "Tumor Assessments (including scans)"
+                ]
+              },
+              {
+                "id": "grp_5",
+                "name": "Other Clinical Assessments",
+                "description": null,
+                "childIds": [],
+                "instanceType": "Activity",
+                "activityNames": [
+                  "Axitinib/Sunitinib Dosing Compliance Follow-up",
+                  "Adverse Events",
+                  "Concomitant Medications/Treatments",
+                  "FKSI and EuroQol 5-Dimension (EQ-5D)"
+                ]
+              },
+              {
+                "id": "grp_6",
+                "name": "Randomization and Study Treatment",
+                "description": null,
+                "childIds": [],
+                "instanceType": "Activity",
+                "activityNames": [
+                  "Avelumab (Arm A only)",
+                  "Axitinib (Arm A only)",
+                  "Sunitinib (Arm B only)"
+                ]
+              },
+              {
+                "id": "grp_7",
+                "name": "Other Samplings",
+                "description": null,
+                "childIds": [],
+                "instanceType": "Activity",
+                "activityNames": [
+                  "Pharmacokinetics for axitinib",
+                  "Pharmacokinetics for avelumab",
+                  "Banked Blood Biospecimens",
+                  "Mandatory Archival FFPE Tumor Tissue",
+                  "Mandatory Recent FFPE Tumor Tissue Block",
+                  "Anti-Avelumab Antibodies and Neutralizing Antibodies"
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -579,7 +579,7 @@ Return ONLY the JSON."""
         result = call_llm(
             prompt=prompt,
             model_name=model,
-            temperature=0.1,
+            extractor_name="sampling_density",
         )
         
         # Extract response text from dict

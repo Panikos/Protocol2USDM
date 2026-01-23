@@ -1,0 +1,1272 @@
+{
+  "usdmVersion": "4.0",
+  "systemName": "Protocol2USDM",
+  "systemVersion": "0.1.0",
+  "study": {
+    "id": "333e2d16-526a-44ce-a99e-1ab3f4fa8567",
+    "name": "",
+    "instanceType": "Study",
+    "versions": [
+      {
+        "id": "e317f770-62ba-4f16-8a09-ccdab18bfe8c",
+        "versionIdentifier": "1.0",
+        "rationale": "Initial protocol version",
+        "instanceType": "StudyVersion",
+        "studyDesigns": [
+          {
+            "id": "sd_1",
+            "name": "Study Design",
+            "rationale": "Protocol-defined study design",
+            "instanceType": "InterventionalStudyDesign",
+            "blindingSchema": {
+              "id": "fe83d540-a12f-4d6f-a4e5-fe3e183d2c84",
+              "instanceType": "AliasCode",
+              "standardCode": {
+                "id": "b2c7495b-2d9a-45e3-a732-9441e2427310",
+                "code": "C49656",
+                "codeSystem": "http://www.cdisc.org",
+                "codeSystemVersion": "2024-09-27",
+                "decode": "Open Label",
+                "instanceType": "Code"
+              }
+            },
+            "model": {
+              "id": "db2d998c-15ea-4c74-b8bc-facbebaa0fdb",
+              "code": "C82638",
+              "codeSystem": "http://www.cdisc.org",
+              "codeSystemVersion": "2024-09-27",
+              "decode": "Single Group Study",
+              "instanceType": "Code"
+            },
+            "epochs": [
+              {
+                "id": "epoch_1",
+                "name": "Screening",
+                "instanceType": "StudyEpoch",
+                "type": {
+                  "id": "41d246ff-27be-4310-a145-3be307932350",
+                  "code": "C98779",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Screening Epoch",
+                  "instanceType": "Code"
+                }
+              },
+              {
+                "id": "epoch_2",
+                "name": "Treatment",
+                "instanceType": "StudyEpoch",
+                "type": {
+                  "id": "cbb5b97c-626a-4ee5-bdcf-ae23b16a248d",
+                  "code": "C98780",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Treatment Epoch",
+                  "instanceType": "Code"
+                }
+              },
+              {
+                "id": "epoch_3",
+                "name": "Follow-up",
+                "instanceType": "StudyEpoch",
+                "type": {
+                  "id": "9c6d4357-370f-4d1c-a89c-5862535e4de1",
+                  "code": "C98781",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Follow-up Epoch",
+                  "instanceType": "Code"
+                }
+              }
+            ],
+            "activities": [
+              {
+                "id": "grp_1",
+                "name": "General Assessments",
+                "instanceType": "Activity",
+                "childIds": [
+                  "act_1",
+                  "act_2",
+                  "act_3",
+                  "act_4",
+                  "act_5"
+                ]
+              },
+              {
+                "id": "grp_2",
+                "name": "Central Lab Tests",
+                "instanceType": "Activity",
+                "childIds": [
+                  "act_8",
+                  "act_9",
+                  "act_10",
+                  "act_11",
+                  "act_12"
+                ]
+              },
+              {
+                "id": "grp_3",
+                "name": "Other Central Lab Tests",
+                "instanceType": "Activity",
+                "childIds": [
+                  "act_14",
+                  "act_15",
+                  "act_16"
+                ]
+              },
+              {
+                "id": "grp_4",
+                "name": "Specialized Labs and PK",
+                "instanceType": "Activity",
+                "childIds": [
+                  "act_17",
+                  "act_18",
+                  "act_19"
+                ]
+              },
+              {
+                "id": "grp_5",
+                "name": "Dosing and Administration",
+                "instanceType": "Activity",
+                "childIds": [
+                  "act_20",
+                  "act_21",
+                  "act_22"
+                ]
+              },
+              {
+                "id": "act_1",
+                "name": "Height (screening only) and weight",
+                "instanceType": "Activity",
+                "description": "Height (screening only) and weight"
+              },
+              {
+                "id": "act_2",
+                "name": "Vital signs",
+                "instanceType": "Activity",
+                "description": "Vital signs"
+              },
+              {
+                "id": "act_3",
+                "name": "Physical exam",
+                "instanceType": "Activity",
+                "description": "Physical exam"
+              },
+              {
+                "id": "act_4",
+                "name": "Physician Global Assessment (PhGA)",
+                "instanceType": "Activity",
+                "description": "Physician Global Assessment (PhGA)"
+              },
+              {
+                "id": "act_5",
+                "name": "TJC68/SJC66",
+                "instanceType": "Activity",
+                "description": "TJC68/SJC66"
+              },
+              {
+                "id": "act_6",
+                "name": "Serum pregnancy test at central lab",
+                "instanceType": "Activity",
+                "description": "Serum pregnancy test at central lab"
+              },
+              {
+                "id": "act_7",
+                "name": "Local urine pregnancy test",
+                "instanceType": "Activity",
+                "description": "Local urine pregnancy test"
+              },
+              {
+                "id": "act_8",
+                "name": "hsCRP",
+                "instanceType": "Activity",
+                "description": "hsCRP"
+              },
+              {
+                "id": "act_9",
+                "name": "Blood chemistry",
+                "instanceType": "Activity",
+                "description": "Blood chemistry"
+              },
+              {
+                "id": "act_10",
+                "name": "Hematology (CBC)",
+                "instanceType": "Activity",
+                "description": "Hematology (CBC)"
+              },
+              {
+                "id": "act_11",
+                "name": "Urinalysis",
+                "instanceType": "Activity",
+                "description": "Urinalysis"
+              },
+              {
+                "id": "act_12",
+                "name": "FSH",
+                "instanceType": "Activity",
+                "description": "FSH"
+              },
+              {
+                "id": "act_13",
+                "name": "ESR (local lab)",
+                "instanceType": "Activity",
+                "description": "ESR (local lab)"
+              },
+              {
+                "id": "act_14",
+                "name": "Rheumatoid factor",
+                "instanceType": "Activity",
+                "description": "Rheumatoid factor"
+              },
+              {
+                "id": "act_15",
+                "name": "Anti-CCP autoantibodies",
+                "instanceType": "Activity",
+                "description": "Anti-CCP autoantibodies"
+              },
+              {
+                "id": "act_16",
+                "name": "HBV/HCV/HIVAB screening",
+                "instanceType": "Activity",
+                "description": "HBV/HCV/HIVAB screening"
+              },
+              {
+                "id": "act_17",
+                "name": "IgG and IgM (central lab)",
+                "instanceType": "Activity",
+                "description": "IgG and IgM (central lab)"
+              },
+              {
+                "id": "act_18",
+                "name": "Blood samples for upadacitinib PK assay",
+                "instanceType": "Activity",
+                "description": "Blood samples for upadacitinib PK assay"
+              },
+              {
+                "id": "act_19",
+                "name": "Blood samples for exploratory research and validation studies (optional – see Appendix D)",
+                "instanceType": "Activity",
+                "description": "Blood samples for exploratory research and validation studies (optional – see Appendix D)"
+              },
+              {
+                "id": "act_20",
+                "name": "Randomization/drug assignment",
+                "instanceType": "Activity",
+                "description": "Randomization/drug assignment"
+              },
+              {
+                "id": "act_21",
+                "name": "Dispense study drug and subject dosing diary",
+                "instanceType": "Activity",
+                "description": "Dispense study drug and subject dosing diary"
+              },
+              {
+                "id": "act_22",
+                "name": "Review and copy subject dosing diary and perform drug reconciliation",
+                "instanceType": "Activity",
+                "description": "Review and copy subject dosing diary and perform drug reconciliation"
+              }
+            ],
+            "encounters": [
+              {
+                "id": "enc_1",
+                "name": "Screening (D -35 to D -1)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "4c0aaf6d-ba96-49b5-ad49-252ec0fe8df2",
+                  "code": "C48262",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Screening",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_1"
+              },
+              {
+                "id": "enc_2",
+                "name": "Baseline (D1)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "a2102eb1-7117-4934-bf5c-f30699f0155b",
+                  "code": "C82517",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Baseline",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_2"
+              },
+              {
+                "id": "enc_3",
+                "name": "Week 2 (D15)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "34a4d7d9-18db-4030-ad3f-004fe5fbae3e",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_2"
+              },
+              {
+                "id": "enc_4",
+                "name": "Week 4 (D29)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "b4768907-f6ae-4aa2-8c8c-ac37bee47517",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_2"
+              },
+              {
+                "id": "enc_5",
+                "name": "Week 8 (D57)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "2523e40d-bdf6-4dc3-bc2f-c77f7ce4ece7",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_2"
+              },
+              {
+                "id": "enc_6",
+                "name": "Week 14/PD (D99)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "87b6f915-e0a2-4b0f-afe8-ad95662ade89",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_2"
+              },
+              {
+                "id": "enc_7",
+                "name": "30-Day F/U Visit",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "2381cc0c-8892-4c66-9943-c167ad415292",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_3"
+              }
+            ],
+            "scheduleTimelines": [
+              {
+                "id": "timeline_1",
+                "name": "Main Schedule Timeline",
+                "mainTimeline": true,
+                "instanceType": "ScheduleTimeline",
+                "entryCondition": "Subject enrolled in study",
+                "entryId": "ec929076-1de4-4769-be4e-386a8e9e46c9",
+                "instances": [
+                  {
+                    "id": "ec929076-1de4-4769-be4e-386a8e9e46c9",
+                    "activityIds": [
+                      "act_1"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_1@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "834f2d65-57d8-4431-ad54-2c6c728c30bb",
+                    "activityIds": [
+                      "act_1"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_1@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "400d523e-8be6-4b3d-941f-5a5f7a334364",
+                    "activityIds": [
+                      "act_1"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_1@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "f8018f7b-bd77-48cb-a91d-b2cbe741a3ef",
+                    "activityIds": [
+                      "act_1"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_1@enc_4",
+                    "encounterId": "enc_4"
+                  },
+                  {
+                    "id": "26a56e30-31a7-4de2-9a50-dd20923aa457",
+                    "activityIds": [
+                      "act_1"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_1@enc_5",
+                    "encounterId": "enc_5"
+                  },
+                  {
+                    "id": "f6580caf-1b26-473d-b713-61d9b97f191a",
+                    "activityIds": [
+                      "act_1"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_1@enc_6",
+                    "encounterId": "enc_6"
+                  },
+                  {
+                    "id": "4a6e38ba-0101-4e07-94ca-735a7ab68ba0",
+                    "activityIds": [
+                      "act_1"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_1@enc_7",
+                    "encounterId": "enc_7"
+                  },
+                  {
+                    "id": "7ceacf2e-8d47-4c7a-b6b6-a968cca0cd89",
+                    "activityIds": [
+                      "act_2"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_2@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "2aaa44c2-3ae4-4c9f-92ae-e1a3423bb1a4",
+                    "activityIds": [
+                      "act_2"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_2@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "84caee95-4838-4961-8bad-71481dd11a9c",
+                    "activityIds": [
+                      "act_2"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_2@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "97ae4857-15b4-4485-9539-eb8409fd932a",
+                    "activityIds": [
+                      "act_2"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_2@enc_4",
+                    "encounterId": "enc_4"
+                  },
+                  {
+                    "id": "5e6629d1-059c-475d-900a-e0695fcf44fa",
+                    "activityIds": [
+                      "act_2"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_2@enc_5",
+                    "encounterId": "enc_5"
+                  },
+                  {
+                    "id": "867d05dc-96da-4088-9702-d7e5e948654a",
+                    "activityIds": [
+                      "act_2"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_2@enc_6",
+                    "encounterId": "enc_6"
+                  },
+                  {
+                    "id": "6cb108b2-ece5-4780-bf75-caaee70850e4",
+                    "activityIds": [
+                      "act_2"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_2@enc_7",
+                    "encounterId": "enc_7"
+                  },
+                  {
+                    "id": "8232dbb8-a70e-4131-a9bf-979f8489c7c9",
+                    "activityIds": [
+                      "act_3"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_3@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "713ee792-505b-4f7d-919f-a1f2934d514e",
+                    "activityIds": [
+                      "act_3"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_3@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "0e63ffd7-1987-4148-bc8e-9613c151c771",
+                    "activityIds": [
+                      "act_3"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_3@enc_6",
+                    "encounterId": "enc_6"
+                  },
+                  {
+                    "id": "cb4b7260-a951-4a12-b72f-2427cb6fbdc7",
+                    "activityIds": [
+                      "act_4"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_4@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "ef046559-6a92-4d12-8625-40c60cf332c0",
+                    "activityIds": [
+                      "act_4"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_4@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "490fcbf6-ffbb-4924-bf4b-be3e428569d2",
+                    "activityIds": [
+                      "act_4"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_4@enc_4",
+                    "encounterId": "enc_4"
+                  },
+                  {
+                    "id": "49083ae9-1fb5-4715-a49e-4019afaad1c8",
+                    "activityIds": [
+                      "act_4"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_4@enc_5",
+                    "encounterId": "enc_5"
+                  },
+                  {
+                    "id": "132ddd69-3373-47b4-9f26-aafa457fc39f",
+                    "activityIds": [
+                      "act_4"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_4@enc_6",
+                    "encounterId": "enc_6"
+                  },
+                  {
+                    "id": "85715de6-d067-4e86-9612-78cd17aebf2b",
+                    "activityIds": [
+                      "act_5"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_5@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "985763b3-67e1-45c2-8831-f9543bac1702",
+                    "activityIds": [
+                      "act_5"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_5@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "137f95ac-ad32-4e5b-b6a5-d75342daa71e",
+                    "activityIds": [
+                      "act_5"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_5@enc_4",
+                    "encounterId": "enc_4"
+                  },
+                  {
+                    "id": "f806b5d4-188a-4215-a3d9-7fabe738f36e",
+                    "activityIds": [
+                      "act_5"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_5@enc_5",
+                    "encounterId": "enc_5"
+                  },
+                  {
+                    "id": "37e8aacf-1535-4df0-95b8-f706ed22e765",
+                    "activityIds": [
+                      "act_5"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_5@enc_6",
+                    "encounterId": "enc_6"
+                  },
+                  {
+                    "id": "762306e9-b858-4ab0-956b-c1160d0fabce",
+                    "activityIds": [
+                      "act_5"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_5@enc_7",
+                    "encounterId": "enc_7"
+                  },
+                  {
+                    "id": "3e97f482-7c64-4661-a62b-4a76642c55a9",
+                    "activityIds": [
+                      "act_6"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_6@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "7c2f2344-4663-4d96-8419-d34442de6e2d",
+                    "activityIds": [
+                      "act_7"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_7@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "88294e36-0f70-4f66-96f6-a852dd0870e3",
+                    "activityIds": [
+                      "act_7"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_7@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "462f133a-9430-47c8-8a40-1681d5def6c9",
+                    "activityIds": [
+                      "act_7"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_7@enc_4",
+                    "encounterId": "enc_4"
+                  },
+                  {
+                    "id": "8a2dc065-271c-4bc1-a6a9-0d5dfb091471",
+                    "activityIds": [
+                      "act_7"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_7@enc_5",
+                    "encounterId": "enc_5"
+                  },
+                  {
+                    "id": "f67f8c44-3c33-45ca-a052-8ad2d6b2e014",
+                    "activityIds": [
+                      "act_7"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_7@enc_6",
+                    "encounterId": "enc_6"
+                  },
+                  {
+                    "id": "65c0aba7-0f38-4dd6-85f9-4655e82cffe6",
+                    "activityIds": [
+                      "act_7"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_7@enc_7",
+                    "encounterId": "enc_7"
+                  },
+                  {
+                    "id": "6bb1756d-490b-44b9-8008-8779891d6f02",
+                    "activityIds": [
+                      "act_8"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_8@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "779b2eeb-4387-408a-964f-736603d1b211",
+                    "activityIds": [
+                      "act_8"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_8@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "ea4226bd-9da5-4b32-bacb-1a7f1bbe4c58",
+                    "activityIds": [
+                      "act_8"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_8@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "08f6b328-5969-47e6-9289-65f18102f9bc",
+                    "activityIds": [
+                      "act_8"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_8@enc_4",
+                    "encounterId": "enc_4"
+                  },
+                  {
+                    "id": "f8293ce8-9b09-4d02-a263-21d230a3c67d",
+                    "activityIds": [
+                      "act_8"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_8@enc_5",
+                    "encounterId": "enc_5"
+                  },
+                  {
+                    "id": "a19ec2be-3903-4a9f-8f9d-7191ec6fe1f0",
+                    "activityIds": [
+                      "act_8"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_8@enc_6",
+                    "encounterId": "enc_6"
+                  },
+                  {
+                    "id": "833a23d7-bc02-4518-8a00-dd16d1f30487",
+                    "activityIds": [
+                      "act_8"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_8@enc_7",
+                    "encounterId": "enc_7"
+                  },
+                  {
+                    "id": "ae9300b2-7ed7-44ee-afd0-10f46068f814",
+                    "activityIds": [
+                      "act_9"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_9@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "b87b2449-31bc-40b0-a7ac-5446666916af",
+                    "activityIds": [
+                      "act_9"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_9@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "0853d774-90cf-498c-b0a4-869c4136f3a2",
+                    "activityIds": [
+                      "act_9"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_9@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "5fe04436-0592-498e-9d4b-8e730a533a8b",
+                    "activityIds": [
+                      "act_9"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_9@enc_4",
+                    "encounterId": "enc_4"
+                  },
+                  {
+                    "id": "d167fb80-8e1e-425b-8fec-2b503f143bd7",
+                    "activityIds": [
+                      "act_9"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_9@enc_5",
+                    "encounterId": "enc_5"
+                  },
+                  {
+                    "id": "d37cbf69-b23b-440f-bf16-8cdbb7b8da23",
+                    "activityIds": [
+                      "act_9"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_9@enc_6",
+                    "encounterId": "enc_6"
+                  },
+                  {
+                    "id": "c28ecd2f-25d4-475d-a041-c403bfe36171",
+                    "activityIds": [
+                      "act_9"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_9@enc_7",
+                    "encounterId": "enc_7"
+                  },
+                  {
+                    "id": "973bebdd-a821-40cd-80f5-c3e106eaed19",
+                    "activityIds": [
+                      "act_10"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_10@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "eaf8cb0c-8de7-4b84-b8d7-993ad9e4da88",
+                    "activityIds": [
+                      "act_10"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_10@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "d5be19bd-6fad-4fba-aa4e-3a08f0d0e0f9",
+                    "activityIds": [
+                      "act_10"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_10@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "e1b1d6ef-9c2b-49ab-bcef-8edb4d127351",
+                    "activityIds": [
+                      "act_10"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_10@enc_4",
+                    "encounterId": "enc_4"
+                  },
+                  {
+                    "id": "3cfc72a4-de79-486d-bfc7-1c17e1aaf8f5",
+                    "activityIds": [
+                      "act_10"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_10@enc_5",
+                    "encounterId": "enc_5"
+                  },
+                  {
+                    "id": "a69a7b15-60a2-4dae-80ed-c3031aca97bd",
+                    "activityIds": [
+                      "act_10"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_10@enc_6",
+                    "encounterId": "enc_6"
+                  },
+                  {
+                    "id": "da70bb37-6787-4476-b293-b5a6e6fd3c5a",
+                    "activityIds": [
+                      "act_10"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_10@enc_7",
+                    "encounterId": "enc_7"
+                  },
+                  {
+                    "id": "d3dd65b7-6e9a-416a-9cee-e3c23e590534",
+                    "activityIds": [
+                      "act_11"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_11@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "54785347-669b-4d10-9d0c-336ec225c9d6",
+                    "activityIds": [
+                      "act_11"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_11@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "a49c8462-e9a8-465c-a327-034417ab237f",
+                    "activityIds": [
+                      "act_11"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_11@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "4f191279-e0c7-4ac0-8ad1-be00da7cdba5",
+                    "activityIds": [
+                      "act_11"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_11@enc_4",
+                    "encounterId": "enc_4"
+                  },
+                  {
+                    "id": "217628f4-5b4d-4c0c-be0a-8abdcd3def07",
+                    "activityIds": [
+                      "act_11"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_11@enc_5",
+                    "encounterId": "enc_5"
+                  },
+                  {
+                    "id": "d634fa5b-9e5a-4caf-9c76-237f9730da2d",
+                    "activityIds": [
+                      "act_11"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_11@enc_6",
+                    "encounterId": "enc_6"
+                  },
+                  {
+                    "id": "729fa382-fb3b-47e9-a28e-d97695b844a7",
+                    "activityIds": [
+                      "act_11"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_11@enc_7",
+                    "encounterId": "enc_7"
+                  },
+                  {
+                    "id": "471dba6d-cee7-4fd7-b597-7a3dd461327c",
+                    "activityIds": [
+                      "act_12"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_12@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "83d420e3-9db9-4a3d-b6dd-3af89881d7ef",
+                    "activityIds": [
+                      "act_13"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_13@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "6985c1c1-c219-4cad-9545-47b2f0ea987d",
+                    "activityIds": [
+                      "act_13"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_13@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "1407c692-bae8-45ad-8dc5-bf1ace0eb345",
+                    "activityIds": [
+                      "act_13"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_13@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "026e2472-e431-4f67-9ba4-9a76e8af566d",
+                    "activityIds": [
+                      "act_13"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_13@enc_4",
+                    "encounterId": "enc_4"
+                  },
+                  {
+                    "id": "af86634e-226a-4482-8487-5d1efdb13f9e",
+                    "activityIds": [
+                      "act_13"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_13@enc_5",
+                    "encounterId": "enc_5"
+                  },
+                  {
+                    "id": "627af6f2-9751-43cb-beca-3def854594ca",
+                    "activityIds": [
+                      "act_13"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_13@enc_6",
+                    "encounterId": "enc_6"
+                  },
+                  {
+                    "id": "7e205b2d-1dc1-4e27-b5a2-145601ae038f",
+                    "activityIds": [
+                      "act_14"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_14@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "02856d79-6bdd-4af7-a345-5984163267bc",
+                    "activityIds": [
+                      "act_15"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_15@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "5f1dac5d-7576-4dec-9315-87287cbce55a",
+                    "activityIds": [
+                      "act_16"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_16@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "4695c900-dea5-49ad-9641-3c41af4e991f",
+                    "activityIds": [
+                      "act_17"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_17@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "fd9ad0fb-6e28-4566-ab4d-c02ebafe8cbd",
+                    "activityIds": [
+                      "act_17"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_17@enc_6",
+                    "encounterId": "enc_6"
+                  },
+                  {
+                    "id": "1d221ca7-72f0-4f53-be57-56c0c2c579fa",
+                    "activityIds": [
+                      "act_18"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_18@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "1d356b92-a043-4667-a481-12b9480b2b3f",
+                    "activityIds": [
+                      "act_18"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_18@enc_4",
+                    "encounterId": "enc_4"
+                  },
+                  {
+                    "id": "57b63827-350b-429f-aa85-c58c4367b20a",
+                    "activityIds": [
+                      "act_18"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_18@enc_5",
+                    "encounterId": "enc_5"
+                  },
+                  {
+                    "id": "6c477e33-287f-42b0-ac8a-36cf1fbb22ae",
+                    "activityIds": [
+                      "act_18"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_18@enc_6",
+                    "encounterId": "enc_6"
+                  },
+                  {
+                    "id": "5228f0ed-3bd0-48a3-a36f-7340032dedd5",
+                    "activityIds": [
+                      "act_19"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_19@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "5b788b64-3633-4214-86b9-a26654adf3ba",
+                    "activityIds": [
+                      "act_19"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_19@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "1a710774-b59c-4f74-818e-be138e9dd743",
+                    "activityIds": [
+                      "act_19"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_19@enc_4",
+                    "encounterId": "enc_4"
+                  },
+                  {
+                    "id": "906e6f16-1814-434f-9974-cb969ac691fc",
+                    "activityIds": [
+                      "act_19"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_19@enc_6",
+                    "encounterId": "enc_6"
+                  },
+                  {
+                    "id": "d76add0f-f720-4d56-ae64-099111d3ac8a",
+                    "activityIds": [
+                      "act_20"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_20@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "c0ce7b8b-ebc2-4b5f-97c2-c00f05b083b8",
+                    "activityIds": [
+                      "act_21"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_21@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "bf08c1fc-4266-49fc-bf89-045b0932e57e",
+                    "activityIds": [
+                      "act_21"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_21@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "c2a25bef-2962-4883-a9a4-395ae0f233c0",
+                    "activityIds": [
+                      "act_21"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_21@enc_4",
+                    "encounterId": "enc_4"
+                  },
+                  {
+                    "id": "7de7e868-af58-40f6-a02f-c10d760ab498",
+                    "activityIds": [
+                      "act_21"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_21@enc_5",
+                    "encounterId": "enc_5"
+                  },
+                  {
+                    "id": "a6c1fff4-75fc-4c38-b63c-2a58e2db53b0",
+                    "activityIds": [
+                      "act_22"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_22@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "aa5de6d0-55a8-4630-88e1-1b3ed7298b37",
+                    "activityIds": [
+                      "act_22"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_22@enc_4",
+                    "encounterId": "enc_4"
+                  },
+                  {
+                    "id": "db5691bf-245f-481e-ba91-b34fde86c5c2",
+                    "activityIds": [
+                      "act_22"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_22@enc_6",
+                    "encounterId": "enc_6"
+                  }
+                ]
+              }
+            ],
+            "activityGroups": [
+              {
+                "id": "grp_1",
+                "name": "General Assessments",
+                "description": null,
+                "childIds": [],
+                "instanceType": "Activity",
+                "activityNames": [
+                  "Height (screening only) and weight",
+                  "Vital signs",
+                  "Physical exam",
+                  "Physician Global Assessment (PhGA)",
+                  "TJC68/SJC66"
+                ]
+              },
+              {
+                "id": "grp_2",
+                "name": "Central Lab Tests",
+                "description": null,
+                "childIds": [],
+                "instanceType": "Activity",
+                "activityNames": [
+                  "hsCRP",
+                  "Blood chemistry",
+                  "Hematology (CBC)",
+                  "Urinalysis",
+                  "FSH"
+                ]
+              },
+              {
+                "id": "grp_3",
+                "name": "Other Central Lab Tests",
+                "description": null,
+                "childIds": [],
+                "instanceType": "Activity",
+                "activityNames": [
+                  "Rheumatoid factor",
+                  "Anti-CCP autoantibodies",
+                  "HBV/HCV/HIVAB screening"
+                ]
+              },
+              {
+                "id": "grp_4",
+                "name": "Specialized Labs and PK",
+                "description": null,
+                "childIds": [],
+                "instanceType": "Activity",
+                "activityNames": [
+                  "IgG and IgM (central lab)",
+                  "Blood samples for upadacitinib PK assay",
+                  "Blood samples for exploratory research and validation studies (optional – see Appendix D)"
+                ]
+              },
+              {
+                "id": "grp_5",
+                "name": "Dosing and Administration",
+                "description": null,
+                "childIds": [],
+                "instanceType": "Activity",
+                "activityNames": [
+                  "Randomization/drug assignment",
+                  "Dispense study drug and subject dosing diary",
+                  "Review and copy subject dosing diary and perform drug reconciliation"
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

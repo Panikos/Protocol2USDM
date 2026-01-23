@@ -74,12 +74,29 @@ export function StudySitesView({ usdm }: StudySitesViewProps) {
   // Get organizations
   const organizations = (version?.organizations as Organization[]) ?? [];
 
-  // Get countries from sites
-  const countries = [...new Set(
+  // Get geographic scope from top-level
+  const geographicScope = usdm.geographicScope as { type?: { decode?: string }; regions?: string[] } | undefined;
+  const countriesList = (usdm.countries as { name?: string; code?: string; decode?: string }[]) ?? [];
+
+  // Get countries from sites (fallback)
+  const countriesFromSites = [...new Set(
     studySites
       .map(site => site.country)
       .filter(Boolean)
   )];
+  
+  // Use countries list if available, otherwise derive from sites
+  const countries = countriesList.length > 0 
+    ? countriesList.map(c => c.name || c.decode || c.code || 'Unknown')
+    : countriesFromSites;
+
+  // Group sites by country for display
+  const sitesByCountry = studySites.reduce((acc, site) => {
+    const country = site.country || 'Unknown';
+    if (!acc[country]) acc[country] = [];
+    acc[country].push(site);
+    return acc;
+  }, {} as Record<string, StudySite[]>);
 
   const hasData = studySites.length > 0 || organizations.length > 0;
 
@@ -147,26 +164,47 @@ export function StudySitesView({ usdm }: StudySitesViewProps) {
         </Card>
       </div>
 
-      {/* Countries */}
-      {countries.length > 0 && (
+      {/* Geographic Scope & Distribution */}
+      {(countries.length > 0 || geographicScope) && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Globe className="h-5 w-5" />
-              Geographic Distribution
+              Geographic Coverage
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-2">
-              {countries.map((country, i) => {
-                const siteCount = studySites.filter(s => s.country === country).length;
-                return (
-                  <Badge key={i} variant="secondary" className="text-sm">
-                    {country} ({siteCount} site{siteCount !== 1 ? 's' : ''})
-                  </Badge>
-                );
-              })}
-            </div>
+          <CardContent className="space-y-4">
+            {geographicScope?.type?.decode && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Scope:</span>
+                <Badge variant="default">{geographicScope.type.decode}</Badge>
+              </div>
+            )}
+            {geographicScope?.regions && geographicScope.regions.length > 0 && (
+              <div>
+                <span className="text-sm text-muted-foreground">Regions:</span>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {geographicScope.regions.map((region, i) => (
+                    <Badge key={i} variant="outline">{region}</Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+            {countries.length > 0 && (
+              <div>
+                <span className="text-sm text-muted-foreground">Countries ({countries.length}):</span>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {countries.map((country, i) => {
+                    const siteCount = sitesByCountry[country as string]?.length || 0;
+                    return (
+                      <Badge key={i} variant="secondary" className="text-sm">
+                        {country} {siteCount > 0 && `(${siteCount} site${siteCount !== 1 ? 's' : ''})`}
+                      </Badge>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

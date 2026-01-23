@@ -1,0 +1,607 @@
+{
+  "usdmVersion": "4.0",
+  "systemName": "Protocol2USDM",
+  "systemVersion": "0.1.0",
+  "study": {
+    "id": "92ab292e-92b2-44ed-96b7-1c7aaa16e5ef",
+    "name": "",
+    "instanceType": "Study",
+    "versions": [
+      {
+        "id": "d0b3d92b-06b7-4d7d-8580-ca622257e566",
+        "versionIdentifier": "1.0",
+        "rationale": "Initial protocol version",
+        "instanceType": "StudyVersion",
+        "studyDesigns": [
+          {
+            "id": "sd_1",
+            "name": "Study Design",
+            "rationale": "Protocol-defined study design",
+            "instanceType": "InterventionalStudyDesign",
+            "blindingSchema": {
+              "id": "31c33d5a-373a-413b-b16a-aa2511d27056",
+              "instanceType": "AliasCode",
+              "standardCode": {
+                "id": "62d7bcbc-fc4e-4645-9489-76f1efd72dfe",
+                "code": "C49656",
+                "codeSystem": "http://www.cdisc.org",
+                "codeSystemVersion": "2024-09-27",
+                "decode": "Open Label",
+                "instanceType": "Code"
+              }
+            },
+            "model": {
+              "id": "decdfe36-36c3-447d-8d36-2931c0ed0712",
+              "code": "C82638",
+              "codeSystem": "http://www.cdisc.org",
+              "codeSystemVersion": "2024-09-27",
+              "decode": "Single Group Study",
+              "instanceType": "Code"
+            },
+            "epochs": [
+              {
+                "id": "epoch_1",
+                "name": "Screening",
+                "instanceType": "StudyEpoch",
+                "type": {
+                  "id": "0bc5db19-64bd-41b6-925a-76b0cca4c35d",
+                  "code": "C98779",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Screening Epoch",
+                  "instanceType": "Code"
+                }
+              },
+              {
+                "id": "epoch_2",
+                "name": "Baseline",
+                "instanceType": "StudyEpoch",
+                "type": {
+                  "id": "61de8060-8006-45bf-8696-7a86afa27ed1",
+                  "code": "C98780",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Treatment Epoch",
+                  "instanceType": "Code"
+                }
+              },
+              {
+                "id": "epoch_3",
+                "name": "All Cycles [a1]",
+                "instanceType": "StudyEpoch",
+                "type": {
+                  "id": "4b9cf8f5-6ff5-4008-9db1-84bd93cab4af",
+                  "code": "C98780",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Treatment Epoch",
+                  "instanceType": "Code"
+                }
+              },
+              {
+                "id": "epoch_4",
+                "name": "Treatment Discontinuation [b]",
+                "instanceType": "StudyEpoch",
+                "type": {
+                  "id": "cd889fff-abc7-470f-aca3-a7ce9b94ceaa",
+                  "code": "C98780",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Treatment Epoch",
+                  "instanceType": "Code"
+                }
+              },
+              {
+                "id": "epoch_5",
+                "name": "Follow-Up",
+                "instanceType": "StudyEpoch",
+                "type": {
+                  "id": "8dec2b44-c3fa-434e-a750-00fc26b46dbe",
+                  "code": "C98781",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Follow-up Epoch",
+                  "instanceType": "Code"
+                }
+              }
+            ],
+            "activities": [
+              {
+                "id": "grp_1",
+                "name": "Study Assessments",
+                "instanceType": "Activity",
+                "childIds": [
+                  "act_1",
+                  "act_2",
+                  "act_3",
+                  "act_4",
+                  "act_5",
+                  "act_6",
+                  "act_7",
+                  "act_8",
+                  "act_9",
+                  "act_10",
+                  "act_11",
+                  "act_12",
+                  "act_13",
+                  "act_14",
+                  "act_15",
+                  "act_16"
+                ]
+              },
+              {
+                "id": "act_1",
+                "name": "Pregnancy test (WOCP only)",
+                "instanceType": "Activity",
+                "description": "Serum pregnancy test within 7 days before Cycle 1, Day 1; Urine pregnancy test thereafter."
+              },
+              {
+                "id": "act_2",
+                "name": "TSH, free or total T3, free T4 [q]",
+                "instanceType": "Activity",
+                "description": "Thyroid function assessments within 96 hours before Day 1 of Cycle 1, every second cycle thereafter, and at treatment discontinuation."
+              },
+              {
+                "id": "act_3",
+                "name": "Auto-antibody testing [r]",
+                "instanceType": "Activity",
+                "description": "Includes antinuclear antibody, anti-double stranded DNA, etc. Baseline sample on Cycle 1, Day 1."
+              },
+              {
+                "id": "act_4",
+                "name": "Serum sample for ADA assessment [s]",
+                "instanceType": "Activity",
+                "description": "Anti-drug antibody assessment per Appendix 2 schedule."
+              },
+              {
+                "id": "act_5",
+                "name": "Serum sample for atezolizumab PK evaluations [s]",
+                "instanceType": "Activity",
+                "description": "Pharmacokinetic evaluations per Appendix 2 schedule."
+              },
+              {
+                "id": "act_6",
+                "name": "Plasma samples for paclitaxel PK evaluations [s]",
+                "instanceType": "Activity",
+                "description": "Paclitaxel PK evaluations per Appendix 2 schedule."
+              },
+              {
+                "id": "act_7",
+                "name": "Whole blood for exploratory biomarker analysis [s]",
+                "instanceType": "Activity",
+                "description": "Exploratory biomarker analysis per Appendix 2 schedule."
+              },
+              {
+                "id": "act_8",
+                "name": "Plasma for exploratory biomarker analysis [s]",
+                "instanceType": "Activity",
+                "description": "Plasma for exploratory biomarker analysis per Appendix 2 schedule."
+              },
+              {
+                "id": "act_9",
+                "name": "Whole blood sample for germline DNA analysis [t]",
+                "instanceType": "Activity",
+                "description": "Mandatory whole blood for germline DNA isolation collected during Baseline."
+              },
+              {
+                "id": "act_10",
+                "name": "Randomisation",
+                "instanceType": "Activity",
+                "description": "Randomisation of patient."
+              },
+              {
+                "id": "act_11",
+                "name": "Adverse events [u]",
+                "instanceType": "Activity",
+                "description": "Reporting of AEs and SAEs."
+              },
+              {
+                "id": "act_12",
+                "name": "Atezolizumab/placebo infusion [v]",
+                "instanceType": "Activity",
+                "description": "Administration of study drug."
+              },
+              {
+                "id": "act_13",
+                "name": "Paclitaxel administration [a3]",
+                "instanceType": "Activity",
+                "description": "Paclitaxel 90 mg/m2 via 1-hour IV infusion on Days 1, 8, and 15."
+              },
+              {
+                "id": "act_14",
+                "name": "Mandatory FFPE tumour tissue sample [w]",
+                "instanceType": "Activity",
+                "description": "Mandatory biopsy within 3 months prior to enrolment."
+              },
+              {
+                "id": "act_15",
+                "name": "Optional FFPE tumour tissue samples [x,y]",
+                "instanceType": "Activity",
+                "description": "Optional on-treatment or progression biopsies."
+              },
+              {
+                "id": "act_16",
+                "name": "Survival and anti-cancer therapy follow-up [z]",
+                "instanceType": "Activity",
+                "description": "Follow-up for survival and new therapy every 3 months."
+              }
+            ],
+            "encounters": [
+              {
+                "id": "enc_1",
+                "name": "Screening (Days -28 to -1)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "9b4db071-4ecf-462d-928b-0e7ef1b30288",
+                  "code": "C48262",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Screening",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_1"
+              },
+              {
+                "id": "enc_2",
+                "name": "Baseline (Days -7 to -1)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "7b977a4a-8062-4c16-b02c-aaa0b1218074",
+                  "code": "C82517",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Baseline",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_2"
+              },
+              {
+                "id": "enc_3",
+                "name": "Cycle Day 1 [a2]",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "ad7828d2-ffc7-4b39-8bfc-6a204b621130",
+                  "code": "C82517",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Baseline",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_3"
+              },
+              {
+                "id": "enc_4",
+                "name": "Cycle Day 8 (± 3) [a3]",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "20163b37-9d06-437e-bfd5-de57952e3c39",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_3"
+              },
+              {
+                "id": "enc_5",
+                "name": "Cycle Day 15 (± 3)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "14e3f741-6407-4c64-bddc-fbc37d1b3313",
+                  "code": "C82517",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Baseline",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_3"
+              },
+              {
+                "id": "enc_6",
+                "name": "Discontinuation (30 ± 5 Days after Last Dose)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "bab5c36f-fa0e-46c2-93a6-abe1d367a291",
+                  "code": "C49631",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Early Termination",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_4"
+              },
+              {
+                "id": "enc_7",
+                "name": "Follow-Up (Every 3 months ± 21 days)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "9f2e6d59-60e0-4438-afb9-af1c8ebaf407",
+                  "code": "C99158",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Follow-up",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_5"
+              }
+            ],
+            "scheduleTimelines": [
+              {
+                "id": "timeline_1",
+                "name": "Main Schedule Timeline",
+                "mainTimeline": true,
+                "instanceType": "ScheduleTimeline",
+                "entryCondition": "Subject enrolled in study",
+                "entryId": "fd835016-d97b-43a5-864f-98fff8a12111",
+                "instances": [
+                  {
+                    "id": "fd835016-d97b-43a5-864f-98fff8a12111",
+                    "activityIds": [
+                      "act_1"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_1@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "7b371569-31ba-431c-9cca-be335b0b9aaa",
+                    "activityIds": [
+                      "act_1"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_1@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "eaefbfe7-1fd6-42ef-a45e-4c0689515b8c",
+                    "activityIds": [
+                      "act_2"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_2@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "b777452c-eebb-4f3d-b523-b01a846ab62c",
+                    "activityIds": [
+                      "act_2"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_2@enc_6",
+                    "encounterId": "enc_6"
+                  },
+                  {
+                    "id": "35d740bf-0a8e-435d-a573-b8248b29d468",
+                    "activityIds": [
+                      "act_3"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_3@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "b2d79934-199b-411d-8a4e-c1c724e17d95",
+                    "activityIds": [
+                      "act_4"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_4@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "7d23a2cd-1940-4b2a-8e3b-0893c03ed763",
+                    "activityIds": [
+                      "act_5"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_5@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "4ae74bd6-7b95-4804-8b29-7eba7be02337",
+                    "activityIds": [
+                      "act_6"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_6@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "bcab4ebf-2d98-47ba-a664-fae04f6b2b24",
+                    "activityIds": [
+                      "act_7"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_7@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "586b6927-b0fe-4186-8139-9c550d4466b5",
+                    "activityIds": [
+                      "act_8"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_8@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "59935e32-08bc-4de1-b8e8-495ba7611be0",
+                    "activityIds": [
+                      "act_9"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_9@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "e65183af-0821-478d-a850-7bf45ee6f65b",
+                    "activityIds": [
+                      "act_10"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_10@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "16fe65de-b1c6-40a0-8921-2f43d0979b4e",
+                    "activityIds": [
+                      "act_11"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_11@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "f109ba1e-c406-42be-89d6-883303255a07",
+                    "activityIds": [
+                      "act_11"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_11@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "cd5cc1c9-3e2a-46c6-a9ea-82a60f63a25d",
+                    "activityIds": [
+                      "act_11"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_11@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "1827359a-c0da-4542-b636-2e8976b21bf7",
+                    "activityIds": [
+                      "act_11"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_11@enc_4",
+                    "encounterId": "enc_4"
+                  },
+                  {
+                    "id": "c0cf819d-324f-4252-bab6-ebfc2a5dc262",
+                    "activityIds": [
+                      "act_11"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_11@enc_5",
+                    "encounterId": "enc_5"
+                  },
+                  {
+                    "id": "cd6dd1e5-5231-48ee-9d9c-265282cf7cc6",
+                    "activityIds": [
+                      "act_11"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_11@enc_6",
+                    "encounterId": "enc_6"
+                  },
+                  {
+                    "id": "be8b246d-f06c-45e2-8e3e-569182c418d3",
+                    "activityIds": [
+                      "act_12"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_12@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "837d066a-933d-4f25-a0b0-4fe53bdc0a65",
+                    "activityIds": [
+                      "act_13"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_13@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "96ae8447-a306-4c27-9ffd-dca18a0cda01",
+                    "activityIds": [
+                      "act_13"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_13@enc_4",
+                    "encounterId": "enc_4"
+                  },
+                  {
+                    "id": "592eddd2-30f9-4b86-b71c-9ac767fd02cb",
+                    "activityIds": [
+                      "act_13"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_13@enc_5",
+                    "encounterId": "enc_5"
+                  },
+                  {
+                    "id": "4f1536c7-a7f8-4e6a-b179-8d778834192b",
+                    "activityIds": [
+                      "act_14"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_14@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "1e545c97-7a4e-44a0-8174-75a8e746cd81",
+                    "activityIds": [
+                      "act_15"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_15@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "951df9d3-1b4d-4cea-8b72-550d5504c4c3",
+                    "activityIds": [
+                      "act_15"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_15@enc_6",
+                    "encounterId": "enc_6"
+                  },
+                  {
+                    "id": "3e9c5e8f-e8f1-4f87-ad8f-8c70ba23b55b",
+                    "activityIds": [
+                      "act_16"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_16@enc_7",
+                    "encounterId": "enc_7"
+                  }
+                ]
+              }
+            ],
+            "activityGroups": [
+              {
+                "id": "grp_1",
+                "name": "Study Assessments",
+                "description": null,
+                "childIds": [],
+                "instanceType": "Activity",
+                "activityNames": [
+                  "Pregnancy test (WOCP only)",
+                  "TSH, free or total T3, free T4 [q]",
+                  "Auto-antibody testing [r]",
+                  "Serum sample for ADA assessment [s]",
+                  "Serum sample for atezolizumab PK evaluations [s]",
+                  "Plasma samples for paclitaxel PK evaluations [s]",
+                  "Whole blood for exploratory biomarker analysis [s]",
+                  "Plasma for exploratory biomarker analysis [s]",
+                  "Whole blood sample for germline DNA analysis [t]",
+                  "Randomisation",
+                  "Adverse events [u]",
+                  "Atezolizumab/placebo infusion [v]",
+                  "Paclitaxel administration [a3]",
+                  "Mandatory FFPE tumour tissue sample [w]",
+                  "Optional FFPE tumour tissue samples [x,y]",
+                  "Survival and anti-cancer therapy follow-up [z]"
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

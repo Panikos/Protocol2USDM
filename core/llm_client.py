@@ -142,12 +142,35 @@ def detect_provider(model_name: str) -> str:
         return 'unknown'
 
 
+# Max output tokens by model family (as of Jan 2026)
+# Gemini 2.5 Flash/Pro and Gemini 3 Flash all support 65,536 output tokens
+MAX_OUTPUT_TOKENS = {
+    'gemini': 65536,  # Gemini 2.5 and 3.x models
+    'gpt': 16384,     # GPT-4o and variants
+    'claude': 8192,   # Claude models
+    'default': 8192,
+}
+
+def _get_max_tokens_for_model(model_name: str) -> int:
+    """Get the maximum output tokens supported by a model."""
+    model_lower = model_name.lower()
+    if 'gemini' in model_lower:
+        return MAX_OUTPUT_TOKENS['gemini']
+    elif 'gpt' in model_lower:
+        return MAX_OUTPUT_TOKENS['gpt']
+    elif 'claude' in model_lower:
+        return MAX_OUTPUT_TOKENS['claude']
+    return MAX_OUTPUT_TOKENS['default']
+
+
 # Convenience function for simple text generation
 def generate_text(
     messages: List[Dict[str, str]],
     model_name: Optional[str] = None,
     json_mode: bool = False,
     temperature: float = 0.0,
+    max_tokens: Optional[int] = None,
+    extractor_name: Optional[str] = None,
 ) -> str:
     """
     Simple text generation helper.
@@ -156,20 +179,35 @@ def generate_text(
         messages: List of message dicts with 'role' and 'content'
         model_name: Model to use (defaults to environment/gemini-2.5-pro)
         json_mode: Whether to request JSON output
-        temperature: Generation temperature
+        temperature: Generation temperature (ignored if extractor_name provided)
+        max_tokens: Maximum output tokens (defaults to model's max)
+        extractor_name: Optional extractor name to use task-specific config
         
     Returns:
         Generated text content
     """
     if model_name is None:
         model_name = get_default_model()
-        
-    client = get_llm_client(model_name)
-    config = LLMConfig(
-        temperature=temperature,
-        json_mode=json_mode,
-    )
     
+    # Use task config if extractor_name provided
+    if extractor_name:
+        from extraction.llm_task_config import get_llm_task_config, to_llm_config
+        task_config = get_llm_task_config(extractor_name, model=model_name)
+        config = to_llm_config(task_config)
+        # Override max_tokens if explicitly provided
+        if max_tokens is not None:
+            config.max_tokens = max_tokens
+    else:
+        # Use model's max if not specified
+        if max_tokens is None:
+            max_tokens = _get_max_tokens_for_model(model_name)
+        config = LLMConfig(
+            temperature=temperature,
+            json_mode=json_mode,
+            max_tokens=max_tokens,
+        )
+    
+    client = get_llm_client(model_name)
     response = client.generate(messages, config)
     return response.content
 
@@ -208,6 +246,8 @@ def call_llm(
     model_name: Optional[str] = None,
     json_mode: bool = True,
     temperature: float = 0.0,
+    max_tokens: Optional[int] = None,
+    extractor_name: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Simple LLM call with a single prompt.
@@ -216,7 +256,9 @@ def call_llm(
         prompt: The prompt text
         model_name: Model to use (defaults to environment/gemini-2.5-pro)
         json_mode: Whether to request JSON output
-        temperature: Generation temperature
+        temperature: Generation temperature (ignored if extractor_name provided)
+        max_tokens: Maximum output tokens (defaults to model's max: 65536 for Gemini)
+        extractor_name: Optional extractor name to use task-specific config from llm_config.yaml
         
     Returns:
         Dict with 'response' key containing the generated text
@@ -232,6 +274,8 @@ def call_llm(
             model_name=model_name,
             json_mode=json_mode,
             temperature=temperature,
+            max_tokens=max_tokens,
+            extractor_name=extractor_name,
         )
         return {"response": content}
     except Exception as e:

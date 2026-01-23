@@ -34,10 +34,11 @@ from core.constants import USDM_VERSION
 logger = logging.getLogger(__name__)
 
 # Models that need fallback to gemini-2.5-pro for SoA text extraction
-# These models have issues with structured JSON output format compliance
+# Note: Gemini 3 models now work with thinking_budget=0 (disabled thinking mode)
+# Only add models here that genuinely fail SoA extraction
 SOA_FALLBACK_MODELS = {
-    'gemini-3-flash-preview': 'gemini-2.5-pro',
-    'gemini-3-flash': 'gemini-2.5-pro',
+    # 'gemini-3-flash-preview': 'gemini-2.5-pro',  # Removed - works with thinking disabled
+    # 'gemini-3-flash': 'gemini-2.5-pro',  # Removed - works with thinking disabled
 }
 
 
@@ -49,6 +50,16 @@ class PipelineConfig:
     remove_hallucinations: bool = False  # Keep all text-extracted cells; use provenance for confidence
     hallucination_confidence_threshold: float = 0.7
     save_intermediate: bool = True
+
+
+@dataclass
+class ProcessingIssue:
+    """A non-blocking processing issue that should be reported."""
+    phase: str  # e.g., "soa_header_analysis", "eligibility_extraction"
+    issue_type: str  # e.g., "recitation_blocked", "json_parse_error", "llm_error"
+    message: str
+    is_known_limitation: bool = False  # True for known API limitations like RECITATION
+    fallback_used: Optional[str] = None  # Description of fallback if any
 
 
 @dataclass
@@ -68,8 +79,11 @@ class PipelineResult:
     hallucinations_removed: int = 0
     missed_ticks_found: int = 0
     
-    # Errors
+    # Errors (blocking issues)
     errors: List[str] = field(default_factory=list)
+    
+    # Processing issues (non-blocking, for reporting)
+    processing_issues: List[ProcessingIssue] = field(default_factory=list)
     
     def to_dict(self):
         return {
@@ -87,6 +101,16 @@ class PipelineResult:
                 'missed_ticks_found': self.missed_ticks_found,
             },
             'errors': self.errors,
+            'processing_issues': [
+                {
+                    'phase': issue.phase,
+                    'issue_type': issue.issue_type,
+                    'message': issue.message,
+                    'is_known_limitation': issue.is_known_limitation,
+                    'fallback_used': issue.fallback_used,
+                }
+                for issue in self.processing_issues
+            ],
         }
 
 
@@ -199,6 +223,20 @@ def run_extraction_pipeline(
         )
         
         if not header_result.success:
+            # Track recitation blocking as a processing issue (known limitation)
+            if header_result.recitation_blocked:
+                result.processing_issues.append(ProcessingIssue(
+                    phase="soa_header_analysis",
+                    issue_type="recitation_blocked",
+                    message=(
+                        "Gemini RECITATION filter triggered during SoA header analysis. "
+                        "This is NOT a copyright issue - the model detected similarity to training data. "
+                        "Content from public domain sources (clinicaltrials.gov) can trigger this. "
+                        "This is a known Gemini limitation that cannot be disabled."
+                    ),
+                    is_known_limitation=True,
+                    fallback_used="Text extraction only (no vision-based header structure)"
+                ))
             result.errors.append(f"Header analysis failed: {header_result.error}")
             return result
         
@@ -229,9 +267,15 @@ def run_extraction_pipeline(
             model_name=soa_model,
         )
         
-        if not text_result.success:
-            result.errors.append(f"Text extraction failed: {text_result.error}")
+        # Continue even if extraction returned fewer activities than expected,
+        # as long as we have SOME activities. Only fail if we got zero activities.
+        if not text_result.activities:
+            result.errors.append(f"Text extraction failed: {text_result.error or 'No activities extracted'}")
             return result
+        
+        if not text_result.success:
+            # Log warning but continue with partial results
+            logger.warning(f"  Text extraction below expectations: {text_result.error}")
         
         result.activities_count = len(text_result.activities)
         result.ticks_count = len(text_result.activity_timepoints)

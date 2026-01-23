@@ -122,12 +122,11 @@ export function EligibilityCriteriaView({ usdm }: EligibilityCriteriaViewProps) 
 
   const renderCriterion = (criterion: EligibilityCriterion, index: number) => {
     const text = criterion.text || criterion.description || criterion.label || criterion.name || 'No text';
-    const identifier = criterion.identifier || `${index + 1}`;
     
     return (
       <div key={criterion.id || index} className="flex gap-3 py-2 border-b last:border-b-0">
         <Badge variant="outline" className="h-6 min-w-[2rem] justify-center">
-          {identifier}
+          {index + 1}
         </Badge>
         <p className="text-sm flex-1">{text}</p>
       </div>

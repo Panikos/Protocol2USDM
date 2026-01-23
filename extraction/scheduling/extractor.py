@@ -173,6 +173,7 @@ def extract_scheduling(
             prompt=full_prompt,
             model_name=model,
             json_mode=True,
+            extractor_name="scheduling",
             temperature=0.1,
         )
         response = result.get('response', '')

@@ -339,11 +339,10 @@ def extract_soa_from_text(
             {"role": "user", "content": f"{prompt}\n\nPROTOCOL TEXT:\n\n{protocol_text}"}
         ]
         
-        # Configure for JSON output
-        config = LLMConfig(
-            temperature=0.0,
-            json_mode=True,
-        )
+        # Configure for JSON output using task-specific settings
+        from extraction.llm_task_config import get_llm_task_config, to_llm_config
+        task_config = get_llm_task_config("text_extractor", model=model_name)
+        config = to_llm_config(task_config)
         
         raw_response = ""
         data = {}

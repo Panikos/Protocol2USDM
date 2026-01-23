@@ -17,6 +17,7 @@ from core.usdm_types import generate_uuid, Code
 
 class ProcedureType(Enum):
     """Types of clinical procedures."""
+    UNKNOWN = ""  # Not extracted from source
     DIAGNOSTIC = "Diagnostic"
     THERAPEUTIC = "Therapeutic"
     SURGICAL = "Surgical"
@@ -28,6 +29,7 @@ class ProcedureType(Enum):
 
 class DeviceType(Enum):
     """Types of medical devices."""
+    UNKNOWN = ""  # Not extracted from source
     DRUG_DELIVERY = "Drug Delivery Device"
     DIAGNOSTIC = "Diagnostic Device"
     MONITORING = "Monitoring Device"
@@ -70,18 +72,43 @@ class Procedure:
         else:
             proc_type_str = "Clinical Procedure"
         
+        # Check if code dict has valid values (not all null)
+        has_valid_code = (
+            self.code 
+            and isinstance(self.code, dict) 
+            and self.code.get('code')  # code value must be non-null
+        )
+        
+        # Build code object - use existing if valid, otherwise create default
+        if has_valid_code:
+            # Ensure all required fields are strings (not null)
+            code_obj = {
+                "id": self.code.get('id') or generate_uuid(),
+                "code": self.code.get('code') or "",
+                "codeSystem": self.code.get('codeSystem') or "",
+                "codeSystemVersion": self.code.get('codeSystemVersion') or "",
+                "decode": self.code.get('decode') or self.name,
+                "instanceType": "Code",
+            }
+        else:
+            # Default code based on procedure type
+            default_code, default_decode = procedure_type_codes.get(
+                self.procedure_type, ("C25218", "Clinical Procedure")
+            )
+            code_obj = {
+                "id": generate_uuid(),
+                "code": default_code,
+                "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+                "codeSystemVersion": "25.01d",
+                "decode": default_decode,
+                "instanceType": "Code",
+            }
+        
         result = {
             "id": self.id,
             "name": self.name,
             "procedureType": proc_type_str,  # Required field - string type
-            "code": self.code if self.code else {  # Required field
-                "id": generate_uuid(),
-                "code": "C25218",
-                "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
-                "codeSystemVersion": "25.01d",
-                "decode": self.name,
-                "instanceType": "Code",
-            },
+            "code": code_obj,
             "instanceType": self.instance_type,
         }
         if self.label:

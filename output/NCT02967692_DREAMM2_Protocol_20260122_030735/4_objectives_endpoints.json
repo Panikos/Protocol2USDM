@@ -1,0 +1,455 @@
+{
+  "success": true,
+  "pagesUsed": [
+    3,
+    4,
+    5,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29
+  ],
+  "modelUsed": "gemini-3-flash-preview",
+  "objectivesEndpoints": {
+    "objectives": [
+      {
+        "id": "obj_1",
+        "name": "Primary Efficacy Objective",
+        "text": "To evaluate the efficacy of Drug X compared to placebo",
+        "level": {
+          "code": "C85826",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Trial Primary Objective",
+          "instanceType": "Code"
+        },
+        "endpointIds": [
+          "ep_1"
+        ],
+        "instanceType": "Objective"
+      },
+      {
+        "id": "obj_2",
+        "name": "Key Secondary Objective",
+        "text": "To characterize the overall survival benefit",
+        "level": {
+          "code": "C85827",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Trial Secondary Objective",
+          "instanceType": "Code"
+        },
+        "endpointIds": [
+          "ep_2"
+        ],
+        "instanceType": "Objective"
+      },
+      {
+        "id": "obj_3",
+        "name": "Safety Objective",
+        "text": "To evaluate safety and tolerability of PDR001 in combination with dabrafenib and trametinib",
+        "level": {
+          "code": "C85827",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Trial Secondary Objective",
+          "instanceType": "Code"
+        },
+        "endpointIds": [
+          "ep_3"
+        ],
+        "instanceType": "Objective"
+      },
+      {
+        "id": "obj_4",
+        "name": "Biomarker Objective",
+        "text": "To identify and characterize potential resistance mechanism",
+        "level": {
+          "code": "C163559",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Trial Exploratory Objective",
+          "instanceType": "Code"
+        },
+        "endpointIds": [
+          "ep_4"
+        ],
+        "instanceType": "Objective"
+      }
+    ],
+    "endpoints": [
+      {
+        "id": "ep_1",
+        "name": "Primary Efficacy Endpoint",
+        "text": "investigator-assessed PFS",
+        "level": {
+          "code": "C98772",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Primary Outcome Measure",
+          "instanceType": "Code"
+        },
+        "instanceType": "Endpoint",
+        "purpose": "Efficacy"
+      },
+      {
+        "id": "ep_2",
+        "name": "Key Secondary Endpoint",
+        "text": "Overall Survival (OS)",
+        "level": {
+          "code": "C98781",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Secondary Outcome Measure",
+          "instanceType": "Code"
+        },
+        "instanceType": "Endpoint",
+        "purpose": "Efficacy"
+      },
+      {
+        "id": "ep_3",
+        "name": "Safety Endpoint",
+        "text": "Incidence and severity of adverse events (AEs) and treatment related AEs (TRAEs)",
+        "level": {
+          "code": "C98781",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Secondary Outcome Measure",
+          "instanceType": "Code"
+        },
+        "instanceType": "Endpoint",
+        "purpose": "Safety"
+      },
+      {
+        "id": "ep_4",
+        "name": "Exploratory Biomarker Endpoint",
+        "text": "Mandatory blood and optional tissue sample collection at the time of progression",
+        "level": {
+          "code": "C98724",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Exploratory Outcome Measure",
+          "instanceType": "Code"
+        },
+        "instanceType": "Endpoint",
+        "purpose": "Biomarker"
+      }
+    ],
+    "estimands": [
+      {
+        "id": "est_1",
+        "name": "Primary Efficacy Estimand - PFS",
+        "populationSummary": "Adult patients with untreated BRAF V600 mutant melanoma (Full Analysis Set/ITT) Summary measure: Hazard Ratio (HR) from a stratified Cox proportional hazards model.",
+        "analysisPopulationId": "est_1_pop",
+        "variableOfInterestId": "ep_1",
+        "interventionIds": [
+          "est_1_int"
+        ],
+        "intercurrentEvents": [
+          {
+            "id": "ice_1",
+            "name": "Treatment discontinuation",
+            "text": "Discontinuation of study treatment for any reason other than disease progression or death",
+            "strategy": "Treatment Policy",
+            "instanceType": "IntercurrentEvent"
+          },
+          {
+            "id": "ice_2",
+            "name": "Death",
+            "text": "Death due to any cause",
+            "strategy": "Composite",
+            "instanceType": "IntercurrentEvent"
+          },
+          {
+            "id": "ice_3",
+            "name": "COVID-19 related disruption",
+            "text": "Delays in treatment or virtual visits due to the COVID-19 pandemic",
+            "strategy": "Treatment Policy",
+            "instanceType": "IntercurrentEvent"
+          }
+        ],
+        "instanceType": "Estimand",
+        "treatment": "PDR001 in combination with dabrafenib and trametinib vs Placebo in combination with dabrafenib and trametinib",
+        "analysisPopulation": "Adult patients with untreated BRAF V600 mutant melanoma (Full Analysis Set/ITT)",
+        "variableOfInterest": "Progression-Free Survival (PFS) based on investigator assessment per RECIST 1.1",
+        "summaryMeasure": "Hazard Ratio (HR) from a stratified Cox proportional hazards model"
+      },
+      {
+        "id": "est_2",
+        "name": "Key Secondary Estimand - OS",
+        "populationSummary": "Adult patients with untreated BRAF V600 mutant melanoma (Full Analysis Set/ITT) Summary measure: Hazard Ratio (HR).",
+        "analysisPopulationId": "est_2_pop",
+        "variableOfInterestId": "ep_2",
+        "interventionIds": [
+          "est_2_int"
+        ],
+        "intercurrentEvents": [
+          {
+            "id": "ice_4",
+            "name": "Treatment switching/Unblinding",
+            "text": "Mandatory unblinding and discontinuation of placebo following final PFS analysis",
+            "strategy": "Treatment Policy",
+            "instanceType": "IntercurrentEvent"
+          }
+        ],
+        "instanceType": "Estimand",
+        "treatment": "PDR001 in combination with dabrafenib and trametinib vs Placebo in combination with dabrafenib and trametinib",
+        "analysisPopulation": "Adult patients with untreated BRAF V600 mutant melanoma (Full Analysis Set/ITT)",
+        "variableOfInterest": "Overall Survival (OS)",
+        "summaryMeasure": "Hazard Ratio (HR)"
+      },
+      {
+        "id": "est_3",
+        "name": "Safety Estimand",
+        "populationSummary": "All patients who received at least one dose of study treatment (Safety Set) Summary measure: Risk difference or frequency proportions.",
+        "analysisPopulationId": "est_3_pop",
+        "variableOfInterestId": "ep_3",
+        "interventionIds": [
+          "est_3_int"
+        ],
+        "intercurrentEvents": [
+          {
+            "id": "ice_5",
+            "name": "Treatment discontinuation",
+            "text": "Discontinuation of any or all three drugs due to AEs",
+            "strategy": "While on Treatment",
+            "instanceType": "IntercurrentEvent"
+          }
+        ],
+        "instanceType": "Estimand",
+        "treatment": "PDR001 in combination with dabrafenib and trametinib vs Placebo in combination with dabrafenib and trametinib",
+        "analysisPopulation": "All patients who received at least one dose of study treatment (Safety Set)",
+        "variableOfInterest": "Incidence and severity of adverse events (AEs) and treatment related AEs (TRAEs)",
+        "summaryMeasure": "Risk difference or frequency proportions"
+      }
+    ],
+    "summary": {
+      "primaryObjectives": 1,
+      "secondaryObjectives": 2,
+      "exploratoryObjectives": 1,
+      "totalEndpoints": 4,
+      "totalEstimands": 3
+    }
+  },
+  "rawResponse": {
+    "objectives": [
+      {
+        "id": "obj_1",
+        "name": "Primary Efficacy Objective",
+        "text": "To evaluate the efficacy of Drug X compared to placebo",
+        "level": {
+          "code": "C85826",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Trial Primary Objective",
+          "instanceType": "Code"
+        },
+        "endpointIds": [
+          "ep_1"
+        ],
+        "instanceType": "Objective"
+      },
+      {
+        "id": "obj_2",
+        "name": "Key Secondary Objective",
+        "text": "To characterize the overall survival benefit",
+        "level": {
+          "code": "C85827",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Trial Secondary Objective",
+          "instanceType": "Code"
+        },
+        "endpointIds": [
+          "ep_2"
+        ],
+        "instanceType": "Objective"
+      },
+      {
+        "id": "obj_3",
+        "name": "Safety Objective",
+        "text": "To evaluate safety and tolerability of PDR001 in combination with dabrafenib and trametinib",
+        "level": {
+          "code": "C85827",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Trial Secondary Objective",
+          "instanceType": "Code"
+        },
+        "endpointIds": [
+          "ep_3"
+        ],
+        "instanceType": "Objective"
+      },
+      {
+        "id": "obj_4",
+        "name": "Biomarker Objective",
+        "text": "To identify and characterize potential resistance mechanism",
+        "level": {
+          "code": "C163559",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Trial Exploratory Objective",
+          "instanceType": "Code"
+        },
+        "endpointIds": [
+          "ep_4"
+        ],
+        "instanceType": "Objective"
+      }
+    ],
+    "endpoints": [
+      {
+        "id": "ep_1",
+        "name": "Primary Efficacy Endpoint",
+        "text": "investigator-assessed PFS",
+        "level": {
+          "code": "C98772",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Primary Outcome Measure",
+          "instanceType": "Code"
+        },
+        "instanceType": "Endpoint",
+        "purpose": "Efficacy"
+      },
+      {
+        "id": "ep_2",
+        "name": "Key Secondary Endpoint",
+        "text": "Overall Survival (OS)",
+        "level": {
+          "code": "C98781",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Secondary Outcome Measure",
+          "instanceType": "Code"
+        },
+        "instanceType": "Endpoint",
+        "purpose": "Efficacy"
+      },
+      {
+        "id": "ep_3",
+        "name": "Safety Endpoint",
+        "text": "Incidence and severity of adverse events (AEs) and treatment related AEs (TRAEs)",
+        "level": {
+          "code": "C98781",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Secondary Outcome Measure",
+          "instanceType": "Code"
+        },
+        "instanceType": "Endpoint",
+        "purpose": "Safety"
+      },
+      {
+        "id": "ep_4",
+        "name": "Exploratory Biomarker Endpoint",
+        "text": "Mandatory blood and optional tissue sample collection at the time of progression",
+        "level": {
+          "code": "C98724",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Exploratory Outcome Measure",
+          "instanceType": "Code"
+        },
+        "instanceType": "Endpoint",
+        "purpose": "Biomarker"
+      }
+    ],
+    "estimands": [
+      {
+        "id": "est_1",
+        "name": "Primary Efficacy Estimand - PFS",
+        "populationSummary": "Adult patients with untreated BRAF V600 mutant melanoma (Full Analysis Set/ITT) Summary measure: Hazard Ratio (HR) from a stratified Cox proportional hazards model.",
+        "analysisPopulationId": "est_1_pop",
+        "variableOfInterestId": "ep_1",
+        "interventionIds": [
+          "est_1_int"
+        ],
+        "intercurrentEvents": [
+          {
+            "id": "ice_1",
+            "name": "Treatment discontinuation",
+            "text": "Discontinuation of study treatment for any reason other than disease progression or death",
+            "strategy": "Treatment Policy",
+            "instanceType": "IntercurrentEvent"
+          },
+          {
+            "id": "ice_2",
+            "name": "Death",
+            "text": "Death due to any cause",
+            "strategy": "Composite",
+            "instanceType": "IntercurrentEvent"
+          },
+          {
+            "id": "ice_3",
+            "name": "COVID-19 related disruption",
+            "text": "Delays in treatment or virtual visits due to the COVID-19 pandemic",
+            "strategy": "Treatment Policy",
+            "instanceType": "IntercurrentEvent"
+          }
+        ],
+        "instanceType": "Estimand",
+        "treatment": "PDR001 in combination with dabrafenib and trametinib vs Placebo in combination with dabrafenib and trametinib",
+        "analysisPopulation": "Adult patients with untreated BRAF V600 mutant melanoma (Full Analysis Set/ITT)",
+        "variableOfInterest": "Progression-Free Survival (PFS) based on investigator assessment per RECIST 1.1",
+        "summaryMeasure": "Hazard Ratio (HR) from a stratified Cox proportional hazards model"
+      },
+      {
+        "id": "est_2",
+        "name": "Key Secondary Estimand - OS",
+        "populationSummary": "Adult patients with untreated BRAF V600 mutant melanoma (Full Analysis Set/ITT) Summary measure: Hazard Ratio (HR).",
+        "analysisPopulationId": "est_2_pop",
+        "variableOfInterestId": "ep_2",
+        "interventionIds": [
+          "est_2_int"
+        ],
+        "intercurrentEvents": [
+          {
+            "id": "ice_4",
+            "name": "Treatment switching/Unblinding",
+            "text": "Mandatory unblinding and discontinuation of placebo following final PFS analysis",
+            "strategy": "Treatment Policy",
+            "instanceType": "IntercurrentEvent"
+          }
+        ],
+        "instanceType": "Estimand",
+        "treatment": "PDR001 in combination with dabrafenib and trametinib vs Placebo in combination with dabrafenib and trametinib",
+        "analysisPopulation": "Adult patients with untreated BRAF V600 mutant melanoma (Full Analysis Set/ITT)",
+        "variableOfInterest": "Overall Survival (OS)",
+        "summaryMeasure": "Hazard Ratio (HR)"
+      },
+      {
+        "id": "est_3",
+        "name": "Safety Estimand",
+        "populationSummary": "All patients who received at least one dose of study treatment (Safety Set) Summary measure: Risk difference or frequency proportions.",
+        "analysisPopulationId": "est_3_pop",
+        "variableOfInterestId": "ep_3",
+        "interventionIds": [
+          "est_3_int"
+        ],
+        "intercurrentEvents": [
+          {
+            "id": "ice_5",
+            "name": "Treatment discontinuation",
+            "text": "Discontinuation of any or all three drugs due to AEs",
+            "strategy": "While on Treatment",
+            "instanceType": "IntercurrentEvent"
+          }
+        ],
+        "instanceType": "Estimand",
+        "treatment": "PDR001 in combination with dabrafenib and trametinib vs Placebo in combination with dabrafenib and trametinib",
+        "analysisPopulation": "All patients who received at least one dose of study treatment (Safety Set)",
+        "variableOfInterest": "Incidence and severity of adverse events (AEs) and treatment related AEs (TRAEs)",
+        "summaryMeasure": "Risk difference or frequency proportions"
+      }
+    ]
+  }
+}

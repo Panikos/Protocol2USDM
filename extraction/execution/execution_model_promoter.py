@@ -137,54 +137,105 @@ class ExecutionModelPromoter:
         # Find or create anchor encounter
         anchor_encounter_id = self._find_or_create_anchor_encounter(design)
         
-        for anchor in time_anchors:
-            # Get anchor name, handling AnchorType enum
+        # Sort anchors by intra-day order for consistent processing
+        sorted_anchors = sorted(
+            time_anchors,
+            key=lambda a: (getattr(a, 'day_value', 1), getattr(a, 'intra_day_order', 100))
+        )
+        
+        for anchor in sorted_anchors:
+            # Get anchor attributes
             anchor_name = getattr(anchor, 'name', '')
             if not anchor_name:
                 anchor_type = getattr(anchor, 'anchor_type', 'Anchor')
-                # Handle enum types by getting their value
                 anchor_name = anchor_type.value if hasattr(anchor_type, 'value') else str(anchor_type)
             anchor_id = getattr(anchor, 'id', str(uuid.uuid4()))
+            classification = getattr(anchor, 'classification', None)
+            classification_val = classification.value if hasattr(classification, 'value') else str(classification)
             
             # Skip if similar anchor already exists
             if anchor_name.lower() in existing_anchor_names:
-                # Map to existing
                 for inst in instances:
                     if anchor_name.lower() in inst.get('name', '').lower():
                         self._anchor_instance_map[anchor_id] = inst['id']
                         break
                 continue
             
-            # Create anchor instance
-            instance_id = f"anchor_inst_{anchor_id}"
-            anchor_instance = {
-                "id": instance_id,
-                "name": f"Anchor: {anchor_name}",
-                "description": f"Time anchor for scheduling: {anchor_name}",
-                "encounterId": anchor_encounter_id,
-                "epochId": self._find_first_treatment_epoch_id(design),
-                "activityIds": [],  # Anchors may not have activities
-                "instanceType": "ScheduledActivityInstance",
-                # Mark as enrichment-created so UI can distinguish from SoA instances
-                "extensionAttributes": [{
-                    "id": f"ext_source_{instance_id[:8]}",
-                    "url": "http://example.org/usdm/instanceSource",
-                    "instanceType": "ExtensionAttribute",
-                    "valueString": "execution_model"
-                }]
-            }
+            # =========================================================================
+            # ENFORCE ANCHOR CLASSIFICATION (per feedback)
+            # - VISIT anchors: Create ScheduledActivityInstance with encounter
+            # - EVENT anchors: Link to activity, create instance only if activity exists
+            # - CONCEPTUAL anchors: Timing reference only, no instance created
+            # =========================================================================
             
-            # Add day value if available
+            if classification_val == 'Conceptual':
+                # CONCEPTUAL anchors are pure timing references - no instance needed
+                # Store in map as a pseudo-reference for timing resolution
+                self._anchor_instance_map[anchor_id] = f"timing_ref_{anchor_id}"
+                logger.debug(f"  Conceptual anchor (no instance): {anchor_name}")
+                continue
+            
+            instance_id = f"anchor_inst_{anchor_id}"
             day_value = getattr(anchor, 'day_value', None)
+            intra_day_order = getattr(anchor, 'intra_day_order', 100)
+            
+            if classification_val == 'Event':
+                # EVENT anchors link to activities, not visits
+                # Only create instance if we can resolve to an activity
+                activity_id = getattr(anchor, 'activity_id', None)
+                if not activity_id:
+                    activity_id = self._find_activity_by_anchor_type(design, anchor_name)
+                
+                anchor_instance = {
+                    "id": instance_id,
+                    "name": anchor_name,
+                    "description": f"Event anchor: {anchor_name}",
+                    "activityIds": [activity_id] if activity_id else [],
+                    "instanceType": "ScheduledActivityInstance",
+                    "extensionAttributes": [{
+                        "id": f"ext_anchor_{instance_id[:8]}",
+                        "url": "http://example.org/usdm/anchorClassification",
+                        "instanceType": "ExtensionAttribute",
+                        "valueString": "Event"
+                    }]
+                }
+                # EVENT anchors get epoch but no encounter (they're not visits)
+                anchor_instance["epochId"] = self._find_first_treatment_epoch_id(design)
+                
+            else:  # VISIT classification
+                # VISIT anchors represent real encounters
+                anchor_instance = {
+                    "id": instance_id,
+                    "name": anchor_name,
+                    "description": f"Visit anchor: {anchor_name}",
+                    "encounterId": anchor_encounter_id,
+                    "epochId": self._find_first_treatment_epoch_id(design),
+                    "activityIds": [],
+                    "instanceType": "ScheduledActivityInstance",
+                    "extensionAttributes": [{
+                        "id": f"ext_anchor_{instance_id[:8]}",
+                        "url": "http://example.org/usdm/anchorClassification",
+                        "instanceType": "ExtensionAttribute",
+                        "valueString": "Visit"
+                    }]
+                }
+            
+            # Add scheduling metadata
             if day_value is not None:
                 anchor_instance["scheduledDay"] = day_value
+            anchor_instance["extensionAttributes"].append({
+                "id": f"ext_order_{instance_id[:8]}",
+                "url": "http://example.org/usdm/intraDayOrder",
+                "instanceType": "ExtensionAttribute",
+                "valueInteger": intra_day_order
+            })
             
             instances.append(anchor_instance)
             self._anchor_instance_map[anchor_id] = instance_id
             existing_anchor_names.add(anchor_name.lower())
             self.result.anchors_created += 1
             
-            logger.info(f"  Created anchor instance: {anchor_name} → {instance_id}")
+            logger.info(f"  Created {classification_val} anchor: {anchor_name} → {instance_id}")
         
         return design
     
@@ -414,29 +465,71 @@ class ExecutionModelPromoter:
                         "affectedPath": f"$.timings[?(@.id=='{timing.get('id')}')]"
                     })
                 else:
-                    # Create missing anchor instance
-                    anchor_instance = {
-                        "id": ref_id,
-                        "name": f"Auto-anchor for {timing_name}",
-                        "activityIds": [],
-                        "instanceType": "ScheduledActivityInstance",
-                        # Mark as enrichment-created so UI can distinguish from SoA instances
-                        "extensionAttributes": [{
-                            "id": f"ext_source_{ref_id[:8]}",
-                            "url": "http://example.org/usdm/instanceSource",
-                            "instanceType": "ExtensionAttribute",
-                            "valueString": "execution_model"
-                        }]
-                    }
-                    instances.append(anchor_instance)
-                    existing_instance_ids.add(ref_id)
-                    self.result.anchors_created += 1
-                    self.result.issues.append({
-                        "severity": "info",
-                        "category": "anchor_auto_created",
-                        "message": f"Created anchor instance for missing reference: {ref_id}",
-                        "affectedPath": f"$.scheduleTimelines[0].instances[-1]"
-                    })
+                    # Determine if this is a VISIT anchor that should create an instance
+                    # or a CONCEPTUAL anchor that should remain a pure timing reference
+                    anchor_classification = self._classify_timing_anchor(timing_name, ref_id)
+                    
+                    if anchor_classification == "Visit":
+                        # VISIT anchors: Create ScheduledActivityInstance with encounter
+                        encounter_id = self._find_or_create_anchor_encounter(design)
+                        anchor_instance = {
+                            "id": ref_id,
+                            "name": f"Anchor: {timing_name}" if timing_name else f"Anchor: {ref_id}",
+                            "activityIds": [],
+                            "encounterId": encounter_id,
+                            "instanceType": "ScheduledActivityInstance",
+                            "extensionAttributes": [{
+                                "id": f"ext_source_{ref_id[:8]}",
+                                "url": "http://example.org/usdm/instanceSource",
+                                "instanceType": "ExtensionAttribute",
+                                "valueString": "execution_model"
+                            }, {
+                                "id": f"ext_class_{ref_id[:8]}",
+                                "url": "http://example.org/usdm/anchorClassification",
+                                "instanceType": "ExtensionAttribute",
+                                "valueString": "Visit"
+                            }]
+                        }
+                        instances.append(anchor_instance)
+                        existing_instance_ids.add(ref_id)
+                        self.result.anchors_created += 1
+                        self.result.issues.append({
+                            "severity": "info",
+                            "category": "visit_anchor_created",
+                            "message": f"Created VISIT anchor instance: {ref_id} (encounter: {encounter_id})",
+                            "affectedPath": f"$.scheduleTimelines[0].instances[-1]"
+                        })
+                    elif anchor_classification == "Event":
+                        # EVENT anchors: Try to attach to existing activity
+                        activity_instance = self._find_activity_for_event_anchor(timing_name, instances)
+                        if activity_instance:
+                            # Use existing activity instance as the anchor
+                            timing['relativeFromScheduledInstanceId'] = activity_instance
+                            self.result.references_fixed += 1
+                            self.result.issues.append({
+                                "severity": "info",
+                                "category": "event_anchor_linked",
+                                "message": f"EVENT anchor '{timing_name}' linked to existing activity: {activity_instance}",
+                                "affectedPath": f"$.timings[?(@.id=='{timing.get('id')}')]"
+                            })
+                        else:
+                            # No activity found - store as conceptual reference
+                            self._store_conceptual_anchor(design, ref_id, timing_name, "Event")
+                            self.result.issues.append({
+                                "severity": "warning",
+                                "category": "event_anchor_unresolved",
+                                "message": f"EVENT anchor '{timing_name}' has no matching activity - stored as conceptual",
+                                "affectedPath": f"$.timings[?(@.id=='{timing.get('id')}')]"
+                            })
+                    else:
+                        # CONCEPTUAL anchors: Store as pure timing reference (no instance)
+                        self._store_conceptual_anchor(design, ref_id, timing_name, "Conceptual")
+                        self.result.issues.append({
+                            "severity": "info",
+                            "category": "conceptual_anchor_stored",
+                            "message": f"CONCEPTUAL anchor '{timing_name}' stored as timing reference (no visit)",
+                            "affectedPath": f"$.extensionAttributes[?(@.url contains 'conceptualAnchors')]"
+                        })
         
         return design
     
@@ -446,12 +539,16 @@ class ExecutionModelPromoter:
     
     def _create_main_timeline(self) -> Dict[str, Any]:
         """Create main schedule timeline if missing."""
+        timeline_id = f"timeline_{uuid.uuid4()}"
         return {
-            "id": f"timeline_{uuid.uuid4()}",
+            "id": timeline_id,
             "name": "Main Study Timeline",
             "instances": [],
             "timings": [],
-            "instanceType": "ScheduleTimeline"
+            "instanceType": "ScheduleTimeline",
+            "mainTimeline": True,
+            "entryCondition": "Subject meets all inclusion criteria and none of the exclusion criteria",
+            "entryId": timeline_id  # Self-reference for main timeline entry point
         }
     
     def _find_or_create_anchor_encounter(self, design: Dict[str, Any]) -> str:
@@ -533,6 +630,41 @@ class ExecutionModelPromoter:
             
             if name_lower in act_name or act_name in name_lower:
                 return activity['id']
+        
+        return None
+    
+    def _find_activity_by_anchor_type(self, design: Dict[str, Any], anchor_name: str) -> Optional[str]:
+        """
+        Find activity ID that matches an anchor type (for EVENT anchors).
+        
+        Maps anchor types to typical activity names:
+        - FirstDose/TreatmentStart → drug administration activities
+        - Randomization → randomization activities
+        - InformedConsent → consent activities
+        """
+        if not anchor_name:
+            return None
+        
+        anchor_lower = anchor_name.lower()
+        
+        # Map anchor types to activity keywords
+        anchor_to_keywords = {
+            'firstdose': ['dose', 'administration', 'infusion', 'injection', 'drug'],
+            'treatmentstart': ['dose', 'administration', 'treatment', 'drug'],
+            'randomization': ['randomization', 'randomize', 'allocation'],
+            'informedconsent': ['consent', 'informed consent', 'icf'],
+            'enrollment': ['enrollment', 'enroll', 'registration'],
+        }
+        
+        # Normalize anchor name
+        anchor_key = anchor_lower.replace(' ', '').replace('_', '')
+        keywords = anchor_to_keywords.get(anchor_key, [anchor_lower])
+        
+        for activity in design.get('activities', []):
+            act_name = activity.get('name', '').lower()
+            for kw in keywords:
+                if kw in act_name:
+                    return activity['id']
         
         return None
     
@@ -659,6 +791,147 @@ class ExecutionModelPromoter:
                     return inst['id']
         
         return None
+    
+    def _classify_timing_anchor(self, timing_name: str, ref_id: str) -> str:
+        """
+        Classify a timing anchor to determine how it should be promoted.
+        
+        Returns:
+            "Visit" - Should create ScheduledActivityInstance with encounter
+            "Event" - Should attach to existing activity instance
+            "Conceptual" - Should remain as pure timing reference (no instance)
+        """
+        if not timing_name:
+            # Default unknown references to conceptual
+            return "Conceptual"
+        
+        name_lower = timing_name.lower()
+        
+        # VISIT anchors - represent physical visits/encounters
+        visit_keywords = [
+            'day 1', 'day1', 'baseline', 'screening', 'visit',
+            'check-in', 'checkin', 'admission', 'discharge',
+            'end of study', 'eos', 'follow-up', 'followup',
+        ]
+        if any(kw in name_lower for kw in visit_keywords):
+            return "Visit"
+        
+        # EVENT anchors - represent activity occurrences
+        event_keywords = [
+            'first dose', 'dose', 'randomization', 'randomisation',
+            'informed consent', 'enrollment', 'enrolment',
+            'treatment start', 'drug admin',
+        ]
+        if any(kw in name_lower for kw in event_keywords):
+            return "Event"
+        
+        # CONCEPTUAL anchors - abstract timing references
+        conceptual_keywords = [
+            'cycle', 'period', 'phase', 'collection', 'study start',
+            'study day', 'anchor',
+        ]
+        if any(kw in name_lower for kw in conceptual_keywords):
+            return "Conceptual"
+        
+        # Default to conceptual for unrecognized patterns
+        return "Conceptual"
+    
+    def _find_activity_for_event_anchor(
+        self, 
+        timing_name: str, 
+        instances: List[Dict]
+    ) -> Optional[str]:
+        """
+        Find an existing activity instance that matches an EVENT anchor.
+        
+        EVENT anchors (e.g., "First Dose", "Randomization") should attach to
+        existing activities rather than creating new instances.
+        """
+        if not timing_name or not instances:
+            return None
+        
+        name_lower = timing_name.lower()
+        
+        # Map event keywords to activity patterns
+        event_activity_map = {
+            'first dose': ['dose', 'drug', 'treatment', 'administration', 'alxn'],
+            'dose': ['dose', 'drug', 'treatment', 'administration'],
+            'randomization': ['random'],
+            'randomisation': ['random'],
+            'informed consent': ['consent', 'icf'],
+            'enrollment': ['enroll', 'registration'],
+            'enrolment': ['enroll', 'registration'],
+        }
+        
+        # Find matching patterns
+        patterns = []
+        for event_kw, activity_patterns in event_activity_map.items():
+            if event_kw in name_lower:
+                patterns.extend(activity_patterns)
+        
+        if not patterns:
+            return None
+        
+        # Search instances for matching activity
+        for inst in instances:
+            inst_name = inst.get('name', '').lower()
+            for pattern in patterns:
+                if pattern in inst_name:
+                    return inst['id']
+        
+        return None
+    
+    def _store_conceptual_anchor(
+        self, 
+        design: Dict[str, Any], 
+        ref_id: str, 
+        timing_name: str,
+        classification: str
+    ) -> None:
+        """
+        Store a conceptual anchor as a pure timing reference.
+        
+        CONCEPTUAL anchors don't create ScheduledActivityInstances.
+        They are stored in an extension for reference by downstream tools.
+        """
+        # Get or create conceptual anchors extension
+        ext_url = "https://protocol2usdm.io/extensions/x-executionModel-conceptualAnchors"
+        
+        if 'extensionAttributes' not in design:
+            design['extensionAttributes'] = []
+        
+        # Find existing conceptual anchors extension
+        conceptual_ext = None
+        for ext in design['extensionAttributes']:
+            if ext.get('url') == ext_url:
+                conceptual_ext = ext
+                break
+        
+        if conceptual_ext is None:
+            conceptual_ext = {
+                "id": f"ext_conceptual_{uuid.uuid4()}",
+                "url": ext_url,
+                "instanceType": "ExtensionAttribute",
+                "valueString": "[]"
+            }
+            design['extensionAttributes'].append(conceptual_ext)
+        
+        # Parse existing anchors
+        import json
+        try:
+            anchors = json.loads(conceptual_ext.get('valueString', '[]'))
+        except json.JSONDecodeError:
+            anchors = []
+        
+        # Add new anchor
+        anchors.append({
+            "id": ref_id,
+            "name": timing_name,
+            "classification": classification,
+            "note": "Pure timing reference - no visit or activity instance"
+        })
+        
+        conceptual_ext['valueString'] = json.dumps(anchors)
 
 
 def promote_execution_model(

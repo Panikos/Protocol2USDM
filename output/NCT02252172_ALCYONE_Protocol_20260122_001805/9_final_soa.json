@@ -1,0 +1,347 @@
+{
+  "usdmVersion": "4.0",
+  "systemName": "Protocol2USDM",
+  "systemVersion": "6.2.0",
+  "study": {
+    "id": "aae770f6-1ba7-4601-b169-1965c21e4e33",
+    "name": "",
+    "instanceType": "Study",
+    "versions": [
+      {
+        "id": "1cdd1370-75c7-46ef-8622-2a127a8e72e4",
+        "versionIdentifier": "1.0",
+        "rationale": "Initial protocol version",
+        "instanceType": "StudyVersion",
+        "studyDesigns": [
+          {
+            "id": "sd_1",
+            "name": "Study Design",
+            "rationale": "Protocol-defined study design",
+            "instanceType": "InterventionalStudyDesign",
+            "blindingSchema": {
+              "id": "b00d2c1d-f3ca-4bfc-873f-f45911ab4be2",
+              "instanceType": "AliasCode",
+              "standardCode": {
+                "id": "38eccc95-fb4f-4aa5-83ac-0f92abfbe971",
+                "code": "C49656",
+                "codeSystem": "http://www.cdisc.org",
+                "codeSystemVersion": "2024-09-27",
+                "decode": "Open Label",
+                "instanceType": "Code"
+              }
+            },
+            "model": {
+              "id": "b26757f8-1cc4-4c85-a838-239705a4a0ec",
+              "code": "C82638",
+              "codeSystem": "http://www.cdisc.org",
+              "codeSystemVersion": "2024-09-27",
+              "decode": "Single Group Study",
+              "instanceType": "Code"
+            },
+            "epochs": [
+              {
+                "id": "epoch_1",
+                "name": "Screening",
+                "instanceType": "StudyEpoch",
+                "type": {
+                  "id": "c7744646-87c7-4dc1-ae6b-4da73e5e7375",
+                  "code": "C98779",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Screening Epoch",
+                  "instanceType": "Code"
+                }
+              },
+              {
+                "id": "epoch_2",
+                "name": "During Treatment",
+                "instanceType": "StudyEpoch",
+                "type": {
+                  "id": "c531b996-240f-47c8-a216-2f3caef416f3",
+                  "code": "C98780",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Treatment Epoch",
+                  "instanceType": "Code"
+                }
+              },
+              {
+                "id": "epoch_3",
+                "name": "Disease Progression",
+                "instanceType": "StudyEpoch",
+                "type": {
+                  "id": "99562c3f-a761-42fd-9bda-cb0396c9abe6",
+                  "code": "C98780",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Treatment Epoch",
+                  "instanceType": "Code"
+                }
+              }
+            ],
+            "activities": [
+              {
+                "id": "grp_1",
+                "name": "Local Testing",
+                "instanceType": "Activity",
+                "childIds": [
+                  "act_1",
+                  "act_2",
+                  "act_3",
+                  "act_4"
+                ]
+              },
+              {
+                "id": "grp_2",
+                "name": "Central Testing",
+                "instanceType": "Activity",
+                "childIds": [
+                  "act_5",
+                  "act_6",
+                  "act_7"
+                ]
+              },
+              {
+                "id": "act_1",
+                "name": "Disease characterization (morphology, IHC, flow cytometry)",
+                "instanceType": "Activity",
+                "description": "Disease characterization (morphology, and either immunohistochemistry, immunofluorescence, or flow cytometry)."
+              },
+              {
+                "id": "act_2",
+                "name": "Cytogenetic analysis (karyotype or FISH)",
+                "instanceType": "Activity",
+                "description": "Cytogenetic analysis by conventional karyotype or FISH."
+              },
+              {
+                "id": "act_3",
+                "name": "Plasma cell percentage in bone marrow",
+                "instanceType": "Activity",
+                "description": "Evaluate Plasma cell percentage in the bone marrow to confirm CR"
+              },
+              {
+                "id": "act_4",
+                "name": "Clonality of plasma cells (flow cytometry, IHC or IF)",
+                "instanceType": "Activity",
+                "description": "Evaluate clonality of plasma cells (by flow cytometry, IHC or IF**) in the bone marrow to confirm sCR"
+              },
+              {
+                "id": "act_5",
+                "name": "MRD and molecular subtyping",
+                "instanceType": "Activity",
+                "description": "MRD and molecular subtyping: a portion of bone marrow aspirates collected at screening will be sent to a central laboratory."
+              },
+              {
+                "id": "act_6",
+                "name": "Bone marrow aspirate for MRD assessment",
+                "instanceType": "Activity",
+                "description": "A portion of bone marrow aspirates collected at time of suspected CR/sCR, and 12, 18, 24, 30, 36, 48, and 60 (+/- 1) months post C1D1, will be analyzed for MRD*."
+              },
+              {
+                "id": "act_7",
+                "name": "Bone marrow aspirate for resistance mechanisms",
+                "instanceType": "Activity",
+                "description": "If feasible, a bone marrow aspirate is requested to be collected from subjects at disease progression and sent to central laboratory to evaluate mechanisms of daratumumab resistance."
+              }
+            ],
+            "encounters": [
+              {
+                "id": "enc_1",
+                "name": "Screening (Up to 42 days)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "4892da73-4890-4157-8f26-bc2306cd3fd7",
+                  "code": "C48262",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Screening",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_1"
+              },
+              {
+                "id": "enc_2",
+                "name": "Treatment (Suspected CR/sCR)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "b5206837-1c1c-4b85-941e-013bd03843d6",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_2"
+              },
+              {
+                "id": "enc_3",
+                "name": "Treatment (Post C1D1)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "78ec79dc-159c-4a76-a6d8-301a1b644f73",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_2"
+              },
+              {
+                "id": "enc_4",
+                "name": "Disease Progression Visit",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "2d081308-ae7f-4f01-b34e-b6b9b72ae2c7",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_3"
+              }
+            ],
+            "scheduleTimelines": [
+              {
+                "id": "timeline_1",
+                "name": "Main Schedule Timeline",
+                "mainTimeline": true,
+                "instanceType": "ScheduleTimeline",
+                "entryCondition": "Subject enrolled in study",
+                "entryId": "9f49c4f5-f151-42e0-9daa-4a5dd59c66b2",
+                "instances": [
+                  {
+                    "id": "9f49c4f5-f151-42e0-9daa-4a5dd59c66b2",
+                    "activityIds": [
+                      "act_1"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_1@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "1a055817-6181-4c3d-86cc-d2775aad757e",
+                    "activityIds": [
+                      "act_2"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_2@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "c4fbd172-dc9c-401c-ac04-fe3231273d2e",
+                    "activityIds": [
+                      "act_3"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_3@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "b90b3b05-5673-4bac-b282-b185ea226e3a",
+                    "activityIds": [
+                      "act_4"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_4@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "cffa87ab-816d-41fd-a88c-f7ec8b54d11c",
+                    "activityIds": [
+                      "act_5"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_5@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "ca7f4f57-6f49-42da-985e-074c86c29ba3",
+                    "activityIds": [
+                      "act_6"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_6@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "8a9d0f19-7ae2-4479-b1e4-4084d95020d5",
+                    "activityIds": [
+                      "act_6"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_6@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "036304e7-f6f3-4293-84ff-54fd06dbd8b5",
+                    "activityIds": [
+                      "act_7"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_7@enc_4",
+                    "encounterId": "enc_4"
+                  }
+                ]
+              }
+            ],
+            "notes": [
+              {
+                "id": "soa_fn_1",
+                "text": "* If one of these time points occurs within 1 month of suspected CR/sCR, a repeat bone marrow will not be requested. These bone marrow tests will only be required if patient's response is near CR or better by blood and urine evaluations.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_2",
+                "text": "** Immunohistochemistry or immunofluorescence (both require kappa/lambda ratio from analysis of ≥100 plasma cells) or 2 to 4 color flow cytometry are acceptable methods to evaluate plasma cell clonality.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_3",
+                "text": "CR: complete response; FISH: fluorescence in situ hybridization; MRD: minimal residual disease; sCR: stringent complete response",
+                "instanceType": "CommentAnnotation"
+              }
+            ],
+            "activityGroups": [
+              {
+                "id": "grp_1",
+                "name": "Local Testing",
+                "description": null,
+                "childIds": [
+                  "act_1",
+                  "act_2",
+                  "act_3",
+                  "act_4"
+                ],
+                "instanceType": "Activity",
+                "activityNames": [
+                  "Disease characterization (morphology, IHC, flow cytometry)",
+                  "Cytogenetic analysis (karyotype or FISH)",
+                  "Plasma cell percentage in bone marrow",
+                  "Clonality of plasma cells (flow cytometry, IHC or IF)"
+                ]
+              },
+              {
+                "id": "grp_2",
+                "name": "Central Testing",
+                "description": null,
+                "childIds": [
+                  "act_5",
+                  "act_6",
+                  "act_7"
+                ],
+                "instanceType": "Activity",
+                "activityNames": [
+                  "MRD and molecular subtyping",
+                  "Bone marrow aspirate for MRD assessment",
+                  "Bone marrow aspirate for resistance mechanisms"
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

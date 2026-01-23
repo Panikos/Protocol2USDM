@@ -13,8 +13,58 @@ from abc import ABC, abstractmethod
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
 import os
+import time
+import logging
 from pathlib import Path
 from dotenv import load_dotenv
+
+_logger = logging.getLogger(__name__)
+
+# Retry configuration for rate limiting (429 errors)
+MAX_RETRIES = 3
+INITIAL_BACKOFF_SECONDS = 5
+MAX_BACKOFF_SECONDS = 60
+
+
+def _retry_with_backoff(func, max_retries=MAX_RETRIES, initial_backoff=INITIAL_BACKOFF_SECONDS):
+    """
+    Retry a function with exponential backoff for rate limit (429) errors.
+    
+    Args:
+        func: Callable to retry
+        max_retries: Maximum number of retries
+        initial_backoff: Initial backoff in seconds (doubles each retry)
+    
+    Returns:
+        Result of successful function call
+        
+    Raises:
+        Last exception if all retries exhausted
+    """
+    last_exception = None
+    backoff = initial_backoff
+    
+    for attempt in range(max_retries + 1):
+        try:
+            return func()
+        except Exception as e:
+            error_str = str(e).lower()
+            # Check for rate limit errors (429) or resource exhausted
+            is_rate_limit = '429' in error_str or 'rate' in error_str or 'exhausted' in error_str or 'quota' in error_str
+            
+            if is_rate_limit and attempt < max_retries:
+                wait_time = min(backoff, MAX_BACKOFF_SECONDS)
+                _logger.warning(f"Rate limit hit, retrying in {wait_time}s (attempt {attempt + 1}/{max_retries + 1}): {e}")
+                time.sleep(wait_time)
+                backoff *= 2  # Exponential backoff
+                last_exception = e
+            else:
+                # Not a rate limit error or out of retries
+                raise e
+    
+    # Should not reach here, but just in case
+    if last_exception:
+        raise last_exception
 
 # Load .env file from project root
 _env_path = Path(__file__).parent / ".env"
@@ -47,10 +97,104 @@ class LLMConfig:
     json_mode: bool = True
     stop_sequences: Optional[List[str]] = None
     top_p: Optional[float] = None
+    top_k: Optional[int] = None
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary, excluding None values."""
         return {k: v for k, v in self.__dict__.items() if v is not None}
+
+
+# Global token usage tracker
+class TokenUsageTracker:
+    """Tracks cumulative token usage across all LLM calls."""
+    
+    def __init__(self):
+        self.reset()
+    
+    def reset(self):
+        """Reset all counters."""
+        self.total_input_tokens = 0
+        self.total_output_tokens = 0
+        self.call_count = 0
+        self.calls_by_phase = {}
+        self.current_phase = "unknown"
+    
+    def set_phase(self, phase: str):
+        """Set the current extraction phase for tracking."""
+        self.current_phase = phase
+    
+    def add_usage(self, input_tokens: int, output_tokens: int):
+        """Add usage from an LLM call."""
+        self.total_input_tokens += input_tokens
+        self.total_output_tokens += output_tokens
+        self.call_count += 1
+        
+        if self.current_phase not in self.calls_by_phase:
+            self.calls_by_phase[self.current_phase] = {"input": 0, "output": 0, "calls": 0}
+        self.calls_by_phase[self.current_phase]["input"] += input_tokens
+        self.calls_by_phase[self.current_phase]["output"] += output_tokens
+        self.calls_by_phase[self.current_phase]["calls"] += 1
+    
+    def get_summary(self) -> Dict[str, Any]:
+        """Get usage summary."""
+        return {
+            "total_input_tokens": self.total_input_tokens,
+            "total_output_tokens": self.total_output_tokens,
+            "total_tokens": self.total_input_tokens + self.total_output_tokens,
+            "call_count": self.call_count,
+            "by_phase": self.calls_by_phase,
+        }
+    
+    def print_summary(self, model: str = "claude-opus-4-5"):
+        """Print a formatted summary with cost estimates."""
+        # Pricing per million tokens (as of Jan 2025)
+        pricing = {
+            # Claude models
+            "claude-opus-4-5": (15.0, 75.0),
+            "claude-sonnet-4": (3.0, 15.0),
+            "claude-3-5-sonnet": (3.0, 15.0),
+            # Gemini models (much cheaper)
+            "gemini-2.5-pro": (1.25, 10.0),
+            "gemini-2.5-flash": (0.075, 0.30),
+            "gemini-3-flash": (0.50, 3.00),
+            "gemini-3-flash-preview": (0.50, 3.00),
+            # OpenAI models
+            "gpt-4o": (2.50, 10.0),
+            "gpt-4o-mini": (0.15, 0.60),
+        }
+        # Normalize model name for lookup (handle variations)
+        model_lower = model.lower().replace("_", "-")
+        input_rate, output_rate = pricing.get(model_lower, pricing.get(model, (1.0, 4.0)))
+        
+        input_cost = (self.total_input_tokens / 1_000_000) * input_rate
+        output_cost = (self.total_output_tokens / 1_000_000) * output_rate
+        total_cost = input_cost + output_cost
+        
+        print("\n" + "=" * 70)
+        print("TOKEN USAGE SUMMARY")
+        print("=" * 70)
+        print(f"Model: {model}")
+        print(f"Total LLM Calls: {self.call_count}")
+        print()
+        print("By Phase:")
+        print("-" * 70)
+        for phase, data in self.calls_by_phase.items():
+            phase_cost = (data['input']/1e6 * input_rate) + (data['output']/1e6 * output_rate)
+            print(f"  {phase:40} {data['input']:>8,} in / {data['output']:>7,} out  ${phase_cost:.2f}")
+        print("-" * 70)
+        print()
+        print(f"Total Input Tokens:  {self.total_input_tokens:>12,}")
+        print(f"Total Output Tokens: {self.total_output_tokens:>12,}")
+        print(f"Total Tokens:        {self.total_input_tokens + self.total_output_tokens:>12,}")
+        print()
+        print(f"Input Cost:  ${input_cost:>8.2f}  (@${input_rate}/1M)")
+        print(f"Output Cost: ${output_cost:>8.2f}  (@${output_rate}/1M)")
+        print(f"TOTAL COST:  ${total_cost:>8.2f}")
+        print("=" * 70)
+
+
+# Global tracker instance
+usage_tracker = TokenUsageTracker()
 
 
 @dataclass
@@ -356,6 +500,8 @@ class GeminiProvider(LLMProvider):
             gen_config_dict["stop_sequences"] = config.stop_sequences
         if config.top_p is not None:
             gen_config_dict["top_p"] = config.top_p
+        if config.top_k is not None:
+            gen_config_dict["top_k"] = config.top_k
         
         # Add JSON mode if requested
         if config.json_mode and self.supports_json_mode():
@@ -379,12 +525,21 @@ class GeminiProvider(LLMProvider):
         # Build config with safety settings completely disabled
         # Per https://ai.google.dev/gemini-api/docs/safety-settings
         # BLOCK_NONE = don't block any content regardless of probability
+        # 
+        # Disable thinking mode for Gemini 3 models to reduce token consumption
+        # Per https://ai.google.dev/gemini-api/docs/thought-signatures
+        # thinking_budget=0 disables thinking entirely
         config = genai_types.GenerateContentConfig(
             temperature=gen_config_dict.get("temperature", 0.0),
             max_output_tokens=gen_config_dict.get("max_output_tokens"),
             stop_sequences=gen_config_dict.get("stop_sequences"),
             top_p=gen_config_dict.get("top_p"),
+            top_k=gen_config_dict.get("top_k"),
             response_mime_type=gen_config_dict.get("response_mime_type"),
+            # Disable thinking to reduce token usage and avoid 429 rate limits
+            thinking_config=genai_types.ThinkingConfig(
+                thinking_budget=0,  # 0 = DISABLED, -1 = AUTOMATIC
+            ),
             # Disable all safety filters for clinical/medical content
             safety_settings=[
                 genai_types.SafetySetting(
@@ -407,20 +562,28 @@ class GeminiProvider(LLMProvider):
         )
         
         try:
-            response = self._genai_client.models.generate_content(
-                model=model_id,
-                contents=prompt,
-                config=config,
-            )
+            # Wrap API call with retry logic for 429 rate limit errors
+            def make_request():
+                return self._genai_client.models.generate_content(
+                    model=model_id,
+                    contents=prompt,
+                    config=config,
+                )
+            
+            response = _retry_with_backoff(make_request)
             
             # Extract usage information
             usage = None
             if hasattr(response, 'usage_metadata') and response.usage_metadata:
+                input_tokens = getattr(response.usage_metadata, 'prompt_token_count', 0) or 0
+                output_tokens = getattr(response.usage_metadata, 'candidates_token_count', 0) or 0
                 usage = {
-                    "prompt_tokens": getattr(response.usage_metadata, 'prompt_token_count', 0),
-                    "completion_tokens": getattr(response.usage_metadata, 'candidates_token_count', 0),
-                    "total_tokens": getattr(response.usage_metadata, 'total_token_count', 0),
+                    "prompt_tokens": input_tokens,
+                    "completion_tokens": output_tokens,
+                    "total_tokens": getattr(response.usage_metadata, 'total_token_count', 0) or 0,
                 }
+                # Track usage globally
+                usage_tracker.add_usage(input_tokens, output_tokens)
             
             return LLMResponse(
                 content=response.text,
@@ -455,20 +618,27 @@ class GeminiProvider(LLMProvider):
         model = GenerativeModel(vertex_model)
         
         try:
-            # Pass safety_settings to generate_content() per Vertex AI pattern
-            response = model.generate_content(
-                prompt,
-                generation_config=generation_config,
-                safety_settings=safety_settings,
-            )
+            # Wrap API call with retry logic for 429 rate limit errors
+            def make_request():
+                return model.generate_content(
+                    prompt,
+                    generation_config=generation_config,
+                    safety_settings=safety_settings,
+                )
+            
+            response = _retry_with_backoff(make_request)
             
             usage = None
             if hasattr(response, 'usage_metadata') and response.usage_metadata:
+                input_tokens = response.usage_metadata.prompt_token_count or 0
+                output_tokens = response.usage_metadata.candidates_token_count or 0
                 usage = {
-                    "prompt_tokens": response.usage_metadata.prompt_token_count,
-                    "completion_tokens": response.usage_metadata.candidates_token_count,
-                    "total_tokens": response.usage_metadata.total_token_count
+                    "prompt_tokens": input_tokens,
+                    "completion_tokens": output_tokens,
+                    "total_tokens": response.usage_metadata.total_token_count or 0
                 }
+                # Track usage globally
+                usage_tracker.add_usage(input_tokens, output_tokens)
             
             return LLMResponse(
                 content=response.text,
@@ -495,15 +665,23 @@ class GeminiProvider(LLMProvider):
         )
         
         try:
-            response = model.generate_content(prompt)
+            # Wrap API call with retry logic for 429 rate limit errors
+            def make_request():
+                return model.generate_content(prompt)
+            
+            response = _retry_with_backoff(make_request)
             
             usage = None
             if hasattr(response, 'usage_metadata') and response.usage_metadata:
+                input_tokens = response.usage_metadata.prompt_token_count or 0
+                output_tokens = response.usage_metadata.candidates_token_count or 0
                 usage = {
-                    "prompt_tokens": response.usage_metadata.prompt_token_count,
-                    "completion_tokens": response.usage_metadata.candidates_token_count,
-                    "total_tokens": response.usage_metadata.total_token_count
+                    "prompt_tokens": input_tokens,
+                    "completion_tokens": output_tokens,
+                    "total_tokens": response.usage_metadata.total_token_count or 0
                 }
+                # Track usage globally
+                usage_tracker.add_usage(input_tokens, output_tokens)
             
             return LLMResponse(
                 content=response.text,
@@ -649,48 +827,62 @@ class ClaudeProvider(LLMProvider):
         if config.top_p is not None:
             params["top_p"] = config.top_p
         
-        # Make API call
+        # Make API call with streaming to handle long operations
+        # Anthropic requires streaming for operations >10 minutes
         try:
-            response = self.client.messages.create(**params)
+            import logging
+            logger = logging.getLogger(__name__)
             
-            # Extract content from response
+            # Use streaming to avoid 10-minute timeout
             content = ""
-            if response.content:
-                for block in response.content:
-                    if hasattr(block, 'text'):
-                        content = block.text
-                        break
+            input_tokens = 0
+            output_tokens = 0
+            stop_reason = None
+            model_used = self.model
+            
+            with self.client.messages.stream(**params) as stream:
+                for text in stream.text_stream:
+                    content += text
+                
+                # Get final message for metadata
+                final_message = stream.get_final_message()
+                if final_message:
+                    stop_reason = final_message.stop_reason
+                    model_used = final_message.model
+                    if final_message.usage:
+                        input_tokens = final_message.usage.input_tokens
+                        output_tokens = final_message.usage.output_tokens
             
             # Log warning if response was truncated
-            if response.stop_reason == 'max_tokens':
-                import logging
-                logging.getLogger(__name__).warning(
+            if stop_reason == 'max_tokens':
+                logger.warning(
                     f"Claude response was truncated (max_tokens reached). "
-                    f"Used {response.usage.output_tokens} tokens. Consider increasing max_tokens."
+                    f"Used {output_tokens} tokens. Consider increasing max_tokens."
                 )
             
             # Log warning if empty response
             if not content:
-                import logging
-                logging.getLogger(__name__).warning(
-                    f"Claude returned empty content. Stop reason: {response.stop_reason}"
+                logger.warning(
+                    f"Claude returned empty content. Stop reason: {stop_reason}"
                 )
             
-            # Extract usage information
+            # Build usage information
             usage = None
-            if response.usage:
+            if input_tokens or output_tokens:
                 usage = {
-                    "prompt_tokens": response.usage.input_tokens,
-                    "completion_tokens": response.usage.output_tokens,
-                    "total_tokens": response.usage.input_tokens + response.usage.output_tokens
+                    "prompt_tokens": input_tokens,
+                    "completion_tokens": output_tokens,
+                    "total_tokens": input_tokens + output_tokens
                 }
+                # Track usage globally
+                usage_tracker.add_usage(input_tokens, output_tokens)
             
             return LLMResponse(
                 content=content,
-                model=response.model,
+                model=model_used,
                 usage=usage,
-                finish_reason=response.stop_reason,
-                raw_response=response
+                finish_reason=stop_reason,
+                raw_response=None  # No raw response with streaming
             )
         
         except Exception as e:

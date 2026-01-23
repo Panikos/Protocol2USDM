@@ -19,6 +19,7 @@ from .schema import (
     StudyArm,
     StudyCell,
     StudyCohort,
+    StudyElement,
     DoseEpoch,
     ArmType,
     BlindingSchema,
@@ -176,6 +177,7 @@ def extract_study_design(
             prompt=prompt,
             model_name=model_name,
             json_mode=True,
+            extractor_name="studydesign",
         )
         
         if 'error' in response:
@@ -232,6 +234,14 @@ def _parse_design_response(raw: Dict[str, Any]) -> Optional[StudyDesignData]:
     Handles both legacy format and new USDM-compliant format with ids.
     """
     try:
+        # Handle case where LLM returns a list instead of a dict
+        if isinstance(raw, list):
+            if len(raw) == 1 and isinstance(raw[0], dict):
+                raw = raw[0]
+            else:
+                # Assume list contains arms directly
+                raw = {'studyArms': raw}
+        
         arms = []
         cohorts = []
         cells = []
@@ -243,13 +253,15 @@ def _parse_design_response(raw: Dict[str, Any]) -> Optional[StudyDesignData]:
             if not isinstance(arm_data, dict):
                 continue
             
-            # Handle type as string or code object
-            arm_type_data = arm_data.get('type', 'Experimental Arm')
+            # Handle type as string or code object - use empty string if not extracted
+            arm_type_data = arm_data.get('type')
             if isinstance(arm_type_data, dict):
-                arm_type_str = arm_type_data.get('code') or arm_type_data.get('decode', 'Experimental Arm')
-            else:
+                arm_type_str = arm_type_data.get('code') or arm_type_data.get('decode') or ''
+            elif arm_type_data:
                 arm_type_str = str(arm_type_data)
-            arm_type = _map_arm_type(arm_type_str)
+            else:
+                arm_type_str = ''
+            arm_type = _map_arm_type(arm_type_str) if arm_type_str else None
             
             # Parse titration info
             is_titration = arm_data.get('isTitration', False)
@@ -300,22 +312,26 @@ def _parse_design_response(raw: Dict[str, Any]) -> Optional[StudyDesignData]:
         study_design = None
         design_data = raw.get('studyDesign', {})
         if isinstance(design_data, dict):
-            # Blinding
+            # Blinding - use None if not extracted (don't inject 'Open Label')
             blinding = None
             blinding_data = design_data.get('blinding', {})
             if isinstance(blinding_data, dict):
-                blinding = _map_blinding(blinding_data.get('schema', 'Open Label'))
+                blinding_schema = blinding_data.get('schema')
+                if blinding_schema:
+                    blinding = _map_blinding(blinding_schema)
                 masked_roles = blinding_data.get('maskedRoles', [])
             else:
                 masked_roles = []
             
-            # Randomization
+            # Randomization - use None if not extracted (don't inject 'Non-Randomized')
             randomization = None
             allocation = None
             stratification = []
             rand_data = design_data.get('randomization', {})
             if isinstance(rand_data, dict):
-                randomization = _map_randomization(rand_data.get('type', 'Non-Randomized'))
+                rand_type = rand_data.get('type')
+                if rand_type:
+                    randomization = _map_randomization(rand_type)
                 ratio = rand_data.get('allocationRatio')
                 if ratio:
                     allocation = AllocationRatio(ratio=str(ratio))
@@ -337,7 +353,7 @@ def _parse_design_response(raw: Dict[str, Any]) -> Optional[StudyDesignData]:
                 name="Study Design",
                 description=design_data.get('description'),
                 trial_intent_types=intent_types,
-                trial_type=design_data.get('type', 'Interventional'),
+                trial_type=design_data.get('type') or '',  # Empty if not extracted
                 blinding_schema=blinding,
                 masked_roles=masked_roles if isinstance(masked_roles, list) else [],
                 randomization_type=randomization,
@@ -349,14 +365,29 @@ def _parse_design_response(raw: Dict[str, Any]) -> Optional[StudyDesignData]:
                 therapeutic_areas=design_data.get('therapeuticAreas', []),
             )
         
-        # Generate cells from arms × epochs if epochs provided
+        # Generate cells and elements from arms × epochs if epochs provided
         cell_counter = 1
+        elements = []
         for arm in arms:
             for epoch in epochs:
+                epoch_id = epoch.get('id', f"epoch_{cell_counter}")
+                epoch_name = epoch.get('name', f'Epoch {cell_counter}')
+                
+                # Create a StudyElement for this cell (treatment period)
+                element_id = f"elem_{cell_counter}"
+                element = StudyElement(
+                    id=element_id,
+                    name=f"{arm.name} - {epoch_name}",
+                    description=f"Treatment period for {arm.name} during {epoch_name}",
+                )
+                elements.append(element)
+                
+                # Create cell with reference to the element
                 cells.append(StudyCell(
                     id=f"cell_{cell_counter}",
                     arm_id=arm.id,
-                    epoch_id=epoch.get('id', f"epoch_{cell_counter}"),
+                    epoch_id=epoch_id,
+                    element_ids=[element_id],
                 ))
                 cell_counter += 1
         
@@ -365,6 +396,7 @@ def _parse_design_response(raw: Dict[str, Any]) -> Optional[StudyDesignData]:
             arms=arms,
             cells=cells,
             cohorts=cohorts,
+            elements=elements,
         )
         
     except Exception as e:
@@ -373,7 +405,9 @@ def _parse_design_response(raw: Dict[str, Any]) -> Optional[StudyDesignData]:
 
 
 def _map_arm_type(type_str: str) -> ArmType:
-    """Map string to ArmType enum."""
+    """Map string to ArmType enum. Returns UNKNOWN if input is empty."""
+    if not type_str:
+        return ArmType.UNKNOWN
     type_lower = type_str.lower()
     if 'placebo' in type_lower:
         return ArmType.PLACEBO_COMPARATOR
@@ -385,11 +419,13 @@ def _map_arm_type(type_str: str) -> ArmType:
         return ArmType.NO_INTERVENTION
     elif 'experimental' in type_lower:
         return ArmType.EXPERIMENTAL
-    return ArmType.EXPERIMENTAL
+    return ArmType.OTHER  # Use OTHER for unrecognized, not EXPERIMENTAL
 
 
 def _map_blinding(schema_str: str) -> BlindingSchema:
-    """Map string to BlindingSchema enum."""
+    """Map string to BlindingSchema enum. Returns UNKNOWN if input is empty."""
+    if not schema_str:
+        return BlindingSchema.UNKNOWN
     schema_lower = schema_str.lower()
     if 'quadruple' in schema_lower:
         return BlindingSchema.QUADRUPLE_BLIND
@@ -399,15 +435,21 @@ def _map_blinding(schema_str: str) -> BlindingSchema:
         return BlindingSchema.DOUBLE_BLIND
     elif 'single' in schema_lower:
         return BlindingSchema.SINGLE_BLIND
-    return BlindingSchema.OPEN_LABEL
+    elif 'open' in schema_lower:
+        return BlindingSchema.OPEN_LABEL
+    return BlindingSchema.UNKNOWN  # Return UNKNOWN for unrecognized, not OPEN_LABEL
 
 
 def _map_randomization(type_str: str) -> RandomizationType:
-    """Map string to RandomizationType enum."""
+    """Map string to RandomizationType enum. Returns UNKNOWN if input is empty."""
+    if not type_str:
+        return RandomizationType.UNKNOWN
     type_lower = type_str.lower()
     if 'non' in type_lower or 'not' in type_lower:
         return RandomizationType.NON_RANDOMIZED
-    return RandomizationType.RANDOMIZED
+    elif 'random' in type_lower:
+        return RandomizationType.RANDOMIZED
+    return RandomizationType.UNKNOWN  # Return UNKNOWN for unrecognized
 
 
 def _map_control_type(type_str: str) -> ControlType:

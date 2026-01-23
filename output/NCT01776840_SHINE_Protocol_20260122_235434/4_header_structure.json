@@ -1,0 +1,369 @@
+{
+  "columnHierarchy": {
+    "epochs": [
+      {
+        "id": "epoch_1",
+        "name": "Screening Phase",
+        "instanceType": "StudyEpoch",
+        "type": {
+          "id": "3f1df9de-bcdb-4515-8009-4146ad10725a",
+          "code": "C98779",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Screening Epoch",
+          "instanceType": "Code"
+        }
+      },
+      {
+        "id": "epoch_2",
+        "name": "Treatment Phase (BR Treatment Period Cycles 1 to 6)",
+        "instanceType": "StudyEpoch",
+        "type": {
+          "id": "c8fe2a34-a041-40bf-a8a5-d3960d0da810",
+          "code": "C98780",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Treatment Epoch",
+          "instanceType": "Code"
+        }
+      },
+      {
+        "id": "epoch_3",
+        "name": "Treatment Phase (R Treatment Every 2 cycles up to Cycle 30)",
+        "instanceType": "StudyEpoch",
+        "type": {
+          "id": "8430829c-eed0-4e04-8fcf-1885c97d8692",
+          "code": "C98780",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Treatment Epoch",
+          "instanceType": "Code"
+        }
+      },
+      {
+        "id": "epoch_4",
+        "name": "Treatment Phase (After Cycle 30)",
+        "instanceType": "StudyEpoch",
+        "type": {
+          "id": "04b0db7f-18d5-4289-b019-c35d4c2fab17",
+          "code": "C98780",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Treatment Epoch",
+          "instanceType": "Code"
+        }
+      },
+      {
+        "id": "epoch_5",
+        "name": "End of Treatment Visit",
+        "instanceType": "StudyEpoch",
+        "type": {
+          "id": "8298bd31-b8e8-4273-8780-1d2c587e2e05",
+          "code": "C98780",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Treatment Epoch",
+          "instanceType": "Code"
+        }
+      },
+      {
+        "id": "epoch_6",
+        "name": "Posttreatment Follow-up Phase",
+        "instanceType": "StudyEpoch",
+        "type": {
+          "id": "9b7d732a-2fbf-4579-8f67-b8523d7cb30b",
+          "code": "C98780",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Treatment Epoch",
+          "instanceType": "Code"
+        }
+      }
+    ],
+    "encounters": [
+      {
+        "id": "enc_1",
+        "name": "Screening (Day -30 to randomization)",
+        "instanceType": "Encounter",
+        "type": {
+          "id": "ffe646dd-7051-4ca3-a097-47b10f2a1a3c",
+          "code": "C48262",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Screening",
+          "instanceType": "Code"
+        },
+        "epochId": "epoch_1"
+      },
+      {
+        "id": "enc_2",
+        "name": "BR Period (Day 1)",
+        "instanceType": "Encounter",
+        "type": {
+          "id": "499e594a-c95e-4f7e-a5de-157f4e089d6a",
+          "code": "C82517",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Baseline",
+          "instanceType": "Code"
+        },
+        "epochId": "epoch_2"
+      },
+      {
+        "id": "enc_3",
+        "name": "BR Period (Day 2)",
+        "instanceType": "Encounter",
+        "type": {
+          "id": "675589c7-9f06-4e4b-aa16-ea4c3e7f0668",
+          "code": "C99156",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Scheduled Visit",
+          "instanceType": "Code"
+        },
+        "epochId": "epoch_2"
+      },
+      {
+        "id": "enc_4",
+        "name": "R Treatment (Day 1)",
+        "instanceType": "Encounter",
+        "type": {
+          "id": "1c739dd3-770f-4a3b-b3f3-b126585297ea",
+          "code": "C82517",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Baseline",
+          "instanceType": "Code"
+        },
+        "epochId": "epoch_3"
+      },
+      {
+        "id": "enc_5",
+        "name": "After Cycle 30 (Day 1)",
+        "instanceType": "Encounter",
+        "type": {
+          "id": "2e5f8333-768b-4be7-b653-979d906d8967",
+          "code": "C82517",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Baseline",
+          "instanceType": "Code"
+        },
+        "epochId": "epoch_4"
+      },
+      {
+        "id": "enc_6",
+        "name": "End of Treatment (Within 30 days after last dose)",
+        "instanceType": "Encounter",
+        "type": {
+          "id": "24829f0b-9c51-411f-abe9-e8f92717c7f9",
+          "code": "C126070",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "End of Study",
+          "instanceType": "Code"
+        },
+        "epochId": "epoch_5"
+      },
+      {
+        "id": "enc_7",
+        "name": "Follow-up until Progressive Disease",
+        "instanceType": "Encounter",
+        "type": {
+          "id": "b03f4539-c500-4c67-b90c-5d0c5e0b5561",
+          "code": "C99158",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Follow-up",
+          "instanceType": "Code"
+        },
+        "epochId": "epoch_6"
+      },
+      {
+        "id": "enc_8",
+        "name": "Survival Follow-up",
+        "instanceType": "Encounter",
+        "type": {
+          "id": "841f125d-d159-4c3a-b1e5-580aebd12a39",
+          "code": "C99158",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Follow-up",
+          "instanceType": "Code"
+        },
+        "epochId": "epoch_6"
+      }
+    ],
+    "plannedTimepoints": [
+      {
+        "id": "pt_1",
+        "visit": "Day -30 to randomization",
+        "epoch": "",
+        "epochId": "",
+        "day": "",
+        "window": null,
+        "encounterId": "enc_1",
+        "instanceType": "Timing"
+      },
+      {
+        "id": "pt_2",
+        "visit": "Day 1",
+        "epoch": "",
+        "epochId": "",
+        "day": "",
+        "window": null,
+        "encounterId": "enc_2",
+        "instanceType": "Timing"
+      },
+      {
+        "id": "pt_3",
+        "visit": "Day 2",
+        "epoch": "",
+        "epochId": "",
+        "day": "",
+        "window": null,
+        "encounterId": "enc_3",
+        "instanceType": "Timing"
+      },
+      {
+        "id": "pt_4",
+        "visit": "Day 1",
+        "epoch": "",
+        "epochId": "",
+        "day": "",
+        "window": null,
+        "encounterId": "enc_4",
+        "instanceType": "Timing"
+      },
+      {
+        "id": "pt_5",
+        "visit": "Day 1",
+        "epoch": "",
+        "epochId": "",
+        "day": "",
+        "window": null,
+        "encounterId": "enc_5",
+        "instanceType": "Timing"
+      },
+      {
+        "id": "pt_6",
+        "visit": "Within 30 days after last dose",
+        "epoch": "",
+        "epochId": "",
+        "day": "",
+        "window": null,
+        "encounterId": "enc_6",
+        "instanceType": "Timing"
+      },
+      {
+        "id": "pt_7",
+        "visit": "Until PD",
+        "epoch": "",
+        "epochId": "",
+        "day": "",
+        "window": null,
+        "encounterId": "enc_7",
+        "instanceType": "Timing"
+      },
+      {
+        "id": "pt_8",
+        "visit": "Survival",
+        "epoch": "",
+        "epochId": "",
+        "day": "",
+        "window": null,
+        "encounterId": "enc_8",
+        "instanceType": "Timing"
+      }
+    ]
+  },
+  "rowGroups": [
+    {
+      "id": "grp_1",
+      "name": "Drug Administration",
+      "description": null,
+      "childIds": [],
+      "instanceType": "Activity",
+      "activityNames": [
+        "Rituximab 375 mg/m2",
+        "Bendamustine hydrochloride 90 mg/m2",
+        "Study drug: Arm A: placebo (4 capsules), Arm B: ibrutinib 560 mg (4 capsules)",
+        "Dispense study drug and check drug accountability"
+      ]
+    },
+    {
+      "id": "grp_2",
+      "name": "Ongoing Subject Review",
+      "description": null,
+      "childIds": [],
+      "instanceType": "Activity",
+      "activityNames": [
+        "Concomitant medications",
+        "Adverse events"
+      ]
+    },
+    {
+      "id": "grp_3",
+      "name": "Procedures",
+      "description": null,
+      "childIds": [],
+      "instanceType": "Activity",
+      "activityNames": [
+        "Informed consent",
+        "Review inclusion/exclusion criteria",
+        "Medical and disease history",
+        "MCL diagnosis",
+        "Vital signs and height",
+        "ECOG",
+        "Body surface area (BSA)",
+        "Weight",
+        "Electrocardiogram",
+        "Disease-related symptoms and physical examination"
+      ]
+    },
+    {
+      "id": "grp_4",
+      "name": "Disease Evaluations",
+      "description": null,
+      "childIds": [],
+      "instanceType": "Activity",
+      "activityNames": [
+        "CT/MRI",
+        "PET scan",
+        "Endoscopy",
+        "Bone marrow aspirate and biopsy",
+        "Survival status",
+        "Subsequent anti-MCL therapies",
+        "PRO questionnaires"
+      ]
+    },
+    {
+      "id": "grp_5",
+      "name": "Laboratory Assessments",
+      "description": null,
+      "childIds": [],
+      "instanceType": "Activity",
+      "activityNames": [
+        "Hematology",
+        "Serum chemistry",
+        "Magnesium",
+        "Hepatitis B and C",
+        "Urine or serum pregnancy test",
+        "Coagulation (aPTT and PT/INR)",
+        "Pharmacokinetic sample",
+        "Serum immunoglobulin and beta 2-microglobulin",
+        "Blood samples for minimal residual disease (MRD)",
+        "Blood samples for biomarker evaluations",
+        "Fresh lymph node biopsy"
+      ]
+    }
+  ],
+  "footnotes": [
+    "a. Assessments/procedures should be completed on the day indicated in the Time and Events Schedule.",
+    "b. Results of tests obtained prior to signing the informed consent conducted as part of the subject's standard care may be used.",
+    "c. For Day 1, Cycle 1, clinical laboratory tests do not need to be repeated if Screening tests were performed within 5 days.",
+    "d. During the Treatment Phase, clinical laboratory samples may be obtained on the day of or day prior to dosing.",
+    "y. Notification of progressive disease and supportive clinical results must be sent within 24 hours to the sponsor's medical monitor.",
+    "z. Refer to Section 9.1.5 for data collection after the clinical cutoff."
+  ]
+}

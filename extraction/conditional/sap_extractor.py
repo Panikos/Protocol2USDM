@@ -224,6 +224,7 @@ def extract_from_sap(
             prompt=full_prompt,
             model_name=model,
             json_mode=True,
+            extractor_name="sap",
             temperature=0.1,
         )
         response = result.get('response', '')

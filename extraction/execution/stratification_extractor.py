@@ -364,7 +364,7 @@ Return JSON format:
 Return valid JSON only. If not a randomized study, return {{"ratio": null}}."""
 
     try:
-        result = call_llm(prompt, model_name=model)
+        result = call_llm(prompt, model_name=model, extractor_name="stratification")
         
         # Extract response text from dict
         if isinstance(result, dict):
@@ -390,7 +390,8 @@ Return valid JSON only. If not a randomized study, return {{"ratio": null}}."""
         
         # Parse stratification factors
         factors = []
-        for idx, item in enumerate(data.get('stratificationFactors', [])):
+        strat_factors = data.get('stratificationFactors') or []
+        for idx, item in enumerate(strat_factors):
             factors.append(StratificationFactor(
                 id=f"strat_llm_{idx+1}",
                 name=item.get('name', 'Unknown'),
@@ -399,8 +400,8 @@ Return valid JSON only. If not a randomized study, return {{"ratio": null}}."""
         
         return RandomizationScheme(
             id="randomization_llm_1",
-            ratio=data.get('ratio', '1:1'),
-            method=data.get('method', 'Simple randomization'),
+            ratio=data.get('ratio') or '',  # Empty if not extracted
+            method=data.get('method') or '',  # Empty if not extracted
             block_size=data.get('blockSize'),
             stratification_factors=factors,
             central_randomization=data.get('centralRandomization', False),

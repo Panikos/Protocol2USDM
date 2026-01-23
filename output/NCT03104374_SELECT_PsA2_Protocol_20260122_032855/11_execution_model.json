@@ -1,0 +1,991 @@
+{
+  "success": true,
+  "pagesUsed": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    53,
+    59,
+    139,
+    73,
+    74,
+    91,
+    92,
+    95,
+    96,
+    150,
+    116,
+    118,
+    124
+  ],
+  "modelUsed": "gemini-3-flash-preview",
+  "data": {
+    "timeAnchors": [
+      {
+        "id": "anchor_1",
+        "definition": "First administration of investigational product",
+        "anchorType": "FirstDose",
+        "timelineId": null,
+        "dayValue": 1,
+        "sourceText": "first dose of study drug"
+      },
+      {
+        "id": "anchor_2",
+        "definition": "Baseline visit/assessment",
+        "anchorType": "Baseline",
+        "timelineId": null,
+        "dayValue": 1,
+        "sourceText": "baseline visit"
+      },
+      {
+        "id": "anchor_3",
+        "definition": "Screening visit",
+        "anchorType": "Screening",
+        "timelineId": null,
+        "dayValue": 1,
+        "sourceText": "Screening visit"
+      },
+      {
+        "id": "anchor_4",
+        "definition": "symptom onset",
+        "anchorType": "Custom",
+        "timelineId": null,
+        "dayValue": 1,
+        "sourceText": "symptom onset"
+      }
+    ],
+    "repetitions": [
+      {
+        "id": "rep_daily_1",
+        "type": "Daily",
+        "interval": "P1D",
+        "sourceText": "once daily"
+      },
+      {
+        "id": "rep_daily_3",
+        "type": "Daily",
+        "interval": "P1D",
+        "sourceText": "Once Daily"
+      },
+      {
+        "id": "rep_daily_5",
+        "type": "Daily",
+        "interval": "P1D",
+        "sourceText": "QD"
+      },
+      {
+        "id": "rep_daily_7",
+        "type": "Daily",
+        "interval": "P1D",
+        "sourceText": "od"
+      },
+      {
+        "id": "rep_interval_1",
+        "type": "Interval",
+        "sourceText": "BID"
+      },
+      {
+        "id": "rep_window_1",
+        "type": "Continuous",
+        "sourceText": "Treatment Period"
+      },
+      {
+        "id": "rep_window_2",
+        "type": "Continuous",
+        "sourceText": "30 days after"
+      },
+      {
+        "id": "rep_llm_1",
+        "type": "Daily",
+        "startOffset": "P0D",
+        "endOffset": "P152W",
+        "interval": "P1D",
+        "minObservations": 1064,
+        "exitCondition": "Completion of 152 weeks or discontinuation due to lack of 20% improvement in TJC/SJC at 2 consecutive visits starting at Week 36",
+        "sourceText": "15 mg, or 30 mg once daily"
+      },
+      {
+        "id": "rep_llm_2",
+        "type": "Daily",
+        "startOffset": "P0D",
+        "endOffset": "P152W",
+        "interval": "P1D",
+        "minObservations": 1064,
+        "exitCondition": "Completion of treatment duration",
+        "sourceText": "Matching placebo for upadacitinib (ABT-494) Dose: 1 tablet once daily"
+      },
+      {
+        "id": "rep_llm_3",
+        "type": "Cycle",
+        "startOffset": "P0W",
+        "endOffset": "P152W",
+        "interval": "P1W",
+        "minObservations": 152,
+        "exitCondition": "End of study duration",
+        "sourceText": "Blood samples for assay of upadacitinib and possibly other medications in plasma will be collected at each visit after baseline in Period 1."
+      },
+      {
+        "id": "rep_llm_4",
+        "type": "Continuous",
+        "startOffset": "P0D",
+        "endOffset": "P152W",
+        "interval": "P1D",
+        "minObservations": 1,
+        "exitCondition": "End of study duration",
+        "sourceText": "Safety evaluations include adverse event (AE) monitoring, physical examinations, vital sign measurements, electrocardiogram (ECG), and clinical laboratory testing (hematology, chemistry, and urinalysis) as a measure of safety and tolerability for the entire study duration."
+      }
+    ],
+    "samplingConstraints": [],
+    "traversalConstraints": [
+      {
+        "id": "traversal_crossover_1",
+        "requiredSequence": [
+          "SCREENING",
+          "PERIOD_1",
+          "PERIOD_2",
+          "END_OF_STUDY"
+        ],
+        "allowEarlyExit": true,
+        "exitEpochIds": [
+          "EARLY_TERMINATION"
+        ],
+        "mandatoryVisits": [
+          "Screening",
+          "Day 1",
+          "End of Study"
+        ],
+        "sourceText": "Period 1 and Period 2"
+      },
+      {
+        "id": "traversal_1",
+        "requiredSequence": [
+          "SCREENING",
+          "PERIOD_1_RANDOMIZED_CONTROLLED",
+          "PERIOD_1_BLINDED_TREATMENT",
+          "PERIOD_2_LONG_TERM_EXTENSION",
+          "FOLLOW_UP"
+        ],
+        "allowEarlyExit": true,
+        "exitEpochIds": [
+          "EARLY_TERMINATION"
+        ],
+        "mandatoryVisits": [
+          "Screening",
+          "End of Study",
+          "Week 56",
+          "Day 1",
+          "Baseline",
+          "Week 24",
+          "Safety Follow-up"
+        ],
+        "sourceText": "[{'condition': 'Subjects assigned to placebo at baseline', 'path': ['PLACEBO_W0_TO_W24', 'UPADACITINIB_W24_TO_W56']}, {'condition': 'Premature discontinuation of study drug', 'path': ['DISCONTINUATION_VISIT', '30_DAY_FOLLOW_UP']}, {'condition': 'State of emergency or pandemic', 'path': ['PHONE_OR_VIDEO_CONFERENCE_VISITS', 'REMOTE_VITAL_SIGNS_COLLECTION']}]"
+      }
+    ],
+    "executionTypes": [
+      {
+        "activityId": "Blood Sample",
+        "executionType": "Single",
+        "rationale": "SINGLE signals: 5; RECURRING signals: 2"
+      },
+      {
+        "activityId": "Vital Signs",
+        "executionType": "Single",
+        "rationale": "SINGLE signals: 14"
+      },
+      {
+        "activityId": "Electrocardiogram",
+        "executionType": "Episode",
+        "rationale": "EPISODE signals: 1; SINGLE signals: 1"
+      },
+      {
+        "activityId": "Pe",
+        "executionType": "Single",
+        "rationale": "No strong signals detected"
+      },
+      {
+        "activityId": "Adverse Event",
+        "executionType": "Episode",
+        "rationale": "EPISODE signals: 1"
+      },
+      {
+        "activityId": "Laboratory Tests",
+        "executionType": "Single",
+        "rationale": "SINGLE signals: 2"
+      },
+      {
+        "activityId": "Pharmacokinetic",
+        "executionType": "Recurring",
+        "rationale": "SINGLE signals: 1; RECURRING signals: 2"
+      },
+      {
+        "activityId": "Pharmacodynamic",
+        "executionType": "Recurring",
+        "rationale": "RECURRING signals: 2"
+      },
+      {
+        "activityId": "Dosing",
+        "executionType": "Single",
+        "rationale": "EPISODE signals: 1; SINGLE signals: 5"
+      },
+      {
+        "activityId": "X-Ray",
+        "executionType": "Single",
+        "rationale": "SINGLE signals: 9"
+      },
+      {
+        "activityId": "Questionnaire",
+        "executionType": "Single",
+        "rationale": "SINGLE signals: 2"
+      },
+      {
+        "activityId": "Upadacitinib Dose Switch",
+        "executionType": "Single",
+        "rationale": "Switching subjects from 30 mg to 15 mg is scheduled to occur at each subject's next scheduled study visit."
+      },
+      {
+        "activityId": "Discontinuation Visit",
+        "executionType": "Single",
+        "rationale": "Subjects should complete a discontinuation visit preferably prior to initiation of another therapy upon premature withdrawal."
+      },
+      {
+        "activityId": "Vital Signs and Weight",
+        "executionType": "Single",
+        "rationale": "Standard study procedures performed at scheduled visits, with flexibility for phone/video conduct."
+      },
+      {
+        "activityId": "Physical Exam and Chest X-Ray (CXR)",
+        "executionType": "Single",
+        "rationale": "Assessments performed at scheduled study visits or the next feasible visit if delayed by emergency."
+      },
+      {
+        "activityId": "TB Testing/TB Prophylaxis",
+        "executionType": "Single",
+        "rationale": "Includes an annual evaluation and risk assessment form throughout the study duration."
+      },
+      {
+        "activityId": "CXR following TB Seroconversion",
+        "executionType": "Single",
+        "rationale": "Conditional workflow triggered only if a subject has seroconversion on an annual TB test."
+      },
+      {
+        "activityId": "Clinical Laboratory Tests",
+        "executionType": "Single",
+        "rationale": "Standard monitoring tests performed at scheduled intervals, including use of local labs during emergencies."
+      }
+    ],
+    "crossoverDesign": {
+      "id": "crossover_1",
+      "isCrossover": true,
+      "numPeriods": 2,
+      "numSequences": 2,
+      "periods": [
+        "Period 1",
+        "Period 2"
+      ],
+      "sequences": [
+        "AB",
+        "BA"
+      ],
+      "washoutRequired": false,
+      "sourceText": "Period 1 and Period 2"
+    },
+    "footnoteConditions": [
+      {
+        "id": "fn_cond_1",
+        "conditionType": "general",
+        "text": "a. These visits every 12 weeks are at: Wk 68, Wk 80, Wk 92, Wk 104, Wk 116, Wk 128, and Wk 140.",
+        "footnoteId": "fn_1",
+        "structuredCondition": "frequency.interval(P12W, [W68, W80, W92, W104, W116, W128, W140])",
+        "appliesToActivityIds": [
+          "Scheduled Visits"
+        ],
+        "sourceText": "a. These visits every 12 weeks are at: Wk 68, Wk 80, Wk 92, Wk 104, Wk 116, Wk 128, and Wk 140."
+      },
+      {
+        "id": "fn_cond_2",
+        "conditionType": "timing_after",
+        "text": "b. This on-site visit is 30 days after the last dose of study drug. For those subjects who prematurely discontinue from the study (withdrawal of informed consent) a 30-day follow-up phone call visit (and not an on-site visit) may be allowed for subjects who have completed the PD visit to determine the status of any ongoing AEs/SAEs or the occurrence of any new AEs/SAEs. The 30 day follow-up visit is not required for subjects who discontinued study drug and continued study participation with completion of at least one study visit approximately 30 days after last dose of study drug.",
+        "footnoteId": "fn_2",
+        "structuredCondition": "timing.after(last_dose, P30D) AND if(premature_discontinue, phone_call, onsite_visit)",
+        "appliesToActivityIds": [
+          "Follow-up Visit"
+        ],
+        "sourceText": "b. This on-site visit is 30 days after the last dose of study drug. For those subjects who premature"
+      },
+      {
+        "id": "fn_cond_3",
+        "conditionType": "timing_before",
+        "text": "c. Obtain informed consent prior to performing any study related procedures.",
+        "footnoteId": "fn_3",
+        "structuredCondition": "sequence.precedes(informed_consent, all_procedures)",
+        "appliesToActivityIds": [
+          "Informed Consent",
+          "All Study Procedures"
+        ],
+        "sourceText": "c. Obtain informed consent prior to performing any study related procedures."
+      },
+      {
+        "id": "fn_cond_4",
+        "conditionType": "general",
+        "text": "d. Note herpes zoster, herpes zoster vaccination and hepatitis B vaccination status in medical history.",
+        "footnoteId": "fn_4",
+        "structuredCondition": "procedure.include(herpes_zoster_status, hepatitis_b_vaccination_status)",
+        "appliesToActivityIds": [
+          "Medical History"
+        ],
+        "sourceText": "d. Note herpes zoster, herpes zoster vaccination and hepatitis B vaccination status in medical histo"
+      },
+      {
+        "id": "fn_cond_5",
+        "conditionType": "timing_before",
+        "text": "e. Blood pressure, pulse rate, body temperature, body weight, and respiratory rate should be performed before blood draws are performed.",
+        "footnoteId": "fn_5",
+        "structuredCondition": "timing.before(vital_signs, blood_draws)",
+        "appliesToActivityIds": [
+          "Blood pressure",
+          "Pulse rate",
+          "Body temperature",
+          "Body weight",
+          "Respiratory rate",
+          "Blood draws"
+        ],
+        "sourceText": "e. Blood pressure, pulse rate, body temperature, body weight, and respiratory rate should be perform"
+      },
+      {
+        "id": "fn_cond_6",
+        "conditionType": "general",
+        "text": "f. Height will be measured at Screening visit only (with shoes off).",
+        "footnoteId": "fn_6",
+        "structuredCondition": "frequency.once(screening_visit) AND procedure.variant(shoes_off)",
+        "appliesToActivityIds": [
+          "Height"
+        ],
+        "sourceText": "f. Height will be measured at Screening visit only (with shoes off)."
+      },
+      {
+        "id": "fn_cond_7",
+        "conditionType": "timing_after",
+        "text": "g. For concomitant medications, at Week 36 (after Week 36 assessments have been performed), per Investigator judgment, may add non-biologic DMARDs (concomitant use of up to 2 non-biologic DMARDs, except the combination of MTX and leflunomide), or increase DMARD dose.",
+        "footnoteId": "fn_7",
+        "structuredCondition": "timing.after(W36_assessments) AND if(investigator_judgment, add_non_biologic_dmard)",
+        "appliesToActivityIds": [
+          "Concomitant medications"
+        ],
+        "sourceText": "g. For concomitant medications, at Week 36 (after Week 36 assessments have been performed), per Inve"
+      },
+      {
+        "id": "fn_cond_8",
+        "conditionType": "timing_before",
+        "text": "aa. Collect serious AEs and protocol-related nonserious AEs that occur after a subject signs the informed consent; prior to the first dose of study drug.",
+        "footnoteId": "fn_8",
+        "structuredCondition": "timing.between(informed_consent, first_dose)",
+        "appliesToActivityIds": [
+          "Serious AE collection",
+          "Protocol-related nonserious AE collection"
+        ],
+        "sourceText": "aa. Collect serious AEs and protocol-related nonserious AEs that occur after a subject signs the inf"
+      },
+      {
+        "id": "fn_cond_9",
+        "conditionType": "timing_at",
+        "text": "bb. At Week 24, all placebo subjects will be randomized to blinded upadacitinib regardless of clinical response.",
+        "footnoteId": "fn_9",
+        "structuredCondition": "if(treatment_arm == 'placebo' AND visit == 'W24', randomize_to_upadacitinib)",
+        "appliesToActivityIds": [
+          "Randomization"
+        ],
+        "sourceText": "bb. At Week 24, all placebo subjects will be randomized to blinded upadacitinib regardless of clinic"
+      },
+      {
+        "id": "fn_cond_10",
+        "conditionType": "timing_at",
+        "text": "cc. At Week 16, subjects who do not achieve ≥ 20% improvement in either or both TJC and SJC compared to baseline at both Weeks 12 and 16 will be offered rescue therapy (see Section 5.2.3.4).",
+        "footnoteId": "fn_10",
+        "structuredCondition": "if(visit == 'W16' AND improvement_tjc_sjc < 0.20, offer_rescue_therapy)",
+        "appliesToActivityIds": [
+          "Rescue Therapy"
+        ],
+        "sourceText": "cc. At Week 16, subjects who do not achieve ≥ 20% improvement in either or both TJC and SJC compared"
+      },
+      {
+        "id": "fn_cond_11",
+        "conditionType": "timing_at",
+        "text": "dd. Starting at Week 36, subjects who failed to show at least 20% improvement in either or both TJC and SJC compared to baseline at 2 consecutive visits will be discontinued from study drug treatment.",
+        "footnoteId": "fn_11",
+        "sourceText": "dd. Starting at Week 36, subjects who failed to show at least 20% improvement in either or both TJC "
+      },
+      {
+        "id": "fn_cond_12",
+        "conditionType": "general",
+        "text": "Note: Visit window is ± 3 days for the first 36 weeks and ± 7 days for the remainder of the study. Any of the procedures may be performed at an unscheduled visit at the discretion of the Investigator.",
+        "footnoteId": "fn_12",
+        "sourceText": "Note: Visit window is ± 3 days for the first 36 weeks and ± 7 days for the remainder of the study. A"
+      }
+    ],
+    "endpointAlgorithms": [
+      {
+        "id": "ep_1",
+        "name": "Primary: ACR20 response at Week 12",
+        "endpointType": "Primary",
+        "inputs": [
+          "TJC",
+          "SJC",
+          "Patient's Assessment of Pain NRS",
+          "PtGA of Disease Activity NRS",
+          "PGA of Disease Activity NRS",
+          "HAQ-DI",
+          "hs-CRP"
+        ],
+        "timeWindow": {
+          "reference": "Baseline",
+          "duration": "Week 12"
+        },
+        "algorithm": ">= 20% improvement in TJC AND >= 20% improvement in SJC AND >= 20% improvement in 3 of the 5 remaining measures (Pain, PtGA, PGA, HAQ-DI, or hs-CRP)",
+        "successCriteria": "Proportion of subjects achieving ACR20 response",
+        "sourceText": "The primary efficacy endpoint is the proportion of subjects achieving ACR20 response at Week 12. ... ACR20/50/70 response rates will be determined based on 20%/50%/70% or greater improvement in TJC an"
+      },
+      {
+        "id": "ep_2",
+        "name": "Secondary: Change from baseline in HAQ-DI at Week 12",
+        "endpointType": "Secondary",
+        "inputs": [
+          "HAQ-DI_Baseline",
+          "HAQ-DI_Week12"
+        ],
+        "timeWindow": {
+          "reference": "Baseline",
+          "duration": "Week 12"
+        },
+        "algorithm": "HAQ-DI_Week12 - HAQ-DI_Baseline",
+        "successCriteria": "Mean change from baseline",
+        "sourceText": "Change from baseline in HAQ-DI at Week 12"
+      },
+      {
+        "id": "ep_3",
+        "name": "Secondary: sIGA of Psoriasis",
+        "endpointType": "Secondary",
+        "inputs": [
+          "sIGA_Baseline",
+          "sIGA_Week16"
+        ],
+        "timeWindow": {
+          "reference": "Baseline",
+          "duration": "Week 16"
+        },
+        "algorithm": "sIGA_Week16 <= 1 AND (sIGA_Baseline - sIGA_Week16) >= 2",
+        "successCriteria": "Score of 0 or 1 and at least a 2-point improvement from baseline",
+        "sourceText": "Static Investigator Global Assessment (sIGA) of Psoriasis of 0 or 1 and at least a 2-point improvement from baseline at Week 16"
+      },
+      {
+        "id": "ep_4",
+        "name": "Secondary: PASI 75 response",
+        "endpointType": "Secondary",
+        "inputs": [
+          "PASI_Baseline",
+          "PASI_Week16",
+          "BSA_Baseline"
+        ],
+        "timeWindow": {
+          "reference": "Baseline",
+          "duration": "Week 16"
+        },
+        "algorithm": "IF BSA_Baseline >= 3% THEN (PASI_Baseline - PASI_Week16) / PASI_Baseline >= 0.75",
+        "successCriteria": ">= 75% reduction in PASI score from baseline",
+        "sourceText": "Psoriasis Area Severity Index (PASI) 75 response at Week 16 (for subjects with >= 3% BSA psoriasis at baseline)"
+      },
+      {
+        "id": "ep_5",
+        "name": "Secondary: Minimal Disease Activity (MDA)",
+        "endpointType": "Secondary",
+        "inputs": [
+          "TJC",
+          "SJC",
+          "PASI",
+          "BSA-Ps",
+          "Pain NRS",
+          "PtGA-disease activity",
+          "HAQ-DI",
+          "Tender entheseal points"
+        ],
+        "timeWindow": {
+          "reference": "Baseline",
+          "duration": "Week 24"
+        },
+        "algorithm": "Count of (TJC <= 1, SJC <= 1, PASI <= 1 OR BSA-Ps <= 3%, Pain <= 1.5, PtGA <= 2, HAQ-DI <= 0.5, Entheseal points <= 1) >= 5",
+        "successCriteria": "Fulfilling 5 of 7 outcome measures",
+        "sourceText": "The proportion of subjects achieving MDA will be determined based on subjects fulfilling 5 of 7 outcome measures: TJC <= 1; SJC <= 1; PASI <= 1 or BSA-Ps <= 3%; patient assessment of pain <= 1.5 (0 - "
+      },
+      {
+        "id": "ep_6",
+        "name": "Secondary: ACR50/70 response",
+        "endpointType": "Secondary",
+        "inputs": [
+          "TJC",
+          "SJC",
+          "Pain NRS",
+          "PtGA",
+          "PGA",
+          "HAQ-DI",
+          "hs-CRP"
+        ],
+        "timeWindow": {
+          "reference": "Baseline",
+          "duration": "Week 12"
+        },
+        "algorithm": ">= 50% (or 70%) improvement in TJC AND >= 50% (or 70%) improvement in SJC AND >= 50% (or 70%) improvement in 3 of the 5 remaining measures",
+        "successCriteria": "Proportion of subjects achieving ACR50 or ACR70",
+        "sourceText": "ACR50/70 response at Week 12; ... ACR20/50/70 response rates will be determined based on 20%/50%/70% or greater improvement..."
+      }
+    ],
+    "derivedVariables": [
+      {
+        "id": "dv_1",
+        "name": "ACR20 Response",
+        "variableType": "Composite",
+        "sourceVariables": [
+          "TJC",
+          "SJC",
+          "Patient's Assessment of Pain NRS",
+          "PtGA of Disease Activity NRS",
+          "PGA of Disease Activity NRS",
+          "HAQ-DI",
+          "hs-CRP"
+        ],
+        "derivationRule": "20% or greater improvement in TJC and SJC AND 20% or greater improvement in at least 3 of the 5 remaining measures (Pain, PtGA, PGA, HAQ-DI, hs-CRP)",
+        "baselineDefinition": "Not explicitly defined in text, typically last value prior to first dose",
+        "baselineVisit": "Baseline",
+        "analysisWindow": "Week 12 (Primary), Week 2",
+        "imputationRule": "Not specified in provided text",
+        "unit": "Boolean"
+      },
+      {
+        "id": "dv_2",
+        "name": "Change from baseline in HAQ-DI",
+        "variableType": "ChangeFromBaseline",
+        "sourceVariables": [
+          "HAQ-DI"
+        ],
+        "derivationRule": "Post-baseline value - Baseline value",
+        "baselineDefinition": "Not explicitly defined in text",
+        "baselineVisit": "Baseline",
+        "analysisWindow": "Week 12",
+        "imputationRule": "Not specified in provided text",
+        "unit": "Score"
+      },
+      {
+        "id": "dv_3",
+        "name": "sIGA of Psoriasis 0 or 1 and 2-point improvement",
+        "variableType": "Composite",
+        "sourceVariables": [
+          "sIGA"
+        ],
+        "derivationRule": "(Current sIGA is 0 or 1) AND (Baseline sIGA - Current sIGA >= 2)",
+        "baselineDefinition": "Not explicitly defined in text",
+        "baselineVisit": "Baseline",
+        "analysisWindow": "Week 16",
+        "imputationRule": "Not specified in provided text",
+        "unit": "Boolean"
+      },
+      {
+        "id": "dv_4",
+        "name": "PASI 75 response",
+        "variableType": "PercentChange",
+        "sourceVariables": [
+          "PASI",
+          "BSA"
+        ],
+        "derivationRule": "75% or greater reduction from baseline in PASI score; only for subjects with >= 3% BSA psoriasis at baseline",
+        "baselineDefinition": "Not explicitly defined in text",
+        "baselineVisit": "Baseline",
+        "analysisWindow": "Week 16",
+        "imputationRule": "Not specified in provided text",
+        "unit": "Boolean"
+      },
+      {
+        "id": "dv_5",
+        "name": "Minimal Disease Activity (MDA)",
+        "variableType": "Composite",
+        "sourceVariables": [
+          "TJC",
+          "SJC",
+          "PASI",
+          "BSA-Ps",
+          "Patient assessment of pain NRS",
+          "PtGA-disease activity NRS",
+          "HAQ-DI",
+          "Tender entheseal points"
+        ],
+        "derivationRule": "Fulfilling 5 of 7 outcome measures: TJC <= 1; SJC <= 1; PASI <= 1 or BSA-Ps <= 3%; Pain <= 1.5; PtGA <= 2; HAQ-DI <= 0.5; Tender entheseal points <= 1",
+        "baselineDefinition": "Not explicitly defined in text",
+        "baselineVisit": "Baseline",
+        "analysisWindow": "Week 24",
+        "imputationRule": "Not specified in provided text",
+        "unit": "Boolean"
+      },
+      {
+        "id": "dv_6",
+        "name": "Clinically meaningful improvement in HAQ-DI",
+        "variableType": "Categorical",
+        "sourceVariables": [
+          "HAQ-DI"
+        ],
+        "derivationRule": "(Baseline HAQ-DI - Current HAQ-DI) >= 0.35",
+        "baselineDefinition": "Not explicitly defined in text",
+        "baselineVisit": "Baseline",
+        "analysisWindow": "Not specified",
+        "imputationRule": "Not specified in provided text",
+        "unit": "Boolean"
+      },
+      {
+        "id": "dv_7",
+        "name": "Morning stiffness",
+        "variableType": "Custom",
+        "sourceVariables": [
+          "BASDAI Question 5",
+          "BASDAI Question 6"
+        ],
+        "derivationRule": "Mean of BASDAI Questions 5 and 6",
+        "baselineDefinition": "Not explicitly defined in text",
+        "baselineVisit": "Baseline",
+        "analysisWindow": "Not specified",
+        "imputationRule": "Not specified in provided text",
+        "unit": "Score"
+      }
+    ],
+    "stateMachine": {
+      "id": "sm_1",
+      "initialState": "Screening",
+      "terminalStates": [
+        "Early Termination",
+        "Completed"
+      ],
+      "states": [
+        "Screening",
+        "Period 1 Randomized Controlled",
+        "Period 1 Blinded Treatment",
+        "Period 2 Long Term Extension",
+        "Follow Up",
+        "Early Termination"
+      ],
+      "transitions": [
+        {
+          "fromState": "Screening",
+          "toState": "Period 1 Randomized Controlled",
+          "trigger": "Progress to Period 1 Randomized Controlled"
+        },
+        {
+          "fromState": "Period 1 Randomized Controlled",
+          "toState": "Period 1 Blinded Treatment",
+          "trigger": "Progress to Period 1 Blinded Treatment"
+        },
+        {
+          "fromState": "Period 1 Blinded Treatment",
+          "toState": "Period 2 Long Term Extension",
+          "trigger": "Progress to Period 2 Long Term Extension"
+        },
+        {
+          "fromState": "Period 2 Long Term Extension",
+          "toState": "Follow Up",
+          "trigger": "Progress to Follow Up"
+        },
+        {
+          "fromState": "Period 1 Randomized Controlled",
+          "toState": "Early Termination",
+          "trigger": "Subject exits to Early Termination"
+        },
+        {
+          "fromState": "Period 1 Blinded Treatment",
+          "toState": "Early Termination",
+          "trigger": "Subject exits to Early Termination"
+        },
+        {
+          "fromState": "Period 2 Long Term Extension",
+          "toState": "Early Termination",
+          "trigger": "Subject exits to Early Termination"
+        }
+      ],
+      "epochIds": {
+        "Screening": "SCREENING",
+        "Period 1 Randomized Controlled": "PERIOD_1_RANDOMIZED_CONTROLLED",
+        "Period 1 Blinded Treatment": "PERIOD_1_BLINDED_TREATMENT",
+        "Period 2 Long Term Extension": "PERIOD_2_LONG_TERM_EXTENSION",
+        "Follow Up": "FOLLOW_UP",
+        "Early Termination": "EARLY_TERMINATION"
+      }
+    },
+    "dosingRegimens": [
+      {
+        "id": "dosing_llm_1",
+        "treatmentName": "Upadacitinib",
+        "frequency": "QD",
+        "route": "Oral",
+        "startDay": 1,
+        "doseLevels": [
+          {
+            "amount": 15.0,
+            "unit": "mg",
+            "description": "Optimal dose for patients with active psoriatic arthritis and proposed dose for marketing authorization."
+          },
+          {
+            "amount": 30.0,
+            "unit": "mg",
+            "description": "Previous dose in Period 2; subjects switched to 15 mg QD upon approval of Amendment 8."
+          }
+        ],
+        "durationDescription": "Not specified in provided text",
+        "doseModifications": [
+          "Subjects currently on upadacitinib 30 mg QD are switched to upadacitinib 15 mg QD in Period 2 upon approval of protocol amendment 8.",
+          "Guidelines for interruption of study drug in subjects with signs/symptoms or suspicion of COVID-19 infection.",
+          "Specific Toxicity Management Guidelines for Abnormal Laboratory Values (e.g., AST/ALT > 8 x ULN)."
+        ]
+      },
+      {
+        "id": "dosing_llm_2",
+        "treatmentName": "Placebo",
+        "frequency": "QD",
+        "route": "Oral",
+        "startDay": 1,
+        "durationDescription": "Not specified in provided text"
+      }
+    ],
+    "visitWindows": [
+      {
+        "id": "visit_2",
+        "visitName": "screening",
+        "targetDay": -14,
+        "windowBefore": 7,
+        "windowAfter": 34,
+        "isRequired": true,
+        "visitNumber": 1,
+        "epoch": "Screening",
+        "sourceText": "The study duration will include a 35-day screening period; a 56-week blinded period which includes 24 weeks of double-blind, placebo-controlled treatment followed by 32 weeks of treatment blinded to t"
+      },
+      {
+        "id": "visit_1",
+        "visitName": "Early Termination",
+        "targetDay": null,
+        "windowBefore": 0,
+        "windowAfter": 0,
+        "isRequired": true,
+        "visitNumber": 2,
+        "sourceText": "To compare the safety and tolerability of upadacitinib 15 mg QD and 30 mg QD versus placebo in subjects with moderately to severely active PsA who have an inadequate response to bDMARDs. Period 2"
+      },
+      {
+        "id": "visit_5",
+        "visitName": "baseline",
+        "targetDay": 0,
+        "windowBefore": 1,
+        "windowAfter": 1,
+        "isRequired": true,
+        "visitNumber": 3,
+        "sourceText": "Subjects who were assigned to placebo at baseline will be preassigned to receiving either upadacitinib 15 mg QD or upadacitinib 30 mg QD starting at Week 24 in a 1:1 ratio. Subjects who complete the W"
+      },
+      {
+        "id": "visit_llm_8",
+        "visitName": "Period 2 Extension",
+        "targetDay": null,
+        "windowBefore": null,
+        "windowAfter": null,
+        "isRequired": true,
+        "visitNumber": 8,
+        "epoch": "Period 2"
+      },
+      {
+        "id": "visit_4",
+        "visitName": "randomization",
+        "targetDay": 1,
+        "windowBefore": 0,
+        "windowAfter": 0,
+        "isRequired": true,
+        "visitNumber": 5,
+        "epoch": "Period 1",
+        "sourceText": "response to) biologic DMARDs (1 vs > 1), except for subjects from Japan, for which randomization will be stratified by extent of psoriasis (≥ 3% body surface area [BSA] or < 3% BSA) only, and then wil"
+      },
+      {
+        "id": "visit_11",
+        "visitName": "Week 2",
+        "targetDay": 8,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 6,
+        "targetWeek": 2,
+        "sourceText": "ACR20 response at Week 2. ACR20/50/70 response rates will be determined based on 20%/50%/70% or greater improvement in TJC and SJC and ≥ 3 of the 5 measures of Patient's Assessment of Pain NRS, PtGA o"
+      },
+      {
+        "id": "visit_10",
+        "visitName": "Week 12",
+        "targetDay": 78,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 7,
+        "targetWeek": 12,
+        "epoch": "Period 1",
+        "sourceText": "in either or both tender joint count (TJC) and swollen joint count (SJC) at both Week 12 and Week 16) will add or modify background therapy for PsA. At Week 24, all subjects allocated to placebo at Ba"
+      },
+      {
+        "id": "visit_9",
+        "visitName": "Week 16",
+        "targetDay": 106,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 8,
+        "targetWeek": 16,
+        "epoch": "Period 1",
+        "sourceText": "At Week 16, subjects classified as non-responders (defined as not achieving at least 20% improvement in either or both tender joint count (TJC) and swollen joint count (SJC) at both Week 12 and Week 1"
+      },
+      {
+        "id": "visit_6",
+        "visitName": "Week 24",
+        "targetDay": 162,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 9,
+        "targetWeek": 24,
+        "epoch": "Period 1",
+        "sourceText": "15 mg QD or upadacitinib 30 mg QD starting at Week 24 in a 1:1 ratio. Subjects who complete the Week 56 visit (end of Period 1) will enter the long-term extension portion of the study, Period 2 (total"
+      },
+      {
+        "id": "visit_8",
+        "visitName": "Week 36",
+        "targetDay": 246,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 10,
+        "targetWeek": 36,
+        "epoch": "Period 1",
+        "sourceText": "of study drug and remain at stable dose through Week 36 of the study; the non-biologic DMARD dose may be decreased only for safety reasons. In addition, all subjects taking MTX should take a dietary s"
+      },
+      {
+        "id": "visit_3",
+        "visitName": "Follow-up",
+        "targetDay": 365,
+        "windowBefore": 7,
+        "windowAfter": 7,
+        "isRequired": true,
+        "visitNumber": 11,
+        "epoch": "Follow-up",
+        "sourceText": "30-day follow-up call or visit."
+      },
+      {
+        "id": "visit_7",
+        "visitName": "Week 56",
+        "targetDay": 386,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 12,
+        "targetWeek": 56,
+        "epoch": "Period 1",
+        "sourceText": "Week 56 visit (end of Period 1) will enter the long-term extension portion of the study, Period 2 (total study duration up to approximately 3 years). Subjects will continue study treatment as assigned"
+      },
+      {
+        "id": "visit_13",
+        "visitName": "Week 152",
+        "targetDay": 1058,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 13,
+        "targetWeek": 152,
+        "sourceText": "The last dose of oral study drug is taken the day prior to the Week 152 visit. Upon approval of protocol amendment 8, subjects receiving upadacitinib 30 mg QD will be switched to upadacitinib 15 mg QD"
+      }
+    ],
+    "randomizationScheme": {
+      "id": "randomization_1",
+      "ratio": "2:2:1:1",
+      "method": "Stratified randomization",
+      "centralRandomization": true,
+      "stratificationFactors": [
+        {
+          "id": "strat_llm_1",
+          "name": "Extent of psoriasis (Global)",
+          "categories": [
+            "≥ 3% body surface area [BSA]",
+            "< 3% BSA"
+          ],
+          "isBlocking": false
+        },
+        {
+          "id": "strat_llm_2",
+          "name": "Current use of DMARDs (Global)",
+          "categories": [
+            "At least 1 DMARD",
+            "No DMARD"
+          ],
+          "isBlocking": false
+        },
+        {
+          "id": "strat_llm_3",
+          "name": "Number of prior failed biologic DMARDs (Global)",
+          "categories": [
+            "1",
+            "> 1"
+          ],
+          "isBlocking": false
+        },
+        {
+          "id": "strat_llm_4",
+          "name": "Extent of psoriasis (Japan only)",
+          "categories": [
+            "≥ 3% body surface area [BSA]",
+            "< 3% BSA"
+          ],
+          "isBlocking": false
+        }
+      ],
+      "sourceText": "Upadacitinib\nM15-554 Protocol Amendment 8\nEudraCT 2016-004152-30\n9\nMethodology (Continued):\nSubjects who meet eligibility criteria will be stratified by extent of psoriasis (≥ 3% body surface area \n[B"
+    }
+  }
+}

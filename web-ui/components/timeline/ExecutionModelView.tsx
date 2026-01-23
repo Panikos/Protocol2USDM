@@ -1297,7 +1297,16 @@ function ConditionsPanel({ conditions, studyDesign }: { conditions: FootnoteCond
 
   // Helper to resolve ID to name
   const resolveEntityName = (id: string): string => {
-    return entityNameMap[id] || id;
+    // First check if it's in the map
+    if (entityNameMap[id]) {
+      return entityNameMap[id];
+    }
+    // If it's not a UUID, it's probably already a human-readable name
+    if (!id.match(/^[a-f0-9-]{36}$/i)) {
+      return id;
+    }
+    // For unresolved UUIDs, show a shortened version
+    return id.slice(0, 8) + '...';
   };
 
   // Group conditions by type
@@ -1465,14 +1474,15 @@ function ConditionsPanel({ conditions, studyDesign }: { conditions: FootnoteCond
 
                   {/* Section Content */}
                   <div className="divide-y">
-                    {conds.slice(0, displayCount).map(cond => (
+                    {conds.slice(0, displayCount).map((cond, condIdx) => (
                       <div key={cond.id} className="p-4 bg-white hover:bg-gray-50">
                         <div className="flex items-start gap-3">
-                          {cond.footnoteId && (
-                            <Badge variant="outline" className="shrink-0 font-mono">
-                              {cond.footnoteId}
-                            </Badge>
-                          )}
+                          {/* Show footnote label - if UUID, show index-based label instead */}
+                          <Badge variant="outline" className="shrink-0 font-mono">
+                            {cond.footnoteId && !cond.footnoteId.match(/^[a-f0-9-]{36}$/i) 
+                              ? cond.footnoteId 
+                              : `fn_${condIdx + 1}`}
+                          </Badge>
                           <div className="flex-1 min-w-0">
                             {/* Full text - no truncation */}
                             <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">

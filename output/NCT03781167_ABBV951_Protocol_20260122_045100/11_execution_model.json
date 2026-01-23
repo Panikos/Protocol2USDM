@@ -1,0 +1,954 @@
+{
+  "success": true,
+  "pagesUsed": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    44,
+    45,
+    57,
+    63,
+    65,
+    80,
+    81,
+    82
+  ],
+  "modelUsed": "gemini-3-flash-preview",
+  "data": {
+    "timeAnchors": [
+      {
+        "id": "anchor_1",
+        "definition": "First administration of investigational product",
+        "anchorType": "FirstDose",
+        "timelineId": null,
+        "dayValue": 1,
+        "sourceText": "initiation of treatment"
+      },
+      {
+        "id": "anchor_llm_1",
+        "definition": "The initiation of ABBV-951 (study drug) administration",
+        "anchorType": "Day1",
+        "timelineId": null,
+        "dayValue": 1,
+        "sourceText": "The Treatment Period starts with the initiation of ABBV-951... On the morning of Day 1 (V3) subjects will need to be in a clinically defined \"Off\" state (i.e., no PD medications for at least 12 hours before initiation of study drug)."
+      },
+      {
+        "id": "anchor_2",
+        "definition": "Screening visit",
+        "anchorType": "Screening",
+        "timelineId": null,
+        "dayValue": 1,
+        "sourceText": "Screening \nPeriod"
+      },
+      {
+        "id": "anchor_3",
+        "definition": "procedure",
+        "anchorType": "Custom",
+        "timelineId": null,
+        "dayValue": 1,
+        "sourceText": "procedure"
+      }
+    ],
+    "repetitions": [
+      {
+        "id": "rep_daily_1",
+        "type": "Daily",
+        "interval": "P1D",
+        "sourceText": "OD"
+      },
+      {
+        "id": "rep_daily_5",
+        "type": "Daily",
+        "interval": "P1D",
+        "sourceText": "od"
+      },
+      {
+        "id": "rep_interval_1",
+        "type": "Interval",
+        "sourceText": "bid"
+      },
+      {
+        "id": "rep_window_1",
+        "type": "Continuous",
+        "sourceText": "Screening \nPeriod"
+      },
+      {
+        "id": "rep_window_2",
+        "type": "Continuous",
+        "sourceText": "Screening Period"
+      },
+      {
+        "id": "rep_window_5",
+        "type": "Continuous",
+        "sourceText": "Treatment Period"
+      },
+      {
+        "id": "rep_window_9",
+        "type": "Continuous",
+        "sourceText": "treatment period"
+      },
+      {
+        "id": "rep_window_11",
+        "type": "Continuous",
+        "sourceText": "treatment \nperiod"
+      },
+      {
+        "id": "rep_window_14",
+        "type": "Continuous",
+        "sourceText": "12 hours before"
+      },
+      {
+        "id": "rep_window_16",
+        "type": "Continuous",
+        "sourceText": "30 days after"
+      },
+      {
+        "id": "rep_llm_1",
+        "type": "Continuous",
+        "startOffset": "P0D",
+        "endOffset": "P28D",
+        "interval": "P1D",
+        "minObservations": 28,
+        "exitCondition": "Completion of 28-day infusion period",
+        "sourceText": "following CSCI for 28 days with a fixed indwelling catheter at a rate of 0.1 or 0.25 mL/hour"
+      },
+      {
+        "id": "rep_llm_2",
+        "type": "Continuous",
+        "startOffset": "P0D",
+        "endOffset": "PT72H",
+        "interval": "PT1H",
+        "minObservations": 72,
+        "exitCondition": "Completion of 72-hour infusion",
+        "sourceText": "ABBV-951 was administered as a loading dose followed by a continuous infusion for up to 72 hours"
+      },
+      {
+        "id": "rep_llm_3",
+        "type": "Continuous",
+        "startOffset": "P0D",
+        "endOffset": "P5D",
+        "interval": "P1D",
+        "minObservations": 5,
+        "exitCondition": "Completion of 5-day infusion",
+        "sourceText": "infusion of ABBV-951 at the same concentration (50/200 mg/mL), but at a higher infusion rate (0.5 mL/hour) for fewer days (5 days) was well tolerated"
+      }
+    ],
+    "samplingConstraints": [],
+    "traversalConstraints": [
+      {
+        "id": "traversal_1",
+        "requiredSequence": [
+          "SCREENING",
+          "MONITORING_PERIOD",
+          "TREATMENT_OPTIMIZATION",
+          "TREATMENT_MAINTENANCE",
+          "FOLLOW_UP"
+        ],
+        "allowEarlyExit": true,
+        "exitEpochIds": [
+          "EARLY_TERMINATION"
+        ],
+        "mandatoryVisits": [
+          "Safety Follow-up",
+          "Visit 3 (Day 1)",
+          "Visit 2",
+          "Week 52 (End of Maintenance)",
+          "Day 1",
+          "End of Study",
+          "Screening",
+          "Visit 1",
+          "Week 4 (End of Optimization)"
+        ],
+        "sourceText": "[{'condition': 'If subject experiences AE requiring discontinuation', 'path': ['EARLY_TERMINATION', 'FOLLOW_UP']}, {'condition': 'In countries where PKG watch is not approved', 'path': ['REDUCED_MONITORING_PERIOD']}]"
+      }
+    ],
+    "executionTypes": [
+      {
+        "activityId": "Vital Sign",
+        "executionType": "Single",
+        "rationale": "SINGLE signals: 1"
+      },
+      {
+        "activityId": "Electrocardiogram",
+        "executionType": "Single",
+        "rationale": "No strong signals detected"
+      },
+      {
+        "activityId": "Pe",
+        "executionType": "Single",
+        "rationale": "No strong signals detected"
+      },
+      {
+        "activityId": "Adverse Events",
+        "executionType": "Single",
+        "rationale": "No strong signals detected"
+      },
+      {
+        "activityId": "Concomitant Medications",
+        "executionType": "Episode",
+        "rationale": "EPISODE signals: 4"
+      },
+      {
+        "activityId": "Laboratory Test",
+        "executionType": "Single",
+        "rationale": "SINGLE signals: 1"
+      },
+      {
+        "activityId": "Pharmacokinetic",
+        "executionType": "Single",
+        "rationale": "No strong signals detected"
+      },
+      {
+        "activityId": "Drug Administration",
+        "executionType": "Single",
+        "rationale": "SINGLE signals: 1"
+      },
+      {
+        "activityId": "Biopsy",
+        "executionType": "Single",
+        "rationale": "SINGLE signals: 3"
+      },
+      {
+        "activityId": "Diary",
+        "executionType": "Single",
+        "rationale": "SINGLE signals: 1"
+      },
+      {
+        "activityId": "Eligibility Criteria Assessment",
+        "executionType": "Single",
+        "rationale": "Assessment of eligibility is performed once at the start of the study to determine subject participation."
+      },
+      {
+        "activityId": "Loading Dose Administration",
+        "executionType": "Single",
+        "rationale": "The protocol describes a loading dose administered as a one-time event followed by a continuous infusion."
+      },
+      {
+        "activityId": "Continuous Subcutaneous Infusion (CSCI)",
+        "executionType": "Single",
+        "rationale": "ABBV-951 is delivered via continuous infusion over a period of time (e.g., up to 72 hours in Phase 1) to maintain steady levodopa exposure."
+      },
+      {
+        "activityId": "Titration and Infusion Rate Adjustment",
+        "executionType": "Single",
+        "rationale": "Infusion rates are adjusted based on individual patient needs and motor symptom control, involving decision points for alternative rates or extra doses."
+      },
+      {
+        "activityId": "Local (Skin) and Systemic Tolerability Assessment",
+        "executionType": "Single",
+        "rationale": "Tolerability and infusion site findings are monitored repeatedly throughout the treatment period to assess safety."
+      }
+    ],
+    "footnoteConditions": [
+      {
+        "id": "fn_cond_1",
+        "conditionType": "general",
+        "text": "a. The Screening Period may be extended up to a total of 90 days for extenuating circumstances.",
+        "footnoteId": "fn_1",
+        "structuredCondition": "screening_period.duration <= P90D",
+        "appliesToActivityIds": [
+          "Screening Period"
+        ],
+        "sourceText": "a. The Screening Period may be extended up to a total of 90 days for extenuating circumstances."
+      },
+      {
+        "id": "fn_cond_2",
+        "conditionType": "timing_before",
+        "text": "b. The Monitoring Period can occur any time before V3, as long as it lasts for 6 consecutive days.",
+        "footnoteId": "fn_2",
+        "structuredCondition": "monitoring_period.end < V3 && monitoring_period.duration == P6D",
+        "appliesToActivityIds": [
+          "Monitoring Period"
+        ],
+        "sourceText": "b. The Monitoring Period can occur any time before V3, as long as it lasts for 6 consecutive days."
+      },
+      {
+        "id": "fn_cond_3",
+        "conditionType": "general",
+        "text": "c. GFR will be calculated one time at Screening Visit 1 (V1) according to the Chronic Kidney Disease Epidemiology Collaboration (CKD-EPI) equation.",
+        "footnoteId": "fn_3",
+        "structuredCondition": "procedure(GFR).method == \"CKD-EPI\" && procedure(GFR).frequency == 1",
+        "appliesToActivityIds": [
+          "GFR calculation"
+        ],
+        "sourceText": "c. GFR will be calculated one time at Screening Visit 1 (V1) according to the Chronic Kidney Disease"
+      },
+      {
+        "id": "fn_cond_4",
+        "conditionType": "general",
+        "text": "d. Special laboratory tests to detect vitamin deficiencies will be performed at Screening Visit 1, Day 1, Week 6, Week 26, and Week 52.",
+        "footnoteId": "fn_4",
+        "structuredCondition": "labs.type == \"vitamin_deficiency\" && schedule.visits == [\"V1\", \"Day 1\", \"Week 6\", \"Week 26\", \"Week 52\"]",
+        "appliesToActivityIds": [
+          "Special laboratory tests"
+        ],
+        "sourceText": "d. Special laboratory tests to detect vitamin deficiencies will be performed at Screening Visit 1, D"
+      }
+    ],
+    "endpointAlgorithms": [
+      {
+        "id": "ep_1",
+        "name": "Primary: Adverse Event Incidence",
+        "endpointType": "Primary",
+        "inputs": [
+          "AE",
+          "SAE",
+          "AESI"
+        ],
+        "timeWindow": {
+          "reference": "First infusion to end of study",
+          "duration": "P52W"
+        },
+        "algorithm": "(Count of subjects with >= 1 AE / Total subjects in Safety Analysis Set) * 100",
+        "successCriteria": "Descriptive summary of safety and tolerability",
+        "sourceText": "Percentage of subjects with adverse events (AEs) and serious adverse events (SAEs) during the study"
+      },
+      {
+        "id": "ep_2",
+        "name": "Primary: Infusion Site Evaluation Scale",
+        "endpointType": "Primary",
+        "inputs": [
+          "Infusion Site Numeric Grade",
+          "Infusion Site Letter Grade"
+        ],
+        "timeWindow": {
+          "reference": "Baseline to end of study",
+          "duration": "P52W"
+        },
+        "algorithm": "Count of subjects with Numeric Grade >= 5 OR Letter Grade >= 'D' at any time",
+        "successCriteria": "Percentage of subjects meeting threshold criteria",
+        "sourceText": "Percentage of subjects with numeric grade equal to or higher than 5 and percentage of subjects with letter grade equal to or higher than D on the Infusion Site Evaluation Scale at any time during the "
+      },
+      {
+        "id": "ep_3",
+        "name": "Primary: Change in Safety Parameters",
+        "endpointType": "Primary",
+        "inputs": [
+          "Laboratory test data",
+          "Vital signs",
+          "ECG"
+        ],
+        "timeWindow": {
+          "reference": "Baseline to end of study",
+          "duration": "P52W"
+        },
+        "algorithm": "End of Study Value - Baseline Value",
+        "successCriteria": "Descriptive statistics (mean, SD, median)",
+        "sourceText": "Change in clinical laboratory test data from Baseline to end of study"
+      },
+      {
+        "id": "ep_4",
+        "name": "Secondary: Normalized Daily Off/On Time",
+        "endpointType": "Secondary",
+        "inputs": [
+          "PD Diary Off Time",
+          "PD Diary On Time"
+        ],
+        "timeWindow": {
+          "reference": "Baseline to end of study",
+          "duration": "P52W"
+        },
+        "algorithm": "Average normalized daily time at End of Study - Average normalized daily time at Baseline",
+        "successCriteria": "Paired-sample t-test for change from Baseline",
+        "sourceText": "Average normalized daily 'Off' time and 'On' times as assessed by the PD Diary"
+      },
+      {
+        "id": "ep_5",
+        "name": "Secondary: PD Symptoms (MDS-UPDRS)",
+        "endpointType": "Secondary",
+        "inputs": [
+          "MDS-UPDRS Parts I-IV total score"
+        ],
+        "timeWindow": {
+          "reference": "Baseline to end of study",
+          "duration": "P52W"
+        },
+        "algorithm": "Total Score at End of Study - Total Score at Baseline",
+        "successCriteria": "Paired-sample t-test for change from Baseline",
+        "sourceText": "PD symptoms as assessed by the Movement Disorder Society-Unified Parkinson's Disease Rating Scale (MDS-UPDRS) Parts I-IV"
+      },
+      {
+        "id": "ep_6",
+        "name": "Secondary: Quality of Life (PDQ-39)",
+        "endpointType": "Secondary",
+        "inputs": [
+          "PDQ-39 score"
+        ],
+        "timeWindow": {
+          "reference": "Baseline to end of study",
+          "duration": "P52W"
+        },
+        "algorithm": "PDQ-39 score at End of Study - PDQ-39 score at Baseline",
+        "successCriteria": "Descriptive statistics and paired t-test",
+        "sourceText": "Quality of life as assessed by the PD Questionnaire-39 items (PDQ-39)"
+      }
+    ],
+    "derivedVariables": [
+      {
+        "id": "dv_1",
+        "name": "Percentage of subjects with AEs and SAEs",
+        "variableType": "Categorical",
+        "sourceVariables": [
+          "Adverse Events",
+          "Serious Adverse Events"
+        ],
+        "derivationRule": "(Number of subjects with at least one AE or SAE / Total number of subjects) * 100",
+        "baselineDefinition": "Not applicable",
+        "baselineVisit": "Not applicable",
+        "analysisWindow": "Up to 52 weeks",
+        "imputationRule": "None specified",
+        "unit": "%"
+      },
+      {
+        "id": "dv_2",
+        "name": "Percentage of subjects with AESIs",
+        "variableType": "Categorical",
+        "sourceVariables": [
+          "Adverse Events of Special Interest"
+        ],
+        "derivationRule": "(Number of subjects with at least one AESI / Total number of subjects) * 100",
+        "baselineDefinition": "Not applicable",
+        "baselineVisit": "Not applicable",
+        "analysisWindow": "Up to 52 weeks",
+        "imputationRule": "None specified",
+        "unit": "%"
+      },
+      {
+        "id": "dv_3",
+        "name": "Percentage of subjects with Infusion Site Evaluation Scale grade >= 5 or >= D",
+        "variableType": "Categorical",
+        "sourceVariables": [
+          "Infusion Site Evaluation Scale numeric grade",
+          "Infusion Site Evaluation Scale letter grade"
+        ],
+        "derivationRule": "(Number of subjects with numeric grade >= 5 or letter grade >= D at any time / Total number of subjects) * 100",
+        "baselineDefinition": "Not applicable",
+        "baselineVisit": "Not applicable",
+        "analysisWindow": "Any time during the study",
+        "imputationRule": "None specified",
+        "unit": "%"
+      },
+      {
+        "id": "dv_4",
+        "name": "Change in clinical laboratory test data",
+        "variableType": "ChangeFromBaseline",
+        "sourceVariables": [
+          "Clinical laboratory test results"
+        ],
+        "derivationRule": "End of study value - Baseline value",
+        "baselineDefinition": "Baseline value (specific timing not defined in provided text)",
+        "baselineVisit": "Baseline",
+        "analysisWindow": "Baseline to End of Study",
+        "imputationRule": "None specified",
+        "unit": "Variable per test"
+      },
+      {
+        "id": "dv_5",
+        "name": "Change in vital sign measurements",
+        "variableType": "ChangeFromBaseline",
+        "sourceVariables": [
+          "Vital sign measurements"
+        ],
+        "derivationRule": "End of study value - Baseline value",
+        "baselineDefinition": "Baseline value (specific timing not defined in provided text)",
+        "baselineVisit": "Baseline",
+        "analysisWindow": "Baseline to End of Study",
+        "imputationRule": "None specified",
+        "unit": "Variable per measurement"
+      },
+      {
+        "id": "dv_6",
+        "name": "Change in electrocardiograms (ECGs)",
+        "variableType": "ChangeFromBaseline",
+        "sourceVariables": [
+          "ECG parameters"
+        ],
+        "derivationRule": "End of study value - Baseline value",
+        "baselineDefinition": "Baseline value (specific timing not defined in provided text)",
+        "baselineVisit": "Baseline",
+        "analysisWindow": "Baseline to End of Study",
+        "imputationRule": "None specified",
+        "unit": "Variable per parameter"
+      },
+      {
+        "id": "dv_7",
+        "name": "Change in Average normalized daily Off time",
+        "variableType": "ChangeFromBaseline",
+        "sourceVariables": [
+          "PD Diary Off time"
+        ],
+        "derivationRule": "End of study normalized value - Baseline normalized value",
+        "baselineDefinition": "Assessed via PD Diary prior to treatment",
+        "baselineVisit": "Baseline",
+        "analysisWindow": "Baseline to End of Study",
+        "imputationRule": "None specified",
+        "unit": "Hours"
+      },
+      {
+        "id": "dv_8",
+        "name": "Change in Average normalized daily On time",
+        "variableType": "ChangeFromBaseline",
+        "sourceVariables": [
+          "PD Diary On time"
+        ],
+        "derivationRule": "End of study normalized value - Baseline normalized value",
+        "baselineDefinition": "Assessed via PD Diary prior to treatment",
+        "baselineVisit": "Baseline",
+        "analysisWindow": "Baseline to End of Study",
+        "imputationRule": "None specified",
+        "unit": "Hours"
+      },
+      {
+        "id": "dv_9",
+        "name": "Change in MDS-UPDRS Parts I-IV",
+        "variableType": "ChangeFromBaseline",
+        "sourceVariables": [
+          "MDS-UPDRS Part I score",
+          "MDS-UPDRS Part II score",
+          "MDS-UPDRS Part III score",
+          "MDS-UPDRS Part IV score"
+        ],
+        "derivationRule": "End of study score - Baseline score",
+        "baselineDefinition": "Baseline assessment",
+        "baselineVisit": "Baseline",
+        "analysisWindow": "Baseline to End of Study",
+        "imputationRule": "None specified",
+        "unit": "Score"
+      },
+      {
+        "id": "dv_10",
+        "name": "Change in PDSS-2",
+        "variableType": "ChangeFromBaseline",
+        "sourceVariables": [
+          "PDSS-2 total score"
+        ],
+        "derivationRule": "End of study score - Baseline score",
+        "baselineDefinition": "Baseline assessment",
+        "baselineVisit": "Baseline",
+        "analysisWindow": "Baseline to End of Study",
+        "imputationRule": "None specified",
+        "unit": "Score"
+      },
+      {
+        "id": "dv_11",
+        "name": "Change in PDQ-39",
+        "variableType": "ChangeFromBaseline",
+        "sourceVariables": [
+          "PDQ-39 items"
+        ],
+        "derivationRule": "End of study score - Baseline score",
+        "baselineDefinition": "Baseline assessment",
+        "baselineVisit": "Baseline",
+        "analysisWindow": "Baseline to End of Study",
+        "imputationRule": "None specified",
+        "unit": "Score"
+      },
+      {
+        "id": "dv_12",
+        "name": "Change in EQ-5D-5L",
+        "variableType": "ChangeFromBaseline",
+        "sourceVariables": [
+          "EQ-5D-5L questionnaire"
+        ],
+        "derivationRule": "End of study score - Baseline score",
+        "baselineDefinition": "Baseline assessment",
+        "baselineVisit": "Baseline",
+        "analysisWindow": "Baseline to End of Study",
+        "imputationRule": "None specified",
+        "unit": "Score/Index"
+      },
+      {
+        "id": "dv_13",
+        "name": "Change in PKG wearable device parameters",
+        "variableType": "ChangeFromBaseline",
+        "sourceVariables": [
+          "Tremor",
+          "Bradykinesia",
+          "Dyskinesia",
+          "Daytime somnolence",
+          "Impulsive behaviors"
+        ],
+        "derivationRule": "Week 26 value - Baseline value",
+        "baselineDefinition": "6-Day Monitoring Period prior to Visit 3",
+        "baselineVisit": "Visit 3 (Pre-dose)",
+        "analysisWindow": "Baseline to Week 26",
+        "imputationRule": "None specified",
+        "unit": "Variable per PKG metric"
+      }
+    ],
+    "stateMachine": {
+      "id": "sm_1",
+      "initialState": "Screening",
+      "terminalStates": [
+        "Early Termination",
+        "Completed"
+      ],
+      "states": [
+        "Screening",
+        "Monitoring Period",
+        "Treatment Optimization",
+        "Treatment Maintenance",
+        "Follow Up",
+        "Early Termination"
+      ],
+      "transitions": [
+        {
+          "fromState": "Screening",
+          "toState": "Monitoring Period",
+          "trigger": "Progress to Monitoring Period"
+        },
+        {
+          "fromState": "Monitoring Period",
+          "toState": "Treatment Optimization",
+          "trigger": "Progress to Treatment Optimization"
+        },
+        {
+          "fromState": "Treatment Optimization",
+          "toState": "Treatment Maintenance",
+          "trigger": "Progress to Treatment Maintenance"
+        },
+        {
+          "fromState": "Treatment Maintenance",
+          "toState": "Follow Up",
+          "trigger": "Progress to Follow Up"
+        },
+        {
+          "fromState": "Monitoring Period",
+          "toState": "Early Termination",
+          "trigger": "Subject exits to Early Termination"
+        },
+        {
+          "fromState": "Treatment Optimization",
+          "toState": "Early Termination",
+          "trigger": "Subject exits to Early Termination"
+        },
+        {
+          "fromState": "Treatment Maintenance",
+          "toState": "Early Termination",
+          "trigger": "Subject exits to Early Termination"
+        }
+      ],
+      "epochIds": {
+        "Screening": "SCREENING",
+        "Monitoring Period": "MONITORING_PERIOD",
+        "Treatment Optimization": "TREATMENT_OPTIMIZATION",
+        "Treatment Maintenance": "TREATMENT_MAINTENANCE",
+        "Follow Up": "FOLLOW_UP",
+        "Early Termination": "EARLY_TERMINATION"
+      }
+    },
+    "dosingRegimens": [
+      {
+        "id": "dosing_1",
+        "treatmentName": "Therapy",
+        "frequency": "QD",
+        "route": "Oral",
+        "startDay": 1,
+        "doseLevels": [
+          {
+            "amount": 100.0,
+            "unit": "mg"
+          },
+          {
+            "amount": 25.0,
+            "unit": "mg"
+          },
+          {
+            "amount": 10.0,
+            "unit": "mg"
+          },
+          {
+            "amount": 84.0,
+            "unit": "mg"
+          }
+        ],
+        "sourceText": "se a. Apomorphine and ergot dopamine agonists (lisuride, bromocriptine, cabergoline, etc.) are NOT allowed. b. Approved in Japan. c. Approved in the United States. Table 7. Allowed Rescue Medications/"
+      },
+      {
+        "id": "dosing_llm_1",
+        "treatmentName": "ABBV-951 (carbidopa phosphate/levodopa phosphate [CDP/LDP])",
+        "frequency": "Continuous",
+        "route": "SC",
+        "startDay": 1,
+        "doseLevels": [
+          {
+            "amount": 50.0,
+            "unit": "mg/mL",
+            "description": "Concentration of carbidopa phosphate"
+          },
+          {
+            "amount": 200.0,
+            "unit": "mg/mL",
+            "description": "Concentration of levodopa phosphate"
+          }
+        ],
+        "durationDescription": "52 weeks",
+        "titrationSchedule": "Individualized delivery covering a wide range of levodopa doses; includes loading dose and continuous infusion rates based on Levodopa Equivalent Dose.",
+        "doseModifications": [
+          "Loading dose followed by continuous infusion",
+          "Infusion rate adjusted based on individual patient needs"
+        ]
+      },
+      {
+        "id": "dosing_llm_2",
+        "treatmentName": "Levodopa-carbidopa intestinal gel (LCIG / CLES)",
+        "frequency": "Continuous",
+        "route": "",
+        "startDay": 1,
+        "durationDescription": "Not specified for this study arm"
+      }
+    ],
+    "visitWindows": [
+      {
+        "id": "visit_llm_1",
+        "visitName": "Screening Visit 1",
+        "targetDay": -42,
+        "windowBefore": 0,
+        "windowAfter": 32,
+        "isRequired": true,
+        "visitNumber": 1,
+        "epoch": "Screening"
+      },
+      {
+        "id": "visit_5",
+        "visitName": "Screening",
+        "targetDay": -14,
+        "windowBefore": 7,
+        "windowAfter": 0,
+        "isRequired": true,
+        "visitNumber": 2,
+        "sourceText": "The Screening Period may be extended up to a total of 90 days for extenuating circumstances, e.g., supply constraints. b. The Monitoring Period can occur any time before V3, as long as it lasts for 6 "
+      },
+      {
+        "id": "visit_llm_2",
+        "visitName": "Screening Visit 2",
+        "targetDay": -10,
+        "windowBefore": 0,
+        "windowAfter": 0,
+        "isRequired": true,
+        "visitNumber": 2,
+        "epoch": "Screening"
+      },
+      {
+        "id": "visit_llm_2.5",
+        "visitName": "Monitoring Period",
+        "targetDay": -6,
+        "windowBefore": 0,
+        "windowAfter": 0,
+        "isRequired": true,
+        "visitNumber": 2.5,
+        "epoch": "Screening"
+      },
+      {
+        "id": "visit_1",
+        "visitName": "Early Termination",
+        "targetDay": null,
+        "windowBefore": 0,
+        "windowAfter": 0,
+        "isRequired": true,
+        "visitNumber": 5,
+        "sourceText": "To assess the local and systemic safety and tolerability of ABBV-951 delivered as a CSCI for 24 hours daily for up to 52 weeks. Secondary"
+      },
+      {
+        "id": "visit_2",
+        "visitName": "Baseline",
+        "targetDay": 0,
+        "windowBefore": 1,
+        "windowAfter": 1,
+        "isRequired": true,
+        "visitNumber": 6,
+        "sourceText": "Change in clinical laboratory test data from Baseline to end of study 5. Change in vital sign measurements from Baseline to end of study"
+      },
+      {
+        "id": "visit_3",
+        "visitName": "end of study",
+        "targetDay": null,
+        "windowBefore": 3,
+        "windowAfter": 7,
+        "isRequired": true,
+        "visitNumber": 7,
+        "sourceText": "Change in clinical laboratory test data from Baseline to end of study 5. Change in vital sign measurements from Baseline to end of study"
+      },
+      {
+        "id": "visit_6",
+        "visitName": "Visit 3",
+        "targetDay": null,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 8,
+        "epoch": "Treatment",
+        "sourceText": "The Monitoring Period can occur any time before V3, as long as it lasts for 6 consecutive days. PD Diaries will also be collected for at least 2 consecutive days during the Monitoring Period. In count"
+      },
+      {
+        "id": "visit_29",
+        "visitName": "end of Treatment",
+        "targetDay": null,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 9,
+        "sourceText": "infusion (end of Treatment Period). 22. If male and sexually active with female partner(s) of childbearing potential, subject must agree, from Day 1 (V3) through 30 days after the end of the infusion "
+      },
+      {
+        "id": "visit_24",
+        "visitName": "Visit 12",
+        "targetDay": 1,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 10,
+        "targetWeek": 39,
+        "sourceText": "Week 39 (V12) Week 52 (V13) or in case of premature discontinuation. All visits, apart from the Screening visits (V1 and V2) and V3 (Day 1), will be allowed a window of"
+      },
+      {
+        "id": "visit_10",
+        "visitName": "Visit 4",
+        "targetDay": 2,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 11,
+        "targetWeek": 1,
+        "sourceText": "Day 2 (V4) Week 1 (V5) Week 2 (V6)"
+      },
+      {
+        "id": "visit_14",
+        "visitName": "Visit 6",
+        "targetDay": 8,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 12,
+        "targetWeek": 2,
+        "sourceText": "Week 2 (V6) Week 3 (V7) Week 4 (V8)"
+      },
+      {
+        "id": "visit_16",
+        "visitName": "Visit 7",
+        "targetDay": 15,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": false,
+        "visitNumber": 13,
+        "targetWeek": 3,
+        "sourceText": "Week 3 (V7) Week 4 (V8) The investigator may perform unscheduled visits to make any needed adjustments within the 4-week"
+      },
+      {
+        "id": "visit_18",
+        "visitName": "Visit 8",
+        "targetDay": 22,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": false,
+        "visitNumber": 14,
+        "targetWeek": 4,
+        "sourceText": "Week 4 (V8) The investigator may perform unscheduled visits to make any needed adjustments within the 4-week Optimization Period."
+      },
+      {
+        "id": "visit_20",
+        "visitName": "Visit 9",
+        "targetDay": 36,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 15,
+        "targetWeek": 6,
+        "sourceText": "Week 6 (V9) Week 13 (V10) Week 26 (V11)"
+      },
+      {
+        "id": "visit_22",
+        "visitName": "Visit 10",
+        "targetDay": 85,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 16,
+        "targetWeek": 13,
+        "sourceText": "Week 13 (V10) Week 26 (V11) Week 39 (V12)"
+      },
+      {
+        "id": "visit_8",
+        "visitName": "Visit 11",
+        "targetDay": 176,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": false,
+        "visitNumber": 17,
+        "targetWeek": 26,
+        "sourceText": "completion of Week 26 (V11); thereafter, wearing of the PKG-watch will be optional. The Monitoring Period consists of at least 6 consecutive days during the Screening Period (prior to V3) where subjec"
+      },
+      {
+        "id": "visit_25",
+        "visitName": "Week 39",
+        "targetDay": 267,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 18,
+        "targetWeek": 39,
+        "sourceText": "Week 39 (V12) Week 52 (V13) or in case of premature discontinuation. All visits, apart from the Screening visits (V1 and V2) and V3 (Day 1), will be allowed a window of"
+      },
+      {
+        "id": "visit_27",
+        "visitName": "Week 52",
+        "targetDay": 358,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 19,
+        "targetWeek": 52,
+        "epoch": "Treatment",
+        "sourceText": "Week 52 (V13) or in case of premature discontinuation. All visits, apart from the Screening visits (V1 and V2) and V3 (Day 1), will be allowed a window of ± 3 days."
+      },
+      {
+        "id": "visit_28",
+        "visitName": "Follow-up",
+        "targetDay": 365,
+        "windowBefore": 7,
+        "windowAfter": 7,
+        "isRequired": true,
+        "visitNumber": 20,
+        "sourceText": "applicable), treatment, and follow-up per standard practice. The subject should be referred to a dermatologist within 2 business days after the photographs are taken. The dermatologic visit should be "
+      }
+    ]
+  }
+}

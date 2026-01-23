@@ -216,6 +216,25 @@ def fuzzy_match_names(name1: str, name2: str, threshold: float = 0.85) -> bool:
         # Both have numbers but different - don't match
         return False
     
+    # Don't match if both have different Roman numeral suffixes (e.g., "Period I" vs "Period II")
+    # After normalization, Roman numerals become lowercase: i, ii, iii, iv, v, vi, etc.
+    # Pattern matches Roman numerals anywhere in the string (not just at end)
+    roman_pattern = r'\b(i{1,3}|iv|v|vi{0,3}|ix|x)\b'
+    roman1 = re.search(roman_pattern, norm1)
+    roman2 = re.search(roman_pattern, norm2)
+    if roman1 and roman2 and roman1.group(1) != roman2.group(1):
+        # Both have Roman numerals but different - don't match
+        return False
+    
+    # Also check if one has a Roman numeral and the other doesn't - they shouldn't match
+    # e.g., "Study Period" should not match "Study Period I"
+    if (roman1 and not roman2) or (roman2 and not roman1):
+        # Only one has Roman numeral - don't match if base names are similar
+        base1 = re.sub(roman_pattern, '', norm1).strip()
+        base2 = re.sub(roman_pattern, '', norm2).strip()
+        if SequenceMatcher(None, base1, base2).ratio() >= 0.9:
+            return False
+    
     # Sequence matching with higher threshold
     ratio = SequenceMatcher(None, norm1, norm2).ratio()
     return ratio >= threshold
@@ -246,6 +265,96 @@ def infer_cdisc_epoch_type(name: str) -> tuple:
     
     # Default to Treatment Epoch
     return "C98780", "Treatment Epoch"
+
+
+def enrich_epoch_names_with_clinical_type(
+    epochs: List[Dict[str, Any]], 
+    encounters: List[Dict[str, Any]]
+) -> List[Dict[str, Any]]:
+    """
+    Enrich epoch names by appending clinical epoch type.
+    
+    Converts generic "Study Period I/II/III/IV" names to descriptive format:
+    - "Study Period I | Screening/Lead-in"
+    - "Study Period II (52 Weeks) | Treatment Period"
+    - "Study Period III (Variable) | Treatment Period"
+    - "Study Period IV | Safety Follow-up"
+    
+    Args:
+        epochs: List of epoch dicts with 'id', 'name', etc.
+        encounters: List of encounter dicts for timing inference
+        
+    Returns:
+        Same epochs list with enriched names (modified in-place)
+    """
+    if not epochs:
+        return epochs
+    
+    # Check if epochs look like numbered study periods
+    study_period_pattern = re.compile(r'study\s*period', re.IGNORECASE)
+    has_study_periods = any(study_period_pattern.search(e.get('name', '')) for e in epochs)
+    
+    if not has_study_periods:
+        return epochs
+    
+    # Build epoch -> encounters mapping for inference
+    epoch_encounters = {}
+    for enc in encounters:
+        eid = enc.get('epochId')
+        if eid:
+            epoch_encounters.setdefault(eid, []).append(enc)
+    
+    logger.info(f"Enriching {len(epochs)} study period names with clinical types")
+    
+    for epoch in epochs:
+        epoch_id = epoch.get('id')
+        epoch_name = epoch.get('name', '')
+        epoch_name_lower = epoch_name.lower()
+        
+        # Skip if already has clinical type indicator
+        if '|' in epoch_name:
+            continue
+        
+        # Infer clinical type from epoch name keywords
+        clinical_type = None
+        
+        # Check for explicit keywords in epoch name
+        if any(kw in epoch_name_lower for kw in ['safety', 'f/u', 'follow-up', 'followup']):
+            clinical_type = 'Safety Follow-up'
+        elif any(kw in epoch_name_lower for kw in ['screen', 'lead-in', 'leadin', 'run-in', 'runin']):
+            clinical_type = 'Screening/Lead-in'
+        else:
+            # Infer from encounter names within this epoch
+            encs = epoch_encounters.get(epoch_id, [])
+            clinical_type = _infer_clinical_type_from_encounters(encs)
+        
+        # Append clinical type to epoch name
+        if clinical_type:
+            epoch['name'] = f"{epoch_name} | {clinical_type}"
+            logger.debug(f"  Enriched: '{epoch_name}' → '{epoch['name']}'")
+    
+    return epochs
+
+
+def _infer_clinical_type_from_encounters(encounters: List[Dict[str, Any]]) -> str:
+    """Infer clinical epoch type from encounter names/timing."""
+    if not encounters:
+        return 'Treatment Period'
+    
+    # Look for timing patterns in encounter names
+    for enc in encounters:
+        name = enc.get('name', '').lower()
+        
+        # Check for screening keywords
+        if any(kw in name for kw in ['screen', 'eligibility', 'consent', 'lead-in', 'lead in']):
+            return 'Screening/Lead-in'
+        
+        # Check for follow-up keywords
+        if any(kw in name for kw in ['follow', 'f/u', 'safety', 'termination', 'et visit', 'post end']):
+            return 'Safety Follow-up'
+    
+    # Default to treatment period
+    return 'Treatment Period'
 
 
 # =============================================================================

@@ -151,58 +151,9 @@ export function toGraphModel(
   const activities = studyDesign.activities ?? [];
   const scheduleTimelines = studyDesign.scheduleTimelines ?? [];
 
-  // Filter epochs based on traversal constraints if available
-  // This shows only the main epoch flow (like traversal view does)
-  let epochs = allEpochs;
-  const traversalConstraint = executionModel?.traversalConstraints?.[0];
-  if (traversalConstraint?.requiredSequence && traversalConstraint.requiredSequence.length > 0) {
-    const requiredSequence = traversalConstraint.requiredSequence;
-    
-    // Build name-based lookup for fallback matching
-    const epochByName = new Map<string, string>();
-    for (const epoch of allEpochs) {
-      const normalized = epoch.name.toUpperCase().replace(/[\s-]/g, '_');
-      const stripped = epoch.name.toUpperCase().replace(/[\s_-]/g, ''); // No separators
-      epochByName.set(normalized, epoch.id);
-      epochByName.set(stripped, epoch.id);
-      epochByName.set(epoch.name.toUpperCase(), epoch.id);
-      epochByName.set(epoch.name.toLowerCase(), epoch.id);
-    }
-    
-    // Map epoch references to actual epoch IDs
-    const filteredEpochIds = new Set<string>();
-    for (const seqId of requiredSequence) {
-      // 1. epoch_N format -> index lookup
-      const match = seqId.match(/epoch_(\d+)/);
-      if (match) {
-        const idx = parseInt(match[1], 10) - 1;
-        if (allEpochs[idx]) {
-          filteredEpochIds.add(allEpochs[idx].id);
-        }
-        continue;
-      }
-      
-      // 2. Direct UUID reference
-      if (allEpochs.some(e => e.id === seqId)) {
-        filteredEpochIds.add(seqId);
-        continue;
-      }
-      
-      // 3. Name-based fallback (handles "SCREENING", "washout", "WASHOUT", etc.)
-      const normalized = seqId.toUpperCase().replace(/[\s-]/g, '_');
-      const stripped = seqId.toUpperCase().replace(/[\s_-]/g, ''); // No separators
-      const matchedId = epochByName.get(normalized) || epochByName.get(stripped) || epochByName.get(seqId.toUpperCase()) || epochByName.get(seqId.toLowerCase());
-      if (matchedId) {
-        filteredEpochIds.add(matchedId);
-      }
-    }
-    
-    // Only filter if we found at least one valid epoch (graceful fallback)
-    if (filteredEpochIds.size > 0) {
-      epochs = allEpochs.filter(e => filteredEpochIds.has(e.id));
-    }
-    // If no epochs matched, keep all epochs (don't show blank graph)
-  }
+  // Show all epochs - don't filter based on traversal constraints
+  // This ensures the complete study timeline is visible in the graph view
+  const epochs = allEpochs;
 
   // Build maps
   const epochMap = new Map(epochs.map(e => [e.id, e]));
@@ -326,10 +277,13 @@ export function toGraphModel(
     }
   }
 
-  // Generate sequence edges between encounters
-  for (let i = 0; i < encounters.length - 1; i++) {
-    const current = encounters[i];
-    const next = encounters[i + 1];
+  // Generate sequence edges between encounters (only for those with nodes)
+  // Filter to encounters whose epoch is in the filtered epoch list to avoid missing endpoint errors
+  const encountersWithNodes = encounters.filter(e => e.epochId && epochMap.has(e.epochId));
+  
+  for (let i = 0; i < encountersWithNodes.length - 1; i++) {
+    const current = encountersWithNodes[i];
+    const next = encountersWithNodes[i + 1];
 
     model.edges.push({
       data: {
@@ -375,13 +329,9 @@ export function toGraphModel(
         const defaultPos = { x: encPos.x, y: actY };
         const position = getNodePosition(nodeId, overlay, defaultPos);
 
-        // Use instance name if available (human-readable format like "Blood Draw @ Day 1")
-        // Fall back to activity label/name if instance name is missing or just an ID
-        let label = activity.label ?? activity.name;
-        if (instance.name && !instance.name.match(/^[a-f0-9-]{36}$/i)) {
-          // Instance has a human-readable name, use it
-          label = instance.name;
-        }
+        // Always prefer activity label/name over instance name
+        // Instance names are often generated IDs like "act_1@enc_1" which aren't human-readable
+        const label = activity.label ?? activity.name ?? 'Activity';
 
         model.nodes.push({
           data: {

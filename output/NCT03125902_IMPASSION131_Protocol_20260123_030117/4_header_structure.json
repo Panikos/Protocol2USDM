@@ -1,0 +1,302 @@
+{
+  "columnHierarchy": {
+    "epochs": [
+      {
+        "id": "epoch_1",
+        "name": "Screening",
+        "instanceType": "StudyEpoch",
+        "type": {
+          "id": "1331e937-fb85-41d3-9b27-7c17feb2b9d1",
+          "code": "C98779",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Screening Epoch",
+          "instanceType": "Code"
+        }
+      },
+      {
+        "id": "epoch_2",
+        "name": "Baseline",
+        "instanceType": "StudyEpoch",
+        "type": {
+          "id": "d7455f2d-bb11-4045-a335-8b93551c9799",
+          "code": "C98780",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Treatment Epoch",
+          "instanceType": "Code"
+        }
+      },
+      {
+        "id": "epoch_3",
+        "name": "All Cycles [a1]",
+        "instanceType": "StudyEpoch",
+        "type": {
+          "id": "af363f39-20de-4b29-805c-fb76402c3900",
+          "code": "C98780",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Treatment Epoch",
+          "instanceType": "Code"
+        }
+      },
+      {
+        "id": "epoch_4",
+        "name": "Treatment Discontinuation [b]",
+        "instanceType": "StudyEpoch",
+        "type": {
+          "id": "8be18d95-3e17-4e9f-b2e1-5d6d90fca04c",
+          "code": "C98780",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Treatment Epoch",
+          "instanceType": "Code"
+        }
+      },
+      {
+        "id": "epoch_5",
+        "name": "Follow-Up",
+        "instanceType": "StudyEpoch",
+        "type": {
+          "id": "5d8eb001-2538-4a4f-99ca-a5c7f304af9a",
+          "code": "C98781",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Follow-up Epoch",
+          "instanceType": "Code"
+        }
+      }
+    ],
+    "encounters": [
+      {
+        "id": "enc_1",
+        "name": "Screening (Days -28 to -1)",
+        "instanceType": "Encounter",
+        "type": {
+          "id": "2e4b2fc4-80e9-4059-b8fd-39798105067a",
+          "code": "C48262",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Screening",
+          "instanceType": "Code"
+        },
+        "epochId": "epoch_1"
+      },
+      {
+        "id": "enc_2",
+        "name": "Baseline (Days -7 to -1)",
+        "instanceType": "Encounter",
+        "type": {
+          "id": "03e68a8e-98c0-4ceb-9057-a0b522f0a778",
+          "code": "C82517",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Baseline",
+          "instanceType": "Code"
+        },
+        "epochId": "epoch_2"
+      },
+      {
+        "id": "enc_3",
+        "name": "Cycle Day 1 [a2]",
+        "instanceType": "Encounter",
+        "type": {
+          "id": "7f7028e4-2ffb-46ea-94f3-0469d0dc0e8b",
+          "code": "C82517",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Baseline",
+          "instanceType": "Code"
+        },
+        "epochId": "epoch_3"
+      },
+      {
+        "id": "enc_4",
+        "name": "Cycle Day 8 (\u00b1 3) [a3]",
+        "instanceType": "Encounter",
+        "type": {
+          "id": "84bb7b01-7219-4126-aff2-61cf0748fcf8",
+          "code": "C99156",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Scheduled Visit",
+          "instanceType": "Code"
+        },
+        "epochId": "epoch_3"
+      },
+      {
+        "id": "enc_5",
+        "name": "Cycle Day 15 (\u00b1 3)",
+        "instanceType": "Encounter",
+        "type": {
+          "id": "33cc154c-9c63-4e14-9af8-361ce55bf700",
+          "code": "C82517",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Baseline",
+          "instanceType": "Code"
+        },
+        "epochId": "epoch_3"
+      },
+      {
+        "id": "enc_6",
+        "name": "Discontinuation (30 \u00b1 5 Days after Last Dose)",
+        "instanceType": "Encounter",
+        "type": {
+          "id": "ed558c91-93c3-4436-8f18-4ebf68da0876",
+          "code": "C49631",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Early Termination",
+          "instanceType": "Code"
+        },
+        "epochId": "epoch_4"
+      },
+      {
+        "id": "enc_7",
+        "name": "Follow-Up (Every 3 months \u00b1 21 days)",
+        "instanceType": "Encounter",
+        "type": {
+          "id": "0e3d49dc-9502-402c-856a-2acf380bb784",
+          "code": "C99158",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Follow-up",
+          "instanceType": "Code"
+        },
+        "epochId": "epoch_5"
+      }
+    ],
+    "plannedTimepoints": [
+      {
+        "id": "pt_1",
+        "visit": "Days -28 to -1",
+        "epoch": "",
+        "epochId": "",
+        "day": "",
+        "window": null,
+        "encounterId": "enc_1",
+        "instanceType": "Timing"
+      },
+      {
+        "id": "pt_2",
+        "visit": "Days -7 to -1",
+        "epoch": "",
+        "epochId": "",
+        "day": "",
+        "window": null,
+        "encounterId": "enc_2",
+        "instanceType": "Timing"
+      },
+      {
+        "id": "pt_3",
+        "visit": "Day 1",
+        "epoch": "",
+        "epochId": "",
+        "day": "",
+        "window": null,
+        "encounterId": "enc_3",
+        "instanceType": "Timing"
+      },
+      {
+        "id": "pt_4",
+        "visit": "Day 8",
+        "epoch": "",
+        "epochId": "",
+        "day": "",
+        "window": null,
+        "encounterId": "enc_4",
+        "instanceType": "Timing"
+      },
+      {
+        "id": "pt_5",
+        "visit": "Day 15",
+        "epoch": "",
+        "epochId": "",
+        "day": "",
+        "window": null,
+        "encounterId": "enc_5",
+        "instanceType": "Timing"
+      },
+      {
+        "id": "pt_6",
+        "visit": "30 Days post-dose",
+        "epoch": "",
+        "epochId": "",
+        "day": "",
+        "window": null,
+        "encounterId": "enc_6",
+        "instanceType": "Timing"
+      },
+      {
+        "id": "pt_7",
+        "visit": "Every 3 months",
+        "epoch": "",
+        "epochId": "",
+        "day": "",
+        "window": null,
+        "encounterId": "enc_7",
+        "instanceType": "Timing"
+      }
+    ]
+  },
+  "rowGroups": [
+    {
+      "id": "grp_1",
+      "name": "Study Assessments",
+      "description": null,
+      "childIds": [],
+      "instanceType": "Activity",
+      "activityNames": [
+        "Pregnancy test (WOCP only)",
+        "TSH, free or total T3, free T4 [q]",
+        "Auto-antibody testing [r]",
+        "Serum sample for ADA assessment [s]",
+        "Serum sample for atezolizumab PK evaluations [s]",
+        "Plasma samples for paclitaxel PK evaluations [s]",
+        "Whole blood for exploratory biomarker analysis [s]",
+        "Plasma for exploratory biomarker analysis [s]",
+        "Whole blood sample for germline DNA analysis [t]",
+        "Randomisation",
+        "Adverse events [u]",
+        "Atezolizumab/placebo infusion [v]",
+        "Paclitaxel administration [a3]",
+        "Mandatory FFPE tumour tissue sample [w]",
+        "Optional FFPE tumour tissue samples [x,y]",
+        "Survival and anti-cancer therapy follow-up [z]"
+      ]
+    }
+  ],
+  "footnotes": [
+    "a1. If a scheduled treatment visit cannot be completed due to a holiday, dosing may be postponed to the earliest next date; subsequent dosing should continue according to the original schedule.",
+    "a2. Assessments scheduled on the day of study treatment administration (Day 1) of each cycle should be performed prior to study treatment infusion unless otherwise noted.",
+    "a3. Paclitaxel will be administered at the 90 mg/m2 dose via 1-hour IV infusion on Days 1, 8, and 15 of every 28-day cycle.",
+    "b. Patients will be asked to return to the clinic within 30 days after their last study drug dose for a treatment discontinuation visit.",
+    "c. Written informed consent is required before performing any study-specific tests or procedures.",
+    "d. Demographic information includes age, gender, and self-reported race/ethnicity.",
+    "e. All patients will be tested for HIV antibody, HBsAg, HBcAb, HBsAb, and hepatitis C virus antibody (HCVAb) locally, prior to the inclusion into the study.",
+    "f. Includes all prescription or over-the-counter medications taken from 7 days prior to screening to EOS.",
+    "g. Tumour assessments will be performed every 8 weeks for the first 12 months following randomisation, and every 12 weeks thereafter, until PD, death, withdrawal of consent, or study termination by the Sponsor.",
+    "h1. The EORTC QLQ-C30, QLQ-BR23, and EQ-5D-5L questionnaires and item GP5 of the FACT-G questionnaire will be completed by the patient on an electronic (ePRO) device.",
+    "h2. Since item GP5 specifically assesses patients being bothered by the side-effects of treatment, this item will not be administered at baseline.",
+    "i. Complete physical examination at Screening, and EOT, and symptom-driven physical examinations within 96 hours before Day 1 of each cycle.",
+    "j. ECOG performance status and local laboratory assessments may be obtained within 96 hours before Day 1 of each cycle.",
+    "k. Vital signs will include measurements of respiratory rate, pulse rate, systolic and diastolic blood pressures while the patient is in a seated position.",
+    "l. Standard 12-lead ECG, taken after resting in a supine position for at least 10 minutes.",
+    "m. Haematology consists of RBC count, haemoglobin, haematocrit, WBC count with differential and platelet count. Serum chemistry includes BUN, creatinine, sodium, potassium, chloride, bicarbonate, calcium, glucose, total bilirubin, ALT, AST, alkaline phosphatase, total protein, and albumin.",
+    "n. Urinalysis (specific gravity, pH, glucose, protein, ketones, and blood) will be performed at screening, and thereafter only if clinically indicated.",
+    "o. Serum pregnancy test within 7 days before Cycle 1, Day 1.",
+    "p. Urine pregnancy test; if a urine pregnancy test is positive, it must be confirmed by a serum pregnancy test.",
+    "q. TSH, free T3 (or total T3 for sites where free T3 is not performed), and free T4 will be assessed within 96 hours before Day 1 of Cycle 1, within 96 hours before Day 1 of every second cycle thereafter, and at treatment discontinuation.",
+    "r. Includes antinuclear antibody, anti-double stranded DNA, circulating anti-neutrophil cytoplasmic antibody, and perinuclear anti-neutrophil cytoplasmic antibody.",
+    "s. See Appendix 2 for a detailed schedule.",
+    "t. Mandatory whole blood for germline DNA isolation will be collected during the Baseline visit.",
+    "u. After informed consent has been obtained but prior to initiation of study drug, only SAEs caused by a protocol-mandated intervention should be reported.",
+    "v. Patients should receive their first dose of study drug on the day of randomisation (no later than 3 days after randomisation).",
+    "w. Mandatory tumour tissue biopsy collected within 3 months prior to study enrolment.",
+    "x. Optional on-treatment tumour tissue sample collected before the Cycle 2, Day 1 dose (or within 14 days before the Cycle 2, Day 1 dose).",
+    "y. Optional sample, collected (if clinically feasible) at the time (or within \u00b17 days) of radiographic progression (per RECIST v1.1).",
+    "z. All patients will be followed for survival and new anti-cancer therapy (including targeted therapy and immunotherapy) information until death, withdrawal of consent, loss to follow-up, or until study termination by the Sponsor.",
+    "a. Plasma sample for biomarker analysis Whole blood sample for germline DNA analysis"
+  ]
+}

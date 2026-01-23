@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -8,6 +9,9 @@ import {
   Target,
   Beaker,
   FileText,
+  Users,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react';
 
 interface AdvancedEntitiesViewProps {
@@ -30,14 +34,40 @@ interface BiomedicalConcept {
   instanceType?: string;
 }
 
+interface IntercurrentEvent {
+  id: string;
+  name: string;
+  text?: string;  // USDM 4.0 required
+  description?: string;
+  strategy?: string;  // USDM 4.0: string, not Code object
+}
+
 interface Estimand {
   id: string;
+  name?: string;
+  label?: string;
+  description?: string;
+  // ICH E9(R1) Five Attributes
   treatment?: string;
-  summaryMeasure?: string;
   population?: string;
+  populationSummary?: string;
+  analysisPopulation?: string;
   variableOfInterest?: string;
-  intercurrentEvents?: { name: string; strategy: string }[];
+  summaryMeasure?: string;
+  intercurrentEvents?: IntercurrentEvent[];
+  // Linkage
+  endpointId?: string;
   instanceType?: string;
+}
+
+interface AnalysisPopulation {
+  id: string;
+  name?: string;
+  label?: string;
+  description?: string;
+  text?: string;
+  level?: { decode?: string };
+  includesHealthySubjects?: boolean;
 }
 
 export function AdvancedEntitiesView({ usdm }: AdvancedEntitiesViewProps) {
@@ -69,9 +99,13 @@ export function AdvancedEntitiesView({ usdm }: AdvancedEntitiesViewProps) {
     (studyDesign.biomedicalConcepts as BiomedicalConcept[]) ?? [];
   const estimands = (studyDesign.estimands as Estimand[]) ?? [];
   const therapeuticAreas = (studyDesign.therapeuticAreas as { term?: string; decode?: string }[]) ?? [];
+  const analysisPopulations = (studyDesign.analysisPopulations as AnalysisPopulation[]) ?? [];
+
+  // State for collapsible sections
+  const [showAllEstimands, setShowAllEstimands] = useState(false);
 
   const hasData = indications.length > 0 || biomedicalConcepts.length > 0 || 
-    estimands.length > 0 || therapeuticAreas.length > 0;
+    estimands.length > 0 || therapeuticAreas.length > 0 || analysisPopulations.length > 0;
 
   if (!hasData) {
     return (
@@ -131,6 +165,17 @@ export function AdvancedEntitiesView({ usdm }: AdvancedEntitiesViewProps) {
               <div>
                 <div className="text-2xl font-bold">{therapeuticAreas.length}</div>
                 <div className="text-xs text-muted-foreground">Therapeutic Areas</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-cyan-600" />
+              <div>
+                <div className="text-2xl font-bold">{analysisPopulations.length}</div>
+                <div className="text-xs text-muted-foreground">Analysis Populations</div>
               </div>
             </div>
           </CardContent>
@@ -237,60 +282,159 @@ export function AdvancedEntitiesView({ usdm }: AdvancedEntitiesViewProps) {
         </Card>
       )}
 
-      {/* Estimands */}
+      {/* Estimands - ICH E9(R1) Framework */}
       {estimands.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
-              Estimands
+              Estimands (ICH E9 R1)
               <Badge variant="secondary">{estimands.length}</Badge>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {estimands.map((estimand, i) => (
-                <div key={i} className="p-4 border rounded-lg">
-                  <div className="font-medium mb-2">Estimand {i + 1}</div>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    {estimand.treatment && (
+            <div className="space-y-6">
+              {estimands.map((estimand, i) => {
+                const population = estimand.population || estimand.populationSummary || estimand.analysisPopulation;
+                const getStrategyText = (strategy: IntercurrentEvent['strategy']) => {
+                  if (!strategy) return 'Not specified';
+                  return strategy;  // USDM 4.0: strategy is a string
+                };
+                
+                return (
+                  <div key={i} className="p-4 border rounded-lg bg-gradient-to-r from-green-50/50 to-transparent dark:from-green-950/20">
+                    {/* Header */}
+                    <div className="flex items-start justify-between mb-4">
                       <div>
-                        <span className="text-muted-foreground">Treatment:</span>{' '}
-                        {estimand.treatment}
+                        <div className="font-semibold text-lg">
+                          {estimand.name || `Estimand ${i + 1}`}
+                        </div>
+                        {estimand.label && (
+                          <div className="text-sm text-muted-foreground">{estimand.label}</div>
+                        )}
                       </div>
+                      {estimand.endpointId && (
+                        <Badge variant="outline" className="text-xs">
+                          → {estimand.endpointId}
+                        </Badge>
+                      )}
+                    </div>
+                    
+                    {estimand.description && (
+                      <p className="text-sm text-muted-foreground mb-4 italic">
+                        {estimand.description}
+                      </p>
                     )}
-                    {estimand.population && (
-                      <div>
-                        <span className="text-muted-foreground">Population:</span>{' '}
-                        {estimand.population}
+                    
+                    {/* ICH E9(R1) Five Attributes Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                      {/* 1. Treatment */}
+                      <div className="p-3 bg-muted/50 rounded-md">
+                        <div className="font-medium text-blue-700 dark:text-blue-400 mb-1 flex items-center gap-1">
+                          <span className="text-xs bg-blue-100 dark:bg-blue-900 px-1.5 py-0.5 rounded">1</span>
+                          Treatment
+                        </div>
+                        <div>{estimand.treatment || 'Not specified'}</div>
                       </div>
-                    )}
-                    {estimand.variableOfInterest && (
-                      <div>
-                        <span className="text-muted-foreground">Variable:</span>{' '}
-                        {estimand.variableOfInterest}
+                      
+                      {/* 2. Population */}
+                      <div className="p-3 bg-muted/50 rounded-md">
+                        <div className="font-medium text-purple-700 dark:text-purple-400 mb-1 flex items-center gap-1">
+                          <span className="text-xs bg-purple-100 dark:bg-purple-900 px-1.5 py-0.5 rounded">2</span>
+                          Population
+                        </div>
+                        <div>{population || 'Not specified'}</div>
                       </div>
-                    )}
-                    {estimand.summaryMeasure && (
-                      <div>
-                        <span className="text-muted-foreground">Summary:</span>{' '}
-                        {estimand.summaryMeasure}
+                      
+                      {/* 3. Variable (Endpoint) */}
+                      <div className="p-3 bg-muted/50 rounded-md">
+                        <div className="font-medium text-green-700 dark:text-green-400 mb-1 flex items-center gap-1">
+                          <span className="text-xs bg-green-100 dark:bg-green-900 px-1.5 py-0.5 rounded">3</span>
+                          Variable (Endpoint)
+                        </div>
+                        <div>{estimand.variableOfInterest || 'Not specified'}</div>
                       </div>
-                    )}
-                  </div>
-                  {estimand.intercurrentEvents && estimand.intercurrentEvents.length > 0 && (
-                    <div className="mt-3">
-                      <div className="text-sm text-muted-foreground mb-1">
-                        Intercurrent Events:
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {estimand.intercurrentEvents.map((event, j) => (
-                          <Badge key={j} variant="outline">
-                            {event.name} ({event.strategy})
-                          </Badge>
-                        ))}
+                      
+                      {/* 5. Population-Level Summary */}
+                      <div className="p-3 bg-muted/50 rounded-md">
+                        <div className="font-medium text-orange-700 dark:text-orange-400 mb-1 flex items-center gap-1">
+                          <span className="text-xs bg-orange-100 dark:bg-orange-900 px-1.5 py-0.5 rounded">5</span>
+                          Summary Measure
+                        </div>
+                        <div>{estimand.summaryMeasure || 'Not specified'}</div>
                       </div>
                     </div>
+                    
+                    {/* 4. Intercurrent Events */}
+                    <div className="mt-4 p-3 bg-muted/50 rounded-md">
+                      <div className="font-medium text-red-700 dark:text-red-400 mb-2 flex items-center gap-1">
+                        <span className="text-xs bg-red-100 dark:bg-red-900 px-1.5 py-0.5 rounded">4</span>
+                        Intercurrent Events & Strategies
+                      </div>
+                      {estimand.intercurrentEvents && estimand.intercurrentEvents.length > 0 ? (
+                        <div className="space-y-2">
+                          {estimand.intercurrentEvents.map((event, j) => (
+                            <div key={j} className="flex items-start justify-between p-2 bg-background rounded border">
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium text-sm">{event.name}</div>
+                                {/* USDM 4.0: text is the primary field, description is optional */}
+                                {(event.text || event.description) && (
+                                  <div className="text-xs text-muted-foreground mt-0.5">
+                                    {event.text || event.description}
+                                  </div>
+                                )}
+                              </div>
+                              <Badge variant="secondary" className="text-xs shrink-0 ml-2">
+                                {getStrategyText(event.strategy)}
+                              </Badge>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-muted-foreground text-sm">No intercurrent events specified</div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Analysis Populations (SAP) */}
+      {analysisPopulations.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Analysis Populations
+              <Badge variant="secondary">{analysisPopulations.length}</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {analysisPopulations.map((pop, i) => (
+                <div key={pop.id || i} className="p-4 border rounded-lg bg-gradient-to-r from-cyan-50/50 to-transparent dark:from-cyan-950/20">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <div className="font-semibold text-lg">
+                        {pop.name || pop.label || `Population ${i + 1}`}
+                      </div>
+                      {pop.level?.decode && (
+                        <Badge variant="outline" className="mt-1">{pop.level.decode}</Badge>
+                      )}
+                    </div>
+                    {pop.includesHealthySubjects !== undefined && (
+                      <Badge variant={pop.includesHealthySubjects ? 'default' : 'secondary'}>
+                        {pop.includesHealthySubjects ? 'Includes Healthy' : 'Patients Only'}
+                      </Badge>
+                    )}
+                  </div>
+                  {(pop.description || pop.text) && (
+                    <p className="text-sm text-muted-foreground mt-2">
+                      {pop.description || pop.text}
+                    </p>
                   )}
                 </div>
               ))}

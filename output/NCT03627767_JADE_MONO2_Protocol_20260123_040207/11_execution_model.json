@@ -1,0 +1,828 @@
+{
+  "success": true,
+  "pagesUsed": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    68,
+    69,
+    70,
+    71,
+    72,
+    135,
+    73,
+    75,
+    76,
+    77,
+    79,
+    81,
+    82,
+    84,
+    87,
+    88,
+    89,
+    90,
+    93,
+    95
+  ],
+  "modelUsed": "gemini-3-flash-preview",
+  "data": {
+    "timeAnchors": [],
+    "repetitions": [],
+    "samplingConstraints": [],
+    "traversalConstraints": [
+      {
+        "id": "traversal_1",
+        "requiredSequence": [
+          "SCREENING",
+          "OPEN_LABEL_RUN_IN",
+          "RANDOMIZED_BLINDED_TREATMENT",
+          "END_OF_TREATMENT",
+          "END_OF_STUDY"
+        ],
+        "allowEarlyExit": true,
+        "exitEpochIds": [
+          "EARLY_TERMINATION"
+        ],
+        "mandatoryVisits": [
+          "End of Study",
+          "Week 12",
+          "End of Treatment/Early Termination",
+          "Screening"
+        ],
+        "sourceText": "[{'condition': 'Subject experiences a flare', 'path': ['OPEN_LABEL_RESCUE_TREATMENT', 'RESCUE_WEEK_0', 'RESCUE_WEEK_8', 'RESCUE_WEEK_12', 'RESCUE_WEEK_16']}, {'condition': 'Subject in high-risk TB region (>10/100,000 prevalence)', 'path': ['ONE_YEAR_EXPOSURE', 'REPEAT_TB_TEST']}, {'condition': 'HBV DNA result above LLQ (China/Taiwan only)', 'path': ['IMMEDIATE_PERMANENT_DISCONTINUATION', 'EARLY_TERMINATION']}]"
+      }
+    ],
+    "executionTypes": [
+      {
+        "activityId": "Pe",
+        "executionType": "Single",
+        "rationale": "No strong signals detected"
+      },
+      {
+        "activityId": "Ae",
+        "executionType": "Single",
+        "rationale": "No strong signals detected"
+      },
+      {
+        "activityId": "C-SSRS (Columbia Suicide Severity Rating Scale)",
+        "executionType": "Single",
+        "rationale": "Administered at all remaining scheduled visits in Run In, Blinded treatments, and specific Rescue weeks."
+      },
+      {
+        "activityId": "Hepatitis B surface antigen (HBsAg) testing",
+        "executionType": "Single",
+        "rationale": "Performed at Screening to determine eligibility."
+      },
+      {
+        "activityId": "HBV DNA reflex testing",
+        "executionType": "Single",
+        "rationale": "Conditional workflow triggered only if subject is HBsAg negative, HBcAb positive, and HBsAb positive at screening."
+      },
+      {
+        "activityId": "HBV DNA monitoring",
+        "executionType": "Single",
+        "rationale": "Repeated at specific intervals (Weeks 12, 28, 40, 52, etc.) for a specific subset of enrolled subjects."
+      },
+      {
+        "activityId": "Treatment Discontinuation",
+        "executionType": "Single",
+        "rationale": "Immediate and permanent discontinuation is triggered if a single HBV DNA test result is above the LLQ."
+      },
+      {
+        "activityId": "PK sample collection",
+        "executionType": "Single",
+        "rationale": "Collected at current PK sample time points for metabolite analysis."
+      }
+    ],
+    "footnoteConditions": [
+      {
+        "id": "fn_cond_1",
+        "conditionType": "general",
+        "text": "a. Complete physical examinations must be performed by the investigator, sub investigator or a qualified health professional per local guidelines.",
+        "footnoteId": "fn_1",
+        "structuredCondition": "performer.role in ['investigator', 'sub_investigator', 'qualified_health_professional']",
+        "appliesToActivityIds": [
+          "Complete physical examinations"
+        ],
+        "sourceText": "a. Complete physical examinations must be performed by the investigator, sub investigator or a quali"
+      },
+      {
+        "id": "fn_cond_2",
+        "conditionType": "timing_after",
+        "text": "b. Vital Signs include sitting blood pressure, pulse, respiratory rate, and temperature measured after at least 5 minutes of rest.",
+        "footnoteId": "fn_2",
+        "structuredCondition": "timing.after(rest, PT5M)",
+        "appliesToActivityIds": [
+          "Vital Signs"
+        ],
+        "timingConstraint": "PT5M",
+        "sourceText": "b. Vital Signs include sitting blood pressure, pulse, respiratory rate, and temperature measured aft"
+      },
+      {
+        "id": "fn_cond_3",
+        "conditionType": "general",
+        "text": "c. Hematology includes: Hemoglobin, hematocrit, red blood cells, white blood cells, neutrophils (%, absolute), lymphocytes (%, absolute), monocytes (%, absolute), eosinophils (%, absolute), basophils (%, absolute), platelets, reticulocyte count, RBC Indices (MCH, MCHC, MCV, RBC Morphology), lymphocyte subsets and markers (Total T cells [CD3+], CD4+ T cells [CD3+CD4+], CD8+ T cells [CD3+CD8+], NK cells [CD3-CD16+CD56+], B cells [CD3-CD19 +).",
+        "footnoteId": "fn_3",
+        "sourceText": "c. Hematology includes: Hemoglobin, hematocrit, red blood cells, white blood cells, neutrophils (%, "
+      },
+      {
+        "id": "fn_cond_4",
+        "conditionType": "general",
+        "text": "d. Coagulation panel includes: Activated Partial Thromboplastin Time (APTT), Prothrombin Time/International Normalized Ratio (PT/INR).",
+        "footnoteId": "fn_4",
+        "sourceText": "d. Coagulation panel includes: Activated Partial Thromboplastin Time (APTT), Prothrombin Time/Intern"
+      },
+      {
+        "id": "fn_cond_5",
+        "conditionType": "general",
+        "text": "e. Serum chemistry includes: blood urea nitrogen (BUN), serum creatinine, creatine phosphokinase, glucose, Ca++, Na+, K+, Cl-, total CO2, aspartate aminotransferase (AST), alanine aminotransferase (ALT), gamma-glutamyl transferase (GGT), total, indirect and direct bilirubin, alkaline phosphatase, lactate dehydrogenase, uric acid, albumin and total protein.",
+        "footnoteId": "fn_5",
+        "sourceText": "e. Serum chemistry includes: blood urea nitrogen (BUN), serum creatinine, creatine phosphokinase, gl"
+      },
+      {
+        "id": "fn_cond_6",
+        "conditionType": "general",
+        "text": "f. Urinalysis includes: pH, Glucose (qualitative), Protein (qualitative), Blood (qualitative), Ketones, Nitrites, Leukocyte esterase, Microscopy and/or culture (performed as appropriate).",
+        "footnoteId": "fn_6",
+        "sourceText": "f. Urinalysis includes: pH, Glucose (qualitative), Protein (qualitative), Blood (qualitative), Keton"
+      },
+      {
+        "id": "fn_cond_7",
+        "conditionType": "timing_after",
+        "text": "h. Lipid Panel includes: total cholesterol, low-density lipoprotein (LDL), high-density lipoprotein (HDL), and triglycerides. A minimum of 8-hour fasting is required for lipid profile evaluation at the following Rescue Visits: Day 1, Week 4, Week 12 and EOS visits.",
+        "footnoteId": "fn_7",
+        "structuredCondition": "subject.status == 'fasting' && timing.duration >= PT8H",
+        "appliesToActivityIds": [
+          "Lipid Panel"
+        ],
+        "sourceText": "h. Lipid Panel includes: total cholesterol, low-density lipoprotein (LDL), high-density lipoprotein "
+      },
+      {
+        "id": "fn_cond_8",
+        "conditionType": "timing_before",
+        "text": "i. Urine pregnancy test must be performed at every site visit prior to dosing with the investigational product for female subjects of childbearing potential including adolescents aged 12 years and older regardless of whether they have experienced menarche.",
+        "footnoteId": "fn_8",
+        "structuredCondition": "timing.before(dosing) && subject.isFemale && subject.isChildbearingPotential",
+        "appliesToActivityIds": [
+          "Urine pregnancy test"
+        ],
+        "sourceText": "i. Urine pregnancy test must be performed at every site visit prior to dosing with the investigation"
+      },
+      {
+        "id": "fn_cond_9",
+        "conditionType": "general",
+        "text": "j. Subjects should take the medication from study Days 1 to 85 of the rescue treatment. Subjects will be encouraged to take the medication in the morning whenever possible; however, at study visit days, subjects are to be instructed to refrain from dosing at home and are to take the dose in the clinic.",
+        "footnoteId": "fn_9",
+        "structuredCondition": "timing.location == 'clinic' && timing.isVisitDay == true",
+        "appliesToActivityIds": [
+          "Investigational product dosing"
+        ],
+        "sourceText": "j. Subjects should take the medication from study Days 1 to 85 of the rescue treatment. Subjects wil"
+      },
+      {
+        "id": "fn_cond_10",
+        "conditionType": "general",
+        "text": "k. Subjects who complete EOT will be assessed for eligibility for participation in long-term extension study B7451015 as noted in Section 6.5.7.",
+        "footnoteId": "fn_10",
+        "sourceText": "k. Subjects who complete EOT will be assessed for eligibility for participation in long-term extensi"
+      },
+      {
+        "id": "fn_cond_11",
+        "conditionType": "timing_recurring",
+        "text": "l. Pruritus Numerical Rating Scale (NRS) will be assessed using an eDiary, and will be collected daily in the eDiary from Study Days 1-15 during the rescue treatment and then only on study visit days at the investigative site thereafter. PSAAD will be completed daily (in selected countries) in the eDiary from Day 1 through the End of Study (EOS) visit during rescue treatment. At every visit, the study coordinator will review the eDiary for completeness and counsel the subject on how to complete the items in the daily eDiary, if needed.",
+        "footnoteId": "fn_11",
+        "structuredCondition": "if(day <= 15) { frequency.daily } else { frequency.onVisitDays }",
+        "appliesToActivityIds": [
+          "Pruritus Numerical Rating Scale (NRS)"
+        ],
+        "sourceText": "l. Pruritus Numerical Rating Scale (NRS) will be assessed using an eDiary, and will be collected dai"
+      },
+      {
+        "id": "fn_cond_12",
+        "conditionType": "general",
+        "text": "m. DLQI will be completed by adult subjects only. Adolescents 12-17 years of age will complete the CDLQI instead.",
+        "footnoteId": "fn_12",
+        "structuredCondition": "if(subject.age >= 18) { activity = 'DLQI' } else if(subject.age >= 12 && subject.age <= 17) { activity = 'CDLQI' }",
+        "appliesToActivityIds": [
+          "DLQI",
+          "CDLQI"
+        ],
+        "sourceText": "m. DLQI will be completed by adult subjects only. Adolescents 12-17 years of age will complete the C"
+      },
+      {
+        "id": "fn_cond_13",
+        "conditionType": "general",
+        "text": "n. The EuroQol Quality of Life 5-Dimension 5-Level Scale (EQ-5D-5L) will be completed by adult subjects only. Adolescents 12-17 years of age will complete the EuroQol Quality of Life 5-Dimension, Youth Scale (EQ-5D-Y) in select countries.",
+        "footnoteId": "fn_13",
+        "sourceText": "n. The EuroQol Quality of Life 5-Dimension 5-Level Scale (EQ-5D-5L) will be completed by adult subje"
+      },
+      {
+        "id": "fn_cond_14",
+        "conditionType": "general",
+        "text": "o. SF-36v2 will be completed by adult subjects only. Adolescents 12-17 years of age will not complete this assessment.",
+        "footnoteId": "fn_14",
+        "sourceText": "o. SF-36v2 will be completed by adult subjects only. Adolescents 12-17 years of age will not complet"
+      },
+      {
+        "id": "fn_cond_15",
+        "conditionType": "general",
+        "text": "p. FACIT-F will be completed by adult subjects only. Adolescents 12-17 years of age will complete the Peds-FACIT-F instead.",
+        "footnoteId": "fn_15",
+        "sourceText": "p. FACIT-F will be completed by adult subjects only. Adolescents 12-17 years of age will complete th"
+      },
+      {
+        "id": "fn_cond_16",
+        "conditionType": "general",
+        "text": "q. Collect weight for all subjects and height for adolescents only (12 to <18 years old).",
+        "footnoteId": "fn_16",
+        "structuredCondition": "if(activity == 'height') { subject.age >= 12 && subject.age < 18 }",
+        "appliesToActivityIds": [
+          "Height"
+        ],
+        "sourceText": "q. Collect weight for all subjects and height for adolescents only (12 to <18 years old)."
+      },
+      {
+        "id": "fn_cond_17",
+        "conditionType": "timing_after",
+        "text": "r. Following one year of total exposure to study drug since the last TB test, all subjects in regions which are above a low-risk for Tuberculosis (ie, >10/100,000 prevalence) will undergo tuberculosis (TB) testing. A chest X-ray will be performed to aid in TB status determination for all adults, and recommended for adolescents according to local guidelines and standard of care in countries with a high incidence rate of TB.",
+        "footnoteId": "fn_17",
+        "sourceText": "r. Following one year of total exposure to study drug since the last TB test, all subjects in region"
+      },
+      {
+        "id": "fn_cond_18",
+        "conditionType": "general",
+        "text": "s. In China and Taiwan only: For subjects who had HBV DNA testing at Screening, HBV DNA testing is repeated at Rescue Week 12 or at an early termination visit. A single positive HBV DNA test result above the LLQ for a subject requires immediate and permanent discontinuation from treatment. Refer to Section 7.6.2.1.",
+        "footnoteId": "fn_18",
+        "structuredCondition": "location in ['China', 'Taiwan'] && subject.hadHBVDNATestingAtScreening == true",
+        "appliesToActivityIds": [
+          "HBV DNA testing"
+        ],
+        "sourceText": "s. In China and Taiwan only: For subjects who had HBV DNA testing at Screening, HBV DNA testing is r"
+      },
+      {
+        "id": "fn_cond_19",
+        "conditionType": "general",
+        "text": "t. Post-screening, if there are “yes” answers on items 4, 5 or on any behavioral question of the Since Last Visit C-SSRS a risk assessment by a qualified mental health professional (MHP) should be done to determine whether it is safe for the subject to continue to participate in the trial.",
+        "footnoteId": "fn_19",
+        "sourceText": "t. Post-screening, if there are “yes” answers on items 4, 5 or on any behavioral question of the Sin"
+      },
+      {
+        "id": "fn_cond_20",
+        "conditionType": "timing_after",
+        "text": "g. Vital Si g ns i ncl u de sitti n g bl o o d press ure, p ulse, res pirat or y rate, a n d te m perat ure meas ure d after at least 5 mi n utes of rest.",
+        "footnoteId": "fn_20",
+        "sourceText": "g. Vital Si g ns i ncl u de sitti n g bl o o d press ure, p ulse, res pirat or y rate, a n d te m pe"
+      },
+      {
+        "id": "fn_cond_21",
+        "conditionType": "timing_after",
+        "text": "u. A P K bl o o d sa m ple will be c ollecte d at 2. 0 h o urs ( 3 0 mi n) p ost d ose of o pe n -la bel st u d y dr u g ( 2 0 0 m g) at t he Wee k 1 2 visit. F or Earl y Ter mi nati o n ( E T) visits, if t he s u bject disc o nti n u es bef ore Wee k 4 , d o n ot c ollect a P K sa m ple. If t he E T visit occ urs at or after Wee k 4 a n d bef ore Wee k 1 2, c ollect a P K sa m ple o nl y if t he s u bject ta kes t he i n vesti gati o nal pr o d uct at t he site visit. C CI --- Page 30 --- P F- 0 4 9 6 5 8 4 2 B 7 4 5 1 0 1 4 Fi nal P r otoc ol A me n d me nt 5, 2 8 Oct o ber 2 0 1 9 P FI Z E R C O N FI D E N TI A L Pa ge 3 0",
+        "footnoteId": "fn_21",
+        "structuredCondition": "timing.after(dosing, PT2H) && timing.window(PT30M)",
+        "appliesToActivityIds": [
+          "PK blood sample"
+        ],
+        "sourceText": "u. A P K bl o o d sa m ple will be c ollecte d at 2. 0 h o urs ( 3 0 mi n) p ost d ose of o pe n -l"
+      },
+      {
+        "id": "fn_cond_22",
+        "conditionType": "general",
+        "text": "v. S u bjects s h o ul d ta ke t he me dicati o n fr o m st u d y Da ys 1 t o 3 6 5. S u bjects will be e nc o ura ge d t o ta ke t he me dicati o n i n t he m or ni n g w he ne ver p ossi ble; h o we ver, at st u d y visit da ys, s u bjects are t o be i nstr ucte d t o refrai n fr o m d osi n g at h o me a n d are t o ta ke t he d ose i n t he cl i nic. I nstr uct s u bjects re gar di n g pr o per st ora ge c o n diti o ns f or i n vesti gati o nal pr o d uct o n Da y 1.",
+        "footnoteId": "fn_22",
+        "sourceText": "v. S u bjects s h o ul d ta ke t he me dicati o n fr o m st u d y Da ys 1 t o 3 6 5. S u bjects will"
+      },
+      {
+        "id": "fn_cond_23",
+        "conditionType": "general",
+        "text": "w. S u bjects w h o are n o n res p o n ders b ut c o m plete t he 1 2 wee k r u n- i n treat me nt a n d s u bjects w h o are re p o n ders at E O T will be assesse d f or eli gi bilit y f or partici pati o n i n l o n g -ter m e xte nsi o n st u d y B7 4 5 1 0 1 5 as n ote d i n Secti o n 6. 3. 5 .",
+        "footnoteId": "fn_23",
+        "sourceText": "w. S u bjects w h o are n o n res p o n ders b ut c o m plete t he 1 2 wee k r u n- i n treat me nt "
+      },
+      {
+        "id": "fn_cond_24",
+        "conditionType": "timing_after",
+        "text": "x. Pr urit us N u merical Rati n g Scale ( N R S) will be assesse d usi n g a n e Diar y dail y d uri n g t he scree ni n g peri o d a n d fr o m St u d y Da y 1 t o 1 5. After Da y 1 5, t he Pr uri t us N R S will be c o mplete d o nl y o n st u d y visit da ys i n t he e Diar y. At t he Scree ni n g v isit, site staff will dis pe nse t he electr o nic ta blet (e P R O de vice ) a n d re vie w i nstr ucti o ns f or c o m pleti o n of t he s u bject e Diar y f or t he N R S. At e ver y visit, t he st u d y c o or di nat or will revie w t he e Diar y f or c o m plete ness a n d c o u nsel t he s u bject o n h o w t o co m p lete t he ite ms i n t he dail y e Diar y, if nee de d.",
+        "footnoteId": "fn_24",
+        "sourceText": "x. Pr urit us N u merical Rati n g Scale ( N R S) will be assesse d usi n g a n e Diar y dail y d ur"
+      },
+      {
+        "id": "fn_cond_25",
+        "conditionType": "general",
+        "text": "y. D L QI will be c o m plete d b y a d ult s u bjects o nl y. A d olesce nts 1 2 -1 7 years of a ge will c o m plete t he C D L QI i nstea d.",
+        "footnoteId": "fn_25",
+        "sourceText": "y. D L QI will be c o m plete d b y a d ult s u bjects o nl y. A d olesce nts 1 2 -1 7 years of a ge"
+      },
+      {
+        "id": "fn_cond_26",
+        "conditionType": "general",
+        "text": "2. S T U D Y O B J E C TI V E S A N D E N D P OI N T S St u d y o bjecti ves a n d c orres p o n di n g e n d p oi nts are pr o vi de d i n Ta ble 1. T a ble 1. O bjecti ves a n d E n d p oi nts Pri m ar y O bjecti ve: Pri m ar y E n d p oi nt:  T o e val uate a n d c o m pare t he mai nte na nce of effect of t wo d oses of P F -0 4 9 6 5 8 4 2 ( 2 0 0 m g a n d 1 0 0 m g o nce dail y ( Q D)) a n d place b o i n s u bjects a ge d 1 2 a n d a b o ve wit h m o derate t o se vere at o pic der matitis w h o res p o n d t o i nitial o pe n-la bel r u n-i n treat me nt of 2 0 0 m g P F -0 4 9 6 5 8 4 2 Q D.",
+        "footnoteId": "fn_27",
+        "sourceText": "2. S T U D Y O B J E C TI V E S A N D E N D P OI N T S St u d y o bjecti ves a n d c orres p o n di "
+      },
+      {
+        "id": "fn_cond_27",
+        "conditionType": "general",
+        "text": "3. Res p o nse bas ed o n ac hie vi n g ≥4 p oi nt i m pr o ve me nt i n t he se verit y of pr urit us N u merical Rati n g Scale ( N R S) fr o m baseli ne at all sc he d ule d ti me p oi nts.",
+        "footnoteId": "fn_28",
+        "sourceText": "3. Res p o nse bas ed o n ac hie vi n g ≥4 p oi nt i m pr o ve me nt i n t he se verit y of pr urit "
+      },
+      {
+        "id": "fn_cond_28",
+        "conditionType": "general",
+        "text": "4. Perce nt c ha n ge fr o m baseli ne i n perce nt B o d y S urface Area ( B S A) at all sc he d ule d ti me p oi nts.",
+        "footnoteId": "fn_29",
+        "sourceText": "4. Perce nt c ha n ge fr o m baseli ne i n perce nt B o d y S urface Area ( B S A) at all sc he d ul"
+      },
+      {
+        "id": "fn_cond_29",
+        "conditionType": "general",
+        "text": "5. Perce nt c ha n ge fr o m baseli ne i n S C O Ri n g At o pic Der matitis ( S C O R A D) s u bjecti ve assess me nts of itc h a n d slee p l oss at all sc he d ule d ti me p oi nts.",
+        "footnoteId": "fn_30",
+        "sourceText": "5. Perce nt c ha n ge fr o m baseli ne i n S C O Ri n g At o pic Der matitis ( S C O R A D) s u bjec"
+      },
+      {
+        "id": "fn_cond_30",
+        "conditionType": "general",
+        "text": "6. Res p o nse base d o n ac hie vi n g a 5 0 % a n d 7 5 % i mpr o ve me nt i n S C O R A D ( S C O R A D -5 0, S C O R A D -7 5) fr o m baseli ne a t all sc he d ule d ti me p oi nts. Cli n ic al Effic ac y Assess me nts i n S u bjects Re q uiri n g Resc ue Tre at m e nt:",
+        "footnoteId": "fn_31",
+        "sourceText": "6. Res p o nse base d o n ac hie vi n g a 5 0 % a n d 7 5 % i mpr o ve me nt i n S C O R A D ( S C"
+      }
+    ],
+    "endpointAlgorithms": [
+      {
+        "id": "ep_1",
+        "name": "Primary: Efficacy of PF-04965842",
+        "endpointType": "Primary",
+        "inputs": [
+          "PF-04965842",
+          "Placebo",
+          "Atopic Dermatitis Severity"
+        ],
+        "timeWindow": {
+          "reference": "Randomization (Week 12)",
+          "duration": "Duration of blinded treatment phase"
+        },
+        "algorithm": "Comparison of PF-04965842 vs Placebo in subjects with moderate to severe atopic dermatitis",
+        "successCriteria": "Statistically significant improvement in efficacy parameters compared to placebo",
+        "sourceText": "A PHASE 3 RANDOMIZED WITHDRAWAL, DOUBLE-BLIND, PLACEBO-CONTROLLED, MULTI-CENTER STUDY INVESTIGATING THE EFFICACY AND SAFETY OF PF-04965842"
+      },
+      {
+        "id": "ep_2",
+        "name": "Key Secondary Endpoint",
+        "endpointType": "Secondary",
+        "inputs": [
+          "Clinical assessment scores"
+        ],
+        "timeWindow": {
+          "reference": "Baseline/Week 12",
+          "duration": "Follow-up period"
+        },
+        "algorithm": "Not explicitly detailed in protocol summary; defined in Statistical Analysis Plan",
+        "successCriteria": "Defined per-protocol analysis set major deviations",
+        "sourceText": "Addition of Key Secondary endpoint... Clarified wording/group definitions and other clarification of endpoints."
+      },
+      {
+        "id": "ep_3",
+        "name": "Safety: Columbia Suicide Severity Rating Scale (C-SSRS)",
+        "endpointType": "Secondary",
+        "inputs": [
+          "C-SSRS score"
+        ],
+        "timeWindow": {
+          "reference": "Scheduled visits",
+          "duration": "Run-In, Blinded treatment, and Rescue weeks 0, 8, 12, 16, EOT/ET, and EOS"
+        },
+        "algorithm": "Occurrence of suicidal ideation or behavior as reported on the C-SSRS scale",
+        "successCriteria": "Absence of treatment-emergent suicidal ideation or behavior",
+        "sourceText": "The Columbia Suicide Severity Rating Scale (C-SSRS) will be administered to all ongoing subjects at all remaining scheduled visits... to align with new cross-program processes."
+      },
+      {
+        "id": "ep_4",
+        "name": "Safety: Hepatitis B Reactivation (Region Specific - China/Taiwan)",
+        "endpointType": "Secondary",
+        "inputs": [
+          "HBV DNA level",
+          "LLQ (Lower Limit of Quantification)"
+        ],
+        "timeWindow": {
+          "reference": "Screening and Treatment",
+          "duration": "Weeks 12, 28, 40, 52, and Rescue Week 12"
+        },
+        "algorithm": "HBV DNA > LLQ",
+        "successCriteria": "HBV DNA remains negative or below LLQ",
+        "sourceText": "A single HBV DNA test result above the LLQ requires immediate and permanent discontinuation from treatment."
+      }
+    ],
+    "derivedVariables": [
+      {
+        "id": "dv_1",
+        "name": "Change from Baseline in C-SSRS",
+        "variableType": "ChangeFromBaseline",
+        "sourceVariables": [
+          "C-SSRS Score"
+        ],
+        "derivationRule": "Post-baseline score - Baseline score",
+        "baselineDefinition": "Last assessment prior to the start of the Open-Label Run-In period",
+        "baselineVisit": "Screening/Run-In Week 0",
+        "analysisWindow": "Run-In, Blinded Treatment, and Rescue Weeks 0, 8, 12, 16, EOT/ET, EOS",
+        "imputationRule": "Not specified in provided text",
+        "unit": "Score"
+      },
+      {
+        "id": "dv_2",
+        "name": "HBV DNA Status",
+        "variableType": "Categorical",
+        "sourceVariables": [
+          "HBV DNA"
+        ],
+        "derivationRule": "If HBV DNA > LLQ then 'Positive/Above LLQ' else 'Negative/Below LLQ'",
+        "baselineDefinition": "Reflex testing at Screening for subjects with HBsAg negative, HBcAb positive, and HBsAb positive serology",
+        "baselineVisit": "Screening",
+        "analysisWindow": "Weeks 12, 28, 40, 52, and Rescue Week 12",
+        "imputationRule": "Not specified",
+        "unit": "IU/mL"
+      }
+    ],
+    "stateMachine": {
+      "id": "sm_1",
+      "initialState": "Screening",
+      "terminalStates": [
+        "Early Termination",
+        "Completed"
+      ],
+      "states": [
+        "Screening",
+        "Open Label Run In",
+        "Randomized Blinded Treatment",
+        "End Of Treatment",
+        "End Of Study",
+        "Early Termination"
+      ],
+      "transitions": [
+        {
+          "fromState": "Screening",
+          "toState": "Open Label Run In",
+          "trigger": "Progress to Open Label Run In"
+        },
+        {
+          "fromState": "Open Label Run In",
+          "toState": "Randomized Blinded Treatment",
+          "trigger": "Progress to Randomized Blinded Treatment"
+        },
+        {
+          "fromState": "Randomized Blinded Treatment",
+          "toState": "End Of Treatment",
+          "trigger": "Progress to End Of Treatment"
+        },
+        {
+          "fromState": "End Of Treatment",
+          "toState": "End Of Study",
+          "trigger": "Progress to End Of Study"
+        },
+        {
+          "fromState": "Randomized Blinded Treatment",
+          "toState": "Early Termination",
+          "trigger": "Subject exits to Early Termination"
+        },
+        {
+          "fromState": "End Of Treatment",
+          "toState": "Early Termination",
+          "trigger": "Subject exits to Early Termination"
+        }
+      ],
+      "epochIds": {
+        "Screening": "SCREENING",
+        "Open Label Run In": "OPEN_LABEL_RUN_IN",
+        "Randomized Blinded Treatment": "RANDOMIZED_BLINDED_TREATMENT",
+        "End Of Treatment": "END_OF_TREATMENT",
+        "End Of Study": "END_OF_STUDY",
+        "Early Termination": "EARLY_TERMINATION"
+      }
+    },
+    "dosingRegimens": [
+      {
+        "id": "dosing_llm_1",
+        "treatmentName": "PF-04965842",
+        "frequency": "QD",
+        "route": "Oral",
+        "startDay": 1,
+        "durationDescription": "Not explicitly stated in provided text",
+        "doseModifications": [
+          "Subjects that discontinue study treatment will remain in the study and must have their end of treatment visit within 1 week after their last dose"
+        ]
+      }
+    ],
+    "visitWindows": [
+      {
+        "id": "visit_1",
+        "visitName": "Visit 1",
+        "targetDay": null,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 1,
+        "sourceText": "6. 1. Visit 1, Scree ni n g ....................................................................................................7 0 6. 2. R u n -In I n d ucti o n Treat me nt Peri o d ................"
+      },
+      {
+        "id": "visit_2",
+        "visitName": "Visit 2",
+        "targetDay": null,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 2,
+        "sourceText": "6. 2. 1. Visit 2, Da y 1/ Wee k 0 ( Baseli ne)...............................................................7 2 6. 2. 2. Visit 3, Da y 8/ Wee k 1 (1 da y )..........................................."
+      },
+      {
+        "id": "visit_3",
+        "visitName": "Visit 3",
+        "targetDay": null,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 3,
+        "sourceText": "6. 2. 2. Visit 3, Da y 8/ Wee k 1 (1 da y ).................................................................. 7 4 6. 2. 3. Visit 4, Da y 1 5/ Wee k 2 (1 da y )......................................."
+      },
+      {
+        "id": "visit_4",
+        "visitName": "Visit 4",
+        "targetDay": null,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 4,
+        "sourceText": "6. 2. 3. Visit 4, Da y 1 5/ Wee k 2 (1 da y )................................................................ 7 4 6. 2. 4. Visit 5, Da y 2 9/ Wee k 4 (2 da y s) ....................................."
+      },
+      {
+        "id": "visit_5",
+        "visitName": "Visit 5",
+        "targetDay": null,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 5,
+        "sourceText": "6. 2. 4. Visit 5, Da y 2 9/ Wee k 4 (2 da y s) ..............................................................7 5 6. 2. 5. Visit 6, Da y 4 3/ Wee k 6 (3 da y s) ......................................"
+      },
+      {
+        "id": "visit_6",
+        "visitName": "Visit 6",
+        "targetDay": null,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 6,
+        "sourceText": "6. 2. 5. Visit 6, Da y 4 3/ Wee k 6 (3 da y s) ..............................................................7 6 6. 2. 6. Visit 7, Da y 5 7/ Wee k 8 (3 da y s) ......................................"
+      },
+      {
+        "id": "visit_7",
+        "visitName": "Visit 7",
+        "targetDay": null,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 7,
+        "sourceText": "6. 2. 6. Visit 7, Da y 5 7/ Wee k 8 (3 da y s) ..............................................................7 7 6. 3. D o u ble- Bli n d Mai nte na nc e Treat me nt Peri o d ........................"
+      },
+      {
+        "id": "visit_8",
+        "visitName": "Visit 8",
+        "targetDay": null,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 8,
+        "sourceText": "6. 3. 1. Visit 8, Da y 8 5/ Wee k 1 2 (3 da y s) Ra n d o mizati o n i nt o Mai nte na nce Treat me nt ................................................................................................"
+      },
+      {
+        "id": "visit_9",
+        "visitName": "Visit 9",
+        "targetDay": null,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 9,
+        "sourceText": "6. 3. 2. Visit 9, Da y 1 1 3/ Wee k 1 6 (3 da y s) ..........................................................8 0 6. 3. 3. Visit 1 0, Da y 1 9 7/ Wee k 2 8 (7 da y s) ................................"
+      },
+      {
+        "id": "visit_10",
+        "visitName": "Early Termination",
+        "targetDay": null,
+        "windowBefore": 0,
+        "windowAfter": 0,
+        "isRequired": true,
+        "visitNumber": 10,
+        "sourceText": "7. 3. Safet y Assess me nts ................................................................................................. 9 9 7. 3. 1. V itals Si g ns.............................................."
+      },
+      {
+        "id": "visit_llm_1",
+        "visitName": "Screening",
+        "targetDay": null,
+        "windowBefore": null,
+        "windowAfter": null,
+        "isRequired": true,
+        "visitNumber": 1,
+        "epoch": "Screening"
+      },
+      {
+        "id": "visit_llm_13",
+        "visitName": "4 Weeks Post EOT/ET - End of Study",
+        "targetDay": null,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 13,
+        "epoch": "Follow-up Visit"
+      },
+      {
+        "id": "visit_llm_8",
+        "visitName": "Rescue Treatment - Visit 8, Follow-up Visit and End of Study",
+        "targetDay": null,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": false,
+        "visitNumber": 8,
+        "epoch": "Rescue Treatment Period"
+      },
+      {
+        "id": "visit_llm_2",
+        "visitName": "Day 1/ Week 0 (Baseline)",
+        "targetDay": 1,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 2,
+        "targetWeek": 0,
+        "epoch": "Run-In Induction Treatment Period"
+      },
+      {
+        "id": "visit_llm_3",
+        "visitName": "Day 8/ Week 1",
+        "targetDay": 8,
+        "windowBefore": 1,
+        "windowAfter": 1,
+        "isRequired": true,
+        "visitNumber": 3,
+        "targetWeek": 1,
+        "epoch": "Run-In Induction Treatment Period"
+      },
+      {
+        "id": "visit_llm_4",
+        "visitName": "Day 15/ Week 2",
+        "targetDay": 15,
+        "windowBefore": 1,
+        "windowAfter": 1,
+        "isRequired": true,
+        "visitNumber": 4,
+        "targetWeek": 2,
+        "epoch": "Run-In Induction Treatment Period"
+      },
+      {
+        "id": "visit_11",
+        "visitName": "Week 4",
+        "targetDay": 22,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 17,
+        "targetWeek": 4,
+        "sourceText": "pr ofile e val uati o n at t he f oll o wi n g Resc ue Vi sits: Da y 1, Week 4, Wee k 1 2 a n d E O S visits. i. Uri ne pre g na nc y test m ust be perf or me d a t e ver y site visit pri or t o d osi"
+      },
+      {
+        "id": "visit_llm_5",
+        "visitName": "Day 29/ Week 4",
+        "targetDay": 29,
+        "windowBefore": 2,
+        "windowAfter": 2,
+        "isRequired": true,
+        "visitNumber": 5,
+        "targetWeek": 4,
+        "epoch": "Run-In Induction Treatment Period"
+      },
+      {
+        "id": "visit_llm_6",
+        "visitName": "Day 43/ Week 6",
+        "targetDay": 43,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 6,
+        "targetWeek": 6,
+        "epoch": "Run-In Induction Treatment Period"
+      },
+      {
+        "id": "visit_llm_7",
+        "visitName": "Day 57/ Week 8",
+        "targetDay": 57,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 7,
+        "targetWeek": 8,
+        "epoch": "Run-In Induction Treatment Period"
+      },
+      {
+        "id": "visit_llm_8",
+        "visitName": "Day 85/ Week 12 (Randomization)",
+        "targetDay": 85,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 8,
+        "targetWeek": 12,
+        "epoch": "Double-Blind Maintenance Treatment Period"
+      },
+      {
+        "id": "visit_llm_9",
+        "visitName": "Day 113/ Week 16",
+        "targetDay": 113,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 9,
+        "targetWeek": 16,
+        "epoch": "Double-Blind Maintenance Treatment Period"
+      },
+      {
+        "id": "visit_llm_10",
+        "visitName": "Day 197/ Week 28",
+        "targetDay": 197,
+        "windowBefore": 7,
+        "windowAfter": 7,
+        "isRequired": true,
+        "visitNumber": 10,
+        "targetWeek": 28,
+        "epoch": "Double-Blind Maintenance Treatment Period"
+      },
+      {
+        "id": "visit_llm_11",
+        "visitName": "Day 281/ Week 40",
+        "targetDay": 281,
+        "windowBefore": 7,
+        "windowAfter": 7,
+        "isRequired": true,
+        "visitNumber": 11,
+        "targetWeek": 40,
+        "epoch": "Double-Blind Maintenance Treatment Period"
+      },
+      {
+        "id": "visit_llm_12",
+        "visitName": "Day 365/ Week 52 (EOT/ET)",
+        "targetDay": 365,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 12,
+        "targetWeek": 52,
+        "epoch": "Double-Blind Maintenance Treatment Period"
+      }
+    ]
+  }
+}

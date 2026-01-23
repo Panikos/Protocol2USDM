@@ -1,0 +1,160 @@
+{
+  "success": true,
+  "sourceFile": "C:\\Users\\panik\\Documents\\GitHub\\Protcol2USDMv3\\input\\trial\\NCT02684006_MONALEESA2\\NCT02684006_MONALEESA2_SAP.pdf",
+  "pagesUsed": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39
+  ],
+  "modelUsed": "gemini-3-flash-preview",
+  "sapData": {
+    "analysisPopulations": [
+      {
+        "id": "pop_1",
+        "name": "Full Analysis Set",
+        "text": "The Full Analysis Set (FAS) will include all patients who are randomized to study treatment. Patients will be analyzed according to the treatment arm to which they were randomized.",
+        "populationType": "Efficacy",
+        "instanceType": "AnalysisPopulation",
+        "label": "FAS",
+        "populationDescription": "The Full Analysis Set (FAS) will include all patients who are randomized to study treatment. Patients will be analyzed according to the treatment arm to which they were randomized.",
+        "criteria": "All randomized patients"
+      },
+      {
+        "id": "pop_2",
+        "name": "Safety Analysis Set",
+        "text": "The safety analysis set will include all patients who receive at least one dose of study treatment. Patients will be analyzed according to the treatment they actually received.",
+        "populationType": "Safety",
+        "instanceType": "AnalysisPopulation",
+        "label": "SAF",
+        "populationDescription": "The safety analysis set will include all patients who receive at least one dose of study treatment. Patients will be analyzed according to the treatment they actually received.",
+        "criteria": "Received at least one dose of study treatment"
+      },
+      {
+        "id": "pop_3",
+        "name": "Per-protocol analysis set",
+        "text": "The per-protocol (PP) analysis set is a subset of the FAS and will include all patients who do not have any major protocol deviations that would impact the efficacy evaluation.",
+        "populationType": "Efficacy",
+        "instanceType": "AnalysisPopulation",
+        "label": "PP",
+        "populationDescription": "The per-protocol (PP) analysis set is a subset of the FAS and will include all patients who do not have any major protocol deviations that would impact the efficacy evaluation.",
+        "criteria": "FAS subset AND no major protocol deviations"
+      },
+      {
+        "id": "pop_4",
+        "name": "PK analysis sets",
+        "text": "The PK analysis set will include all patients who are randomized and receive at least one dose of avelumab or axitinib and have at least one measurable concentration of avelumab or axitinib.",
+        "populationType": "PK/PD",
+        "instanceType": "AnalysisPopulation",
+        "label": "PKAS",
+        "populationDescription": "The PK analysis set will include all patients who are randomized and receive at least one dose of avelumab or axitinib and have at least one measurable concentration of avelumab or axitinib.",
+        "criteria": "Randomized AND received >=1 dose AND >=1 measurable concentration"
+      },
+      {
+        "id": "pop_5",
+        "name": "Biomarker analysis set",
+        "text": "The biomarker analysis set will include all patients who are randomized and have at least one baseline biomarker assessment.",
+        "populationType": "PK/PD",
+        "instanceType": "AnalysisPopulation",
+        "label": "BAS",
+        "populationDescription": "The biomarker analysis set will include all patients who are randomized and have at least one baseline biomarker assessment.",
+        "criteria": "Randomized AND >=1 baseline biomarker assessment"
+      },
+      {
+        "id": "pop_6",
+        "name": "Immunogenicity analysis set",
+        "text": "The immunogenicity analysis set will include all patients who are randomized and receive at least one dose of avelumab and have at least one valid ADA assessment after the first dose of avelumab.",
+        "populationType": "PK/PD",
+        "instanceType": "AnalysisPopulation",
+        "label": "IAS",
+        "populationDescription": "The immunogenicity analysis set will include all patients who are randomized and receive at least one dose of avelumab and have at least one valid ADA assessment after the first dose of avelumab.",
+        "criteria": "Randomized AND received >=1 dose avelumab AND >=1 post-dose ADA assessment"
+      },
+      {
+        "id": "pop_7",
+        "name": "PRO analysis set",
+        "text": "The PRO analysis set will include all patients who are randomized, receive at least one dose of study treatment, and have at least one PRO assessment (at baseline or post-baseline).",
+        "populationType": "Efficacy",
+        "instanceType": "AnalysisPopulation",
+        "label": "PROAS",
+        "populationDescription": "The PRO analysis set will include all patients who are randomized, receive at least one dose of study treatment, and have at least one PRO assessment (at baseline or post-baseline).",
+        "criteria": "Randomized AND received >=1 dose AND >=1 PRO assessment"
+      }
+    ],
+    "characteristics": [
+      {
+        "id": "char_1",
+        "name": "ECOG PS",
+        "code": "ECOG_PS",
+        "codeSystem": "http://www.cdisc.org/baseline-characteristics",
+        "codeSystemVersion": "2024-03-29",
+        "decode": "ECOG PS",
+        "dataType": "Categorical",
+        "instanceType": "Characteristic",
+        "description": "Eastern Cooperative Oncology Group Performance Status (0 vs 1)"
+      },
+      {
+        "id": "char_2",
+        "name": "Region",
+        "code": "REGION",
+        "codeSystem": "http://www.cdisc.org/baseline-characteristics",
+        "codeSystemVersion": "2024-03-29",
+        "decode": "Region",
+        "dataType": "Categorical",
+        "instanceType": "Characteristic",
+        "description": "United States vs Canada/Western Europe vs the rest of the world"
+      },
+      {
+        "id": "char_3",
+        "name": "PD-L1 Status",
+        "code": "PD-L1_STATUS",
+        "codeSystem": "http://www.cdisc.org/baseline-characteristics",
+        "codeSystemVersion": "2024-03-29",
+        "decode": "PD-L1 Status",
+        "dataType": "Categorical",
+        "instanceType": "Characteristic",
+        "description": "PD-L1 positive patients vs patients unselected for PD-L1 expression"
+      }
+    ],
+    "summary": {
+      "populationCount": 7,
+      "characteristicCount": 3
+    }
+  }
+}

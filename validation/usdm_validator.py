@@ -31,12 +31,14 @@ try:
     from usdm_model import Wrapper
     import usdm_info
     HAS_USDM = True
-    USDM_VERSION = usdm_info.__model_version__
+    # Use major.minor format (4.0) instead of full semver (4.0.0)
+    _full_version = usdm_info.__model_version__
+    USDM_VERSION = '.'.join(_full_version.split('.')[:2]) if _full_version else "4.0"
     PACKAGE_VERSION = usdm_info.__package_version__
     logger.info(f"Using official usdm package v{PACKAGE_VERSION} (USDM {USDM_VERSION})")
 except ImportError:
     HAS_USDM = False
-    USDM_VERSION = "4.0.0"
+    USDM_VERSION = "4.0"
     PACKAGE_VERSION = None
     logger.warning("usdm package not installed. Install with: pip install usdm")
 

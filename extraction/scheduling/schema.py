@@ -17,6 +17,7 @@ from core.usdm_types import generate_uuid, Code
 
 class TimingType(Enum):
     """Types of timing constraints."""
+    UNKNOWN = ""  # Not extracted from source
     BEFORE = "Before"
     AFTER = "After"
     WITHIN = "Within"
@@ -26,6 +27,7 @@ class TimingType(Enum):
 
 class TimingRelativeToFrom(Enum):
     """What timing is relative to."""
+    UNKNOWN = ""  # Not extracted from source
     STUDY_START = "Study Start"
     RANDOMIZATION = "Randomization"
     FIRST_DOSE = "First Dose"

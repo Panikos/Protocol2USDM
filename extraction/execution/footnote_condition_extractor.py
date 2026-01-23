@@ -119,7 +119,7 @@ FOOTNOTE_MARKERS = [
 
 def find_footnote_pages(
     pdf_path: str,
-    max_pages_to_scan: int = 50,
+    max_pages_to_scan: int = 200,
 ) -> List[int]:
     """Find pages likely to contain SoA footnotes."""
     import fitz
@@ -150,8 +150,8 @@ def find_footnote_pages(
         
         doc.close()
         
-        if len(pages) > 20:
-            pages = pages[:20]
+        if len(pages) > 40:
+            pages = pages[:40]
         
         logger.info(f"Found {len(pages)} potential footnote pages")
         
@@ -166,33 +166,80 @@ def _extract_footnote_text(text: str) -> List[Tuple[str, str]]:
     """Extract individual footnotes with their markers."""
     footnotes = []
     
-    # Try different footnote patterns
-    for marker_pattern in FOOTNOTE_MARKERS:
-        # Look for footnote definitions (marker followed by text)
-        pattern = rf'({marker_pattern})\s*[:=]?\s*([^\n\[(\d\.]+(?:\n(?![a-z]\.|\[\d|\(\d)[^\n\[(\d\.]+)*)'
-        matches = re.findall(pattern, text, re.IGNORECASE | re.MULTILINE)
-        
-        for match in matches:
-            if len(match) >= 2:
-                marker = match[0] if isinstance(match[0], str) else str(match[0])
-                content = match[-1].strip() if isinstance(match[-1], str) else str(match[-1])
-                
-                # Filter out too short or too long
-                if 10 < len(content) < 500:
-                    footnotes.append((marker, content))
-    
-    # Also look for footnote sections
-    footnote_section = re.search(
-        r'(?:footnotes?|notes?)\s*[:\-]?\s*\n(.+?)(?=\n\n|\Z)',
-        text, re.IGNORECASE | re.DOTALL
+    # Pattern 1: Standard lettered footnotes (a. text, b. text)
+    # This is the most common format in SoA tables
+    letter_pattern = re.compile(
+        r'^([a-z])[\.\)]\s+(.+?)(?=^[a-z][\.\)]|\Z)',
+        re.MULTILINE | re.DOTALL
     )
-    if footnote_section:
-        section_text = footnote_section.group(1)
-        # Split by common delimiters
-        parts = re.split(r'\n(?=[a-z]\.|\[\d|\(\d|[*†‡])', section_text)
-        for i, part in enumerate(parts):
-            if 10 < len(part.strip()) < 500:
-                footnotes.append((f"fn_{i+1}", part.strip()))
+    for match in letter_pattern.finditer(text):
+        marker = match.group(1)
+        content = match.group(2).strip()
+        content = re.sub(r'\s+', ' ', content)  # Normalize whitespace
+        if 15 < len(content) < 800:
+            footnotes.append((marker, content))
+    
+    # Pattern 2: Bracketed footnotes [a], [1], etc.
+    bracket_pattern = re.compile(
+        r'\[([a-z\d]+)\]\s*[:\.]?\s*(.+?)(?=\[[a-z\d]+\]|\n\n|\Z)',
+        re.IGNORECASE | re.DOTALL
+    )
+    for match in bracket_pattern.finditer(text):
+        marker = match.group(1)
+        content = match.group(2).strip()
+        content = re.sub(r'\s+', ' ', content)
+        if 15 < len(content) < 800:
+            footnotes.append((f"[{marker}]", content))
+    
+    # Pattern 3: Superscript-style footnotes (^a, ᵃ)
+    super_pattern = re.compile(
+        r'[\^ᵃᵇᶜᵈᵉᶠᵍʰⁱʲᵏˡᵐⁿᵒᵖʳˢᵗᵘᵛʷˣʸᶻ]([a-z])\s*[:\.]?\s*(.+?)(?=[\^ᵃᵇᶜᵈᵉᶠᵍʰⁱʲᵏˡᵐⁿᵒᵖʳˢᵗᵘᵛʷˣʸᶻ][a-z]|\n\n|\Z)',
+        re.IGNORECASE | re.DOTALL
+    )
+    for match in super_pattern.finditer(text):
+        marker = match.group(1)
+        content = match.group(2).strip()
+        content = re.sub(r'\s+', ' ', content)
+        if 15 < len(content) < 800:
+            footnotes.append((f"^{marker}", content))
+    
+    # Pattern 4: Numbered footnotes (1. text, 2. text) - careful to avoid list items
+    num_pattern = re.compile(
+        r'(?:^|\n)(\d{1,2})[\.\)]\s+([A-Z].+?)(?=(?:^|\n)\d{1,2}[\.\)]|\n\n|\Z)',
+        re.MULTILINE | re.DOTALL
+    )
+    for match in num_pattern.finditer(text):
+        marker = match.group(1)
+        content = match.group(2).strip()
+        content = re.sub(r'\s+', ' ', content)
+        if 15 < len(content) < 800 and not content.startswith(('Table', 'Figure', 'Section')):
+            footnotes.append((marker, content))
+    
+    # Pattern 5: Look for explicit footnote/note sections
+    section_patterns = [
+        r'(?:footnotes?|notes?\s+to\s+table|table\s+notes?)\s*[:\-]?\s*\n(.+?)(?=\n\n\n|\Z|(?:^[A-Z][A-Z\s]+:))',
+        r'(?:abbreviations?.*?:?\s*\n)?([a-z]\.\s+.+?)(?=\n\n\n|\Z)',
+    ]
+    for sect_pattern in section_patterns:
+        footnote_section = re.search(sect_pattern, text, re.IGNORECASE | re.DOTALL | re.MULTILINE)
+        if footnote_section:
+            section_text = footnote_section.group(1)
+            # Split by lettered markers
+            parts = re.split(r'\n(?=[a-z][\.\)])', section_text)
+            for part in parts:
+                part = part.strip()
+                if 15 < len(part) < 800:
+                    # Extract marker if present
+                    marker_match = re.match(r'^([a-z])[\.\)]\s*', part)
+                    if marker_match:
+                        marker = marker_match.group(1)
+                        content = part[marker_match.end():].strip()
+                    else:
+                        marker = f"fn_{len(footnotes)+1}"
+                        content = part
+                    content = re.sub(r'\s+', ' ', content)
+                    if content:
+                        footnotes.append((marker, content))
     
     return footnotes
 
@@ -466,7 +513,7 @@ def _extract_conditions_llm(
     """Extract structured conditions using LLM."""
     from core.llm_client import call_llm
     
-    footnotes_text = "\n".join([f"{i+1}. {fn}" for i, fn in enumerate(footnotes[:10])])
+    footnotes_text = "\n".join([f"{i+1}. {fn}" for i, fn in enumerate(footnotes)])
     
     prompt = f"""Analyze these clinical trial SoA footnotes and extract structured conditions.
 
@@ -502,6 +549,7 @@ Return ONLY the JSON."""
             prompt=prompt,
             model_name=model,
             json_mode=True,
+            extractor_name="footnote_condition",
             temperature=0.1,
         )
         response = result.get('response', '')

@@ -10,6 +10,25 @@ interface FootnotePanelProps {
   className?: string;
 }
 
+// Extract footnote letter prefix (e.g., "a" from "a. Some text" or "aa" from "aa. Some text")
+function extractFootnoteLetter(footnote: string): string | null {
+  // Match patterns like "a.", "b.", "aa.", "bb.", "u." at the start
+  const match = footnote.match(/^([a-z]+)\./i);
+  return match ? match[1].toLowerCase() : null;
+}
+
+// Build a map of letter -> footnote text for quick lookup
+function buildFootnoteMap(footnotes: string[]): Map<string, { text: string; index: number }> {
+  const map = new Map<string, { text: string; index: number }>();
+  footnotes.forEach((footnote, index) => {
+    const letter = extractFootnoteLetter(footnote);
+    if (letter) {
+      map.set(letter, { text: footnote, index });
+    }
+  });
+  return map;
+}
+
 export function FootnotePanel({ 
   footnotes, 
   selectedFootnoteRefs,
@@ -20,6 +39,9 @@ export function FootnotePanel({
   if (footnotes.length === 0) {
     return null;
   }
+
+  // Build letter -> footnote mapping
+  const footnoteMap = buildFootnoteMap(footnotes);
 
   return (
     <div className={cn('border rounded-lg bg-white', className)}>
@@ -49,8 +71,14 @@ export function FootnotePanel({
         <div className="px-3 pb-3 border-t">
           <div className="mt-3 space-y-2 text-sm">
             {footnotes.map((footnote, index) => {
-              const refId = `${index + 1}`;
-              const isHighlighted = selectedFootnoteRefs?.includes(refId);
+              // Extract letter prefix for matching with cell superscripts
+              const letter = extractFootnoteLetter(footnote);
+              // Check if this footnote is selected (match by letter or numeric index)
+              const isHighlighted = selectedFootnoteRefs?.some(ref => 
+                ref === letter || 
+                ref === `${index + 1}` ||
+                ref.toLowerCase() === letter
+              );
               
               return (
                 <div
@@ -62,9 +90,15 @@ export function FootnotePanel({
                       : 'bg-muted/30'
                   )}
                 >
-                  <span className="font-medium text-blue-700 mr-2">
-                    [{refId}]
-                  </span>
+                  {letter ? (
+                    <span className="font-medium text-blue-700 mr-2">
+                      [{letter}]
+                    </span>
+                  ) : (
+                    <span className="font-medium text-blue-700 mr-2">
+                      [{index + 1}]
+                    </span>
+                  )}
                   <span className="text-muted-foreground">{footnote}</span>
                 </div>
               );
@@ -86,18 +120,18 @@ export function FootnoteTooltip({
 }) {
   if (refs.length === 0) return null;
 
-  const content = refs
-    .map((ref) => {
-      const index = parseInt(ref, 10) - 1;
-      return footnotes[index] || `Footnote ${ref}`;
-    })
-    .join('\n\n');
+  // Build letter -> footnote mapping for lookup
+  const footnoteMap = buildFootnoteMap(footnotes);
 
   return (
     <div className="max-w-sm p-2 text-xs bg-popover border rounded-md shadow-lg">
       {refs.map((ref, i) => {
-        const index = parseInt(ref, 10) - 1;
-        const text = footnotes[index] || `Footnote ${ref}`;
+        // Try to find by letter first, then by numeric index
+        const refLower = ref.toLowerCase();
+        const byLetter = footnoteMap.get(refLower);
+        const byIndex = parseInt(ref, 10) - 1;
+        const text = byLetter?.text || footnotes[byIndex] || `Footnote [${ref}] - not found in extracted footnotes`;
+        
         return (
           <div key={ref} className={cn(i > 0 && 'mt-2 pt-2 border-t')}>
             <span className="font-medium text-blue-700">[{ref}]</span>{' '}

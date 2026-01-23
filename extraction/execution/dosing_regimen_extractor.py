@@ -22,6 +22,7 @@ from .schema import (
     DosingFrequency,
     RouteOfAdministration,
 )
+from .processing_warnings import _add_processing_warning
 
 logger = logging.getLogger(__name__)
 
@@ -237,6 +238,12 @@ def extract_dosing_regimens(
                 logger.info(f"After LLM enhancement: {len(regimens)} dosing regimens")
         except Exception as e:
             logger.warning(f"LLM extraction failed: {e}")
+            _add_processing_warning(
+                category="llm_extraction_failed",
+                message=f"LLM dosing extraction failed: {e}",
+                context="dosing_regimen_extraction",
+                details={'error': str(e), 'fallback': 'heuristic extraction'}
+            )
     
     logger.info(f"Extracted {len(regimens)} dosing regimens")
     
@@ -475,6 +482,120 @@ def _detect_duration(text: str) -> Optional[str]:
     return None
 
 
+def _parse_frequency_flexible(freq_raw: Optional[str]) -> DosingFrequency:
+    """Parse frequency with flexible matching for LLM output variations."""
+    if not freq_raw:
+        return DosingFrequency.UNKNOWN
+    
+    freq_str = str(freq_raw).upper().strip()
+    
+    # Direct enum value/name match
+    for f in DosingFrequency:
+        if f.value.upper() == freq_str or f.name == freq_str:
+            return f
+    
+    # Flexible pattern matching for common variations
+    freq_lower = freq_str.lower()
+    
+    # Once daily variations
+    if any(x in freq_lower for x in ['once daily', 'once a day', 'daily', 'od', 'qd', 'q.d.']):
+        return DosingFrequency.ONCE_DAILY
+    
+    # Twice daily variations
+    if any(x in freq_lower for x in ['twice daily', 'twice a day', 'bid', 'b.i.d.']):
+        return DosingFrequency.TWICE_DAILY
+    
+    # Three times daily
+    if any(x in freq_lower for x in ['three times', 'tid', 't.i.d.', '3 times']):
+        return DosingFrequency.THREE_TIMES_DAILY
+    
+    # Four times daily
+    if any(x in freq_lower for x in ['four times', 'qid', 'q.i.d.', '4 times']):
+        return DosingFrequency.FOUR_TIMES_DAILY
+    
+    # Weekly variations
+    if 'q3w' in freq_lower or 'every 3 week' in freq_lower or 'every three week' in freq_lower:
+        return DosingFrequency.EVERY_THREE_WEEKS
+    if 'q2w' in freq_lower or 'every 2 week' in freq_lower or 'every two week' in freq_lower or 'biweekly' in freq_lower:
+        return DosingFrequency.EVERY_TWO_WEEKS
+    if 'q4w' in freq_lower or 'every 4 week' in freq_lower or 'monthly' in freq_lower:
+        return DosingFrequency.EVERY_FOUR_WEEKS
+    if any(x in freq_lower for x in ['weekly', 'once weekly', 'qw', 'q.w.', 'every week', 'once a week']):
+        return DosingFrequency.WEEKLY
+    
+    # Other patterns
+    if any(x in freq_lower for x in ['every other day', 'qod', 'alternate day']):
+        return DosingFrequency.EVERY_OTHER_DAY
+    if any(x in freq_lower for x in ['as needed', 'prn', 'p.r.n.']):
+        return DosingFrequency.AS_NEEDED
+    if any(x in freq_lower for x in ['single', 'one time', 'one-time', 'once']):
+        return DosingFrequency.SINGLE_DOSE
+    if any(x in freq_lower for x in ['continuous', 'continuously']):
+        return DosingFrequency.CONTINUOUS
+    
+    return DosingFrequency.UNKNOWN
+
+
+def _parse_route_flexible(route_raw: Optional[str]) -> RouteOfAdministration:
+    """Parse route with flexible matching for LLM output variations."""
+    if not route_raw:
+        return RouteOfAdministration.UNKNOWN
+    
+    route_str = str(route_raw).strip()
+    
+    # Direct enum value/name match
+    for r in RouteOfAdministration:
+        if r.value.lower() == route_str.lower() or r.name.lower() == route_str.lower():
+            return r
+    
+    # Flexible pattern matching
+    route_lower = route_str.lower()
+    
+    # Oral variations
+    if any(x in route_lower for x in ['oral', 'po', 'by mouth', 'tablet', 'capsule', 'orally']):
+        return RouteOfAdministration.ORAL
+    
+    # IV variations
+    if any(x in route_lower for x in ['intravenous', 'iv', 'i.v.', 'infusion', 'iv push', 'iv infusion']):
+        return RouteOfAdministration.INTRAVENOUS
+    
+    # Subcutaneous variations
+    if any(x in route_lower for x in ['subcutaneous', 'sc', 's.c.', 'subq', 'sub-q', 'subcut']):
+        return RouteOfAdministration.SUBCUTANEOUS
+    
+    # Intramuscular variations
+    if any(x in route_lower for x in ['intramuscular', 'im', 'i.m.']):
+        return RouteOfAdministration.INTRAMUSCULAR
+    
+    # Inhalation variations
+    if any(x in route_lower for x in ['inhalation', 'inhaled', 'nebulized', 'aerosol']):
+        return RouteOfAdministration.INHALATION
+    
+    # Topical variations
+    if any(x in route_lower for x in ['topical', 'cream', 'ointment', 'gel', 'patch']):
+        return RouteOfAdministration.TOPICAL
+    
+    # Transdermal
+    if any(x in route_lower for x in ['transdermal', 'patch']):
+        return RouteOfAdministration.TRANSDERMAL
+    
+    # Other specific routes
+    if 'intranasal' in route_lower or 'nasal' in route_lower:
+        return RouteOfAdministration.INTRANASAL
+    if 'sublingual' in route_lower:
+        return RouteOfAdministration.SUBLINGUAL
+    if 'rectal' in route_lower:
+        return RouteOfAdministration.RECTAL
+    if 'ophthalmic' in route_lower or 'eye' in route_lower:
+        return RouteOfAdministration.OPHTHALMIC
+    
+    # Injection could be SC, IM, or IV - default to SC as most common for drugs
+    if 'injection' in route_lower:
+        return RouteOfAdministration.SUBCUTANEOUS
+    
+    return RouteOfAdministration.UNKNOWN
+
+
 def _find_additional_doses(text: str, unit: str) -> List[float]:
     """Find additional dose amounts in context."""
     doses = []
@@ -492,16 +613,31 @@ def _extract_regimens_llm(text: str, model: str) -> List[DosingRegimen]:
     from core.llm_client import call_llm
     import json
     
-    prompt = f"""Analyze this clinical protocol text and extract ALL dosing regimens.
+    prompt = f"""Analyze this clinical protocol text and extract ALL dosing regimens for investigational products and comparators.
 
-For each treatment/drug, identify:
-1. Treatment name (drug/intervention name)
-2. Dose amounts and units
-3. Dosing frequency (QD, BID, weekly, etc.)
-4. Route of administration (oral, IV, SC, etc.)
-5. Treatment duration
-6. Titration schedule (if any)
-7. Dose modifications (conditions for dose changes)
+CRITICAL: For EVERY treatment, you MUST extract:
+- frequency: How often is the drug administered? Look for patterns like "once daily", "twice daily", "every 3 weeks", "weekly", "as needed", etc. Convert to standard abbreviations.
+- route: How is the drug given? Look for "oral", "orally", "intravenous", "IV", "subcutaneous", "SC", "injection", "infusion", "tablet", "capsule", etc.
+
+Common frequency abbreviations:
+- QD = once daily, OD = once daily
+- BID = twice daily  
+- TID = three times daily
+- QW = once weekly, weekly
+- Q2W = every 2 weeks, biweekly
+- Q3W = every 3 weeks
+- Q4W = every 4 weeks, monthly
+- PRN = as needed
+- Single = one-time dose
+
+Common route indicators:
+- Oral: tablet, capsule, oral, PO, by mouth
+- IV: intravenous, infusion, IV push
+- SC: subcutaneous, injection (under skin)
+- IM: intramuscular
+- Inhalation: inhaled, nebulized
+
+For placebo/comparator: Infer route and frequency from the active drug it matches (e.g., if active is "oral tablet once daily", placebo is also "Oral" and "QD").
 
 Text to analyze:
 {text[:8000]}
@@ -512,11 +648,12 @@ Return JSON format:
         {{
             "treatmentName": "Drug Name",
             "doses": [
-                {{"amount": 100, "unit": "mg", "description": "starting dose"}},
-                {{"amount": 200, "unit": "mg", "description": "maintenance dose"}}
+                {{"amount": 100, "unit": "mg", "description": "starting dose"}}
             ],
-            "frequency": "QD|BID|TID|QID|QW|Q2W|Q3W|Q4W|PRN|Single",
-            "route": "Oral|IV|SC|IM|Topical|Inhalation",
+            "frequency": "QD",
+            "frequencyRationale": "Text states 'administered once daily'",
+            "route": "Oral",
+            "routeRationale": "Text states 'oral tablet'",
             "duration": "24 weeks",
             "titration": "Increase by 50mg weekly until target reached",
             "modifications": ["Reduce dose by 50% for renal impairment"]
@@ -524,10 +661,14 @@ Return JSON format:
     ]
 }}
 
-Extract all distinct treatment regimens. Return valid JSON only."""
+IMPORTANT: 
+- frequency and route are REQUIRED for every regimen
+- Include frequencyRationale and routeRationale to show where you found this information
+- If a drug is given as matching placebo, copy route/frequency from the active comparator
+- Return valid JSON only."""
 
     try:
-        result = call_llm(prompt, model_name=model)
+        result = call_llm(prompt, model_name=model, extractor_name="dosing_regimen")
         
         # Extract response text from dict
         if isinstance(result, dict):
@@ -556,31 +697,45 @@ Extract all distinct treatment regimens. Return valid JSON only."""
                 # Handle dose ranges like '750-1500'
                 amount, max_amount = _parse_dose_amount(dose.get('amount', 0))
                 description = dose.get('description')
+                unit = dose.get('unit') or ''  # Empty string if not extracted
+                if not unit:
+                    _add_processing_warning(
+                        category="missing_unit",
+                        message=f"Dose unit not extracted for '{item.get('treatmentName', 'Unknown')}'",
+                        context="dosing_regimen_extraction",
+                        details={'treatment': item.get('treatmentName'), 'dose_amount': amount}
+                    )
                 if max_amount is not None:
                     # Add range info to description
-                    range_desc = f"{amount}-{max_amount} {dose.get('unit', 'mg')}"
+                    range_desc = f"{amount}-{max_amount} {unit}" if unit else f"{amount}-{max_amount}"
                     description = f"{range_desc}" if not description else f"{range_desc}: {description}"
                 dose_levels.append(DoseLevel(
                     amount=amount,
-                    unit=dose.get('unit', 'mg'),
+                    unit=unit,
                     description=description,
                 ))
             
-            # Parse frequency
-            freq_str = item.get('frequency', 'QD').upper()
-            frequency = DosingFrequency.ONCE_DAILY
-            for f in DosingFrequency:
-                if f.value == freq_str or f.name == freq_str:
-                    frequency = f
-                    break
+            # Parse frequency (use UNKNOWN if not in source)
+            freq_raw = item.get('frequency')
+            frequency = _parse_frequency_flexible(freq_raw)
+            if frequency == DosingFrequency.UNKNOWN:
+                _add_processing_warning(
+                    category="missing_frequency",
+                    message=f"Dosing frequency not extracted for '{item.get('treatmentName', 'Unknown')}'",
+                    context="dosing_regimen_extraction",
+                    details={'treatment': item.get('treatmentName'), 'raw_value': freq_raw}
+                )
             
-            # Parse route
-            route_str = item.get('route', 'Oral')
-            route = RouteOfAdministration.ORAL
-            for r in RouteOfAdministration:
-                if r.value.lower() == route_str.lower() or r.name.lower() == route_str.lower():
-                    route = r
-                    break
+            # Parse route (use UNKNOWN if not in source)
+            route_raw = item.get('route')
+            route = _parse_route_flexible(route_raw)
+            if route == RouteOfAdministration.UNKNOWN:
+                _add_processing_warning(
+                    category="missing_route",
+                    message=f"Route of administration not extracted for '{item.get('treatmentName', 'Unknown')}'",
+                    context="dosing_regimen_extraction",
+                    details={'treatment': item.get('treatmentName'), 'raw_value': route_raw}
+                )
             
             regimen = DosingRegimen(
                 id=f"dosing_llm_{idx+1}",

@@ -190,6 +190,11 @@ def _detect_guard_conditions(text: str, transitions: List[StateTransition]) -> L
     return enhanced
 
 
+def _sanitize_key(name: str) -> str:
+    """Sanitize a string for use as a JSON object key (no spaces for CDISC engine path traversal)."""
+    return name.replace(' ', '_').replace('-', '_')
+
+
 def _build_from_traversal(
     traversal: TraversalConstraint,
     crossover: Optional[CrossoverDesign] = None,
@@ -233,8 +238,8 @@ def _build_from_traversal(
             # Use the epoch ref itself, cleaned up
             state_name = epoch_ref.replace('_', ' ').replace('epoch ', '').title()
         
-        # Track epoch ID mapping
-        epoch_ids[state_name] = epoch_ref
+        # Track epoch ID mapping (sanitize key to avoid spaces breaking CDISC engine path traversal)
+        epoch_ids[_sanitize_key(state_name)] = epoch_ref
         
         if state_name not in states:
             states.append(state_name)
@@ -259,7 +264,7 @@ def _build_from_traversal(
         if not exit_name:
             exit_name = exit_id.replace('_', ' ').replace('epoch ', '').title()
         terminal_states.append(exit_name)
-        epoch_ids[exit_name] = exit_id
+        epoch_ids[_sanitize_key(exit_name)] = exit_id
         if exit_name not in states:
             states.append(exit_name)
     
@@ -457,7 +462,7 @@ Return ONLY the JSON."""
         result = call_llm(
             prompt=prompt,
             model_name=model,
-            temperature=0.1,
+            extractor_name="state_machine",
         )
         
         # Extract response text from dict

@@ -19,6 +19,7 @@ from .schema import (
     ExecutionModelData,
     VisitWindow,
 )
+from .processing_warnings import _add_processing_warning
 
 logger = logging.getLogger(__name__)
 
@@ -235,6 +236,12 @@ def extract_visit_windows(
                 logger.info(f"After LLM enhancement: {len(windows)} visit windows")
         except Exception as e:
             logger.warning(f"LLM extraction failed: {e}")
+            _add_processing_warning(
+                category="llm_extraction_failed",
+                message=f"LLM visit window extraction failed: {e}",
+                context="visit_window_extraction",
+                details={'error': str(e), 'fallback': 'heuristic extraction'}
+            )
     
     # Merge with SOA windows (SOA data is authoritative for visit names/timing)
     if soa_windows:
@@ -262,7 +269,7 @@ def extract_visit_windows(
 def _extract_windows_heuristic(text: str) -> List[VisitWindow]:
     """Extract visit windows using pattern matching."""
     windows = []
-    seen_visits = set()
+    seen_visits = set()  # Track by normalized name
     window_id = 1
     
     # Split into lines for better context
@@ -277,10 +284,11 @@ def _extract_windows_heuristic(text: str) -> List[VisitWindow]:
             if match:
                 visit_name = name_func(match)
                 
-                # Avoid duplicates
-                if visit_name.lower() in seen_visits:
+                # Avoid duplicates using normalized name (handles EOT/EOS synonyms)
+                normalized = _normalize_visit_name(visit_name)
+                if normalized in seen_visits:
                     continue
-                seen_visits.add(visit_name.lower())
+                seen_visits.add(normalized)
                 
                 # Extract target day/week
                 target_day, target_week = _extract_timing(visit_name, context)
@@ -313,9 +321,12 @@ def _extract_windows_heuristic(text: str) -> List[VisitWindow]:
     return windows
 
 
-def _extract_timing(visit_name: str, context: str) -> Tuple[int, Optional[int]]:
-    """Extract target day and week from visit name and context."""
-    target_day = 1
+def _extract_timing(visit_name: str, context: str) -> Tuple[Optional[int], Optional[int]]:
+    """Extract target day and week from visit name and context.
+    
+    Returns (target_day, target_week). target_day may be None for event-based visits.
+    """
+    target_day = None  # Don't default to 1 - use None for unknown
     target_week = None
     
     # Check visit name first
@@ -330,7 +341,31 @@ def _extract_timing(visit_name: str, context: str) -> Tuple[int, Optional[int]]:
         target_day = (target_week - 1) * 7 + 1  # Week 1 = Day 1, Week 2 = Day 8, etc.
         return target_day, target_week
     
-    # Check context for day/week
+    # Handle special visits FIRST (before context extraction)
+    name_lower = visit_name.lower()
+    
+    # Event-based visits - these don't have fixed day values
+    # Return None for target_day to indicate they're event-driven
+    if any(term in name_lower for term in ['early termination', 'et visit', 'withdrawal']):
+        return None, None  # Event-based, no fixed day
+    if any(term in name_lower for term in ['end of treatment', 'eot', 'end-of-treatment']):
+        return None, None  # Event-based, no fixed day
+    if any(term in name_lower for term in ['end of study', 'eos', 'end-of-study']):
+        return None, None  # Event-based, no fixed day
+    if 'unscheduled' in name_lower:
+        return None, None  # Event-based, no fixed day
+    
+    # Fixed special visits with known timing
+    if 'screening' in name_lower:
+        return -14, None  # Typically 2 weeks before Day 1
+    if 'baseline' in name_lower:
+        return 0, None  # Day before treatment
+    if 'randomization' in name_lower:
+        return 1, None  # Usually Day 1
+    if 'follow' in name_lower:
+        return 365, None  # Placeholder for follow-up (end of study + buffer)
+    
+    # Check context for day/week only for visits without special handling
     day_match = DAY_PATTERN.search(context)
     if day_match:
         target_day = int(day_match.group(1))
@@ -338,17 +373,8 @@ def _extract_timing(visit_name: str, context: str) -> Tuple[int, Optional[int]]:
     week_match = WEEK_PATTERN.search(context)
     if week_match:
         target_week = int(week_match.group(1))
-        if target_day == 1:  # Only override if not already set
+        if target_day is None:  # Only override if not already set
             target_day = (target_week - 1) * 7 + 1
-    
-    # Handle special visits
-    name_lower = visit_name.lower()
-    if 'screening' in name_lower:
-        target_day = -14  # Typically 2 weeks before Day 1
-    elif 'baseline' in name_lower:
-        target_day = 0  # Day before treatment
-    elif 'follow' in name_lower:
-        target_day = 365  # Placeholder for follow-up
     
     return target_day, target_week
 
@@ -454,7 +480,7 @@ Return JSON format:
 Extract all visits from the schedule. Return valid JSON only."""
 
     try:
-        result = call_llm(prompt, model_name=model)
+        result = call_llm(prompt, model_name=model, extractor_name="visit_window")
         
         # Extract response text from dict
         if isinstance(result, dict):
@@ -581,6 +607,18 @@ def _normalize_visit_name(name: str) -> str:
     name_lower = re.sub(r'\s*\([^)]+\)\s*$', '', name_lower)
     # Remove common suffixes
     name_lower = re.sub(r'\s*[-/]\s*(discharge|start|return|end|visit).*$', '', name_lower)
+    
+    # Normalize synonymous visit names to canonical form
+    # EOT variants -> "end of treatment"
+    if name_lower in ['eot', 'end of treatment', 'end-of-treatment', 'treatment end']:
+        return 'end of treatment'
+    # EOS variants -> "end of study"
+    if name_lower in ['eos', 'end of study', 'end-of-study', 'study end', 'study completion']:
+        return 'end of study'
+    # ET variants -> "early termination"
+    if name_lower in ['et', 'early termination', 'early withdrawal', 'discontinuation']:
+        return 'early termination'
+    
     return name_lower.strip()
 
 
@@ -589,59 +627,78 @@ def _merge_windows(
     secondary: List[VisitWindow]
 ) -> List[VisitWindow]:
     """
-    Merge visit windows from two sources, deduplicating by target_day.
+    Merge visit windows from two sources, deduplicating by target_day and normalized name.
     
     Primary source (typically SOA) takes precedence. Secondary visits (LLM/heuristic)
-    are only added if they don't duplicate an existing target_day.
+    are only added if they don't duplicate an existing visit.
     
-    For visits on the same day, the one with more complete information is kept.
+    Event-based visits (target_day=None) are deduplicated by normalized name only.
+    Scheduled visits are deduplicated by target_day primarily, with name as fallback.
     """
-    # First, build a map by target_day from primary source
-    # Use Optional[int] to handle None target_day values
-    by_target_day: Dict[Optional[int], VisitWindow] = {}
+    result: List[VisitWindow] = []
+    by_target_day: Dict[int, VisitWindow] = {}  # Only for actual day values
     by_normalized_name: Dict[str, VisitWindow] = {}
     
     for window in primary:
-        # Use target_day as primary key for deduplication (None is valid key)
-        target_key = window.target_day if window.target_day is not None else None
-        if target_key not in by_target_day:
-            by_target_day[target_key] = window
-        else:
-            # If we already have a visit on this day, keep the one with better info
-            existing = by_target_day[target_key]
-            # Prefer visit with actual name over generic
-            if len(window.visit_name) > len(existing.visit_name):
-                by_target_day[target_key] = window
-        
-        # Also track by normalized name
         norm_name = _normalize_visit_name(window.visit_name)
+        
+        # Check for duplicate by normalized name first
+        if norm_name and norm_name in by_normalized_name:
+            continue
+        
+        # For scheduled visits (has target_day), also check by day
+        if window.target_day is not None:
+            if window.target_day in by_target_day:
+                existing = by_target_day[window.target_day]
+                # Keep the one with longer (more descriptive) name
+                if len(window.visit_name) > len(existing.visit_name):
+                    # Replace existing
+                    result.remove(existing)
+                    result.append(window)
+                    by_target_day[window.target_day] = window
+                    if norm_name:
+                        by_normalized_name[norm_name] = window
+                continue
+            by_target_day[window.target_day] = window
+        
+        # Add to result
+        result.append(window)
         if norm_name:
             by_normalized_name[norm_name] = window
     
     # Now merge secondary, avoiding duplicates
     for window in secondary:
         norm_name = _normalize_visit_name(window.visit_name)
-        target_key = window.target_day if window.target_day is not None else None
         
-        # Skip if we already have this target_day
-        if target_key in by_target_day:
-            existing = by_target_day[target_key]
+        # Skip if we have a visit with similar normalized name
+        if norm_name and norm_name in by_normalized_name:
+            existing = by_normalized_name[norm_name]
             # Enhance existing with secondary's details if useful
-            if window.window_before > 0 and existing.window_before == 0:
+            if (window.window_before or 0) > 0 and (existing.window_before or 0) == 0:
                 existing.window_before = window.window_before
-            if window.window_after > 0 and existing.window_after == 0:
+            if (window.window_after or 0) > 0 and (existing.window_after or 0) == 0:
                 existing.window_after = window.window_after
             if window.epoch and not existing.epoch:
                 existing.epoch = window.epoch
             continue
         
-        # Skip if we have a visit with similar normalized name
-        if norm_name and norm_name in by_normalized_name:
+        # For scheduled visits, also check by target_day
+        if window.target_day is not None and window.target_day in by_target_day:
+            existing = by_target_day[window.target_day]
+            # Enhance existing
+            if (window.window_before or 0) > 0 and (existing.window_before or 0) == 0:
+                existing.window_before = window.window_before
+            if (window.window_after or 0) > 0 and (existing.window_after or 0) == 0:
+                existing.window_after = window.window_after
+            if window.epoch and not existing.epoch:
+                existing.epoch = window.epoch
             continue
         
         # This is a genuinely new visit, add it
-        by_target_day[target_key] = window
+        result.append(window)
+        if window.target_day is not None:
+            by_target_day[window.target_day] = window
         if norm_name:
             by_normalized_name[norm_name] = window
     
-    return list(by_target_day.values())
+    return result
