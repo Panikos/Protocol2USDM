@@ -2,7 +2,7 @@
 
 ## Summary
 
-Major multi-week development effort transforming Protocol2USDM from a basic extraction pipeline into a comprehensive, production-ready clinical protocol digitization platform with modern web UI, execution model extraction, and full **USDM 4.0 compliance**.
+Major effort transforming Protocol2USDM from a basic extraction pipeline into a more comprehensive, clinical protocol digitization platform with modern web UI, execution model extraction, and aiming for **USDM 4.0 compliance**.
 
 **Branch:** `feature/web-ui-modern-rewrite`
 **Date Range:** December 30, 2025 - January 23, 2026
