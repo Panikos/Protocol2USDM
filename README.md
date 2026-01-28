@@ -65,7 +65,7 @@ This extracts the full protocol, enriches entities with NCI terminology codes, a
 - **CDISC CORE Validation**: Built-in conformance checking with local engine
 - **Web UI**: Modern React-based protocol viewer with SoA visualization
 
-### Extraction Capabilities (v6.6)
+### Extraction Capabilities
 
 | Module | Entities | CLI Flag |
 |--------|----------|----------|
@@ -81,6 +81,7 @@ This extracts the full protocol, enriches entities with NCI terminology codes, a
 | **Scheduling** | Timing, Condition, TransitionRule, ScheduleTimelineExit | `--scheduling` |
 | **Doc Structure** | NarrativeContentItem, StudyDefinitionDocument | `--docstructure` |
 | **Amendments** | StudyAmendmentReason, ImpactedEntity | `--amendmentdetails` |
+| **Execution Model** | TimeAnchor, VisitWindow, StateMachine, Repetition | `--execution` |
 
 #### Conditional Sources (Additional Documents)
 
@@ -400,31 +401,36 @@ SoA extraction tested on Alexion Wilson's Disease protocol (Nov 2025):
 ```
 Protocol2USDMv3/
 ├── main_v2.py                # Main pipeline entry point
+├── llm_providers.py          # LLM provider interface
 ├── core/                     # Core modules
 │   ├── usdm_schema_loader.py # Official CDISC schema parser + USDMEntity base
 │   ├── usdm_types_generated.py # 86+ auto-generated USDM types
 │   ├── usdm_types.py         # Unified type interface
 │   ├── evs_client.py         # NCI EVS API client with caching
 │   ├── provenance.py         # ProvenanceTracker for source tracking
-│   ├── llm_client.py         # LLM client
-│   └── json_utils.py         # JSON utilities
+│   ├── epoch_reconciler.py   # Epoch reconciliation
+│   └── reconciliation/       # Entity reconciliation framework
 ├── extraction/               # Extraction modules
 │   ├── header_analyzer.py    # Vision-based structure
 │   ├── text_extractor.py     # Text-based extraction
 │   ├── pipeline.py           # SoA extraction pipeline
-│   ├── validator.py          # Extraction validation
+│   ├── pipeline_context.py   # Context passing between extractors
+│   ├── execution/            # Execution model extractors (27 modules)
 │   └── */                    # Domain extractors (13 modules)
 ├── enrichment/               # Terminology enrichment
 │   └── terminology.py        # NCI EVS enrichment
 ├── validation/               # Validation package
 │   ├── usdm_validator.py     # Official USDM validation
 │   └── cdisc_conformance.py  # CDISC CORE conformance
-├── prompts/                  # YAML prompt templates
+├── scripts/                  # Utility scripts
+│   ├── extractors/           # Standalone CLI extractors
+│   └── debug/                # Debug utilities
 ├── testing/                  # Benchmarking & integration tests
-├── utilities/                # Setup scripts
+├── tests/                    # Unit tests
 ├── docs/                     # Architecture documentation
-├── web-ui/                   # React-based protocol viewer
-├── tools/core/               # CDISC CORE engine
+├── web-ui/                   # React/Next.js protocol viewer
+├── tools/                    # External tools (CDISC CORE engine)
+├── archive/                  # Archived legacy files
 └── output/                   # Pipeline outputs
 ```
 

@@ -1,8 +1,8 @@
 # Protocol2USDM Quick Reference
 
-**v6.6.0** | One-page command reference
+**v7.0** | One-page command reference
 
-> **New in v6.6.0:** Full USDM entity placement compliance per `dataStructure.yml`. All entities now at correct hierarchical locations (studyVersion, studyDesign, scheduleTimeline, activity).
+> **Current:** Full USDM 4.0 compliance, execution model extraction, modern React/Next.js web UI, pipeline context architecture.
 
 ---
 
@@ -49,33 +49,37 @@ python main_v2.py protocol.pdf --model gemini-2.5-pro
 python main_v2.py protocol.pdf --full               # With post-processing
 ```
 
-### Standalone Extractors (v6.0)
+### Standalone Extractors
 ```bash
 # Study Metadata (title, identifiers, sponsor)
-python extract_metadata.py protocol.pdf
+python scripts/extractors/extract_metadata.py protocol.pdf
 
 # Eligibility Criteria (inclusion/exclusion)
-python extract_eligibility.py protocol.pdf
+python scripts/extractors/extract_eligibility.py protocol.pdf
 
 # Objectives & Endpoints
-python extract_objectives.py protocol.pdf
+python scripts/extractors/extract_objectives.py protocol.pdf
 
 # Study Design (arms, cohorts, blinding)
-python extract_studydesign.py protocol.pdf
+python scripts/extractors/extract_studydesign.py protocol.pdf
 
 # Interventions & Products
-python extract_interventions.py protocol.pdf
+python scripts/extractors/extract_interventions.py protocol.pdf
 
 # Narrative Structure (sections, abbreviations)
-python extract_narrative.py protocol.pdf
+python scripts/extractors/extract_narrative.py protocol.pdf
 
 # Advanced (amendments, geography)
-python extract_advanced.py protocol.pdf
+python scripts/extractors/extract_advanced.py protocol.pdf
+
+# Execution Model
+python scripts/extractors/extract_execution_model.py protocol.pdf
 ```
 
 ### View Results
 ```bash
-streamlit run soa_streamlit_viewer.py
+cd web-ui && npm run dev
+# Open http://localhost:3000
 ```
 
 ### Options
@@ -113,8 +117,8 @@ streamlit run soa_streamlit_viewer.py
 
 | Model | Speed | Reliability |
 |-------|-------|-------------|
-| **gpt-5.1** ⭐ | Medium | Best (100%) |
-| gemini-3-pro-preview | Slow | 75% |
+| **claude-opus-4-5** ⭐ | Medium | Best accuracy |
+| **gemini-3-pro-preview** ⭐ | Fast | Recommended |
 | gemini-2.5-pro | Fast | Good |
 | gpt-4o | Medium | Good |
 
@@ -125,15 +129,18 @@ streamlit run soa_streamlit_viewer.py
 ```
 output/<protocol>/
 ├── protocol_usdm.json            ⭐ Combined full protocol output
+├── protocol_usdm_provenance.json  # UUID-based provenance
 ├── 9_final_soa.json              ⭐ SoA extraction
 ├── 9_final_soa_provenance.json    # Source tracking (text/vision/both)
-├── 2_study_metadata.json          # Study identity (Phase 2)
-├── 3_eligibility_criteria.json    # I/E criteria (Phase 1)
-├── 4_objectives_endpoints.json    # Objectives (Phase 3)
-├── 5_study_design.json            # Design structure (Phase 4)
-├── 6_interventions.json           # Products (Phase 5)
-├── 7_narrative_structure.json     # Sections/abbreviations (Phase 7)
-├── 8_advanced_entities.json       # Amendments/geography (Phase 8)
+├── 2_study_metadata.json          # Study identity
+├── 3_eligibility_criteria.json    # I/E criteria
+├── 4_objectives_endpoints.json    # Objectives
+├── 5_study_design.json            # Design structure
+├── 6_interventions.json           # Products
+├── 7_narrative_structure.json     # Sections/abbreviations
+├── 8_advanced_entities.json       # Amendments/geography
+├── 10_scheduling_logic.json       # Scheduling constraints
+├── 11_execution_model.json        # Execution model
 ├── 4_header_structure.json        # SoA table structure (vision)
 ├── terminology_enrichment.json    # NCI EVS codes (--enrich)
 ├── schema_validation.json         # Schema validation results
@@ -212,15 +219,17 @@ CDISC_API_KEY=...            # For CORE (optional)
 | File | Purpose |
 |------|---------|
 | `main_v2.py` | Main pipeline (SoA + expansions) |
-| `soa_streamlit_viewer.py` | Interactive viewer |
+| `llm_providers.py` | LLM provider interface |
 | `core/usdm_types_generated.py` | 86+ auto-generated USDM types |
 | `core/evs_client.py` | NCI EVS API client with caching |
 | `extraction/pipeline.py` | SoA extraction pipeline |
-| `extraction/*/extractor.py` | Domain-specific extractors |
+| `extraction/pipeline_context.py` | Context passing between extractors |
+| `extraction/execution/` | Execution model extractors (27 modules) |
 | `enrichment/terminology.py` | NCI terminology enrichment |
 | `validation/cdisc_conformance.py` | CDISC CORE validation |
+| `web-ui/` | React/Next.js protocol viewer |
 
-### Standalone CLI Tools
+### Standalone CLI Tools (in `scripts/extractors/`)
 
 | File | Purpose |
 |------|---------|
@@ -231,6 +240,7 @@ CDISC_API_KEY=...            # For CORE (optional)
 | `extract_interventions.py` | Interventions only |
 | `extract_narrative.py` | Narrative only |
 | `extract_advanced.py` | Amendments/geography only |
+| `extract_execution_model.py` | Execution model only |
 
 ---
 
@@ -260,5 +270,5 @@ CDISC_API_KEY=...            # For CORE (optional)
 
 **Docs:** [README.md](README.md) | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
-**Last Updated:** 2026-01-02  
-**Version:** 6.6.0
+**Last Updated:** 2026-01-28  
+**Version:** 7.0

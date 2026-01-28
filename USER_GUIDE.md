@@ -1,9 +1,9 @@
 # Protocol2USDM User Guide
 
-**Version:** 6.9.0  
-**Last Updated:** 2026-01-07
+**Version:** 7.0  
+**Last Updated:** 2026-01-28
 
-> **📢 What's New in v6.9.0:** Full **Gemini 3 Flash** support with intelligent fallback! When using `gemini-3-flash-preview`, the pipeline automatically falls back to `gemini-2.5-pro` for SoA text extraction (where Gemini 3 Flash has JSON compliance issues). New response validation with retry logic ensures robust extraction. Best run achieved **36 activities, 216 ticks, 12/12 expansion phases passing**.
+> **📢 What's New in v7.0:** Full **USDM 4.0 compliance**, **Execution Model extraction** (time anchors, visit windows, state machines, repetitions), **modern React/Next.js web UI**, **pipeline context architecture** for context-aware extraction, and **entity reconciliation framework** with LLM-based semantic mapping.
 
 ---
 
