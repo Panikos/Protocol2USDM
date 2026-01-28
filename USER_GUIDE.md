@@ -27,15 +27,17 @@
 # Install
 pip install -r requirements.txt
 
-# Configure API keys
-echo "OPENAI_API_KEY=sk-..." > .env
-echo "GOOGLE_API_KEY=AIza..." >> .env
+# Configure Vertex AI for Gemini (recommended for clinical content)
+echo "GOOGLE_CLOUD_PROJECT=your-project-id" > .env
+echo "GOOGLE_CLOUD_LOCATION=us-central1" >> .env
 
-# Run full protocol extraction with viewer (recommended)
-python main_v2.py .\input\Alexion_NCT04573309_Wilsons.pdf --complete --sap .\input\Alexion_NCT04573309_Wilsons_SAP.pdf --sites .\input\Alexion_NCT04573309_Wilsons_sites.csv --model gemini-3-flash-preview --view
+# Run full protocol extraction (optimized for gemini-3-flash)
+python .\main_v2.py .\input\trial\NCT04573309_Wilsons\NCT04573309_Wilsons_Protocol.pdf --complete --sap .\input\trial\NCT04573309_Wilsons\NCT04573309_Wilsons_SAP.pdf --sites .\input\trial\NCT04573309_Wilsons\NCT04573309_Wilsons_sites.csv --model gemini-3-flash
 ```
 
 **Expected runtime:** 3-8 minutes for full protocol extraction
+
+> **⚠️ Important:** Use **Vertex AI** (not AI Studio) for Gemini models to disable safety controls for clinical content.
 
 ---
 
@@ -72,19 +74,28 @@ pip install -r requirements.txt
 
 Create a `.env` file in the project root:
 ```bash
+# RECOMMENDED: Google Cloud Vertex AI (for Gemini models)
+# Required for clinical content - AI Studio may block medical text
+GOOGLE_CLOUD_PROJECT=your-project-id
+GOOGLE_CLOUD_LOCATION=us-central1
+
+# Alternative: Google AI Studio (may have safety restrictions)
+GOOGLE_API_KEY=AIzaSy...
+
 # OpenAI (for GPT models)
 OPENAI_API_KEY=sk-proj-...
 
-# Google AI (for Gemini models)
-GOOGLE_API_KEY=AIzaSy...
+# Anthropic (for Claude models)
+CLAUDE_API_KEY=...
 
 # CDISC API (for conformance validation)
 CDISC_API_KEY=...
 ```
 
 **Get API keys:**
+- Google Cloud: https://console.cloud.google.com/ (enable Vertex AI API)
 - OpenAI: https://platform.openai.com/api-keys
-- Google AI: https://makersuite.google.com/app/apikey
+- Anthropic: https://console.anthropic.com/
 - CDISC: https://library.cdisc.org/ (requires CDISC membership)
 
 ### Step 5: Install CDISC CORE Engine (Optional)

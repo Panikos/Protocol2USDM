@@ -10,11 +10,16 @@
 
 ```bash
 pip install -r requirements.txt
-echo "GOOGLE_API_KEY=AIza..." > .env
 
-# Recommended: Full protocol extraction with viewer
-python main_v2.py .\input\Alexion_NCT04573309_Wilsons.pdf --full-protocol --sap .\input\Alexion_NCT04573309_Wilsons_SAP.pdf --model gemini-2.5-pro --view
+# Configure Vertex AI for Gemini (recommended)
+echo "GOOGLE_CLOUD_PROJECT=your-project-id" > .env
+echo "GOOGLE_CLOUD_LOCATION=us-central1" >> .env
+
+# Run full protocol extraction (optimized for gemini-3-flash)
+python .\main_v2.py .\input\trial\NCT04573309_Wilsons\NCT04573309_Wilsons_Protocol.pdf --complete --sap .\input\trial\NCT04573309_Wilsons\NCT04573309_Wilsons_SAP.pdf --sites .\input\trial\NCT04573309_Wilsons\NCT04573309_Wilsons_sites.csv --model gemini-3-flash
 ```
+
+> **Note:** Use Vertex AI (not AI Studio) for Gemini to disable safety controls for clinical content.
 
 ---
 
@@ -117,10 +122,10 @@ cd web-ui && npm run dev
 
 | Model | Speed | Reliability |
 |-------|-------|-------------|
-| **claude-opus-4-5** ⭐ | Medium | Best accuracy |
-| **gemini-3-pro-preview** ⭐ | Fast | Recommended |
-| gemini-2.5-pro | Fast | Good |
-| gpt-4o | Medium | Good |
+| **gemini-3-flash** ⭐ | Fast | **Optimized for this release** |
+| gemini-2.5-pro | Fast | Good fallback |
+| claude-opus-4-5 | Medium | High accuracy, higher cost |
+| gpt-4o | Medium | Not fully tested |
 
 ---
 

@@ -39,31 +39,71 @@ Protocol2USDM is an automated pipeline that extracts, validates, and structures 
 ## 🚀 Try It Now
 
 ```bash
-python main_v2.py .\input\Alexion_NCT04573309_Wilsons.pdf --full-protocol --enrich --sap .\input\Alexion_NCT04573309_Wilsons_SAP.pdf --model claude-opus-4-5
+python .\main_v2.py .\input\trial\NCT04573309_Wilsons\NCT04573309_Wilsons_Protocol.pdf --complete --sap .\input\trial\NCT04573309_Wilsons\NCT04573309_Wilsons_SAP.pdf --sites .\input\trial\NCT04573309_Wilsons\NCT04573309_Wilsons_sites.csv --model gemini-3-flash
 ```
 
-Or with Gemini:
+This extracts the full protocol with execution model, enriches entities with NCI terminology codes, includes SAP analysis populations and site list.
+
+> **💡 Recommended Model:** This release has been **optimized for `gemini-3-flash`** (Gemini Flash 3). While other models (Claude, GPT-4o, Gemini 2.5 Pro) are still supported, we cannot guarantee their output quality matches at this time. We recommend using Gemini Flash 3 for best results.
+
+### ⚠️ Important: Vertex AI Requirement for Gemini
+
+Gemini models must be accessed via **Google Cloud Vertex AI** (not AI Studio) to properly disable safety controls. The consumer API (AI Studio) may still block or restrict medical/clinical content even with safety settings disabled. Vertex AI allows `BLOCK_NONE` safety settings which are essential for clinical protocol extraction.
+
+**Required `.env` configuration for Gemini via Vertex AI:**
 ```bash
-python main_v2.py .\input\Alexion_NCT04573309_Wilsons.pdf --full-protocol --enrich --sap .\input\Alexion_NCT04573309_Wilsons_SAP.pdf --model gemini-3-pro-preview
+GOOGLE_CLOUD_PROJECT=your-project-id
+GOOGLE_CLOUD_LOCATION=us-central1  # or your preferred region
 ```
 
-> **💡 Recommended Models:** `claude-opus-4-5` or `gemini-3-pro-preview` produce the best results. GPT-5.1 is currently not recommended due to inconsistent output quality.
+---
 
-This extracts the full protocol, enriches entities with NCI terminology codes, and includes SAP analysis populations.
+## What's New in v7.0
+
+### 🎯 Gemini Flash 3 Optimization
+- Pipeline **optimized and tested with `gemini-3-flash`** for best results
+- Intelligent fallback to `gemini-2.5-pro` for SoA text extraction when needed
+- Response validation with automatic retry logic (up to 2 retries)
+- Stricter prompt guardrails for JSON format compliance
+
+### 🧠 Execution Model Extraction
+- **Time Anchors**: Extract temporal reference points (VISIT/EVENT/CONCEPTUAL classification)
+- **Visit Windows**: Timing tolerances and scheduling constraints
+- **Subject State Machine**: Subject flow through study epochs with transitions
+- **Dosing Regimens**: Drug administration schedules
+- **Repetitions**: Cycle-based and conditional activity repetitions
+- **Traversal Constraints**: Subject journey through the study
+
+### 🔄 Pipeline Context Architecture
+- Context-aware extraction where each phase builds on previous results
+- Extractors receive existing SoA entities (epochs, encounters, activities) as context
+- Eliminates arbitrary labels that require downstream resolution
+- Consistent ID references across USDM output
+
+### 🔗 Entity Reconciliation Framework
+- LLM-based semantic mapping of abstract concepts to protocol entities
+- Epoch, encounter, and activity reconciliation with ID preservation
+- Replaces fuzzy string matching with intelligent entity resolution
+
+### 🏛️ USDM 4.0 Compliance
+- All entities placed at correct locations per CDISC `dataStructure.yml`
+- Proper entity hierarchy (studyVersion, studyDesign, scheduleTimeline, activity)
+- NCI code mappings for dose forms, timing types, and identifier types
 
 ---
 
 ## Features
 
-- **Multi-Model Support**: Claude Opus 4.5, Gemini 3 Pro Preview (recommended), GPT-4o via unified provider interface
+- **Gemini Flash 3 Optimized**: Pipeline tuned for best results with `gemini-3-flash` via Vertex AI
 - **Vision-Validated Extraction**: Text extraction validated against actual PDF images
 - **USDM v4.0 Compliant**: Outputs follow official CDISC schema with proper entity hierarchy
+- **Execution Model**: Full subject state machine, time anchors, visit windows, and dosing regimens
 - **NCI Terminology Enrichment**: Automatic enrichment with official NCI codes via EVS API
-- **Activity Group Hierarchy**: Groups represented as parent Activities with `childIds` (USDM v4.0 pattern)
-- **SoA Footnotes**: Captured and stored as `CommentAnnotation` objects in `StudyDesign.notes`
+- **Pipeline Context**: Each extractor receives accumulated context from prior phases
+- **Entity Reconciliation**: LLM-based semantic mapping and ID preservation
 - **Rich Provenance**: Every cell tagged with source (text/vision/both) for confidence tracking
 - **CDISC CORE Validation**: Built-in conformance checking with local engine
-- **Web UI**: Modern React-based protocol viewer with SoA visualization
+- **Modern Web UI**: Complete React/Next.js protocol viewer (see below)
 
 ### Extraction Capabilities
 
@@ -356,9 +396,11 @@ Footnotes extracted from SoA tables are stored in `StudyDesign.notes` as USDM v4
 
 ---
 
-## Viewing Results
+## Web UI (Complete Revamp)
 
-Launch the web UI:
+The web interface has been **completely revamped** from the legacy Streamlit app to a modern, user-friendly stack built with **React 18**, **Next.js 14/15**, **TypeScript**, **TailwindCSS**, and **AG Grid**.
+
+### Launch the Web UI
 
 ```bash
 cd web-ui
@@ -368,31 +410,84 @@ npm run dev
 
 Then open http://localhost:3000 in your browser.
 
-**Features:**
-- Visual SoA table with color-coded provenance
-- Epoch and encounter groupings
-- Protocol metadata display
-- Eligibility criteria view
-- Study design visualization
+### Technology Stack
+
+| Component | Technology |
+|-----------|------------|
+| **Framework** | Next.js 14/15 with App Router |
+| **Language** | TypeScript |
+| **Styling** | TailwindCSS with dark mode support |
+| **Data Tables** | AG Grid for high-performance SoA display |
+| **Visualization** | Cytoscape.js for interactive timeline graphs |
+| **State Management** | Zustand |
+| **Icons** | Lucide React |
+
+### What's Visible in the Web UI
+
+**Protocol Overview:**
+- Study metadata (title, phase, indication, sponsor)
+- Study identifiers (NCT, EudraCT, IND numbers)
+- Amendment history
+
+**Schedule of Activities (SoA):**
+- Interactive AG Grid table with epoch/encounter groupings
+- Color-coded provenance indicators (green=confirmed, blue=text-only, orange=vision-only)
+- Footnote references with hover tooltips
+- Activity filtering and search
+
+**Study Design:**
+- Study arms, epochs, and study cells
+- Activity groups with child activity linking
+- Transition rules between epochs
+
+**Eligibility & Objectives:**
+- Inclusion/exclusion criteria display
+- Primary and secondary objectives
+- Endpoints and estimands
+
+**Interventions & Procedures:**
+- Drug products with administration details
+- Substances and ingredients
+- Medical devices and procedures
+
+**Timeline Visualization:**
+- Interactive Cytoscape graph of epochs and encounters
+- Node details panel with encounter information
+- Execution model overlay with time anchors
+
+**Advanced Views:**
+- Execution model details (state machine, visit windows, dosing)
+- Provenance explorer with source tracking
+- Quality metrics dashboard
+- Validation results
+- Raw USDM JSON viewer
+
+### Future Roadmap
+
+> **🚧 In Development:** We intend to streamline the UI further and enable **digital protocol (USDM JSON) editing directly via the UI**. Some of these editing features are present but not fully functional yet. The goal is to allow users to:
+> - Edit USDM entities directly in the browser
+> - Save draft overlays without modifying source data
+> - Publish finalized edits back to the USDM JSON
+> - Track edit history and provenance
 
 ---
 
 ## Model Benchmark
 
-SoA extraction tested on Alexion Wilson's Disease protocol (Nov 2025):
+SoA extraction tested on Alexion Wilson's Disease protocol (Jan 2026):
 
-| Model | Activities | Timepoints | Ticks | Vision Header | Recommendation |
-|-------|------------|------------|-------|---------------|----------------|
-| **Claude Opus 4.5** | 36 ✓ | 24 ✓ | 212 (100% confirmed) | ✅ | **Best accuracy** |
-| **Gemini 3 Pro Preview** | 36 ✓ | 24 ✓ | 210 | ✅ | **Recommended** |
-| **Gemini 2.5 Pro** | 36 ✓ | 24 ✓ | 207 (10 flagged) | ✅ | Good, reliable |
-| GPT-4o | 36 ✓ | 24 ✓ | 205 | ✅ | Good alternative |
+| Model | Activities | Timepoints | Ticks | Expansion Phases | Recommendation |
+|-------|------------|------------|-------|------------------|----------------|
+| **gemini-3-flash** ⭐ | 36 ✓ | 24 ✓ | 216 | 12/12 ✓ | **Optimized for this release** |
+| gemini-2.5-pro | 36 ✓ | 24 ✓ | 207 | 12/12 ✓ | Good fallback |
+| claude-opus-4-5 | 36 ✓ | 24 ✓ | 212 | 12/12 ✓ | Good, higher cost |
+| gpt-4o | 36 ✓ | 24 ✓ | 205 | 11/12 | Not fully tested |
 
 **Notes:**
-- Claude Opus 4.5: Best overall - all ticks confirmed by vision validation
-- Gemini 3 Pro Preview: Fast, accurate, recommended for most use cases
-- Gemini 2.5 Pro: Good accuracy, flags potential hallucinations for review
-- GPT-4o: Solid performance with vision support
+- **gemini-3-flash**: This release is optimized for Gemini Flash 3. Best balance of speed, accuracy, and cost.
+- **gemini-2.5-pro**: Used as automatic fallback for SoA text extraction when Gemini 3 has JSON compliance issues.
+- **claude-opus-4-5**: High accuracy but significantly higher cost per extraction.
+- **gpt-4o**: Functional but not extensively tested with current pipeline version.
 
 ---
 
@@ -461,29 +556,36 @@ python testing/benchmark_models.py
 ### Environment Variables
 
 ```bash
-# Required - at least one LLM provider
+# RECOMMENDED: Google Cloud Vertex AI (for Gemini models)
+GOOGLE_CLOUD_PROJECT=your-project-id     # Your GCP project
+GOOGLE_CLOUD_LOCATION=us-central1        # Region (us-central1, europe-west1, etc.)
+
+# Alternative: Google AI Studio (may have safety restrictions)
+GOOGLE_API_KEY=...          # For Gemini via AI Studio (not recommended for clinical)
+
+# Other providers
 OPENAI_API_KEY=...          # For GPT models
-GOOGLE_API_KEY=...          # For Gemini models
 CLAUDE_API_KEY=...          # For Claude models (Anthropic)
 
 # Required for CDISC conformance validation
 CDISC_API_KEY=...           # For CORE rules cache (get from library.cdisc.org)
 ```
 
+> **⚠️ Important:** For clinical protocol extraction, use **Vertex AI** for Gemini models. AI Studio may block medical content even with safety settings disabled.
+
 ### Supported Models
 
-**Anthropic (Recommended):**
-- `claude-opus-4-5` ⭐ Best accuracy
+**Google (Optimized for this release):**
+- `gemini-3-flash` ⭐ **Recommended** - Pipeline optimized for this model
+- `gemini-2.5-pro` - Good fallback, used automatically for SoA extraction
+- `gemini-2.5-flash`
+
+**Anthropic:**
+- `claude-opus-4-5` - High accuracy, higher cost
 - `claude-sonnet-4`
 
-**Google (Recommended):**
-- `gemini-3-pro-preview` ⭐ Fast & accurate
-- `gemini-2.5-pro`
-- `gemini-2.5-flash`
-- `gemini-2.0-flash`
-
 **OpenAI:**
-- `gpt-4o`
+- `gpt-4o` - Functional but not extensively tested
 - `gpt-4`
 
 ---
@@ -493,9 +595,11 @@ CDISC_API_KEY=...           # For CORE rules cache (get from library.cdisc.org)
 | Issue | Solution |
 |-------|----------|
 | API key error | Check `.env` file, restart terminal |
+| Gemini blocks content | Use Vertex AI instead of AI Studio (see Configuration) |
 | Missing visits | Verify correct SoA pages found (check `4_header_structure.json`) |
-| Parse errors | Try different model, check verbose logs |
+| Parse errors | Try `gemini-3-flash` model, check verbose logs |
 | Schema errors | Post-processing auto-fixes most issues |
+| Safety filter errors | Ensure using Vertex AI with `BLOCK_NONE` settings |
 
 ---
 
@@ -503,18 +607,17 @@ CDISC_API_KEY=...           # For CORE rules cache (get from library.cdisc.org)
 
 The following items are planned for upcoming releases:
 
+- [ ] **Web UI Protocol Editing**: Enable direct USDM JSON editing via browser with draft/publish workflow
 - [ ] **Biomedical Concepts**: Add extraction via a separate comprehensive canonical model for standardized concept mapping
-- [x] **USDM Entity Placement Compliance**: All entities placed at correct USDM locations per `dataStructure.yml` *(completed v6.6.0)*
-- [x] **StudyIdentifier Type Auto-Inference**: NCT, EudraCT, IND, Sponsor patterns auto-detected *(completed v6.5.0)*
-- [x] **encounterId Alignment**: Extraction uses enc_N directly instead of pt_N *(completed v6.5.0)*
-- [x] **EVS-Verified Terminology Codes**: All 28 NCI codes verified against NIH EVS API *(completed v6.5.0)*
-- [x] **Provenance ID Consistency**: Idempotent UUID generation ensures provenance IDs match data *(completed v6.3.0)*
-- [x] **NCI EVS Terminology Enrichment**: Real-time EVS API integration with local caching *(completed v6.3.0)*
-- [x] **CDISC CORE Integration**: Local CORE engine for conformance validation with cache update *(completed v6.3.0)*
-- [x] **Schema-Driven Architecture**: All types from official `dataStructure.yml` *(completed v6.2.0)*
-- [x] **Repository Cleanup**: Cleaned codebase, archived orphaned files *(completed v6.3.0)*
-- [x] **Activity Group Hierarchy**: Groups now use USDM v4.0 `childIds` pattern *(completed v6.1.2)*
-- [x] **SoA Footnotes**: Stored as `CommentAnnotation` in `StudyDesign.notes` *(completed v6.1.2)*
+- [ ] **Multi-Protocol Comparison**: Compare USDM outputs across protocol versions
+- [x] **Gemini Flash 3 Optimization**: Pipeline optimized for `gemini-3-flash` with Vertex AI *(completed v7.0)*
+- [x] **Execution Model Extraction**: Time anchors, visit windows, state machine, dosing regimens *(completed v7.0)*
+- [x] **Pipeline Context Architecture**: Context-aware extraction with accumulated results *(completed v7.0)*
+- [x] **Entity Reconciliation Framework**: LLM-based semantic mapping and ID preservation *(completed v7.0)*
+- [x] **Modern Web UI**: Complete React/Next.js revamp from Streamlit *(completed v7.0)*
+- [x] **USDM 4.0 Compliance**: All entities at correct locations per `dataStructure.yml` *(completed v7.0)*
+- [x] **NCI Code Mappings**: Dose forms, timing types, identifier types with NCI codes *(completed v7.0)*
+- [x] **Repository Cleanup**: Organized scripts, archived legacy files *(completed v7.0)*
 
 ---
 
