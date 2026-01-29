@@ -125,7 +125,10 @@ cd web-ui && npm run dev
 | **gemini-3-flash** ⭐ | Fast | **Optimized for this release** |
 | gemini-2.5-pro | Fast | Good fallback |
 | claude-opus-4-5 | Medium | High accuracy, higher cost |
-| gpt-4o | Medium | Not fully tested |
+| claude-sonnet-4 | Fast | Good balance |
+| chatgpt-5.2 | Medium | Good alternative |
+
+> Other models supported - see `llm_providers.py` for full list.
 
 ---
 

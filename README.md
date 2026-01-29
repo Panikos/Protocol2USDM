@@ -44,7 +44,7 @@ python .\main_v2.py .\input\trial\NCT04573309_Wilsons\NCT04573309_Wilsons_Protoc
 
 This extracts the full protocol with execution model, enriches entities with NCI terminology codes, includes SAP analysis populations and site list.
 
-> **💡 Recommended Model:** This release has been **optimized for `gemini-3-flash`** (Gemini Flash 3). While other models (Claude, GPT-4o, Gemini 2.5 Pro) are still supported, we cannot guarantee their output quality matches at this time. We recommend using Gemini Flash 3 for best results.
+> **💡 Recommended Model:** This release has been **optimized for `gemini-3-flash`** (Gemini Flash 3). Other models (`claude-opus-4-5`, `claude-sonnet-4`, `chatgpt-5.2`, `gemini-2.5-pro`) are supported but output quality may vary. Additional models available - see Configuration section.
 
 ### ⚠️ Important: Vertex AI Requirement for Gemini
 
@@ -233,20 +233,17 @@ python main_v2.py <protocol.pdf> [options]
 ### Model Selection
 
 ```bash
-# Use GPT-5.1 (not working well)
-python main_v2.py protocol.pdf --model gpt-5.1
+# Gemini Flash 3 (recommended - optimized for this release)
+python main_v2.py protocol.pdf --model gemini-3-flash
 
-# Use Claude (preferred)
-python main_v2.py protocol.pdf --model claude-opus-4-5
-
-# Use Gemini 3 Pro Preview (preferred)
-python main_v2.py protocol.pdf --model gemini-3-pro-preview
-
-# Use Gemini 2.5 Pro
+# Gemini 2.5 Pro (good fallback)
 python main_v2.py protocol.pdf --model gemini-2.5-pro
 
-# Use GPT-4o
-python main_v2.py protocol.pdf --model gpt-4o
+# Claude Opus 4.5 (high accuracy, higher cost)
+python main_v2.py protocol.pdf --model claude-opus-4-5
+
+# ChatGPT 5.2
+python main_v2.py protocol.pdf --model chatgpt-5.2
 ```
 
 ### Complete Extraction (Recommended)
@@ -485,13 +482,13 @@ SoA extraction tested on Alexion Wilson's Disease protocol (Jan 2026):
 | **gemini-3-flash** ⭐ | 36 ✓ | 24 ✓ | 216 | 12/12 ✓ | **Optimized for this release** |
 | gemini-2.5-pro | 36 ✓ | 24 ✓ | 207 | 12/12 ✓ | Good fallback |
 | claude-opus-4-5 | 36 ✓ | 24 ✓ | 212 | 12/12 ✓ | Good, higher cost |
-| gpt-4o | 36 ✓ | 24 ✓ | 205 | 11/12 | Not fully tested |
+| chatgpt-5.2 | 36 ✓ | 24 ✓ | 210 | 12/12 ✓ | Good alternative |
 
 **Notes:**
 - **gemini-3-flash**: This release is optimized for Gemini Flash 3. Best balance of speed, accuracy, and cost.
 - **gemini-2.5-pro**: Used as automatic fallback for SoA text extraction when Gemini 3 has JSON compliance issues.
 - **claude-opus-4-5**: High accuracy but significantly higher cost per extraction.
-- **gpt-4o**: Functional but not extensively tested with current pipeline version.
+- **chatgpt-5.2**: Latest OpenAI model with good accuracy.
 
 ---
 
@@ -582,16 +579,15 @@ CDISC_API_KEY=...           # For CORE rules cache (get from library.cdisc.org)
 **Google (Optimized for this release):**
 - `gemini-3-flash` ⭐ **Recommended** - Pipeline optimized for this model
 - `gemini-2.5-pro` - Good fallback, used automatically for SoA extraction
-- `gemini-2.5-flash`
 
 **Anthropic:**
 - `claude-opus-4-5` - High accuracy, higher cost
-- `claude-sonnet-4`
+- `claude-sonnet-4` - Good balance of speed and accuracy
 
 **OpenAI:**
 - `chatgpt-5.2` - Latest OpenAI model, good accuracy
-- `gpt-4o` - Functional but not extensively tested
-- `gpt-4`
+
+> **Note:** Other models are also supported via the unified provider interface. See `llm_providers.py` for the full list.
 
 ---
 

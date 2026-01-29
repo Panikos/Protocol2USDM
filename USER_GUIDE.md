@@ -115,7 +115,7 @@ python main_v2.py <protocol.pdf>
 
 ### With Options
 ```bash
-python main_v2.py protocol.pdf --model gpt-5.1      # Specify model
+python main_v2.py protocol.pdf --model gemini-3-flash  # Specify model
 python main_v2.py protocol.pdf --full               # Run all post-processing
 python main_v2.py protocol.pdf --view               # Open viewer after
 python main_v2.py protocol.pdf --no-validate        # Skip vision validation
@@ -439,20 +439,20 @@ python main_v2.py protocol.pdf --conformance
 
 | Model | Provider | Speed | Best For |
 |-------|----------|-------|----------|
-| `gemini-3-flash-preview` | Google | **Fast** | **Recommended - Best speed/quality** |
+| `gemini-3-flash` | Google | **Fast** | **Recommended - Optimized for this release** |
 | `gemini-2.5-pro` | Google | Medium | Reliable fallback |
-| `gemini-3-pro-preview` | Google | Slow | Thorough extraction |
-| `gpt-4o` | OpenAI | Medium | OpenAI preference |
-| `claude-sonnet-4-20250514` | Anthropic | Medium | Anthropic preference |
+| `claude-opus-4-5` | Anthropic | Medium | High accuracy, higher cost |
+| `claude-sonnet-4` | Anthropic | Fast | Good balance |
+| `chatgpt-5.2` | OpenAI | Medium | Good alternative |
 
 ### Gemini 3 Flash with Intelligent Fallback
 
-When using `gemini-3-flash-preview`, the pipeline automatically uses `gemini-2.5-pro` for SoA text extraction only. This is because Gemini 3 Flash has issues with the specific JSON output format required for SoA extraction.
+When using `gemini-3-flash`, the pipeline automatically uses `gemini-2.5-pro` for SoA text extraction only. This is because Gemini 3 Flash has issues with the specific JSON output format required for SoA extraction.
 
 **What happens:**
-1. SoA header analysis → Uses `gemini-3-flash-preview` ✓
-2. SoA text extraction → Falls back to `gemini-2.5-pro` (automatic)
-3. All expansion phases → Uses `gemini-3-flash-preview` ✓
+1. SoA header analysis → Uses `gemini-3-flash` 
+1. SoA text extraction → Falls back to `gemini-2.5-pro` (automatic)
+3. All expansion phases → Uses `gemini-3-flash` 
 
 **Log output:**
 ```
@@ -475,20 +475,24 @@ GOOGLE_API_KEY=AIzaSy...  # Still needed for authentication
 
 | Model | Success Rate | SoA Extraction | Expansion Phases |
 |-------|-------------|----------------|------------------|
-| gemini-3-flash-preview | 100% | via fallback | All 12 ✓ |
+| gemini-3-flash | 100% | via fallback | All 12 ✓ |
 | gemini-2.5-pro | 100% | Native | All 12 ✓ |
-| gemini-3-pro-preview | 75% | via fallback | All 12 ✓ |
+| claude-opus-4-5 | 100% | Native | All 12 ✓ |
+| chatgpt-5.2 | 100% | Native | All 12 ✓ |
 
 ### Specifying Model
 ```bash
 # Recommended: Gemini 3 Flash (uses fallback for SoA automatically)
-python main_v2.py protocol.pdf --model gemini-3-flash-preview
+python main_v2.py protocol.pdf --model gemini-3-flash
 
-# Alternative: Direct Gemini 2.5 Pro
+# Alternative: Gemini 2.5 Pro
 python main_v2.py protocol.pdf --model gemini-2.5-pro
 
+# Claude Opus 4.5 (high accuracy)
+python main_v2.py protocol.pdf --model claude-opus-4-5
+
 # Full extraction with SAP and sites
-python main_v2.py protocol.pdf --complete --sap sap.pdf --sites sites.csv --model gemini-3-flash-preview
+python main_v2.py protocol.pdf --complete --sap sap.pdf --sites sites.csv --model gemini-3-flash
 ```
 
 ---
@@ -513,7 +517,7 @@ Error: GOOGLE_API_KEY environment variable not set
 **Symptom:** Pipeline fails during extraction
 
 **Solutions:**
-1. Try different model: `--model gemini-2.5-pro`
+1. Try different model: `--model gemini-3-flash` or `--model gemini-2.5-pro`
 2. Enable verbose: `--verbose`
 3. Check API quota/limits
 
@@ -554,7 +558,7 @@ python test_pipeline_steps.py protocol.pdf --step all # All steps
 ## FAQ
 
 **Q: Which model should I use?**
-A: Start with `gpt-5.1` (default). If it fails, try `gemini-2.5-pro`.
+A: Start with `gemini-3-flash` (recommended). If it fails, try `gemini-2.5-pro` or `claude-opus-4-5`.
 
 **Q: How long does extraction take?**
 A: 2-5 minutes for typical protocols, depending on model and protocol size.
