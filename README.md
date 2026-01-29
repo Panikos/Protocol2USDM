@@ -137,6 +137,10 @@ GOOGLE_CLOUD_LOCATION=us-central1  # or your preferred region
 Extract everything with a single command:
 
 ```bash
+# --complete: Full extraction + all post-processing (enrich, validate, conformance)
+python main_v2.py protocol.pdf --complete
+
+# --full-protocol: Full extraction without post-processing
 python main_v2.py protocol.pdf --full-protocol
 ```
 
@@ -145,13 +149,13 @@ Or select specific sections:
 ```bash
 python main_v2.py protocol.pdf --metadata --eligibility --objectives
 python main_v2.py protocol.pdf --expansion-only --metadata  # Skip SoA
-python main_v2.py protocol.pdf --procedures --scheduling   # New phases
+python main_v2.py protocol.pdf --procedures --scheduling --execution  # New phases
 ```
 
 With additional source documents:
 
 ```bash
-python main_v2.py protocol.pdf --full-protocol --sap sap.pdf --sites sites.xlsx
+python main_v2.py protocol.pdf --complete --sap sap.pdf --sites sites.xlsx
 ```
 
 Output: Individual JSONs + combined `protocol_usdm.json`
@@ -585,6 +589,7 @@ CDISC_API_KEY=...           # For CORE rules cache (get from library.cdisc.org)
 - `claude-sonnet-4`
 
 **OpenAI:**
+- `chatgpt-5.2` - Latest OpenAI model, good accuracy
 - `gpt-4o` - Functional but not extensively tested
 - `gpt-4`
 
