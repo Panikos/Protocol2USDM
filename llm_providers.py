@@ -251,6 +251,30 @@ class LLMProvider(ABC):
     
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(model='{self.model}')"
+    
+    def generate_with_image(
+        self,
+        prompt: str,
+        image_data: bytes,
+        mime_type: str = "image/png",
+        config: Optional[LLMConfig] = None
+    ) -> LLMResponse:
+        """
+        Generate completion with an image input.
+        
+        Args:
+            prompt: Text prompt
+            image_data: Raw image bytes
+            mime_type: Image MIME type (e.g., 'image/png', 'image/jpeg')
+            config: Generation configuration
+            
+        Returns:
+            LLMResponse with content and metadata
+            
+        Raises:
+            NotImplementedError: If provider doesn't support vision
+        """
+        raise NotImplementedError(f"{self.__class__.__name__} does not support image input")
 
 
 class OpenAIProvider(LLMProvider):
@@ -374,6 +398,74 @@ class OpenAIProvider(LLMProvider):
         
         except Exception as e:
             raise RuntimeError(f"OpenAI Responses API call failed for model '{self.model}': {e}")
+    
+    def generate_with_image(
+        self,
+        prompt: str,
+        image_data: bytes,
+        mime_type: str = "image/png",
+        config: Optional[LLMConfig] = None
+    ) -> LLMResponse:
+        """Generate completion with an image using OpenAI vision models."""
+        import base64
+        
+        if config is None:
+            config = LLMConfig()
+        
+        base64_image = base64.b64encode(image_data).decode('utf-8')
+        
+        messages = [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": prompt},
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:{mime_type};base64,{base64_image}"
+                        }
+                    }
+                ]
+            }
+        ]
+        
+        params = {
+            "model": self.model,
+            "messages": messages,
+        }
+        
+        if self.model not in self.NO_TEMP_MODELS:
+            params["temperature"] = config.temperature
+        
+        if config.json_mode and self.supports_json_mode():
+            params["response_format"] = {"type": "json_object"}
+        
+        if config.max_tokens:
+            params["max_tokens"] = config.max_tokens
+        
+        try:
+            response = self.client.chat.completions.create(**params)
+            
+            usage = None
+            if response.usage:
+                input_tokens = response.usage.prompt_tokens or 0
+                output_tokens = response.usage.completion_tokens or 0
+                usage = {
+                    "prompt_tokens": input_tokens,
+                    "completion_tokens": output_tokens,
+                    "total_tokens": response.usage.total_tokens or 0
+                }
+                usage_tracker.add_usage(input_tokens, output_tokens)
+            
+            return LLMResponse(
+                content=response.choices[0].message.content,
+                model=response.model,
+                usage=usage,
+                finish_reason=response.choices[0].finish_reason,
+                raw_response=response
+            )
+        except Exception as e:
+            raise RuntimeError(f"OpenAI vision call failed for model '{self.model}': {e}")
 
 
 class GeminiProvider(LLMProvider):
@@ -719,6 +811,181 @@ class GeminiProvider(LLMProvider):
                 formatted_parts.append(f"\nAssistant: {content}")
         
         return '\n'.join(formatted_parts)
+    
+    def generate_with_image(
+        self,
+        prompt: str,
+        image_data: bytes,
+        mime_type: str = "image/png",
+        config: Optional[LLMConfig] = None
+    ) -> LLMResponse:
+        """Generate completion with an image using Gemini vision."""
+        import base64
+        
+        if config is None:
+            config = LLMConfig()
+        
+        base64_image = base64.b64encode(image_data).decode('utf-8')
+        
+        # Build generation config
+        gen_config_dict = {
+            "temperature": config.temperature,
+        }
+        if config.max_tokens:
+            gen_config_dict["max_output_tokens"] = config.max_tokens
+        if config.json_mode and self.supports_json_mode():
+            gen_config_dict["response_mime_type"] = "application/json"
+        
+        # Create image part
+        image_part = {
+            "mime_type": mime_type,
+            "data": base64_image,
+        }
+        
+        if self.use_genai_sdk:
+            # Gemini 3 via google-genai SDK
+            model_id = self.VERTEX_MODEL_ALIASES.get(self.model, self.model)
+            config_obj = genai_types.GenerateContentConfig(
+                temperature=gen_config_dict.get("temperature", 0.0),
+                max_output_tokens=gen_config_dict.get("max_output_tokens"),
+                response_mime_type=gen_config_dict.get("response_mime_type"),
+                thinking_config=genai_types.ThinkingConfig(thinking_budget=0),
+                safety_settings=[
+                    genai_types.SafetySetting(
+                        category=genai_types.HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+                        threshold=genai_types.HarmBlockThreshold.BLOCK_NONE,
+                    ),
+                    genai_types.SafetySetting(
+                        category=genai_types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+                        threshold=genai_types.HarmBlockThreshold.BLOCK_NONE,
+                    ),
+                    genai_types.SafetySetting(
+                        category=genai_types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+                        threshold=genai_types.HarmBlockThreshold.BLOCK_NONE,
+                    ),
+                    genai_types.SafetySetting(
+                        category=genai_types.HarmCategory.HARM_CATEGORY_HARASSMENT,
+                        threshold=genai_types.HarmBlockThreshold.BLOCK_NONE,
+                    ),
+                ],
+            )
+            
+            try:
+                def make_request():
+                    return self._genai_client.models.generate_content(
+                        model=model_id,
+                        contents=[prompt, {"inline_data": image_part}],
+                        config=config_obj,
+                    )
+                
+                response = _retry_with_backoff(make_request)
+                
+                usage = None
+                if hasattr(response, 'usage_metadata') and response.usage_metadata:
+                    input_tokens = getattr(response.usage_metadata, 'prompt_token_count', 0) or 0
+                    output_tokens = getattr(response.usage_metadata, 'candidates_token_count', 0) or 0
+                    usage = {
+                        "prompt_tokens": input_tokens,
+                        "completion_tokens": output_tokens,
+                        "total_tokens": getattr(response.usage_metadata, 'total_token_count', 0) or 0,
+                    }
+                    usage_tracker.add_usage(input_tokens, output_tokens)
+                
+                return LLMResponse(
+                    content=response.text,
+                    model=self.model,
+                    usage=usage,
+                    finish_reason=str(response.candidates[0].finish_reason) if response.candidates else None,
+                    raw_response=response
+                )
+            except Exception as e:
+                raise RuntimeError(f"Gemini 3 vision call failed for model '{self.model}': {e}")
+        
+        elif self.use_vertex:
+            # Vertex AI for older Gemini models
+            from vertexai.generative_models import GenerativeModel, GenerationConfig, Part, Image
+            from vertexai.generative_models import HarmCategory, HarmBlockThreshold
+            
+            generation_config = GenerationConfig(**gen_config_dict)
+            safety_settings = {
+                HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+            }
+            
+            vertex_model = self.VERTEX_MODEL_ALIASES.get(self.model, self.model)
+            model = GenerativeModel(vertex_model)
+            
+            try:
+                image_part_vertex = Part.from_data(data=image_data, mime_type=mime_type)
+                
+                def make_request():
+                    return model.generate_content(
+                        [prompt, image_part_vertex],
+                        generation_config=generation_config,
+                        safety_settings=safety_settings,
+                    )
+                
+                response = _retry_with_backoff(make_request)
+                
+                usage = None
+                if hasattr(response, 'usage_metadata') and response.usage_metadata:
+                    input_tokens = response.usage_metadata.prompt_token_count or 0
+                    output_tokens = response.usage_metadata.candidates_token_count or 0
+                    usage = {
+                        "prompt_tokens": input_tokens,
+                        "completion_tokens": output_tokens,
+                        "total_tokens": response.usage_metadata.total_token_count or 0
+                    }
+                    usage_tracker.add_usage(input_tokens, output_tokens)
+                
+                return LLMResponse(
+                    content=response.text,
+                    model=self.model,
+                    usage=usage,
+                    finish_reason=str(response.candidates[0].finish_reason) if response.candidates else None,
+                    raw_response=response
+                )
+            except Exception as e:
+                raise RuntimeError(f"Vertex AI Gemini vision call failed for model '{self.model}': {e}")
+        
+        else:
+            # AI Studio
+            generation_config = genai.types.GenerationConfig(**gen_config_dict)
+            ai_studio_model = self.VERTEX_MODEL_ALIASES.get(self.model, self.model)
+            model = genai.GenerativeModel(
+                ai_studio_model,
+                generation_config=generation_config,
+                safety_settings=self.SAFETY_SETTINGS,
+            )
+            
+            try:
+                def make_request():
+                    return model.generate_content([prompt, image_part])
+                
+                response = _retry_with_backoff(make_request)
+                
+                usage = None
+                if hasattr(response, 'usage_metadata') and response.usage_metadata:
+                    input_tokens = response.usage_metadata.prompt_token_count or 0
+                    output_tokens = response.usage_metadata.candidates_token_count or 0
+                    usage = {
+                        "prompt_tokens": input_tokens,
+                        "completion_tokens": output_tokens,
+                        "total_tokens": response.usage_metadata.total_token_count or 0
+                    }
+                    usage_tracker.add_usage(input_tokens, output_tokens)
+                
+                return LLMResponse(
+                    content=response.text,
+                    model=self.model,
+                    usage=usage,
+                    finish_reason=str(response.candidates[0].finish_reason) if response.candidates else None,
+                    raw_response=response
+                )
+            except Exception as e:
+                raise RuntimeError(f"Gemini AI Studio vision call failed for model '{self.model}': {e}")
 
 
 class ClaudeProvider(LLMProvider):

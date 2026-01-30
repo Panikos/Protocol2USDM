@@ -291,6 +291,8 @@ def call_llm_with_image(
     """
     LLM call with an image attachment.
     
+    Uses the provider layer for consistent handling across all providers.
+    
     Args:
         prompt: The prompt text
         image_path: Path to the image file
@@ -300,7 +302,6 @@ def call_llm_with_image(
     Returns:
         Dict with 'response' key containing the generated text
     """
-    import base64
     from pathlib import Path
     
     if model_name is None:
@@ -309,11 +310,10 @@ def call_llm_with_image(
     _ensure_env_loaded()
     
     try:
-        # Read and encode image
+        # Read image data
         image_data = Path(image_path).read_bytes()
-        base64_image = base64.b64encode(image_data).decode('utf-8')
         
-        # Detect image type
+        # Detect MIME type from extension
         suffix = Path(image_path).suffix.lower()
         mime_type = {
             '.png': 'image/png',
@@ -323,62 +323,18 @@ def call_llm_with_image(
             '.webp': 'image/webp',
         }.get(suffix, 'image/png')
         
-        provider = detect_provider(model_name)
+        # Use provider layer for consistent handling
+        client = get_llm_client(model_name)
+        config = LLMConfig(json_mode=json_mode, temperature=0.0)
         
-        if provider == 'google':
-            # Use Gemini API
-            import google.generativeai as genai
-            
-            api_key = os.environ.get("GOOGLE_API_KEY")
-            if not api_key:
-                return {"error": "GOOGLE_API_KEY not set"}
-                
-            genai.configure(api_key=api_key)
-            model = genai.GenerativeModel(model_name)
-            
-            # Create image part
-            image_part = {
-                "mime_type": mime_type,
-                "data": base64_image,
-            }
-            
-            response = model.generate_content([prompt, image_part])
-            return {"response": response.text}
-            
-        elif provider == 'openai':
-            # Use OpenAI API
-            from openai import OpenAI
-            
-            api_key = os.environ.get("OPENAI_API_KEY")
-            if not api_key:
-                return {"error": "OPENAI_API_KEY not set"}
-                
-            client = OpenAI(api_key=api_key)
-            
-            messages = [
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": prompt},
-                        {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": f"data:{mime_type};base64,{base64_image}"
-                            }
-                        }
-                    ]
-                }
-            ]
-            
-            response = client.chat.completions.create(
-                model=model_name,
-                messages=messages,
-                response_format={"type": "json_object"} if json_mode else None,
-            )
-            
-            return {"response": response.choices[0].message.content}
-        else:
-            return {"error": f"Unknown provider for model: {model_name}"}
+        response = client.generate_with_image(
+            prompt=prompt,
+            image_data=image_data,
+            mime_type=mime_type,
+            config=config,
+        )
+        
+        return {"response": response.content}
             
     except Exception as e:
         return {"error": str(e)}
