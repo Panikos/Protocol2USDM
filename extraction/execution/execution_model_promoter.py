@@ -986,26 +986,46 @@ class ExecutionModelPromoter:
         Promote visit windows to Timing.windowLower/windowUpper fields.
         
         Per USDM v4.0 schema:
-        - Timing.windowLower: ISO 8601 duration (lower bound)
-        - Timing.windowUpper: ISO 8601 duration (upper bound)
+        - Timing.windowLower: ISO 8601 duration (lower bound, e.g., "-P2D")
+        - Timing.windowUpper: ISO 8601 duration (upper bound, e.g., "P2D")
         - Timing.windowLabel: Human-readable window description
+        
+        If timings don't exist, creates them and links to encounters.
         """
+        from core.usdm_types_generated import generate_uuid
+        
         # Build encounter lookup by name
         encounters = design.get('encounters', [])
         encounter_by_name = {}
+        encounter_by_id = {}
         for enc in encounters:
             enc_name = enc.get('name', '').lower().strip()
             encounter_by_name[enc_name] = enc
+            encounter_by_id[enc.get('id', '')] = enc
             # Also map by label
             if enc.get('label'):
                 encounter_by_name[enc.get('label', '').lower().strip()] = enc
         
-        # Build timing lookup
+        # Get or create timings array in first timeline
         timelines = design.get('scheduleTimelines', [])
+        if not timelines:
+            return design
+        
+        main_timeline = timelines[0]
+        if 'timings' not in main_timeline:
+            main_timeline['timings'] = []
+        
+        # Build timing lookup from existing timings
         timing_by_id = {}
-        for timeline in timelines:
-            for timing in timeline.get('timings', []):
-                timing_by_id[timing.get('id')] = timing
+        timing_by_encounter = {}
+        for timing in main_timeline.get('timings', []):
+            timing_by_id[timing.get('id')] = timing
+        
+        # Also check encounter.scheduledAtTimingId references
+        for enc in encounters:
+            timing_id = enc.get('scheduledAtTimingId')
+            if timing_id and timing_id in timing_by_id:
+                timing_by_encounter[enc.get('id')] = timing_by_id[timing_id]
         
         for window in visit_windows:
             visit_name = getattr(window, 'visit_name', '') or getattr(window, 'visitName', '')
@@ -1031,30 +1051,56 @@ class ExecutionModelPromoter:
                 logger.debug(f"No encounter found for visit window: {visit_name}")
                 continue
             
-            # Find the timing for this encounter
-            timing_id = encounter.get('scheduledAtTimingId')
-            timing = timing_by_id.get(timing_id) if timing_id else None
+            enc_id = encounter.get('id', '')
+            
+            # Find or create timing for this encounter
+            timing = timing_by_encounter.get(enc_id)
             
             if not timing:
-                # Find timing by matching value/valueLabel
-                for tid, t in timing_by_id.items():
-                    if t.get('valueLabel', '').lower() == visit_name.lower():
-                        timing = t
-                        break
+                # Check if encounter has scheduledAtTimingId
+                timing_id = encounter.get('scheduledAtTimingId')
+                if timing_id:
+                    timing = timing_by_id.get(timing_id)
             
-            if timing:
-                # Calculate window bounds as ISO 8601 durations
-                lower_day = max(0, target_day - window_before)
-                upper_day = target_day + window_after
+            if not timing:
+                # Create new Timing object for this encounter
+                timing_id = generate_uuid()
+                timing = {
+                    'id': timing_id,
+                    'name': f"Timing for {visit_name}",
+                    'type': {'code': 'C71738', 'codeSystem': 'http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl', 
+                             'decode': 'Study Day', 'instanceType': 'Code'},
+                    'value': f"P{target_day}D",
+                    'valueLabel': f"Day {target_day}",
+                    'relativeToFrom': {'code': 'C71738', 'codeSystem': 'http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl',
+                                       'decode': 'Study Day', 'instanceType': 'Code'},
+                    'relativeFromScheduledInstanceId': main_timeline.get('entryId', generate_uuid()),
+                    'instanceType': 'Timing',
+                }
+                main_timeline['timings'].append(timing)
+                timing_by_id[timing_id] = timing
+                timing_by_encounter[enc_id] = timing
                 
-                timing['windowLower'] = f"P{lower_day}D"
-                timing['windowUpper'] = f"P{upper_day}D"
-                timing['windowLabel'] = f"Day {target_day} (±{window_before}/{window_after})"
-                
-                self.result.visit_windows_enriched += 1
-                logger.debug(f"Enriched timing for {visit_name}: P{lower_day}D - P{upper_day}D")
+                # Link encounter to timing
+                encounter['scheduledAtTimingId'] = timing_id
+            
+            # Set window bounds as ISO 8601 durations
+            # windowLower is negative for days before (e.g., "-P2D")
+            # windowUpper is positive for days after (e.g., "P2D")
+            if window_before > 0:
+                timing['windowLower'] = f"-P{window_before}D"
             else:
-                logger.debug(f"No timing found for encounter: {visit_name}")
+                timing['windowLower'] = "P0D"
+            
+            if window_after > 0:
+                timing['windowUpper'] = f"P{window_after}D"
+            else:
+                timing['windowUpper'] = "P0D"
+            
+            timing['windowLabel'] = f"Day {target_day} (−{window_before}/+{window_after})"
+            
+            self.result.visit_windows_enriched += 1
+            logger.debug(f"Enriched timing for {visit_name}: {timing['windowLower']} to {timing['windowUpper']}")
         
         return design
 

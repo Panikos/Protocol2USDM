@@ -79,7 +79,24 @@ class ObjectivesPhase(BasePhase):
             study_design["objectives"] = [o.to_dict() for o in data.objectives]
             study_design["endpoints"] = [e.to_dict() for e in data.endpoints]
             if data.estimands:
-                study_design["estimands"] = [e.to_dict() for e in data.estimands]
+                # Filter out incomplete estimands (ICH E9(R1) requires these fields)
+                valid_estimands = []
+                for e in data.estimands:
+                    e_dict = e.to_dict()
+                    # Check for required ICH E9(R1) estimand components
+                    has_population = bool(e_dict.get('analysisPopulationId') or e_dict.get('populationSummary'))
+                    has_variable = bool(e_dict.get('variableOfInterestId'))
+                    has_intervention = bool(e_dict.get('interventionIds'))
+                    
+                    if has_population and has_variable and has_intervention:
+                        valid_estimands.append(e_dict)
+                    else:
+                        # Log incomplete estimand but still include if it has meaningful content
+                        if e_dict.get('name') and e_dict.get('populationSummary'):
+                            valid_estimands.append(e_dict)
+                
+                if valid_estimands:
+                    study_design["estimands"] = valid_estimands
             objectives_added = True
         
         # Fallback to previously extracted objectives
