@@ -94,6 +94,8 @@ Examples:
     expansion_group.add_argument("--amendmentdetails", action="store_true", help="Extract amendment details")
     expansion_group.add_argument("--execution", action="store_true", help="Extract execution model semantics")
     expansion_group.add_argument("--complete", action="store_true", help="Run COMPLETE extraction")
+    expansion_group.add_argument("--parallel", action="store_true", help="Run independent phases in parallel")
+    expansion_group.add_argument("--max-workers", type=int, default=4, help="Max parallel workers (default: 4)")
     
     # Conditional sources
     conditional_group = parser.add_argument_group('Conditional Sources')
@@ -220,13 +222,25 @@ Examples:
             logger.info("="*60)
             
             orchestrator = PipelineOrchestrator(usage_tracker=usage_tracker)
-            expansion_results = orchestrator.run_phases(
-                pdf_path=args.pdf_path,
-                output_dir=output_dir,
-                model=config.model_name,
-                phases_to_run=phases_to_run,
-                soa_data=soa_data,
-            )
+            
+            if args.parallel:
+                logger.info(f"Parallel mode enabled (max {args.max_workers} workers)")
+                expansion_results = orchestrator.run_phases_parallel(
+                    pdf_path=args.pdf_path,
+                    output_dir=output_dir,
+                    model=config.model_name,
+                    phases_to_run=phases_to_run,
+                    soa_data=soa_data,
+                    max_workers=args.max_workers,
+                )
+            else:
+                expansion_results = orchestrator.run_phases(
+                    pdf_path=args.pdf_path,
+                    output_dir=output_dir,
+                    model=config.model_name,
+                    phases_to_run=phases_to_run,
+                    soa_data=soa_data,
+                )
             
             # Print expansion summary
             success_count = sum(1 for k, r in expansion_results.items() 

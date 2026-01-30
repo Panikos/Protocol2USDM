@@ -3,11 +3,14 @@ Pipeline orchestrator for running extraction phases.
 
 Replaces the duplicated if-blocks in main_v2.py with a clean,
 registry-driven approach.
+
+Supports both sequential and parallel execution of phases.
 """
 
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Set
 from pathlib import Path
 from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
 import os
 import logging
@@ -17,6 +20,23 @@ from .base_phase import BasePhase, PhaseResult
 from extraction.pipeline_context import PipelineContext, create_pipeline_context
 
 logger = logging.getLogger(__name__)
+
+# Phase dependency graph - phases that must complete before others can start
+# Format: phase_name -> set of phases it depends on
+PHASE_DEPENDENCIES = {
+    'metadata': set(),  # No dependencies
+    'eligibility': {'metadata'},  # Uses indication/phase from metadata
+    'objectives': {'metadata'},  # Uses indication/phase from metadata
+    'studydesign': set(),  # Uses SoA data (passed separately)
+    'interventions': {'metadata', 'studydesign'},  # Uses arms + indication
+    'narrative': set(),  # Independent
+    'advanced': set(),  # Independent
+    'procedures': set(),  # Independent
+    'scheduling': set(),  # Independent
+    'docstructure': set(),  # Independent
+    'amendmentdetails': set(),  # Independent
+    'execution': set(),  # Uses SoA data (passed separately)
+}
 
 
 class PipelineOrchestrator:
@@ -98,6 +118,141 @@ class PipelineOrchestrator:
         self._results = results
         
         return results
+    
+    def run_phases_parallel(
+        self,
+        pdf_path: str,
+        output_dir: str,
+        model: str,
+        phases_to_run: Dict[str, bool],
+        soa_data: Optional[dict] = None,
+        pipeline_context: Optional[PipelineContext] = None,
+        max_workers: int = 4,
+    ) -> Dict[str, PhaseResult]:
+        """
+        Run extraction phases with parallel execution where possible.
+        
+        Phases are grouped by dependency level and run in parallel within each level.
+        
+        Args:
+            pdf_path: Path to protocol PDF
+            output_dir: Output directory
+            model: LLM model name
+            phases_to_run: Dict of phase_name -> bool indicating which to run
+            soa_data: Optional SoA extraction data
+            pipeline_context: Optional existing pipeline context
+            max_workers: Maximum parallel workers (default: 4)
+            
+        Returns:
+            Dict of phase_name -> PhaseResult
+        """
+        # Create or use existing pipeline context
+        if pipeline_context is None:
+            pipeline_context = create_pipeline_context(soa_data)
+        self._pipeline_context = pipeline_context
+        
+        logger.info(f"Pipeline context: {pipeline_context.get_summary()}")
+        
+        # Filter to only requested phases
+        requested_phases = {
+            name for name, should_run in phases_to_run.items() 
+            if should_run and phase_registry.has(name)
+        }
+        
+        if not requested_phases:
+            logger.info("No phases requested")
+            return {'_pipeline_context': pipeline_context}
+        
+        results = {}
+        completed: Set[str] = set()
+        
+        # Build execution waves based on dependencies
+        waves = self._build_execution_waves(requested_phases)
+        logger.info(f"Parallel execution: {len(waves)} waves for {len(requested_phases)} phases")
+        
+        for wave_num, wave_phases in enumerate(waves, 1):
+            if len(wave_phases) == 1:
+                # Single phase - run directly
+                phase_name = list(wave_phases)[0]
+                phase = phase_registry.get(phase_name)
+                if phase:
+                    result = phase.run(
+                        pdf_path=pdf_path,
+                        model=model,
+                        output_dir=output_dir,
+                        context=pipeline_context,
+                        usage_tracker=self.usage_tracker,
+                        soa_data=soa_data,
+                    )
+                    results[phase_name] = result
+                    completed.add(phase_name)
+            else:
+                # Multiple phases - run in parallel
+                logger.info(f"  Wave {wave_num}: Running {len(wave_phases)} phases in parallel: {wave_phases}")
+                
+                with ThreadPoolExecutor(max_workers=min(max_workers, len(wave_phases))) as executor:
+                    futures = {}
+                    for phase_name in wave_phases:
+                        phase = phase_registry.get(phase_name)
+                        if phase:
+                            future = executor.submit(
+                                phase.run,
+                                pdf_path=pdf_path,
+                                model=model,
+                                output_dir=output_dir,
+                                context=pipeline_context,
+                                usage_tracker=self.usage_tracker,
+                                soa_data=soa_data,
+                            )
+                            futures[future] = phase_name
+                    
+                    # Collect results as they complete
+                    for future in as_completed(futures):
+                        phase_name = futures[future]
+                        try:
+                            result = future.result()
+                            results[phase_name] = result
+                            completed.add(phase_name)
+                        except Exception as e:
+                            logger.error(f"Phase {phase_name} failed: {e}")
+                            results[phase_name] = PhaseResult(success=False, error=str(e))
+                            completed.add(phase_name)
+        
+        results['_pipeline_context'] = pipeline_context
+        self._results = results
+        
+        return results
+    
+    def _build_execution_waves(self, requested_phases: Set[str]) -> List[Set[str]]:
+        """
+        Build execution waves based on phase dependencies.
+        
+        Returns list of sets, where each set contains phases that can run in parallel.
+        """
+        waves = []
+        remaining = set(requested_phases)
+        completed: Set[str] = set()
+        
+        while remaining:
+            # Find phases whose dependencies are all satisfied
+            ready = set()
+            for phase in remaining:
+                deps = PHASE_DEPENDENCIES.get(phase, set())
+                # Only consider dependencies that are in requested_phases
+                relevant_deps = deps & requested_phases
+                if relevant_deps <= completed:
+                    ready.add(phase)
+            
+            if not ready:
+                # No phases ready - break dependency cycle by running all remaining
+                logger.warning(f"Breaking dependency cycle, running remaining: {remaining}")
+                ready = remaining.copy()
+            
+            waves.append(ready)
+            completed.update(ready)
+            remaining -= ready
+        
+        return waves
     
     def get_results(self) -> Dict[str, PhaseResult]:
         """Get all phase results."""
