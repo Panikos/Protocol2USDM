@@ -63,18 +63,6 @@ class ObjectivesPhase(BasePhase):
         if result.data:
             context.update_from_objectives(result.data)
     
-    def save_result(self, result: PhaseResult, output_path: str) -> None:
-        from extraction.objectives.extractor import save_objectives_result
-        
-        class ResultWrapper:
-            def __init__(self, success, data, error=None):
-                self.success = success
-                self.data = data
-                self.error = error
-        
-        wrapper = ResultWrapper(result.success, result.data, result.error)
-        save_objectives_result(wrapper, output_path)
-    
     def combine(
         self,
         result: PhaseResult,

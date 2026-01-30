@@ -48,18 +48,6 @@ class MetadataPhase(BasePhase):
         if result.data:
             context.update_from_metadata(result.data)
     
-    def save_result(self, result: PhaseResult, output_path: str) -> None:
-        from extraction.metadata.extractor import save_metadata_result
-        # Create a result-like object for the existing save function
-        class ResultWrapper:
-            def __init__(self, success, metadata, error=None):
-                self.success = success
-                self.metadata = metadata
-                self.error = error
-        
-        wrapper = ResultWrapper(result.success, result.data, result.error)
-        save_metadata_result(wrapper, output_path)
-    
     def combine(
         self,
         result: PhaseResult,

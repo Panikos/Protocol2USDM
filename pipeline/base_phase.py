@@ -154,16 +154,34 @@ class BasePhase(ABC):
         """
         Save extraction result to file.
         
-        Default implementation saves to JSON. Override for custom behavior.
+        Default implementation saves to JSON with standard format.
         """
         import json
         import os
         
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         
-        output_data = result.to_dict()
+        output = {
+            "success": result.success,
+            "pagesUsed": [],
+            "modelUsed": "unknown",
+        }
+        
+        if result.data:
+            if hasattr(result.data, 'to_dict'):
+                output[self.config.name.lower()] = result.data.to_dict()
+            elif isinstance(result.data, dict):
+                output[self.config.name.lower()] = result.data
+            else:
+                output["data"] = str(result.data)
+        
+        if result.error:
+            output["error"] = result.error
+        if result.confidence is not None:
+            output["confidence"] = result.confidence
+        
         with open(output_path, 'w', encoding='utf-8') as f:
-            json.dump(output_data, f, indent=2, ensure_ascii=False)
+            json.dump(output, f, indent=2, ensure_ascii=False)
     
     def run(
         self,

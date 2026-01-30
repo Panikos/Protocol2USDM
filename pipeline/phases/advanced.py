@@ -44,18 +44,6 @@ class AdvancedPhase(BasePhase):
             return conf.overall
         return None
     
-    def save_result(self, result: PhaseResult, output_path: str) -> None:
-        from extraction.advanced.extractor import save_advanced_result
-        
-        class ResultWrapper:
-            def __init__(self, success, data, error=None):
-                self.success = success
-                self.data = data
-                self.error = error
-        
-        wrapper = ResultWrapper(result.success, result.data, result.error)
-        save_advanced_result(wrapper, output_path)
-    
     def combine(
         self,
         result: PhaseResult,
