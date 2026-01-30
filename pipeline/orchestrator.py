@@ -392,6 +392,26 @@ def combine_to_full_usdm(
     if combined.get("_temp_indications"):
         study_design["indications"] = combined.pop("_temp_indications")
     
+    # Add sites data from conditional sources (not a registered phase)
+    if expansion_results and expansion_results.get('sites'):
+        sites_result = expansion_results['sites']
+        if hasattr(sites_result, 'data') and sites_result.data:
+            sites_dict = sites_result.data.to_dict()
+            sites_data = sites_dict.get('studySites', [])
+            if sites_data:
+                study_design['studySites'] = sites_data
+                logger.info(f"  Added {len(sites_data)} study sites to studyDesign")
+            
+            # Add site organizations to study_version.organizations
+            site_orgs = sites_dict.get('organizations', [])
+            if site_orgs:
+                existing_orgs = study_version.get('organizations', [])
+                # Avoid duplicates by checking IDs
+                existing_ids = {o.get('id') for o in existing_orgs}
+                new_orgs = [o for o in site_orgs if o.get('id') not in existing_ids]
+                study_version['organizations'] = existing_orgs + new_orgs
+                logger.info(f"  Added {len(new_orgs)} site organizations")
+    
     # Add studyDesign to study_version
     study_version["studyDesigns"] = [study_design]
     

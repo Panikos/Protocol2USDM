@@ -62,14 +62,19 @@ class ProceduresPhase(BasePhase):
         combined: dict,
         previous_extractions: dict,
     ) -> None:
-        """Link procedures to activities via definedProcedures."""
+        """Add procedures to studyDesign and link to activities where possible."""
         if not (result.success and result.data):
             return
         
         data_dict = result.data.to_dict()
         procedures_list = data_dict.get('procedures', [])
         
-        # Link procedures to activities via definedProcedures
+        # Always add procedures to studyDesign.procedures first
+        if procedures_list:
+            study_design['procedures'] = procedures_list
+            logger.info(f"  Added {len(procedures_list)} procedures to studyDesign")
+        
+        # Link procedures to activities via definedProcedures (optional enrichment)
         if procedures_list and study_design.get('activities'):
             # Build name-to-procedure mapping for matching
             proc_by_name = {}
@@ -86,38 +91,40 @@ class ProceduresPhase(BasePhase):
             procedures_linked = 0
             for activity in study_design['activities']:
                 act_name = activity.get('name', '').lower()
-                matched_procs = []
+                matched_proc_ids = []
                 
                 # Direct match
                 if act_name in proc_by_name:
-                    matched_procs.append(proc_by_name[act_name])
+                    matched_proc_ids.append(proc_by_name[act_name].get('id'))
                 
                 # Partial match
                 for proc_name, proc in proc_by_name.items():
-                    if proc not in matched_procs:
+                    proc_id = proc.get('id')
+                    if proc_id not in matched_proc_ids:
                         if proc_name in act_name or act_name in proc_name:
-                            matched_procs.append(proc)
+                            matched_proc_ids.append(proc_id)
                 
-                if matched_procs:
-                    activity['definedProcedures'] = matched_procs
-                    procedures_linked += len(matched_procs)
+                if matched_proc_ids:
+                    # Link via procedureIds (reference by ID, not embedding)
+                    activity['definedProcedures'] = [
+                        {"procedureId": pid} for pid in matched_proc_ids if pid
+                    ]
+                    procedures_linked += len(matched_proc_ids)
             
-            # Unmatched procedures go to studyDesign.procedures
-            unmatched = [p for p in procedures_list if not any(
-                p in act.get('definedProcedures', []) for act in study_design['activities']
-            )]
-            if unmatched:
-                study_design['procedures'] = unmatched
+            if procedures_linked > 0:
+                logger.info(f"  Linked {procedures_linked} procedures to activities")
         
-        # Medical devices go to studyVersion
-        if data_dict.get('medicalDevices'):
-            study_version["medicalDevices"] = data_dict['medicalDevices']
+        # Medical devices go to studyDesign (not studyVersion per USDM 4.0)
+        devices_list = data_dict.get('medicalDevices', []) or data_dict.get('devices', [])
+        if devices_list:
+            study_design["medicalDevices"] = devices_list
+            logger.info(f"  Added {len(devices_list)} medical devices")
         
-        # Product-related data
+        # Product-related data stored temporarily for later processing
         if data_dict.get('ingredients'):
-            combined["ingredients"] = data_dict['ingredients']
+            combined["_temp_ingredients"] = data_dict['ingredients']
         if data_dict.get('strengths'):
-            combined["strengths"] = data_dict['strengths']
+            combined["_temp_strengths"] = data_dict['strengths']
 
 
 # Register the phase
