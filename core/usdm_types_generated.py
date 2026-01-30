@@ -343,6 +343,12 @@ class StudyDesign(USDMEntity):
     USDM StudyDesign - Base for Interventional/Observational designs.
     
     This is typically InterventionalStudyDesign or ObservationalStudyDesign.
+    
+    Per USDM v4.0 schema:
+    - conditions: 0..* - Condition entities for conditional workflows
+    - estimands: 0..* - Estimand entities for statistical analysis
+    - elements: 0..* - StudyElement entities for titration/dose phases
+    
     Required: id, name, rationale, model, population, epochs, arms, instanceType
     """
     id: str = ""
@@ -375,6 +381,11 @@ class StudyDesign(USDMEntity):
     
     # Interventions
     studyInterventions: List['StudyIntervention'] = field(default_factory=list)
+    
+    # Conditions, Estimands, Elements (USDM v4.0)
+    conditions: List['Condition'] = field(default_factory=list)
+    estimands: List['Estimand'] = field(default_factory=list)
+    elements: List['StudyElement'] = field(default_factory=list)
     
     # Notes
     notes: List[CommentAnnotation] = field(default_factory=list)
@@ -429,6 +440,12 @@ class StudyDesign(USDMEntity):
             result["endpoints"] = [e.to_dict() for e in self.endpoints]
         if self.studyInterventions:
             result["studyInterventions"] = [s.to_dict() for s in self.studyInterventions]
+        if self.conditions:
+            result["conditions"] = [c.to_dict() for c in self.conditions]
+        if self.estimands:
+            result["estimands"] = [e.to_dict() for e in self.estimands]
+        if self.elements:
+            result["elements"] = [e.to_dict() for e in self.elements]
         if self.notes:
             result["notes"] = [n.to_dict() for n in self.notes]
         
@@ -614,6 +631,12 @@ class Encounter(USDMEntity):
     USDM Encounter - A study visit.
     
     NCI Code: C215488
+    
+    Per USDM v4.0 schema:
+    - transitionStartRule: 0..1 - rule to trigger the start of encounter
+    - transitionEndRule: 0..1 - rule to trigger the end of encounter
+    - previousId/nextId: for encounter sequencing
+    
     Required: id, name, type, instanceType
     """
     id: str = ""
@@ -623,6 +646,10 @@ class Encounter(USDMEntity):
     type: Optional[Code] = None
     epochId: Optional[str] = None
     scheduledAtTimingId: Optional[str] = None
+    previousId: Optional[str] = None
+    nextId: Optional[str] = None
+    transitionStartRule: Optional['TransitionRule'] = None
+    transitionEndRule: Optional['TransitionRule'] = None
     instanceType: str = "Encounter"
     
     def to_dict(self) -> Dict[str, Any]:
@@ -661,6 +688,14 @@ class Encounter(USDMEntity):
             result["epochId"] = self.epochId
         if self.scheduledAtTimingId:
             result["scheduledAtTimingId"] = self.scheduledAtTimingId
+        if self.previousId:
+            result["previousId"] = self.previousId
+        if self.nextId:
+            result["nextId"] = self.nextId
+        if self.transitionStartRule:
+            result["transitionStartRule"] = self.transitionStartRule.to_dict()
+        if self.transitionEndRule:
+            result["transitionEndRule"] = self.transitionEndRule.to_dict()
         
         return result
 
@@ -778,16 +813,86 @@ class ScheduledActivityInstance(USDMEntity):
 
 
 @dataclass
-class ScheduleTimelineExit(USDMEntity):
-    """USDM ScheduleTimelineExit - Exit criteria for timeline."""
+class ConditionAssignment(USDMEntity):
+    """
+    USDM ConditionAssignment - An if/then rule in a decision node.
+    
+    Per USDM v4.0 schema:
+    - condition: string (the logical condition text)
+    - conditionTargetId: reference to target ScheduledInstance
+    
+    Required: id, condition, conditionTargetId, instanceType
+    """
     id: str = ""
-    instanceType: str = "ScheduleTimelineExit"
+    condition: str = ""
+    conditionTargetId: str = ""
+    instanceType: str = "ConditionAssignment"
     
     def to_dict(self) -> Dict[str, Any]:
         return {
             "id": self._ensure_id(),
+            "condition": self.condition,
+            "conditionTargetId": self.conditionTargetId,
             "instanceType": self.instanceType,
         }
+
+
+@dataclass
+class ScheduledDecisionInstance(USDMEntity):
+    """
+    USDM ScheduledDecisionInstance - A decision node in a schedule timeline.
+    
+    Per USDM v4.0 schema, this is a subtype of ScheduledInstance that contains
+    conditionAssignments - each is an if/then rule pointing to a target instance.
+    
+    Required: id, name, conditionAssignments, instanceType
+    """
+    id: str = ""
+    name: str = ""
+    epochId: Optional[str] = None
+    defaultConditionId: Optional[str] = None
+    conditionAssignments: List[ConditionAssignment] = field(default_factory=list)
+    instanceType: str = "ScheduledDecisionInstance"
+    
+    def to_dict(self) -> Dict[str, Any]:
+        result = {
+            "id": self._ensure_id(),
+            "name": self.name or "Decision Node",
+            "conditionAssignments": [ca.to_dict() for ca in self.conditionAssignments],
+            "instanceType": self.instanceType,
+        }
+        if self.epochId:
+            result["epochId"] = self.epochId
+        if self.defaultConditionId:
+            result["defaultConditionId"] = self.defaultConditionId
+        return result
+
+
+@dataclass
+class ScheduleTimelineExit(USDMEntity):
+    """
+    USDM ScheduleTimelineExit - Exit criteria for timeline.
+    
+    Per USDM v4.0 schema:
+    - exitId: reference to an activity or encounter triggering exit
+    
+    Required: id, instanceType
+    """
+    id: str = ""
+    name: str = ""
+    exitId: Optional[str] = None
+    instanceType: str = "ScheduleTimelineExit"
+    
+    def to_dict(self) -> Dict[str, Any]:
+        result = {
+            "id": self._ensure_id(),
+            "instanceType": self.instanceType,
+        }
+        if self.name:
+            result["name"] = self.name
+        if self.exitId:
+            result["exitId"] = self.exitId
+        return result
 
 
 @dataclass
@@ -1168,6 +1273,48 @@ class TransitionRule(USDMEntity):
             "text": self.text,
             "instanceType": self.instanceType,
         }
+
+
+@dataclass
+class StudyElement(USDMEntity):
+    """
+    USDM StudyElement - A basic building block for time within a clinical study.
+    
+    Per USDM v4.0 schema:
+    - transitionStartRule: 0..1 - rule to trigger the start
+    - transitionEndRule: 0..1 - rule to trigger the end
+    - studyInterventionIds: 0..* - references to interventions during this element
+    
+    Used for titration steps, washout periods, dose escalation phases, etc.
+    
+    Required: id, name, instanceType
+    """
+    id: str = ""
+    name: str = ""
+    description: Optional[str] = None
+    label: Optional[str] = None
+    transitionStartRule: Optional[TransitionRule] = None
+    transitionEndRule: Optional[TransitionRule] = None
+    studyInterventionIds: List[str] = field(default_factory=list)
+    instanceType: str = "StudyElement"
+    
+    def to_dict(self) -> Dict[str, Any]:
+        result = {
+            "id": self._ensure_id(),
+            "name": self.name,
+            "instanceType": self.instanceType,
+        }
+        if self.description:
+            result["description"] = self.description
+        if self.label:
+            result["label"] = self.label
+        if self.transitionStartRule:
+            result["transitionStartRule"] = self.transitionStartRule.to_dict()
+        if self.transitionEndRule:
+            result["transitionEndRule"] = self.transitionEndRule.to_dict()
+        if self.studyInterventionIds:
+            result["studyInterventionIds"] = self.studyInterventionIds
+        return result
 
 
 @dataclass
@@ -1703,7 +1850,7 @@ __all__ = [
     'StudyDesign', 'StudyArm', 'StudyCell', 'StudyEpoch', 'Epoch', 'StudyCohort',
     # SoA
     'Activity', 'Encounter', 'ScheduleTimeline', 'ScheduledActivityInstance',
-    'ScheduleTimelineExit', 'Timing',
+    'ScheduledDecisionInstance', 'ConditionAssignment', 'ScheduleTimelineExit', 'Timing',
     # Eligibility
     'EligibilityCriterion', 'EligibilityCriterionItem', 'StudyDesignPopulation',
     # Objectives
@@ -1712,8 +1859,8 @@ __all__ = [
     'StudyIntervention', 'Procedure', 'Administration', 'AdministrableProduct',
     # Metadata
     'Indication', 'Abbreviation', 'NarrativeContent', 'StudyAmendment',
-    # Scheduling
-    'Condition', 'TransitionRule',
+    # Scheduling & Transitions
+    'Condition', 'TransitionRule', 'StudyElement',
     # Helpers
     'generate_uuid', 'create_wrapper_input', 'normalize_usdm_data', 'USDMEntity',
 ]

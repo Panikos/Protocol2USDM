@@ -1348,3 +1348,60 @@ if collection_sources:
         source_text=collection_sources[0],
     ))
 ```
+
+---
+
+## Execution Model Promoter (v7.2+)
+
+The `ExecutionModelPromoter` addresses the gap where execution model data was extracted but stored only in extensions. It promotes execution findings into **native USDM entities** so downstream consumers can use core USDM without parsing extensions.
+
+### Key File
+
+`extraction/execution/execution_model_promoter.py`
+
+### Promotion Methods
+
+| Method | Input | Output | USDM Entity |
+|--------|-------|--------|-------------|
+| `_promote_time_anchors()` | TimeAnchor[] | ScheduledActivityInstance | Creates anchor instances |
+| `_promote_repetitions()` | Repetition[] | ScheduledActivityInstance | Expands daily/weekly patterns |
+| `_promote_dosing_regimens()` | DosingRegimen[] | Administration | Links to StudyIntervention |
+| `_promote_visit_windows()` | VisitWindow[] | Timing | Sets windowLower/windowUpper |
+| `_promote_traversals()` | TraversalConstraint[] | StudyEpoch, Encounter | Sets previousId/nextId chains |
+| `_promote_conditions()` | FootnoteCondition[] | Condition, ScheduledDecisionInstance | Creates conditional workflows |
+| `_promote_state_machine()` | SubjectStateMachine | TransitionRule | Sets transitionStartRule/EndRule |
+| `_promote_estimands()` | EndpointAlgorithm[] | Estimand | Links to Endpoint |
+| `_promote_elements()` | TitrationSchedule[] | StudyElement | Creates dose escalation steps |
+
+### New USDM Entities (v7.2)
+
+Added to `core/usdm_types_generated.py`:
+
+- **ScheduledDecisionInstance** - Decision node in timeline with conditionAssignments
+- **ConditionAssignment** - If/then rule: condition text → conditionTargetId
+- **StudyElement** - Building block for titration/dose phases with transition rules
+
+### Updated USDM Entities
+
+- **Encounter** - Added `transitionStartRule`, `transitionEndRule`, `previousId`, `nextId`
+- **StudyDesign** - Added `conditions[]`, `estimands[]`, `elements[]`
+- **ScheduleTimelineExit** - Added `name`, `exitId`
+
+### Post-Promotion Validation
+
+The `validate_after_promotion()` function checks:
+- Condition.appliesToIds referencing nonexistent activities
+- Timing.relativeFromScheduledInstanceId pointing to missing instances
+- ScheduledDecisionInstance with invalid conditionTargetIds
+- Broken epoch/encounter previousId/nextId chains
+- Estimand.variableOfInterestId referencing missing endpoints
+
+### Extension Schema
+
+Concepts with no native USDM equivalent are documented in `docs/EXECUTION_MODEL_EXTENSIONS.md`:
+- Sampling constraints
+- Execution type classifications (WINDOW/EPISODE/SINGLE/RECURRING)
+- Endpoint computation formulas
+- Derived variable rules
+- Analysis windows
+- Randomization operational details

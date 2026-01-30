@@ -36,6 +36,13 @@ class PromotionResult:
     instances_created: int = 0
     administrations_created: int = 0
     references_fixed: int = 0
+    visit_windows_enriched: int = 0
+    traversals_linked: int = 0
+    conditions_promoted: int = 0
+    decision_instances_created: int = 0
+    transition_rules_created: int = 0
+    estimands_created: int = 0
+    elements_created: int = 0
     issues: List[Dict[str, Any]] = field(default_factory=list)
 
 
@@ -92,13 +99,50 @@ class ExecutionModelPromoter:
         # Step 4: Fix dangling references in timings
         usdm_design = self._fix_timing_references(usdm_design)
         
-        # Step 5: Promote footnote conditions to activity notes (already done elsewhere, verify)
+        # Step 5: Promote visit windows → Timing.windowLower/windowUpper
+        if hasattr(execution_data, 'visit_windows') and execution_data.visit_windows:
+            usdm_design = self._promote_visit_windows(
+                usdm_design, execution_data.visit_windows
+            )
+        
+        # Step 6: Promote traversal constraints → epoch/encounter chains
+        if hasattr(execution_data, 'traversal_constraints') and execution_data.traversal_constraints:
+            usdm_design = self._promote_traversals(
+                usdm_design, execution_data.traversal_constraints
+            )
+        
+        # Step 7: Promote footnote conditions → Condition + ScheduledDecisionInstance
+        if hasattr(execution_data, 'footnote_conditions') and execution_data.footnote_conditions:
+            usdm_design = self._promote_conditions(
+                usdm_design, execution_data.footnote_conditions
+            )
+        
+        # Step 8: Promote state machine → TransitionRule on Encounter/StudyElement
+        if hasattr(execution_data, 'state_machine') and execution_data.state_machine:
+            usdm_design = self._promote_state_machine(
+                usdm_design, execution_data.state_machine
+            )
+        
+        # Step 9: Promote endpoint algorithms → Estimand framework
+        if hasattr(execution_data, 'endpoint_algorithms') and execution_data.endpoint_algorithms:
+            usdm_design = self._promote_estimands(
+                usdm_design, execution_data.endpoint_algorithms
+            )
+        
+        # Step 10: Promote titration schedules → StudyElement with transitions
+        if hasattr(execution_data, 'titration_schedules') and execution_data.titration_schedules:
+            usdm_design = self._promote_elements(
+                usdm_design, execution_data.titration_schedules
+            )
         
         logger.info(
             f"Promotion complete: {self.result.anchors_created} anchors, "
             f"{self.result.instances_created} instances, "
             f"{self.result.administrations_created} administrations, "
-            f"{self.result.references_fixed} refs fixed"
+            f"{self.result.references_fixed} refs fixed, "
+            f"{self.result.visit_windows_enriched} windows, "
+            f"{self.result.conditions_promoted} conditions, "
+            f"{self.result.transition_rules_created} transitions"
         )
         
         return usdm_design, study_version
@@ -933,11 +977,549 @@ class ExecutionModelPromoter:
         
         conceptual_ext['valueString'] = json.dumps(anchors)
 
+    def _promote_visit_windows(
+        self,
+        design: Dict[str, Any],
+        visit_windows: List[Any]
+    ) -> Dict[str, Any]:
+        """
+        Promote visit windows to Timing.windowLower/windowUpper fields.
+        
+        Per USDM v4.0 schema:
+        - Timing.windowLower: ISO 8601 duration (lower bound)
+        - Timing.windowUpper: ISO 8601 duration (upper bound)
+        - Timing.windowLabel: Human-readable window description
+        """
+        # Build encounter lookup by name
+        encounters = design.get('encounters', [])
+        encounter_by_name = {}
+        for enc in encounters:
+            enc_name = enc.get('name', '').lower().strip()
+            encounter_by_name[enc_name] = enc
+            # Also map by label
+            if enc.get('label'):
+                encounter_by_name[enc.get('label', '').lower().strip()] = enc
+        
+        # Build timing lookup
+        timelines = design.get('scheduleTimelines', [])
+        timing_by_id = {}
+        for timeline in timelines:
+            for timing in timeline.get('timings', []):
+                timing_by_id[timing.get('id')] = timing
+        
+        for window in visit_windows:
+            visit_name = getattr(window, 'visit_name', '') or getattr(window, 'visitName', '')
+            target_day = getattr(window, 'target_day', None) or getattr(window, 'targetDay', None)
+            window_before = getattr(window, 'window_before', 0) or getattr(window, 'windowBefore', 0)
+            window_after = getattr(window, 'window_after', 0) or getattr(window, 'windowAfter', 0)
+            
+            if not visit_name or target_day is None:
+                continue
+            
+            # Find matching encounter
+            enc_key = visit_name.lower().strip()
+            encounter = encounter_by_name.get(enc_key)
+            
+            if not encounter:
+                # Try fuzzy match
+                for key, enc in encounter_by_name.items():
+                    if enc_key in key or key in enc_key:
+                        encounter = enc
+                        break
+            
+            if not encounter:
+                logger.debug(f"No encounter found for visit window: {visit_name}")
+                continue
+            
+            # Find the timing for this encounter
+            timing_id = encounter.get('scheduledAtTimingId')
+            timing = timing_by_id.get(timing_id) if timing_id else None
+            
+            if not timing:
+                # Find timing by matching value/valueLabel
+                for tid, t in timing_by_id.items():
+                    if t.get('valueLabel', '').lower() == visit_name.lower():
+                        timing = t
+                        break
+            
+            if timing:
+                # Calculate window bounds as ISO 8601 durations
+                lower_day = max(0, target_day - window_before)
+                upper_day = target_day + window_after
+                
+                timing['windowLower'] = f"P{lower_day}D"
+                timing['windowUpper'] = f"P{upper_day}D"
+                timing['windowLabel'] = f"Day {target_day} (±{window_before}/{window_after})"
+                
+                self.result.visit_windows_enriched += 1
+                logger.debug(f"Enriched timing for {visit_name}: P{lower_day}D - P{upper_day}D")
+            else:
+                logger.debug(f"No timing found for encounter: {visit_name}")
+        
+        return design
+
+    def _promote_traversals(
+        self,
+        design: Dict[str, Any],
+        traversal_constraints: List[Any]
+    ) -> Dict[str, Any]:
+        """
+        Promote traversal constraints to epoch/encounter previousId/nextId chains.
+        
+        Per USDM v4.0 schema:
+        - StudyEpoch.previousId/nextId: epoch sequence
+        - Encounter.previousId/nextId: visit sequence
+        """
+        epochs = design.get('epochs', [])
+        encounters = design.get('encounters', [])
+        
+        if not epochs:
+            return design
+        
+        # Build epoch lookup
+        epoch_by_id = {e.get('id'): e for e in epochs}
+        epoch_by_name = {e.get('name', '').lower(): e for e in epochs}
+        
+        for constraint in traversal_constraints:
+            required_sequence = getattr(constraint, 'required_sequence', []) or \
+                               getattr(constraint, 'requiredSequence', [])
+            
+            if not required_sequence:
+                continue
+            
+            # Link epochs in sequence
+            prev_epoch = None
+            for epoch_ref in required_sequence:
+                # Find epoch by name or ID
+                epoch = epoch_by_id.get(epoch_ref) or epoch_by_name.get(epoch_ref.lower())
+                
+                if epoch and prev_epoch:
+                    prev_epoch['nextId'] = epoch.get('id')
+                    epoch['previousId'] = prev_epoch.get('id')
+                    self.result.traversals_linked += 1
+                
+                prev_epoch = epoch
+        
+        # Also link encounters within each epoch
+        encounters_by_epoch = {}
+        for enc in encounters:
+            epoch_id = enc.get('epochId')
+            if epoch_id:
+                encounters_by_epoch.setdefault(epoch_id, []).append(enc)
+        
+        for epoch_id, epoch_encounters in encounters_by_epoch.items():
+            # Sort by timing if available, otherwise by name
+            sorted_encs = sorted(epoch_encounters, key=lambda e: e.get('name', ''))
+            
+            for i, enc in enumerate(sorted_encs):
+                if i > 0:
+                    enc['previousId'] = sorted_encs[i - 1].get('id')
+                if i < len(sorted_encs) - 1:
+                    enc['nextId'] = sorted_encs[i + 1].get('id')
+        
+        return design
+
+    def _promote_conditions(
+        self,
+        design: Dict[str, Any],
+        footnote_conditions: List[Any]
+    ) -> Dict[str, Any]:
+        """
+        Promote footnote conditions to Condition entities and ScheduledDecisionInstance nodes.
+        
+        Per USDM v4.0 schema:
+        - Condition: goes in studyDesign.conditions[]
+        - ScheduledDecisionInstance: decision node in timeline with conditionAssignments
+        """
+        conditions = design.setdefault('conditions', [])
+        existing_condition_ids = {c.get('id') for c in conditions}
+        
+        # Build activity lookup
+        activities = design.get('activities', [])
+        activity_by_name = {a.get('name', '').lower(): a for a in activities}
+        activity_by_id = {a.get('id'): a for a in activities}
+        
+        # Get main timeline for decision instances
+        timelines = design.get('scheduleTimelines', [])
+        main_timeline = timelines[0] if timelines else None
+        
+        for fn_cond in footnote_conditions:
+            cond_id = getattr(fn_cond, 'id', str(uuid.uuid4()))
+            cond_type = getattr(fn_cond, 'condition_type', '') or \
+                       getattr(fn_cond, 'conditionType', '')
+            cond_text = getattr(fn_cond, 'text', '') or getattr(fn_cond, 'condition_text', '')
+            applies_to = getattr(fn_cond, 'applies_to_activity_ids', []) or \
+                        getattr(fn_cond, 'appliesToActivityIds', [])
+            
+            if not cond_text:
+                continue
+            
+            # Skip if already exists
+            if cond_id in existing_condition_ids:
+                continue
+            
+            # Resolve activity references to USDM IDs
+            resolved_applies_to = []
+            for ref in applies_to:
+                # Try by ID first, then by name
+                if ref in activity_by_id:
+                    resolved_applies_to.append(ref)
+                else:
+                    activity = activity_by_name.get(ref.lower())
+                    if activity:
+                        resolved_applies_to.append(activity.get('id'))
+            
+            # Create Condition entity
+            condition = {
+                "id": cond_id,
+                "name": cond_type.replace('_', ' ').title() if cond_type else "Conditional Rule",
+                "text": cond_text,
+                "instanceType": "Condition",
+            }
+            
+            if resolved_applies_to:
+                condition["appliesToIds"] = resolved_applies_to
+            
+            conditions.append(condition)
+            existing_condition_ids.add(cond_id)
+            self.result.conditions_promoted += 1
+            
+            # For scheduling-level conditions, create ScheduledDecisionInstance
+            if main_timeline and resolved_applies_to and cond_type in ['procedure_variant', 'conditional_collection', 'visit_required']:
+                decision_instance = {
+                    "id": f"sdi_{cond_id}",
+                    "name": f"Decision: {condition['name']}",
+                    "instanceType": "ScheduledDecisionInstance",
+                    "conditionAssignments": [{
+                        "id": f"ca_{cond_id}",
+                        "condition": cond_text,
+                        "conditionTargetId": resolved_applies_to[0] if resolved_applies_to else "",
+                        "instanceType": "ConditionAssignment"
+                    }]
+                }
+                
+                instances = main_timeline.setdefault('instances', [])
+                instances.append(decision_instance)
+                self.result.decision_instances_created += 1
+        
+        return design
+
+    def _promote_state_machine(
+        self,
+        design: Dict[str, Any],
+        state_machine: Any
+    ) -> Dict[str, Any]:
+        """
+        Promote state machine transitions to TransitionRule on Encounter/StudyElement.
+        
+        Per USDM v4.0 schema:
+        - Encounter.transitionStartRule: rule to trigger start of encounter
+        - Encounter.transitionEndRule: rule to trigger end of encounter
+        """
+        transitions = getattr(state_machine, 'transitions', [])
+        if not transitions:
+            return design
+        
+        # Build encounter lookup
+        encounters = design.get('encounters', [])
+        encounter_by_name = {e.get('name', '').lower(): e for e in encounters}
+        
+        # Build epoch lookup for state → epoch mapping
+        epochs = design.get('epochs', [])
+        epoch_by_name = {e.get('name', '').lower(): e for e in epochs}
+        
+        for transition in transitions:
+            from_state = getattr(transition, 'from_state', '') or getattr(transition, 'fromState', '')
+            to_state = getattr(transition, 'to_state', '') or getattr(transition, 'toState', '')
+            trigger = getattr(transition, 'trigger', '')
+            guard = getattr(transition, 'guard_condition', '') or getattr(transition, 'guardCondition', '')
+            
+            if not trigger:
+                continue
+            
+            # Build transition rule text
+            rule_text = trigger
+            if guard:
+                rule_text = f"{trigger} [Guard: {guard}]"
+            
+            # Find target encounter or epoch
+            target_enc = encounter_by_name.get(to_state.lower())
+            target_epoch = epoch_by_name.get(to_state.lower())
+            
+            if target_enc:
+                # Add transitionStartRule to target encounter
+                target_enc['transitionStartRule'] = {
+                    "id": f"tr_start_{target_enc.get('id')}",
+                    "name": f"Entry to {to_state}",
+                    "text": rule_text,
+                    "instanceType": "TransitionRule"
+                }
+                self.result.transition_rules_created += 1
+            
+            # Find source encounter for end rule
+            source_enc = encounter_by_name.get(from_state.lower())
+            if source_enc:
+                source_enc['transitionEndRule'] = {
+                    "id": f"tr_end_{source_enc.get('id')}",
+                    "name": f"Exit from {from_state}",
+                    "text": rule_text,
+                    "instanceType": "TransitionRule"
+                }
+                self.result.transition_rules_created += 1
+        
+        return design
+
+    def _promote_estimands(
+        self,
+        design: Dict[str, Any],
+        endpoint_algorithms: List[Any]
+    ) -> Dict[str, Any]:
+        """
+        Promote endpoint algorithms to Estimand framework.
+        
+        Per USDM v4.0 schema:
+        - Estimand.variableOfInterestId: reference to Endpoint
+        - Estimand.populationSummary: population description
+        - Estimand.intercurrentEvents: handling strategies
+        """
+        estimands = design.setdefault('estimands', [])
+        existing_estimand_ids = {e.get('id') for e in estimands}
+        
+        # Build endpoint lookup
+        endpoints = design.get('endpoints', [])
+        endpoint_by_name = {e.get('name', '').lower(): e for e in endpoints}
+        
+        for algo in endpoint_algorithms:
+            algo_id = getattr(algo, 'id', str(uuid.uuid4()))
+            algo_name = getattr(algo, 'name', '') or getattr(algo, 'endpoint_name', '')
+            algorithm_text = getattr(algo, 'algorithm', '')
+            success_criteria = getattr(algo, 'success_criteria', '') or getattr(algo, 'successCriteria', '')
+            endpoint_type = getattr(algo, 'endpoint_type', '') or getattr(algo, 'endpointType', '')
+            
+            if algo_id in existing_estimand_ids:
+                continue
+            
+            # Find matching endpoint
+            endpoint = endpoint_by_name.get(algo_name.lower()) if algo_name else None
+            endpoint_id = endpoint.get('id') if endpoint else ""
+            
+            # Create Estimand
+            estimand = {
+                "id": f"est_{algo_id}",
+                "name": algo_name or f"Estimand for {endpoint_type}",
+                "instanceType": "Estimand",
+                "populationSummary": success_criteria or algorithm_text or "As defined in protocol",
+                "variableOfInterestId": endpoint_id,
+                "analysisPopulationId": "",  # Would need population reference
+                "intercurrentEvents": [],
+                "interventionIds": [],
+            }
+            
+            # Store algorithm as extension if present
+            if algorithm_text:
+                estimand['extensionAttributes'] = [{
+                    "id": str(uuid.uuid4()),
+                    "url": "https://protocol2usdm.io/extensions/x-algorithm",
+                    "valueString": algorithm_text,
+                    "instanceType": "ExtensionAttribute"
+                }]
+            
+            estimands.append(estimand)
+            existing_estimand_ids.add(estimand['id'])
+            self.result.estimands_created += 1
+        
+        return design
+
+    def _promote_elements(
+        self,
+        design: Dict[str, Any],
+        titration_schedules: List[Any]
+    ) -> Dict[str, Any]:
+        """
+        Promote titration schedules to StudyElement entities with transition rules.
+        
+        Per USDM v4.0 schema:
+        - StudyElement: building block for time with transition rules
+        - Used for titration steps, dose escalation phases
+        """
+        elements = design.setdefault('elements', [])
+        existing_element_ids = {e.get('id') for e in elements}
+        
+        for schedule in titration_schedules:
+            schedule_id = getattr(schedule, 'id', str(uuid.uuid4()))
+            name = getattr(schedule, 'name', '') or getattr(schedule, 'treatment_name', '')
+            dose_levels = getattr(schedule, 'dose_levels', []) or getattr(schedule, 'doseLevels', [])
+            
+            if not dose_levels:
+                continue
+            
+            # Create StudyElement for each dose level
+            prev_element_id = None
+            for i, level in enumerate(dose_levels):
+                level_dose = getattr(level, 'dose', '') if hasattr(level, 'dose') else str(level)
+                level_duration = getattr(level, 'duration', '') if hasattr(level, 'duration') else ''
+                level_criteria = getattr(level, 'criteria', '') if hasattr(level, 'criteria') else ''
+                
+                element_id = f"elem_{schedule_id}_{i}"
+                if element_id in existing_element_ids:
+                    continue
+                
+                element = {
+                    "id": element_id,
+                    "name": f"{name} - Step {i + 1}: {level_dose}" if name else f"Dose Step {i + 1}",
+                    "description": level_duration,
+                    "instanceType": "StudyElement",
+                }
+                
+                # Add transition rules
+                if level_criteria:
+                    element['transitionStartRule'] = {
+                        "id": f"tr_start_{element_id}",
+                        "name": f"Start Step {i + 1}",
+                        "text": level_criteria,
+                        "instanceType": "TransitionRule"
+                    }
+                    self.result.transition_rules_created += 1
+                
+                if prev_element_id:
+                    # Reference previous element
+                    element['previousElementId'] = prev_element_id
+                
+                elements.append(element)
+                existing_element_ids.add(element_id)
+                self.result.elements_created += 1
+                
+                prev_element_id = element_id
+        
+        return design
+
+
+def validate_after_promotion(
+    design: Dict[str, Any],
+    result: PromotionResult
+) -> List[Dict[str, Any]]:
+    """
+    Validate the enriched USDM after promotion.
+    
+    Checks for:
+    - Condition.appliesToIds referencing nonexistent activities
+    - Timing.relativeFromScheduledInstanceId pointing to missing instances
+    - Orphaned TransitionRule entities
+    - ScheduledDecisionInstance with invalid conditionTargetIds
+    
+    Args:
+        design: The enriched study design
+        result: The promotion result to append issues to
+        
+    Returns:
+        List of validation issues
+    """
+    issues = []
+    
+    # Build lookup sets
+    activity_ids = {a.get('id') for a in design.get('activities', [])}
+    encounter_ids = {e.get('id') for e in design.get('encounters', [])}
+    epoch_ids = {e.get('id') for e in design.get('epochs', [])}
+    
+    instance_ids = set()
+    timing_ids = set()
+    for timeline in design.get('scheduleTimelines', []):
+        for inst in timeline.get('instances', []):
+            instance_ids.add(inst.get('id'))
+        for timing in timeline.get('timings', []):
+            timing_ids.add(timing.get('id'))
+    
+    # Validate Condition.appliesToIds
+    for condition in design.get('conditions', []):
+        for applies_id in condition.get('appliesToIds', []):
+            if applies_id not in activity_ids:
+                issues.append({
+                    "severity": "warning",
+                    "category": "orphan_reference",
+                    "message": f"Condition '{condition.get('name')}' references nonexistent activity: {applies_id}",
+                    "affectedPath": f"$.conditions[?(@.id=='{condition.get('id')}')].appliesToIds"
+                })
+    
+    # Validate Timing.relativeFromScheduledInstanceId
+    for timeline in design.get('scheduleTimelines', []):
+        for timing in timeline.get('timings', []):
+            ref_id = timing.get('relativeFromScheduledInstanceId')
+            if ref_id and ref_id not in instance_ids:
+                issues.append({
+                    "severity": "warning",
+                    "category": "dangling_reference",
+                    "message": f"Timing '{timing.get('name')}' references missing instance: {ref_id}",
+                    "affectedPath": f"$.scheduleTimelines[*].timings[?(@.id=='{timing.get('id')}')]"
+                })
+    
+    # Validate ScheduledDecisionInstance.conditionAssignments
+    for timeline in design.get('scheduleTimelines', []):
+        for inst in timeline.get('instances', []):
+            if inst.get('instanceType') == 'ScheduledDecisionInstance':
+                for ca in inst.get('conditionAssignments', []):
+                    target_id = ca.get('conditionTargetId')
+                    if target_id and target_id not in instance_ids and target_id not in activity_ids:
+                        issues.append({
+                            "severity": "warning",
+                            "category": "invalid_condition_target",
+                            "message": f"ConditionAssignment targets nonexistent entity: {target_id}",
+                            "affectedPath": f"$.scheduleTimelines[*].instances[?(@.id=='{inst.get('id')}')]"
+                        })
+    
+    # Validate Encounter.previousId/nextId chains
+    for enc in design.get('encounters', []):
+        if enc.get('previousId') and enc.get('previousId') not in encounter_ids:
+            issues.append({
+                "severity": "info",
+                "category": "broken_chain",
+                "message": f"Encounter '{enc.get('name')}' has invalid previousId: {enc.get('previousId')}",
+                "affectedPath": f"$.encounters[?(@.id=='{enc.get('id')}')].previousId"
+            })
+        if enc.get('nextId') and enc.get('nextId') not in encounter_ids:
+            issues.append({
+                "severity": "info",
+                "category": "broken_chain",
+                "message": f"Encounter '{enc.get('name')}' has invalid nextId: {enc.get('nextId')}",
+                "affectedPath": f"$.encounters[?(@.id=='{enc.get('id')}')].nextId"
+            })
+    
+    # Validate Epoch.previousId/nextId chains
+    for epoch in design.get('epochs', []):
+        if epoch.get('previousId') and epoch.get('previousId') not in epoch_ids:
+            issues.append({
+                "severity": "info",
+                "category": "broken_chain",
+                "message": f"Epoch '{epoch.get('name')}' has invalid previousId: {epoch.get('previousId')}",
+                "affectedPath": f"$.epochs[?(@.id=='{epoch.get('id')}')].previousId"
+            })
+        if epoch.get('nextId') and epoch.get('nextId') not in epoch_ids:
+            issues.append({
+                "severity": "info",
+                "category": "broken_chain",
+                "message": f"Epoch '{epoch.get('name')}' has invalid nextId: {epoch.get('nextId')}",
+                "affectedPath": f"$.epochs[?(@.id=='{epoch.get('id')}')].nextId"
+            })
+    
+    # Validate Estimand references
+    endpoint_ids = {e.get('id') for e in design.get('endpoints', [])}
+    for estimand in design.get('estimands', []):
+        var_id = estimand.get('variableOfInterestId')
+        if var_id and var_id not in endpoint_ids:
+            issues.append({
+                "severity": "warning",
+                "category": "orphan_reference",
+                "message": f"Estimand '{estimand.get('name')}' references nonexistent endpoint: {var_id}",
+                "affectedPath": f"$.estimands[?(@.id=='{estimand.get('id')}')].variableOfInterestId"
+            })
+    
+    return issues
+
 
 def promote_execution_model(
     usdm_design: Dict[str, Any],
     study_version: Dict[str, Any],
     execution_data: Any,  # ExecutionModelData
+    validate: bool = True,
 ) -> Tuple[Dict[str, Any], Dict[str, Any], PromotionResult]:
     """
     Convenience function to run execution model promotion.
@@ -946,10 +1528,19 @@ def promote_execution_model(
         usdm_design: The study design
         study_version: The study version  
         execution_data: Execution model data to promote
+        validate: Whether to run post-promotion validation (default: True)
         
     Returns:
         Tuple of (enriched_design, enriched_version, result)
     """
     promoter = ExecutionModelPromoter()
     design, version = promoter.promote(usdm_design, study_version, execution_data)
+    
+    # Run validation if requested
+    if validate:
+        validation_issues = validate_after_promotion(design, promoter.result)
+        promoter.result.issues.extend(validation_issues)
+        if validation_issues:
+            logger.info(f"Post-promotion validation: {len(validation_issues)} issues found")
+    
     return design, version, promoter.result
