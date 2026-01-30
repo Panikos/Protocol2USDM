@@ -116,21 +116,18 @@ def is_reasoning_model(model_name: str) -> bool:
     - No temperature parameter
     - Use max_completion_tokens instead of max_tokens
     """
-    reasoning_models = [
-        'o1', 'o1-mini', 
-        'o3', 'o3-mini', 'o3-mini-high',
-        'gpt-5', 'gpt-5-mini', 
-        'gpt-5.1', 'gpt-5.1-mini'
-    ]
-    return any(rm in model_name.lower() for rm in reasoning_models)
+    from core.constants import REASONING_MODELS
+    return any(rm in model_name.lower() for rm in REASONING_MODELS)
 
 
 def detect_provider(model_name: str) -> str:
     """
     Detect the provider for a given model name.
     
+    Deprecated: Use LLMProviderFactory.auto_detect() instead.
+    
     Returns:
-        'openai', 'google', or 'unknown'
+        'openai', 'google', 'anthropic', or 'unknown'
     """
     model_lower = model_name.lower()
     
@@ -138,6 +135,8 @@ def detect_provider(model_name: str) -> str:
         return 'openai'
     elif 'gemini' in model_lower:
         return 'google'
+    elif 'claude' in model_lower:
+        return 'anthropic'
     else:
         return 'unknown'
 
