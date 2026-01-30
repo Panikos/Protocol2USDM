@@ -1,12 +1,19 @@
 """
-USDM Types Generated from Official Schema
+USDM Type Definitions - Hand-Written Dataclasses Conforming to CDISC Schema
 
-This module generates Python dataclasses from the official CDISC dataStructure.yml.
-It provides type-safe access to all 86+ USDM entity types with proper:
-- Required/optional field handling
+This module provides Python dataclasses for USDM v4.0 entities.
+The types are hand-written to conform to the official CDISC dataStructure.yml schema.
+
+NOTE: Despite the filename "generated", these are hand-written definitions,
+not auto-generated. The name is retained for backward compatibility.
+
+Features:
+- Required/optional field handling per USDM v4.0 spec
 - NCI codes and definitions as docstrings
 - to_dict() and from_dict() methods
-- Validation against schema
+- Schema validation helpers
+
+Schema Reference: https://github.com/cdisc-org/DDF-RA/blob/main/Deliverables/UML/dataStructure.yml
 
 Usage:
     from core.usdm_types_generated import Activity, Encounter, Code
