@@ -264,6 +264,23 @@ export function ExecutionModelView({ executionModel }: ExecutionModelViewProps) 
       }
     }
     
+    // Read native USDM conditions (v7.2+) if available
+    const nativeConditions = (studyDesign as Record<string, unknown>)?.conditions as Array<{
+      id: string;
+      name?: string;
+      text: string;
+      appliesToIds?: string[];
+    }> | undefined;
+    
+    if (nativeConditions && nativeConditions.length > 0 && !baseModel.footnoteConditions) {
+      baseModel.footnoteConditions = nativeConditions.map(c => ({
+        id: c.id,
+        conditionType: c.name ?? 'Condition',
+        text: c.text,
+        appliesToActivityIds: c.appliesToIds,
+      }));
+    }
+    
     // Get scheduled instances, timings, and exits from scheduleTimelines
     // Use the typed interface from protocolStore
     const scheduleTimelines = studyDesign?.scheduleTimelines;
