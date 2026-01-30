@@ -63,7 +63,7 @@ This YAML file contains:
 │                    Extraction Pipeline                           │
 │  extraction/header_analyzer.py → extraction/text_extractor.py   │
 │                            ↓                                     │
-│                      main_v2.py                                  │
+│              main_v3.py (phase registry) or main_v2.py (legacy)  │
 │                            ↓                                     │
 │               enrichment/terminology.py (NCI EVS)                │
 │                  ↓ (uses core/evs_client.py)                     │
@@ -72,6 +72,135 @@ This YAML file contains:
 │                   protocol_usdm.json (compliant)                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+---
+
+## Phase Registry Architecture (v7.1+)
+
+The `main_v3.py` entry point uses a **phase registry pattern** that provides modular, extensible, and parallelizable extraction phases.
+
+### Architecture Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                       main_v3.py                                 │
+│  - CLI argument parsing                                          │
+│  - Default --complete mode when no phases specified              │
+│  - Orchestrates SoA + expansion phases                           │
+└─────────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                  pipeline/orchestrator.py                        │
+│  - PipelineOrchestrator class                                    │
+│  - run_phases() - sequential execution                           │
+│  - run_phases_parallel() - concurrent execution                  │
+│  - combine_to_full_usdm() - merge all results                    │
+└─────────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                  pipeline/phase_registry.py                      │
+│  - PhaseRegistry singleton                                       │
+│  - register_phase() decorator                                    │
+│  - get_all(), get(name), get_by_order()                         │
+└─────────────────────────────────────────────────────────────────┘
+                            │
+        ┌───────────────────┼───────────────────┐
+        ▼                   ▼                   ▼
+┌───────────────┐   ┌───────────────┐   ┌───────────────┐
+│  Eligibility  │   │   Metadata    │   │  Objectives   │
+│    Phase      │   │    Phase      │   │    Phase      │
+├───────────────┤   ├───────────────┤   ├───────────────┤
+│ extract()     │   │ extract()     │   │ extract()     │
+│ combine()     │   │ combine()     │   │ combine()     │
+│ save_result() │   │ save_result() │   │ save_result() │
+└───────────────┘   └───────────────┘   └───────────────┘
+        │                   │                   │
+        └───────────────────┴───────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                  pipeline/base_phase.py                          │
+│  - BasePhase abstract class                                      │
+│  - PhaseConfig dataclass (name, output_filename, etc.)           │
+│  - PhaseResult dataclass (success, data, error)                  │
+│  - Default save_result() implementation                          │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Phase Interface
+
+Each phase implements `BasePhase` with three key methods:
+
+```python
+class MyPhase(BasePhase):
+    @property
+    def config(self) -> PhaseConfig:
+        return PhaseConfig(
+            name="MyPhase",
+            display_name="My Extraction Phase",
+            phase_number=10,
+            output_filename="my_output.json",
+        )
+    
+    def extract(self, pdf_path, model, output_dir, context, **kwargs) -> PhaseResult:
+        """Run the extraction logic."""
+        # ... extraction code ...
+        return PhaseResult(success=True, data=result_data)
+    
+    def combine(self, result, study_version, study_design, combined, previous_extractions):
+        """Merge extracted data into final USDM structure."""
+        if result.success and result.data:
+            study_design['myEntities'] = result.data.to_dict()['entities']
+```
+
+### Registered Phases
+
+| Phase | Name | Output File | Dependencies |
+|-------|------|-------------|--------------|
+| 1 | Eligibility | `3_eligibility_criteria.json` | None |
+| 2 | Metadata | `2_study_metadata.json` | None |
+| 3 | Objectives | `4_objectives_endpoints.json` | Metadata |
+| 4 | StudyDesign | `5_study_design.json` | None |
+| 5 | Interventions | `6_interventions.json` | StudyDesign |
+| 7 | Narrative | `7_narrative_structure.json` | None |
+| 8 | Advanced | `8_advanced_entities.json` | None |
+| 10 | Procedures | `9_procedures_devices.json` | None |
+| 11 | Scheduling | `10_scheduling_logic.json` | None |
+| 12 | DocStructure | `13_document_structure.json` | None |
+| 13 | AmendmentDetails | `14_amendment_details.json` | Advanced |
+| 14 | Execution | `11_execution_model.json` | All above |
+
+### Parallel Execution
+
+Independent phases can run concurrently using `--parallel`:
+
+```bash
+python main_v3.py protocol.pdf --parallel --max-workers 4
+```
+
+The orchestrator builds a dependency graph and groups phases into "waves":
+
+```
+Wave 1 (parallel): Eligibility, Metadata, StudyDesign, Narrative, Advanced, Procedures, Scheduling, DocStructure
+Wave 2 (parallel): Objectives, Interventions, AmendmentDetails
+Wave 3 (sequential): Execution (depends on all)
+```
+
+### Default `--complete` Mode
+
+When no specific phases are requested, `main_v3.py` defaults to `--complete`:
+
+```python
+# In main_v3.py
+if not any_phase_specified:
+    args.complete = True  # Full extraction + post-processing
+```
+
+This behavior differs from `main_v2.py` which defaults to SoA-only extraction.
+
+---
 
 ## SoA Extraction Model Fallback (v6.9+)
 

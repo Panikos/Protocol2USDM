@@ -39,12 +39,13 @@ Protocol2USDM is an automated pipeline that extracts, validates, and structures 
 ## 🚀 Try It Now
 
 ```bash
-python .\main_v2.py .\input\trial\NCT04573309_Wilsons\NCT04573309_Wilsons_Protocol.pdf --complete --sap .\input\trial\NCT04573309_Wilsons\NCT04573309_Wilsons_SAP.pdf --sites .\input\trial\NCT04573309_Wilsons\NCT04573309_Wilsons_sites.csv --model gemini-3-flash
+# Default: --complete mode with gemini-3-flash-preview (no flags needed!)
+python main_v3.py input/trial/NCT04573309_Wilsons/NCT04573309_Wilsons_Protocol.pdf --sap input/trial/NCT04573309_Wilsons/NCT04573309_Wilsons_SAP.pdf --sites input/trial/NCT04573309_Wilsons/NCT04573309_Wilsons_sites.csv
 ```
 
 This extracts the full protocol with execution model, enriches entities with NCI terminology codes, includes SAP analysis populations and site list.
 
-> **💡 Recommended Model:** This release has been **optimized for `gemini-3-flash`** (Gemini Flash 3). Other models (`claude-opus-4-5`, `claude-sonnet-4`, `chatgpt-5.2`, `gemini-2.5-pro`) are supported but output quality may vary. Additional models available - see Configuration section.
+> **💡 Default Model:** `gemini-3-flash-preview` (Gemini Flash 3) via Vertex AI. Other models (`claude-opus-4-5`, `claude-sonnet-4`, `chatgpt-5.2`, `gemini-2.5-pro`) are supported. The pipeline defaults to `--complete` mode when no specific phases are requested.
 
 ### ⚠️ Important: Vertex AI Requirement for Gemini
 
@@ -58,10 +59,16 @@ GOOGLE_CLOUD_LOCATION=us-central1  # or your preferred region
 
 ---
 
-## What's New in v7.0
+## What's New in v7.1
+
+### 🏗️ Phase Registry Architecture (NEW)
+- **`main_v3.py`** - New refactored entry point with clean phase registry pattern
+- **`pipeline/`** module - Modular phase definitions with dependency-aware execution
+- **Parallel execution** - Run independent phases concurrently with `--parallel`
+- **Default `--complete` mode** - Full extraction when no specific phases requested
 
 ### 🎯 Gemini Flash 3 Optimization
-- Pipeline **optimized and tested with `gemini-3-flash`** for best results
+- Pipeline **optimized and tested with `gemini-3-flash-preview`** as default model
 - Intelligent fallback to `gemini-2.5-pro` for SoA text extraction when needed
 - Response validation with automatic retry logic (up to 2 retries)
 - Stricter prompt guardrails for JSON format compliance
@@ -137,25 +144,28 @@ GOOGLE_CLOUD_LOCATION=us-central1  # or your preferred region
 Extract everything with a single command:
 
 ```bash
-# --complete: Full extraction + all post-processing (enrich, validate, conformance)
-python main_v2.py protocol.pdf --complete
+# Default behavior - no flags needed! Runs --complete automatically
+python main_v3.py protocol.pdf
 
-# --full-protocol: Full extraction without post-processing
-python main_v2.py protocol.pdf --full-protocol
+# Explicit --complete: Full extraction + all post-processing
+python main_v3.py protocol.pdf --complete
+
+# Parallel execution for faster processing
+python main_v3.py protocol.pdf --parallel --max-workers 4
 ```
 
-Or select specific sections:
+Or select specific phases:
 
 ```bash
-python main_v2.py protocol.pdf --metadata --eligibility --objectives
-python main_v2.py protocol.pdf --expansion-only --metadata  # Skip SoA
-python main_v2.py protocol.pdf --procedures --scheduling --execution  # New phases
+python main_v3.py protocol.pdf --metadata --eligibility --objectives
+python main_v3.py protocol.pdf --expansion-only --metadata  # Skip SoA
+python main_v3.py protocol.pdf --procedures --scheduling --execution
 ```
 
 With additional source documents:
 
 ```bash
-python main_v2.py protocol.pdf --complete --sap sap.pdf --sites sites.xlsx
+python main_v3.py protocol.pdf --sap sap.pdf --sites sites.xlsx
 ```
 
 Output: Individual JSONs + combined `protocol_usdm.json`
@@ -173,15 +183,14 @@ cd Protocol2USDMv3
 pip install -r requirements.txt
 
 # 3. Set up API keys (.env file)
-OPENAI_API_KEY=...
-GOOGLE_API_KEY=...
-CDISC_API_KEY=...
-CLAUDE_API_KEY=...
+GOOGLE_CLOUD_PROJECT=your-gcp-project  # Required for Gemini via Vertex AI
+GOOGLE_CLOUD_LOCATION=us-central1
+OPENAI_API_KEY=...      # Optional: for GPT models
+CLAUDE_API_KEY=...      # Optional: for Claude models
+CDISC_API_KEY=...       # Optional: for CORE conformance
 
-# 4. Run the pipeline
-```bash
-python main_v2.py .\input\Alexion_NCT04573309_Wilsons.pdf --full-protocol --enrich --sap .\input\Alexion_NCT04573309_Wilsons_SAP.pdf --model claude-opus-4-5
-```
+# 4. Run the pipeline (defaults to --complete with gemini-3-flash-preview)
+python main_v3.py input/trial/NCT04573309_Wilsons/NCT04573309_Wilsons_Protocol.pdf
 
 # 5. View results in web UI
 cd web-ui && npm run dev
@@ -227,33 +236,37 @@ python tools/core/download_core.py
 ### Basic Usage
 
 ```bash
+# main_v3.py is the recommended entry point (phase registry architecture)
+python main_v3.py <protocol.pdf> [options]
+
+# Legacy entry point (still supported)
 python main_v2.py <protocol.pdf> [options]
 ```
 
 ### Model Selection
 
 ```bash
-# Gemini Flash 3 (recommended - optimized for this release)
-python main_v2.py protocol.pdf --model gemini-3-flash
+# Default: gemini-3-flash-preview (no --model flag needed)
+python main_v3.py protocol.pdf
 
 # Gemini 2.5 Pro (good fallback)
-python main_v2.py protocol.pdf --model gemini-2.5-pro
+python main_v3.py protocol.pdf --model gemini-2.5-pro
 
 # Claude Opus 4.5 (high accuracy, higher cost)
-python main_v2.py protocol.pdf --model claude-opus-4-5
+python main_v3.py protocol.pdf --model claude-opus-4-5
 
 # ChatGPT 5.2
-python main_v2.py protocol.pdf --model chatgpt-5.2
+python main_v3.py protocol.pdf --model chatgpt-5.2
 ```
 
-### Complete Extraction (Recommended)
+### Complete Extraction (Default)
 
 ```bash
-# Run EVERYTHING: full protocol + all post-processing
-python main_v2.py protocol.pdf --complete
+# Default behavior - runs --complete automatically when no phases specified
+python main_v3.py protocol.pdf
 
 # With SAP document for analysis populations
-python main_v2.py protocol.pdf --complete --sap sap.pdf
+python main_v3.py protocol.pdf --sap sap.pdf
 ```
 
 **`--complete` enables:**
@@ -269,12 +282,12 @@ python main_v2.py protocol.pdf --complete --sap sap.pdf
 
 ```bash
 # Run SoA + enrichment + schema validation + CORE conformance
-python main_v2.py protocol.pdf --soa
+python main_v3.py protocol.pdf --soa
 
 # Or run post-processing steps individually
-python main_v2.py protocol.pdf --enrich              # Step 7: NCI terminology
-python main_v2.py protocol.pdf --validate-schema     # Step 8: Schema validation
-python main_v2.py protocol.pdf --conformance         # Step 9: CORE conformance
+python main_v3.py protocol.pdf --enrich              # Step 7: NCI terminology
+python main_v3.py protocol.pdf --validate-schema     # Step 8: Schema validation
+python main_v3.py protocol.pdf --conformance         # Step 9: CORE conformance
 ```
 
 ### Additional Options
@@ -496,15 +509,35 @@ SoA extraction tested on Alexion Wilson's Disease protocol (Jan 2026):
 
 ```
 Protocol2USDMv3/
-├── main_v2.py                # Main pipeline entry point
-├── llm_providers.py          # LLM provider interface
+├── main_v3.py                # ⭐ Recommended entry point (phase registry)
+├── main_v2.py                # Legacy entry point (still supported)
+├── llm_providers.py          # LLM provider abstraction layer
+├── pipeline/                 # ⭐ NEW: Phase registry architecture
+│   ├── __init__.py           # Package exports
+│   ├── base_phase.py         # BasePhase class with extract/combine/save
+│   ├── phase_registry.py     # Phase registration and discovery
+│   ├── orchestrator.py       # Pipeline orchestration with parallel support
+│   └── phases/               # Individual phase implementations
+│       ├── eligibility.py    # Eligibility criteria phase
+│       ├── metadata.py       # Study metadata phase
+│       ├── objectives.py     # Objectives & endpoints phase
+│       ├── studydesign.py    # Study design phase
+│       ├── interventions.py  # Interventions phase
+│       ├── narrative.py      # Narrative structure phase
+│       ├── advanced.py       # Advanced entities phase
+│       ├── procedures.py     # Procedures & devices phase
+│       ├── scheduling.py     # Scheduling logic phase
+│       ├── docstructure.py   # Document structure phase
+│       ├── amendmentdetails.py # Amendment details phase
+│       └── execution.py      # Execution model phase
 ├── core/                     # Core modules
 │   ├── usdm_schema_loader.py # Official CDISC schema parser + USDMEntity base
-│   ├── usdm_types_generated.py # 86+ auto-generated USDM types
+│   ├── usdm_types_generated.py # 86+ USDM types (hand-written, schema-aligned)
 │   ├── usdm_types.py         # Unified type interface
+│   ├── llm_client.py         # LLM client utilities
+│   ├── constants.py          # Centralized constants (DEFAULT_MODEL, etc.)
 │   ├── evs_client.py         # NCI EVS API client with caching
 │   ├── provenance.py         # ProvenanceTracker for source tracking
-│   ├── epoch_reconciler.py   # Epoch reconciliation
 │   └── reconciliation/       # Entity reconciliation framework
 ├── extraction/               # Extraction modules
 │   ├── header_analyzer.py    # Vision-based structure

@@ -1,9 +1,9 @@
 # Protocol2USDM User Guide
 
-**Version:** 7.0  
-**Last Updated:** 2026-01-28
+**Version:** 7.1  
+**Last Updated:** 2026-01-30
 
-> **📢 What's New in v7.0:** Full **USDM 4.0 compliance**, **Execution Model extraction** (time anchors, visit windows, state machines, repetitions), **modern React/Next.js web UI**, **pipeline context architecture** for context-aware extraction, and **entity reconciliation framework** with LLM-based semantic mapping.
+> **📢 What's New in v7.1:** **Phase registry architecture** (`main_v3.py`), **default `--complete` mode**, `gemini-3-flash-preview` as **default model**, **parallel execution** support, and improved sites/procedures combining.
 
 ---
 
@@ -31,8 +31,8 @@ pip install -r requirements.txt
 echo "GOOGLE_CLOUD_PROJECT=your-project-id" > .env
 echo "GOOGLE_CLOUD_LOCATION=us-central1" >> .env
 
-# Run full protocol extraction (optimized for gemini-3-flash)
-python .\main_v2.py .\input\trial\NCT04573309_Wilsons\NCT04573309_Wilsons_Protocol.pdf --complete --sap .\input\trial\NCT04573309_Wilsons\NCT04573309_Wilsons_SAP.pdf --sites .\input\trial\NCT04573309_Wilsons\NCT04573309_Wilsons_sites.csv --model gemini-3-flash
+# Run full protocol extraction (defaults to --complete with gemini-3-flash-preview)
+python main_v3.py input/trial/NCT04573309_Wilsons/NCT04573309_Wilsons_Protocol.pdf --sap input/trial/NCT04573309_Wilsons/NCT04573309_Wilsons_SAP.pdf --sites input/trial/NCT04573309_Wilsons/NCT04573309_Wilsons_sites.csv
 ```
 
 **Expected runtime:** 3-8 minutes for full protocol extraction
@@ -110,16 +110,20 @@ python tools/core/download_core.py
 
 ### Basic Usage
 ```bash
+# Recommended: main_v3.py (phase registry architecture)
+python main_v3.py <protocol.pdf>
+
+# Legacy: main_v2.py (still supported)
 python main_v2.py <protocol.pdf>
 ```
 
 ### With Options
 ```bash
-python main_v2.py protocol.pdf --model gemini-3-flash  # Specify model
-python main_v2.py protocol.pdf --full               # Run all post-processing
-python main_v2.py protocol.pdf --view               # Open viewer after
-python main_v2.py protocol.pdf --no-validate        # Skip vision validation
-python main_v2.py protocol.pdf --verbose            # Detailed logging
+python main_v3.py protocol.pdf                      # Default: --complete with gemini-3-flash-preview
+python main_v3.py protocol.pdf --parallel           # Run phases concurrently
+python main_v3.py protocol.pdf --model gemini-2.5-pro  # Specify model
+python main_v3.py protocol.pdf --no-validate        # Skip vision validation
+python main_v3.py protocol.pdf --verbose            # Detailed logging
 ```
 
 ### Pipeline Steps
@@ -152,8 +156,14 @@ python main_v2.py protocol.pdf --full
 Extract everything from a protocol with a single command:
 
 ```bash
-# Full protocol extraction (SoA + all expansion phases)
-python main_v2.py protocol.pdf --full-protocol
+# Default behavior - runs --complete automatically (no flags needed!)
+python main_v3.py protocol.pdf
+
+# Explicit full protocol extraction
+python main_v3.py protocol.pdf --full-protocol
+
+# With parallel execution for faster processing
+python main_v3.py protocol.pdf --parallel --max-workers 4
 ```
 
 ### Selective Extraction
@@ -162,10 +172,10 @@ Run specific phases alongside SoA:
 
 ```bash
 # SoA + metadata + eligibility
-python main_v2.py protocol.pdf --metadata --eligibility
+python main_v3.py protocol.pdf --metadata --eligibility
 
 # SoA + objectives + interventions
-python main_v2.py protocol.pdf --objectives --interventions
+python main_v3.py protocol.pdf --objectives --interventions
 ```
 
 ### Expansion-Only Mode
@@ -174,10 +184,10 @@ Skip SoA extraction and run only expansion phases:
 
 ```bash
 # All expansion phases, no SoA
-python main_v2.py protocol.pdf --expansion-only --metadata --eligibility --objectives --studydesign --interventions --narrative --advanced
+python main_v3.py protocol.pdf --expansion-only --metadata --eligibility --objectives --studydesign --interventions --narrative --advanced
 
 # Just metadata and eligibility
-python main_v2.py protocol.pdf --expansion-only --metadata --eligibility
+python main_v3.py protocol.pdf --expansion-only --metadata --eligibility
 ```
 
 ### Available Flags
@@ -193,6 +203,10 @@ python main_v2.py protocol.pdf --expansion-only --metadata --eligibility
 | `--advanced` | 8 | Amendments, geography |
 | `--full-protocol` | All | Everything (SoA + all phases) |
 | `--expansion-only` | - | Skip SoA extraction |
+| `--procedures` | 10 | Procedures & medical devices |
+| `--scheduling` | 11 | Scheduling logic & timings |
+| `--execution` | 14 | Execution model (anchors, windows) |
+| `--parallel` | - | Run independent phases concurrently |
 
 ### Combined Output
 
@@ -359,10 +373,12 @@ The `9_final_soa_provenance.json` tracks the source of each entity:
 
 ### Launch
 ```bash
-streamlit run soa_streamlit_viewer.py
+cd web-ui
+npm install  # First time only
+npm run dev
 ```
 
-Opens at: http://localhost:8504
+Opens at: http://localhost:3000
 
 ### Viewer Features
 
@@ -578,4 +594,4 @@ A: Check logs in `output/<protocol>/`, capture error messages, report to maintai
 
 ---
 
-**Last Updated:** 2026-01-07
+**Last Updated:** 2026-01-30

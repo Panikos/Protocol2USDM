@@ -1,8 +1,8 @@
 # Protocol2USDM Quick Reference
 
-**v7.0** | One-page command reference
+**v7.1** | One-page command reference
 
-> **Current:** Full USDM 4.0 compliance, execution model extraction, modern React/Next.js web UI, pipeline context architecture.
+> **Current:** Phase registry architecture (`main_v3.py`), default `--complete` mode, `gemini-3-flash-preview` default model, parallel execution support.
 
 ---
 
@@ -15,8 +15,8 @@ pip install -r requirements.txt
 echo "GOOGLE_CLOUD_PROJECT=your-project-id" > .env
 echo "GOOGLE_CLOUD_LOCATION=us-central1" >> .env
 
-# Run full protocol extraction (optimized for gemini-3-flash)
-python .\main_v2.py .\input\trial\NCT04573309_Wilsons\NCT04573309_Wilsons_Protocol.pdf --complete --sap .\input\trial\NCT04573309_Wilsons\NCT04573309_Wilsons_SAP.pdf --sites .\input\trial\NCT04573309_Wilsons\NCT04573309_Wilsons_sites.csv --model gemini-3-flash
+# Run full protocol extraction (defaults to --complete with gemini-3-flash-preview)
+python main_v3.py input/trial/NCT04573309_Wilsons/NCT04573309_Wilsons_Protocol.pdf --sap input/trial/NCT04573309_Wilsons/NCT04573309_Wilsons_SAP.pdf --sites input/trial/NCT04573309_Wilsons/NCT04573309_Wilsons_sites.csv
 ```
 
 > **Note:** Use Vertex AI (not AI Studio) for Gemini to disable safety controls for clinical content.
@@ -28,30 +28,30 @@ python .\main_v2.py .\input\trial\NCT04573309_Wilsons\NCT04573309_Wilsons_Protoc
 ### Basic Usage
 
 ```bash
-# SoA only (default)
-python main_v2.py protocol.pdf
+# Default: --complete mode with gemini-3-flash-preview (no flags needed!)
+python main_v3.py protocol.pdf
 
-# Full protocol extraction (SoA + all phases)
-python main_v2.py protocol.pdf --full-protocol
+# With parallel execution for faster processing
+python main_v3.py protocol.pdf --parallel --max-workers 4
 
 # Select specific phases
-python main_v2.py protocol.pdf --metadata --eligibility --objectives
+python main_v3.py protocol.pdf --metadata --eligibility --objectives
 
 # Expansion only (skip SoA)
-python main_v2.py protocol.pdf --expansion-only --metadata --eligibility
+python main_v3.py protocol.pdf --expansion-only --metadata --eligibility
 
 # With specific model
-python main_v2.py protocol.pdf --model gemini-2.5-pro
+python main_v3.py protocol.pdf --model gemini-2.5-pro
 
 # Specify SoA pages
-python main_v2.py protocol.pdf --pages 45,46,47
+python main_v3.py protocol.pdf --pages 45,46,47
 ```
 
 ### SoA Pipeline
 ```bash
-python main_v2.py protocol.pdf                      # Default extraction
-python main_v2.py protocol.pdf --model gemini-2.5-pro
-python main_v2.py protocol.pdf --full               # With post-processing
+python main_v3.py protocol.pdf                      # Default: full extraction
+python main_v3.py protocol.pdf --model gemini-2.5-pro
+python main_v3.py protocol.pdf --soa                # SoA only with post-processing
 ```
 
 ### Standalone Extractors
@@ -90,21 +90,24 @@ cd web-ui && npm run dev
 ### Options
 ```bash
 # Core options
---model, -m         Model to use (default: gemini-2.5-pro)
+--model, -m         Model to use (default: gemini-3-flash-preview)
 --output-dir, -o    Output directory
 --pages, -p         Specific SoA pages (comma-separated)
 --no-validate       Skip vision validation
 --remove-hallucinations  Remove cells not confirmed by vision
---view              Launch viewer after
 --verbose, -v       Detailed logging
 
+# Parallel execution (v7.1)
+--parallel          Run independent phases concurrently
+--max-workers N     Max parallel workers (default: 4)
+
 # Post-processing
---full              Run all post-processing steps
 --enrich            Step 7: NCI terminology
 --validate-schema   Step 8: Schema validation
 --conformance       Step 9: CORE conformance
 
-# Expansion phases (v6.0)
+# Expansion phases
+--complete          Full extraction + post-processing (DEFAULT when no phases specified)
 --full-protocol     Extract everything (SoA + all phases)
 --expansion-only    Skip SoA, run only expansion phases
 --metadata          Phase 2: Study metadata
@@ -114,6 +117,9 @@ cd web-ui && npm run dev
 --interventions     Phase 5: Interventions & products
 --narrative         Phase 7: Sections & abbreviations
 --advanced          Phase 8: Amendments & geography
+--procedures        Phase 10: Procedures & devices
+--scheduling        Phase 11: Scheduling logic
+--execution         Phase 14: Execution model
 ```
 
 ---
@@ -122,8 +128,8 @@ cd web-ui && npm run dev
 
 | Model | Speed | Reliability |
 |-------|-------|-------------|
-| **gemini-3-flash** ⭐ | Fast | **Optimized for this release** |
-| gemini-2.5-pro | Fast | Good fallback |
+| **gemini-3-flash-preview** ⭐ | Fast | **Default model** |
+| gemini-2.5-pro | Fast | Good fallback (auto for SoA text) |
 | claude-opus-4-5 | Medium | High accuracy, higher cost |
 | claude-sonnet-4 | Fast | Good balance |
 | chatgpt-5.2 | Medium | Good alternative |
@@ -225,11 +231,15 @@ CDISC_API_KEY=...            # For CORE (optional)
 ## Key Files
 
 | File | Purpose |
-|------|---------|
-| `main_v2.py` | Main pipeline (SoA + expansions) |
-| `llm_providers.py` | LLM provider interface |
-| `core/usdm_types_generated.py` | 86+ auto-generated USDM types |
-| `core/evs_client.py` | NCI EVS API client with caching |
+|------|--------|
+| `main_v3.py` ⭐ | **Recommended** entry point (phase registry) |
+| `main_v2.py` | Legacy entry point (still supported) |
+| `pipeline/` | Phase registry architecture module |
+| `pipeline/orchestrator.py` | Pipeline orchestration with parallel support |
+| `pipeline/phases/` | Individual phase implementations |
+| `llm_providers.py` | LLM provider abstraction layer |
+| `core/constants.py` | Centralized constants (DEFAULT_MODEL, etc.) |
+| `core/usdm_types_generated.py` | 86+ USDM types (hand-written, schema-aligned) |
 | `extraction/pipeline.py` | SoA extraction pipeline |
 | `extraction/pipeline_context.py` | Context passing between extractors |
 | `extraction/execution/` | Execution model extractors (27 modules) |
@@ -278,5 +288,5 @@ CDISC_API_KEY=...            # For CORE (optional)
 
 **Docs:** [README.md](README.md) | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
-**Last Updated:** 2026-01-28  
-**Version:** 7.0
+**Last Updated:** 2026-01-30  
+**Version:** 7.1
