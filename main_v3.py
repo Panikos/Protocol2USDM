@@ -145,6 +145,19 @@ Examples:
         save_intermediate=True,
     )
     
+    # Determine if any specific phases were requested
+    any_specific_phase = any([
+        args.metadata, args.eligibility, args.objectives, args.studydesign,
+        args.interventions, args.narrative, args.advanced, args.procedures,
+        args.scheduling, args.docstructure, args.amendmentdetails, args.execution,
+        args.full_protocol,
+    ])
+    
+    # Default to --complete mode if no specific phases requested
+    if not any_specific_phase and not args.expansion_only:
+        args.complete = True
+        logger.info("No specific phases requested - defaulting to complete mode")
+    
     # Handle --complete flag
     if args.complete:
         args.full_protocol = True
@@ -152,7 +165,7 @@ Examples:
         args.enrich = True
         args.validate_schema = True
         args.conformance = True
-        logger.info("Complete mode: enabling full protocol extraction")
+        logger.info("Complete mode: full protocol extraction + validation + conformance")
     
     # Build phases_to_run dict from registered phases
     phases_to_run = {}
