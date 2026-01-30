@@ -334,7 +334,7 @@ def combine_to_full_usdm(
     combined = {
         "usdmVersion": "4.0",
         "generatedAt": datetime.now().isoformat(),
-        "generator": "Protocol2USDM v6.5.0",
+        "generator": "Protocol2USDM v7.2.0",
         "study": {
             "id": "study_1",
             "instanceType": "Study",

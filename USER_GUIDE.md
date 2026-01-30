@@ -1,9 +1,11 @@
 # Protocol2USDM User Guide
 
-**Version:** 7.1  
+**Version:** 7.2  
 **Last Updated:** 2026-01-30
 
-> **📢 What's New in v7.1:** **Phase registry architecture** (`main_v3.py`), **default `--complete` mode**, `gemini-3-flash-preview` as **default model**, **parallel execution** support, and improved sites/procedures combining.
+> **📢 What's New in v7.2:** **Execution model promotion** to native USDM entities (Condition, ScheduledDecisionInstance, StudyElement, TransitionRule), `Timing.windowLower/windowUpper` population, `Epoch/Encounter.previousId/nextId` chains, post-promotion validation.
+
+> **v7.1:** Phase registry architecture (`main_v3.py`), default `--complete` mode, `gemini-3-flash-preview` as default model, parallel execution support.
 
 ---
 

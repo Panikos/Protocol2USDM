@@ -1084,7 +1084,7 @@ def combine_to_full_usdm(
     combined = {
         "usdmVersion": "4.0",
         "generatedAt": datetime.now().isoformat(),
-        "generator": "Protocol2USDM v6.5.0",
+        "generator": "Protocol2USDM v7.2.0",
         "study": {
             "id": "study_1",
             "instanceType": "Study",
@@ -2568,7 +2568,7 @@ Examples:
     
     # Print configuration
     logger.info("="*60)
-    logger.info("Protocol2USDM v6.5.0 - Full Protocol Extraction")
+    logger.info("Protocol2USDM v7.2.0 - Full Protocol Extraction")
     logger.info("="*60)
     logger.info(f"Input PDF: {args.pdf_path}")
     logger.info(f"Output Directory: {output_dir}")

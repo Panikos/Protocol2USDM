@@ -73,13 +73,17 @@ GOOGLE_CLOUD_LOCATION=us-central1  # or your preferred region
 - Response validation with automatic retry logic (up to 2 retries)
 - Stricter prompt guardrails for JSON format compliance
 
-### 🧠 Execution Model Extraction
+### 🧠 Execution Model Extraction & Promotion (v7.2)
 - **Time Anchors**: Extract temporal reference points (VISIT/EVENT/CONCEPTUAL classification)
-- **Visit Windows**: Timing tolerances and scheduling constraints
-- **Subject State Machine**: Subject flow through study epochs with transitions
-- **Dosing Regimens**: Drug administration schedules
-- **Repetitions**: Cycle-based and conditional activity repetitions
-- **Traversal Constraints**: Subject journey through the study
+- **Visit Windows**: Timing tolerances → `Timing.windowLower/windowUpper` (ISO 8601)
+- **Subject State Machine**: Subject flow → `TransitionRule` on `Encounter`
+- **Dosing Regimens**: Drug administration → `Administration` entities
+- **Repetitions**: Cycle-based patterns → `ScheduledActivityInstance` expansion
+- **Traversal Constraints**: Subject journey → `Epoch/Encounter.previousId/nextId` chains
+- **Footnote Conditions**: Conditional rules → `Condition` + `ScheduledDecisionInstance`
+- **Titration Schedules**: Dose escalation → `StudyElement` with `TransitionRule`
+
+**v7.2 Promotion**: Execution model data is now promoted to **native USDM entities** instead of extensions. Core USDM output is self-sufficient without parsing `11_execution_model.json`.
 
 ### 🔄 Pipeline Context Architecture
 - Context-aware extraction where each phase builds on previous results
@@ -646,6 +650,7 @@ The following items are planned for upcoming releases:
 - [ ] **Multi-Protocol Comparison**: Compare USDM outputs across protocol versions
 - [x] **Gemini Flash 3 Optimization**: Pipeline optimized for `gemini-3-flash` with Vertex AI *(completed v7.0)*
 - [x] **Execution Model Extraction**: Time anchors, visit windows, state machine, dosing regimens *(completed v7.0)*
+- [x] **Execution Model Promotion**: Native USDM entities instead of extensions *(completed v7.2)*
 - [x] **Pipeline Context Architecture**: Context-aware extraction with accumulated results *(completed v7.0)*
 - [x] **Entity Reconciliation Framework**: LLM-based semantic mapping and ID preservation *(completed v7.0)*
 - [x] **Modern Web UI**: Complete React/Next.js revamp from Streamlit *(completed v7.0)*

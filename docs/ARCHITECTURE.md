@@ -75,7 +75,7 @@ This YAML file contains:
 
 ---
 
-## Phase Registry Architecture (v7.1+)
+## Phase Registry Architecture (v7.1+, updated v7.2)
 
 The `main_v3.py` entry point uses a **phase registry pattern** that provides modular, extensible, and parallelizable extraction phases.
 

@@ -1,6 +1,6 @@
 # Protocol2USDM Quick Reference
 
-**v7.1** | One-page command reference
+**v7.2** | One-page command reference
 
 > **Current:** Phase registry architecture (`main_v3.py`), default `--complete` mode, `gemini-3-flash-preview` default model, parallel execution support.
 
@@ -97,7 +97,7 @@ cd web-ui && npm run dev
 --remove-hallucinations  Remove cells not confirmed by vision
 --verbose, -v       Detailed logging
 
-# Parallel execution (v7.1)
+# Parallel execution (v7.1+)
 --parallel          Run independent phases concurrently
 --max-workers N     Max parallel workers (default: 4)
 

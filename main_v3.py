@@ -179,7 +179,7 @@ Examples:
     
     # Print configuration
     logger.info("="*60)
-    logger.info("Protocol2USDM v6.5.0 - Refactored Pipeline (v3)")
+    logger.info("Protocol2USDM v7.2.0 - Refactored Pipeline (v3)")
     logger.info("="*60)
     logger.info(f"Input PDF: {args.pdf_path}")
     logger.info(f"Output Directory: {output_dir}")
