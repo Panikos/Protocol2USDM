@@ -12,7 +12,7 @@ SYSTEM_NAME: str = "Protocol2USDM"
 SYSTEM_VERSION: str = "0.1.0"
 
 # Default Model Preference
-DEFAULT_MODEL: str = "claude-opus-4-5"
+DEFAULT_MODEL: str = "gemini-3-flash-preview"
 
 # Pipeline Output File Names
 OUTPUT_FILES = {
