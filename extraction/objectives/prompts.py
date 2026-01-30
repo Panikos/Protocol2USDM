@@ -87,26 +87,22 @@ ESTIMANDS_PROMPT = """You are an expert at extracting estimands from clinical tr
 
 ## ICH E9(R1) Estimand Framework
 
-An estimand precisely describes the treatment effect. Extract these five attributes:
+An estimand precisely describes the treatment effect. Extract ALL FIVE attributes:
 
-1. **Treatment** - Intervention AND comparator (e.g., "Drug X 100mg vs Placebo")
-2. **Population** - Target patients (e.g., "Adults with moderate-to-severe disease")
-3. **Variable** - The endpoint being measured (reference endpoint ID from above)
-4. **Intercurrent Events** - Events affecting interpretation:
-   - Treatment discontinuation
-   - Rescue medication use
-   - Death
-   - Treatment switching
-5. **Summary Measure** - How effect is summarized (difference in means, hazard ratio, odds ratio, etc.)
+1. **Treatment** - Intervention AND comparator with specific names
+2. **Population** - Target patients AND analysis population (ITT, PP, mITT, etc.)
+3. **Variable** - The endpoint being measured (MUST reference endpoint ID from above)
+4. **Intercurrent Events** - Events affecting interpretation WITH handling strategy
+5. **Summary Measure** - Statistical summary (difference in means, hazard ratio, odds ratio, etc.)
 
-## Intercurrent Event Strategies
+## Intercurrent Event Strategies (MUST specify one)
 - **Treatment Policy** - Include all data regardless of event
 - **Composite** - Event becomes part of outcome
 - **Hypothetical** - Estimate as if event hadn't occurred
 - **Principal Stratum** - Subset who wouldn't experience event
 - **While on Treatment** - Only data while on treatment
 
-## Output Format
+## USDM 4.0 Required Output Format
 
 ```json
 {{
@@ -114,17 +110,26 @@ An estimand precisely describes the treatment effect. Extract these five attribu
     {{
       "id": "est_1",
       "name": "Primary Efficacy Estimand",
-      "population": "Adult patients meeting eligibility criteria (ITT population)",
-      "treatment": "Drug X 100mg daily vs Placebo",
-      "variableOfInterest": "Change from baseline in severity score",
+      "populationSummary": "Adult patients meeting eligibility criteria",
+      "analysisPopulation": "Intent-to-Treat (ITT) Population",
+      "treatmentDescription": "Drug X 100mg daily vs Placebo",
+      "interventionNames": ["Drug X 100mg", "Placebo"],
+      "variableOfInterest": "Change from baseline in severity score at Week 12",
       "endpointId": "ep_1",
       "summaryMeasure": "Difference in least squares means",
       "intercurrentEvents": [
         {{
           "id": "ice_1",
           "name": "Treatment discontinuation",
-          "text": "Subject discontinues treatment before Week 12",
+          "text": "Subject discontinues study treatment before Week 12",
           "strategy": "Treatment Policy",
+          "instanceType": "IntercurrentEvent"
+        }},
+        {{
+          "id": "ice_2",
+          "name": "Use of rescue medication",
+          "text": "Subject uses prohibited rescue medication",
+          "strategy": "Hypothetical",
           "instanceType": "IntercurrentEvent"
         }}
       ],
@@ -134,11 +139,15 @@ An estimand precisely describes the treatment effect. Extract these five attribu
 }}
 ```
 
-## Rules
-1. Link to existing endpoint IDs from Phase 1
-2. Extract at least one estimand for each primary endpoint
-3. Include common intercurrent events even if not explicit
-4. Return ONLY valid JSON
+## CRITICAL Rules
+1. **MUST link to endpoint IDs** from Phase 1 using endpointId field
+2. **MUST include summaryMeasure** - the statistical method (e.g., "Difference in means", "Hazard ratio")
+3. **MUST include at least one intercurrentEvent** with strategy
+4. **MUST include analysisPopulation** - the population type (ITT, PP, Safety, etc.)
+5. **MUST include interventionNames** - list of intervention names being compared
+6. Extract at least one estimand for each primary endpoint
+7. Include common intercurrent events (discontinuation, rescue medication) even if not explicit
+8. Return ONLY valid JSON
 
 Now extract estimands from the protocol:
 """

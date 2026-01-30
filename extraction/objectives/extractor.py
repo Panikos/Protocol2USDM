@@ -387,14 +387,14 @@ def _parse_objectives_only(raw: Dict[str, Any]) -> Optional[ObjectivesData]:
 
 
 def _parse_estimands(raw: Dict[str, Any]) -> List[Estimand]:
-    """Parse Phase 2 response (estimands only)."""
+    """Parse Phase 2 response (estimands only) - aligned with USDM 4.0."""
     estimands = []
     
     try:
         for est_data in raw.get('estimands', []):
             endpoint_id = est_data.get('endpointId')
             
-            # Parse intercurrent events
+            # Parse intercurrent events - ensure at least one for USDM compliance
             ice_list = []
             for ie_data in est_data.get('intercurrentEvents', []):
                 if isinstance(ie_data, dict):
@@ -411,7 +411,31 @@ def _parse_estimands(raw: Dict[str, Any]) -> List[Estimand]:
                         label=ie_data.get('label'),
                     ))
             
-            pop_text = est_data.get('population', est_data.get('populationSummary', 'Study population as defined by eligibility criteria'))
+            # Add default intercurrent event if none provided (USDM requires at least 1)
+            if not ice_list:
+                ice_list.append(IntercurrentEvent(
+                    id=f"ice_{len(estimands)+1}_1",
+                    name="Treatment discontinuation",
+                    text="Subject discontinues study treatment",
+                    strategy=IntercurrentEventStrategy.TREATMENT_POLICY,
+                ))
+            
+            # Population summary - combine population and analysis population
+            pop_text = est_data.get('populationSummary') or est_data.get('population', '')
+            analysis_pop = est_data.get('analysisPopulation', '')
+            if analysis_pop and analysis_pop not in pop_text:
+                pop_text = f"{pop_text} ({analysis_pop})" if pop_text else analysis_pop
+            if not pop_text:
+                pop_text = 'Study population as defined by eligibility criteria'
+            
+            # Extract intervention IDs - convert intervention names to IDs if needed
+            intervention_ids = est_data.get('interventionIds', [])
+            intervention_names = est_data.get('interventionNames', [])
+            treatment_desc = est_data.get('treatmentDescription') or est_data.get('treatment', '')
+            
+            # If no intervention IDs but we have names, create placeholder IDs
+            if not intervention_ids and intervention_names:
+                intervention_ids = [f"int_{i+1}" for i in range(len(intervention_names))]
             
             estimands.append(Estimand(
                 id=est_data.get('id', f"est_{len(estimands)+1}"),
@@ -421,11 +445,11 @@ def _parse_estimands(raw: Dict[str, Any]) -> List[Estimand]:
                 population_summary=pop_text,
                 analysis_population_id=est_data.get('analysisPopulationId'),
                 variable_of_interest_id=endpoint_id,
-                intervention_ids=est_data.get('interventionIds', []),
+                intervention_ids=intervention_ids,
                 intercurrent_events=ice_list,
                 summary_measure=est_data.get('summaryMeasure'),
-                treatment=est_data.get('treatment'),
-                analysis_population=est_data.get('analysisPopulation') or est_data.get('population'),
+                treatment=treatment_desc,
+                analysis_population=analysis_pop,
                 variable_of_interest=est_data.get('variableOfInterest'),
                 endpoint_id=endpoint_id,
             ))
