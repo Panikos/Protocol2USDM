@@ -31,6 +31,7 @@ from dataclasses import dataclass
 from core.llm_client import get_llm_client, LLMConfig
 from core.json_utils import parse_llm_json
 from core.usdm_types import HeaderStructure, Epoch, Encounter, PlannedTimepoint, ActivityGroup
+from llm_providers import usage_tracker
 
 logger = logging.getLogger(__name__)
 
@@ -348,6 +349,12 @@ def _analyze_with_gemini(
             config=config,
         )
         
+        # Track token usage
+        if hasattr(response, 'usage_metadata') and response.usage_metadata:
+            input_tokens = getattr(response.usage_metadata, 'prompt_token_count', 0) or 0
+            output_tokens = getattr(response.usage_metadata, 'candidates_token_count', 0) or 0
+            usage_tracker.add_usage(input_tokens, output_tokens)
+        
         raw = response.text or ""
         data = parse_llm_json(raw, fallback={})
         if isinstance(data, list) and data:
@@ -389,6 +396,12 @@ def _analyze_with_gemini(
                     "This is NOT an actual copyright issue (content is from public domain clinicaltrials.gov). "
                     "This is a known Gemini limitation that cannot be disabled via API settings."
                 )
+        
+        # Track token usage
+        if hasattr(response, 'usage_metadata') and response.usage_metadata:
+            input_tokens = getattr(response.usage_metadata, 'prompt_token_count', 0) or 0
+            output_tokens = getattr(response.usage_metadata, 'candidates_token_count', 0) or 0
+            usage_tracker.add_usage(input_tokens, output_tokens)
         
         raw = response.text or ""
         data = parse_llm_json(raw, fallback={})

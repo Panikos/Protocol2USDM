@@ -34,6 +34,7 @@ from core.llm_client import get_llm_client, LLMConfig
 from core.json_utils import parse_llm_json
 from core.usdm_types import HeaderStructure, ActivityTimepoint
 from core.provenance import ProvenanceTracker, ProvenanceSource
+from llm_providers import usage_tracker
 
 logger = logging.getLogger(__name__)
 
@@ -352,6 +353,11 @@ def _validate_with_gemini(prompt: str, image_paths: List[str], model_name: str) 
                         contents=content_parts,
                         config=config,
                     )
+                    # Track token usage
+                    if hasattr(response, 'usage_metadata') and response.usage_metadata:
+                        input_tokens = getattr(response.usage_metadata, 'prompt_token_count', 0) or 0
+                        output_tokens = getattr(response.usage_metadata, 'candidates_token_count', 0) or 0
+                        usage_tracker.add_usage(input_tokens, output_tokens)
                     return {'response': response.text or ""}
                     
                 except ImportError:
@@ -381,6 +387,11 @@ def _validate_with_gemini(prompt: str, image_paths: List[str], model_name: str) 
                     response_mime_type="application/json"
                 )
             )
+            # Track token usage
+            if hasattr(response, 'usage_metadata') and response.usage_metadata:
+                input_tokens = getattr(response.usage_metadata, 'prompt_token_count', 0) or 0
+                output_tokens = getattr(response.usage_metadata, 'candidates_token_count', 0) or 0
+                usage_tracker.add_usage(input_tokens, output_tokens)
             return {'response': response.text or ""}
             
         except Exception as e:

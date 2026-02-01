@@ -39,8 +39,8 @@ from pipeline import PipelineOrchestrator, phase_registry
 from pipeline.orchestrator import combine_to_full_usdm
 from pipeline.phases import *  # noqa - triggers registration
 
-# Import validation functions from main_v2 (reuse existing code)
-from main_v2 import (
+# Import validation functions from core module
+from core.validation import (
     validate_and_fix_schema,
     convert_ids_to_uuids,
     convert_provenance_to_uuids,
@@ -150,7 +150,7 @@ Examples:
         args.metadata, args.eligibility, args.objectives, args.studydesign,
         args.interventions, args.narrative, args.advanced, args.procedures,
         args.scheduling, args.docstructure, args.amendmentdetails, args.execution,
-        args.full_protocol,
+        args.full_protocol, args.complete,
     ])
     
     # Default to --complete mode if no specific phases requested
