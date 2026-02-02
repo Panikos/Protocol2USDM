@@ -25,6 +25,7 @@ import {
   FolderOpen,
   Database,
   Activity,
+  FileBarChart,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { TabGroup, TabButton } from '@/components/ui/tab-group';
@@ -33,7 +34,7 @@ import { exportToCSV, exportToJSON, exportToPDF, formatUSDMForExport } from '@/l
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DraftPublishControls } from '@/components/overlay/DraftPublishControls';
 import { SoAView } from '@/components/soa';
-import { TimelineView, ExecutionModelView } from '@/components/timeline';
+import { TimelineView, ExecutionModelView, SAPDataView, ARSDataView } from '@/components/timeline';
 import { ProvenanceView } from '@/components/provenance';
 import {
   StudyMetadataView,
@@ -366,7 +367,7 @@ export default function ProtocolDetailPage() {
           <SoATab provenance={provenance} />
         )}
         {activeTab === 'timeline' && (
-          <TimelineTab intermediateFiles={intermediateFiles} />
+          <TimelineTab intermediateFiles={intermediateFiles} protocolId={protocolId} />
         )}
         {activeTab === 'provenance' && (
           <ProvenanceTab provenance={provenance} />
@@ -466,8 +467,8 @@ function SoATab({ provenance }: { provenance: ProvenanceData | null }) {
   return <SoAView provenance={provenance} />;
 }
 
-function TimelineTab({ intermediateFiles }: { intermediateFiles: Record<string, unknown> | null }) {
-  const [viewMode, setViewMode] = useState<'execution' | 'graph'>('execution');
+function TimelineTab({ intermediateFiles, protocolId }: { intermediateFiles: Record<string, unknown> | null; protocolId: string }) {
+  const [viewMode, setViewMode] = useState<'execution' | 'sap' | 'ars' | 'graph'>('execution');
   
   // Extract execution model data from intermediate files
   const executionModel = useMemo(() => {
@@ -489,6 +490,24 @@ function TimelineTab({ intermediateFiles }: { intermediateFiles: Record<string, 
           Execution Model
         </Button>
         <Button
+          variant={viewMode === 'sap' ? 'default' : 'ghost'}
+          size="sm"
+          onClick={() => setViewMode('sap')}
+          className="flex items-center gap-2"
+        >
+          <BarChart3 className="h-4 w-4" />
+          SAP Data
+        </Button>
+        <Button
+          variant={viewMode === 'ars' ? 'default' : 'ghost'}
+          size="sm"
+          onClick={() => setViewMode('ars')}
+          className="flex items-center gap-2"
+        >
+          <FileBarChart className="h-4 w-4" />
+          CDISC ARS
+        </Button>
+        <Button
           variant={viewMode === 'graph' ? 'default' : 'ghost'}
           size="sm"
           onClick={() => setViewMode('graph')}
@@ -500,11 +519,10 @@ function TimelineTab({ intermediateFiles }: { intermediateFiles: Record<string, 
       </div>
 
       {/* Content */}
-      {viewMode === 'execution' ? (
-        <ExecutionModelView />
-      ) : (
-        <TimelineView executionModel={executionModel} />
-      )}
+      {viewMode === 'execution' && <ExecutionModelView />}
+      {viewMode === 'sap' && <SAPDataView />}
+      {viewMode === 'ars' && <ARSDataView protocolId={protocolId} />}
+      {viewMode === 'graph' && <TimelineView executionModel={executionModel} />}
     </div>
   );
 }

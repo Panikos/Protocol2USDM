@@ -23,6 +23,12 @@ import {
   Code,
   ExternalLink,
   Table,
+  Calculator,
+  ClipboardList,
+  BarChart3,
+  Layers,
+  FlaskConical,
+  Hash,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -118,6 +124,54 @@ const EXTENSION_METADATA: Record<string, {
     icon: 'Beaker',
     description: 'Computed/derived data definitions'
   },
+  'x-sap-derived-variables': { 
+    name: 'SAP Derived Variables', 
+    category: 'SAP Data',
+    icon: 'Calculator',
+    description: 'Calculation formulas from Statistical Analysis Plan'
+  },
+  'x-sap-data-handling-rules': { 
+    name: 'SAP Data Handling Rules', 
+    category: 'SAP Data',
+    icon: 'ClipboardList',
+    description: 'Missing data and BLQ handling rules from SAP'
+  },
+  'x-sap-statistical-methods': { 
+    name: 'Statistical Methods', 
+    category: 'SAP Data',
+    icon: 'BarChart3',
+    description: 'Primary/secondary analysis methods with STATO ontology mapping'
+  },
+  'x-sap-multiplicity-adjustments': { 
+    name: 'Multiplicity Adjustments', 
+    category: 'SAP Data',
+    icon: 'Layers',
+    description: 'Type I error control methods (Hochberg, Bonferroni, etc.)'
+  },
+  'x-sap-sensitivity-analyses': { 
+    name: 'Sensitivity Analyses', 
+    category: 'SAP Data',
+    icon: 'FlaskConical',
+    description: 'Pre-specified sensitivity and supportive analyses'
+  },
+  'x-sap-subgroup-analyses': { 
+    name: 'Subgroup Analyses', 
+    category: 'SAP Data',
+    icon: 'GitBranch',
+    description: 'Pre-specified subgroup analyses with interaction tests'
+  },
+  'x-sap-interim-analyses': { 
+    name: 'Interim Analyses', 
+    category: 'SAP Data',
+    icon: 'Clock',
+    description: 'Interim analysis plan with stopping boundaries'
+  },
+  'x-sap-sample-size-calculations': { 
+    name: 'Sample Size Calculations', 
+    category: 'SAP Data',
+    icon: 'Hash',
+    description: 'Power and sample size assumptions'
+  },
   'x-footnoteConditions': { 
     name: 'Footnote Conditions', 
     category: 'SoA Data',
@@ -165,6 +219,7 @@ const EXTENSION_METADATA: Record<string, {
 const CATEGORY_ICONS: Record<string, typeof Activity> = {
   'Execution Model': Activity,
   'SoA Data': FileText,
+  'SAP Data': FileText,
   'Debug/Provenance': Settings,
   'Other': Puzzle,
 };
@@ -172,6 +227,7 @@ const CATEGORY_ICONS: Record<string, typeof Activity> = {
 const CATEGORY_COLORS: Record<string, string> = {
   'Execution Model': 'bg-blue-100 text-blue-800 border-blue-200',
   'SoA Data': 'bg-green-100 text-green-800 border-green-200',
+  'SAP Data': 'bg-purple-100 text-purple-800 border-purple-200',
   'Debug/Provenance': 'bg-amber-100 text-amber-800 border-amber-200',
   'Other': 'bg-gray-100 text-gray-800 border-gray-200',
 };

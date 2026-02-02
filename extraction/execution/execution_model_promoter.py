@@ -1321,58 +1321,72 @@ class ExecutionModelPromoter:
         endpoint_algorithms: List[Any]
     ) -> Dict[str, Any]:
         """
-        Promote endpoint algorithms to Estimand framework.
+        Enrich existing Estimands with algorithm extensions from endpoint algorithms.
         
-        Per USDM v4.0 schema:
-        - Estimand.variableOfInterestId: reference to Endpoint
-        - Estimand.populationSummary: population description
-        - Estimand.intercurrentEvents: handling strategies
+        Per USDM v4.0 schema and ICH E9(R1):
+        - Estimands should be created by the objectives extractor with complete fields
+        - This method only adds algorithm extensions to existing estimands
+        - Does NOT create new incomplete estimands (causes validation issues)
         """
-        estimands = design.setdefault('estimands', [])
-        existing_estimand_ids = {e.get('id') for e in estimands}
+        estimands = design.get('estimands', [])
+        if not estimands:
+            return design
         
         # Build endpoint lookup
         endpoints = design.get('endpoints', [])
+        endpoint_by_id = {e.get('id', ''): e for e in endpoints}
         endpoint_by_name = {e.get('name', '').lower(): e for e in endpoints}
         
+        # Build estimand lookup by endpoint reference
+        estimand_by_endpoint_id = {}
+        estimand_by_name = {}
+        for est in estimands:
+            var_id = est.get('variableOfInterestId', '')
+            if var_id:
+                estimand_by_endpoint_id[var_id] = est
+            est_name = est.get('name', '').lower()
+            if est_name:
+                estimand_by_name[est_name] = est
+        
         for algo in endpoint_algorithms:
-            algo_id = getattr(algo, 'id', str(uuid.uuid4()))
             algo_name = getattr(algo, 'name', '') or getattr(algo, 'endpoint_name', '')
             algorithm_text = getattr(algo, 'algorithm', '')
-            success_criteria = getattr(algo, 'success_criteria', '') or getattr(algo, 'successCriteria', '')
-            endpoint_type = getattr(algo, 'endpoint_type', '') or getattr(algo, 'endpointType', '')
             
-            if algo_id in existing_estimand_ids:
+            if not algorithm_text:
                 continue
             
             # Find matching endpoint
             endpoint = endpoint_by_name.get(algo_name.lower()) if algo_name else None
             endpoint_id = endpoint.get('id') if endpoint else ""
             
-            # Create Estimand
-            estimand = {
-                "id": f"est_{algo_id}",
-                "name": algo_name or f"Estimand for {endpoint_type}",
-                "instanceType": "Estimand",
-                "populationSummary": success_criteria or algorithm_text or "As defined in protocol",
-                "variableOfInterestId": endpoint_id,
-                "analysisPopulationId": "",  # Would need population reference
-                "intercurrentEvents": [],
-                "interventionIds": [],
-            }
+            # Find existing estimand that references this endpoint
+            target_estimand = None
+            if endpoint_id:
+                target_estimand = estimand_by_endpoint_id.get(endpoint_id)
             
-            # Store algorithm as extension if present
-            if algorithm_text:
-                estimand['extensionAttributes'] = [{
-                    "id": str(uuid.uuid4()),
-                    "url": "https://protocol2usdm.io/extensions/x-algorithm",
-                    "valueString": algorithm_text,
-                    "instanceType": "ExtensionAttribute"
-                }]
+            # Fallback: try to match by name similarity
+            if not target_estimand and algo_name:
+                for est_name, est in estimand_by_name.items():
+                    if algo_name.lower() in est_name or est_name in algo_name.lower():
+                        target_estimand = est
+                        break
             
-            estimands.append(estimand)
-            existing_estimand_ids.add(estimand['id'])
-            self.result.estimands_created += 1
+            if target_estimand:
+                # Add algorithm as extension to existing estimand
+                extensions = target_estimand.setdefault('extensionAttributes', [])
+                # Check if algorithm extension already exists
+                has_algo_ext = any(
+                    ext.get('url') == 'https://protocol2usdm.io/extensions/x-algorithm'
+                    for ext in extensions
+                )
+                if not has_algo_ext:
+                    extensions.append({
+                        "id": str(uuid.uuid4()),
+                        "url": "https://protocol2usdm.io/extensions/x-algorithm",
+                        "valueString": algorithm_text,
+                        "instanceType": "ExtensionAttribute"
+                    })
+                    self.result.estimands_created += 1  # Reusing counter for enrichments
         
         return design
 

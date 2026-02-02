@@ -18,6 +18,7 @@ import logging
 from .phase_registry import phase_registry
 from .base_phase import BasePhase, PhaseResult
 from extraction.pipeline_context import PipelineContext, create_pipeline_context
+from extraction.conditional.ars_generator import generate_ars_from_sap
 
 logger = logging.getLogger(__name__)
 
@@ -411,6 +412,131 @@ def combine_to_full_usdm(
                 new_orgs = [o for o in site_orgs if o.get('id') not in existing_ids]
                 study_version['organizations'] = existing_orgs + new_orgs
                 logger.info(f"  Added {len(new_orgs)} site organizations")
+    
+    # Add SAP analysis populations from conditional sources
+    if expansion_results and expansion_results.get('sap'):
+        sap_result = expansion_results['sap']
+        if hasattr(sap_result, 'data') and sap_result.data:
+            sap_dict = sap_result.data.to_dict()
+            populations = sap_dict.get('analysisPopulations', [])
+            if populations:
+                study_design['analysisPopulations'] = populations
+                logger.info(f"  Added {len(populations)} analysis populations to studyDesign")
+            
+            # Store all SAP elements as USDM extensions with proper structure
+            extensions = study_design.setdefault('extensionAttributes', [])
+            
+            # Derived variables
+            derived_vars = sap_dict.get('derivedVariables', [])
+            if derived_vars:
+                extensions.append({
+                    "id": "ext_sap_derived_variables",
+                    "url": "https://protocol2usdm.io/extensions/x-sap-derived-variables",
+                    "valueString": json.dumps(derived_vars),
+                    "instanceType": "ExtensionAttribute"
+                })
+            
+            # Data handling rules
+            data_rules = sap_dict.get('dataHandlingRules', [])
+            if data_rules:
+                extensions.append({
+                    "id": "ext_sap_data_handling_rules",
+                    "url": "https://protocol2usdm.io/extensions/x-sap-data-handling-rules",
+                    "valueString": json.dumps(data_rules),
+                    "instanceType": "ExtensionAttribute"
+                })
+            
+            # Statistical methods (STATO mapping)
+            stat_methods = sap_dict.get('statisticalMethods', [])
+            if stat_methods:
+                extensions.append({
+                    "id": "ext_sap_statistical_methods",
+                    "url": "https://protocol2usdm.io/extensions/x-sap-statistical-methods",
+                    "valueString": json.dumps(stat_methods),
+                    "instanceType": "ExtensionAttribute"
+                })
+            
+            # Multiplicity adjustments
+            mult_adj = sap_dict.get('multiplicityAdjustments', [])
+            if mult_adj:
+                extensions.append({
+                    "id": "ext_sap_multiplicity_adjustments",
+                    "url": "https://protocol2usdm.io/extensions/x-sap-multiplicity-adjustments",
+                    "valueString": json.dumps(mult_adj),
+                    "instanceType": "ExtensionAttribute"
+                })
+            
+            # Sensitivity analyses
+            sens_analyses = sap_dict.get('sensitivityAnalyses', [])
+            if sens_analyses:
+                extensions.append({
+                    "id": "ext_sap_sensitivity_analyses",
+                    "url": "https://protocol2usdm.io/extensions/x-sap-sensitivity-analyses",
+                    "valueString": json.dumps(sens_analyses),
+                    "instanceType": "ExtensionAttribute"
+                })
+            
+            # Subgroup analyses
+            subgroup_analyses = sap_dict.get('subgroupAnalyses', [])
+            if subgroup_analyses:
+                extensions.append({
+                    "id": "ext_sap_subgroup_analyses",
+                    "url": "https://protocol2usdm.io/extensions/x-sap-subgroup-analyses",
+                    "valueString": json.dumps(subgroup_analyses),
+                    "instanceType": "ExtensionAttribute"
+                })
+            
+            # Interim analyses
+            interim_analyses = sap_dict.get('interimAnalyses', [])
+            if interim_analyses:
+                extensions.append({
+                    "id": "ext_sap_interim_analyses",
+                    "url": "https://protocol2usdm.io/extensions/x-sap-interim-analyses",
+                    "valueString": json.dumps(interim_analyses),
+                    "instanceType": "ExtensionAttribute"
+                })
+            
+            # Sample size calculations
+            sample_size = sap_dict.get('sampleSizeCalculations', [])
+            if sample_size:
+                extensions.append({
+                    "id": "ext_sap_sample_size_calculations",
+                    "url": "https://protocol2usdm.io/extensions/x-sap-sample-size-calculations",
+                    "valueString": json.dumps(sample_size),
+                    "instanceType": "ExtensionAttribute"
+                })
+            
+            ext_counts = [
+                f"{len(derived_vars)} derived variables" if derived_vars else None,
+                f"{len(data_rules)} data handling rules" if data_rules else None,
+                f"{len(stat_methods)} statistical methods" if stat_methods else None,
+                f"{len(mult_adj)} multiplicity adjustments" if mult_adj else None,
+                f"{len(sens_analyses)} sensitivity analyses" if sens_analyses else None,
+                f"{len(subgroup_analyses)} subgroup analyses" if subgroup_analyses else None,
+                f"{len(interim_analyses)} interim analyses" if interim_analyses else None,
+                f"{len(sample_size)} sample size calculations" if sample_size else None,
+            ]
+            ext_summary = ", ".join([c for c in ext_counts if c])
+            if ext_summary:
+                logger.info(f"  Added SAP extensions: {ext_summary}")
+            
+            # Generate CDISC ARS output from SAP data
+            try:
+                study_name = study_version.get('titles', [{}])[0].get('text', 'Study')
+                ars_output_path = os.path.join(output_dir, "ars_reporting_event.json")
+                ars_data = generate_ars_from_sap(sap_dict, study_name, ars_output_path)
+                
+                # Count generated entities
+                re = ars_data.get('reportingEvent', {})
+                ars_counts = [
+                    f"{len(re.get('analysisSets', []))} analysis sets",
+                    f"{len(re.get('analysisMethods', []))} methods",
+                    f"{len(re.get('analyses', []))} analyses",
+                ]
+                logger.info(f"  ✓ Generated CDISC ARS: {', '.join(ars_counts)}")
+                logger.info(f"    Saved to: {ars_output_path}")
+            except Exception as e:
+                logger.warning(f"  ⚠ ARS generation failed: {e}")
     
     # Add studyDesign to study_version
     study_version["studyDesigns"] = [study_design]
