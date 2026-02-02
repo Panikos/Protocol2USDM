@@ -467,9 +467,9 @@ class ExecutionType(Enum):
     RECURRING = "Recurring"  # Scheduled repeats
 ```
 
-## USDM Compliance
+## USDM Alignment
 
-All output is USDM v4.0 compliant per the official `dataStructure.yml`. As of v6.6:
+All output is USDM v4.0 aligned per the official `dataStructure.yml`. As of v6.6:
 
 ### Entity Placement (per dataStructure.yml)
 

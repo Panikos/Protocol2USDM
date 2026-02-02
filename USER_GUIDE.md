@@ -136,7 +136,7 @@ The pipeline automatically executes:
 3. **Analyze Structure** - Uses vision to understand table headers
 4. **Extract Data** - Extracts activities and timepoints from text
 5. **Validate** - Vision model validates extraction against images
-6. **Build Output** - Creates USDM-compliant JSON
+6. **Build Output** - Creates USDM-aligned JSON
 
 ### Post-Processing (Optional)
 
@@ -211,7 +211,7 @@ python main_v3.py protocol.pdf --expansion-only --metadata --eligibility
 
 ### Combined Output
 
-When running multiple phases, a combined `full_usdm.json` is generated containing all extracted data in a single USDM-compliant structure.
+When running multiple phases, a combined `full_usdm.json` is generated containing all extracted data in a single USDM-aligned structure.
 
 ---
 

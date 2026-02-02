@@ -2,7 +2,7 @@
 
 ## Overview
 
-Protocol2USDM extracts Schedule of Activities (SoA) and other structured data from clinical trial protocols and converts it to USDM v4.0 compliant JSON.
+Protocol2USDM extracts Schedule of Activities (SoA) and other structured data from clinical trial protocols and converts it to USDM v4.0 aligned JSON.
 
 ## Schema-Driven Architecture
 
@@ -69,7 +69,7 @@ This YAML file contains:
 │                  ↓ (uses core/evs_client.py)                     │
 │                validation/cdisc_conformance.py                   │
 │                            ↓                                     │
-│                   protocol_usdm.json (compliant)                 │
+│                   protocol_usdm.json (aligned)                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -449,7 +449,7 @@ The schema defines which fields are required. Key ones enforced:
 ### AliasCode (blindingSchema)
 - `id`, `standardCode`, `instanceType`
 
-## USDM Output Structure (v4.0 Compliant)
+## USDM Output Structure (v4.0 Aligned)
 
 The output follows the official CDISC USDM v4.0 structure from `dataStructure.yml`. Entities are placed at their correct hierarchical levels:
 
@@ -813,7 +813,7 @@ from core.terminology_codes import (
     ENDPOINT_LEVEL_CODES,
 )
 
-# Get USDM-compliant Code object
+# Get USDM-aligned Code object
 code = get_objective_level_code("primary")
 # Returns: {"code": "C85826", "decode": "Trial Primary Objective", ...}
 ```
@@ -931,7 +931,7 @@ Each extraction module has a local `schema.py` with extraction-specific types:
 2. **Prompts generated from schema** - More accurate entity definitions
 3. **Single source of truth** - All derived from `dataStructure.yml`
 
-### From v6.x to v6.6 (USDM Placement Compliance)
+### From v6.x to v6.6 (USDM Placement Alignment)
 
 All entities now placed at their correct USDM locations per `dataStructure.yml`:
 

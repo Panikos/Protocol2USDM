@@ -313,9 +313,9 @@ python testing/benchmark.py <golden.json> <extracted_dir/> [--verbose]
 
 ## [6.7.2] – 2026-01-02
 
-### Full USDM 4.0 Schema Compliance
+### Full USDM 4.0 Schema Alignment
 
-Achieved **0 validation errors** - full compliance with USDM 4.0 schema.
+Achieved **0 validation errors** - full alignment with USDM 4.0 schema.
 
 #### Fixes
 
@@ -355,7 +355,7 @@ Achieved **0 validation errors** - full compliance with USDM 4.0 schema.
 
 ### Additional USDM Schema Fixes
 
-Continued schema compliance improvements addressing validation errors.
+Continued schema alignment improvements addressing validation errors.
 
 #### Fixes
 
@@ -379,7 +379,7 @@ Continued schema compliance improvements addressing validation errors.
 
 ### ScheduledActivityInstance USDM Conformance Enhancements
 
-Enhanced `ScheduledActivityInstance` generation to improve USDM 4.0 schema compliance and data quality.
+Enhanced `ScheduledActivityInstance` generation to improve USDM 4.0 schema alignment and data quality.
 
 #### New Features
 
@@ -431,7 +431,7 @@ Per USDM 4.0 `dataStructure.yml`:
 
 ## [6.6.0] – 2026-01-02
 
-### USDM Entity Placement Compliance
+### USDM Entity Placement Alignment
 
 Full audit and fix of entity placement to comply with official CDISC `dataStructure.yml`.
 
@@ -510,9 +510,9 @@ UUID namespace mismatch between:
 
 ## [6.4.0] – 2025-11-30
 
-### Parser Fixes for USDM-Compliant LLM Responses
+### Parser Fixes for USDM-Aligned LLM Responses
 
-The LLM now produces USDM-compliant output directly (with `id`, `instanceType`, proper Code objects).
+The LLM now produces USDM-aligned output directly (with `id`, `instanceType`, proper Code objects).
 All 7 extraction parsers were updated to handle both the new format and legacy format.
 
 #### Fixed Parsers
@@ -653,7 +653,7 @@ All 7 extraction parsers were updated to handle both the new format and legacy f
 * **Iterative expansion**: Adjacent page detection now continues until no more pages added
 * **More permissive previous page check**: Checks for table content, not just "Schedule of Activities" title
 
-#### USDM v4.0 Schema Compliance (Source Fixes)
+#### USDM v4.0 Schema Alignment (Source Fixes)
 * **Code objects now include all required fields**: `id`, `codeSystem`, `codeSystemVersion`, `decode`, `instanceType`
 * **StudyDesign property names fixed at source**: `studyArms` → `arms`, `studyDesignPopulation` → `population`
 * **StudyDesign required fields added**: `name`, `rationale`, `model` now populated by default
@@ -704,16 +704,16 @@ All 7 extraction parsers were updated to handle both the new format and legacy f
 
 ### Activity Groups & SoA Footnotes
 
-#### Activity Group Hierarchy (USDM v4.0 Compliant)
+#### Activity Group Hierarchy (USDM v4.0 Aligned)
 * **Fixed activity group handling**: Groups now correctly represented as parent Activities with `childIds`
 * Activities linked to groups via `activityGroupId` field during extraction
-* `Timeline.to_study_design()` converts groups to USDM v4.0 compliant structure
+* `Timeline.to_study_design()` converts groups to USDM v4.0 aligned structure
 * Vision verification extracts visual properties (bold, merged cells) for groups
 * Viewer correctly displays hierarchical grouping with rowspan
 
 #### SoA Footnotes Support
 * **Added SoA footnote storage**: Footnotes from header structure now stored in `StudyDesign.notes`
-* Uses USDM v4.0 `CommentAnnotation` objects for CDISC compliance
+* Uses USDM v4.0 `CommentAnnotation` objects per CDISC specification
 * Viewer displays footnotes in collapsible expander below SoA table
 * Fallback loading from `4_header_structure.json` when not in final output
 
@@ -743,7 +743,7 @@ All 7 extraction parsers were updated to handle both the new format and legacy f
 * Adjacent continuation pages automatically included
 * Pipeline now calls `find_soa_pages()` instead of bypassing to heuristic-only detection
 
-#### USDM v4.0 Structure Compliance
+#### USDM v4.0 Structure Alignment
 * **Fixed schema validation error**: "Study must have at least one version"
 * Changed output structure from flat `studyDesigns[]` to proper `study.versions[0].studyDesigns[]`
 * Added `study_version` wrapper with proper USDM v4.0 nesting

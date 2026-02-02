@@ -101,7 +101,7 @@ GOOGLE_CLOUD_LOCATION=us-central1  # or your preferred region
 - Epoch, encounter, and activity reconciliation with ID preservation
 - Replaces fuzzy string matching with intelligent entity resolution
 
-### 🏛️ USDM 4.0 Compliance
+### 🏛️ USDM 4.0 Alignment
 - All entities placed at correct locations per CDISC `dataStructure.yml`
 - Proper entity hierarchy (studyVersion, studyDesign, scheduleTimeline, activity)
 - NCI code mappings for dose forms, timing types, and identifier types
@@ -112,7 +112,7 @@ GOOGLE_CLOUD_LOCATION=us-central1  # or your preferred region
 
 - **Gemini Flash 3 Optimized**: Pipeline tuned for best results with `gemini-3-flash` via Vertex AI
 - **Vision-Validated Extraction**: Text extraction validated against actual PDF images
-- **USDM v4.0 Compliant**: Outputs follow official CDISC schema with proper entity hierarchy
+- **USDM v4.0 Aligned**: Outputs follow official CDISC schema with proper entity hierarchy
 - **Execution Model**: Full subject state machine, time anchors, visit windows, and dosing regimens
 - **NCI Terminology Enrichment**: Automatic enrichment with official NCI codes via EVS API
 - **Pipeline Context**: Each extractor receives accumulated context from prior phases
@@ -388,7 +388,7 @@ Study → StudyVersion → StudyDesign
          └── studyInterventions[]
 ```
 
-For detailed output structure and entity relationships, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#usdm-output-structure-v40-compliant).
+For detailed output structure and entity relationships, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#usdm-output-structure-v40-aligned).
 
 ### Provenance Tracking
 
@@ -657,7 +657,7 @@ The following items are planned for upcoming releases:
 - [x] **Pipeline Context Architecture**: Context-aware extraction with accumulated results *(completed v7.0)*
 - [x] **Entity Reconciliation Framework**: LLM-based semantic mapping and ID preservation *(completed v7.0)*
 - [x] **Modern Web UI**: Complete React/Next.js revamp from Streamlit *(completed v7.0)*
-- [x] **USDM 4.0 Compliance**: All entities at correct locations per `dataStructure.yml` *(completed v7.0)*
+- [x] **USDM 4.0 Alignment**: All entities at correct locations per `dataStructure.yml` *(completed v7.0)*
 - [x] **NCI Code Mappings**: Dose forms, timing types, identifier types with NCI codes *(completed v7.0)*
 - [x] **Repository Cleanup**: Organized scripts, archived legacy files *(completed v7.0)*
 

@@ -16,7 +16,7 @@ Protocol2USDM is an automated pipeline that extracts clinical trial protocol con
 |------------|-------------|
 | **Multi-Model LLM Extraction** | Uses Claude Opus 4.5, Gemini 3 Flash, ChatGPT 5.2 for intelligent content extraction |
 | **Vision-Validated Extraction** | Text extraction validated against actual PDF images to reduce hallucinations |
-| **USDM v4.0 Compliance** | Outputs follow official CDISC schema with proper entity hierarchy |
+| **USDM v4.0 Alignment** | Outputs follow official CDISC schema with proper entity hierarchy |
 | **NCI Terminology Enrichment** | Automatic enrichment with official NCI codes via EVS API |
 | **Provenance Tracking** | Every extracted cell tagged with source (text/vision/both) for confidence tracking |
 | **CDISC CORE Validation** | Built-in conformance checking with local CORE engine |
