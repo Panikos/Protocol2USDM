@@ -39,11 +39,16 @@ Protocol2USDM is an automated pipeline that extracts, validates, and structures 
 ## 🚀 Try It Now
 
 ```bash
-# Default: --complete mode with gemini-3-flash-preview (no flags needed!)
-python main_v3.py input/trial/NCT04573309_Wilsons/NCT04573309_Wilsons_Protocol.pdf --sap input/trial/NCT04573309_Wilsons/NCT04573309_Wilsons_SAP.pdf --sites input/trial/NCT04573309_Wilsons/NCT04573309_Wilsons_sites.csv
+# Full extraction with SAP, sites, parallel execution
+python main_v3.py input/trial/NCT04573309_Wilsons/NCT04573309_Wilsons_Protocol.pdf \
+  --complete \
+  --sap input/trial/NCT04573309_Wilsons/NCT04573309_Wilsons_SAP.pdf \
+  --sites input/trial/NCT04573309_Wilsons/NCT04573309_Wilsons_sites.csv \
+  --parallel \
+  --model gemini-3-flash
 ```
 
-This extracts the full protocol with execution model, enriches entities with NCI terminology codes, includes SAP analysis populations and site list.
+This extracts the full protocol with execution model, enriches entities with NCI terminology codes, includes SAP analysis populations (with STATO mapping and ARS linkage), and site list.
 
 > **💡 Default Model:** `gemini-3-flash-preview` (Gemini Flash 3) via Vertex AI. Other models (`claude-opus-4-5`, `claude-sonnet-4`, `chatgpt-5.2`, `gemini-2.5-pro`) are supported. The pipeline defaults to `--complete` mode when no specific phases are requested.
 
