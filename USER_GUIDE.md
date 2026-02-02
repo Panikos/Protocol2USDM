@@ -115,8 +115,7 @@ python tools/core/download_core.py
 # Recommended: main_v3.py (phase registry architecture)
 python main_v3.py <protocol.pdf>
 
-# Legacy: main_v2.py (still supported)
-python main_v2.py <protocol.pdf>
+# Legacy main_v3.py has been removed — use main_v3.py
 ```
 
 ### With Options
@@ -143,7 +142,7 @@ The pipeline automatically executes:
 
 ```bash
 # Add all post-processing
-python main_v2.py protocol.pdf --full
+python main_v3.py protocol.pdf --full
 
 # Or individually:
 --enrich            # Step 7: Add NCI terminology codes
@@ -432,19 +431,19 @@ Opens at: http://localhost:3000
 ### Step 7: Terminology Enrichment
 Adds NCI EVS codes to activities:
 ```bash
-python main_v2.py protocol.pdf --enrich
+python main_v3.py protocol.pdf --enrich
 ```
 
 ### Step 8: Schema Validation
 Validates against USDM v4.0 schema:
 ```bash
-python main_v2.py protocol.pdf --validate-schema
+python main_v3.py protocol.pdf --validate-schema
 ```
 
 ### Step 9: CDISC CORE Conformance
 Runs CORE rules validation:
 ```bash
-python main_v2.py protocol.pdf --conformance
+python main_v3.py protocol.pdf --conformance
 ```
 
 **Note:** Requires CORE engine installed via `tools/core/download_core.py`
@@ -501,16 +500,16 @@ GOOGLE_API_KEY=AIzaSy...  # Still needed for authentication
 ### Specifying Model
 ```bash
 # Recommended: Gemini 3 Flash (uses fallback for SoA automatically)
-python main_v2.py protocol.pdf --model gemini-3-flash
+python main_v3.py protocol.pdf --model gemini-3-flash
 
 # Alternative: Gemini 2.5 Pro
-python main_v2.py protocol.pdf --model gemini-2.5-pro
+python main_v3.py protocol.pdf --model gemini-2.5-pro
 
 # Claude Opus 4.5 (high accuracy)
-python main_v2.py protocol.pdf --model claude-opus-4-5
+python main_v3.py protocol.pdf --model claude-opus-4-5
 
 # Full extraction with SAP and sites
-python main_v2.py protocol.pdf --complete --sap sap.pdf --sites sites.csv --model gemini-3-flash
+python main_v3.py protocol.pdf --complete --sap sap.pdf --sites sites.csv --model gemini-3-flash
 ```
 
 ---
@@ -554,7 +553,7 @@ Error: GOOGLE_API_KEY environment variable not set
 
 **Solutions:**
 1. Skip validation: `--no-validate`
-2. Review in Streamlit viewer
+2. Review in Web UI (`cd web-ui && npm run dev`)
 3. Check source PDF quality
 
 ---
@@ -589,7 +588,7 @@ A:
 1. Try a different model
 2. Check PDF quality (text-based vs scanned)
 3. Verify correct pages were identified
-4. Review in Streamlit viewer
+4. Review in Web UI (`cd web-ui && npm run dev`)
 
 **Q: How do I report issues?**
 A: Check logs in `output/<protocol>/`, capture error messages, report to maintainer.

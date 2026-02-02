@@ -26,7 +26,7 @@ cp path/to/protocol.pdf test_data/medium/
 
 1. **Run the pipeline manually:**
    ```bash
-   python main_v2.py test_data/medium/protocol.pdf --model gpt-5.1
+   python main_v3.py test_data/medium/protocol.pdf --model gemini-3-flash-preview
    ```
 
 2. **Copy the output as starting point:**
@@ -96,7 +96,7 @@ A good gold standard should:
 
 ```bash
 # Compare models across all protocols in input/
-python benchmark_models.py --models gpt-5.1 gemini-3-pro-preview
+python benchmark_models.py --models gemini-3-flash-preview gemini-2.5-pro
 ```
 
 **Output:**
@@ -107,7 +107,7 @@ python benchmark_models.py --models gpt-5.1 gemini-3-pro-preview
 ### Single Protocol Test
 
 ```bash
-python main_v2.py input/protocol.pdf --model gpt-5.1 --full
+python main_v3.py input/protocol.pdf --model gemini-3-flash-preview --full
 ```
 
 **Output:**
@@ -156,7 +156,7 @@ For each test case, the benchmark measures:
 
 2. **Create gold standards:**
    ```bash
-   python main_v2.py test_data/medium/CDISC_Pilot_Study.pdf --model gpt-5.1
+   python main_v3.py test_data/medium/CDISC_Pilot_Study.pdf --model gemini-3-flash-preview
    cp output/CDISC_Pilot_Study/9_final_soa.json test_data/medium/CDISC_Pilot_Study_gold.json
    # Now manually review and correct the gold standard!
    ```
@@ -206,4 +206,4 @@ Review the gold standard to ensure it's achievable.
 
 **Ready to benchmark!** Create your first gold standard and run your first test.
 
-**Last Updated:** 2025-11-26
+**Last Updated:** 2026-02-01

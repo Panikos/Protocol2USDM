@@ -243,8 +243,7 @@ python tools/core/download_core.py
 # main_v3.py is the recommended entry point (phase registry architecture)
 python main_v3.py <protocol.pdf> [options]
 
-# Legacy entry point (still supported)
-python main_v2.py <protocol.pdf> [options]
+# Legacy main_v2.py has been removed — use main_v3.py
 ```
 
 ### Model Selection
@@ -416,7 +415,7 @@ Footnotes extracted from SoA tables are stored in `StudyDesign.notes` as USDM v4
 
 ## Web UI (Complete Revamp)
 
-The web interface has been **completely revamped** from the legacy Streamlit app to a modern, user-friendly stack built with **React 18**, **Next.js 14/15**, **TypeScript**, **TailwindCSS**, and **AG Grid**.
+The web interface has been **completely revamped** from the legacy Streamlit app to a modern, user-friendly stack built with **React 19**, **Next.js 16**, **TypeScript**, **TailwindCSS**, and **AG Grid**.
 
 ### Launch the Web UI
 
@@ -432,7 +431,7 @@ Then open http://localhost:3000 in your browser.
 
 | Component | Technology |
 |-----------|------------|
-| **Framework** | Next.js 14/15 with App Router |
+| **Framework** | Next.js 16 with App Router |
 | **Language** | TypeScript |
 | **Styling** | TailwindCSS with dark mode support |
 | **Data Tables** | AG Grid for high-performance SoA display |
@@ -513,8 +512,7 @@ SoA extraction tested on Alexion Wilson's Disease protocol (Jan 2026):
 
 ```
 Protocol2USDMv3/
-├── main_v3.py                # ⭐ Recommended entry point (phase registry)
-├── main_v2.py                # Legacy entry point (still supported)
+├── main_v3.py                # Entry point (phase registry architecture)
 ├── llm_providers.py          # LLM provider abstraction layer
 ├── pipeline/                 # ⭐ NEW: Phase registry architecture
 │   ├── __init__.py           # Package exports

@@ -16,7 +16,7 @@ npm run dev
 
 ## Technology Stack
 
-- **Next.js 14** - React framework with App Router
+- **Next.js 16** - React framework with App Router
 - **TypeScript** - Type safety
 - **Tailwind CSS** - Styling
 - **shadcn/ui** - UI components
@@ -146,16 +146,21 @@ npm run lint
 npm run build
 ```
 
-## Recent Updates (v6.9)
+## Recent Updates
 
-### Execution Model View Enhancements
-- **Visit Windows Epoch Resolution**: Day-based epoch matching from USDM encounters
-- **Late-study visits**: Day 162, Day 365 now correctly assigned to EOS epoch
-- **Gap filling**: Day 0 (Baseline) resolved by interpolating from nearest neighbors
+### v7.2 — Execution Model Promotion
+- New USDM entity dataclasses: `ScheduledDecisionInstance`, `ConditionAssignment`, `StudyElement`
+- `Encounter` now supports `transitionStartRule`/`transitionEndRule`, `previousId`/`nextId`
+- `StudyDesign` now has `conditions[]`, `estimands[]`, `elements[]` collections
 
-### Quality Metrics Dashboard
-- Fixed epoch field checking to only validate `name` (not `epochType` which is often empty)
-- Improved field population rate accuracy
+### v6.10/6.11 — SAP & ARS Integration
+- **SAP Data tab** (`SAPDataView.tsx`) — analysis populations, statistical methods, STATO codes
+- **CDISC ARS tab** (`ARSDataView.tsx`) — reporting events, analyses, analysis sets, methods
+- Extensions view updated with 8 SAP extension types
+
+### v6.9 — Execution Model View
+- Visit Windows epoch resolution with day-based matching
+- Quality Metrics dashboard improvements
 
 ## Milestones
 
@@ -163,8 +168,9 @@ npm run build
 - [x] **M2**: AG Grid SoA table with provenance
 - [x] **M3**: Cytoscape.js timeline diagram
 - [x] **M4**: Execution Model view with visit windows
+- [x] **M4.5**: SAP Data and CDISC ARS views
 - [ ] **M5**: Semantic editing workflow
 
 ## License
 
-MIT
+See root repository README for license terms.

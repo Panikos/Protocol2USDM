@@ -159,7 +159,7 @@ class MyPhase(BasePhase):
 
 | Phase | Name | Output File | Dependencies |
 |-------|------|-------------|--------------|
-| 1 | Eligibility | `3_eligibility_criteria.json` | None |
+| 1 | Eligibility | `3_eligibility_criteria.json` | Metadata |
 | 2 | Metadata | `2_study_metadata.json` | None |
 | 3 | Objectives | `4_objectives_endpoints.json` | Metadata |
 | 4 | StudyDesign | `5_study_design.json` | None |
@@ -169,7 +169,7 @@ class MyPhase(BasePhase):
 | 10 | Procedures | `9_procedures_devices.json` | None |
 | 11 | Scheduling | `10_scheduling_logic.json` | None |
 | 12 | DocStructure | `13_document_structure.json` | None |
-| 13 | AmendmentDetails | `14_amendment_details.json` | Advanced |
+| 13 | AmendmentDetails | `14_amendment_details.json` | None |
 | 14 | Execution | `11_execution_model.json` | All above |
 
 ### Parallel Execution
@@ -183,9 +183,9 @@ python main_v3.py protocol.pdf --parallel --max-workers 4
 The orchestrator builds a dependency graph and groups phases into "waves":
 
 ```
-Wave 1 (parallel): Eligibility, Metadata, StudyDesign, Narrative, Advanced, Procedures, Scheduling, DocStructure
-Wave 2 (parallel): Objectives, Interventions, AmendmentDetails
-Wave 3 (sequential): Execution (depends on all)
+Wave 1 (parallel): Metadata, StudyDesign, Narrative, Advanced, Procedures, Scheduling, DocStructure, AmendmentDetails, Execution
+Wave 2 (parallel): Eligibility (needs Metadata), Objectives (needs Metadata)
+Wave 3 (parallel): Interventions (needs Metadata + StudyDesign)
 ```
 
 ### Default `--complete` Mode

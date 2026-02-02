@@ -1,4 +1,6 @@
-# Web UI Gap Analysis - January 23, 2026
+# Web UI Gap Analysis - January 23, 2026 (Updated February 1, 2026)
+
+> **Note (Feb 2026):** Since this analysis, v6.10/6.11 added SAP Data (`SAPDataView.tsx`) and CDISC ARS (`ARSDataView.tsx`) tabs. v7.2 added `ScheduledDecisionInstance`, `ConditionAssignment`, `StudyElement`, and enhanced `Encounter`/`StudyDesign` with new fields (`conditions[]`, `estimands[]`, `elements[]`, `transitionStartRule`/`transitionEndRule`). These are not yet reflected in the gap inventory below.
 
 ## Overview
 

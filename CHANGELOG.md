@@ -4,6 +4,152 @@ All notable changes documented here. Dates in ISO-8601.
 
 ---
 
+## [7.2.0] – 2026-02-01
+
+### Execution Model Promotion to Native USDM Entities
+
+Execution model data previously stranded in `extensionAttributes` is now promoted to native USDM v4.0 entities.
+
+#### New USDM Dataclasses (`core/usdm_types_generated.py`)
+
+| Entity | Purpose |
+|--------|---------|
+| **`ScheduledDecisionInstance`** | Decision nodes in schedule timelines with conditional branching |
+| **`ConditionAssignment`** | If/then rules within decision nodes (`condition` text + `conditionTargetId`) |
+| **`StudyElement`** | Time building blocks with `transitionStartRule`/`transitionEndRule` for titration, washout |
+
+#### Enhanced Existing Dataclasses
+
+| Entity | New Fields |
+|--------|-----------|
+| **`Encounter`** | `transitionStartRule`, `transitionEndRule`, `previousId`, `nextId` |
+| **`StudyDesign`** | `conditions[]`, `estimands[]`, `elements[]` |
+| **`ScheduleTimelineExit`** | `name`, `exitId` |
+
+#### Architecture
+
+- `StudyDesign.conditions[]` now populated with `Condition` entities from footnote conditions
+- `Encounter` entities carry `TransitionRule` for state machine transitions
+- `StudyEpoch.previousId`/`nextId` chains populated from traversal constraints
+- `Timing.windowLower`/`windowUpper` enrichment from visit window extraction
+
+---
+
+## [7.1.0] – 2026-01-31
+
+### Phase Registry Architecture
+
+Complete refactor of the pipeline orchestrator from a monolithic `main_v2.py` (3,068 lines) to a clean phase registry pattern.
+
+#### New Files
+
+| File | Purpose |
+|------|---------|
+| **`main_v3.py`** | New entry point replacing `main_v2.py` |
+| **`pipeline/orchestrator.py`** | Registry-driven phase runner with dependency resolution |
+| **`pipeline/base_phase.py`** | `BasePhase` abstract class and `PhaseResult` dataclass |
+| **`pipeline/phase_registry.py`** | Global phase registry for `@register_phase` decorator |
+| **`pipeline/phases/*.py`** | 13 individual phase modules (metadata, eligibility, objectives, etc.) |
+| **`core/validation.py`** | Refactored validation: `validate_and_fix_schema`, `convert_ids_to_uuids` |
+
+#### Key Changes
+
+- **Default `--complete` mode**: No flags needed — full extraction runs by default
+- **Default model**: `gemini-3-flash-preview` (Gemini Flash 3 via Vertex AI)
+- **Parallel execution**: `--parallel` flag runs independent phases concurrently via `ThreadPoolExecutor`
+- **Dependency graph**: Phases declare dependencies (e.g., eligibility depends on metadata); orchestrator resolves execution order
+- **`main_v2.py` removed**: All functionality preserved in `main_v3.py` + `pipeline/`
+
+#### Phase Dependency Graph
+
+```
+Wave 1 (parallel): Metadata, StudyDesign, Narrative, Advanced, Procedures, Scheduling, DocStructure, AmendmentDetails, Execution
+Wave 2 (parallel): Eligibility (needs Metadata), Objectives (needs Metadata)
+Wave 3 (parallel): Interventions (needs Metadata + StudyDesign)
+```
+
+---
+
+## [6.10.0] – 2026-01-31
+
+### Comprehensive SAP Extraction with STATO Ontology Mapping
+
+Enhanced SAP extraction to support downstream systems and statistical test standardization via STATO ontology mapping.
+
+#### New SAP Data Types
+
+| Data Type | USDM Target | Purpose |
+|-----------|-------------|---------|
+| **Statistical Methods** | Extension | STATO-mapped analysis methods (ANCOVA, MMRM, etc.) |
+| **Multiplicity Adjustments** | Extension | Type I error control (Hochberg, Bonferroni, etc.) |
+| **Sensitivity Analyses** | Extension | Pre-specified robustness analyses |
+| **Subgroup Analyses** | Extension | Pre-specified subgroups with interaction tests |
+| **Interim Analyses** | Extension | Stopping boundaries and alpha spending |
+| **Sample Size Calculations** | Extension | Power and sample size assumptions |
+
+#### STATO Ontology Integration
+
+Statistical methods are now mapped to STATO codes for interoperability:
+
+| Method | STATO Code |
+|--------|------------|
+| ANCOVA | `STATO:0000029` |
+| MMRM | `STATO:0000325` |
+| Kaplan-Meier | `STATO:0000149` |
+| Cox regression | `STATO:0000223` |
+| Chi-square | `STATO:0000049` |
+| Fisher exact | `STATO:0000073` |
+
+#### CDISC ARS (Analysis Results Standard) Linkage
+
+New fields added for ARS interoperability:
+
+| SAP Entity | ARS Field | Purpose |
+|------------|-----------|---------|
+| `StatisticalMethod` | `arsOperationId` | ARS operation codes (e.g., `Mth01_ContVar_Ancova`) |
+| `StatisticalMethod` | `arsReason` | `PRIMARY`, `SENSITIVITY`, `EXPLORATORY` |
+| `SensitivityAnalysis` | `arsReason` | Analysis classification |
+| `InterimAnalysis` | `arsReportingEventType` | `INTERIM_1`, `INTERIM_2`, `FINAL` |
+
+#### CDISC ARS Deep Integration (6.11.0)
+
+Full ARS model generation with automatic conversion from SAP data:
+
+- **ARS Generator** (`extraction/conditional/ars_generator.py`)
+  - `ReportingEvent` - Top-level container for analyses
+  - `Analysis` - Individual analysis specification with reason/purpose
+  - `AnalysisSet` - Population definitions linked to USDM
+  - `AnalysisMethod` - Statistical methods with STATO mapping
+  - `Operation` - Standard operations per method type
+
+- **Output**: `ars_reporting_event.json` generated alongside USDM
+
+- **Web UI**: New "CDISC ARS" tab under Data → Timeline with:
+  - Overview panel with entity counts and reason breakdown
+  - Analysis Sets panel with USDM linkage
+  - Methods panel with operations hierarchy
+  - Analyses panel with method/set linking
+  - Categories panel for analysis organization
+
+#### Files Changed
+
+**Core:**
+* `extraction/conditional/sap_extractor.py` - Added 6 new dataclasses, enhanced prompt with STATO/ARS mapping
+* `extraction/conditional/ars_generator.py` - **NEW** Full ARS model generator
+* `pipeline/orchestrator.py` - Merge SAP elements into USDM extensions, generate ARS output
+
+**Web UI:**
+* `web-ui/components/protocol/ExtensionsView.tsx` - Added SAP Data category with 8 extension types
+* `web-ui/components/timeline/ARSDataView.tsx` - **NEW** CDISC ARS visualization component
+* `web-ui/components/timeline/SAPDataView.tsx` - Added ARS linkage display
+* `web-ui/app/api/protocols/[id]/ars/route.ts` - **NEW** API endpoint for ARS data
+* `web-ui/app/protocols/[id]/page.tsx` - Added CDISC ARS tab
+
+**Documentation:**
+* `docs/SAP_EXTENSIONS.md` - New comprehensive SAP extension schema documentation
+
+---
+
 ## [6.9.0] – 2026-01-07
 
 ### Gemini 3 Flash Support with Intelligent Fallback

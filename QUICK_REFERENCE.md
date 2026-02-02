@@ -232,8 +232,7 @@ CDISC_API_KEY=...            # For CORE (optional)
 
 | File | Purpose |
 |------|--------|
-| `main_v3.py` ⭐ | **Recommended** entry point (phase registry) |
-| `main_v2.py` | Legacy entry point (still supported) |
+| `main_v3.py` | Entry point (phase registry architecture) |
 | `pipeline/` | Phase registry architecture module |
 | `pipeline/orchestrator.py` | Pipeline orchestration with parallel support |
 | `pipeline/phases/` | Individual phase implementations |

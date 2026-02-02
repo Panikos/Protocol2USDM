@@ -19,7 +19,7 @@
 ### 1.1 Core Framework
 | Technology | Purpose | Justification |
 |------------|---------|---------------|
-| **Next.js 14+** | App framework | Server components, API routes, ISR for performance |
+| **Next.js 16** | App framework | Server components, API routes, ISR for performance |
 | **TypeScript** | Type safety | Critical for USDM schema enforcement |
 | **Tailwind CSS** | Styling | Rapid iteration, design system consistency |
 | **shadcn/ui** | Component library | Accessible, customizable primitives |
@@ -38,8 +38,8 @@
 | **Zod** | Runtime schema validation (USDM + Overlay) |
 | **Framer Motion** | Micro-interactions, transitions |
 | **Lucide React** | Icons |
-| **Monaco Editor** | JSON viewer/editor (provenance, overlay debug) |
-| **React PDF** | PDF source document viewer |
+| ~~Monaco Editor~~ | *(Not implemented)* |
+| ~~React PDF~~ | *(Not implemented)* |
 
 ---
 

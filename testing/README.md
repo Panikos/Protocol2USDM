@@ -6,10 +6,14 @@ This directory contains testing and benchmarking scripts for the Protocol2USDM p
 
 | File | Purpose |
 |------|---------|
+| `benchmark.py` | Core benchmarking utilities |
 | `benchmark_models.py` | Benchmark different LLM models for extraction quality |
 | `compare_golden_vs_extracted.py` | Compare extracted output against golden standard |
 | `test_golden_comparison.py` | Unit tests for golden standard comparison |
 | `test_pipeline_steps.py` | End-to-end pipeline step tests |
+| `test_claude.py` | Claude model-specific tests |
+| `test_gpt51_vision.py` | GPT vision capability tests |
+| `audit_extraction_gaps.py` | Audit extraction completeness gaps |
 
 ## Running Tests
 
