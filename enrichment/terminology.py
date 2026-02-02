@@ -30,6 +30,7 @@ from core.terminology_codes import (
     BLINDING_CODES,
     ELIGIBILITY_CODES,
     ARM_TYPE_CODES,
+    STUDY_MODEL_CODES,
     find_code_by_text,
 )
 
@@ -43,6 +44,7 @@ OBJECTIVE_LEVEL_MAPPINGS = {k: v["code"] for k, v in OBJECTIVE_LEVEL_CODES.items
 ENDPOINT_LEVEL_MAPPINGS = {k: v["code"] for k, v in ENDPOINT_LEVEL_CODES.items()}
 ELIGIBILITY_MAPPINGS = {k: v["code"] for k, v in ELIGIBILITY_CODES.items()}
 ARM_TYPE_MAPPINGS = {k: v["code"] for k, v in ARM_TYPE_CODES.items()}
+STUDY_MODEL_MAPPINGS = {k: v["code"] for k, v in STUDY_MODEL_CODES.items()}
 
 
 def _get_code_object(nci_code: str, client: EVSClient) -> Optional[Dict[str, Any]]:

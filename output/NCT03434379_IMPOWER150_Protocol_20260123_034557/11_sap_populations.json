@@ -1,0 +1,151 @@
+{
+  "success": true,
+  "sourceFile": "C:\\Users\\panik\\Documents\\GitHub\\Protcol2USDMv3\\input\\trial\\NCT03434379_IMPOWER150\\NCT03434379_IMPOWER150_SAP.pdf",
+  "pagesUsed": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39
+  ],
+  "modelUsed": "gemini-3-flash-preview",
+  "sapData": {
+    "analysisPopulations": [
+      {
+        "id": "pop_1",
+        "name": "Intent-to-Treat Population",
+        "text": "The ITT population is defined as all randomized patients, whether or not the patient has received the assigned study treatment.",
+        "populationType": "Efficacy",
+        "instanceType": "AnalysisPopulation",
+        "label": "ITT",
+        "populationDescription": "The ITT population is defined as all randomized patients, whether or not the patient has received the assigned study treatment.",
+        "criteria": "All randomized patients"
+      },
+      {
+        "id": "pop_2",
+        "name": "Pharmacokinetic-Evaluable Population",
+        "text": "The pharmacokinetic (PK)-evaluable population is defined as all patients who received any dose of study treatment and who have at least one post-baseline PK sample available.",
+        "populationType": "PK/PD",
+        "instanceType": "AnalysisPopulation",
+        "label": "PK-evaluable",
+        "populationDescription": "The pharmacokinetic (PK)-evaluable population is defined as all patients who received any dose of study treatment and who have at least one post-baseline PK sample available.",
+        "criteria": "Received any dose AND has >=1 post-baseline PK sample"
+      },
+      {
+        "id": "pop_3",
+        "name": "PRO-Evaluable Population",
+        "text": "The patient-reported outcome (PRO)-evaluable population will include all randomized patients who have a baseline and at least 1 post-baseline assessment.",
+        "populationType": "Efficacy",
+        "instanceType": "AnalysisPopulation",
+        "label": "PRO-evaluable",
+        "populationDescription": "The patient-reported outcome (PRO)-evaluable population will include all randomized patients who have a baseline and at least 1 post-baseline assessment.",
+        "criteria": "Randomized AND has baseline assessment AND has >=1 post-baseline assessment"
+      },
+      {
+        "id": "pop_4",
+        "name": "Safety Population",
+        "text": "The safety population consists of all randomized patients who received at least one full or partial dose of any study treatment, with patients grouped according to the actual treatment received.",
+        "populationType": "Safety",
+        "instanceType": "AnalysisPopulation",
+        "label": "Safety",
+        "populationDescription": "The safety population consists of all randomized patients who received at least one full or partial dose of any study treatment, with patients grouped according to the actual treatment received.",
+        "criteria": "Randomized AND received >=1 full or partial dose"
+      },
+      {
+        "id": "pop_5",
+        "name": "Anti-Drug-Antibody-Evaluable Population",
+        "text": "The anti-drug-antibody (ADA)-evaluable population is defined as all patients who received any dose of atezolizumab and who have at least one post-baseline ADA assessment.",
+        "populationType": "Safety",
+        "instanceType": "AnalysisPopulation",
+        "label": "ADA-evaluable",
+        "populationDescription": "The anti-drug-antibody (ADA)-evaluable population is defined as all patients who received any dose of atezolizumab and who have at least one post-baseline ADA assessment.",
+        "criteria": "Received any dose of atezolizumab AND has >=1 post-baseline ADA assessment"
+      }
+    ],
+    "characteristics": [
+      {
+        "id": "char_1",
+        "name": "Geographic region",
+        "code": "GEOGRAPHIC_REGION",
+        "codeSystem": "http://www.cdisc.org/baseline-characteristics",
+        "codeSystemVersion": "2024-03-29",
+        "decode": "Geographic region",
+        "dataType": "Categorical",
+        "instanceType": "Characteristic",
+        "description": "Asia excluding Japan vs. rest of world"
+      },
+      {
+        "id": "char_2",
+        "name": "Macrovascular invasion and/or extrahepatic spread",
+        "code": "MACROVASCULAR_INVASI",
+        "codeSystem": "http://www.cdisc.org/baseline-characteristics",
+        "codeSystemVersion": "2024-03-29",
+        "decode": "Macrovascular invasion and/or extrahepatic spread",
+        "dataType": "Categorical",
+        "instanceType": "Characteristic",
+        "description": "Presence vs. absence of MVI and/or EHS"
+      },
+      {
+        "id": "char_3",
+        "name": "Baseline AFP",
+        "code": "BASELINE_AFP",
+        "codeSystem": "http://www.cdisc.org/baseline-characteristics",
+        "codeSystemVersion": "2024-03-29",
+        "decode": "Baseline AFP",
+        "dataType": "Categorical",
+        "instanceType": "Characteristic",
+        "description": "Alpha-fetoprotein level (<400 vs. >=400 ng/mL)"
+      },
+      {
+        "id": "char_4",
+        "name": "ECOG Performance Status",
+        "code": "ECOG_PERFORMANCE_STA",
+        "codeSystem": "http://www.cdisc.org/baseline-characteristics",
+        "codeSystemVersion": "2024-03-29",
+        "decode": "ECOG Performance Status",
+        "dataType": "Categorical",
+        "instanceType": "Characteristic",
+        "description": "Score of 0 vs. 1"
+      }
+    ],
+    "summary": {
+      "populationCount": 5,
+      "characteristicCount": 4
+    }
+  }
+}

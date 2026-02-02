@@ -1,0 +1,1003 @@
+{
+  "success": true,
+  "pagesUsed": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    42,
+    44,
+    46,
+    47,
+    49,
+    62,
+    68,
+    141,
+    79,
+    80,
+    83,
+    84,
+    90,
+    91,
+    99,
+    106,
+    107,
+    112,
+    113,
+    123
+  ],
+  "modelUsed": "gemini-3-flash-preview",
+  "data": {
+    "timeAnchors": [
+      {
+        "id": "anchor_3",
+        "definition": "First administration of investigational product",
+        "anchorType": "FirstDose",
+        "timelineId": null,
+        "dayValue": 1,
+        "sourceText": "Day 1 of induction"
+      },
+      {
+        "id": "anchor_llm_1",
+        "definition": "Day 1 of induction phase; pre-randomization/prior to the first intranasal dose",
+        "anchorType": "Day1",
+        "timelineId": null,
+        "dayValue": 1,
+        "sourceText": "Stable response: 50% reduction in the MADRS total score from baseline (Day 1 of induction phase; pre-randomization/prior to the first intranasal dose)"
+      },
+      {
+        "id": "anchor_1",
+        "definition": "Baseline visit/assessment",
+        "anchorType": "Baseline",
+        "timelineId": null,
+        "dayValue": 1,
+        "sourceText": "baseline visit"
+      },
+      {
+        "id": "anchor_2",
+        "definition": "Screening visit",
+        "anchorType": "Screening",
+        "timelineId": null,
+        "dayValue": 1,
+        "sourceText": "screening period"
+      },
+      {
+        "id": "anchor_4",
+        "definition": "procedure",
+        "anchorType": "Custom",
+        "timelineId": null,
+        "dayValue": 1,
+        "sourceText": "procedure"
+      }
+    ],
+    "repetitions": [
+      {
+        "id": "rep_daily_1",
+        "type": "Daily",
+        "interval": "P1D",
+        "sourceText": "od"
+      },
+      {
+        "id": "rep_daily_4",
+        "type": "Daily",
+        "interval": "P1D",
+        "sourceText": "OD"
+      },
+      {
+        "id": "rep_interval_1",
+        "type": "Interval",
+        "sourceText": "bid"
+      },
+      {
+        "id": "rep_interval_2",
+        "type": "Interval",
+        "sourceText": "tid"
+      },
+      {
+        "id": "rep_window_1",
+        "type": "Continuous",
+        "sourceText": "screening period"
+      },
+      {
+        "id": "rep_window_2",
+        "type": "Continuous",
+        "sourceText": "treatment phase"
+      },
+      {
+        "id": "rep_window_3",
+        "type": "Continuous",
+        "sourceText": "Follow-up Phase"
+      },
+      {
+        "id": "rep_window_4",
+        "type": "Continuous",
+        "sourceText": "2 hours \nafter"
+      },
+      {
+        "id": "rep_window_5",
+        "type": "Continuous",
+        "sourceText": "2 hours after"
+      },
+      {
+        "id": "rep_window_6",
+        "type": "Continuous",
+        "sourceText": "5 hours \npost"
+      },
+      {
+        "id": "rep_llm_1",
+        "type": "Cycle",
+        "startOffset": "P0D",
+        "endOffset": "P28D",
+        "interval": "P28D",
+        "minObservations": 1,
+        "exitCondition": "null",
+        "sourceText": "Open-label Induction Phase"
+      },
+      {
+        "id": "rep_llm_2",
+        "type": "Cycle",
+        "startOffset": "P28D",
+        "endOffset": "P56D",
+        "interval": "P28D",
+        "minObservations": 1,
+        "exitCondition": "null",
+        "sourceText": "Optimization Phase"
+      },
+      {
+        "id": "rep_llm_3",
+        "type": "Continuous",
+        "startOffset": "P56D",
+        "endOffset": "null",
+        "interval": "P1D",
+        "minObservations": 1,
+        "exitCondition": "Relapse or study termination",
+        "sourceText": "Maintenance Phase"
+      },
+      {
+        "id": "rep_llm_4",
+        "type": "Interval",
+        "startOffset": "P0D",
+        "endOffset": "P28D",
+        "interval": "P7D",
+        "minObservations": 4,
+        "exitCondition": "End of Induction Phase",
+        "sourceText": "Repeated Doses at Intervals Determined by Symptom Severity"
+      }
+    ],
+    "samplingConstraints": [],
+    "traversalConstraints": [
+      {
+        "id": "traversal_1",
+        "requiredSequence": [
+          "SCREENING_PROSPECTIVE_OBSERVATIONAL_PHASE",
+          "OPEN_LABEL_INDUCTION_PHASE",
+          "OPTIMIZATION_PHASE",
+          "MAINTENANCE_PHASE",
+          "FOLLOW_UP_PHASE"
+        ],
+        "allowEarlyExit": true,
+        "exitEpochIds": [
+          "EARLY_TERMINATION"
+        ],
+        "mandatoryVisits": [
+          "End of Maintenance Phase Visit",
+          "End of Study",
+          "Follow-up Visit",
+          "Day 1",
+          "Induction Day 1",
+          "Maintenance Visit",
+          "Screening",
+          "Optimization Visit"
+        ],
+        "sourceText": "[{'condition': 'Direct-entry Subjects', 'path': ['SCREENING_PROSPECTIVE_OBSERVATIONAL_PHASE', 'OPEN_LABEL_INDUCTION_PHASE']}, {'condition': 'Transferred-entry Subjects', 'path': ['OPEN_LABEL_INDUCTION_PHASE']}, {'condition': 'Early Withdrawal', 'path': ['EARLY_WITHDRAWAL_VISIT', 'FOLLOW_UP_PHASE']}]"
+      }
+    ],
+    "executionTypes": [
+      {
+        "activityId": "Vital Signs",
+        "executionType": "Single",
+        "rationale": "No strong signals detected"
+      },
+      {
+        "activityId": "Ecg",
+        "executionType": "Single",
+        "rationale": "SINGLE signals: 3"
+      },
+      {
+        "activityId": "Pe",
+        "executionType": "Single",
+        "rationale": "No strong signals detected"
+      },
+      {
+        "activityId": "Adverse Event",
+        "executionType": "Single",
+        "rationale": "SINGLE signals: 1"
+      },
+      {
+        "activityId": "Concomitant Medications",
+        "executionType": "Episode",
+        "rationale": "EPISODE signals: 1"
+      },
+      {
+        "activityId": "Laboratory \nTests",
+        "executionType": "Single",
+        "rationale": "No strong signals detected"
+      },
+      {
+        "activityId": "Pharmacokinetic",
+        "executionType": "Window",
+        "rationale": "WINDOW signals: 1"
+      },
+      {
+        "activityId": "Pharmacodynamic",
+        "executionType": "Single",
+        "rationale": "No strong signals detected"
+      },
+      {
+        "activityId": "Drug Administration",
+        "executionType": "Single",
+        "rationale": "No strong signals detected"
+      },
+      {
+        "activityId": "Questionnaire",
+        "executionType": "Single",
+        "rationale": "No strong signals detected"
+      },
+      {
+        "activityId": "Screening Assessment",
+        "executionType": "Single",
+        "rationale": "Screening phase activities are performed once to determine study eligibility."
+      },
+      {
+        "activityId": "Open-label Induction Phase Dosing",
+        "executionType": "Single",
+        "rationale": "Repeated doses of intranasal esketamine administered at scheduled intervals during the induction phase."
+      },
+      {
+        "activityId": "Optimization Phase Monitoring",
+        "executionType": "Single",
+        "rationale": "Scheduled repeats of assessments at visits during the optimization phase."
+      },
+      {
+        "activityId": "Maintenance Phase Dosing Adjustment",
+        "executionType": "Single",
+        "rationale": "Dosing intervals are determined by symptom severity, implying a conditional workflow based on clinical decision points."
+      },
+      {
+        "activityId": "Follow-up Phase Assessments",
+        "executionType": "Single",
+        "rationale": "Assessments performed at scheduled intervals following the completion of treatment."
+      },
+      {
+        "activityId": "Early Withdrawal Visit",
+        "executionType": "Single",
+        "rationale": "A one-time assessment triggered only if a subject terminates the study early."
+      }
+    ],
+    "footnoteConditions": [
+      {
+        "id": "fn_cond_1",
+        "conditionType": "timing_after",
+        "text": "a) An additional, optional period of up to 3 weeks is permitted to taper and discontinue all current medication(s) being used for depression after completion of the Week 4 (Visit 1.3) assessments.",
+        "footnoteId": "fn_1",
+        "structuredCondition": "phase.transition.duration(taper, P3W).after(Visit_1.3)",
+        "appliesToActivityIds": [
+          "Medication Tapering"
+        ],
+        "sourceText": "a) An additional, optional period of up to 3 weeks is permitted to taper and discontinue all current"
+      },
+      {
+        "id": "fn_cond_2",
+        "conditionType": "timing_before",
+        "text": "b) If a subject withdraws before the end of the open-label induction phase (ie, before completing Visit 2.9/Day 28) for reasons other than withdrawal of consent, an Early Withdrawal Visit should be conducted.",
+        "footnoteId": "fn_2",
+        "structuredCondition": "if(subject.withdraws == true && reason != 'withdrawal of consent' && time < Visit_2.9)",
+        "appliesToActivityIds": [
+          "Early Withdrawal Visit"
+        ],
+        "sourceText": "b) If a subject withdraws before the end of the open-label induction phase (ie, before completing Vi"
+      },
+      {
+        "id": "fn_cond_3",
+        "conditionType": "general",
+        "text": "c) Predose (if/when performed on intranasal dosing days).",
+        "footnoteId": "fn_3",
+        "structuredCondition": "timing.relative(dose, predose).if(day == 'intranasal dosing day')",
+        "appliesToActivityIds": [
+          "All procedures marked with footnote c"
+        ],
+        "sourceText": "c) Predose (if/when performed on intranasal dosing days)."
+      },
+      {
+        "id": "fn_cond_4",
+        "conditionType": "general",
+        "text": "d) Clinic visits (visit window +/- 3 days) will be conducted for all intranasal treatment sessions.",
+        "footnoteId": "fn_4",
+        "structuredCondition": "visit.window(P3D)",
+        "appliesToActivityIds": [
+          "Clinic visits",
+          "Intranasal treatment sessions"
+        ],
+        "sourceText": "d) Clinic visits (visit window +/- 3 days) will be conducted for all intranasal treatment sessions."
+      },
+      {
+        "id": "fn_cond_5",
+        "conditionType": "general",
+        "text": "e) Performed only at clinic visits for intranasal treatment sessions (omitted if remote MADRS only).",
+        "footnoteId": "fn_5",
+        "structuredCondition": "if(visit.type == 'clinic' && session == 'intranasal treatment')",
+        "appliesToActivityIds": [
+          "All procedures marked with footnote e"
+        ],
+        "sourceText": "e) Performed only at clinic visits for intranasal treatment sessions (omitted if remote MADRS only)."
+      },
+      {
+        "id": "fn_cond_6",
+        "conditionType": "timing_before",
+        "text": "f) Predose (if/when performed on intranasal dosing days). Predose subject-reported outcome assessments should be administered before all other study-related procedures during a clinic visit.",
+        "footnoteId": "fn_6",
+        "structuredCondition": "timing.relative(dose, predose).before(all_other_procedures)",
+        "appliesToActivityIds": [
+          "Subject-reported outcome assessments"
+        ],
+        "sourceText": "f) Predose (if/when performed on intranasal dosing days). Predose subject-reported outcome assessmen"
+      },
+      {
+        "id": "fn_cond_7",
+        "conditionType": "general",
+        "text": "g) Postdose vital signs will be performed at t = +40 minutes, 1 hour, and 1.5 hours postdose.",
+        "footnoteId": "fn_7",
+        "structuredCondition": "timing.relative(dose, [PT40M, PT1H, PT1H30M])",
+        "appliesToActivityIds": [
+          "Vital signs"
+        ],
+        "sourceText": "g) Postdose vital signs will be performed at t = +40 minutes, 1 hour, and 1.5 hours postdose."
+      },
+      {
+        "id": "fn_cond_8",
+        "conditionType": "general",
+        "text": "h) The 12-lead electrocardiogram will be performed at 1 hour postdose.",
+        "footnoteId": "fn_8",
+        "structuredCondition": "timing.relative(dose, PT1H)",
+        "appliesToActivityIds": [
+          "12-lead electrocardiogram"
+        ],
+        "sourceText": "h) The 12-lead electrocardiogram will be performed at 1 hour postdose."
+      },
+      {
+        "id": "fn_cond_9",
+        "conditionType": "general",
+        "text": "i) The MOAA/S will be performed every 15 minutes from predose to t = 1.5 hours postdose.",
+        "footnoteId": "fn_9",
+        "structuredCondition": "frequency.interval(PT15M).range(predose, PT1H30M_postdose)",
+        "appliesToActivityIds": [
+          "MOAA/S"
+        ],
+        "sourceText": "i) The MOAA/S will be performed every 15 minutes from predose to t = 1.5 hours postdose."
+      },
+      {
+        "id": "fn_cond_10",
+        "conditionType": "general",
+        "text": "j) The BPRS+ and CADSS will be performed predose and at 40 minutes and 1.5 hours postdose.",
+        "footnoteId": "fn_10",
+        "structuredCondition": "timing.relative(dose, [predose, PT40M, PT1H30M])",
+        "appliesToActivityIds": [
+          "BPRS+",
+          "CADSS"
+        ],
+        "sourceText": "j) The BPRS+ and CADSS will be performed predose and at 40 minutes and 1.5 hours postdose."
+      },
+      {
+        "id": "fn_cond_11",
+        "conditionType": "general",
+        "text": "k) CGADR will be performed at 1 hour and 1.5 hours postdose.",
+        "footnoteId": "fn_11",
+        "sourceText": "k) CGADR will be performed at 1 hour and 1.5 hours postdose."
+      },
+      {
+        "id": "fn_cond_12",
+        "conditionType": "general",
+        "text": "l) The nasal symptom questionnaire will be performed predose and at 1 hour postdose.",
+        "footnoteId": "fn_12",
+        "sourceText": "l) The nasal symptom questionnaire will be performed predose and at 1 hour postdose."
+      },
+      {
+        "id": "fn_cond_13",
+        "conditionType": "timing_before",
+        "text": "m) Blood samples should be collected prior to dosing.",
+        "footnoteId": "fn_13",
+        "sourceText": "m) Blood samples should be collected prior to dosing."
+      },
+      {
+        "id": "fn_cond_14",
+        "conditionType": "general",
+        "text": "n) Additional 2-week supply of the oral antidepressant medication only for subjects entering the follow-up phase.",
+        "footnoteId": "fn_14",
+        "sourceText": "n) Additional 2-week supply of the oral antidepressant medication only for subjects entering the fol"
+      },
+      {
+        "id": "fn_cond_15",
+        "conditionType": "general",
+        "text": "o) Only applicable to women with a menstrual cycle.",
+        "footnoteId": "fn_15",
+        "sourceText": "o) Only applicable to women with a menstrual cycle."
+      },
+      {
+        "id": "fn_cond_16",
+        "conditionType": "sequence",
+        "text": "p) If the subject has significant nasal congestion on the day of a scheduled assessment of sense of smell, then the site should consider postponing the UPSIT or Smell Threshold Test.",
+        "footnoteId": "fn_16",
+        "sourceText": "p) If the subject has significant nasal congestion on the day of a scheduled assessment of sense of "
+      },
+      {
+        "id": "fn_cond_17",
+        "conditionType": "sequence",
+        "text": "q) If a subject has started a scheduled clinic visit in which an intranasal treatment session is planned, but then a predose observation prompts the site staff to postpone the intranasal treatment session, then all time points of the footnoted assessments must be repeated on the actual intranasal treatment session day.",
+        "footnoteId": "fn_17",
+        "sourceText": "q) If a subject has started a scheduled clinic visit in which an intranasal treatment session is pla"
+      },
+      {
+        "id": "fn_cond_18",
+        "conditionType": "sequence",
+        "text": "r) Drug accountability for intranasal study medication should be performed weekly during Weeks 5 through 8 and then weekly or every other week from Weeks 9 through 15.",
+        "footnoteId": "fn_18",
+        "sourceText": "r) Drug accountability for intranasal study medication should be performed weekly during Weeks 5 thr"
+      }
+    ],
+    "endpointAlgorithms": [
+      {
+        "id": "ep_1",
+        "name": "Primary: Time to Relapse (Stable Remission)",
+        "endpointType": "Primary",
+        "inputs": [
+          "MADRS total score",
+          "Randomization date",
+          "Relapse date",
+          "Stable remission status"
+        ],
+        "timeWindow": {
+          "reference": "Randomization",
+          "duration": "Maintenance Phase until first relapse event"
+        },
+        "algorithm": "Relapse_Date - Randomization_Date",
+        "successCriteria": "Delaying the time to first documentation of relapse compared to active comparator",
+        "sourceText": "The primary efficacy endpoint includes only subjects who are in stable remission at the end of the optimization phase... and is defined as the time between subject randomization and the first document"
+      },
+      {
+        "id": "ep_2",
+        "name": "Secondary: Time to Relapse (Stable Response)",
+        "endpointType": "Secondary",
+        "inputs": [
+          "MADRS total score",
+          "Randomization date",
+          "Relapse date",
+          "Stable response status"
+        ],
+        "timeWindow": {
+          "reference": "Randomization",
+          "duration": "Maintenance Phase until first relapse event"
+        },
+        "algorithm": "Relapse_Date - Randomization_Date",
+        "successCriteria": "Delaying the time to first documentation of relapse in subjects with stable response (not in remission)",
+        "sourceText": "The time between subject randomization and the first documentation (earliest date) of a relapse in the maintenance phase for subjects with stable response (not in remission) at the end of the optimiza"
+      },
+      {
+        "id": "ep_3",
+        "name": "Secondary: Change from Baseline in Depressive Symptoms",
+        "endpointType": "Secondary",
+        "inputs": [
+          "MADRS score",
+          "PHQ-9 score",
+          "Baseline value (Maintenance Phase)",
+          "Endpoint value"
+        ],
+        "timeWindow": {
+          "reference": "Maintenance Phase Baseline",
+          "duration": "Baseline to Maintenance Phase Endpoint"
+        },
+        "algorithm": "Endpoint_Value - Baseline_Value",
+        "successCriteria": "Reduction in MADRS and PHQ-9 scores",
+        "sourceText": "The change from baseline (of maintenance phase) to endpoint in: Depressive symptoms, using the MADRS and the self-reported Patient Health Questionnaire 9-item (PHQ-9) scale"
+      },
+      {
+        "id": "ep_4",
+        "name": "Secondary: Change from Baseline in Severity of Illness",
+        "endpointType": "Secondary",
+        "inputs": [
+          "CGI-S score",
+          "Baseline value (Maintenance Phase)",
+          "Endpoint value"
+        ],
+        "timeWindow": {
+          "reference": "Maintenance Phase Baseline",
+          "duration": "Baseline to Maintenance Phase Endpoint"
+        },
+        "algorithm": "Endpoint_Value - Baseline_Value",
+        "successCriteria": "Reduction in CGI-S score",
+        "sourceText": "The change from baseline (of maintenance phase) to endpoint in: Overall severity of illness, using the Clinical Global Impression - Severity (CGI-S)"
+      },
+      {
+        "id": "ep_5",
+        "name": "Secondary: Change from Baseline in Anxiety Symptoms",
+        "endpointType": "Secondary",
+        "inputs": [
+          "GAD-7 score",
+          "Baseline value (Maintenance Phase)",
+          "Endpoint value"
+        ],
+        "timeWindow": {
+          "reference": "Maintenance Phase Baseline",
+          "duration": "Baseline to Maintenance Phase Endpoint"
+        },
+        "algorithm": "Endpoint_Value - Baseline_Value",
+        "successCriteria": "Reduction in GAD-7 score",
+        "sourceText": "The change from baseline (of maintenance phase) to endpoint in: Symptoms of anxiety, using the Generalized Anxiety Disorder, 7-item (GAD-7) scale"
+      }
+    ],
+    "derivedVariables": [
+      {
+        "id": "dv_1",
+        "name": "QTcF change from baseline",
+        "variableType": "ChangeFromBaseline",
+        "sourceVariables": [
+          "QTcF"
+        ],
+        "derivationRule": "post_baseline_QTcF - baseline_QTcF",
+        "baselineDefinition": "Day 1, predose",
+        "baselineVisit": "Day 1",
+        "analysisWindow": "Any time point after baseline",
+        "imputationRule": "null",
+        "unit": "msec"
+      },
+      {
+        "id": "dv_2",
+        "name": "Time to Relapse",
+        "variableType": "TimeToEvent",
+        "sourceVariables": [
+          "MADRS total score",
+          "Randomization Date",
+          "Relapse Date"
+        ],
+        "derivationRule": "earliest_date_of_relapse - randomization_date",
+        "baselineDefinition": "Randomization date (after stable remission at end of optimization phase)",
+        "baselineVisit": "Randomization",
+        "analysisWindow": "Maintenance Phase",
+        "imputationRule": "null",
+        "unit": "days"
+      },
+      {
+        "id": "dv_3",
+        "name": "Stable Remission",
+        "variableType": "Categorical",
+        "sourceVariables": [
+          "MADRS total score"
+        ],
+        "derivationRule": "Determined at the end of the optimization phase after treatment with intranasal esketamine plus an oral antidepressant",
+        "baselineDefinition": "End of optimization phase",
+        "baselineVisit": "End of Optimization",
+        "analysisWindow": "Optimization Phase",
+        "imputationRule": "null",
+        "unit": "null"
+      }
+    ],
+    "stateMachine": {
+      "id": "sm_1",
+      "initialState": "Screening Prospective Observational Phase",
+      "terminalStates": [
+        "Early Termination",
+        "Completed"
+      ],
+      "states": [
+        "Screening Prospective Observational Phase",
+        "Open Label Induction Phase",
+        "Optimization Phase",
+        "Maintenance Phase",
+        "Follow Up Phase",
+        "Early Termination"
+      ],
+      "transitions": [
+        {
+          "fromState": "Screening Prospective Observational Phase",
+          "toState": "Open Label Induction Phase",
+          "trigger": "Progress to Open Label Induction Phase"
+        },
+        {
+          "fromState": "Open Label Induction Phase",
+          "toState": "Optimization Phase",
+          "trigger": "Progress to Optimization Phase"
+        },
+        {
+          "fromState": "Optimization Phase",
+          "toState": "Maintenance Phase",
+          "trigger": "Progress to Maintenance Phase"
+        },
+        {
+          "fromState": "Maintenance Phase",
+          "toState": "Follow Up Phase",
+          "trigger": "Progress to Follow Up Phase"
+        }
+      ],
+      "epochIds": {
+        "Screening Prospective Observational Phase": "SCREENING_PROSPECTIVE_OBSERVATIONAL_PHASE",
+        "Open Label Induction Phase": "OPEN_LABEL_INDUCTION_PHASE",
+        "Optimization Phase": "OPTIMIZATION_PHASE",
+        "Maintenance Phase": "MAINTENANCE_PHASE",
+        "Follow Up Phase": "FOLLOW_UP_PHASE",
+        "Early Termination": "EARLY_TERMINATION"
+      }
+    },
+    "dosingRegimens": [
+      {
+        "id": "dosing_llm_1",
+        "treatmentName": "Esketamine",
+        "frequency": "",
+        "route": "Intranasal",
+        "startDay": 1,
+        "doseLevels": [
+          {
+            "amount": 28.0,
+            "unit": "mg",
+            "description": "low dose"
+          },
+          {
+            "amount": 56.0,
+            "unit": "mg",
+            "description": "medium dose"
+          },
+          {
+            "amount": 84.0,
+            "unit": "mg",
+            "description": "high dose"
+          }
+        ],
+        "durationDescription": "Maintenance Phase",
+        "titrationSchedule": "Optimization phase used to determine dose and frequency."
+      },
+      {
+        "id": "dosing_llm_2",
+        "treatmentName": "Oral Antidepressant (SSRI/SNRI)",
+        "frequency": "QD",
+        "route": "Oral",
+        "startDay": 1,
+        "durationDescription": "Continuous throughout study phases",
+        "titrationSchedule": "Varies by specific antidepressant selected (Escitalopram, Sertraline, Duloxetine, or Venlafaxine XR)."
+      },
+      {
+        "id": "dosing_llm_3",
+        "treatmentName": "Intranasal Placebo",
+        "frequency": "",
+        "route": "Intranasal",
+        "startDay": 1,
+        "durationDescription": "Maintenance Phase"
+      }
+    ],
+    "visitWindows": [
+      {
+        "id": "visit_2",
+        "visitName": "Screening",
+        "targetDay": -14,
+        "windowBefore": 7,
+        "windowAfter": 0,
+        "isRequired": true,
+        "visitNumber": 1,
+        "sourceText": "TIME AND EVENTS SCHEDULE (Screening/Prospective Observational Phase and Open- label Induction Phase)...................................................................................................."
+      },
+      {
+        "id": "visit_1",
+        "visitName": "Early Termination",
+        "targetDay": null,
+        "windowBefore": 0,
+        "windowAfter": 0,
+        "isRequired": true,
+        "visitNumber": 2,
+        "epoch": "Maintenance Phase",
+        "sourceText": "JNJ-54135419 (esketamine) Clinical Protocol ESKETINTRD3003 Amendment 4 2"
+      },
+      {
+        "id": "visit_6",
+        "visitName": "baseline",
+        "targetDay": 0,
+        "windowBefore": 1,
+        "windowAfter": 1,
+        "isRequired": true,
+        "visitNumber": 3,
+        "sourceText": "Stable response: 50% reduction in the MADRS total score from baseline (Day 1 of induction phase; pre-randomization/prior to the first intranasal dose) in each of the last 2 weeks of the optimization "
+      },
+      {
+        "id": "visit_15",
+        "visitName": "Visit 2",
+        "targetDay": null,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 4,
+        "sourceText": "for direct-entry subjects (Visit 2.9) and transferred-entry subjects (Visit 2.10 of Study ESKETINTRD3001 or ESKETINTRD3002) will serve as the baseline values for the optimization phase and will not be"
+      },
+      {
+        "id": "visit_20",
+        "visitName": "End of Study",
+        "targetDay": null,
+        "windowBefore": 3,
+        "windowAfter": 7,
+        "isRequired": true,
+        "visitNumber": 5,
+        "sourceText": "is conducted on the last day of intranasal dosingat the End of Study Visit. If subjects withdraw early from the study during any phase, the PWC-20 will be conducted at the Early Withdrawal Visit."
+      },
+      {
+        "id": "visit_21",
+        "visitName": "Visit 1",
+        "targetDay": null,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 6,
+        "sourceText": "immediately proceed to the open-label induction phase canwill have Visit 1.3 and Visit 2.1 occurring on the same day or within 1 week of each other (if not occurring the same day, the antidepressant t"
+      },
+      {
+        "id": "visit_llm_1",
+        "visitName": "Screening/Prospective Observational Phase",
+        "targetDay": null,
+        "windowBefore": null,
+        "windowAfter": null,
+        "isRequired": true,
+        "visitNumber": 1,
+        "epoch": "Screening/Prospective Observational Phase"
+      },
+      {
+        "id": "visit_llm_3",
+        "visitName": "Optimization Phase",
+        "targetDay": null,
+        "windowBefore": null,
+        "windowAfter": null,
+        "isRequired": true,
+        "visitNumber": 3,
+        "epoch": "Optimization Phase"
+      },
+      {
+        "id": "visit_llm_4",
+        "visitName": "Maintenance Phase",
+        "targetDay": null,
+        "windowBefore": null,
+        "windowAfter": null,
+        "isRequired": true,
+        "visitNumber": 4,
+        "epoch": "Maintenance Phase"
+      },
+      {
+        "id": "visit_llm_5",
+        "visitName": "Optimization Week 4 (Stable Remission Assessment)",
+        "targetDay": null,
+        "windowBefore": null,
+        "windowAfter": null,
+        "isRequired": true,
+        "visitNumber": 5,
+        "targetWeek": 4,
+        "epoch": "Optimization Phase"
+      },
+      {
+        "id": "visit_llm_7",
+        "visitName": "Follow-up Phase",
+        "targetDay": null,
+        "windowBefore": null,
+        "windowAfter": null,
+        "isRequired": true,
+        "visitNumber": 7,
+        "epoch": "Follow-up Phase"
+      },
+      {
+        "id": "visit_4",
+        "visitName": "Randomization",
+        "targetDay": 1,
+        "windowBefore": 0,
+        "windowAfter": 0,
+        "isRequired": true,
+        "visitNumber": 12,
+        "epoch": "Induction Phase",
+        "sourceText": "Blinding and Randomization....................................................................................................... 90 3.2.4. Treatment Groups and Dose Selection ........................"
+      },
+      {
+        "id": "visit_10",
+        "visitName": "Day 4",
+        "targetDay": 4,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 13,
+        "sourceText": "increased to 84 mg (if Day 4 dose was 56 mg), remain the same, or be reduced to 56 mg (if Day 4 dose was 84 mg), as determined by the investigator based on efficacy and tolerability. Similarly, on Day"
+      },
+      {
+        "id": "visit_18",
+        "visitName": "Week 2",
+        "targetDay": 8,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 14,
+        "targetWeek": 2,
+        "sourceText": "≥28 for 2 consecutive visits on Week 2 and Week 4. Synopsis, Overview of Study Design;"
+      },
+      {
+        "id": "visit_11",
+        "visitName": "Day 15",
+        "targetDay": 15,
+        "windowBefore": 0,
+        "windowAfter": 0,
+        "isRequired": true,
+        "visitNumber": 15,
+        "sourceText": "tolerability. On Day 15, a dose reduction from 84 mg to 56 mg is permitted, if required for tolerability; no dose increase is permitted on Day 15. On Days 18, 22, and 25, a dose reduction from 84 mg t"
+      },
+      {
+        "id": "visit_12",
+        "visitName": "Day 18",
+        "targetDay": 18,
+        "windowBefore": 0,
+        "windowAfter": 0,
+        "isRequired": true,
+        "visitNumber": 16,
+        "sourceText": "mg to 56 mg is permitted on Day 18 if required for tolerability; no dose increase is permitted. Rationale: Added information about 54135419TRD3008, an open-label safety extension study, that may be"
+      },
+      {
+        "id": "visit_16",
+        "visitName": "Week 4",
+        "targetDay": 22,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 17,
+        "targetWeek": 4,
+        "sourceText": "of Week 4 of the screening/prospective observational phase, therefore this requirement is not applicable. In such cases the investigator may choose to taper the relevant medication during the up to 3-"
+      },
+      {
+        "id": "visit_13",
+        "visitName": "Visit 3",
+        "targetDay": 28,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 18,
+        "sourceText": "Rationale: Restrictions for Day 28 of the Induction phase and visit 3.1 of the Optimization phase were relaxed to allow for some flexibility. Time and Events Schedule"
+      },
+      {
+        "id": "visit_8",
+        "visitName": "Week 5",
+        "targetDay": 29,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 19,
+        "targetWeek": 5,
+        "sourceText": "optimization phase (Week 5 to Week 12), the subject can complete the optimization phase but is not eligible to participate in the maintenance phase."
+      },
+      {
+        "id": "visit_26",
+        "visitName": "Week 8",
+        "targetDay": 50,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 20,
+        "targetWeek": 8,
+        "sourceText": "are Week 8 and 12. The algorithms used to determine whether a frequency adjustment could be made (based on MADRS total score at Week 8 and Week 12) were clarified. Added guidance on how to determine i"
+      },
+      {
+        "id": "visit_5",
+        "visitName": "Week 13",
+        "targetDay": 85,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 21,
+        "targetWeek": 13,
+        "sourceText": "Optimization week 13 or 14 only. The MADRS total score at weeks 15 and 16 must be ≤12. 3.2.2. Study Phases: Optimization"
+      },
+      {
+        "id": "visit_19",
+        "visitName": "Week 16",
+        "targetDay": 106,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 22,
+        "targetWeek": 16,
+        "sourceText": "13 to Week 16) is not eligible to participate in the maintenance phase because eligibility criteria for stable remission or stable response cannot be confirmed. These subjects will be permitted to com"
+      },
+      {
+        "id": "visit_22",
+        "visitName": "Visit 4",
+        "targetDay": 134,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": false,
+        "visitNumber": 23,
+        "targetWeek": 20,
+        "sourceText": "An additional UPSIT assessment was added to Week 20 (Visit 4.5). Rationale: Flexibility was needed for decongestants versus delay for a subject with congestion on an intranasal dosing day."
+      },
+      {
+        "id": "visit_25",
+        "visitName": "Day 137",
+        "targetDay": 137,
+        "windowBefore": 0,
+        "windowAfter": 0,
+        "isRequired": true,
+        "visitNumber": 24,
+        "sourceText": "Week 20, Visit 4.5 (Day 137). Timing of various procedures and assessments were revised accordingly to be performed at Week 20 visit. Subsequent visits now start with Visit 4.6 (Week 21)."
+      },
+      {
+        "id": "visit_24",
+        "visitName": "Week 21",
+        "targetDay": 141,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 25,
+        "targetWeek": 21,
+        "sourceText": "In the header and associated footnote, \"From Week 21\" was changed to \"From Week 20.\" 1.1.1. Summary of Nonclinical Findings"
+      },
+      {
+        "id": "visit_3",
+        "visitName": "Follow-up",
+        "targetDay": 365,
+        "windowBefore": 7,
+        "windowAfter": 7,
+        "isRequired": true,
+        "visitNumber": 26,
+        "sourceText": "Follow-up Phase) ...................................................................................................................................... 61 ABBREVIATIONS ..............................."
+      }
+    ],
+    "randomizationScheme": {
+      "id": "randomization_1",
+      "ratio": "1:1",
+      "method": "Stratified block permuted block randomization",
+      "centralRandomization": true,
+      "stratificationFactors": [
+        {
+          "id": "strat_1",
+          "name": "Country",
+          "categories": [
+            "Category 1",
+            "Category 2"
+          ],
+          "isBlocking": false,
+          "sourceText": "country \nwith an allocation ratio of 1:1 to intranasal placebo or intranasal esketamine"
+        }
+      ],
+      "sourceText": "JNJ-54135419 (esketamine)\nClinical Protocol ESKETINTRD3003 Amendment 4\n16\nStatus: Approved, Date: 4 April 2017\nApplicable Section(s)\nDescription of Change(s)\nRationale: Inclusion criterion no. 11.1 wa"
+    }
+  }
+}

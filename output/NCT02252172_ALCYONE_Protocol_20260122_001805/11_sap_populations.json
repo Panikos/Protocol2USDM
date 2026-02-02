@@ -1,0 +1,141 @@
+{
+  "success": true,
+  "sourceFile": "C:\\Users\\panik\\Documents\\GitHub\\Protcol2USDMv3\\input\\trial\\NCT02252172_ALCYONE\\NCT02252172_ALCYONE_SAP.pdf",
+  "pagesUsed": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39
+  ],
+  "modelUsed": "gemini-3-flash-preview",
+  "sapData": {
+    "analysisPopulations": [
+      {
+        "id": "pop_1",
+        "name": "Intent-to-Treat Analysis Set",
+        "text": "The ITT analysis set includes all subjects who are randomized in the study. In this analysis set, subjects will be analyzed according to the treatment group to which they were randomized regardless of the treatment they actually received.",
+        "populationType": "Efficacy",
+        "instanceType": "AnalysisPopulation",
+        "label": "ITT",
+        "populationDescription": "The ITT analysis set includes all subjects who are randomized in the study. In this analysis set, subjects will be analyzed according to the treatment group to which they were randomized regardless of the treatment they actually received.",
+        "criteria": "All randomized subjects"
+      },
+      {
+        "id": "pop_2",
+        "name": "Safety Analysis Set",
+        "text": "The safety analysis set includes all subjects who received at least one dose of study treatment. In this analysis set, subjects will be analyzed according to the treatment they actually received.",
+        "populationType": "Safety",
+        "instanceType": "AnalysisPopulation",
+        "label": "SAF",
+        "populationDescription": "The safety analysis set includes all subjects who received at least one dose of study treatment. In this analysis set, subjects will be analyzed according to the treatment they actually received.",
+        "criteria": "Received at least one dose of study treatment"
+      },
+      {
+        "id": "pop_3",
+        "name": "Per-Protocol Analysis Set",
+        "text": "The per-protocol analysis set is a subset of the ITT analysis set, excluding subjects with major protocol deviations that may impact the efficacy outcomes. Major protocol deviations will be defined and subjects will be identified for exclusion from the PP analysis set prior to the clinical cut-off for the primary analysis.",
+        "populationType": "Efficacy",
+        "instanceType": "AnalysisPopulation",
+        "label": "PP",
+        "populationDescription": "The per-protocol analysis set is a subset of the ITT analysis set, excluding subjects with major protocol deviations that may impact the efficacy outcomes. Major protocol deviations will be defined and subjects will be identified for exclusion from the PP analysis set prior to the clinical cut-off for the primary analysis.",
+        "criteria": "ITT subset AND no major protocol deviations"
+      },
+      {
+        "id": "pop_4",
+        "name": "Pharmacokinetic Analysis Set",
+        "text": "The PK analysis set includes all subjects who received at least one dose of daratumumab and have at least one evaluable post-infusion PK sample.",
+        "populationType": "PK/PD",
+        "instanceType": "AnalysisPopulation",
+        "label": "PK",
+        "populationDescription": "The PK analysis set includes all subjects who received at least one dose of daratumumab and have at least one evaluable post-infusion PK sample.",
+        "criteria": "Received >=1 dose of daratumumab AND >=1 evaluable post-infusion PK sample"
+      }
+    ],
+    "characteristics": [
+      {
+        "id": "char_1",
+        "name": "International Staging System",
+        "code": "INTERNATIONAL_STAGIN",
+        "codeSystem": "http://www.cdisc.org/baseline-characteristics",
+        "codeSystemVersion": "2024-03-29",
+        "decode": "International Staging System",
+        "dataType": "Categorical",
+        "instanceType": "Characteristic",
+        "description": "ISS stage (I vs II vs III) at baseline"
+      },
+      {
+        "id": "char_2",
+        "name": "Region",
+        "code": "REGION",
+        "codeSystem": "http://www.cdisc.org/baseline-characteristics",
+        "codeSystemVersion": "2024-03-29",
+        "decode": "Region",
+        "dataType": "Categorical",
+        "instanceType": "Characteristic",
+        "description": "Geographic region (North America vs Other)"
+      },
+      {
+        "id": "char_3",
+        "name": "Age",
+        "code": "AGE",
+        "codeSystem": "http://www.cdisc.org/baseline-characteristics",
+        "codeSystemVersion": "2024-03-29",
+        "decode": "Age",
+        "dataType": "Numeric",
+        "instanceType": "Characteristic",
+        "description": "Age at baseline (<75 vs ≥75 years)"
+      },
+      {
+        "id": "char_4",
+        "name": "ECOG Performance Score",
+        "code": "ECOG_PERFORMANCE_SCO",
+        "codeSystem": "http://www.cdisc.org/baseline-characteristics",
+        "codeSystemVersion": "2024-03-29",
+        "decode": "ECOG Performance Score",
+        "dataType": "Categorical",
+        "instanceType": "Characteristic",
+        "description": "Eastern Cooperative Oncology Group performance status"
+      }
+    ],
+    "summary": {
+      "populationCount": 4,
+      "characteristicCount": 4
+    }
+  }
+}

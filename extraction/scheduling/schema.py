@@ -17,6 +17,7 @@ from core.usdm_types import generate_uuid, Code
 
 class TimingType(Enum):
     """Types of timing constraints."""
+    UNKNOWN = ""  # Not extracted from source
     BEFORE = "Before"
     AFTER = "After"
     WITHIN = "Within"
@@ -26,6 +27,7 @@ class TimingType(Enum):
 
 class TimingRelativeToFrom(Enum):
     """What timing is relative to."""
+    UNKNOWN = ""  # Not extracted from source
     STUDY_START = "Study Start"
     RANDOMIZATION = "Randomization"
     FIRST_DOSE = "First Dose"
@@ -77,28 +79,96 @@ class Timing:
     window_upper: Optional[float] = None  # e.g., +3 days
     instance_type: str = "Timing"
     
+    def _to_iso8601_duration(self, value: float, unit: str = "days") -> str:
+        """Convert numeric value to ISO 8601 duration string."""
+        if value is None:
+            return "P0D"
+        abs_val = abs(value)
+        sign = "-" if value < 0 else ""
+        if unit in ("days", "day", "d"):
+            return f"{sign}P{int(abs_val)}D"
+        elif unit in ("weeks", "week", "w"):
+            return f"{sign}P{int(abs_val)}W"
+        elif unit in ("hours", "hour", "h"):
+            return f"{sign}PT{int(abs_val)}H"
+        elif unit in ("minutes", "minute", "min", "m"):
+            return f"{sign}PT{int(abs_val)}M"
+        else:
+            return f"{sign}P{int(abs_val)}D"  # Default to days
+    
+    def _timing_type_to_code(self) -> Dict[str, Any]:
+        """Convert timing type to USDM Code object."""
+        type_codes = {
+            TimingType.BEFORE: ("C71149", "Before"),
+            TimingType.AFTER: ("C71150", "After"),
+            TimingType.WITHIN: ("C71151", "Within"),
+            TimingType.AT: ("C71148", "Fixed Reference"),
+            TimingType.BETWEEN: ("C71152", "Between"),
+        }
+        code, decode = type_codes.get(self.timing_type, ("C71148", "Fixed Reference"))
+        return {
+            "id": generate_uuid(),
+            "code": code,
+            "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+            "codeSystemVersion": "25.01d",
+            "decode": decode,
+            "instanceType": "Code"
+        }
+    
+    def _relative_to_from_code(self) -> Dict[str, Any]:
+        """Convert relative reference to USDM Code object."""
+        ref_codes = {
+            TimingRelativeToFrom.STUDY_START: ("C71153", "Study Start"),
+            TimingRelativeToFrom.RANDOMIZATION: ("C71154", "Randomization"),
+            TimingRelativeToFrom.FIRST_DOSE: ("C71155", "First Dose"),
+            TimingRelativeToFrom.LAST_DOSE: ("C71156", "Last Dose"),
+            TimingRelativeToFrom.PREVIOUS_VISIT: ("C71157", "Previous Visit"),
+            TimingRelativeToFrom.SCREENING: ("C71158", "Screening"),
+            TimingRelativeToFrom.BASELINE: ("C71159", "Baseline"),
+            TimingRelativeToFrom.END_OF_TREATMENT: ("C71160", "End of Treatment"),
+        }
+        if self.relative_to:
+            code, decode = ref_codes.get(self.relative_to, ("C71153", "Study Start"))
+        else:
+            code, decode = "C71153", "Study Start"
+        return {
+            "id": generate_uuid(),
+            "code": code,
+            "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+            "codeSystemVersion": "25.01d",
+            "decode": decode,
+            "instanceType": "Code"
+        }
+    
     def to_dict(self) -> Dict[str, Any]:
+        """Convert to USDM-compliant dictionary."""
+        # Build value label
+        value_label = self.name
+        if self.value is not None:
+            value_label = f"Day {int(self.value)}" if self.unit in ("days", "day", "d") else f"{self.value} {self.unit}"
+        
         result = {
             "id": self.id,
             "name": self.name,
-            "type": self.timing_type.value,
-            "unit": self.unit,
+            "type": self._timing_type_to_code(),
+            "value": self._to_iso8601_duration(self.value if self.value is not None else 0, self.unit),
+            "valueLabel": value_label,
+            "relativeToFrom": self._relative_to_from_code(),
+            "relativeFromScheduledInstanceId": self.relative_to_timepoint_id or generate_uuid(),
             "instanceType": self.instance_type,
         }
-        if self.value is not None:
-            result["value"] = self.value
-        if self.value_min is not None:
-            result["valueMin"] = self.value_min
-        if self.value_max is not None:
-            result["valueMax"] = self.value_max
-        if self.relative_to:
-            result["relativeTo"] = self.relative_to.value
-        if self.relative_to_timepoint_id:
-            result["relativeToTimepointId"] = self.relative_to_timepoint_id
+        
+        # Window bounds as ISO 8601 durations
         if self.window_lower is not None:
-            result["windowLower"] = self.window_lower
+            result["windowLower"] = self._to_iso8601_duration(self.window_lower, self.unit)
+        else:
+            result["windowLower"] = "P0D"
+        
         if self.window_upper is not None:
-            result["windowUpper"] = self.window_upper
+            result["windowUpper"] = self._to_iso8601_duration(self.window_upper, self.unit)
+        else:
+            result["windowUpper"] = "P0D"
+        
         return result
 
 

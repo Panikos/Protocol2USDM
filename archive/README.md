@@ -71,7 +71,12 @@ Outdated documentation files:
 | File | Original Purpose | Status |
 |------|------------------|--------|
 | `MIGRATION_GUIDE.md` | Migration from main.py | Archived (main.py deprecated) |
-| `USDM_EXPANSION_PLAN.md` | Original expansion plan | Superseded by USDM_COVERAGE_STATUS.md |
+| `USDM_EXPANSION_PLAN.md` | Original expansion plan | Historical reference |
+| `BRANCH_COMMIT_MESSAGE.md` | v7.0 commit message | Archived 2026-01-28 |
+| `FILE_AUDIT.md` | v6.6.0 file audit | Archived 2026-01-28 |
+| `INTEGRITY_ANALYSIS_REPORT.md` | One-time integrity analysis | Archived 2026-01-28 |
+| `USDM_COVERAGE_STATUS.md` | v6.5.0 coverage status | Archived 2026-01-28 |
+| `parameter_tuning_report.md` | LLM parameter tuning | Archived 2026-01-28 |
 | Various *.md | Old design docs | Historical reference only |
 
 ---
@@ -88,8 +93,8 @@ See main project documentation:
 - `README.md` - Project overview
 - `USER_GUIDE.md` - Detailed usage guide
 - `QUICK_REFERENCE.md` - Command reference
-- `USDM_COVERAGE_STATUS.md` - Entity coverage
+- `docs/ARCHITECTURE.md` - System architecture
 
 ---
 
-**Last Updated:** 2025-11-28
+**Last Updated:** 2026-01-28

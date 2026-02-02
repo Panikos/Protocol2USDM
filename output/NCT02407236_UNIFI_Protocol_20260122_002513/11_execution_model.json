@@ -1,0 +1,830 @@
+{
+  "success": true,
+  "pagesUsed": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    42,
+    43,
+    46,
+    47,
+    50,
+    51,
+    53,
+    56,
+    58,
+    61,
+    77
+  ],
+  "modelUsed": "gemini-3-flash-preview",
+  "data": {
+    "timeAnchors": [
+      {
+        "id": "anchor_2",
+        "definition": "First administration of investigational product",
+        "anchorType": "FirstDose",
+        "timelineId": null,
+        "dayValue": 1,
+        "sourceText": "first dose"
+      },
+      {
+        "id": "anchor_llm_1",
+        "definition": "Week 0 of maintenance (M-0 visit), which serves as the baseline for the maintenance study phase",
+        "anchorType": "Baseline",
+        "timelineId": null,
+        "dayValue": 0,
+        "sourceText": "The previous endpoint of corticosteroid-free remission at Week 44 in subjects induced into clinical response with ustekinumab and receiving corticosteroids at Week 0 of maintenance has been moved to the Other Secondary Endpoints section."
+      },
+      {
+        "id": "anchor_1",
+        "definition": "Screening visit",
+        "anchorType": "Screening",
+        "timelineId": null,
+        "dayValue": 1,
+        "sourceText": "screening visit"
+      },
+      {
+        "id": "anchor_3",
+        "definition": "procedure",
+        "anchorType": "Custom",
+        "timelineId": null,
+        "dayValue": 1,
+        "sourceText": "procedure"
+      }
+    ],
+    "repetitions": [
+      {
+        "id": "rep_daily_1",
+        "type": "Daily",
+        "interval": "P1D",
+        "sourceText": "od"
+      },
+      {
+        "id": "rep_daily_3",
+        "type": "Daily",
+        "interval": "P1D",
+        "sourceText": "OD"
+      },
+      {
+        "id": "rep_interval_1",
+        "type": "Interval",
+        "interval": "PT30M",
+        "sourceText": "every 30 minutes"
+      },
+      {
+        "id": "rep_window_1",
+        "type": "Continuous",
+        "sourceText": "Screening Phase"
+      },
+      {
+        "id": "rep_window_4",
+        "type": "Continuous",
+        "sourceText": "4 days before"
+      },
+      {
+        "id": "rep_llm_1",
+        "type": "Cycle",
+        "startOffset": "P0D",
+        "endOffset": "P44W",
+        "interval": "P8W",
+        "minObservations": 6,
+        "exitCondition": "Loss of Response or Clinical Flare",
+        "sourceText": "Maintenance Study ... Management of Clinical Flare and Loss of Response"
+      },
+      {
+        "id": "rep_llm_2",
+        "type": "Continuous",
+        "startOffset": "P0D",
+        "endOffset": "P52W",
+        "interval": "P1D",
+        "minObservations": 365,
+        "exitCondition": "End of Long-Term Extension",
+        "sourceText": "Long-Term Extension"
+      },
+      {
+        "id": "rep_llm_3",
+        "type": "Cycle",
+        "startOffset": "P0D",
+        "endOffset": "P8W",
+        "interval": "P8W",
+        "minObservations": 2,
+        "exitCondition": "Completion of Induction Phase",
+        "sourceText": "Induction Study"
+      }
+    ],
+    "samplingConstraints": [],
+    "traversalConstraints": [
+      {
+        "id": "traversal_1",
+        "requiredSequence": [
+          "SCREENING",
+          "INDUCTION_STUDY",
+          "MAINTENANCE_STUDY",
+          "LONG_TERM_EXTENSION"
+        ],
+        "allowEarlyExit": true,
+        "exitEpochIds": [
+          "EARLY_TERMINATION"
+        ],
+        "mandatoryVisits": [
+          "End of Study",
+          "Week I-4",
+          "Week I-2",
+          "Week I-0",
+          "Screening",
+          "Week I-8",
+          "Week I-16"
+        ],
+        "sourceText": "[{'condition': 'Clinical Flare or Loss of Response', 'path': ['MAINTENANCE_STUDY_ADJUSTMENT']}, {'condition': 'Adverse Event requiring discontinuation', 'path': ['EARLY_TERMINATION', 'SAFETY_FOLLOW_UP']}]"
+      }
+    ],
+    "executionTypes": [
+      {
+        "activityId": "Blood Sample",
+        "executionType": "Single",
+        "rationale": "No strong signals detected"
+      },
+      {
+        "activityId": "Vital Signs",
+        "executionType": "Single",
+        "rationale": "No strong signals detected"
+      },
+      {
+        "activityId": "Electrocardiogram",
+        "executionType": "Single",
+        "rationale": "EPISODE signals: 1; SINGLE signals: 2"
+      },
+      {
+        "activityId": "Pe",
+        "executionType": "Single",
+        "rationale": "SINGLE signals: 1"
+      },
+      {
+        "activityId": "Adverse Event",
+        "executionType": "Single",
+        "rationale": "SINGLE signals: 1"
+      },
+      {
+        "activityId": "Concomitant Medication",
+        "executionType": "Recurring",
+        "rationale": "SINGLE signals: 3; RECURRING signals: 9"
+      },
+      {
+        "activityId": "Laboratory Tests",
+        "executionType": "Single",
+        "rationale": "EPISODE signals: 1; SINGLE signals: 2"
+      },
+      {
+        "activityId": "Pharmacokinetic",
+        "executionType": "Single",
+        "rationale": "SINGLE signals: 2"
+      },
+      {
+        "activityId": "Pharmacodynamic",
+        "executionType": "Recurring",
+        "rationale": "RECURRING signals: 4"
+      },
+      {
+        "activityId": "Drug Administration",
+        "executionType": "Single",
+        "rationale": "SINGLE signals: 2"
+      },
+      {
+        "activityId": "Imaging",
+        "executionType": "Single",
+        "rationale": "SINGLE signals: 1"
+      },
+      {
+        "activityId": "Biopsy",
+        "executionType": "Single",
+        "rationale": "SINGLE signals: 6"
+      },
+      {
+        "activityId": "Diary",
+        "executionType": "Single",
+        "rationale": "SINGLE signals: 6; RECURRING signals: 6"
+      },
+      {
+        "activityId": "Screening Assessment",
+        "executionType": "Single",
+        "rationale": "The protocol indicates a screening phase to determine eligibility prior to randomization."
+      },
+      {
+        "activityId": "Induction Therapy Monitoring",
+        "executionType": "Single",
+        "rationale": "Safety and efficacy are evaluated at scheduled visits during the induction phase."
+      },
+      {
+        "activityId": "Maintenance Therapy Monitoring",
+        "executionType": "Single",
+        "rationale": "Assessments are repeated at scheduled intervals throughout the maintenance study period."
+      },
+      {
+        "activityId": "Long-term Extension Monitoring",
+        "executionType": "Single",
+        "rationale": "The Time and Events schedule for the extension indicates repeated assessments at defined study visits."
+      },
+      {
+        "activityId": "Dose Adjustment based on Response",
+        "executionType": "Single",
+        "rationale": "The protocol involves conditional decision points regarding induction and maintenance based on clinical response (e.g., responders vs. non-responders)."
+      }
+    ],
+    "footnoteConditions": [
+      {
+        "id": "fn_cond_1",
+        "conditionType": "general",
+        "text": "a: Based on testing the SC ustekinumab 90 mg q8w group versus placebo at α=0.05 (2-sided).",
+        "footnoteId": "fn_1",
+        "structuredCondition": "statistical_analysis.comparison(SC_ustekinumab_90mg_q8w, placebo, alpha=0.05, two_sided)",
+        "appliesToActivityIds": [
+          "Efficacy Assessment"
+        ],
+        "sourceText": "a: Based on testing the SC ustekinumab 90 mg q8w group versus placebo at α=0.05 (2-sided)."
+      },
+      {
+        "id": "fn_cond_2",
+        "conditionType": "timing_at",
+        "text": "b: It is estimated that about 37% of subjects in the primary population (40 subjects per treatment group) will be in clinical remission at Week 0 of maintenance.",
+        "footnoteId": "fn_2",
+        "structuredCondition": "population_estimate.clinical_remission(0.37, Week_0_Maintenance)",
+        "appliesToActivityIds": [
+          "Maintenance Phase"
+        ],
+        "sourceText": "b: It is estimated that about 37% of subjects in the primary population (40 subjects per treatment g"
+      },
+      {
+        "id": "fn_cond_3",
+        "conditionType": "general",
+        "text": "i: Temperature, pulse/heart rate, respiratory rate, and blood pressure.",
+        "footnoteId": "fn_3",
+        "structuredCondition": "vital_signs.components(temperature, pulse, heart_rate, respiratory_rate, blood_pressure)",
+        "appliesToActivityIds": [
+          "Vital Signs"
+        ],
+        "sourceText": "i: Temperature, pulse/heart rate, respiratory rate, and blood pressure."
+      },
+      {
+        "id": "fn_cond_4",
+        "conditionType": "general",
+        "text": "k: Respiratory rate was added in the appropriate footnotes in each of the Time and Events Schedules.",
+        "footnoteId": "fn_4",
+        "structuredCondition": "vital_signs.add(respiratory_rate)",
+        "appliesToActivityIds": [
+          "Vital Signs",
+          "Respiratory Rate"
+        ],
+        "sourceText": "k: Respiratory rate was added in the appropriate footnotes in each of the Time and Events Schedules."
+      }
+    ],
+    "endpointAlgorithms": [
+      {
+        "id": "ep_1",
+        "name": "Primary: Clinical Remission (Induction)",
+        "endpointType": "Primary",
+        "inputs": [
+          "Mayo score"
+        ],
+        "timeWindow": {
+          "reference": "Baseline",
+          "duration": "Week 8"
+        },
+        "algorithm": "Mayo score <= 2 AND no individual subscore > 1",
+        "successCriteria": "Total Mayo score ≤ 2 points, with no individual subscore > 1",
+        "sourceText": "The primary endpoint for the induction study is clinical remission at Week 8."
+      },
+      {
+        "id": "ep_2",
+        "name": "Secondary: Clinical Response (Induction)",
+        "endpointType": "Secondary",
+        "inputs": [
+          "Mayo score",
+          "Baseline Mayo score",
+          "Rectal bleeding subscore",
+          "Endoscopy subscore"
+        ],
+        "timeWindow": {
+          "reference": "Baseline",
+          "duration": "Week 8"
+        },
+        "algorithm": "(Baseline Mayo score - Week 8 Mayo score) >= 3 AND (Baseline Mayo score - Week 8 Mayo score) / Baseline Mayo score >= 0.30 AND (Rectal bleeding subscore <= 1 OR (Baseline Rectal bleeding subscore - Week 8 Rectal bleeding subscore) >= 1)",
+        "successCriteria": "A decrease from baseline in the Mayo score by ≥ 30% and ≥ 3 points, with either a decrease from baseline in the rectal bleeding subscore ≥ 1 or a rectal bleeding subscore of 0 or 1.",
+        "sourceText": "Clinical response at Week 8 is a secondary endpoint."
+      },
+      {
+        "id": "ep_3",
+        "name": "Secondary: Mucosal Healing (Induction)",
+        "endpointType": "Secondary",
+        "inputs": [
+          "Endoscopy subscore"
+        ],
+        "timeWindow": {
+          "reference": "Baseline",
+          "duration": "Week 8"
+        },
+        "algorithm": "Endoscopy subscore <= 1",
+        "successCriteria": "Mayo endoscopy subscore of 0 or 1",
+        "sourceText": "Mucosal healing at Week 8 is a secondary endpoint."
+      },
+      {
+        "id": "ep_4",
+        "name": "Primary: Clinical Remission (Maintenance)",
+        "endpointType": "Primary",
+        "inputs": [
+          "Mayo score"
+        ],
+        "timeWindow": {
+          "reference": "Randomization (Maintenance)",
+          "duration": "Week 44"
+        },
+        "algorithm": "Mayo score <= 2 AND no individual subscore > 1",
+        "successCriteria": "Total Mayo score ≤ 2 points, with no individual subscore > 1",
+        "sourceText": "The primary endpoint for the maintenance study is clinical remission at Week 44."
+      }
+    ],
+    "derivedVariables": [
+      {
+        "id": "dv_1",
+        "name": "Mayo Score",
+        "variableType": "Composite",
+        "sourceVariables": [
+          "Stool frequency subscore",
+          "Rectal bleeding subscore",
+          "Physician Global Assessment (PGA) subscore",
+          "Endoscopy findings subscore"
+        ],
+        "derivationRule": "Sum of 4 subscores (stool frequency + rectal bleeding + PGA + endoscopy findings)",
+        "baselineDefinition": "Calculated at baseline to determine eligibility (score 3-12)",
+        "baselineVisit": "Baseline",
+        "analysisWindow": "Maintenance study through Week 44",
+        "imputationRule": "Not specified",
+        "unit": "points"
+      },
+      {
+        "id": "dv_2",
+        "name": "Final Reported Endoscopic Subscore",
+        "variableType": "Custom",
+        "sourceVariables": [
+          "Local endoscopist subscore",
+          "Central reader 1 subscore",
+          "Central reader 2 (adjudicator) subscore"
+        ],
+        "derivationRule": "If local and central reader 1 agree, use that score. If they disagree, use the median score of the local read, central read 1, and central read 2.",
+        "baselineDefinition": "Used to determine subject eligibility at baseline",
+        "baselineVisit": "Baseline",
+        "analysisWindow": "Baseline, Week 8/16 (Induction), and Loss of Response (Maintenance)",
+        "imputationRule": "Not specified",
+        "unit": "points"
+      },
+      {
+        "id": "dv_3",
+        "name": "Clinical Remission",
+        "variableType": "Categorical",
+        "sourceVariables": [
+          "Mayo Score",
+          "US-specific definition criteria"
+        ],
+        "derivationRule": "Binary (Yes/No) based on Mayo score thresholds; US-specific definition used for US subjects in the fourth major secondary endpoint.",
+        "baselineDefinition": "Status at maintenance baseline as determined by IWRS",
+        "baselineVisit": "Maintenance Baseline",
+        "analysisWindow": "Through Week 44",
+        "imputationRule": "Not specified",
+        "unit": "n/a"
+      },
+      {
+        "id": "dv_4",
+        "name": "Loss of Clinical Response",
+        "variableType": "Categorical",
+        "sourceVariables": [
+          "Clinical flare status",
+          "Mayo endoscopy subscore (local)",
+          "Partial Mayo score"
+        ],
+        "derivationRule": "Determined by endoscopy (sigmoidoscopy) following a clinical flare; Mayo score calculated from partial Mayo at flare and local endoscopy subscore.",
+        "baselineDefinition": "n/a",
+        "baselineVisit": "n/a",
+        "analysisWindow": "Maintenance phase (any scheduled or unscheduled visit)",
+        "imputationRule": "Subjects declining endoscopy are assessed for partial Mayo response 16 weeks after initial flare",
+        "unit": "n/a"
+      }
+    ],
+    "stateMachine": {
+      "id": "sm_1",
+      "initialState": "Screening",
+      "terminalStates": [
+        "Early Termination",
+        "Completed"
+      ],
+      "states": [
+        "Screening",
+        "Induction Study",
+        "Maintenance Study",
+        "Long Term Extension",
+        "Early Termination"
+      ],
+      "transitions": [
+        {
+          "fromState": "Screening",
+          "toState": "Induction Study",
+          "trigger": "Progress to Induction Study"
+        },
+        {
+          "fromState": "Induction Study",
+          "toState": "Maintenance Study",
+          "trigger": "Progress to Maintenance Study"
+        },
+        {
+          "fromState": "Maintenance Study",
+          "toState": "Long Term Extension",
+          "trigger": "Progress to Long Term Extension"
+        }
+      ],
+      "epochIds": {
+        "Screening": "SCREENING",
+        "Induction Study": "INDUCTION_STUDY",
+        "Maintenance Study": "MAINTENANCE_STUDY",
+        "Long Term Extension": "LONG_TERM_EXTENSION",
+        "Early Termination": "EARLY_TERMINATION"
+      }
+    },
+    "dosingRegimens": [
+      {
+        "id": "dosing_1",
+        "treatmentName": "Ustekinumab",
+        "frequency": "QD",
+        "route": "IV",
+        "startDay": 1,
+        "doseLevels": [
+          {
+            "amount": 130.0,
+            "unit": "mg"
+          },
+          {
+            "amount": 390.0,
+            "unit": "mg"
+          },
+          {
+            "amount": 260.0,
+            "unit": "mg"
+          },
+          {
+            "amount": 6.0,
+            "unit": "mg"
+          }
+        ],
+        "sourceText": "ND ADMINISTRATION Induction: A target of 951 subjects will be randomized in a 1:1:1 ratio to 1 of 3 treatment groups and will receive their assigned IV dose of study agent at Week 0:  Placebo IV  Us"
+      },
+      {
+        "id": "dosing_llm_1",
+        "treatmentName": "Ustekinumab (CNTO1275) Induction",
+        "frequency": "Single",
+        "route": "IV",
+        "startDay": 1,
+        "doseLevels": [
+          {
+            "amount": 130.0,
+            "unit": "mg",
+            "description": "Fixed dose induction"
+          },
+          {
+            "amount": 6.0,
+            "unit": "mg/kg",
+            "description": "Weight-based tiered induction"
+          }
+        ],
+        "durationDescription": "Baseline (Week 0)"
+      },
+      {
+        "id": "dosing_llm_2",
+        "treatmentName": "Ustekinumab (CNTO1275) Maintenance",
+        "frequency": "",
+        "route": "SC",
+        "startDay": 1,
+        "doseLevels": [
+          {
+            "amount": 90.0,
+            "unit": "mg",
+            "description": "Maintenance dose"
+          }
+        ],
+        "durationDescription": "Through Week 44 and Long-Term Extension",
+        "doseModifications": [
+          "Management of clinical flare and loss of response"
+        ]
+      },
+      {
+        "id": "dosing_llm_3",
+        "treatmentName": "Placebo",
+        "frequency": "Single",
+        "route": "IV",
+        "startDay": 1,
+        "durationDescription": "Duration of the double-blind period"
+      }
+    ],
+    "visitWindows": [
+      {
+        "id": "visit_4",
+        "visitName": "Screening",
+        "targetDay": -14,
+        "windowBefore": 7,
+        "windowAfter": 0,
+        "isRequired": true,
+        "visitNumber": 1,
+        "epoch": "Screening Phase",
+        "sourceText": "9.1.2, Screening Phase Text about the Bristol Stool Form Scale was added to the Screening Phase subsection: Bristol Stool Form Scale diaries will also be provided to subjects to classify the form (or"
+      },
+      {
+        "id": "visit_6",
+        "visitName": "Week 0",
+        "targetDay": -6,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 2,
+        "targetWeek": 0,
+        "sourceText": "and receiving corticosteroids at Week 0 of maintenance has been moved to the Other Secondary Endpoints section. Maintaining clinical remission in subjects induced into clinical remission with ustekinu"
+      },
+      {
+        "id": "visit_1",
+        "visitName": "Early Termination",
+        "targetDay": null,
+        "windowBefore": 0,
+        "windowAfter": 0,
+        "isRequired": true,
+        "visitNumber": 3,
+        "sourceText": "Power for detecting a treatment effect based on different proportions of subjects in clinical remission at Week 8 (global definition) with a fixed sample size of 951 subjects (317 per treatment group)"
+      },
+      {
+        "id": "visit_7",
+        "visitName": "baseline",
+        "targetDay": 0,
+        "windowBefore": 1,
+        "windowAfter": 1,
+        "isRequired": true,
+        "visitNumber": 4,
+        "sourceText": "baseline. NCT02407236"
+      },
+      {
+        "id": "visit_5",
+        "visitName": "randomization",
+        "targetDay": 1,
+        "windowBefore": 0,
+        "windowAfter": 0,
+        "isRequired": true,
+        "visitNumber": 5,
+        "epoch": "Induction Study",
+        "sourceText": "eligible to continue with prerandomization procedures. A tuberculin skin test is recommended but not required for study centers in Ukraine if tuberculin is not available. Subjects with a newly identif"
+      },
+      {
+        "id": "visit_9",
+        "visitName": "Week 2",
+        "targetDay": 8,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 6,
+        "targetWeek": 2,
+        "sourceText": "≥80 mg at Week 2 followed by a dose ≥40 mg every 2 weeks) or approved biosimilar for adalimumab …"
+      },
+      {
+        "id": "visit_llm_3",
+        "visitName": "Week I-2",
+        "targetDay": 15,
+        "windowBefore": null,
+        "windowAfter": null,
+        "isRequired": true,
+        "visitNumber": 3,
+        "targetWeek": 2,
+        "epoch": "Induction Study"
+      },
+      {
+        "id": "visit_10",
+        "visitName": "Week 4",
+        "targetDay": 22,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 8,
+        "targetWeek": 4,
+        "sourceText": "the Week 4 visit in induction. Table 2, Time and Events Schedule:"
+      },
+      {
+        "id": "visit_llm_4",
+        "visitName": "Week I-4",
+        "targetDay": 29,
+        "windowBefore": null,
+        "windowAfter": null,
+        "isRequired": true,
+        "visitNumber": 4,
+        "targetWeek": 4,
+        "epoch": "Induction Study"
+      },
+      {
+        "id": "visit_2",
+        "visitName": "Week 8",
+        "targetDay": 50,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 10,
+        "targetWeek": 8,
+        "sourceText": "clinical remission at Week 8 (global definition) with a fixed sample size of 951 subjects (317 per treatment group)....................................................................................."
+      },
+      {
+        "id": "visit_llm_5",
+        "visitName": "Week I-8",
+        "targetDay": 57,
+        "windowBefore": null,
+        "windowAfter": null,
+        "isRequired": true,
+        "visitNumber": 5,
+        "targetWeek": 8,
+        "epoch": "Induction Study"
+      },
+      {
+        "id": "visit_16",
+        "visitName": "Week 16",
+        "targetDay": 106,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 12,
+        "targetWeek": 16,
+        "sourceText": "At Week 16, the subjects who were not in clinical response at Week 8 will be re-evaluated for clinical response (clinical response status will be based on the Mayo endoscopy subscore assigned by the l"
+      },
+      {
+        "id": "visit_llm_6",
+        "visitName": "Week I-16",
+        "targetDay": 113,
+        "windowBefore": null,
+        "windowAfter": null,
+        "isRequired": true,
+        "visitNumber": 6,
+        "targetWeek": 16,
+        "epoch": "Induction Study"
+      },
+      {
+        "id": "visit_11",
+        "visitName": "Week 20",
+        "targetDay": 134,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 14,
+        "targetWeek": 20,
+        "sourceText": "Rationale: Study agent administrations at Week 20 and Week 28 have been deleted from the Time and Events Schedule for Maintenance because both administrations, for placebo only, are not required to ma"
+      },
+      {
+        "id": "visit_12",
+        "visitName": "Week 28",
+        "targetDay": 190,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 15,
+        "targetWeek": 28,
+        "sourceText": "and Week 28. Synopsis; 3.1.2, Maintenance Study; 5,"
+      },
+      {
+        "id": "visit_3",
+        "visitName": "Week 44",
+        "targetDay": 302,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 16,
+        "targetWeek": 44,
+        "epoch": "Maintenance Study",
+        "sourceText": "clinical remission (both global and US definitions) at Week 44 with a fixed sample size of 327 subjects (109 in each treatment group) .................................................................."
+      },
+      {
+        "id": "visit_13",
+        "visitName": "Week 48",
+        "targetDay": 330,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 17,
+        "targetWeek": 48,
+        "sourceText": "Rationale: The first dose of study agent in the long-term extension (LTE) will be at Week 48, not Week 44; therefore, the Week 44 column has been deleted from the Time and Events Schedule for the LTE."
+      },
+      {
+        "id": "visit_14",
+        "visitName": "Week 52",
+        "targetDay": 358,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 18,
+        "targetWeek": 52,
+        "sourceText": "administered at Week 52, because only placebo would be given at that visit and therefore is not required to maintain the blind. Table 3, Time and"
+      },
+      {
+        "id": "visit_17",
+        "visitName": "Follow-up",
+        "targetDay": 365,
+        "windowBefore": 7,
+        "windowAfter": 7,
+        "isRequired": true,
+        "visitNumber": 19,
+        "sourceText": "and will have a safety follow-up visit approximately 20 weeks after their last (ie, Week 8) administration of study agent. Maintenance: A target of 327 subjects who are in clinical response to IV uste"
+      },
+      {
+        "id": "visit_8",
+        "visitName": "Week 56",
+        "targetDay": 386,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 20,
+        "targetWeek": 56,
+        "sourceText": "opportunity for dose adjustment in the LTE is at the Week 56 visit. NCT02407236"
+      },
+      {
+        "id": "visit_15",
+        "visitName": "Week 200",
+        "targetDay": 1394,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 21,
+        "targetWeek": 200,
+        "sourceText": "A study agent administration was added at Week 200 (ie, final efficacy visit) on the Time and Events Schedule for the LTE for the last dose of study agent. Rationale: Text was added to clarify the fir"
+      }
+    ],
+    "randomizationScheme": {
+      "id": "randomization_1",
+      "ratio": "1:1:1",
+      "method": "Stratified randomization",
+      "centralRandomization": true,
+      "stratificationFactors": [
+        {
+          "id": "strat_1",
+          "name": "Baseline",
+          "categories": [
+            "Category 1",
+            "Category 2"
+          ],
+          "isBlocking": false,
+          "sourceText": "clinical remission status at maintenance baseline (as \ndetermined by the iwrs) and induction treatment"
+        },
+        {
+          "id": "strat_llm_1",
+          "name": "Clinical remission status at maintenance baseline",
+          "categories": [
+            "Remission",
+            "No remission"
+          ],
+          "isBlocking": false
+        },
+        {
+          "id": "strat_llm_2",
+          "name": "Induction treatment",
+          "categories": [
+            "Ustekinumab",
+            "Placebo"
+          ],
+          "isBlocking": false
+        }
+      ],
+      "sourceText": "Ustekinumab (CNTO1275)\nClinical Protocol CNTO1275UCO3001 Amendment 2\n11\nApproved, Date: 20 April 2016\n3.1.2, Maintenance \nStudy\nThe primary endpoint of the maintenance study is clinical remission at W"
+    }
+  }
+}

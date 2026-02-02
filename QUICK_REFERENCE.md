@@ -1,8 +1,8 @@
 # Protocol2USDM Quick Reference
 
-**v6.5.0** | One-page command reference
+**v7.2** | One-page command reference
 
-> **New in v6.5.0:** External evaluation **88%** (7/8 passing)! encounterId alignment, StudyIdentifier type auto-inference, EVS-verified terminology codes. All 28 NCI codes verified against NIH EVS API.
+> **Current:** Phase registry architecture (`main_v3.py`), default `--complete` mode, `gemini-3-flash-preview` default model, parallel execution support.
 
 ---
 
@@ -10,11 +10,16 @@
 
 ```bash
 pip install -r requirements.txt
-echo "GOOGLE_API_KEY=AIza..." > .env
 
-# Recommended: Full protocol extraction with viewer
-python main_v2.py .\input\Alexion_NCT04573309_Wilsons.pdf --full-protocol --sap .\input\Alexion_NCT04573309_Wilsons_SAP.pdf --model gemini-2.5-pro --view
+# Configure Vertex AI for Gemini (recommended)
+echo "GOOGLE_CLOUD_PROJECT=your-project-id" > .env
+echo "GOOGLE_CLOUD_LOCATION=us-central1" >> .env
+
+# Run full protocol extraction (defaults to --complete with gemini-3-flash-preview)
+python main_v3.py input/trial/NCT04573309_Wilsons/NCT04573309_Wilsons_Protocol.pdf --sap input/trial/NCT04573309_Wilsons/NCT04573309_Wilsons_SAP.pdf --sites input/trial/NCT04573309_Wilsons/NCT04573309_Wilsons_sites.csv
 ```
+
+> **Note:** Use Vertex AI (not AI Studio) for Gemini to disable safety controls for clinical content.
 
 ---
 
@@ -23,79 +28,86 @@ python main_v2.py .\input\Alexion_NCT04573309_Wilsons.pdf --full-protocol --sap 
 ### Basic Usage
 
 ```bash
-# SoA only (default)
-python main_v2.py protocol.pdf
+# Default: --complete mode with gemini-3-flash-preview (no flags needed!)
+python main_v3.py protocol.pdf
 
-# Full protocol extraction (SoA + all phases)
-python main_v2.py protocol.pdf --full-protocol
+# With parallel execution for faster processing
+python main_v3.py protocol.pdf --parallel --max-workers 4
 
 # Select specific phases
-python main_v2.py protocol.pdf --metadata --eligibility --objectives
+python main_v3.py protocol.pdf --metadata --eligibility --objectives
 
 # Expansion only (skip SoA)
-python main_v2.py protocol.pdf --expansion-only --metadata --eligibility
+python main_v3.py protocol.pdf --expansion-only --metadata --eligibility
 
 # With specific model
-python main_v2.py protocol.pdf --model gemini-2.5-pro
+python main_v3.py protocol.pdf --model gemini-2.5-pro
 
 # Specify SoA pages
-python main_v2.py protocol.pdf --pages 45,46,47
+python main_v3.py protocol.pdf --pages 45,46,47
 ```
 
 ### SoA Pipeline
 ```bash
-python main_v2.py protocol.pdf                      # Default extraction
-python main_v2.py protocol.pdf --model gemini-2.5-pro
-python main_v2.py protocol.pdf --full               # With post-processing
+python main_v3.py protocol.pdf                      # Default: full extraction
+python main_v3.py protocol.pdf --model gemini-2.5-pro
+python main_v3.py protocol.pdf --soa                # SoA only with post-processing
 ```
 
-### Standalone Extractors (v6.0)
+### Standalone Extractors
 ```bash
 # Study Metadata (title, identifiers, sponsor)
-python extract_metadata.py protocol.pdf
+python scripts/extractors/extract_metadata.py protocol.pdf
 
 # Eligibility Criteria (inclusion/exclusion)
-python extract_eligibility.py protocol.pdf
+python scripts/extractors/extract_eligibility.py protocol.pdf
 
 # Objectives & Endpoints
-python extract_objectives.py protocol.pdf
+python scripts/extractors/extract_objectives.py protocol.pdf
 
 # Study Design (arms, cohorts, blinding)
-python extract_studydesign.py protocol.pdf
+python scripts/extractors/extract_studydesign.py protocol.pdf
 
 # Interventions & Products
-python extract_interventions.py protocol.pdf
+python scripts/extractors/extract_interventions.py protocol.pdf
 
 # Narrative Structure (sections, abbreviations)
-python extract_narrative.py protocol.pdf
+python scripts/extractors/extract_narrative.py protocol.pdf
 
 # Advanced (amendments, geography)
-python extract_advanced.py protocol.pdf
+python scripts/extractors/extract_advanced.py protocol.pdf
+
+# Execution Model
+python scripts/extractors/extract_execution_model.py protocol.pdf
 ```
 
 ### View Results
 ```bash
-streamlit run soa_streamlit_viewer.py
+cd web-ui && npm run dev
+# Open http://localhost:3000
 ```
 
 ### Options
 ```bash
 # Core options
---model, -m         Model to use (default: gemini-2.5-pro)
+--model, -m         Model to use (default: gemini-3-flash-preview)
 --output-dir, -o    Output directory
 --pages, -p         Specific SoA pages (comma-separated)
 --no-validate       Skip vision validation
 --remove-hallucinations  Remove cells not confirmed by vision
---view              Launch viewer after
 --verbose, -v       Detailed logging
 
+# Parallel execution (v7.1+)
+--parallel          Run independent phases concurrently
+--max-workers N     Max parallel workers (default: 4)
+
 # Post-processing
---full              Run all post-processing steps
 --enrich            Step 7: NCI terminology
 --validate-schema   Step 8: Schema validation
 --conformance       Step 9: CORE conformance
 
-# Expansion phases (v6.0)
+# Expansion phases
+--complete          Full extraction + post-processing (DEFAULT when no phases specified)
 --full-protocol     Extract everything (SoA + all phases)
 --expansion-only    Skip SoA, run only expansion phases
 --metadata          Phase 2: Study metadata
@@ -105,6 +117,9 @@ streamlit run soa_streamlit_viewer.py
 --interventions     Phase 5: Interventions & products
 --narrative         Phase 7: Sections & abbreviations
 --advanced          Phase 8: Amendments & geography
+--procedures        Phase 10: Procedures & devices
+--scheduling        Phase 11: Scheduling logic
+--execution         Phase 14: Execution model
 ```
 
 ---
@@ -113,10 +128,13 @@ streamlit run soa_streamlit_viewer.py
 
 | Model | Speed | Reliability |
 |-------|-------|-------------|
-| **gpt-5.1** ⭐ | Medium | Best (100%) |
-| gemini-3-pro-preview | Slow | 75% |
-| gemini-2.5-pro | Fast | Good |
-| gpt-4o | Medium | Good |
+| **gemini-3-flash-preview** ⭐ | Fast | **Default model** |
+| gemini-2.5-pro | Fast | Good fallback (auto for SoA text) |
+| claude-opus-4-5 | Medium | High accuracy, higher cost |
+| claude-sonnet-4 | Fast | Good balance |
+| chatgpt-5.2 | Medium | Good alternative |
+
+> Other models supported - see `llm_providers.py` for full list.
 
 ---
 
@@ -125,15 +143,18 @@ streamlit run soa_streamlit_viewer.py
 ```
 output/<protocol>/
 ├── protocol_usdm.json            ⭐ Combined full protocol output
+├── protocol_usdm_provenance.json  # UUID-based provenance
 ├── 9_final_soa.json              ⭐ SoA extraction
 ├── 9_final_soa_provenance.json    # Source tracking (text/vision/both)
-├── 2_study_metadata.json          # Study identity (Phase 2)
-├── 3_eligibility_criteria.json    # I/E criteria (Phase 1)
-├── 4_objectives_endpoints.json    # Objectives (Phase 3)
-├── 5_study_design.json            # Design structure (Phase 4)
-├── 6_interventions.json           # Products (Phase 5)
-├── 7_narrative_structure.json     # Sections/abbreviations (Phase 7)
-├── 8_advanced_entities.json       # Amendments/geography (Phase 8)
+├── 2_study_metadata.json          # Study identity
+├── 3_eligibility_criteria.json    # I/E criteria
+├── 4_objectives_endpoints.json    # Objectives
+├── 5_study_design.json            # Design structure
+├── 6_interventions.json           # Products
+├── 7_narrative_structure.json     # Sections/abbreviations
+├── 8_advanced_entities.json       # Amendments/geography
+├── 10_scheduling_logic.json       # Scheduling constraints
+├── 11_execution_model.json        # Execution model
 ├── 4_header_structure.json        # SoA table structure (vision)
 ├── terminology_enrichment.json    # NCI EVS codes (--enrich)
 ├── schema_validation.json         # Schema validation results
@@ -210,17 +231,22 @@ CDISC_API_KEY=...            # For CORE (optional)
 ## Key Files
 
 | File | Purpose |
-|------|---------|
-| `main_v2.py` | Main pipeline (SoA + expansions) |
-| `soa_streamlit_viewer.py` | Interactive viewer |
-| `core/usdm_types_generated.py` | 86+ auto-generated USDM types |
-| `core/evs_client.py` | NCI EVS API client with caching |
+|------|--------|
+| `main_v3.py` | Entry point (phase registry architecture) |
+| `pipeline/` | Phase registry architecture module |
+| `pipeline/orchestrator.py` | Pipeline orchestration with parallel support |
+| `pipeline/phases/` | Individual phase implementations |
+| `llm_providers.py` | LLM provider abstraction layer |
+| `core/constants.py` | Centralized constants (DEFAULT_MODEL, etc.) |
+| `core/usdm_types_generated.py` | 86+ USDM types (hand-written, schema-aligned) |
 | `extraction/pipeline.py` | SoA extraction pipeline |
-| `extraction/*/extractor.py` | Domain-specific extractors |
+| `extraction/pipeline_context.py` | Context passing between extractors |
+| `extraction/execution/` | Execution model extractors (27 modules) |
 | `enrichment/terminology.py` | NCI terminology enrichment |
 | `validation/cdisc_conformance.py` | CDISC CORE validation |
+| `web-ui/` | React/Next.js protocol viewer |
 
-### Standalone CLI Tools
+### Standalone CLI Tools (in `scripts/extractors/`)
 
 | File | Purpose |
 |------|---------|
@@ -231,10 +257,35 @@ CDISC_API_KEY=...            # For CORE (optional)
 | `extract_interventions.py` | Interventions only |
 | `extract_narrative.py` | Narrative only |
 | `extract_advanced.py` | Amendments/geography only |
+| `extract_execution_model.py` | Execution model only |
 
 ---
 
-**Docs:** [README.md](README.md) | [USER_GUIDE.md](USER_GUIDE.md) | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+---
 
-**Last Updated:** 2025-11-29  
-**Version:** 6.3.0
+## USDM Entity Placement (v6.6)
+
+| Entity | Location |
+|--------|----------|
+| `eligibilityCriterionItems` | `studyVersion` |
+| `organizations` | `studyVersion` |
+| `narrativeContentItems` | `studyVersion` |
+| `abbreviations` | `studyVersion` |
+| `conditions` | `studyVersion` |
+| `amendments` | `studyVersion` |
+| `administrableProducts` | `studyVersion` |
+| `medicalDevices` | `studyVersion` |
+| `studyInterventions` | `studyVersion` |
+| `eligibilityCriteria` | `studyDesign` |
+| `indications` | `studyDesign` |
+| `analysisPopulations` | `studyDesign` |
+| `timings` | `scheduleTimeline` |
+| `exits` | `scheduleTimeline` |
+| `definedProcedures` | `activity` |
+
+---
+
+**Docs:** [README.md](README.md) | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+
+**Last Updated:** 2026-01-30  
+**Version:** 7.1

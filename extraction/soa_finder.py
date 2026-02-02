@@ -185,13 +185,22 @@ Include any page that has SoA table content, even if it's a continuation page.""
     )
     
     try:
+        from extraction.llm_task_config import get_llm_task_config, to_llm_config
+        task_config = get_llm_task_config("soa_finder", model=model_name)
+        config = to_llm_config(task_config)
+        
         client = get_llm_client(model_name)
         response = client.generate(
             messages=[{"role": "user", "content": prompt}],
-            config=LLMConfig(temperature=0.0, json_mode=True),
+            config=config,
         )
         
         data = parse_llm_json(response.content, fallback={})
+        # Handle LLM returning list instead of dict (e.g., [{...}] instead of {...})
+        if isinstance(data, list) and data and isinstance(data[0], dict):
+            data = data[0]
+        elif not isinstance(data, dict):
+            data = {}
         pages = data.get("soa_pages", [])
         
         logger.info(f"LLM identified SoA on pages: {pages} (confidence: {data.get('confidence', 'unknown')})")

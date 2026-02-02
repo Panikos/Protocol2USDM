@@ -1,0 +1,287 @@
+{
+  "success": true,
+  "pagesUsed": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    21,
+    22,
+    23,
+    24,
+    27,
+    28,
+    29
+  ],
+  "modelUsed": "gemini-3-flash-preview",
+  "studyDesignStructure": {
+    "studyArms": [
+      {
+        "id": "arm_1",
+        "name": "Arm A",
+        "type": {
+          "code": "Experimental Arm",
+          "codeSystem": "USDM",
+          "decode": "Experimental Arm"
+        },
+        "instanceType": "StudyArm",
+        "description": "Atezolizumab 1200 mg IV infusion every 3 weeks (Q3W) and bevacizumab 15 mg/kg IV Q3W"
+      },
+      {
+        "id": "arm_2",
+        "name": "Arm B",
+        "type": {
+          "code": "Active Comparator Arm",
+          "codeSystem": "USDM",
+          "decode": "Active Comparator Arm"
+        },
+        "instanceType": "StudyArm",
+        "description": "Sorafenib 400 mg by mouth, twice a day (BID), continuously"
+      }
+    ],
+    "studyCells": [
+      {
+        "id": "cell_1",
+        "armId": "arm_1",
+        "epochId": "epoch_1",
+        "elementIds": [
+          "elem_1"
+        ],
+        "instanceType": "StudyCell"
+      },
+      {
+        "id": "cell_2",
+        "armId": "arm_1",
+        "epochId": "epoch_2",
+        "elementIds": [
+          "elem_2"
+        ],
+        "instanceType": "StudyCell"
+      },
+      {
+        "id": "cell_3",
+        "armId": "arm_1",
+        "epochId": "epoch_3",
+        "elementIds": [
+          "elem_3"
+        ],
+        "instanceType": "StudyCell"
+      },
+      {
+        "id": "cell_4",
+        "armId": "arm_2",
+        "epochId": "epoch_1",
+        "elementIds": [
+          "elem_4"
+        ],
+        "instanceType": "StudyCell"
+      },
+      {
+        "id": "cell_5",
+        "armId": "arm_2",
+        "epochId": "epoch_2",
+        "elementIds": [
+          "elem_5"
+        ],
+        "instanceType": "StudyCell"
+      },
+      {
+        "id": "cell_6",
+        "armId": "arm_2",
+        "epochId": "epoch_3",
+        "elementIds": [
+          "elem_6"
+        ],
+        "instanceType": "StudyCell"
+      }
+    ],
+    "studyCohorts": [
+      {
+        "id": "cohort_1",
+        "name": "Global Enrollment Phase",
+        "instanceType": "StudyCohort",
+        "characteristic": "Approximately 480 patients enrolled globally"
+      },
+      {
+        "id": "cohort_2",
+        "name": "China Subpopulation",
+        "instanceType": "StudyCohort",
+        "characteristic": "Approximately 135 patients from mainland China, including those from the global phase and an extended China enrollment phase"
+      }
+    ],
+    "studyElements": [
+      {
+        "id": "elem_1",
+        "name": "Arm A - Screening",
+        "instanceType": "StudyElement",
+        "description": "Treatment period for Arm A during Screening"
+      },
+      {
+        "id": "elem_2",
+        "name": "Arm A - Treatment Phase",
+        "instanceType": "StudyElement",
+        "description": "Treatment period for Arm A during Treatment Phase"
+      },
+      {
+        "id": "elem_3",
+        "name": "Arm A - Survival Follow-Up",
+        "instanceType": "StudyElement",
+        "description": "Treatment period for Arm A during Survival Follow-Up"
+      },
+      {
+        "id": "elem_4",
+        "name": "Arm B - Screening",
+        "instanceType": "StudyElement",
+        "description": "Treatment period for Arm B during Screening"
+      },
+      {
+        "id": "elem_5",
+        "name": "Arm B - Treatment Phase",
+        "instanceType": "StudyElement",
+        "description": "Treatment period for Arm B during Treatment Phase"
+      },
+      {
+        "id": "elem_6",
+        "name": "Arm B - Survival Follow-Up",
+        "instanceType": "StudyElement",
+        "description": "Treatment period for Arm B during Survival Follow-Up"
+      }
+    ],
+    "summary": {
+      "armCount": 2,
+      "cellCount": 6,
+      "cohortCount": 2,
+      "elementCount": 6
+    },
+    "studyDesign": {
+      "id": "sd_1",
+      "name": "Study Design",
+      "instanceType": "InterventionalStudyDesign",
+      "trialIntentTypes": [
+        {
+          "code": "Treatment",
+          "codeSystem": "USDM",
+          "decode": "Treatment"
+        }
+      ],
+      "trialType": {
+        "code": "Interventional",
+        "codeSystem": "USDM",
+        "decode": "Interventional"
+      },
+      "blindingSchema": {
+        "code": "Open Label",
+        "codeSystem": "USDM",
+        "decode": "Open Label"
+      },
+      "randomizationType": {
+        "code": "Randomized",
+        "codeSystem": "USDM",
+        "decode": "Randomized"
+      },
+      "allocationRatio": {
+        "ratio": "2:1"
+      },
+      "stratificationFactors": [
+        "Geographic region (Asia excluding Japan vs. rest of world)",
+        "Macrovascular invasion and/or extrahepatic spread (presence vs. absence)",
+        "Baseline alpha-fetoprotein (<400 vs. >=400 ng/mL)",
+        "Eastern Cooperative Oncology Group Performance Status (0 vs. 1)"
+      ],
+      "controlType": {
+        "code": "Active Control",
+        "codeSystem": "USDM",
+        "decode": "Active Control"
+      },
+      "armIds": [
+        "arm_1",
+        "arm_2"
+      ],
+      "cohortIds": [
+        "cohort_1",
+        "cohort_2"
+      ],
+      "therapeuticAreas": [
+        "Oncology",
+        "Hepatology"
+      ]
+    }
+  },
+  "rawResponse": {
+    "studyDesign": {
+      "type": "Interventional",
+      "trialIntentTypes": [
+        "Treatment"
+      ],
+      "blinding": {
+        "schema": "Open Label",
+        "maskedRoles": []
+      },
+      "randomization": {
+        "type": "Randomized",
+        "allocationRatio": "2:1",
+        "stratificationFactors": [
+          "Geographic region (Asia excluding Japan vs. rest of world)",
+          "Macrovascular invasion and/or extrahepatic spread (presence vs. absence)",
+          "Baseline alpha-fetoprotein (<400 vs. >=400 ng/mL)",
+          "Eastern Cooperative Oncology Group Performance Status (0 vs. 1)"
+        ]
+      },
+      "controlType": "Active Control",
+      "therapeuticAreas": [
+        "Oncology",
+        "Hepatology"
+      ]
+    },
+    "arms": [
+      {
+        "name": "Arm A",
+        "type": "Experimental Arm",
+        "description": "Atezolizumab 1200 mg IV infusion every 3 weeks (Q3W) and bevacizumab 15 mg/kg IV Q3W",
+        "isTitration": false,
+        "doseEpochs": null
+      },
+      {
+        "name": "Arm B",
+        "type": "Active Comparator",
+        "description": "Sorafenib 400 mg by mouth, twice a day (BID), continuously",
+        "isTitration": false,
+        "doseEpochs": null
+      }
+    ],
+    "cohorts": [
+      {
+        "name": "Global Enrollment Phase",
+        "characteristic": "Approximately 480 patients enrolled globally"
+      },
+      {
+        "name": "China Subpopulation",
+        "characteristic": "Approximately 135 patients from mainland China, including those from the global phase and an extended China enrollment phase"
+      }
+    ],
+    "epochs": [
+      {
+        "name": "Screening",
+        "description": "Assessment of eligibility criteria and baseline tumor scans"
+      },
+      {
+        "name": "Treatment Phase",
+        "description": "Administration of study treatment in 3-week cycles until unacceptable toxicity or loss of clinical benefit"
+      },
+      {
+        "name": "Survival Follow-Up",
+        "description": "Followed for survival and subsequent anti-cancer therapies until death or study termination"
+      }
+    ]
+  }
+}

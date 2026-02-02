@@ -1,0 +1,131 @@
+{
+  "success": true,
+  "sourceFile": "C:\\Users\\panik\\Documents\\GitHub\\Protcol2USDMv3\\input\\trial\\NCT02706951_SELECT_MONO\\NCT02706951_SELECT_MONO_SAP.pdf",
+  "pagesUsed": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39
+  ],
+  "modelUsed": "gemini-3-flash-preview",
+  "sapData": {
+    "analysisPopulations": [
+      {
+        "id": "pop_1",
+        "name": "Full Analysis Set",
+        "text": "The Full Analysis Set (FAS) includes all randomized subjects who received at least one dose of study drug. The FAS will be used for all efficacy and baseline analyses.",
+        "populationType": "Efficacy",
+        "instanceType": "AnalysisPopulation",
+        "label": "FAS",
+        "populationDescription": "The Full Analysis Set (FAS) includes all randomized subjects who received at least one dose of study drug. The FAS will be used for all efficacy and baseline analyses.",
+        "criteria": "Randomized AND received >= 1 dose of study drug"
+      },
+      {
+        "id": "pop_2",
+        "name": "Per Protocol Analysis Set",
+        "text": "The Per Protocol Analysis Set represents a subset of the FAS and consists of all FAS subjects who did not meet any major protocol deviations during Period 1 of the study.",
+        "populationType": "Efficacy",
+        "instanceType": "AnalysisPopulation",
+        "label": "PP",
+        "populationDescription": "The Per Protocol Analysis Set represents a subset of the FAS and consists of all FAS subjects who did not meet any major protocol deviations during Period 1 of the study.",
+        "criteria": "FAS AND no major protocol deviations during Period 1"
+      },
+      {
+        "id": "pop_3",
+        "name": "Safety Analysis Set",
+        "text": "The Safety Analysis Set consists of all subjects who received at least one dose of study drug. For the Safety Analysis Set, subjects are assigned to a treatment group based on the 'as treated' treatment group, regardless of the treatment randomized.",
+        "populationType": "Safety",
+        "instanceType": "AnalysisPopulation",
+        "label": "SAF",
+        "populationDescription": "The Safety Analysis Set consists of all subjects who received at least one dose of study drug. For the Safety Analysis Set, subjects are assigned to a treatment group based on the 'as treated' treatment group, regardless of the treatment randomized.",
+        "criteria": "Received >= 1 dose of study drug"
+      }
+    ],
+    "characteristics": [
+      {
+        "id": "char_1",
+        "name": "Age",
+        "code": "AGE",
+        "codeSystem": "http://www.cdisc.org/baseline-characteristics",
+        "codeSystemVersion": "2024-03-29",
+        "decode": "Age",
+        "dataType": "Numeric",
+        "instanceType": "Characteristic",
+        "description": "Age at baseline in years"
+      },
+      {
+        "id": "char_2",
+        "name": "Tender Joint Count",
+        "code": "TENDER_JOINT_COUNT",
+        "codeSystem": "http://www.cdisc.org/baseline-characteristics",
+        "codeSystemVersion": "2024-03-29",
+        "decode": "Tender Joint Count",
+        "dataType": "Numeric",
+        "instanceType": "Characteristic",
+        "description": "Anatomical joints assessed for calculation of tender joint counts (TJC68)"
+      },
+      {
+        "id": "char_3",
+        "name": "Swollen Joint Count",
+        "code": "SWOLLEN_JOINT_COUNT",
+        "codeSystem": "http://www.cdisc.org/baseline-characteristics",
+        "codeSystemVersion": "2024-03-29",
+        "decode": "Swollen Joint Count",
+        "dataType": "Numeric",
+        "instanceType": "Characteristic",
+        "description": "Anatomical joints assessed for calculation of swollen joint counts (SJC66)"
+      },
+      {
+        "id": "char_4",
+        "name": "DAS28 (CRP)",
+        "code": "DAS28_(CRP)",
+        "codeSystem": "http://www.cdisc.org/baseline-characteristics",
+        "codeSystemVersion": "2024-03-29",
+        "decode": "DAS28 (CRP)",
+        "dataType": "Numeric",
+        "instanceType": "Characteristic",
+        "description": "Disease Activity Score 28 using C-reactive protein"
+      }
+    ],
+    "summary": {
+      "populationCount": 3,
+      "characteristicCount": 4
+    }
+  }
+}

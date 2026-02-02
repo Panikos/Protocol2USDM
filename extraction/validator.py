@@ -34,6 +34,7 @@ from core.llm_client import get_llm_client, LLMConfig
 from core.json_utils import parse_llm_json
 from core.usdm_types import HeaderStructure, ActivityTimepoint
 from core.provenance import ProvenanceTracker, ProvenanceSource
+from llm_providers import usage_tracker
 
 logger = logging.getLogger(__name__)
 
@@ -293,41 +294,116 @@ def validate_extraction(
 
 
 def _validate_with_gemini(prompt: str, image_paths: List[str], model_name: str) -> dict:
-    """Run validation with Gemini."""
-    import google.generativeai as genai
+    """Run validation with Gemini via llm_providers for consistent retry/config handling."""
     from PIL import Image
     import io
     import os
+    import time
     
-    api_key = os.environ.get("GOOGLE_API_KEY")
-    if not api_key:
-        raise ValueError("GOOGLE_API_KEY not set")
+    # Check if this is a Gemini 3 model that requires google-genai SDK
+    is_gemini3 = any(g3 in model_name.lower() for g3 in ['gemini-3', 'gemini-3-flash', 'gemini-3-pro'])
     
-    genai.configure(api_key=api_key)
-    model = genai.GenerativeModel(model_name)
-    
-    content_parts = [prompt]
-    
+    # Load images as base64
+    image_parts = []
     for img_path in image_paths:
         img = Image.open(img_path)
         img_bytes = io.BytesIO()
         img.save(img_bytes, format='PNG')
-        content_parts.append({
-            'inline_data': {
-                'mime_type': 'image/png',
-                'data': base64.b64encode(img_bytes.getvalue()).decode('utf-8')
-            }
+        image_parts.append({
+            'mime_type': 'image/png',
+            'data': base64.b64encode(img_bytes.getvalue()).decode('utf-8')
         })
     
-    response = model.generate_content(
-        content_parts,
-        generation_config=genai.types.GenerationConfig(
-            temperature=0.1,
-            response_mime_type="application/json"
-        )
-    )
+    # Retry configuration for rate limits
+    max_retries = 3
+    initial_backoff = 5
     
-    return {'response': response.text or ""}
+    for attempt in range(max_retries + 1):
+        try:
+            if is_gemini3:
+                # Use google-genai SDK for Gemini 3 with thinking disabled
+                try:
+                    from google import genai as genai_new
+                    from google.genai import types as genai_types
+                    
+                    project = os.environ.get("GOOGLE_CLOUD_PROJECT")
+                    client = genai_new.Client(
+                        vertexai=True,
+                        project=project,
+                        location='global',
+                    )
+                    
+                    # Build content parts for vision
+                    content_parts = [prompt]
+                    for img_part in image_parts:
+                        content_parts.append(genai_types.Part.from_bytes(
+                            data=base64.b64decode(img_part['data']),
+                            mime_type=img_part['mime_type']
+                        ))
+                    
+                    # Config with thinking disabled
+                    config = genai_types.GenerateContentConfig(
+                        temperature=0.1,
+                        response_mime_type="application/json",
+                        thinking_config=genai_types.ThinkingConfig(thinking_budget=0),
+                    )
+                    
+                    response = client.models.generate_content(
+                        model=model_name if 'preview' in model_name else f"{model_name}-preview",
+                        contents=content_parts,
+                        config=config,
+                    )
+                    # Track token usage
+                    if hasattr(response, 'usage_metadata') and response.usage_metadata:
+                        input_tokens = getattr(response.usage_metadata, 'prompt_token_count', 0) or 0
+                        output_tokens = getattr(response.usage_metadata, 'candidates_token_count', 0) or 0
+                        usage_tracker.add_usage(input_tokens, output_tokens)
+                    return {'response': response.text or ""}
+                    
+                except ImportError:
+                    logger.warning("google-genai SDK not available, falling back to AI Studio")
+                    is_gemini3 = False  # Fall through to AI Studio path
+            
+            # Standard AI Studio path for non-Gemini-3 models
+            import google.generativeai as genai
+            
+            api_key = os.environ.get("GOOGLE_API_KEY")
+            if not api_key:
+                raise ValueError("GOOGLE_API_KEY not set")
+            
+            genai.configure(api_key=api_key)
+            model = genai.GenerativeModel(model_name)
+            
+            content_parts = [prompt]
+            for img_part in image_parts:
+                content_parts.append({
+                    'inline_data': img_part
+                })
+            
+            response = model.generate_content(
+                content_parts,
+                generation_config=genai.types.GenerationConfig(
+                    temperature=0.1,
+                    response_mime_type="application/json"
+                )
+            )
+            # Track token usage
+            if hasattr(response, 'usage_metadata') and response.usage_metadata:
+                input_tokens = getattr(response.usage_metadata, 'prompt_token_count', 0) or 0
+                output_tokens = getattr(response.usage_metadata, 'candidates_token_count', 0) or 0
+                usage_tracker.add_usage(input_tokens, output_tokens)
+            return {'response': response.text or ""}
+            
+        except Exception as e:
+            error_str = str(e).lower()
+            is_rate_limit = '429' in error_str or 'rate' in error_str or 'exhausted' in error_str or 'quota' in error_str
+            
+            if is_rate_limit and attempt < max_retries:
+                wait_time = min(initial_backoff * (2 ** attempt), 60)
+                logger.warning(f"Rate limit in validation, retrying in {wait_time}s (attempt {attempt + 1}/{max_retries + 1})")
+                time.sleep(wait_time)
+            else:
+                raise
 
 
 def _validate_with_openai(prompt: str, image_paths: List[str], model_name: str) -> dict:

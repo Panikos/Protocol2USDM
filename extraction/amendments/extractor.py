@@ -147,6 +147,7 @@ def extract_amendment_details(
             prompt=full_prompt,
             model_name=model,
             json_mode=True,
+            extractor_name="amendments",
             temperature=0.1,
         )
         response = result.get('response', '')
@@ -158,6 +159,14 @@ def extract_amendment_details(
             json_str = response
         
         raw_data = json.loads(json_str)
+        
+        # Handle case where LLM returns a list instead of a dict
+        if isinstance(raw_data, list):
+            if len(raw_data) == 1 and isinstance(raw_data[0], dict):
+                raw_data = raw_data[0]
+            else:
+                # Wrap list as changes if it looks like change data
+                raw_data = {'changes': raw_data}
         
         # Parse impacts
         impacts = []

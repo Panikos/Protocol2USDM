@@ -1,0 +1,930 @@
+{
+  "usdmVersion": "4.0",
+  "systemName": "Protocol2USDM",
+  "systemVersion": "0.1.0",
+  "study": {
+    "id": "8f66ebcf-c022-4210-a9d4-aacf058319ee",
+    "name": "",
+    "instanceType": "Study",
+    "versions": [
+      {
+        "id": "7351532d-f5b0-4431-b19d-de6d33fbc436",
+        "versionIdentifier": "1.0",
+        "rationale": "Initial protocol version",
+        "instanceType": "StudyVersion",
+        "studyDesigns": [
+          {
+            "id": "sd_1",
+            "name": "Study Design",
+            "rationale": "Protocol-defined study design",
+            "instanceType": "InterventionalStudyDesign",
+            "blindingSchema": {
+              "id": "b6c11d8c-781c-4e40-b5d3-58eb317d8e00",
+              "instanceType": "AliasCode",
+              "standardCode": {
+                "id": "74ba47c3-14bb-4876-8bfa-396a7eaffc38",
+                "code": "C49656",
+                "codeSystem": "http://www.cdisc.org",
+                "codeSystemVersion": "2024-09-27",
+                "decode": "Open Label",
+                "instanceType": "Code"
+              }
+            },
+            "model": {
+              "id": "4ac733b5-098e-401b-945b-f5c7113c29c5",
+              "code": "C82638",
+              "codeSystem": "http://www.cdisc.org",
+              "codeSystemVersion": "2024-09-27",
+              "decode": "Single Group Study",
+              "instanceType": "Code"
+            },
+            "epochs": [
+              {
+                "id": "epoch_1",
+                "name": "Screening",
+                "instanceType": "StudyEpoch",
+                "type": {
+                  "id": "fbc04732-7631-472a-8518-8ba20895a24a",
+                  "code": "C98779",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Screening Epoch",
+                  "instanceType": "Code"
+                }
+              },
+              {
+                "id": "epoch_2",
+                "name": "Treatment and Follow-up Period",
+                "instanceType": "StudyEpoch",
+                "type": {
+                  "id": "e9f5c348-8f80-40b3-a648-4fa72b052df7",
+                  "code": "C98780",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Treatment Epoch",
+                  "instanceType": "Code"
+                }
+              },
+              {
+                "id": "epoch_3",
+                "name": "Early Discontinuation Visit",
+                "instanceType": "StudyEpoch",
+                "type": {
+                  "id": "2cf6be79-5963-49a6-8623-54b37211f408",
+                  "code": "C98780",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Treatment Epoch",
+                  "instanceType": "Code"
+                }
+              }
+            ],
+            "activities": [
+              {
+                "id": "grp_1",
+                "name": "Administrative and Eligibility",
+                "instanceType": "Activity",
+                "childIds": [
+                  "act_1",
+                  "act_2",
+                  "act_3",
+                  "act_4",
+                  "act_5",
+                  "act_6",
+                  "act_7",
+                  "act_8",
+                  "act_20",
+                  "act_21"
+                ]
+              },
+              {
+                "id": "grp_2",
+                "name": "Safety Assessments",
+                "instanceType": "Activity",
+                "childIds": [
+                  "act_9",
+                  "act_10",
+                  "act_11",
+                  "act_12",
+                  "act_13",
+                  "act_14",
+                  "act_15",
+                  "act_16",
+                  "act_17",
+                  "act_18",
+                  "act_19",
+                  "act_22",
+                  "act_33",
+                  "act_34"
+                ]
+              },
+              {
+                "id": "grp_3",
+                "name": "Efficacy and Health Status",
+                "instanceType": "Activity",
+                "childIds": [
+                  "act_23",
+                  "act_24",
+                  "act_25",
+                  "act_26",
+                  "act_27"
+                ]
+              },
+              {
+                "id": "grp_4",
+                "name": "Pharmacokinetics and Immunogenicity",
+                "instanceType": "Activity",
+                "childIds": [
+                  "act_28",
+                  "act_29",
+                  "act_30"
+                ]
+              },
+              {
+                "id": "grp_5",
+                "name": "Investigational Medicinal Product",
+                "instanceType": "Activity",
+                "childIds": [
+                  "act_31",
+                  "act_32"
+                ]
+              },
+              {
+                "id": "act_1",
+                "name": "Informed consent",
+                "instanceType": "Activity",
+                "description": "Obtain written informed consent from participant"
+              },
+              {
+                "id": "act_2",
+                "name": "Assignment SID number",
+                "instanceType": "Activity",
+                "description": "Assignment of Subject Identification number"
+              },
+              {
+                "id": "act_3",
+                "name": "Documentation of SARS-CoV-2 infection",
+                "instanceType": "Activity",
+                "description": "Documentation of SARS-CoV-2 infection"
+              },
+              {
+                "id": "act_4",
+                "name": "Respiratory sample for rapid SARS-CoV-2",
+                "instanceType": "Activity",
+                "description": "Respiratory sample for rapid SARS-CoV-2"
+              },
+              {
+                "id": "act_5",
+                "name": "COVID-19 Symptom screen",
+                "instanceType": "Activity",
+                "description": "COVID-19 Symptom screen"
+              },
+              {
+                "id": "act_6",
+                "name": "Medical/medication history",
+                "instanceType": "Activity",
+                "description": "Medical/medication history"
+              },
+              {
+                "id": "act_7",
+                "name": "Risk categorization",
+                "instanceType": "Activity",
+                "description": "Risk categorization"
+              },
+              {
+                "id": "act_8",
+                "name": "Smoking status",
+                "instanceType": "Activity",
+                "description": "Smoking status"
+              },
+              {
+                "id": "act_9",
+                "name": "Clinical assessments",
+                "instanceType": "Activity",
+                "description": "Clinical assessments"
+              },
+              {
+                "id": "act_10",
+                "name": "Complete physical examination",
+                "instanceType": "Activity",
+                "description": "Complete physical examination"
+              },
+              {
+                "id": "act_11",
+                "name": "Targeted physical examination",
+                "instanceType": "Activity",
+                "description": "Targeted physical examination"
+              },
+              {
+                "id": "act_12",
+                "name": "Vital signs",
+                "instanceType": "Activity",
+                "description": "Vital signs"
+              },
+              {
+                "id": "act_13",
+                "name": "Triplicate 12-lead ECG",
+                "instanceType": "Activity",
+                "description": "Triplicate 12-lead ECG"
+              },
+              {
+                "id": "act_14",
+                "name": "Hematology",
+                "instanceType": "Activity",
+                "description": "Hematology panel including coagulation markers"
+              },
+              {
+                "id": "act_15",
+                "name": "Serum chemistry panel",
+                "instanceType": "Activity",
+                "description": "Serum chemistry panel"
+              },
+              {
+                "id": "act_16",
+                "name": "Urinalysis",
+                "instanceType": "Activity",
+                "description": "Urinalysis"
+              },
+              {
+                "id": "act_17",
+                "name": "Pregnancy testing",
+                "instanceType": "Activity",
+                "description": "Pregnancy testing"
+              },
+              {
+                "id": "act_18",
+                "name": "Concomitant medications",
+                "instanceType": "Activity",
+                "description": "Concomitant medications"
+              },
+              {
+                "id": "act_19",
+                "name": "Collect/update secondary contacts",
+                "instanceType": "Activity",
+                "description": "Collect/update secondary contacts"
+              },
+              {
+                "id": "act_20",
+                "name": "Verify eligibility criteria",
+                "instanceType": "Activity",
+                "description": "Verify eligibility criteria"
+              },
+              {
+                "id": "act_21",
+                "name": "Randomization",
+                "instanceType": "Activity",
+                "description": "Randomization"
+              },
+              {
+                "id": "act_22",
+                "name": "Survival status check",
+                "instanceType": "Activity",
+                "description": "Survival status check"
+              },
+              {
+                "id": "act_23",
+                "name": "Staff review of participant-reported symptom diary",
+                "instanceType": "Activity",
+                "description": "Staff review of participant-reported symptom diary"
+              },
+              {
+                "id": "act_24",
+                "name": "Retrieval of participant-reported symptom diary",
+                "instanceType": "Activity",
+                "description": "Retrieval of participant-reported symptom diary"
+              },
+              {
+                "id": "act_25",
+                "name": "Return to usual (pre-COVID-19) health",
+                "instanceType": "Activity",
+                "description": "Return to usual (pre-COVID-19) health"
+              },
+              {
+                "id": "act_26",
+                "name": "Household infection report",
+                "instanceType": "Activity",
+                "description": "Household infection report"
+              },
+              {
+                "id": "act_27",
+                "name": "Study staff-collected mid-turbinate nasal swab for SARS-CoV-2 RT-PCR and sequencing",
+                "instanceType": "Activity",
+                "description": "Study staff-collected mid-turbinate nasal swab for SARS-CoV-2 RT-PCR and sequencing"
+              },
+              {
+                "id": "act_28",
+                "name": "Serum for SARS-CoV-2 serology",
+                "instanceType": "Activity",
+                "description": "Serum for SARS-CoV-2 serology"
+              },
+              {
+                "id": "act_29",
+                "name": "Serum for AZD7442 pharmacokinetics",
+                "instanceType": "Activity",
+                "description": "Serum for AZD7442 pharmacokinetics"
+              },
+              {
+                "id": "act_30",
+                "name": "Serum for AZD7442 anti-drug antibodies",
+                "instanceType": "Activity",
+                "description": "Serum for AZD7442 anti-drug antibodies"
+              },
+              {
+                "id": "act_31",
+                "name": "IMP administration",
+                "instanceType": "Activity",
+                "description": "IMP administration"
+              },
+              {
+                "id": "act_32",
+                "name": "Check injection sites",
+                "instanceType": "Activity",
+                "description": "Check injection sites"
+              },
+              {
+                "id": "act_33",
+                "name": "Adverse events",
+                "instanceType": "Activity",
+                "description": "Adverse events"
+              },
+              {
+                "id": "act_34",
+                "name": "SAEs and AESIs",
+                "instanceType": "Activity",
+                "description": "SAEs and AESIs"
+              }
+            ],
+            "encounters": [
+              {
+                "id": "enc_1",
+                "name": "Screening (Day -1 or Day 1)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "e9557242-8843-43b5-9298-42467ec9497d",
+                  "code": "C48262",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Screening",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_1"
+              },
+              {
+                "id": "enc_2",
+                "name": "Day 1",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "71d9d076-5e83-495f-b82f-4563e2733b48",
+                  "code": "C82517",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Baseline",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_2"
+              },
+              {
+                "id": "enc_3",
+                "name": "Day 3",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "8ebe6918-66f4-452d-aa51-a9949fdb2941",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_2"
+              },
+              {
+                "id": "enc_4",
+                "name": "Day 6",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "4dcf2235-f5c8-4ec9-9137-605081a7b190",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_2"
+              },
+              {
+                "id": "enc_5",
+                "name": "Day 8",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "1bc246f6-340b-4e8b-8550-ee1833371e74",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_2"
+              },
+              {
+                "id": "enc_6",
+                "name": "Day 15",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "151c8752-741f-4c25-82c5-0fdf5a70d372",
+                  "code": "C82517",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Baseline",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_2"
+              },
+              {
+                "id": "enc_7",
+                "name": "Day 29",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "94d5e106-0d95-4473-ae66-6a97dec9f5e8",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_2"
+              },
+              {
+                "id": "enc_8",
+                "name": "Day 85",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "3612fb99-f61f-490b-af8b-c77a010b5f89",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_2"
+              },
+              {
+                "id": "enc_9",
+                "name": "Day 169",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "958bd003-bf61-4aa9-bce3-6613a2cfe83a",
+                  "code": "C82517",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Baseline",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_2"
+              },
+              {
+                "id": "enc_10",
+                "name": "Day 366",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "9726067d-ebea-492f-bb0b-53f25dd9b95e",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_2"
+              },
+              {
+                "id": "enc_11",
+                "name": "Day 457",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "1eebe846-686f-4bc4-aea7-6343683b6ec3",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_2"
+              },
+              {
+                "id": "enc_12",
+                "name": "Early Discontinuation (Before Day 29)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "b8273139-54a4-4e82-ab10-41fd5ca52ed5",
+                  "code": "C49631",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Early Termination",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_3"
+              },
+              {
+                "id": "enc_13",
+                "name": "Early Discontinuation (After Day 29)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "0e4d3502-c5eb-45ad-b8f3-c289a8302265",
+                  "code": "C49631",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Early Termination",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_3"
+              }
+            ],
+            "scheduleTimelines": [
+              {
+                "id": "timeline_1",
+                "name": "Main Schedule Timeline",
+                "mainTimeline": true,
+                "instanceType": "ScheduleTimeline",
+                "entryCondition": "Subject enrolled in study",
+                "entryId": "b0104dd0-1cf1-4374-8a27-0b5a5e522fda",
+                "instances": [
+                  {
+                    "id": "b0104dd0-1cf1-4374-8a27-0b5a5e522fda",
+                    "activityIds": [
+                      "act_1"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_1@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "bd45fc34-c1fe-4fb9-bcb2-3e0c0996485c",
+                    "activityIds": [
+                      "act_2"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_2@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "6ba1d2ec-8a29-441c-acac-ddb90f16d9e9",
+                    "activityIds": [
+                      "act_3"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_3@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "b50add4f-9f8c-4eb8-94cc-bf2ccbb2250f",
+                    "activityIds": [
+                      "act_4"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_4@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "89451b2d-00a5-4ed6-9f0e-4cb9d31da3d0",
+                    "activityIds": [
+                      "act_5"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_5@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "5d7ab435-99fe-4ba0-b50e-99d749cab428",
+                    "activityIds": [
+                      "act_6"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_6@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "0eca4fde-2067-485e-baae-7c744d6fb4ae",
+                    "activityIds": [
+                      "act_7"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_7@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "923f2b42-c61c-4300-ad12-27e654338f73",
+                    "activityIds": [
+                      "act_8"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_8@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "335f869b-d128-407a-bc84-44f9868118b9",
+                    "activityIds": [
+                      "act_9"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_9@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "438099a7-8d97-472a-a593-cf5f4d4a9527",
+                    "activityIds": [
+                      "act_9"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_9@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "5daf64b2-220e-4366-b479-684bd0428e0d",
+                    "activityIds": [
+                      "act_9"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_9@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "2a9e132c-09d4-4867-8306-c328cec23a0b",
+                    "activityIds": [
+                      "act_9"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_9@enc_4",
+                    "encounterId": "enc_4"
+                  },
+                  {
+                    "id": "e2703291-67e0-46c8-8aac-934db3562259",
+                    "activityIds": [
+                      "act_9"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_9@enc_6",
+                    "encounterId": "enc_6"
+                  },
+                  {
+                    "id": "b1b91257-6ef0-4a87-917b-1b7e43fb75bc",
+                    "activityIds": [
+                      "act_9"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_9@enc_7",
+                    "encounterId": "enc_7"
+                  },
+                  {
+                    "id": "9dd2b78a-72cc-4cb3-97e3-e0da79750368",
+                    "activityIds": [
+                      "act_9"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_9@enc_8",
+                    "encounterId": "enc_8"
+                  },
+                  {
+                    "id": "be75ba49-1b67-4bc8-a3e4-892bc024ca10",
+                    "activityIds": [
+                      "act_9"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_9@enc_9",
+                    "encounterId": "enc_9"
+                  },
+                  {
+                    "id": "85a801b2-c4f2-4638-a9d3-120fc0b46ae2",
+                    "activityIds": [
+                      "act_9"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_9@enc_10",
+                    "encounterId": "enc_10"
+                  },
+                  {
+                    "id": "3991f481-ff0d-422e-ac13-35fa2c2b83b3",
+                    "activityIds": [
+                      "act_10"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_10@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "7b8e46e7-fe31-43e4-b106-c066c1f37575",
+                    "activityIds": [
+                      "act_10"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_10@enc_10",
+                    "encounterId": "enc_10"
+                  },
+                  {
+                    "id": "6ff5eeda-7751-4e14-b66d-c3c724fb6de6",
+                    "activityIds": [
+                      "act_11"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_11@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "81a8db4a-bdcf-449a-bdbd-3ad9c97b7638",
+                    "activityIds": [
+                      "act_11"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_11@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "779ac968-fab1-4b97-8621-cba0679b76b3",
+                    "activityIds": [
+                      "act_12"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_12@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "34745a24-667d-4398-9eb1-ca9c24554d10",
+                    "activityIds": [
+                      "act_14"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_14@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "b3d11257-0e6a-4ef2-868a-da949560d1f6",
+                    "activityIds": [
+                      "act_17"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_17@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "dd4a246b-9d48-4d85-a15d-298357c47227",
+                    "activityIds": [
+                      "act_17"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_17@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "252270ab-fdc8-4a84-a3f6-2d003204ec60",
+                    "activityIds": [
+                      "act_21"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_21@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "f0f85a01-1d85-413c-a031-f3101e6baf4e",
+                    "activityIds": [
+                      "act_27"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_27@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "91f7a336-ff15-4d4e-a4d2-9290d1040788",
+                    "activityIds": [
+                      "act_28"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_28@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "2572a15a-f423-4b96-a340-0acd279d6ef6",
+                    "activityIds": [
+                      "act_29"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_29@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "4b8afa25-d449-4a10-9bab-f1bfadd7cf71",
+                    "activityIds": [
+                      "act_31"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_31@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "6ef10a51-873b-4e8c-ba31-f7e4d449827c",
+                    "activityIds": [
+                      "act_32"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_32@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "b060608a-8bea-4c16-8c54-9ee229f4bbd7",
+                    "activityIds": [
+                      "act_33"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_33@enc_11",
+                    "encounterId": "enc_11"
+                  }
+                ]
+              }
+            ],
+            "activityGroups": [
+              {
+                "id": "grp_1",
+                "name": "Administrative and Eligibility",
+                "description": null,
+                "childIds": [],
+                "instanceType": "Activity",
+                "activityNames": [
+                  "Informed consent",
+                  "Assignment SID number",
+                  "Documentation of SARS-CoV-2 infection",
+                  "Respiratory sample for rapid SARS-CoV-2",
+                  "COVID-19 Symptom screen",
+                  "Medical/medication history",
+                  "Risk categorization",
+                  "Smoking status",
+                  "Verify eligibility criteria",
+                  "Randomization"
+                ]
+              },
+              {
+                "id": "grp_2",
+                "name": "Safety Assessments",
+                "description": null,
+                "childIds": [],
+                "instanceType": "Activity",
+                "activityNames": [
+                  "Clinical assessments",
+                  "Complete physical examination",
+                  "Targeted physical examination",
+                  "Vital signs",
+                  "Triplicate 12-lead ECG",
+                  "Hematology",
+                  "Serum chemistry panel",
+                  "Urinalysis",
+                  "Pregnancy testing",
+                  "Concomitant medications",
+                  "Collect/update secondary contacts",
+                  "Survival status check",
+                  "Adverse events",
+                  "SAEs and AESIs",
+                  "Telephone contact for safety monitoring"
+                ]
+              },
+              {
+                "id": "grp_3",
+                "name": "Efficacy and Health Status",
+                "description": null,
+                "childIds": [],
+                "instanceType": "Activity",
+                "activityNames": [
+                  "Participant-reported symptom diary",
+                  "Participant-reported symptom reminder",
+                  "Staff review of participant-reported symptom diary",
+                  "Retrieval of participant-reported symptom diary",
+                  "Return to usual (pre-COVID-19) health",
+                  "Household infection report",
+                  "Study staff-collected mid-turbinate nasal swab for SARS-CoV-2 RT-PCR and sequencing"
+                ]
+              },
+              {
+                "id": "grp_4",
+                "name": "Pharmacokinetics and Immunogenicity",
+                "description": null,
+                "childIds": [],
+                "instanceType": "Activity",
+                "activityNames": [
+                  "Serum for SARS-CoV-2 serology",
+                  "Serum for AZD7442 pharmacokinetics",
+                  "Serum for AZD7442 anti-drug antibodies"
+                ]
+              },
+              {
+                "id": "grp_5",
+                "name": "Investigational Medicinal Product",
+                "description": null,
+                "childIds": [],
+                "instanceType": "Activity",
+                "activityNames": [
+                  "IMP administration",
+                  "Check injection sites"
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

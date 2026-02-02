@@ -1,0 +1,308 @@
+{
+  "success": true,
+  "pagesUsed": [
+    0,
+    1,
+    3,
+    4,
+    5,
+    6,
+    12,
+    13,
+    14,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29
+  ],
+  "modelUsed": "gemini-3-flash-preview",
+  "studyDesignStructure": {
+    "studyArms": [
+      {
+        "id": "arm_1",
+        "name": "Atezolizumab + Paclitaxel",
+        "type": {
+          "code": "Experimental Arm",
+          "codeSystem": "USDM",
+          "decode": "Experimental Arm"
+        },
+        "instanceType": "StudyArm",
+        "description": "Atezolizumab 840 mg IV on Days 1 and 15 plus Paclitaxel 90 mg/m2 IV on Days 1, 8, and 15 of every 28-day cycle."
+      },
+      {
+        "id": "arm_2",
+        "name": "Placebo + Paclitaxel",
+        "type": {
+          "code": "Placebo Comparator Arm",
+          "codeSystem": "USDM",
+          "decode": "Placebo Comparator Arm"
+        },
+        "instanceType": "StudyArm",
+        "description": "Placebo IV on Days 1 and 15 plus Paclitaxel 90 mg/m2 IV on Days 1, 8, and 15 of every 28-day cycle."
+      }
+    ],
+    "studyCells": [
+      {
+        "id": "cell_1",
+        "armId": "arm_1",
+        "epochId": "epoch_1",
+        "elementIds": [
+          "elem_1"
+        ],
+        "instanceType": "StudyCell"
+      },
+      {
+        "id": "cell_2",
+        "armId": "arm_1",
+        "epochId": "epoch_2",
+        "elementIds": [
+          "elem_2"
+        ],
+        "instanceType": "StudyCell"
+      },
+      {
+        "id": "cell_3",
+        "armId": "arm_1",
+        "epochId": "epoch_3",
+        "elementIds": [
+          "elem_3"
+        ],
+        "instanceType": "StudyCell"
+      },
+      {
+        "id": "cell_4",
+        "armId": "arm_2",
+        "epochId": "epoch_1",
+        "elementIds": [
+          "elem_4"
+        ],
+        "instanceType": "StudyCell"
+      },
+      {
+        "id": "cell_5",
+        "armId": "arm_2",
+        "epochId": "epoch_2",
+        "elementIds": [
+          "elem_5"
+        ],
+        "instanceType": "StudyCell"
+      },
+      {
+        "id": "cell_6",
+        "armId": "arm_2",
+        "epochId": "epoch_3",
+        "elementIds": [
+          "elem_6"
+        ],
+        "instanceType": "StudyCell"
+      }
+    ],
+    "studyCohorts": [
+      {
+        "id": "cohort_1",
+        "name": "Global Study",
+        "instanceType": "StudyCohort",
+        "characteristic": "Approximately 600 patients randomized globally"
+      },
+      {
+        "id": "cohort_2",
+        "name": "China Population",
+        "instanceType": "StudyCohort",
+        "characteristic": "Total of approximately 130 patients enrolled in mainland China (including those from Global study)"
+      },
+      {
+        "id": "cohort_3",
+        "name": "PD-L1-positive subpopulation",
+        "instanceType": "StudyCohort",
+        "characteristic": "Patients whose PD-L1 status is IC1/2/3 at the time of randomization"
+      }
+    ],
+    "studyElements": [
+      {
+        "id": "elem_1",
+        "name": "Atezolizumab + Paclitaxel - Screening",
+        "instanceType": "StudyElement",
+        "description": "Treatment period for Atezolizumab + Paclitaxel during Screening"
+      },
+      {
+        "id": "elem_2",
+        "name": "Atezolizumab + Paclitaxel - Treatment Period",
+        "instanceType": "StudyElement",
+        "description": "Treatment period for Atezolizumab + Paclitaxel during Treatment Period"
+      },
+      {
+        "id": "elem_3",
+        "name": "Atezolizumab + Paclitaxel - Survival Follow-up",
+        "instanceType": "StudyElement",
+        "description": "Treatment period for Atezolizumab + Paclitaxel during Survival Follow-up"
+      },
+      {
+        "id": "elem_4",
+        "name": "Placebo + Paclitaxel - Screening",
+        "instanceType": "StudyElement",
+        "description": "Treatment period for Placebo + Paclitaxel during Screening"
+      },
+      {
+        "id": "elem_5",
+        "name": "Placebo + Paclitaxel - Treatment Period",
+        "instanceType": "StudyElement",
+        "description": "Treatment period for Placebo + Paclitaxel during Treatment Period"
+      },
+      {
+        "id": "elem_6",
+        "name": "Placebo + Paclitaxel - Survival Follow-up",
+        "instanceType": "StudyElement",
+        "description": "Treatment period for Placebo + Paclitaxel during Survival Follow-up"
+      }
+    ],
+    "summary": {
+      "armCount": 2,
+      "cellCount": 6,
+      "cohortCount": 3,
+      "elementCount": 6
+    },
+    "studyDesign": {
+      "id": "sd_1",
+      "name": "Study Design",
+      "instanceType": "InterventionalStudyDesign",
+      "trialIntentTypes": [
+        {
+          "code": "Treatment",
+          "codeSystem": "USDM",
+          "decode": "Treatment"
+        }
+      ],
+      "trialType": {
+        "code": "Interventional",
+        "codeSystem": "USDM",
+        "decode": "Interventional"
+      },
+      "blindingSchema": {
+        "code": "Double Blind",
+        "codeSystem": "USDM",
+        "decode": "Double Blind"
+      },
+      "maskedRoles": [
+        "Subject",
+        "Investigator",
+        "Sponsor"
+      ],
+      "randomizationType": {
+        "code": "Randomized",
+        "codeSystem": "USDM",
+        "decode": "Randomized"
+      },
+      "allocationRatio": {
+        "ratio": "2:1"
+      },
+      "stratificationFactors": [
+        "Tumour PD-L1 status (IC0 vs. IC1/2/3)",
+        "Prior taxane treatment (yes vs. no)",
+        "Presence of liver metastases (yes vs. no)",
+        "Region"
+      ],
+      "controlType": {
+        "code": "Placebo Control",
+        "codeSystem": "USDM",
+        "decode": "Placebo Control"
+      },
+      "armIds": [
+        "arm_1",
+        "arm_2"
+      ],
+      "cohortIds": [
+        "cohort_1",
+        "cohort_2",
+        "cohort_3"
+      ],
+      "therapeuticAreas": [
+        "Oncology",
+        "Breast Cancer"
+      ]
+    }
+  },
+  "rawResponse": {
+    "studyDesign": {
+      "type": "Interventional",
+      "trialIntentTypes": [
+        "Treatment"
+      ],
+      "blinding": {
+        "schema": "Double Blind",
+        "maskedRoles": [
+          "Subject",
+          "Investigator",
+          "Sponsor"
+        ]
+      },
+      "randomization": {
+        "type": "Randomized",
+        "allocationRatio": "2:1",
+        "stratificationFactors": [
+          "Tumour PD-L1 status (IC0 vs. IC1/2/3)",
+          "Prior taxane treatment (yes vs. no)",
+          "Presence of liver metastases (yes vs. no)",
+          "Region"
+        ]
+      },
+      "controlType": "Placebo",
+      "therapeuticAreas": [
+        "Oncology",
+        "Breast Cancer"
+      ]
+    },
+    "arms": [
+      {
+        "name": "Atezolizumab + Paclitaxel",
+        "type": "Experimental Arm",
+        "description": "Atezolizumab 840 mg IV on Days 1 and 15 plus Paclitaxel 90 mg/m2 IV on Days 1, 8, and 15 of every 28-day cycle.",
+        "isTitration": false,
+        "doseEpochs": null
+      },
+      {
+        "name": "Placebo + Paclitaxel",
+        "type": "Placebo Comparator",
+        "description": "Placebo IV on Days 1 and 15 plus Paclitaxel 90 mg/m2 IV on Days 1, 8, and 15 of every 28-day cycle.",
+        "isTitration": false,
+        "doseEpochs": null
+      }
+    ],
+    "cohorts": [
+      {
+        "name": "Global Study",
+        "characteristic": "Approximately 600 patients randomized globally"
+      },
+      {
+        "name": "China Population",
+        "characteristic": "Total of approximately 130 patients enrolled in mainland China (including those from Global study)"
+      },
+      {
+        "name": "PD-L1-positive subpopulation",
+        "characteristic": "Patients whose PD-L1 status is IC1/2/3 at the time of randomization"
+      }
+    ],
+    "epochs": [
+      {
+        "name": "Screening",
+        "description": "Up to 28 days prior to Cycle 1 Day 1"
+      },
+      {
+        "name": "Treatment Period",
+        "description": "28-day cycles until disease progression or unacceptable toxicity"
+      },
+      {
+        "name": "Survival Follow-up",
+        "description": "Followed for survival approximately every 3 months after treatment discontinuation"
+      }
+    ]
+  }
+}

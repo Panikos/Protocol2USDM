@@ -17,6 +17,7 @@ from core.usdm_types import generate_uuid, Code
 
 class TitleType(Enum):
     """USDM StudyTitle types."""
+    UNKNOWN = ""  # Not extracted from source
     BRIEF = "Brief Study Title"
     OFFICIAL = "Official Study Title"
     PUBLIC = "Public Study Title"
@@ -26,6 +27,7 @@ class TitleType(Enum):
 
 class OrganizationType(Enum):
     """USDM Organization types."""
+    UNKNOWN = ""  # Not extracted from source
     REGULATORY_AGENCY = "Regulatory Agency"
     PHARMACEUTICAL_COMPANY = "Pharmaceutical Company"
     CRO = "Contract Research Organization"
@@ -39,6 +41,7 @@ class OrganizationType(Enum):
 
 class StudyRoleCode(Enum):
     """USDM StudyRole codes."""
+    UNKNOWN = ""  # Not extracted from source
     SPONSOR = "Sponsor"
     CO_SPONSOR = "Co-Sponsor"
     LOCAL_SPONSOR = "Local Sponsor"
@@ -70,21 +73,58 @@ class StudyTitle:
         }
 
 
+class IdentifierType(Enum):
+    """Types of study identifiers."""
+    NCT = "NCT"  # ClinicalTrials.gov
+    SPONSOR_PROTOCOL = "SponsorProtocolNumber"
+    EUDRACT = "EudraCT"
+    IND = "IND"
+    IDE = "IDE"
+    ISRCTN = "ISRCTN"
+    CTIS = "CTIS"
+    WHO_UTN = "WHO_UTN"
+    OTHER = "Other"
+
+
 @dataclass
 class StudyIdentifier:
     """USDM StudyIdentifier entity."""
     id: str
     text: str  # The actual identifier value (e.g., "NCT04573309")
     scope_id: str  # Reference to Organization that issued it
+    identifier_type: Optional[IdentifierType] = None
+    issuing_organization: Optional[str] = None
     instance_type: str = "StudyIdentifier"
     
     def to_dict(self) -> Dict[str, Any]:
-        return {
+        result = {
             "id": self.id,
             "text": self.text,
             "scopeId": self.scope_id,
             "instanceType": self.instance_type,
         }
+        if self.identifier_type:
+            result["identifierType"] = {
+                "code": self.identifier_type.value,
+                "codeSystem": "USDM",
+                "decode": self._get_identifier_decode()
+            }
+        return result
+    
+    def _get_identifier_decode(self) -> str:
+        """Get human-readable decode for identifier type."""
+        decodes = {
+            IdentifierType.NCT: "ClinicalTrials.gov Identifier",
+            IdentifierType.SPONSOR_PROTOCOL: "Sponsor Protocol Number",
+            IdentifierType.EUDRACT: "EudraCT Number",
+            IdentifierType.IND: "FDA IND Number",
+            IdentifierType.IDE: "FDA IDE Number",
+            IdentifierType.ISRCTN: "ISRCTN Number",
+            IdentifierType.CTIS: "EU CTIS Number",
+            IdentifierType.WHO_UTN: "WHO Universal Trial Number",
+            IdentifierType.OTHER: "Other Identifier",
+        }
+        return decodes.get(self.identifier_type, "Study Identifier")
 
 
 @dataclass
@@ -99,15 +139,35 @@ class Organization:
     instance_type: str = "Organization"
     
     def to_dict(self) -> Dict[str, Any]:
+        # Map organization types to NCI codes
+        org_type_codes = {
+            OrganizationType.REGULATORY_AGENCY: ("C25461", "Regulatory Agency"),
+            OrganizationType.PHARMACEUTICAL_COMPANY: ("C54086", "Pharmaceutical Company"),
+            OrganizationType.CRO: ("C70816", "Contract Research Organization"),
+            OrganizationType.ACADEMIC: ("C25516", "Academic Institution"),
+            OrganizationType.HEALTHCARE: ("C19326", "Healthcare Facility"),
+            OrganizationType.GOVERNMENT: ("C25402", "Government Institute"),
+            OrganizationType.LABORATORY: ("C25489", "Laboratory"),
+            OrganizationType.REGISTRY: ("C71104", "Clinical Study Registry"),
+            OrganizationType.MEDICAL_DEVICE: ("C54087", "Medical Device Company"),
+        }
+        code, decode = org_type_codes.get(self.type, ("C17998", "Unknown"))
+        
         result = {
             "id": self.id,
             "name": self.name,
-            "type": {"code": self.type.value, "codeSystem": "USDM", "decode": self.type.value},
+            "type": {
+                "id": generate_uuid(),
+                "code": code,
+                "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+                "codeSystemVersion": "25.01d",
+                "decode": decode,
+                "instanceType": "Code",
+            },
+            "identifier": self.identifier or self.name,  # Required field
+            "identifierScheme": self.identifier_scheme or "DUNS",  # Required field
             "instanceType": self.instance_type,
         }
-        if self.identifier:
-            result["identifier"] = self.identifier
-            result["identifierScheme"] = self.identifier_scheme or "Unknown"
         if self.label:
             result["label"] = self.label
         return result

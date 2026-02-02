@@ -1,0 +1,158 @@
+'use client';
+
+import { useMemo, useCallback, useRef, useState } from 'react';
+import { TimelineCanvas, TimelineCanvasHandle } from './TimelineCanvas';
+import { TimelineToolbar, TimelineLegend } from './TimelineToolbar';
+import { toGraphModel, ExecutionModelData } from '@/lib/adapters/toGraphModel';
+import { useProtocolStore, selectStudyDesign } from '@/stores/protocolStore';
+import { useOverlayStore, selectDraftPayload } from '@/stores/overlayStore';
+import { Card, CardContent } from '@/components/ui/card';
+import { X, Maximize2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import { NodeDetailsPanel } from './NodeDetailsPanel';
+
+interface TimelineViewProps {
+  onNodeSelect?: (nodeId: string, data: Record<string, unknown>) => void;
+  executionModel?: ExecutionModelData | null;
+}
+
+export function TimelineView({ onNodeSelect, executionModel }: TimelineViewProps) {
+  const studyDesign = useProtocolStore(selectStudyDesign);
+  const overlayPayload = useOverlayStore(selectDraftPayload);
+  const canvasRef = useRef<TimelineCanvasHandle>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [selectedNode, setSelectedNode] = useState<{ id: string; data: Record<string, unknown> } | null>(null);
+
+  // Build graph model from USDM + overlay + execution model
+  const graphModel = useMemo(() => {
+    return toGraphModel(studyDesign, overlayPayload, executionModel);
+  }, [studyDesign, overlayPayload, executionModel]);
+
+  // Stats
+  const stats = useMemo(() => ({
+    nodeCount: graphModel.nodes.length,
+    edgeCount: graphModel.edges.length,
+  }), [graphModel]);
+
+  // Zoom handlers - call methods on canvas ref
+  const handleZoomIn = useCallback(() => {
+    canvasRef.current?.zoomIn();
+  }, []);
+
+  const handleZoomOut = useCallback(() => {
+    canvasRef.current?.zoomOut();
+  }, []);
+
+  const handleFit = useCallback(() => {
+    canvasRef.current?.fit();
+  }, []);
+
+  const handleResetLayout = useCallback(() => {
+    // Reset is handled by overlay store, then fit
+    canvasRef.current?.fit();
+  }, []);
+
+  const handleExportPNG = useCallback(() => {
+    canvasRef.current?.exportPNG();
+  }, []);
+
+  const toggleFullscreen = useCallback(() => {
+    setIsFullscreen(prev => !prev);
+  }, []);
+
+  const handleNodeSelect = useCallback((nodeId: string, data: Record<string, unknown>) => {
+    setSelectedNode({ id: nodeId, data });
+    onNodeSelect?.(nodeId, data);
+  }, [onNodeSelect]);
+
+  const handleCloseDetails = useCallback(() => {
+    setSelectedNode(null);
+  }, []);
+
+  if (!studyDesign) {
+    return (
+      <Card>
+        <CardContent className="py-12 text-center">
+          <p className="text-muted-foreground">No study design data available</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Fullscreen container
+  const containerClasses = isFullscreen
+    ? 'fixed inset-0 z-50 bg-white flex flex-col'
+    : 'space-y-4';
+
+  const canvasHeight = isFullscreen ? 'flex-1' : 'h-[600px]';
+
+  return (
+    <div className={containerClasses}>
+      {/* Fullscreen header */}
+      {isFullscreen && (
+        <div className="flex items-center justify-between px-4 py-3 border-b bg-gray-50">
+          <h2 className="text-lg font-semibold">Timeline Graph View</h2>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleFullscreen}
+            className="gap-1.5"
+          >
+            <X className="h-4 w-4" />
+            Exit Fullscreen
+          </Button>
+        </div>
+      )}
+
+      {/* Toolbar */}
+      <div className={cn(isFullscreen ? 'px-4 py-2 border-b' : '')}>
+        <TimelineToolbar
+          nodeCount={stats.nodeCount}
+          edgeCount={stats.edgeCount}
+          onZoomIn={handleZoomIn}
+          onZoomOut={handleZoomOut}
+          onFit={handleFit}
+          onResetLayout={handleResetLayout}
+          onExportPNG={handleExportPNG}
+          onToggleFullscreen={toggleFullscreen}
+          isFullscreen={isFullscreen}
+        />
+      </div>
+
+      {/* Canvas */}
+      <Card className={cn(isFullscreen ? 'flex-1 rounded-none border-0' : '', 'relative')}>
+        <CardContent className="p-0 h-full relative">
+          <div className={cn(canvasHeight, 'relative')}>
+            <TimelineCanvas
+              ref={canvasRef}
+              graphModel={graphModel}
+              onNodeSelect={handleNodeSelect}
+            />
+          </div>
+          
+          {/* Node Details Panel - positioned outside canvas */}
+          {selectedNode && (
+            <div className="absolute top-4 right-4 z-20">
+              <NodeDetailsPanel
+                nodeId={selectedNode.id}
+                nodeData={selectedNode.data as any}
+                onClose={handleCloseDetails}
+              />
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Legend */}
+      {!isFullscreen && <TimelineLegend className="pt-2" />}
+      {isFullscreen && (
+        <div className="px-4 py-2 border-t bg-gray-50">
+          <TimelineLegend />
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default TimelineView;

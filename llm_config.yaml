@@ -1,0 +1,319 @@
+# =============================================================================
+# LLM TASK CONFIGURATION
+# =============================================================================
+# Controls generation parameters for different extraction task types.
+# This config enables fine-tuned LLM behavior based on task category and provider.
+#
+# USAGE IN PYTHON:
+# ----------------
+#   from extraction.llm_task_config import get_llm_task_config, to_llm_config
+#   
+#   # Get task-optimized config (provider auto-detected from model name)
+#   task_config = get_llm_task_config("metadata", model="gemini-2.5-pro")
+#   llm_config = to_llm_config(task_config)
+#   
+#   # Use with LLM client
+#   client = get_llm_client(model_name)
+#   response = client.generate(messages, llm_config)
+#
+# OVERRIDE HIERARCHY (applied in order):
+# --------------------------------------
+#   1. Base task_types settings (this file)
+#   2. Provider-specific overrides (provider_overrides section)
+#   3. Model-specific overrides (model_overrides section)
+#   4. Environment variables (runtime overrides)
+#
+# ENVIRONMENT VARIABLES:
+# ----------------------
+#   LLM_TEMPERATURE  - Override default temperature (float, e.g., "0.1")
+#   LLM_TOP_P        - Override default top_p (float, e.g., "0.9")
+#   LLM_TOP_K        - Override default top_k (int, e.g., "40")
+#   LLM_MAX_TOKENS   - Override default max_tokens (int, e.g., "8192")
+#   LLM_CONFIG_PATH  - Path to alternative config file
+#
+# PARAMETER REFERENCE:
+# --------------------
+#   temperature (0.0-2.0):
+#     Controls randomness. Lower = more deterministic.
+#     0.0 = Always pick most likely token (best for extraction)
+#     0.3+ = More creative/varied output (for narrative)
+#
+#   top_p (0.0-1.0):
+#     Nucleus sampling. Considers tokens comprising top_p probability mass.
+#     0.95 = Consider tokens in top 95% probability (slight flexibility)
+#     0.8 = Tighter focus on most likely tokens
+#
+#   top_k (1-100 or null):
+#     Top-K sampling. Only consider top K most likely tokens.
+#     null = Disabled (use top_p only)
+#     40 = Only consider top 40 tokens (good for Gemini/Claude)
+#     NOTE: OpenAI does NOT support top_k
+#
+#   max_tokens:
+#     Maximum output length. Set based on expected response size.
+#     4096 = Short responses (entity resolution)
+#     8192 = Medium responses (most extraction)
+#     16384 = Long responses (narrative sections)
+#
+#   json_mode:
+#     Request JSON output format from the model.
+#     true = Enable JSON mode (required for structured extraction)
+#
+# =============================================================================
+
+# =============================================================================
+# TASK TYPE DEFINITIONS
+# =============================================================================
+# Each task type defines optimal LLM parameters for a category of extraction.
+# Extractors are mapped to task types via extractor_mapping below.
+
+task_types:
+  # Category 1: Deterministic Extraction
+  # For extracting factual information directly from source text
+  # Maximum determinism - same input should always produce same output
+  deterministic:
+    temperature: 0.0
+    top_p: 0.95
+    top_k: null
+    max_tokens: 65536  # Gemini supports up to 65536; SoA extraction needs large output
+    json_mode: true
+    description: "Factual extraction from structured content"
+
+  # Category 2: Semantic Mapping
+  # For mapping concepts to protocol entities, resolving ambiguity
+  # Slight flexibility for semantic matching
+  semantic:
+    temperature: 0.1
+    top_p: 0.9
+    top_k: 40
+    max_tokens: 8192
+    json_mode: true
+    description: "Semantic entity resolution and mapping"
+
+  # Category 3: Structured Generation
+  # For generating algorithms, state machines, derived logic
+  # More variation allowed in synthesis
+  structured_gen:
+    temperature: 0.2
+    top_p: 0.85
+    top_k: 40
+    max_tokens: 8192
+    json_mode: true
+    description: "Structured output generation and synthesis"
+
+  # Category 4: Narrative Extraction
+  # For extracting from prose/natural language sections
+  # Higher flexibility for natural language
+  narrative:
+    temperature: 0.3
+    top_p: 0.9
+    top_k: null
+    max_tokens: 16384
+    json_mode: true
+    description: "Narrative and freeform text extraction"
+
+# =============================================================================
+# EXTRACTOR TO TASK TYPE MAPPING
+# =============================================================================
+# Maps each extractor module to its appropriate task type.
+#
+# To add a new extractor:
+#   1. Add entry here: my_extractor: deterministic
+#   2. Use in code: get_llm_task_config("my_extractor", model=model_name)
+#
+# To change an extractor's task type:
+#   1. Find the extractor below
+#   2. Change its value to: deterministic, semantic, structured_gen, or narrative
+
+extractor_mapping:
+  # SoA Extraction (deterministic)
+  soa_finder: deterministic
+  header_analyzer: deterministic
+  text_extractor: deterministic
+
+  # Core Domain Extractors (deterministic)
+  metadata: deterministic
+  eligibility: deterministic
+  objectives: deterministic
+  studydesign: deterministic
+  interventions: deterministic
+  procedures: deterministic
+
+  # Execution Model - Phase 1 (deterministic)
+  dosing_regimen: deterministic
+  visit_window: deterministic
+  stratification: deterministic
+  time_anchor: deterministic
+  repetition: deterministic
+  sampling_density: deterministic
+
+  # Execution Model - Phase 2 (semantic)
+  entity_resolver: semantic
+  footnote_condition: semantic
+  crossover: semantic
+  traversal: semantic
+  binding: semantic
+
+  # Execution Model - Phase 3 (structured_gen)
+  state_machine: structured_gen
+  derived_variable: structured_gen
+  endpoint: structured_gen
+  execution_type: structured_gen
+
+  # Narrative/Document Extractors (narrative)
+  narrative: narrative
+  amendments: narrative
+  scheduling: narrative
+  document_structure: narrative
+  sap: narrative
+  advanced: narrative
+
+# =============================================================================
+# GLOBAL DEFAULTS
+# =============================================================================
+# Fallback values when extractor not found in mapping
+
+defaults:
+  task_type: deterministic
+  temperature: 0.0
+  top_p: 0.95
+  top_k: null
+  max_tokens: 65536  # Match deterministic task type
+  json_mode: true
+
+# =============================================================================
+# PROVIDER-SPECIFIC OVERRIDES
+# =============================================================================
+# Different LLM providers have different parameter support and optimal ranges.
+# These overrides are applied on top of base task_types settings.
+#
+# Provider is auto-detected from model name:
+#   - "gemini-*" → gemini
+#   - "gpt-*", "o1*", "o3*" → openai
+#   - "claude-*" → claude
+#
+# Override format:
+#   provider_name:
+#     task_type:
+#       parameter: value
+#
+# Example - make OpenAI use stricter top_p for semantic tasks:
+#   openai:
+#     semantic:
+#       top_p: 0.8
+
+provider_overrides:
+  # OpenAI doesn't support top_k, so we compensate with stricter top_p
+  # OPTIMIZED: Based on GPT 5.2 parameter optimization tests (Jan 2026)
+  openai:
+    deterministic:
+      temperature: 0.3   # OPTIMIZED: higher temp improved score (0.87)
+      top_p: 0.9
+      top_k: null        # Not supported by OpenAI
+    semantic:
+      temperature: 0.3   # OPTIMIZED: higher temp better (score 0.77)
+      top_p: 0.85
+      top_k: null
+    structured_gen:
+      temperature: 0.1   # OPTIMIZED: lower temp optimal (score 0.95)
+      top_p: 0.8
+      top_k: null
+    narrative:
+      top_p: 0.95        # OPTIMIZED: slightly higher top_p (score 0.73)
+      top_k: null
+
+  # Gemini supports both top_p and top_k for fine-grained control
+  # OPTIMIZED: Based on parameter optimization tests (Jan 2026)
+  # Gemini 3 Flash showed high stability across all param variations
+  gemini:
+    deterministic:
+      top_k: null      # TESTED: all params work equally (score 0.81)
+    semantic:
+      top_k: 40        # TESTED: robust to param changes (score 0.69)
+    structured_gen:
+      top_k: 40        # TESTED: very stable (score 0.90)
+    narrative:
+      top_k: null      # TESTED: stable (score 0.66)
+
+  # Claude supports top_k but Opus 4.x models can't use temperature+top_p together
+  # Use top_p=null to let temperature control sampling
+  # OPTIMIZED: Based on parameter optimization tests (Jan 2026)
+  claude:
+    deterministic:
+      temperature: 0.1   # OPTIMIZED: slight temp helps (score 0.88)
+      top_p: null        # Claude can't use both temp+top_p
+      top_k: 60          # OPTIMIZED: higher top_k improved score
+    semantic:
+      temperature: 0.3   # OPTIMIZED: higher temp better for semantic (score 0.76)
+      top_p: null
+      top_k: 40
+    structured_gen:
+      temperature: 0.1   # OPTIMIZED: lower temp optimal (score 0.95)
+      top_p: null
+      top_k: 40
+    narrative:
+      top_p: null
+      max_tokens: 12288  # Claude can be verbose, reduce limit
+
+# =============================================================================
+# MODEL-SPECIFIC OVERRIDES
+# =============================================================================
+# Applied after provider overrides for specific model quirks.
+# Use exact model name as key (case-sensitive).
+#
+# These are the MOST specific overrides - applied last in the hierarchy.
+# Use for models that need special handling (e.g., no temperature support).
+#
+# Example - disable temperature for a reasoning model:
+#   o3-mini:
+#     temperature: null
+
+model_overrides:
+  # Gemini 3 models are more capable, can use lower top_p
+  gemini-3-pro:
+    top_p: 0.9
+  gemini-3-flash:
+    top_p: 0.9
+  gemini-3-pro-preview:
+    top_p: 0.9
+  gemini-3-flash-preview:
+    top_p: 0.9
+
+  # OpenAI o-series models don't support temperature
+  o1:
+    temperature: null
+  o1-mini:
+    temperature: null
+  o3:
+    temperature: null
+  o3-mini:
+    temperature: null
+  o3-mini-high:
+    temperature: null
+
+  # GPT-5 series - tested with GPT 5.2 optimization (Jan 2026)
+  # Note: GPT 5.2 DOES support temperature (verified in optimization tests)
+  gpt-5:
+    temperature: null   # Unconfirmed - may not support temp
+  gpt-5-mini:
+    temperature: null
+  gpt-5.1:
+    temperature: null   # Unconfirmed
+  gpt-5.1-mini:
+    temperature: null
+  # GPT 5.2 - TESTED: supports temperature, optimal values in provider_overrides
+  gpt-5.2: {}           # Uses provider_overrides (temp works!)
+  gpt-5.2-mini: {}
+
+  # Claude Sonnet 4.5 - max output is 64000 (not 65536)
+  claude-sonnet-4-5:
+    max_tokens: 64000
+  claude-sonnet-4-5-20250918:
+    max_tokens: 64000
+  
+  # Claude Opus 4 - OPTIMIZED based on parameter tests (Jan 2026)
+  # Note: Opus performs consistently across params (score 0.85-0.93)
+  claude-opus-4:
+    temperature: 0.3    # OPTIMIZED: works well across all task types
+  claude-opus-4-20250514:
+    temperature: 0.3    # OPTIMIZED: deterministic=0.85, semantic=0.75, structured_gen=0.93

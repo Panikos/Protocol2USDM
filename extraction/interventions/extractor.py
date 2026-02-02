@@ -107,9 +107,19 @@ def extract_interventions(
     model_name: str = "gemini-2.5-pro",
     pages: Optional[List[int]] = None,
     protocol_text: Optional[str] = None,
+    existing_arms: Optional[List[Dict[str, Any]]] = None,
+    study_indication: Optional[str] = None,
 ) -> InterventionsExtractionResult:
     """
     Extract interventions and products from a protocol PDF.
+    
+    Args:
+        pdf_path: Path to protocol PDF
+        model_name: LLM model to use
+        pages: Specific pages to use
+        protocol_text: Optional pre-extracted text
+        existing_arms: Treatment arms from study design for reference
+        study_indication: Indication from metadata for context
     """
     result = InterventionsExtractionResult(success=False, model_used=model_name)
     
@@ -134,12 +144,23 @@ def extract_interventions(
         
         # Call LLM for extraction
         logger.info("Extracting interventions with LLM...")
-        prompt = build_interventions_extraction_prompt(protocol_text)
+        
+        # Build context hints from prior extractions
+        context_hints = ""
+        if existing_arms:
+            arm_names = [a.get('name', '') for a in existing_arms if a.get('name')]
+            if arm_names:
+                context_hints += f"\nKnown treatment arms: {', '.join(arm_names)}"
+        if study_indication:
+            context_hints += f"\nStudy indication: {study_indication}"
+        
+        prompt = build_interventions_extraction_prompt(protocol_text, context_hints=context_hints)
         
         response = call_llm(
             prompt=prompt,
             model_name=model_name,
             json_mode=True,
+            extractor_name="interventions",
         )
         
         if 'error' in response:
@@ -196,6 +217,14 @@ def _parse_interventions_response(raw: Dict[str, Any]) -> Optional[Interventions
     Handles both legacy format and new USDM-compliant format with ids.
     """
     try:
+        # Handle case where LLM returns a list instead of a dict
+        if isinstance(raw, list):
+            if len(raw) == 1 and isinstance(raw[0], dict):
+                raw = raw[0]
+            else:
+                # Assume list contains interventions directly
+                raw = {'interventions': raw}
+        
         interventions = []
         products = []
         administrations = []
@@ -208,7 +237,8 @@ def _parse_interventions_response(raw: Dict[str, Any]) -> Optional[Interventions
             if not isinstance(int_data, dict):
                 continue
             
-            role = _map_intervention_role(int_data.get('role', 'Investigational Product'))
+            role_str = int_data.get('role')
+            role = _map_intervention_role(role_str) if role_str else None
             
             interventions.append(StudyIntervention(
                 id=int_data.get('id', f"int_{i+1}"),
@@ -301,7 +331,9 @@ def _parse_interventions_response(raw: Dict[str, Any]) -> Optional[Interventions
 
 
 def _map_intervention_role(role_str: str) -> InterventionRole:
-    """Map string to InterventionRole enum."""
+    """Map string to InterventionRole enum. Returns UNKNOWN if input is empty."""
+    if not role_str:
+        return InterventionRole.UNKNOWN
     role_lower = role_str.lower()
     if 'placebo' in role_lower:
         return InterventionRole.PLACEBO
@@ -313,7 +345,9 @@ def _map_intervention_role(role_str: str) -> InterventionRole:
         return InterventionRole.CONCOMITANT
     elif 'background' in role_lower:
         return InterventionRole.BACKGROUND
-    return InterventionRole.INVESTIGATIONAL
+    elif 'investigational' in role_lower or 'study drug' in role_lower:
+        return InterventionRole.INVESTIGATIONAL
+    return InterventionRole.UNKNOWN  # Return UNKNOWN for unrecognized
 
 
 def _map_dose_form(form_str: str) -> Optional[DoseForm]:

@@ -1,35 +1,37 @@
 """
 LLM Prompts for Objectives & Endpoints Extraction.
 
-These prompts guide the LLM to extract study objectives and endpoints
-from protocol synopsis and objectives sections.
+Split into two focused phases for improved reliability:
+1. OBJECTIVES_ENDPOINTS_PROMPT - Extract objectives and endpoints (core, always succeeds)
+2. ESTIMANDS_PROMPT - Extract estimands with endpoint context (enhancement phase)
+
+This separation improves reliability by:
+- Reducing prompt complexity and output size
+- Ensuring core objectives/endpoints always extract successfully
+- Allowing estimands to reference already-extracted endpoint IDs
+- Making each prompt easier to tune independently
 
 Output format follows USDM v4.0 OpenAPI schema requirements.
 """
 
-OBJECTIVES_EXTRACTION_PROMPT = """You are an expert at extracting study objectives and endpoints from clinical trial protocols.
-Your output must conform to USDM v4.0 schema specifications.
+# =============================================================================
+# PHASE 1: Objectives & Endpoints (Core extraction - always runs)
+# =============================================================================
 
-Analyze the provided protocol section and extract ALL objectives and their associated endpoints.
+OBJECTIVES_ENDPOINTS_PROMPT = """You are an expert at extracting study objectives and endpoints from clinical trial protocols.
+Extract ALL objectives and their associated endpoints. Output must conform to USDM v4.0 schema.
 
-## Required Information
-
-### 1. Study Objectives (by level)
+## Study Objectives (by level)
 - **Primary**: Main purpose of the study
 - **Secondary**: Additional goals (safety, tolerability, etc.)
 - **Exploratory**: Hypothesis-generating objectives
 
-### 2. Endpoints (matched to objectives)
-- **Primary**: Main outcome measures
-- **Secondary**: Supporting outcome measures  
-- **Exploratory**: Additional measures
+## Endpoints (matched to objectives)
+- **Primary**: Main outcome measures for primary objectives
+- **Secondary**: Supporting outcome measures
+- **Exploratory**: Additional exploratory measures
 
-### 3. Estimands (if ICH E9(R1) format described)
-
-## USDM v4.0 Output Format (MUST follow exactly)
-
-Every entity MUST have `id` and `instanceType` fields.
-Use Code objects for level/purpose fields.
+## USDM v4.0 Output Format
 
 ```json
 {
@@ -37,25 +39,9 @@ Use Code objects for level/purpose fields.
     {
       "id": "obj_1",
       "name": "Primary Efficacy Objective",
-      "text": "To evaluate the efficacy of Drug X compared to placebo in reducing disease severity",
-      "level": {
-        "code": "Primary",
-        "codeSystem": "http://www.cdisc.org/USDM/objectiveLevel",
-        "decode": "Primary Objective"
-      },
+      "text": "To evaluate the efficacy of Drug X compared to placebo",
+      "level": {"code": "Primary", "codeSystem": "http://www.cdisc.org/USDM/objectiveLevel", "decode": "Primary Objective"},
       "endpointIds": ["ep_1"],
-      "instanceType": "Objective"
-    },
-    {
-      "id": "obj_2",
-      "name": "Safety Objective",
-      "text": "To evaluate the safety and tolerability of Drug X",
-      "level": {
-        "code": "Secondary",
-        "codeSystem": "http://www.cdisc.org/USDM/objectiveLevel",
-        "decode": "Secondary Objective"
-      },
-      "endpointIds": ["ep_2", "ep_3"],
       "instanceType": "Objective"
     }
   ],
@@ -64,92 +50,133 @@ Use Code objects for level/purpose fields.
       "id": "ep_1",
       "name": "Primary Efficacy Endpoint",
       "text": "Change from baseline in disease severity score at Week 12",
-      "level": {
-        "code": "Primary",
-        "codeSystem": "http://www.cdisc.org/USDM/endpointLevel",
-        "decode": "Primary Endpoint"
-      },
+      "level": {"code": "Primary", "codeSystem": "http://www.cdisc.org/USDM/endpointLevel", "decode": "Primary Endpoint"},
       "purpose": "Efficacy",
       "instanceType": "Endpoint"
-    },
-    {
-      "id": "ep_2",
-      "name": "Adverse Events",
-      "text": "Incidence and severity of treatment-emergent adverse events",
-      "level": {
-        "code": "Secondary",
-        "codeSystem": "http://www.cdisc.org/USDM/endpointLevel",
-        "decode": "Secondary Endpoint"
-      },
-      "purpose": "Safety",
-      "instanceType": "Endpoint"
-    }
-  ],
-  "estimands": [
-    {
-      "id": "est_1",
-      "name": "Primary Estimand",
-      "text": "Treatment effect on disease severity in ITT population",
-      "intercurrentEvents": [
-        {
-          "id": "ice_1",
-          "name": "Treatment discontinuation",
-          "strategy": {
-            "code": "TreatmentPolicy",
-            "codeSystem": "http://www.cdisc.org/USDM/strategy",
-            "decode": "Treatment Policy"
-          },
-          "instanceType": "IntercurrentEvent"
-        }
-      ],
-      "instanceType": "Estimand"
     }
   ]
 }
 ```
 
 ## Level Codes
-- Primary = Primary (main objective/endpoint)
-- Secondary = Secondary (supporting)
-- Exploratory = Exploratory (hypothesis-generating)
+- Primary, Secondary, Exploratory
 
 ## Purpose Values
 - Efficacy, Safety, Tolerability, Pharmacokinetic, Pharmacodynamic, Biomarker, QualityOfLife
 
-## ID Linking Pattern
-- Objectives reference endpoints via `endpointIds` array
-- Use matching patterns: obj_1 → ep_1, obj_2 → ep_2, ep_3
-
 ## Rules
+1. Every entity MUST have `id` and `instanceType`
+2. Use sequential IDs: obj_1, obj_2; ep_1, ep_2
+3. Link objectives to endpoints via `endpointIds` array
+4. Extract exact text verbatim from protocol
+5. Classify correctly by level
+6. Be complete - extract ALL objectives and endpoints
+7. Return ONLY valid JSON - no markdown, no explanations
 
-1. **Every entity must have `id` and `instanceType`** - mandatory
-2. **Use sequential IDs** - obj_1, obj_2; ep_1, ep_2; est_1, etc.
-3. **Link objectives to endpoints** - endpointIds must match endpoint ids
-4. **Extract exact text** - Copy verbatim from protocol
-5. **Classify by level** - Primary, Secondary, Exploratory
-6. **Be complete** - Extract ALL objectives and endpoints
-7. **Return ONLY valid JSON** - no markdown fences, no explanations
-
-Now analyze the protocol content and extract the objectives and endpoints:
+Now extract objectives and endpoints from the protocol:
 """
 
+# =============================================================================
+# PHASE 2: Estimands (Enhancement - runs after objectives/endpoints)
+# =============================================================================
 
-OBJECTIVES_PAGE_FINDER_PROMPT = """Analyze these PDF pages and identify which pages contain study objectives and endpoints.
+ESTIMANDS_PROMPT = """You are an expert at extracting estimands from clinical trial protocols using the ICH E9(R1) framework.
 
-Look for pages that contain:
-1. **Synopsis** - Often has objectives and endpoints summary table
+## Previously Extracted Endpoints
+{endpoints_context}
+
+## ICH E9(R1) Estimand Framework
+
+An estimand precisely describes the treatment effect. Extract ALL FIVE attributes:
+
+1. **Treatment** - Intervention AND comparator with specific names
+2. **Population** - Target patients AND analysis population (ITT, PP, mITT, etc.)
+3. **Variable** - The endpoint being measured (MUST reference endpoint ID from above)
+4. **Intercurrent Events** - Events affecting interpretation WITH handling strategy
+5. **Summary Measure** - Statistical summary (difference in means, hazard ratio, odds ratio, etc.)
+
+## Intercurrent Event Strategies (MUST specify one)
+- **Treatment Policy** - Include all data regardless of event
+- **Composite** - Event becomes part of outcome
+- **Hypothetical** - Estimate as if event hadn't occurred
+- **Principal Stratum** - Subset who wouldn't experience event
+- **While on Treatment** - Only data while on treatment
+
+## USDM 4.0 Required Output Format
+
+```json
+{{
+  "estimands": [
+    {{
+      "id": "est_1",
+      "name": "Primary Efficacy Estimand",
+      "populationSummary": "Adult patients meeting eligibility criteria",
+      "analysisPopulation": "Intent-to-Treat (ITT) Population",
+      "treatmentDescription": "Drug X 100mg daily vs Placebo",
+      "interventionNames": ["Drug X 100mg", "Placebo"],
+      "variableOfInterest": "Change from baseline in severity score at Week 12",
+      "endpointId": "ep_1",
+      "summaryMeasure": "Difference in least squares means",
+      "intercurrentEvents": [
+        {{
+          "id": "ice_1",
+          "name": "Treatment discontinuation",
+          "text": "Subject discontinues study treatment before Week 12",
+          "strategy": "Treatment Policy",
+          "instanceType": "IntercurrentEvent"
+        }},
+        {{
+          "id": "ice_2",
+          "name": "Use of rescue medication",
+          "text": "Subject uses prohibited rescue medication",
+          "strategy": "Hypothetical",
+          "instanceType": "IntercurrentEvent"
+        }}
+      ],
+      "instanceType": "Estimand"
+    }}
+  ]
+}}
+```
+
+## CRITICAL Rules
+1. **MUST link to endpoint IDs** from Phase 1 using endpointId field
+2. **MUST include summaryMeasure** - the statistical method (e.g., "Difference in means", "Hazard ratio")
+3. **MUST include at least one intercurrentEvent** with strategy
+4. **MUST include analysisPopulation** - the population type (ITT, PP, Safety, etc.)
+5. **MUST include interventionNames** - list of intervention names being compared
+6. Extract at least one estimand for each primary endpoint
+7. Include common intercurrent events (discontinuation, rescue medication) even if not explicit
+8. Return ONLY valid JSON
+
+Now extract estimands from the protocol:
+"""
+
+# =============================================================================
+# Legacy prompt (kept for backward compatibility)
+# =============================================================================
+
+OBJECTIVES_EXTRACTION_PROMPT = OBJECTIVES_ENDPOINTS_PROMPT
+
+# =============================================================================
+# Page finder prompt
+# =============================================================================
+
+OBJECTIVES_PAGE_FINDER_PROMPT = """Identify pages containing study objectives and endpoints.
+
+Look for:
+1. **Synopsis** - Objectives/endpoints summary table
 2. **Objectives section** - Usually Section 2 or 3
-3. **Endpoints section** - May be combined with objectives or separate
+3. **Endpoints section** - May be combined or separate
 4. **Statistical considerations** - May contain estimand framework
 
-Return a JSON object:
+Return JSON:
 ```json
 {
   "objectives_pages": [page_numbers],
   "synopsis_page": page_number,
   "endpoints_pages": [page_numbers],
-  "confidence": "high/medium/low",
-  "notes": "any relevant observations"
+  "confidence": "high/medium/low"
 }
 ```
 
@@ -157,9 +184,40 @@ Pages are 0-indexed. Return ONLY valid JSON.
 """
 
 
-def build_objectives_extraction_prompt(protocol_text: str) -> str:
-    """Build the full extraction prompt with protocol content."""
-    return f"{OBJECTIVES_EXTRACTION_PROMPT}\n\n---\n\nPROTOCOL CONTENT:\n\n{protocol_text}"
+# =============================================================================
+# Prompt builders
+# =============================================================================
+
+def build_objectives_extraction_prompt(protocol_text: str, context_hints: str = "") -> str:
+    """Build prompt for Phase 1: objectives and endpoints extraction."""
+    prompt = OBJECTIVES_ENDPOINTS_PROMPT
+    if context_hints:
+        prompt += f"\n\nCONTEXT FROM PRIOR EXTRACTION:{context_hints}"
+    prompt += f"\n\n---\n\nPROTOCOL CONTENT:\n\n{protocol_text}"
+    return prompt
+
+
+def build_estimands_prompt(protocol_text: str, endpoints: list, context_hints: str = "") -> str:
+    """Build prompt for Phase 2: estimands extraction with endpoint context."""
+    # Format endpoints for context
+    if endpoints:
+        endpoints_lines = []
+        for ep in endpoints:
+            ep_id = ep.get('id', 'unknown')
+            ep_name = ep.get('name', '')
+            ep_text = ep.get('text', '')[:100]  # Truncate for brevity
+            level = ep.get('level', {})
+            level_code = level.get('code', '') if isinstance(level, dict) else str(level)
+            endpoints_lines.append(f"- {ep_id}: [{level_code}] {ep_name} - {ep_text}")
+        endpoints_context = "\n".join(endpoints_lines)
+    else:
+        endpoints_context = "No endpoints extracted yet."
+    
+    prompt = ESTIMANDS_PROMPT.format(endpoints_context=endpoints_context)
+    if context_hints:
+        prompt += f"\n\nADDITIONAL CONTEXT:{context_hints}"
+    prompt += f"\n\n---\n\nPROTOCOL CONTENT:\n\n{protocol_text}"
+    return prompt
 
 
 def build_page_finder_prompt() -> str:

@@ -16,6 +16,8 @@ Analyze the provided protocol section and extract ALL study interventions, produ
 - Comparator(s) (active, placebo)
 - Rescue medications (if specified)
 - Background therapy (if specified)
+- Concomitant medications (permitted/prohibited/required)
+- Prior medications that must be washed out
 
 ### 2. Products (AdministrableProduct)
 For each product extract:
@@ -55,6 +57,11 @@ Return a JSON object with this exact structure:
       "name": "Placebo",
       "role": "Placebo",
       "description": "Matching placebo tablets"
+    },
+    {
+      "name": "Paracetamol/acetaminophen",
+      "role": "Concomitant Medication",
+      "description": "Permitted for mild pain relief"
     }
   ],
   "products": [
@@ -94,13 +101,14 @@ Return a JSON object with this exact structure:
 ## Rules
 
 1. **Extract from IP section** - Usually Section 5 or 6 (Investigational Product)
-2. **Include all dosing regimens** - Different doses, titration steps
-3. **Use standard terminology**:
-   - Roles: "Investigational Product", "Comparator", "Placebo", "Rescue Medication", "Concomitant Medication"
+2. **Include all dosing regimens** - Different doses, titration steps, dose escalation
+3. **Extract concomitant medications** - Look in "Concomitant Medications" or "Prior and Concomitant Therapy" sections for permitted/prohibited medications
+4. **Use standard terminology**:
+   - Roles: "Investigational Product", "Comparator", "Placebo", "Rescue Medication", "Concomitant Medication", "Background Therapy"
    - Routes: "Oral", "Intravenous", "Subcutaneous", "Intramuscular", "Topical", "Inhalation"
    - Forms: "Tablet", "Capsule", "Solution", "Injection", "Cream", "Patch"
-4. **Be precise with doses** - Include units (mg, mg/kg, mg/m2, etc.)
-5. **Return ONLY valid JSON** - no markdown, no explanations
+5. **Be precise with doses** - Include units (mg, mg/kg, mg/m2, etc.)
+6. **Return ONLY valid JSON** - no markdown, no explanations
 
 Now analyze the protocol content and extract the interventions:
 """
@@ -113,6 +121,8 @@ Look for pages that contain:
 2. **Study Treatment section**
 3. **Dose and Administration section**
 4. **Product description/formulation**
+5. **Concomitant Medications section** - Permitted/prohibited medications
+6. **Prior and Concomitant Therapy section**
 
 Return a JSON object:
 ```json
@@ -127,9 +137,13 @@ Pages are 0-indexed. Return ONLY valid JSON.
 """
 
 
-def build_interventions_extraction_prompt(protocol_text: str) -> str:
-    """Build the full extraction prompt with protocol content."""
-    return f"{INTERVENTIONS_EXTRACTION_PROMPT}\n\n---\n\nPROTOCOL CONTENT:\n\n{protocol_text}"
+def build_interventions_extraction_prompt(protocol_text: str, context_hints: str = "") -> str:
+    """Build the full extraction prompt with protocol content and optional context hints."""
+    prompt = INTERVENTIONS_EXTRACTION_PROMPT
+    if context_hints:
+        prompt += f"\n\nCONTEXT FROM PRIOR EXTRACTION:{context_hints}"
+    prompt += f"\n\n---\n\nPROTOCOL CONTENT:\n\n{protocol_text}"
+    return prompt
 
 
 def build_page_finder_prompt() -> str:

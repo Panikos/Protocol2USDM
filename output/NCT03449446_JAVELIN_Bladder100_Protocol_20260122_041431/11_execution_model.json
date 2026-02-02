@@ -1,0 +1,1171 @@
+{
+  "success": true,
+  "pagesUsed": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    42,
+    44,
+    47,
+    48,
+    50,
+    52,
+    53,
+    58,
+    59,
+    62,
+    63,
+    64,
+    66,
+    72,
+    74,
+    109
+  ],
+  "modelUsed": "gemini-3-flash-preview",
+  "data": {
+    "timeAnchors": [
+      {
+        "id": "anchor_1",
+        "definition": "Date of subject randomization",
+        "anchorType": "Randomization",
+        "timelineId": null,
+        "dayValue": 1,
+        "sourceText": "randomization visit"
+      },
+      {
+        "id": "anchor_llm_1",
+        "definition": "Day 1 is the date of randomization and the point prior to initial dosing",
+        "anchorType": "Day1",
+        "timelineId": null,
+        "dayValue": 1,
+        "sourceText": "Day 1: Randomization and Assessments ... Prior to initial dosing, the following Day 1 assessments will be peifonned ... After the randomization visit at Day 1, study visits will occur on Weeks 1, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, and 48."
+      },
+      {
+        "id": "anchor_2",
+        "definition": "Screening visit",
+        "anchorType": "Screening",
+        "timelineId": null,
+        "dayValue": 1,
+        "sourceText": "Screening Visit"
+      },
+      {
+        "id": "anchor_3",
+        "definition": "Procedure",
+        "anchorType": "Custom",
+        "timelineId": null,
+        "dayValue": 1,
+        "sourceText": "Procedure"
+      }
+    ],
+    "repetitions": [
+      {
+        "id": "rep_daily_1",
+        "type": "Daily",
+        "interval": "P1D",
+        "sourceText": "once daily"
+      },
+      {
+        "id": "rep_daily_16",
+        "type": "Daily",
+        "interval": "P1D",
+        "sourceText": "od"
+      },
+      {
+        "id": "rep_daily_17",
+        "type": "Daily",
+        "interval": "P1D",
+        "sourceText": "QD"
+      },
+      {
+        "id": "rep_interval_1",
+        "type": "Interval",
+        "sourceText": "BID"
+      },
+      {
+        "id": "rep_interval_2",
+        "type": "Interval",
+        "sourceText": "tid"
+      },
+      {
+        "id": "rep_llm_1",
+        "type": "Daily",
+        "startOffset": "P0D",
+        "endOffset": "P7D",
+        "interval": "P1D",
+        "minObservations": 7,
+        "exitCondition": "Completion of 7-day duration",
+        "sourceText": "following once daily administration of SEL, GS-9674, and/or GS-0976 in combination for 7 days compared with the single agent for 7 days"
+      },
+      {
+        "id": "rep_llm_2",
+        "type": "Daily",
+        "startOffset": "P0D",
+        "endOffset": "null",
+        "interval": "P1D",
+        "minObservations": 1,
+        "exitCondition": "null",
+        "sourceText": "SEL 18 mg QD"
+      },
+      {
+        "id": "rep_llm_3",
+        "type": "Continuous",
+        "startOffset": "null",
+        "endOffset": "null",
+        "interval": "null",
+        "minObservations": 1,
+        "exitCondition": "Discontinuation of treatment",
+        "sourceText": "On-Treatment ALT/AST Monitoring"
+      }
+    ],
+    "samplingConstraints": [],
+    "traversalConstraints": [
+      {
+        "id": "traversal_1",
+        "requiredSequence": [
+          "SCREENING",
+          "BASELINE",
+          "TREATMENT",
+          "FOLLOW_UP",
+          "END_OF_STUDY"
+        ],
+        "allowEarlyExit": true,
+        "exitEpochIds": [
+          "EARLY_TERMINATION"
+        ],
+        "mandatoryVisits": [
+          "End of Study",
+          "Day 1",
+          "Screening",
+          "Baseline/Day 1"
+        ],
+        "sourceText": "[{'condition': 'If subject experiences AE requiring discontinuation', 'path': ['EARLY_TERMINATION', 'POST_STUDY_CARE']}]"
+      }
+    ],
+    "executionTypes": [
+      {
+        "activityId": "Vital Signs",
+        "executionType": "Single",
+        "rationale": "SINGLE signals: 3; RECURRING signals: 2"
+      },
+      {
+        "activityId": "Ecg",
+        "executionType": "Recurring",
+        "rationale": "SINGLE signals: 4; RECURRING signals: 7"
+      },
+      {
+        "activityId": "Pe",
+        "executionType": "Single",
+        "rationale": "No strong signals detected"
+      },
+      {
+        "activityId": "Adverse Events",
+        "executionType": "Single",
+        "rationale": "SINGLE signals: 1"
+      },
+      {
+        "activityId": "Concomitant Medication",
+        "executionType": "Recurring",
+        "rationale": "RECURRING signals: 1"
+      },
+      {
+        "activityId": "Laboratory Tests",
+        "executionType": "Recurring",
+        "rationale": "RECURRING signals: 1"
+      },
+      {
+        "activityId": "Pharmacokinetic",
+        "executionType": "Single",
+        "rationale": "No strong signals detected"
+      },
+      {
+        "activityId": "Pharmacodynamic",
+        "executionType": "Single",
+        "rationale": "No strong signals detected"
+      },
+      {
+        "activityId": "Dosing",
+        "executionType": "Single",
+        "rationale": "SINGLE signals: 3"
+      },
+      {
+        "activityId": "Mri",
+        "executionType": "Single",
+        "rationale": "SINGLE signals: 3"
+      },
+      {
+        "activityId": "Biopsy",
+        "executionType": "Single",
+        "rationale": "SINGLE signals: 6"
+      },
+      {
+        "activityId": "Questionnaire",
+        "executionType": "Recurring",
+        "rationale": "SINGLE signals: 1; RECURRING signals: 6"
+      },
+      {
+        "activityId": "Informed Consent",
+        "executionType": "Single",
+        "rationale": "Typically performed once at the start of the screening process to establish eligibility."
+      },
+      {
+        "activityId": "Safety and Efficacy Evaluation",
+        "executionType": "Single",
+        "rationale": "The study is a Phase 2 randomized trial evaluating safety and efficacy, which requires repeated assessments across multiple study visits."
+      },
+      {
+        "activityId": "Screening Assessment",
+        "executionType": "Single",
+        "rationale": "Assessments performed to determine if a subject meets inclusion/exclusion criteria prior to randomization."
+      },
+      {
+        "activityId": "Drug Administration (SEL, GS-0976, GS-9674)",
+        "executionType": "Single",
+        "rationale": "Dosing in a Phase 2 efficacy study occurs continuously over a defined treatment period (e.g., daily dosing over several weeks)."
+      }
+    ],
+    "footnoteConditions": [
+      {
+        "id": "fn_cond_1",
+        "conditionType": "general",
+        "text": "b Historical ultrasound within 3 months inclusive to the date of Screening may be used",
+        "footnoteId": "fn_2",
+        "structuredCondition": "historical_data.allow(ultrasound, P3M)",
+        "appliesToActivityIds": [
+          "Ultrasound"
+        ],
+        "sourceText": "b Historical ultrasound within 3 months inclusive to the date of Screening may be used"
+      },
+      {
+        "id": "fn_cond_2",
+        "conditionType": "general",
+        "text": "e Historical liver biopsy (within 6 months of the Screening for F3 and within 12 months of the Screening for F4) may be accepted as the Screening biopsy",
+        "footnoteId": "fn_4",
+        "structuredCondition": "if(subject.fibrosis_score == 'F3') { historical_data.allow(biopsy, P6M) } else if(subject.fibrosis_score == 'F4') { historical_data.allow(biopsy, P12M) }",
+        "appliesToActivityIds": [
+          "Liver Biopsy"
+        ],
+        "sourceText": "e Historical liver biopsy (within 6 months of the Screening for F3 and within 12 months of the Scree"
+      },
+      {
+        "id": "fn_cond_3",
+        "conditionType": "timing_before",
+        "text": "g To be completed upon confirmation of subject's eligibility; may be completed up to 7 days before or 3 days after Day 1",
+        "footnoteId": "fn_5",
+        "structuredCondition": "timing.window(day_1, -P7D, +P3D)",
+        "appliesToActivityIds": [
+          "Eligibility Confirmation Procedures"
+        ],
+        "sourceText": "g To be completed upon confirmation of subject's eligibility; may be completed up to 7 days before o"
+      },
+      {
+        "id": "fn_cond_4",
+        "conditionType": "general",
+        "text": "i AE reporting during Screening is limited to SAEs and AEs related to study procedures",
+        "footnoteId": "fn_6",
+        "structuredCondition": "reporting.filter(screening, type IN ['SAE', 'procedure_related'])",
+        "appliesToActivityIds": [
+          "AE Reporting"
+        ],
+        "sourceText": "i AE reporting during Screening is limited to SAEs and AEs related to study procedures"
+      },
+      {
+        "id": "fn_cond_5",
+        "conditionType": "timing_at",
+        "text": "j Additional testing: digoxin level at Day 1, Week 1, and as needed in subjects taking digoxin (refer to Section 5.3)",
+        "footnoteId": "fn_7",
+        "structuredCondition": "if(subject.medication.contains('digoxin')) { schedule(digoxin_level, ['Day 1', 'Week 1', 'PRN']) }",
+        "appliesToActivityIds": [
+          "Digoxin Level Testing"
+        ],
+        "sourceText": "j Additional testing: digoxin level at Day 1, Week 1, and as needed in subjects taking digoxin (refe"
+      },
+      {
+        "id": "fn_cond_6",
+        "conditionType": "general",
+        "text": "k If HbA1c is unable to be resulted, serum fructosamine will be tested",
+        "footnoteId": "fn_8",
+        "structuredCondition": "if(result(HbA1c) == null) { perform(serum_fructosamine) }",
+        "appliesToActivityIds": [
+          "Serum Fructosamine"
+        ],
+        "sourceText": "k If HbA1c is unable to be resulted, serum fructosamine will be tested"
+      },
+      {
+        "id": "fn_cond_7",
+        "conditionType": "timing_at",
+        "text": "n For female subjects of childbearing potential only. Serum pregnancy test at Screening and urine pregnancy test at Day 1 and every 4 weeks thereafter, including ET. FSH may be tested at Screening to determine a female subject's postmenopausal state (refer to Appendix 3)",
+        "footnoteId": "fn_9",
+        "structuredCondition": "if(subject.is_female_childbearing) { schedule(serum_pregnancy, 'Screening'); schedule(urine_pregnancy, ['Day 1', 'P4W', 'ET']) } if(subject.is_female) { optional(FSH, 'Screening') }",
+        "appliesToActivityIds": [
+          "Serum Pregnancy Test",
+          "Urine Pregnancy Test",
+          "FSH Test"
+        ],
+        "sourceText": "n For female subjects of childbearing potential only. Serum pregnancy test at Screening and urine pr"
+      }
+    ],
+    "endpointAlgorithms": [
+      {
+        "id": "ep_1",
+        "name": "Primary: Anti-fibrotic Response",
+        "endpointType": "Primary",
+        "inputs": [
+          "NASH CRN Fibrosis Stage",
+          "Hepatocellular Ballooning Score",
+          "Lobular Inflammation Score"
+        ],
+        "timeWindow": {
+          "reference": "Baseline to Week 48",
+          "duration": "P48W"
+        },
+        "algorithm": "(Fibrosis_Stage_Baseline - Fibrosis_Stage_Week48 >= 1) AND (Ballooning_Week48 - Ballooning_Baseline < 1) AND (Inflammation_Week48 - Inflammation_Baseline < 1)",
+        "successCriteria": ">= 1-stage improvement in fibrosis without worsening of NASH (defined as a >= 1-point increase in hepatocellular ballooning or lobular inflammation)",
+        "sourceText": "Anti-fibrotic response will be evaluated by the propo1i ion of subjects at Week 48 who achieve a ::::: I -stage improvement in fibrosis (according to the NASH CRN classification) without worsening of "
+      },
+      {
+        "id": "ep_2",
+        "name": "Primary: Safety",
+        "endpointType": "Primary",
+        "inputs": [
+          "Adverse Events (AEs)",
+          "Laboratory evaluations",
+          "Vital sign assessments",
+          "Extent of exposure"
+        ],
+        "timeWindow": {
+          "reference": "Treatment period",
+          "duration": "P48W"
+        },
+        "algorithm": "Summary of incidence and severity of AEs and changes in clinical parameters",
+        "successCriteria": "Evaluation of safety and tolerability profile",
+        "sourceText": "Safety analyses include summaries of extent of exposme, AEs, laborato1y evaluations, and vital sign assessments."
+      },
+      {
+        "id": "ep_3",
+        "name": "Exploratory: Change in Steatosis",
+        "endpointType": "Exploratory",
+        "inputs": [
+          "MRI-PDFF"
+        ],
+        "timeWindow": {
+          "reference": "Baseline to End of Study",
+          "duration": "Not specified"
+        },
+        "algorithm": "MRI-PDFF_Value - MRI-PDFF_Baseline",
+        "successCriteria": "Reduction in steatosis percentage",
+        "sourceText": "Exploratory efficacy endpoints included changes from baseline in steatosis as measured by MRI-PDFF"
+      },
+      {
+        "id": "ep_4",
+        "name": "Exploratory: Change in Liver Stiffness",
+        "endpointType": "Exploratory",
+        "inputs": [
+          "MRE",
+          "FibroScan"
+        ],
+        "timeWindow": {
+          "reference": "Baseline to End of Study",
+          "duration": "Not specified"
+        },
+        "algorithm": "Stiffness_Value - Stiffness_Baseline",
+        "successCriteria": "Reduction in liver stiffness (kPa)",
+        "sourceText": "liver stiffness as measured by both MRE and FibroScan®"
+      },
+      {
+        "id": "ep_5",
+        "name": "Exploratory: Change in Liver Injury Markers",
+        "endpointType": "Exploratory",
+        "inputs": [
+          "ALT",
+          "AST",
+          "Bilirubin",
+          "GGT",
+          "ALP"
+        ],
+        "timeWindow": {
+          "reference": "Baseline to End of Study",
+          "duration": "Not specified"
+        },
+        "algorithm": "Marker_Value - Marker_Baseline",
+        "successCriteria": "Reduction in serum markers of liver injury",
+        "sourceText": "markers of liver injury and function (ALT, AST, bilirubin, GGT and alkaline phosphatase [ALP])"
+      }
+    ],
+    "derivedVariables": [
+      {
+        "id": "dv_1",
+        "name": "AUCinf",
+        "variableType": "Custom",
+        "sourceVariables": [
+          "AUC0-last",
+          "Clast",
+          "λz"
+        ],
+        "derivationRule": "AUC0-last + (Clast / λz)",
+        "baselineDefinition": "null",
+        "baselineVisit": "null",
+        "analysisWindow": "null",
+        "imputationRule": "null",
+        "unit": "concentration * time"
+      },
+      {
+        "id": "dv_2",
+        "name": "t½",
+        "variableType": "Custom",
+        "sourceVariables": [
+          "λz"
+        ],
+        "derivationRule": "ln(2) / λz",
+        "baselineDefinition": "null",
+        "baselineVisit": "null",
+        "analysisWindow": "null",
+        "imputationRule": "null",
+        "unit": "time"
+      },
+      {
+        "id": "dv_3",
+        "name": "QTc",
+        "variableType": "Custom",
+        "sourceVariables": [
+          "QT",
+          "Heart Rate"
+        ],
+        "derivationRule": "QT interval corrected for heart rate",
+        "baselineDefinition": "null",
+        "baselineVisit": "null",
+        "analysisWindow": "null",
+        "imputationRule": "null",
+        "unit": "msec"
+      },
+      {
+        "id": "dv_4",
+        "name": "BMI",
+        "variableType": "Custom",
+        "sourceVariables": [
+          "Weight",
+          "Height"
+        ],
+        "derivationRule": "body mass index calculation",
+        "baselineDefinition": "null",
+        "baselineVisit": "null",
+        "analysisWindow": "null",
+        "imputationRule": "null",
+        "unit": "kg/m^2"
+      },
+      {
+        "id": "dv_5",
+        "name": "TEAE",
+        "variableType": "Categorical",
+        "sourceVariables": [
+          "Adverse Event Start Date",
+          "Study Drug Start Date"
+        ],
+        "derivationRule": "Adverse events that occur after the first dose of study drug",
+        "baselineDefinition": "null",
+        "baselineVisit": "null",
+        "analysisWindow": "null",
+        "imputationRule": "null",
+        "unit": "null"
+      }
+    ],
+    "stateMachine": {
+      "id": "sm_1",
+      "initialState": "Screening",
+      "terminalStates": [
+        "Early Termination",
+        "Completed"
+      ],
+      "states": [
+        "Screening",
+        "Baseline",
+        "Treatment",
+        "Follow Up",
+        "End Of Study",
+        "Early Termination"
+      ],
+      "transitions": [
+        {
+          "fromState": "Screening",
+          "toState": "Baseline",
+          "trigger": "Progress to Baseline"
+        },
+        {
+          "fromState": "Baseline",
+          "toState": "Treatment",
+          "trigger": "Progress to Treatment"
+        },
+        {
+          "fromState": "Treatment",
+          "toState": "Follow Up",
+          "trigger": "Progress to Follow Up"
+        },
+        {
+          "fromState": "Follow Up",
+          "toState": "End Of Study",
+          "trigger": "Progress to End Of Study"
+        },
+        {
+          "fromState": "Treatment",
+          "toState": "Early Termination",
+          "trigger": "Subject exits to Early Termination"
+        }
+      ],
+      "epochIds": {
+        "Screening": "SCREENING",
+        "Baseline": "BASELINE",
+        "Treatment": "TREATMENT",
+        "Follow Up": "FOLLOW_UP",
+        "End Of Study": "END_OF_STUDY",
+        "Early Termination": "EARLY_TERMINATION"
+      }
+    },
+    "dosingRegimens": [
+      {
+        "id": "dosing_1",
+        "treatmentName": "of GS-0976",
+        "frequency": "Single",
+        "route": "Oral",
+        "startDay": 1,
+        "doseLevels": [
+          {
+            "amount": 20.0,
+            "unit": "mg"
+          },
+          {
+            "amount": 0.0,
+            "unit": "mg"
+          },
+          {
+            "amount": 50.0,
+            "unit": "mg"
+          }
+        ],
+        "doseModifications": [
+          "Hepatic \nimpairment or normal hepatic function ."
+        ],
+        "sourceText": "0 mg or 50 mg)...................................................................................31 Table 1-3. GS-US-426-3988: Preliminary GS-0976 and GS-834773 PK Parameters Following a Single Dose o"
+      },
+      {
+        "id": "dosing_2",
+        "treatmentName": "of GS-9674",
+        "frequency": "Single",
+        "route": "Oral",
+        "startDay": 1,
+        "doseLevels": [
+          {
+            "amount": 30.0,
+            "unit": "mg"
+          }
+        ],
+        "doseModifications": [
+          "Hepatic impairment or normal \nhepatic function ."
+        ],
+        "sourceText": "or High-Fat Meal as Compared to Fasted State ...................................................41 Table 1-5. GS-US-402-3885: Preliminary GS-9674 and GS-716070 PK Parameters Following a Single Dose of"
+      },
+      {
+        "id": "dosing_3",
+        "treatmentName": "GS-0976",
+        "frequency": "QD",
+        "route": "Oral",
+        "startDay": 1,
+        "doseLevels": [
+          {
+            "amount": 20.0,
+            "unit": "mg"
+          },
+          {
+            "amount": 18.0,
+            "unit": "mg"
+          },
+          {
+            "amount": 967430.0,
+            "unit": "mg"
+          },
+          {
+            "amount": 97620.0,
+            "unit": "mg"
+          }
+        ],
+        "durationDescription": "8 Weeks",
+        "sourceText": "below: Selonsertib, GS-0976, GS-9674 Protocol GS-US-454-4378 Gilead Sciences, Inc. Final Amendment4 8Weeks C .,. 0 C i 'f - -~ 0 .... -a Ill C ra a:: 48Weeks _,. I A: SEL18mg + GS-0976 20 mg+ PTM GS-9"
+      },
+      {
+        "id": "dosing_4",
+        "treatmentName": "PTM GS-9674",
+        "frequency": "QD",
+        "route": "Oral",
+        "startDay": 1,
+        "doseLevels": [
+          {
+            "amount": 30.0,
+            "unit": "mg"
+          },
+          {
+            "amount": 18.0,
+            "unit": "mg"
+          },
+          {
+            "amount": 97620.0,
+            "unit": "mg"
+          },
+          {
+            "amount": 967430.0,
+            "unit": "mg"
+          }
+        ],
+        "durationDescription": "14 Weeks",
+        "sourceText": "M SEL 18 mg• GS-097620 mg+ PTM GS·967430mg (N ~ 35) -I E: PTM SEL18 mg + PTM GS-097620 mg +GS-967430mg (N-35) 14 Weeks I -I I I .. C ., E 1i I~ w -I F: PTM SEL 18 mg + PTM GS-097620 mg + PTM GS-9674 3"
+      },
+      {
+        "id": "dosing_5",
+        "treatmentName": "GS-9674",
+        "frequency": "QD",
+        "route": "Oral",
+        "startDay": 1,
+        "doseLevels": [
+          {
+            "amount": 30.0,
+            "unit": "mg"
+          },
+          {
+            "amount": 18.0,
+            "unit": "mg"
+          },
+          {
+            "amount": 20.0,
+            "unit": "mg"
+          }
+        ],
+        "sourceText": "th approximately 70 subjects in each combination ti·eatment group and approximately 35 subjects in each single agent or placebo group: Group A: SEL 18 mg, GS-0976 20 mg, and placebo to match (PTM) GS-"
+      },
+      {
+        "id": "dosing_6",
+        "treatmentName": "PTM GS-0976",
+        "frequency": "QD",
+        "route": "Oral",
+        "startDay": 1,
+        "doseLevels": [
+          {
+            "amount": 20.0,
+            "unit": "mg"
+          },
+          {
+            "amount": 18.0,
+            "unit": "mg"
+          },
+          {
+            "amount": 30.0,
+            "unit": "mg"
+          }
+        ],
+        "sourceText": "h combination ti·eatment group and approximately 35 subjects in each single agent or placebo group: Group A: SEL 18 mg, GS-0976 20 mg, and placebo to match (PTM) GS-9674 30 mg Group B: SEL 18 mg, PTM "
+      },
+      {
+        "id": "dosing_7",
+        "treatmentName": "and GS-9674",
+        "frequency": "QD",
+        "route": "Oral",
+        "startDay": 1,
+        "doseLevels": [
+          {
+            "amount": 30.0,
+            "unit": "mg"
+          },
+          {
+            "amount": 18.0,
+            "unit": "mg"
+          },
+          {
+            "amount": 20.0,
+            "unit": "mg"
+          }
+        ],
+        "sourceText": "di·iven PE, vital signs, weight, 12-lead ECG review of concomitant me 1cat10ns an AEs, _ , and laborato1y assessments mc u mg a urine ~ es of childbearing potential). SEL 18 mg, GS-0976 20 mg, and GS-"
+      },
+      {
+        "id": "dosing_8",
+        "treatmentName": "one GS-0976",
+        "frequency": "QD",
+        "route": "Oral",
+        "startDay": 1,
+        "doseLevels": [
+          {
+            "amount": 20.0,
+            "unit": "mg"
+          },
+          {
+            "amount": 18.0,
+            "unit": "mg"
+          },
+          {
+            "amount": 30.0,
+            "unit": "mg"
+          }
+        ],
+        "sourceText": "6, GS-9674 Protocol GS-US-454-4378 Final Gilead Sciences, Inc. Amendment 4 CONFIDENTIAL Page 13 25 April 2019 Treatment Groups and Mode of Administration:  Treatment Group A: one SEL 18 mg tablet, on"
+      },
+      {
+        "id": "dosing_9",
+        "treatmentName": "one GS-9674",
+        "frequency": "QD",
+        "route": "Oral",
+        "startDay": 1,
+        "doseLevels": [
+          {
+            "amount": 30.0,
+            "unit": "mg"
+          },
+          {
+            "amount": 8.0,
+            "unit": "mg"
+          },
+          {
+            "amount": 18.0,
+            "unit": "mg"
+          },
+          {
+            "amount": 20.0,
+            "unit": "mg"
+          }
+        ],
+        "sourceText": "8 mg tablet, one GS-0976 20 mg tablet, and one PTM GS-9674 30 mg tablet administered orally once daily with or without food  Treatment Group B: one SEL 18 mg tablet, one PTM GS-0976 20 mg tablet, one"
+      },
+      {
+        "id": "dosing_10",
+        "treatmentName": "April",
+        "frequency": "QD",
+        "route": "Oral",
+        "startDay": 1,
+        "doseLevels": [
+          {
+            "amount": 2019.0,
+            "unit": "g"
+          }
+        ],
+        "sourceText": "es of Good Clinical Practice (GCP) including archiving of essential documents. Selonsertib, GS-0976, GS-9674 Protocol GS-US-454-4378 Final Gilead Sciences, Inc. Amendment 4 CONFIDENTIAL Page 16 25 Apr"
+      },
+      {
+        "id": "dosing_llm_1",
+        "treatmentName": "Selonsertib (SEL)",
+        "frequency": "QD",
+        "route": "Oral",
+        "startDay": 1
+      },
+      {
+        "id": "dosing_llm_4",
+        "treatmentName": "SEL + GS-0976 + GS-9674 Combination",
+        "frequency": "QD",
+        "route": "Oral",
+        "startDay": 1
+      }
+    ],
+    "visitWindows": [
+      {
+        "id": "visit_llm_1",
+        "visitName": "Screening Visit",
+        "targetDay": -56,
+        "windowBefore": 0,
+        "windowAfter": 56,
+        "isRequired": true,
+        "visitNumber": 1,
+        "epoch": "Pretreatment"
+      },
+      {
+        "id": "visit_2",
+        "visitName": "Screening",
+        "targetDay": -14,
+        "windowBefore": 7,
+        "windowAfter": 0,
+        "isRequired": true,
+        "visitNumber": 2,
+        "sourceText": "Screening Visit ..................................................................................................................... 73 Day 1 Assessments ............................................."
+      },
+      {
+        "id": "visit_1",
+        "visitName": "Early Termination",
+        "targetDay": null,
+        "windowBefore": 0,
+        "windowAfter": 0,
+        "isRequired": true,
+        "visitNumber": 3,
+        "sourceText": "Investigational Medicinal Product Retwn or Disposal ........................................................ 72 6. STUDY PROCEDURES ...................................................................."
+      },
+      {
+        "id": "visit_11",
+        "visitName": "Visit 4",
+        "targetDay": null,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 4,
+        "sourceText": "All subjects will complete a Follow-Up visit 4 weeks after the date of last dose of study diugs. At this visit sub· ects will have a symptom di·iven PE, vital signs, weight,"
+      },
+      {
+        "id": "visit_12",
+        "visitName": "baseline",
+        "targetDay": 0,
+        "windowBefore": 1,
+        "windowAfter": 1,
+        "isRequired": true,
+        "visitNumber": 5,
+        "sourceText": "increased glucose had graded elevations in glucose at baseline and at every study visit thereafter; all had a history of diabetes and were currently taking medication for diabetes. The only other Grad"
+      },
+      {
+        "id": "visit_15",
+        "visitName": "eos",
+        "targetDay": null,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 6,
+        "sourceText": "homeostatic assessment of insulin resistance (HOMA-IR), serum lipid profiles, and HbA1c levels. 1.3.3.3.1."
+      },
+      {
+        "id": "visit_llm_16",
+        "visitName": "Early Termination (ET) Visit",
+        "targetDay": null,
+        "windowBefore": 0,
+        "windowAfter": 0,
+        "isRequired": false,
+        "visitNumber": 16,
+        "epoch": "On-Treatment"
+      },
+      {
+        "id": "visit_llm_17",
+        "visitName": "Unscheduled Visits",
+        "targetDay": null,
+        "windowBefore": 0,
+        "windowAfter": 0,
+        "isRequired": false,
+        "visitNumber": 17,
+        "epoch": "On-Treatment"
+      },
+      {
+        "id": "visit_4",
+        "visitName": "Randomization",
+        "targetDay": 1,
+        "windowBefore": 0,
+        "windowAfter": 0,
+        "isRequired": true,
+        "visitNumber": 9,
+        "epoch": "Treatment",
+        "sourceText": "Day 1: Randomization and Assessments .............................................................................. 75 On-Treahnent Assessments ........................................................"
+      },
+      {
+        "id": "visit_14",
+        "visitName": "Day 8",
+        "targetDay": 8,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 10,
+        "epoch": "On-Treatment",
+        "sourceText": "personal reasons, and the second subject withdrew on Study Day 8 following a positive pregnancy test."
+      },
+      {
+        "id": "visit_17",
+        "visitName": "Day 13",
+        "targetDay": 13,
+        "windowBefore": 0,
+        "windowAfter": 0,
+        "isRequired": true,
+        "visitNumber": 11,
+        "sourceText": "One subject experienced a Grade 2 AE of acute urticaria on Day 13 following treatment with SEL + GS-0976 (single agent tablets) on Day 1 and SEL/GS-0976 (FDC) on Day 9. This led to the discontinuation"
+      },
+      {
+        "id": "visit_6",
+        "visitName": "Week 4",
+        "targetDay": 22,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 12,
+        "targetWeek": 4,
+        "sourceText": "Week 4, Week 12, and Week 36 Visits (±3 days) ................................................................ 78 6.4.3. Week 8, Week 16, Week 20, Week 28, Week 32, Week 40, and Week 44"
+      },
+      {
+        "id": "visit_13",
+        "visitName": "Day 23",
+        "targetDay": 23,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 13,
+        "sourceText": "treatment. Two subjects discontinued early. One subject withdrew on Study Day 23 due to personal reasons, and the second subject withdrew on Study Day 8 following a positive pregnancy test."
+      },
+      {
+        "id": "visit_llm_4",
+        "visitName": "Week 4 Visit",
+        "targetDay": 29,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 4,
+        "targetWeek": 4,
+        "epoch": "On-Treatment"
+      },
+      {
+        "id": "visit_7",
+        "visitName": "Week 8",
+        "targetDay": 50,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 15,
+        "targetWeek": 8,
+        "sourceText": "Week 8, Week 16, Week 20, Week 28, Week 32, Week 40, and Week 44 6.4.4. 6.4.5."
+      },
+      {
+        "id": "visit_llm_5",
+        "visitName": "Week 8 Visit",
+        "targetDay": 57,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 5,
+        "targetWeek": 8,
+        "epoch": "On-Treatment"
+      },
+      {
+        "id": "visit_19",
+        "visitName": "Day 62",
+        "targetDay": 62,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 17,
+        "sourceText": "Day 62, but this was not related to an AE. 1.5.2.2.4. Preliminary Safety Results"
+      },
+      {
+        "id": "visit_16",
+        "visitName": "Week 12",
+        "targetDay": 78,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 18,
+        "targetWeek": 12,
+        "sourceText": "least squares mean (LSM) change from baseline in MRI-PDFF at Week 12 was statistically significant for the GS-0976 20 mg group (−3.42% [95% CI: −5.73, −1.11; p = 0.004]). Larger proportions of subject"
+      },
+      {
+        "id": "visit_20",
+        "visitName": "Day 84",
+        "targetDay": 84,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 19,
+        "sourceText": "their INR on Day 84 that was believed to be a lab error and normalized on repeat testing without intervention. Also, there were no concurrent changes in liver biochemistry testing with this transient "
+      },
+      {
+        "id": "visit_llm_6",
+        "visitName": "Week 12 Visit",
+        "targetDay": 85,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 6,
+        "targetWeek": 12,
+        "epoch": "On-Treatment"
+      },
+      {
+        "id": "visit_18",
+        "visitName": "Day 112",
+        "targetDay": 112,
+        "windowBefore": 0,
+        "windowAfter": 0,
+        "isRequired": true,
+        "visitNumber": 21,
+        "sourceText": "elevation of ALT and AST (Study Day 112), after stopping the study drug at Day 84. This was in the context of a viral illness. There was no concurrent increase in bilirubin or INR, and the ALT and AST"
+      },
+      {
+        "id": "visit_llm_7",
+        "visitName": "Week 16 Visit",
+        "targetDay": 113,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 7,
+        "targetWeek": 16,
+        "epoch": "On-Treatment"
+      },
+      {
+        "id": "visit_llm_8",
+        "visitName": "Week 20 Visit",
+        "targetDay": 141,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 8,
+        "targetWeek": 20,
+        "epoch": "On-Treatment"
+      },
+      {
+        "id": "visit_8",
+        "visitName": "Week 24",
+        "targetDay": 162,
+        "windowBefore": 7,
+        "windowAfter": 7,
+        "isRequired": false,
+        "visitNumber": 24,
+        "targetWeek": 24,
+        "sourceText": "Week 24 and Week 48 (±7 days) ......................................................................................... 80 Early Te1mination (ET) Visit ................................................"
+      },
+      {
+        "id": "visit_llm_9",
+        "visitName": "Week 24 Visit",
+        "targetDay": 169,
+        "windowBefore": 7,
+        "windowAfter": 7,
+        "isRequired": true,
+        "visitNumber": 9,
+        "targetWeek": 24,
+        "epoch": "On-Treatment"
+      },
+      {
+        "id": "visit_llm_10",
+        "visitName": "Week 28 Visit",
+        "targetDay": 197,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 10,
+        "targetWeek": 28,
+        "epoch": "On-Treatment"
+      },
+      {
+        "id": "visit_llm_11",
+        "visitName": "Week 32 Visit",
+        "targetDay": 225,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 11,
+        "targetWeek": 32,
+        "epoch": "On-Treatment"
+      },
+      {
+        "id": "visit_llm_12",
+        "visitName": "Week 36 Visit",
+        "targetDay": 253,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 12,
+        "targetWeek": 36,
+        "epoch": "On-Treatment"
+      },
+      {
+        "id": "visit_llm_13",
+        "visitName": "Week 40 Visit",
+        "targetDay": 281,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 13,
+        "targetWeek": 40,
+        "epoch": "On-Treatment"
+      },
+      {
+        "id": "visit_llm_14",
+        "visitName": "Week 44 Visit",
+        "targetDay": 309,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 14,
+        "targetWeek": 44,
+        "epoch": "On-Treatment"
+      },
+      {
+        "id": "visit_10",
+        "visitName": "Week 48",
+        "targetDay": 330,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 31,
+        "targetWeek": 48,
+        "sourceText": "12-lead ECG at Week 48 • Chemistry, hematology, and coagulation at each visit"
+      },
+      {
+        "id": "visit_llm_15",
+        "visitName": "Week 48 Visit",
+        "targetDay": 337,
+        "windowBefore": 7,
+        "windowAfter": 7,
+        "isRequired": true,
+        "visitNumber": 15,
+        "targetWeek": 48,
+        "epoch": "On-Treatment"
+      },
+      {
+        "id": "visit_9",
+        "visitName": "Follow-up",
+        "targetDay": 365,
+        "windowBefore": 5,
+        "windowAfter": 5,
+        "isRequired": true,
+        "visitNumber": 33,
+        "epoch": "Post-treatment",
+        "sourceText": "Follow-Up Visit (±5 days) ................................................................................................... 85 Criteria for Discontinuation of Study Dmg ............................."
+      }
+    ],
+    "randomizationScheme": {
+      "id": "randomization_1",
+      "ratio": "2:2:1:1:1:1:2",
+      "method": "",
+      "centralRandomization": true,
+      "stratificationFactors": [
+        {
+          "id": "strat_llm_1",
+          "name": "Fibrosis Stage",
+          "categories": [
+            "Bridging (F3) Fibrosis",
+            "Compensated Cirrhosis (F4)"
+          ],
+          "isBlocking": false
+        }
+      ],
+      "sourceText": "Selonsertib, GS-0976, GS-9674 \nProtocol GS-US-454-4378 \nGilead Sciences, Inc. \nFinal \nAmendment4 \n5.1.1. \nProcedures for Breaking Treatment Codes ......................................................"
+    }
+  }
+}

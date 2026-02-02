@@ -1,0 +1,215 @@
+{
+  "success": true,
+  "pagesUsed": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16
+  ],
+  "modelUsed": "gemini-3-flash-preview",
+  "studyDesignStructure": {
+    "studyArms": [
+      {
+        "id": "arm_1",
+        "name": "ABBV-951 Treatment Arm",
+        "type": {
+          "code": "Experimental Arm",
+          "codeSystem": "USDM",
+          "decode": "Experimental Arm"
+        },
+        "instanceType": "StudyArm",
+        "description": "All subjects receive an oral loading dose of LD+DDCI followed by a 24-hour daily continuous subcutaneous infusion (CSCI) of ABBV-951. The dose is individualized and titrated during an Optimization Period to achieve optimal clinical response.",
+        "extensionAttributes": [
+          {
+            "url": "x-titration",
+            "valueString": "true"
+          },
+          {
+            "url": "x-doseEpochs",
+            "valueString": "[{'dose': 'Individualized (Starting rate F1 based on baseline LED)', 'startDay': 1, 'endDay': 28, 'description': 'Optimization Period: Weekly adjustments to ABBV-951 and concomitant PD medications to reach optimal clinical response.'}, {'dose': 'Optimal therapeutic dose', 'startDay': 29, 'endDay': 364, 'description': 'Maintenance Period: 48 weeks of continuous infusion at the optimized dose.'}]"
+          }
+        ]
+      }
+    ],
+    "studyCells": [
+      {
+        "id": "cell_1",
+        "armId": "arm_1",
+        "epochId": "epoch_1",
+        "elementIds": [
+          "elem_1"
+        ],
+        "instanceType": "StudyCell"
+      },
+      {
+        "id": "cell_2",
+        "armId": "arm_1",
+        "epochId": "epoch_2",
+        "elementIds": [
+          "elem_2"
+        ],
+        "instanceType": "StudyCell"
+      },
+      {
+        "id": "cell_3",
+        "armId": "arm_1",
+        "epochId": "epoch_3",
+        "elementIds": [
+          "elem_3"
+        ],
+        "instanceType": "StudyCell"
+      },
+      {
+        "id": "cell_4",
+        "armId": "arm_1",
+        "epochId": "epoch_4",
+        "elementIds": [
+          "elem_4"
+        ],
+        "instanceType": "StudyCell"
+      }
+    ],
+    "studyCohorts": [],
+    "studyElements": [
+      {
+        "id": "elem_1",
+        "name": "ABBV-951 Treatment Arm - Screening Period",
+        "instanceType": "StudyElement",
+        "description": "Treatment period for ABBV-951 Treatment Arm during Screening Period"
+      },
+      {
+        "id": "elem_2",
+        "name": "ABBV-951 Treatment Arm - Optimization Period",
+        "instanceType": "StudyElement",
+        "description": "Treatment period for ABBV-951 Treatment Arm during Optimization Period"
+      },
+      {
+        "id": "elem_3",
+        "name": "ABBV-951 Treatment Arm - Maintenance Period",
+        "instanceType": "StudyElement",
+        "description": "Treatment period for ABBV-951 Treatment Arm during Maintenance Period"
+      },
+      {
+        "id": "elem_4",
+        "name": "ABBV-951 Treatment Arm - Follow-up",
+        "instanceType": "StudyElement",
+        "description": "Treatment period for ABBV-951 Treatment Arm during Follow-up"
+      }
+    ],
+    "summary": {
+      "armCount": 1,
+      "cellCount": 4,
+      "cohortCount": 0,
+      "elementCount": 4
+    },
+    "studyDesign": {
+      "id": "sd_1",
+      "name": "Study Design",
+      "instanceType": "InterventionalStudyDesign",
+      "trialIntentTypes": [
+        {
+          "code": "Treatment",
+          "codeSystem": "USDM",
+          "decode": "Treatment"
+        }
+      ],
+      "trialType": {
+        "code": "Interventional",
+        "codeSystem": "USDM",
+        "decode": "Interventional"
+      },
+      "blindingSchema": {
+        "code": "Open Label",
+        "codeSystem": "USDM",
+        "decode": "Open Label"
+      },
+      "randomizationType": {
+        "code": "Non-Randomized",
+        "codeSystem": "USDM",
+        "decode": "Non-Randomized"
+      },
+      "armIds": [
+        "arm_1"
+      ],
+      "therapeuticAreas": [
+        "Neurology",
+        "Parkinson's Disease"
+      ]
+    }
+  },
+  "rawResponse": {
+    "studyDesign": {
+      "type": "Interventional",
+      "trialIntentTypes": [
+        "Treatment"
+      ],
+      "blinding": {
+        "schema": "Open Label",
+        "maskedRoles": []
+      },
+      "randomization": {
+        "type": "Non-Randomized",
+        "allocationRatio": null,
+        "stratificationFactors": []
+      },
+      "controlType": null,
+      "therapeuticAreas": [
+        "Neurology",
+        "Parkinson's Disease"
+      ]
+    },
+    "arms": [
+      {
+        "name": "ABBV-951 Treatment Arm",
+        "type": "Experimental Arm",
+        "description": "All subjects receive an oral loading dose of LD+DDCI followed by a 24-hour daily continuous subcutaneous infusion (CSCI) of ABBV-951. The dose is individualized and titrated during an Optimization Period to achieve optimal clinical response.",
+        "isTitration": true,
+        "doseEpochs": [
+          {
+            "dose": "Individualized (Starting rate F1 based on baseline LED)",
+            "startDay": 1,
+            "endDay": 28,
+            "description": "Optimization Period: Weekly adjustments to ABBV-951 and concomitant PD medications to reach optimal clinical response."
+          },
+          {
+            "dose": "Optimal therapeutic dose",
+            "startDay": 29,
+            "endDay": 364,
+            "description": "Maintenance Period: 48 weeks of continuous infusion at the optimized dose."
+          }
+        ]
+      }
+    ],
+    "cohorts": [],
+    "epochs": [
+      {
+        "name": "Screening Period",
+        "description": "10 to 42 days (up to 90 days), including a 6-day Monitoring Period for PD Diary and wearable device baseline."
+      },
+      {
+        "name": "Optimization Period",
+        "description": "Weeks 1-4 (Days 1-28); dose titration of ABBV-951 and adjustment of concomitant PD medications."
+      },
+      {
+        "name": "Maintenance Period",
+        "description": "Weeks 5-52 (Days 29-364); continuous infusion at stable optimal dose."
+      },
+      {
+        "name": "Follow-up",
+        "description": "30-day follow-up call after the end of infusion for subjects not entering the extension study."
+      }
+    ]
+  }
+}

@@ -1,0 +1,966 @@
+{
+  "usdmVersion": "4.0",
+  "systemName": "Protocol2USDM",
+  "systemVersion": "6.2.0",
+  "study": {
+    "id": "e6c2e6b1-9f85-4a09-8c6a-a8366dba2002",
+    "name": "",
+    "instanceType": "Study",
+    "versions": [
+      {
+        "id": "89b16cba-68a8-4d22-bbcd-62f7bc8acabd",
+        "versionIdentifier": "1.0",
+        "rationale": "Initial protocol version",
+        "instanceType": "StudyVersion",
+        "studyDesigns": [
+          {
+            "id": "sd_1",
+            "name": "Study Design",
+            "rationale": "Protocol-defined study design",
+            "instanceType": "InterventionalStudyDesign",
+            "blindingSchema": {
+              "id": "7ff6e49c-34b8-45eb-b5ce-20039a3c7edc",
+              "instanceType": "AliasCode",
+              "standardCode": {
+                "id": "3794fef2-4b7a-47d8-ba42-848d25b6082a",
+                "code": "C49656",
+                "codeSystem": "http://www.cdisc.org",
+                "codeSystemVersion": "2024-09-27",
+                "decode": "Open Label",
+                "instanceType": "Code"
+              }
+            },
+            "model": {
+              "id": "c6384291-d0a5-4dac-90f4-826dccfb43e0",
+              "code": "C82638",
+              "codeSystem": "http://www.cdisc.org",
+              "codeSystemVersion": "2024-09-27",
+              "decode": "Single Group Study",
+              "instanceType": "Code"
+            },
+            "epochs": [
+              {
+                "id": "epoch_1",
+                "name": "Screening/Baseline",
+                "instanceType": "StudyEpoch",
+                "type": {
+                  "id": "b175850f-e113-47c6-a230-9fc054aea04c",
+                  "code": "C98779",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Screening Epoch",
+                  "instanceType": "Code"
+                }
+              },
+              {
+                "id": "epoch_2",
+                "name": "Treatment (Cycle = 28 days)",
+                "instanceType": "StudyEpoch",
+                "type": {
+                  "id": "18dd338e-b433-4ef5-94ce-95980fa37020",
+                  "code": "C98780",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Treatment Epoch",
+                  "instanceType": "Code"
+                }
+              },
+              {
+                "id": "epoch_3",
+                "name": "Follow-Up Period",
+                "instanceType": "StudyEpoch",
+                "type": {
+                  "id": "d1165acf-4ef0-4672-93e1-1577201b869a",
+                  "code": "C98781",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Follow-up Epoch",
+                  "instanceType": "Code"
+                }
+              }
+            ],
+            "activities": [
+              {
+                "id": "grp_1",
+                "name": "Obtain Informed Consent",
+                "instanceType": "Activity",
+                "childIds": [
+                  "act_1",
+                  "act_2",
+                  "act_3",
+                  "act_4"
+                ]
+              },
+              {
+                "id": "grp_2",
+                "name": "Patient History",
+                "instanceType": "Activity",
+                "childIds": [
+                  "act_5",
+                  "act_6",
+                  "act_7",
+                  "act_8",
+                  "act_9",
+                  "act_10",
+                  "act_11",
+                  "act_12",
+                  "act_13"
+                ]
+              },
+              {
+                "id": "grp_3",
+                "name": "Enrollment",
+                "instanceType": "Activity",
+                "childIds": [
+                  "act_14",
+                  "act_15"
+                ]
+              },
+              {
+                "id": "grp_4",
+                "name": "Physical Examination",
+                "instanceType": "Activity",
+                "childIds": [
+                  "act_16"
+                ]
+              },
+              {
+                "id": "grp_5",
+                "name": "Patient Reported Outcomes",
+                "instanceType": "Activity",
+                "childIds": [
+                  "act_17",
+                  "act_18",
+                  "act_19"
+                ]
+              },
+              {
+                "id": "grp_7",
+                "name": "Biomarkers",
+                "instanceType": "Activity",
+                "childIds": [
+                  "act_20",
+                  "act_21"
+                ]
+              },
+              {
+                "id": "act_1",
+                "name": "Study ICF",
+                "instanceType": "Activity",
+                "description": "Obtain written informed consent from participant"
+              },
+              {
+                "id": "act_2",
+                "name": "Pharmacogenetic ICF",
+                "instanceType": "Activity",
+                "description": "Informed consent for pharmacogenetic research"
+              },
+              {
+                "id": "act_3",
+                "name": "IRT Registration- Enrollment",
+                "instanceType": "Activity",
+                "description": "Interactive Response Technology registration and enrollment"
+              },
+              {
+                "id": "act_4",
+                "name": "Treatment beyond progression ICF",
+                "instanceType": "Activity",
+                "description": "Informed consent for treatment beyond progression"
+              },
+              {
+                "id": "act_5",
+                "name": "Demography",
+                "instanceType": "Activity",
+                "description": "Demographic data collection"
+              },
+              {
+                "id": "act_6",
+                "name": "Inclusion/exclusion",
+                "instanceType": "Activity",
+                "description": "Assessment of inclusion and exclusion criteria"
+              },
+              {
+                "id": "act_7",
+                "name": "Past and current medical conditions including cardiovascular medical history and risk factors",
+                "instanceType": "Activity",
+                "description": "Medical history assessment"
+              },
+              {
+                "id": "act_8",
+                "name": "Diagnosis and extent of cancer",
+                "instanceType": "Activity",
+                "description": "Cancer diagnosis and staging"
+              },
+              {
+                "id": "act_9",
+                "name": "Alcohol History",
+                "instanceType": "Activity",
+                "description": "History of alcohol consumption"
+              },
+              {
+                "id": "act_10",
+                "name": "Smoking History",
+                "instanceType": "Activity",
+                "description": "History of smoking"
+              },
+              {
+                "id": "act_11",
+                "name": "HIV History",
+                "instanceType": "Activity",
+                "description": "History of HIV infection"
+              },
+              {
+                "id": "act_12",
+                "name": "Prior antineoplastic therapies (meds, surgery, radiation)",
+                "instanceType": "Activity",
+                "description": "History of prior cancer treatments"
+              },
+              {
+                "id": "act_13",
+                "name": "Antineoplastic therapies since discontinuation of study treatment",
+                "instanceType": "Activity",
+                "description": "Follow-up antineoplastic therapies"
+              },
+              {
+                "id": "act_14",
+                "name": "Drug Supply (IRT)",
+                "instanceType": "Activity",
+                "description": "Drug supply management via IRT"
+              },
+              {
+                "id": "act_15",
+                "name": "Disposition Assessment (at the end of each study phase)",
+                "instanceType": "Activity",
+                "description": "Assessment of patient disposition"
+              },
+              {
+                "id": "act_16",
+                "name": "Physical Examination (complete)",
+                "instanceType": "Activity",
+                "description": "Complete physical examination"
+              },
+              {
+                "id": "act_17",
+                "name": "EORTC QLQ-C30",
+                "instanceType": "Activity",
+                "description": "Quality of life questionnaire"
+              },
+              {
+                "id": "act_18",
+                "name": "EQ-5D-5L",
+                "instanceType": "Activity",
+                "description": "Health status questionnaire"
+              },
+              {
+                "id": "act_19",
+                "name": "FACT-M subscale (16 questions)",
+                "instanceType": "Activity",
+                "description": "Functional Assessment of Cancer Therapy - Melanoma"
+              },
+              {
+                "id": "act_20",
+                "name": "Newly acquired tumor tissue for central BRAF V600 mutation testing",
+                "instanceType": "Activity",
+                "description": "Tumor tissue collection for BRAF testing"
+              },
+              {
+                "id": "act_21",
+                "name": "Tumor tissue (archival or new) for central BRAF V600 mutation testing",
+                "instanceType": "Activity",
+                "description": "Archival or new tumor tissue for BRAF testing"
+              }
+            ],
+            "encounters": [
+              {
+                "id": "enc_1",
+                "name": "Screening (-28 to -1)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "1381c646-fab0-46ba-b24f-1726a1445913",
+                  "code": "C48262",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Screening",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_1"
+              },
+              {
+                "id": "enc_2",
+                "name": "Cycle 1 Day 1",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "309437e3-aa44-4d89-a3ba-48b526e33505",
+                  "code": "C82517",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Baseline",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_2"
+              },
+              {
+                "id": "enc_3",
+                "name": "Cycle 1 Day 8",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "133627f4-0207-421a-ab5d-dd352901eecb",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_2"
+              },
+              {
+                "id": "enc_4",
+                "name": "Cycle 1 Day 15",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "cf49a517-13a5-4bd6-93c3-59ed9d5a5b9b",
+                  "code": "C82517",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Baseline",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_2"
+              },
+              {
+                "id": "enc_5",
+                "name": "Cycle 2 Day 1",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "7603cf43-4928-45c7-b186-90a9e06cea90",
+                  "code": "C82517",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Baseline",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_2"
+              },
+              {
+                "id": "enc_6",
+                "name": "Cycle 2 Day 8",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "e2e21344-d83f-49db-b9bb-7c55a5f835f6",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_2"
+              },
+              {
+                "id": "enc_7",
+                "name": "Cycle 2 Day 15",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "340ab3a7-f195-441f-9569-c586fc70820f",
+                  "code": "C82517",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Baseline",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_2"
+              },
+              {
+                "id": "enc_8",
+                "name": "Cycle 3 Day 1",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "97fd4703-ea49-4ac7-bf43-6c2e7646c2e8",
+                  "code": "C82517",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Baseline",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_2"
+              },
+              {
+                "id": "enc_9",
+                "name": "Cycle 3 Day 15",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "5bc85534-bcad-4fc9-a43e-6cc981681df4",
+                  "code": "C82517",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Baseline",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_2"
+              },
+              {
+                "id": "enc_10",
+                "name": "Subsequent Cycles Day 1",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "107805b9-565a-46c6-961b-88ec721b2f88",
+                  "code": "C82517",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Baseline",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_2"
+              },
+              {
+                "id": "enc_11",
+                "name": "End of Study Treatment (EoT)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "a20514f3-223d-48d9-90fe-f3d403cf5794",
+                  "code": "C126070",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "End of Study",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_2"
+              },
+              {
+                "id": "enc_12",
+                "name": "30-Day Safety Follow Up",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "4487c824-7187-4ec2-b3dc-84913580fe9b",
+                  "code": "C99158",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Follow-up",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_3"
+              },
+              {
+                "id": "enc_13",
+                "name": "60-Day Safety Follow Up",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "5499c404-5467-4352-a78e-67238392fbfb",
+                  "code": "C99158",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Follow-up",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_3"
+              },
+              {
+                "id": "enc_14",
+                "name": "90-Day Safety Follow Up",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "19db5653-2d9c-4971-8d27-321097237b5a",
+                  "code": "C99158",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Follow-up",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_3"
+              },
+              {
+                "id": "enc_15",
+                "name": "120-Day Safety Follow Up",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "1054cb55-4d2c-430e-836f-4f78f572fc43",
+                  "code": "C99158",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Follow-up",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_3"
+              },
+              {
+                "id": "enc_16",
+                "name": "150-Day Safety Follow Up",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "cb85ebfb-7ab4-4ae2-9770-39c0c4b701e2",
+                  "code": "C99158",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Follow-up",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_3"
+              },
+              {
+                "id": "enc_17",
+                "name": "End of Post Treatment Follow Up",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "8c07c984-98f0-4a99-b08c-c6670c69eff5",
+                  "code": "C99158",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Follow-up",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_3"
+              },
+              {
+                "id": "enc_18",
+                "name": "Survival Follow Up",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "209f4dbf-7a9e-43e3-a911-50ed2e5ddf09",
+                  "code": "C99158",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Follow-up",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_3"
+              }
+            ],
+            "scheduleTimelines": [
+              {
+                "id": "timeline_1",
+                "name": "Main Schedule Timeline",
+                "mainTimeline": true,
+                "instanceType": "ScheduleTimeline",
+                "entryCondition": "Subject enrolled in study",
+                "entryId": "2e7cad23-150c-4de7-8b49-4f6c9fe81005",
+                "instances": [
+                  {
+                    "id": "2e7cad23-150c-4de7-8b49-4f6c9fe81005",
+                    "activityIds": [
+                      "act_1"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_1@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "278534df-0640-4597-a5d8-974b868d4d09",
+                    "activityIds": [
+                      "act_2"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_2@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "af4d22e5-060f-4411-bd87-f9590a511418",
+                    "activityIds": [
+                      "act_3"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_3@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "04be449d-5164-4431-bd10-f80ab05734ff",
+                    "activityIds": [
+                      "act_4"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_4@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "67bf83dc-b0f9-432d-af97-0f46e60b9d33",
+                    "activityIds": [
+                      "act_5"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_5@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "f3f39734-6ff0-4425-a9f9-1cf523ad6284",
+                    "activityIds": [
+                      "act_6"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_6@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "479eafb3-1901-4ae1-a15a-55903a8a8762",
+                    "activityIds": [
+                      "act_7"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_7@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "fded4c5f-6e5a-415d-bba1-6c07fddbc427",
+                    "activityIds": [
+                      "act_8"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_8@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "08f41b14-2ee6-4d89-b438-1c4fe88e542a",
+                    "activityIds": [
+                      "act_9"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_9@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "4642da7d-304a-48a7-bb41-ae622efd1170",
+                    "activityIds": [
+                      "act_10"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_10@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "9b600c3d-12a0-4c25-8e4a-2c312b65e09d",
+                    "activityIds": [
+                      "act_11"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_11@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "3910f7b5-ebc5-4403-aacb-e202afd306b0",
+                    "activityIds": [
+                      "act_12"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_12@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "c5d1066c-a718-4bbd-9413-4ff80361023a",
+                    "activityIds": [
+                      "act_13"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_13@enc_12",
+                    "encounterId": "enc_12"
+                  },
+                  {
+                    "id": "b315337d-29de-4355-b9e0-35dda12b63b1",
+                    "activityIds": [
+                      "act_13"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_13@enc_13",
+                    "encounterId": "enc_13"
+                  },
+                  {
+                    "id": "9ed05040-bced-44f6-b0d2-8d090d6f1865",
+                    "activityIds": [
+                      "act_13"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_13@enc_14",
+                    "encounterId": "enc_14"
+                  },
+                  {
+                    "id": "2c90f890-62e2-4b7d-80c2-276adcb4aac9",
+                    "activityIds": [
+                      "act_13"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_13@enc_15",
+                    "encounterId": "enc_15"
+                  },
+                  {
+                    "id": "8afdfc54-1383-4183-82c7-2e1ef315d40e",
+                    "activityIds": [
+                      "act_13"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_13@enc_16",
+                    "encounterId": "enc_16"
+                  },
+                  {
+                    "id": "69569015-cf56-41ca-ab32-bef652f1b800",
+                    "activityIds": [
+                      "act_13"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_13@enc_17",
+                    "encounterId": "enc_17"
+                  },
+                  {
+                    "id": "a23fe3fe-91bf-4498-8699-c1c298c24746",
+                    "activityIds": [
+                      "act_13"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_13@enc_18",
+                    "encounterId": "enc_18"
+                  },
+                  {
+                    "id": "08aeea55-cdc3-4634-988a-eea4332906f6",
+                    "activityIds": [
+                      "act_14"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_14@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "43af114d-c4f3-4f0c-a0d7-830ffcb899c4",
+                    "activityIds": [
+                      "act_15"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_15@enc_11",
+                    "encounterId": "enc_11"
+                  },
+                  {
+                    "id": "5304d332-eec9-4b76-8401-0bbf8c94b682",
+                    "activityIds": [
+                      "act_15"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_15@enc_17",
+                    "encounterId": "enc_17"
+                  },
+                  {
+                    "id": "43bccfff-7b8a-4889-b54c-2144cc4185b8",
+                    "activityIds": [
+                      "act_15"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_15@enc_18",
+                    "encounterId": "enc_18"
+                  },
+                  {
+                    "id": "55030a02-11cb-43da-9de2-b744f143b8b1",
+                    "activityIds": [
+                      "act_16"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_16@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "b1a4917e-b1bc-415e-9357-3a3ce82b8f75",
+                    "activityIds": [
+                      "act_17"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_17@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "c7ff0bea-15ad-49ee-8c88-a94aac13bf54",
+                    "activityIds": [
+                      "act_18"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_18@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "faa4c705-c077-457c-b135-49928421ba8c",
+                    "activityIds": [
+                      "act_19"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_19@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "f96698a2-8ef6-4fec-b1fb-a8f5394fe616",
+                    "activityIds": [
+                      "act_20"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_20@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "3a9a8abf-ad8e-4ac5-a6b4-9ad6ed0f396d",
+                    "activityIds": [
+                      "act_20"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_20@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "47f61d8c-68df-4574-ac68-421074fac350",
+                    "activityIds": [
+                      "act_20"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_20@enc_8",
+                    "encounterId": "enc_8"
+                  },
+                  {
+                    "id": "48170714-1a54-4863-bee6-8219bba59f81",
+                    "activityIds": [
+                      "act_21"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_21@enc_1",
+                    "encounterId": "enc_1"
+                  }
+                ]
+              }
+            ],
+            "notes": [
+              {
+                "id": "soa_fn_1",
+                "text": "For Cycle 1, all assessments have a ± 3 day window unless otherwise indicated.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_2",
+                "text": "After Cycle 1, all assessments have a ± 7 day window, unless otherwise indicated.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_3",
+                "text": "If study drug is being held due to toxicity, then the scheduled visits and assessments should still be performed per protocol.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_4",
+                "text": "Following final PFS analysis; colour digital photography assessments are no longer required.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_5",
+                "text": "Suspected AEs up to Day 150; non-suspected AEs up to Day 150 or start of new post treatment anti-neoplastic medication, whichever is sooner.",
+                "instanceType": "CommentAnnotation"
+              }
+            ],
+            "activityGroups": [
+              {
+                "id": "grp_1",
+                "name": "Obtain Informed Consent",
+                "description": null,
+                "childIds": [
+                  "act_1",
+                  "act_2",
+                  "act_3",
+                  "act_4"
+                ],
+                "instanceType": "Activity",
+                "activityNames": [
+                  "Study ICF",
+                  "Pharmacogenetic ICF",
+                  "IRT Registration- Enrollment",
+                  "Treatment beyond progression ICF"
+                ]
+              },
+              {
+                "id": "grp_2",
+                "name": "Patient History",
+                "description": null,
+                "childIds": [
+                  "act_5",
+                  "act_6",
+                  "act_7",
+                  "act_8",
+                  "act_9",
+                  "act_10",
+                  "act_11",
+                  "act_12",
+                  "act_13"
+                ],
+                "instanceType": "Activity",
+                "activityNames": [
+                  "Demography",
+                  "Inclusion/exclusion",
+                  "Past and current medical conditions including cardiovascular medical history and risk factors",
+                  "Diagnosis and extent of cancer",
+                  "Alcohol History",
+                  "Smoking History",
+                  "HIV History",
+                  "Prior antineoplastic therapies (meds, surgery, radiation)",
+                  "Prior/concomitant medications",
+                  "Antineoplastic therapies since discontinuation of study treatment"
+                ]
+              },
+              {
+                "id": "grp_3",
+                "name": "Enrollment",
+                "description": null,
+                "childIds": [
+                  "act_14",
+                  "act_15"
+                ],
+                "instanceType": "Activity",
+                "activityNames": [
+                  "Drug Supply (IRT)",
+                  "Disposition Assessment (at the end of each study phase)"
+                ]
+              },
+              {
+                "id": "grp_4",
+                "name": "Physical Examination",
+                "description": null,
+                "childIds": [
+                  "act_16"
+                ],
+                "instanceType": "Activity",
+                "activityNames": [
+                  "Physical Examination (complete)"
+                ]
+              },
+              {
+                "id": "grp_5",
+                "name": "Patient Reported Outcomes",
+                "description": null,
+                "childIds": [
+                  "act_17",
+                  "act_18",
+                  "act_19"
+                ],
+                "instanceType": "Activity",
+                "activityNames": [
+                  "EORTC QLQ-C30",
+                  "EQ-5D-5L",
+                  "FACT-M subscale (16 questions)"
+                ]
+              },
+              {
+                "id": "grp_6",
+                "name": "Safety",
+                "description": null,
+                "childIds": [],
+                "instanceType": "Activity",
+                "activityNames": [
+                  "Adverse events",
+                  "Serious adverse events"
+                ]
+              },
+              {
+                "id": "grp_7",
+                "name": "Biomarkers",
+                "description": null,
+                "childIds": [
+                  "act_20",
+                  "act_21"
+                ],
+                "instanceType": "Activity",
+                "activityNames": [
+                  "Newly acquired tumor tissue for central BRAF V600 mutation testing",
+                  "Tumor tissue (archival or new) for central BRAF V600 mutation testing"
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

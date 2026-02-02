@@ -142,7 +142,7 @@ def extract_advanced_entities(
         logger.info("Extracting advanced entities with LLM...")
         prompt = build_advanced_extraction_prompt(protocol_text)
         
-        response = call_llm(prompt=prompt, model_name=model_name, json_mode=True)
+        response = call_llm(prompt=prompt, model_name=model_name, json_mode=True, extractor_name="advanced")
         
         if 'error' in response:
             result.error = response['error']
@@ -185,8 +185,26 @@ def _parse_json_response(response_text: str) -> Optional[Dict[str, Any]]:
     response_text = response_text.strip()
     
     try:
-        return json.loads(response_text)
+        result = json.loads(response_text)
+        # Handle case where LLM returns a list instead of a dict
+        if isinstance(result, list):
+            if len(result) == 1 and isinstance(result[0], dict):
+                return result[0]
+            # Wrap list in expected structure
+            return {'amendments': result}
+        return result
     except json.JSONDecodeError as e:
+        # Try to extract just the first JSON object if there's extra data
+        if 'Extra data' in str(e):
+            try:
+                # Find the first complete JSON object
+                decoder = json.JSONDecoder()
+                result, _ = decoder.raw_decode(response_text)
+                if isinstance(result, list) and len(result) == 1:
+                    return result[0]
+                return result if isinstance(result, dict) else {'amendments': result}
+            except Exception:
+                pass
         logger.warning(f"Failed to parse JSON response: {e}")
         return None
 

@@ -22,10 +22,16 @@ PROCEDURES_USER_PROMPT = """Extract all Procedures, Medical Devices, and Drug In
 - Assessment procedures (physical exams, neurological assessments)
 
 **Medical Devices to extract:**
-- Drug delivery devices (infusion pumps, autoinjectors, inhalers)
+- Drug delivery devices (infusion pumps, autoinjectors, inhalers, syringes)
 - Monitoring devices (glucose monitors, ECG devices, wearables)
 - Diagnostic devices (spirometers, imaging equipment)
+- Venous access devices (cannulas, catheters, IV lines)
 - Any specific device mentioned by name or model
+
+**DO NOT classify as medical devices:**
+- Drug formulations (tablets, capsules, pills, solutions, suspensions)
+- The study drug itself (this is an intervention, not a device)
+- Chemical compounds or active ingredients
 
 **Ingredients/Strengths to extract:**
 - Active pharmaceutical ingredients

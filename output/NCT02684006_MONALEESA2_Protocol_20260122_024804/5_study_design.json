@@ -1,0 +1,301 @@
+{
+  "success": true,
+  "pagesUsed": [
+    0,
+    1,
+    2,
+    9,
+    10,
+    11,
+    12,
+    13,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28
+  ],
+  "modelUsed": "gemini-3-flash-preview",
+  "studyDesignStructure": {
+    "studyArms": [
+      {
+        "id": "arm_1",
+        "name": "Arm A: Avelumab + Axitinib",
+        "type": {
+          "code": "Experimental Arm",
+          "codeSystem": "USDM",
+          "decode": "Experimental Arm"
+        },
+        "instanceType": "StudyArm",
+        "description": "Avelumab 10 mg/kg IV Q2W in a 6-week cycle + axitinib 5 mg PO BID continuously. Intrapatient axitinib dose escalation may occur if relevant criteria are met.",
+        "extensionAttributes": [
+          {
+            "url": "x-titration",
+            "valueString": "true"
+          },
+          {
+            "url": "x-doseEpochs",
+            "valueString": "[{'dose': 'Avelumab 10 mg/kg Q2W + Axitinib 5 mg BID', 'startDay': 1, 'description': 'Starting dose regimen; axitinib may be escalated based on safety/tolerability.'}]"
+          }
+        ]
+      },
+      {
+        "id": "arm_2",
+        "name": "Arm B: Sunitinib",
+        "type": {
+          "code": "Active Comparator Arm",
+          "codeSystem": "USDM",
+          "decode": "Active Comparator Arm"
+        },
+        "instanceType": "StudyArm",
+        "description": "Sunitinib 50 mg PO QD on Schedule 4/2 (4 weeks on treatment followed by 2 weeks off) in 6-week cycles."
+      }
+    ],
+    "studyCells": [
+      {
+        "id": "cell_1",
+        "armId": "arm_1",
+        "epochId": "epoch_1",
+        "elementIds": [
+          "elem_1"
+        ],
+        "instanceType": "StudyCell"
+      },
+      {
+        "id": "cell_2",
+        "armId": "arm_1",
+        "epochId": "epoch_2",
+        "elementIds": [
+          "elem_2"
+        ],
+        "instanceType": "StudyCell"
+      },
+      {
+        "id": "cell_3",
+        "armId": "arm_1",
+        "epochId": "epoch_3",
+        "elementIds": [
+          "elem_3"
+        ],
+        "instanceType": "StudyCell"
+      },
+      {
+        "id": "cell_4",
+        "armId": "arm_2",
+        "epochId": "epoch_1",
+        "elementIds": [
+          "elem_4"
+        ],
+        "instanceType": "StudyCell"
+      },
+      {
+        "id": "cell_5",
+        "armId": "arm_2",
+        "epochId": "epoch_2",
+        "elementIds": [
+          "elem_5"
+        ],
+        "instanceType": "StudyCell"
+      },
+      {
+        "id": "cell_6",
+        "armId": "arm_2",
+        "epochId": "epoch_3",
+        "elementIds": [
+          "elem_6"
+        ],
+        "instanceType": "StudyCell"
+      }
+    ],
+    "studyCohorts": [
+      {
+        "id": "cohort_1",
+        "name": "PD-L1 Positive",
+        "instanceType": "StudyCohort",
+        "characteristic": "Patients with PD-L1 expression prospectively defined as positive"
+      },
+      {
+        "id": "cohort_2",
+        "name": "All Comers",
+        "instanceType": "StudyCohort",
+        "characteristic": "Patients unselected for PD-L1 expression"
+      }
+    ],
+    "studyElements": [
+      {
+        "id": "elem_1",
+        "name": "Arm A: Avelumab + Axitinib - Screening",
+        "instanceType": "StudyElement",
+        "description": "Treatment period for Arm A: Avelumab + Axitinib during Screening"
+      },
+      {
+        "id": "elem_2",
+        "name": "Arm A: Avelumab + Axitinib - Study Treatment",
+        "instanceType": "StudyElement",
+        "description": "Treatment period for Arm A: Avelumab + Axitinib during Study Treatment"
+      },
+      {
+        "id": "elem_3",
+        "name": "Arm A: Avelumab + Axitinib - Follow-up",
+        "instanceType": "StudyElement",
+        "description": "Treatment period for Arm A: Avelumab + Axitinib during Follow-up"
+      },
+      {
+        "id": "elem_4",
+        "name": "Arm B: Sunitinib - Screening",
+        "instanceType": "StudyElement",
+        "description": "Treatment period for Arm B: Sunitinib during Screening"
+      },
+      {
+        "id": "elem_5",
+        "name": "Arm B: Sunitinib - Study Treatment",
+        "instanceType": "StudyElement",
+        "description": "Treatment period for Arm B: Sunitinib during Study Treatment"
+      },
+      {
+        "id": "elem_6",
+        "name": "Arm B: Sunitinib - Follow-up",
+        "instanceType": "StudyElement",
+        "description": "Treatment period for Arm B: Sunitinib during Follow-up"
+      }
+    ],
+    "summary": {
+      "armCount": 2,
+      "cellCount": 6,
+      "cohortCount": 2,
+      "elementCount": 6
+    },
+    "studyDesign": {
+      "id": "sd_1",
+      "name": "Study Design",
+      "instanceType": "InterventionalStudyDesign",
+      "trialIntentTypes": [
+        {
+          "code": "Treatment",
+          "codeSystem": "USDM",
+          "decode": "Treatment"
+        }
+      ],
+      "trialType": {
+        "code": "Interventional",
+        "codeSystem": "USDM",
+        "decode": "Interventional"
+      },
+      "blindingSchema": {
+        "code": "Open Label",
+        "codeSystem": "USDM",
+        "decode": "Open Label"
+      },
+      "randomizationType": {
+        "code": "Randomized",
+        "codeSystem": "USDM",
+        "decode": "Randomized"
+      },
+      "allocationRatio": {
+        "ratio": "1:1"
+      },
+      "stratificationFactors": [
+        "Eastern Cooperative Oncology Group Performance Status (ECOG PS) (0 vs. 1)",
+        "Region (United States vs Canada/Western Europe vs the rest of the world)"
+      ],
+      "controlType": {
+        "code": "Active Control",
+        "codeSystem": "USDM",
+        "decode": "Active Control"
+      },
+      "armIds": [
+        "arm_1",
+        "arm_2"
+      ],
+      "cohortIds": [
+        "cohort_1",
+        "cohort_2"
+      ],
+      "therapeuticAreas": [
+        "Oncology",
+        "Renal Cell Carcinoma"
+      ]
+    }
+  },
+  "rawResponse": {
+    "studyDesign": {
+      "type": "Interventional",
+      "trialIntentTypes": [
+        "Treatment"
+      ],
+      "blinding": {
+        "schema": "Open Label",
+        "maskedRoles": []
+      },
+      "randomization": {
+        "type": "Randomized",
+        "allocationRatio": "1:1",
+        "stratificationFactors": [
+          "Eastern Cooperative Oncology Group Performance Status (ECOG PS) (0 vs. 1)",
+          "Region (United States vs Canada/Western Europe vs the rest of the world)"
+        ]
+      },
+      "controlType": "Active Control",
+      "therapeuticAreas": [
+        "Oncology",
+        "Renal Cell Carcinoma"
+      ]
+    },
+    "arms": [
+      {
+        "name": "Arm A: Avelumab + Axitinib",
+        "type": "Experimental Arm",
+        "description": "Avelumab 10 mg/kg IV Q2W in a 6-week cycle + axitinib 5 mg PO BID continuously. Intrapatient axitinib dose escalation may occur if relevant criteria are met.",
+        "isTitration": true,
+        "doseEpochs": [
+          {
+            "dose": "Avelumab 10 mg/kg Q2W + Axitinib 5 mg BID",
+            "startDay": 1,
+            "endDay": null,
+            "description": "Starting dose regimen; axitinib may be escalated based on safety/tolerability."
+          }
+        ]
+      },
+      {
+        "name": "Arm B: Sunitinib",
+        "type": "Active Comparator",
+        "description": "Sunitinib 50 mg PO QD on Schedule 4/2 (4 weeks on treatment followed by 2 weeks off) in 6-week cycles.",
+        "isTitration": false,
+        "doseEpochs": []
+      }
+    ],
+    "cohorts": [
+      {
+        "name": "PD-L1 Positive",
+        "characteristic": "Patients with PD-L1 expression prospectively defined as positive"
+      },
+      {
+        "name": "All Comers",
+        "characteristic": "Patients unselected for PD-L1 expression"
+      }
+    ],
+    "epochs": [
+      {
+        "name": "Screening",
+        "description": "Up to 28 days prior to randomization"
+      },
+      {
+        "name": "Study Treatment",
+        "description": "6-week cycles (42 days) until confirmed disease progression, unacceptable toxicity, or withdrawal"
+      },
+      {
+        "name": "Follow-up",
+        "description": "Includes safety reporting for 90 days after last dose and long-term survival follow-up"
+      }
+    ]
+  }
+}

@@ -1,0 +1,282 @@
+{
+  "columnHierarchy": {
+    "epochs": [
+      {
+        "id": "epoch_1",
+        "name": "Screening",
+        "instanceType": "StudyEpoch",
+        "type": {
+          "id": "cfd125ec-7080-4b34-ae91-0d2b6bcf3907",
+          "code": "C98779",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Screening Epoch",
+          "instanceType": "Code"
+        }
+      },
+      {
+        "id": "epoch_2",
+        "name": "Baseline",
+        "instanceType": "StudyEpoch",
+        "type": {
+          "id": "e3572bb4-dabc-417e-a924-608ce085efa7",
+          "code": "C98780",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Treatment Epoch",
+          "instanceType": "Code"
+        }
+      },
+      {
+        "id": "epoch_3",
+        "name": "All Cycles [a1]",
+        "instanceType": "StudyEpoch",
+        "type": {
+          "id": "613f848e-6531-43f0-a8f2-73758912aa94",
+          "code": "C98780",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Treatment Epoch",
+          "instanceType": "Code"
+        }
+      },
+      {
+        "id": "epoch_4",
+        "name": "Treatment Discontinuation [b]",
+        "instanceType": "StudyEpoch",
+        "type": {
+          "id": "89778668-ef01-4ce2-9d4f-e6a7a8063d3a",
+          "code": "C98780",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Treatment Epoch",
+          "instanceType": "Code"
+        }
+      },
+      {
+        "id": "epoch_5",
+        "name": "Follow-Up",
+        "instanceType": "StudyEpoch",
+        "type": {
+          "id": "169928a0-7d6b-4563-b408-2d425a269abe",
+          "code": "C98781",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Follow-up Epoch",
+          "instanceType": "Code"
+        }
+      }
+    ],
+    "encounters": [
+      {
+        "id": "enc_1",
+        "name": "Screening (Days -28 to -1)",
+        "instanceType": "Encounter",
+        "type": {
+          "id": "5720444e-3713-410d-8f8b-c07ddd558e1c",
+          "code": "C48262",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Screening",
+          "instanceType": "Code"
+        },
+        "epochId": "epoch_1"
+      },
+      {
+        "id": "enc_2",
+        "name": "Baseline (Days -7 to -1)",
+        "instanceType": "Encounter",
+        "type": {
+          "id": "d1f3c622-e841-4e2c-b51d-9f9f900cfd60",
+          "code": "C82517",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Baseline",
+          "instanceType": "Code"
+        },
+        "epochId": "epoch_2"
+      },
+      {
+        "id": "enc_3",
+        "name": "Cycle Day 1 [a2]",
+        "instanceType": "Encounter",
+        "type": {
+          "id": "045b03fc-1864-482c-905d-118a27896642",
+          "code": "C82517",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Baseline",
+          "instanceType": "Code"
+        },
+        "epochId": "epoch_3"
+      },
+      {
+        "id": "enc_4",
+        "name": "Cycle Day 8 (± 3) [a3]",
+        "instanceType": "Encounter",
+        "type": {
+          "id": "5e476e3a-daa8-43aa-82e1-3b6103b49812",
+          "code": "C99156",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Scheduled Visit",
+          "instanceType": "Code"
+        },
+        "epochId": "epoch_3"
+      },
+      {
+        "id": "enc_5",
+        "name": "Cycle Day 15 (± 3)",
+        "instanceType": "Encounter",
+        "type": {
+          "id": "f13812c0-6d31-4219-9292-7eeb235c5fb1",
+          "code": "C82517",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Baseline",
+          "instanceType": "Code"
+        },
+        "epochId": "epoch_3"
+      },
+      {
+        "id": "enc_6",
+        "name": "30 (± 5) Days after Last Dose",
+        "instanceType": "Encounter",
+        "type": {
+          "id": "d2ce4d42-d55e-40df-95f1-57e24004e02b",
+          "code": "C99156",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Scheduled Visit",
+          "instanceType": "Code"
+        },
+        "epochId": "epoch_4"
+      },
+      {
+        "id": "enc_7",
+        "name": "Every 3 months (± 21 days)",
+        "instanceType": "Encounter",
+        "type": {
+          "id": "d4d66209-7dee-4a87-9ed5-5d58c1dacf1e",
+          "code": "C99156",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Scheduled Visit",
+          "instanceType": "Code"
+        },
+        "epochId": "epoch_5"
+      }
+    ],
+    "plannedTimepoints": [
+      {
+        "id": "pt_1",
+        "visit": "Days -28 to -1",
+        "epoch": "",
+        "epochId": "",
+        "day": "",
+        "window": null,
+        "encounterId": "enc_1",
+        "instanceType": "Timing"
+      },
+      {
+        "id": "pt_2",
+        "visit": "Days -7 to -1",
+        "epoch": "",
+        "epochId": "",
+        "day": "",
+        "window": null,
+        "encounterId": "enc_2",
+        "instanceType": "Timing"
+      },
+      {
+        "id": "pt_3",
+        "visit": "Day 1",
+        "epoch": "",
+        "epochId": "",
+        "day": "",
+        "window": null,
+        "encounterId": "enc_3",
+        "instanceType": "Timing"
+      },
+      {
+        "id": "pt_4",
+        "visit": "Day 8",
+        "epoch": "",
+        "epochId": "",
+        "day": "",
+        "window": null,
+        "encounterId": "enc_4",
+        "instanceType": "Timing"
+      },
+      {
+        "id": "pt_5",
+        "visit": "Day 15",
+        "epoch": "",
+        "epochId": "",
+        "day": "",
+        "window": null,
+        "encounterId": "enc_5",
+        "instanceType": "Timing"
+      },
+      {
+        "id": "pt_6",
+        "visit": "30 Days post-dose",
+        "epoch": "",
+        "epochId": "",
+        "day": "",
+        "window": null,
+        "encounterId": "enc_6",
+        "instanceType": "Timing"
+      },
+      {
+        "id": "pt_7",
+        "visit": "Every 3 months",
+        "epoch": "",
+        "epochId": "",
+        "day": "",
+        "window": null,
+        "encounterId": "enc_7",
+        "instanceType": "Timing"
+      }
+    ]
+  },
+  "rowGroups": [
+    {
+      "id": "grp_1",
+      "name": "Assessments",
+      "description": null,
+      "childIds": [],
+      "instanceType": "Activity",
+      "activityNames": [
+        "Pregnancy test (WOCP only)",
+        "TSH, free or total T3, free T4 [q]",
+        "Auto-antibody testing [r]",
+        "Serum sample for ADA assessment [s]",
+        "Serum sample for atezolizumab PK evaluations [s]",
+        "Plasma samples for paclitaxel PK evaluations [s]",
+        "Whole blood for exploratory biomarker analysis [s]",
+        "Plasma for exploratory biomarker analysis [s]",
+        "Whole blood sample for germline DNA analysis [t]",
+        "Randomisation",
+        "Adverse events [u]",
+        "Atezolizumab/placebo infusion [v]",
+        "Paclitaxel administration [a3]",
+        "Mandatory FFPE tumour tissue sample [w]",
+        "Optional FFPE tumour tissue samples [x,y]",
+        "Survival and anti-cancer therapy follow-up [z]"
+      ]
+    }
+  ],
+  "footnotes": [
+    "[a1] If a scheduled treatment visit cannot be completed due to a holiday, dosing may be postponed to the earliest next date.",
+    "[a2] Assessments scheduled on the day of study treatment administration (Day 1) of each cycle should be performed prior to study treatment infusion.",
+    "[a3] Paclitaxel will be administered at the 90 mg/m2 dose via 1-hour IV infusion on Days 1, 8, and 15 of every 28-day cycle.",
+    "[b] Patients will be asked to return to the clinic within 30 days after their last study drug dose for a treatment discontinuation visit.",
+    "[o] Serum pregnancy test within 7 days before Cycle 1, Day 1.",
+    "[p] Urine pregnancy test; if a urine pregnancy test is positive, it must be confirmed by a serum pregnancy test.",
+    "[q] TSH, free T3 and free T4 will be assessed within 96 hours before Day 1 of Cycle 1, and every second cycle thereafter.",
+    "[s] See Appendix 2 for a detailed schedule.",
+    "[w] Mandatory tumour tissue biopsy collected within 3 months prior to study enrolment.",
+    "[z] All patients will be followed for survival and new anti-cancer therapy information every 3 months ± 21 days."
+  ]
+}

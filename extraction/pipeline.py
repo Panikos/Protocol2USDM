@@ -28,9 +28,18 @@ from .text_extractor import extract_soa_from_text, build_usdm_output, save_extra
 from .validator import validate_extraction, apply_validation_fixes, save_validation_result
 
 from core.provenance import ProvenanceTracker, get_provenance_path
+from core.superscript_utils import normalize_soa_with_footnotes
 from core.constants import USDM_VERSION
 
 logger = logging.getLogger(__name__)
+
+# Models that need fallback to gemini-2.5-pro for SoA text extraction
+# Note: Gemini 3 models now work with thinking_budget=0 (disabled thinking mode)
+# Only add models here that genuinely fail SoA extraction
+SOA_FALLBACK_MODELS = {
+    # 'gemini-3-flash-preview': 'gemini-2.5-pro',  # Removed - works with thinking disabled
+    # 'gemini-3-flash': 'gemini-2.5-pro',  # Removed - works with thinking disabled
+}
 
 
 @dataclass
@@ -41,6 +50,16 @@ class PipelineConfig:
     remove_hallucinations: bool = False  # Keep all text-extracted cells; use provenance for confidence
     hallucination_confidence_threshold: float = 0.7
     save_intermediate: bool = True
+
+
+@dataclass
+class ProcessingIssue:
+    """A non-blocking processing issue that should be reported."""
+    phase: str  # e.g., "soa_header_analysis", "eligibility_extraction"
+    issue_type: str  # e.g., "recitation_blocked", "json_parse_error", "llm_error"
+    message: str
+    is_known_limitation: bool = False  # True for known API limitations like RECITATION
+    fallback_used: Optional[str] = None  # Description of fallback if any
 
 
 @dataclass
@@ -60,8 +79,11 @@ class PipelineResult:
     hallucinations_removed: int = 0
     missed_ticks_found: int = 0
     
-    # Errors
+    # Errors (blocking issues)
     errors: List[str] = field(default_factory=list)
+    
+    # Processing issues (non-blocking, for reporting)
+    processing_issues: List[ProcessingIssue] = field(default_factory=list)
     
     def to_dict(self):
         return {
@@ -79,6 +101,16 @@ class PipelineResult:
                 'missed_ticks_found': self.missed_ticks_found,
             },
             'errors': self.errors,
+            'processing_issues': [
+                {
+                    'phase': issue.phase,
+                    'issue_type': issue.issue_type,
+                    'message': issue.message,
+                    'is_known_limitation': issue.is_known_limitation,
+                    'fallback_used': issue.fallback_used,
+                }
+                for issue in self.processing_issues
+            ],
         }
 
 
@@ -191,6 +223,20 @@ def run_extraction_pipeline(
         )
         
         if not header_result.success:
+            # Track recitation blocking as a processing issue (known limitation)
+            if header_result.recitation_blocked:
+                result.processing_issues.append(ProcessingIssue(
+                    phase="soa_header_analysis",
+                    issue_type="recitation_blocked",
+                    message=(
+                        "Gemini RECITATION filter triggered during SoA header analysis. "
+                        "This is NOT a copyright issue - the model detected similarity to training data. "
+                        "Content from public domain sources (clinicaltrials.gov) can trigger this. "
+                        "This is a known Gemini limitation that cannot be disabled."
+                    ),
+                    is_known_limitation=True,
+                    fallback_used="Text extraction only (no vision-based header structure)"
+                ))
             result.errors.append(f"Header analysis failed: {header_result.error}")
             return result
         
@@ -209,15 +255,27 @@ def run_extraction_pipeline(
         # ═══════════════════════════════════════════════════════════════
         logger.info("Step 2: Extracting SoA data from text...")
         
+        # Check if model needs fallback for SoA text extraction
+        soa_model = config.model_name
+        if config.model_name in SOA_FALLBACK_MODELS:
+            soa_model = SOA_FALLBACK_MODELS[config.model_name]
+            logger.info(f"  Using fallback model for SoA text extraction: {soa_model}")
+        
         text_result = extract_soa_from_text(
             protocol_text=protocol_text,
             header_structure=header_structure,
-            model_name=config.model_name,
+            model_name=soa_model,
         )
         
-        if not text_result.success:
-            result.errors.append(f"Text extraction failed: {text_result.error}")
+        # Continue even if extraction returned fewer activities than expected,
+        # as long as we have SOME activities. Only fail if we got zero activities.
+        if not text_result.activities:
+            result.errors.append(f"Text extraction failed: {text_result.error or 'No activities extracted'}")
             return result
+        
+        if not text_result.success:
+            # Log warning but continue with partial results
+            logger.warning(f"  Text extraction below expectations: {text_result.error}")
         
         result.activities_count = len(text_result.activities)
         result.ticks_count = len(text_result.activity_timepoints)
@@ -305,6 +363,24 @@ def run_extraction_pipeline(
         )
         
         final_output = create_wrapper_input(final_timeline)
+        
+        # ═══════════════════════════════════════════════════════════════
+        # STEP 4b: Normalize superscripts in entity names
+        # ═══════════════════════════════════════════════════════════════
+        # Gemini 3 extracts superscript footnote refs in names (e.g., "UNS¹ EOS or ETᵃ")
+        # This preserves the data while creating clean names for downstream matching
+        # Also validates footnote refs against actual footnotes to catch OCR errors
+        try:
+            norm_results = normalize_soa_with_footnotes(final_output)
+            logger.info(f"  Normalized superscripts: {norm_results['epochs_cleaned']} epochs, "
+                       f"{norm_results['encounters_cleaned']} encounters, "
+                       f"{norm_results['activities_cleaned']} activities")
+            if norm_results.get('footnote_corrections'):
+                for corr in norm_results['footnote_corrections']:
+                    logger.info(f"    Corrected footnote ref: {corr['original']} → {corr['corrected']} "
+                               f"in '{corr['entity']}'")
+        except Exception as e:
+            logger.warning(f"  Superscript normalization failed (non-fatal): {e}")
         
         # Save final output
         with open(paths['final'], 'w', encoding='utf-8') as f:

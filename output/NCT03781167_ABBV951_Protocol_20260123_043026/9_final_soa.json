@@ -1,0 +1,855 @@
+{
+  "usdmVersion": "4.0",
+  "systemName": "Protocol2USDM",
+  "systemVersion": "6.2.0",
+  "study": {
+    "id": "1f2fd9b8-ccde-4a99-976c-72ed961ab746",
+    "name": "",
+    "instanceType": "Study",
+    "versions": [
+      {
+        "id": "5c45a731-3faa-43b9-b58b-80768c519b97",
+        "versionIdentifier": "1.0",
+        "rationale": "Initial protocol version",
+        "instanceType": "StudyVersion",
+        "studyDesigns": [
+          {
+            "id": "sd_1",
+            "name": "Study Design",
+            "rationale": "Protocol-defined study design",
+            "instanceType": "InterventionalStudyDesign",
+            "blindingSchema": {
+              "id": "9a60771b-022b-4486-9c1a-afb7b78eb733",
+              "instanceType": "AliasCode",
+              "standardCode": {
+                "id": "0af35a6e-d605-4b3c-beab-c37617094ea6",
+                "code": "C49656",
+                "codeSystem": "http://www.cdisc.org",
+                "codeSystemVersion": "2024-09-27",
+                "decode": "Open Label",
+                "instanceType": "Code"
+              }
+            },
+            "model": {
+              "id": "15924173-3e9d-444f-8886-19ceb6a73cd3",
+              "code": "C82638",
+              "codeSystem": "http://www.cdisc.org",
+              "codeSystemVersion": "2024-09-27",
+              "decode": "Single Group Study",
+              "instanceType": "Code"
+            },
+            "epochs": [
+              {
+                "id": "epoch_1",
+                "name": "Screening Period",
+                "instanceType": "StudyEpoch",
+                "type": {
+                  "id": "832361b9-4fb9-4416-bead-a36970cfd3eb",
+                  "code": "C98779",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Screening Epoch",
+                  "instanceType": "Code"
+                }
+              },
+              {
+                "id": "epoch_2",
+                "name": "Treatment Period",
+                "instanceType": "StudyEpoch",
+                "type": {
+                  "id": "bb09ffaf-4654-4d6e-8770-2da9d0892077",
+                  "code": "C98780",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Treatment Epoch",
+                  "instanceType": "Code"
+                }
+              }
+            ],
+            "activities": [
+              {
+                "id": "grp_1",
+                "name": "Eligibility and History",
+                "instanceType": "Activity",
+                "childIds": [
+                  "act_1",
+                  "act_2",
+                  "act_3",
+                  "act_4"
+                ]
+              },
+              {
+                "id": "grp_2",
+                "name": "Clinical Assessments",
+                "instanceType": "Activity",
+                "childIds": [
+                  "act_5",
+                  "act_6",
+                  "act_7",
+                  "act_8",
+                  "act_9"
+                ]
+              },
+              {
+                "id": "grp_3",
+                "name": "Safety Assessments",
+                "instanceType": "Activity",
+                "childIds": [
+                  "act_10",
+                  "act_11",
+                  "act_12",
+                  "act_13",
+                  "act_14",
+                  "act_15"
+                ]
+              },
+              {
+                "id": "grp_4",
+                "name": "Laboratory Assessments",
+                "instanceType": "Activity",
+                "childIds": [
+                  "act_16",
+                  "act_17",
+                  "act_18",
+                  "act_19",
+                  "act_20"
+                ]
+              },
+              {
+                "id": "grp_5",
+                "name": "Study Drug Administration",
+                "instanceType": "Activity",
+                "childIds": [
+                  "act_21",
+                  "act_22",
+                  "act_23"
+                ]
+              },
+              {
+                "id": "act_1",
+                "name": "Informed Consent",
+                "instanceType": "Activity",
+                "description": "Obtain written informed consent from participant"
+              },
+              {
+                "id": "act_2",
+                "name": "Eligibility Criteria",
+                "instanceType": "Activity",
+                "description": "Evaluation of inclusion and exclusion criteria"
+              },
+              {
+                "id": "act_3",
+                "name": "Medical History",
+                "instanceType": "Activity",
+                "description": "Complete medical history including demographics and PD history"
+              },
+              {
+                "id": "act_4",
+                "name": "PD Treatment History",
+                "instanceType": "Activity",
+                "description": "Comprehensive history of current and past PD medication"
+              },
+              {
+                "id": "act_5",
+                "name": "Advanced Parkinson's Disease (aPD) Clinician Assessment",
+                "instanceType": "Activity",
+                "description": "Assessment to determine if subject requires advanced PD treatment"
+              },
+              {
+                "id": "act_6",
+                "name": "PD Diary",
+                "instanceType": "Activity",
+                "description": "Subject-completed diary for motor state tracking"
+              },
+              {
+                "id": "act_7",
+                "name": "PD Diary Concordance Assessment",
+                "instanceType": "Activity",
+                "description": "Evaluation of subject's ability to correctly identify motor states"
+              },
+              {
+                "id": "act_8",
+                "name": "EuroQol 5-Dimension Questionnaire (EQ-5D-5L)",
+                "instanceType": "Activity",
+                "description": "Standardized instrument for health-related quality of life"
+              },
+              {
+                "id": "act_9",
+                "name": "Parkinson's KinetiGraph (PKG) Wearable Device",
+                "instanceType": "Activity",
+                "description": "Wearable device for exploratory PD symptom assessment"
+              },
+              {
+                "id": "act_10",
+                "name": "Physical Examination",
+                "instanceType": "Activity",
+                "description": "Complete or symptom-directed physical examination"
+              },
+              {
+                "id": "act_11",
+                "name": "Neurological Examination",
+                "instanceType": "Activity",
+                "description": "Assessment of mental status, cranial nerves, motor/sensory systems, and gait"
+              },
+              {
+                "id": "act_12",
+                "name": "Height and Weight",
+                "instanceType": "Activity",
+                "description": "Height (V1 only) and body weight measurements"
+              },
+              {
+                "id": "act_13",
+                "name": "Vital Signs",
+                "instanceType": "Activity",
+                "description": "Blood pressure, pulse, and temperature"
+              },
+              {
+                "id": "act_14",
+                "name": "12-Lead ECG",
+                "instanceType": "Activity",
+                "description": "Standard 12-lead electrocardiogram"
+              },
+              {
+                "id": "act_15",
+                "name": "Adverse Event Monitoring",
+                "instanceType": "Activity",
+                "description": "Continuous monitoring for adverse events"
+              },
+              {
+                "id": "act_16",
+                "name": "Hematology",
+                "instanceType": "Activity",
+                "description": "Standard hematology panel"
+              },
+              {
+                "id": "act_17",
+                "name": "Clinical Chemistry",
+                "instanceType": "Activity",
+                "description": "Standard clinical chemistry panel"
+              },
+              {
+                "id": "act_18",
+                "name": "Urinalysis",
+                "instanceType": "Activity",
+                "description": "Standard urinalysis panel"
+              },
+              {
+                "id": "act_19",
+                "name": "Special Laboratory Tests (Vitamin B6, B12, Folic Acid, MMA, Homocysteine)",
+                "instanceType": "Activity",
+                "description": "Tests to detect vitamin deficiencies"
+              },
+              {
+                "id": "act_20",
+                "name": "Pregnancy Test",
+                "instanceType": "Activity",
+                "description": "Serum (V1) or urine (V3) pregnancy test for WOCBP"
+              },
+              {
+                "id": "act_21",
+                "name": "Study Drug Prescription Record",
+                "instanceType": "Activity",
+                "description": "Recording of pump settings (infusion rate and extra dose)"
+              },
+              {
+                "id": "act_22",
+                "name": "Pump Settings Record",
+                "instanceType": "Activity",
+                "description": "Documentation of pump parameters"
+              },
+              {
+                "id": "act_23",
+                "name": "Concomitant Medication Review",
+                "instanceType": "Activity",
+                "description": "Review and recording of all concomitant medications"
+              }
+            ],
+            "encounters": [
+              {
+                "id": "enc_1",
+                "name": "Visit 1 (V1)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "1176ebd5-65e6-463e-a069-a5787e7767de",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_1"
+              },
+              {
+                "id": "enc_2",
+                "name": "Visit 2 (V2)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "16569f48-8879-440a-b585-a7ff9608fdaf",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_1"
+              },
+              {
+                "id": "enc_3",
+                "name": "Day 1 (V3)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "1383608d-86f1-459e-ad39-b5c36e33f174",
+                  "code": "C82517",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Baseline",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_2"
+              },
+              {
+                "id": "enc_4",
+                "name": "Day 2 (V4)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "1b46022a-b148-4223-80ae-fba6862983b8",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_2"
+              },
+              {
+                "id": "enc_5",
+                "name": "Week 1 (V5)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "cb1ba84f-d578-4a6c-ab03-8a4d3199ccce",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_2"
+              },
+              {
+                "id": "enc_6",
+                "name": "Week 2 (V6)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "2b8556ea-4a25-4df6-b45e-7535e06ca9f9",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_2"
+              },
+              {
+                "id": "enc_7",
+                "name": "Week 3 (V7)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "b5a13004-665f-4284-9657-fcc967b52e3c",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_2"
+              },
+              {
+                "id": "enc_8",
+                "name": "Week 4 (V8)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "a00cbc5b-5880-4e86-89f0-0bb019d5e4d5",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_2"
+              },
+              {
+                "id": "enc_9",
+                "name": "Week 6 (V9)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "29d1c8e6-e742-474e-86a6-766e86ab3745",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_2"
+              },
+              {
+                "id": "enc_10",
+                "name": "Week 13 (V10)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "93bf098e-2fec-4cfd-9595-4259c497fbab",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_2"
+              },
+              {
+                "id": "enc_11",
+                "name": "Week 26 (V11)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "71836618-f170-4f9c-8274-c1b457f67d3a",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_2"
+              },
+              {
+                "id": "enc_12",
+                "name": "Week 39 (V12)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "67a04b92-1ede-49d8-8278-ad1e7fd00b58",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_2"
+              },
+              {
+                "id": "enc_13",
+                "name": "Week 52 (V13)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "e3cf2efc-a3bd-4aab-a809-6d01f992b350",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_2"
+              }
+            ],
+            "scheduleTimelines": [
+              {
+                "id": "timeline_1",
+                "name": "Main Schedule Timeline",
+                "mainTimeline": true,
+                "instanceType": "ScheduleTimeline",
+                "entryCondition": "Subject enrolled in study",
+                "entryId": "73dc688e-235e-4c52-b934-45d0f45224f9",
+                "instances": [
+                  {
+                    "id": "73dc688e-235e-4c52-b934-45d0f45224f9",
+                    "activityIds": [
+                      "act_1"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_1@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "5a53aa89-1c72-4df6-bf6e-8a28b9bea451",
+                    "activityIds": [
+                      "act_2"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_2@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "10a07b73-ed67-4986-97b4-54c1e0265c4a",
+                    "activityIds": [
+                      "act_2"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_2@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "684a4b88-516d-4283-ab4f-a9b2e36576e8",
+                    "activityIds": [
+                      "act_2"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_2@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "8c380e72-a68d-4a1d-ac9d-94e74554c510",
+                    "activityIds": [
+                      "act_3"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_3@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "11ac11f5-840c-4bc3-87cd-336ebe6f8966",
+                    "activityIds": [
+                      "act_4"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_4@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "4f91c956-561f-487c-9130-f113c529c658",
+                    "activityIds": [
+                      "act_5"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_5@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "d9f59dc4-99a6-4e15-9c8a-2174ea85304a",
+                    "activityIds": [
+                      "act_6"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_6@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "c8735e6f-476a-4d24-a3a8-485cae79e16f",
+                    "activityIds": [
+                      "act_6"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_6@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "c7302567-f5a5-48c1-b980-d4e66118ab0a",
+                    "activityIds": [
+                      "act_7"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_7@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "e50eb5de-149a-4abf-b68a-2f920d8f7432",
+                    "activityIds": [
+                      "act_7"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_7@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "72e0bcd6-011b-431b-ad24-b448835f1873",
+                    "activityIds": [
+                      "act_9"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_9@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "fd6080a4-4e40-40b3-b1e3-d62dc4ffa79d",
+                    "activityIds": [
+                      "act_10"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_10@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "b1fd8b79-be51-4700-b21c-3b48ab13aa0f",
+                    "activityIds": [
+                      "act_10"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_10@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "22614d70-f202-4246-9915-66c4ed20ff22",
+                    "activityIds": [
+                      "act_10"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_10@enc_9",
+                    "encounterId": "enc_9"
+                  },
+                  {
+                    "id": "43bbc783-dec0-467c-a277-50c4a1634565",
+                    "activityIds": [
+                      "act_10"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_10@enc_11",
+                    "encounterId": "enc_11"
+                  },
+                  {
+                    "id": "2ee0f62c-e38b-4009-84fe-e38b714f47fc",
+                    "activityIds": [
+                      "act_10"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_10@enc_13",
+                    "encounterId": "enc_13"
+                  },
+                  {
+                    "id": "543585a0-0fa0-44c2-af1b-105fb80813c0",
+                    "activityIds": [
+                      "act_11"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_11@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "1347a7c0-ce4a-40ce-b3c9-e433ef35ea4c",
+                    "activityIds": [
+                      "act_11"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_11@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "0580ebc7-cb49-4957-9595-488da64b4ce8",
+                    "activityIds": [
+                      "act_12"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_12@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "e111354d-ce05-461c-ad32-82801a5f4bed",
+                    "activityIds": [
+                      "act_19"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_19@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "aa4feb02-2285-4f1f-84bf-31502448135f",
+                    "activityIds": [
+                      "act_19"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_19@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "2c31c6dc-755c-48ff-a57d-083fa491d57d",
+                    "activityIds": [
+                      "act_19"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_19@enc_9",
+                    "encounterId": "enc_9"
+                  },
+                  {
+                    "id": "5a80722b-2409-4617-abb8-a67fa6ca31ea",
+                    "activityIds": [
+                      "act_19"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_19@enc_11",
+                    "encounterId": "enc_11"
+                  },
+                  {
+                    "id": "2bb26fc2-6869-4efa-bb20-ce3548d840eb",
+                    "activityIds": [
+                      "act_19"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_19@enc_13",
+                    "encounterId": "enc_13"
+                  },
+                  {
+                    "id": "4c87cb5b-48b0-4f4c-acba-f1734a0ae6c8",
+                    "activityIds": [
+                      "act_20"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_20@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "21e75204-a6f3-4945-aa4d-edf27180216d",
+                    "activityIds": [
+                      "act_20"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_20@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "11a7d0d9-5bd2-48c3-9a98-750630e9b3b3",
+                    "activityIds": [
+                      "act_21"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_21@enc_3",
+                    "encounterId": "enc_3"
+                  }
+                ]
+              }
+            ],
+            "notes": [
+              {
+                "id": "soa_fn_1",
+                "text": "a. The Screening Period may be extended up to a total of 90 days for extenuating circumstances, e.g., supply constraints.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_2",
+                "text": "b. The Monitoring Period can occur any time before V3, as long as it lasts for 6 consecutive days. PD Diaries will also be collected for at least 2 consecutive days during the Monitoring Period.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_3",
+                "text": "a. GFR will be calculated one time at Screening Visit 1 (V1) according to the Chronic Kidney Disease Epidemiology Collaboration (CKD-EPI) equation.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_4",
+                "text": "b. Special laboratory tests to detect vitamin deficiencies, i.e., vitamin B12, vitamin B6, folic acid, homocysteine, and MMA levels will be performed at Screening Visit 1 (V1), on Day 1 (V3), and at Week 6 (V9), Week 26 (V11), and Week 52 (V13).",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_5",
+                "text": "a. Subjects with a low vitamin B12 or low-normal vitamin B12 and high MMA plasma level may undergo supplemental vitamin therapy.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_6",
+                "text": "b. The PD diary concordance test may be omitted for subjects previously enrolled in Study M15-739, for whom recognizable/identifiable \"Off\" and \"On\" state (motor fluctuations) have been already established and confirmed.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_7",
+                "text": "c. Subjects with evidence of transient skin conditions such as recent sunburn or open wound that resolved within the Screening Period are eligible for enrollment.",
+                "instanceType": "CommentAnnotation"
+              }
+            ],
+            "activityGroups": [
+              {
+                "id": "grp_1",
+                "name": "Eligibility and History",
+                "description": null,
+                "childIds": [
+                  "act_1",
+                  "act_2",
+                  "act_3",
+                  "act_4"
+                ],
+                "instanceType": "Activity",
+                "activityNames": [
+                  "Informed Consent",
+                  "Eligibility Criteria",
+                  "Medical History",
+                  "PD Treatment History"
+                ]
+              },
+              {
+                "id": "grp_2",
+                "name": "Clinical Assessments",
+                "description": null,
+                "childIds": [
+                  "act_5",
+                  "act_6",
+                  "act_7",
+                  "act_8",
+                  "act_9"
+                ],
+                "instanceType": "Activity",
+                "activityNames": [
+                  "Advanced Parkinson's Disease (aPD) Clinician Assessment",
+                  "PD Diary",
+                  "PD Diary Concordance Assessment",
+                  "EuroQol 5-Dimension Questionnaire (EQ-5D-5L)",
+                  "Parkinson's KinetiGraph (PKG) Wearable Device"
+                ]
+              },
+              {
+                "id": "grp_3",
+                "name": "Safety Assessments",
+                "description": null,
+                "childIds": [
+                  "act_10",
+                  "act_11",
+                  "act_12",
+                  "act_13",
+                  "act_14",
+                  "act_15"
+                ],
+                "instanceType": "Activity",
+                "activityNames": [
+                  "Physical Examination",
+                  "Neurological Examination",
+                  "Height and Weight",
+                  "Vital Signs",
+                  "12-Lead ECG",
+                  "Adverse Event Monitoring"
+                ]
+              },
+              {
+                "id": "grp_4",
+                "name": "Laboratory Assessments",
+                "description": null,
+                "childIds": [
+                  "act_16",
+                  "act_17",
+                  "act_18",
+                  "act_19",
+                  "act_20"
+                ],
+                "instanceType": "Activity",
+                "activityNames": [
+                  "Hematology",
+                  "Clinical Chemistry",
+                  "Urinalysis",
+                  "Special Laboratory Tests (Vitamin B6, B12, Folic Acid, MMA, Homocysteine)",
+                  "Pregnancy Test"
+                ]
+              },
+              {
+                "id": "grp_5",
+                "name": "Study Drug Administration",
+                "description": null,
+                "childIds": [
+                  "act_21",
+                  "act_22",
+                  "act_23"
+                ],
+                "instanceType": "Activity",
+                "activityNames": [
+                  "Study Drug Prescription Record",
+                  "Pump Settings Record",
+                  "Concomitant Medication Review"
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -116,21 +116,18 @@ def is_reasoning_model(model_name: str) -> bool:
     - No temperature parameter
     - Use max_completion_tokens instead of max_tokens
     """
-    reasoning_models = [
-        'o1', 'o1-mini', 
-        'o3', 'o3-mini', 'o3-mini-high',
-        'gpt-5', 'gpt-5-mini', 
-        'gpt-5.1', 'gpt-5.1-mini'
-    ]
-    return any(rm in model_name.lower() for rm in reasoning_models)
+    from core.constants import REASONING_MODELS
+    return any(rm in model_name.lower() for rm in REASONING_MODELS)
 
 
 def detect_provider(model_name: str) -> str:
     """
     Detect the provider for a given model name.
     
+    Deprecated: Use LLMProviderFactory.auto_detect() instead.
+    
     Returns:
-        'openai', 'google', or 'unknown'
+        'openai', 'google', 'anthropic', or 'unknown'
     """
     model_lower = model_name.lower()
     
@@ -138,8 +135,31 @@ def detect_provider(model_name: str) -> str:
         return 'openai'
     elif 'gemini' in model_lower:
         return 'google'
+    elif 'claude' in model_lower:
+        return 'anthropic'
     else:
         return 'unknown'
+
+
+# Max output tokens by model family (as of Jan 2026)
+# Gemini 2.5 Flash/Pro and Gemini 3 Flash all support 65,536 output tokens
+MAX_OUTPUT_TOKENS = {
+    'gemini': 65536,  # Gemini 2.5 and 3.x models
+    'gpt': 16384,     # GPT-4o and variants
+    'claude': 8192,   # Claude models
+    'default': 8192,
+}
+
+def _get_max_tokens_for_model(model_name: str) -> int:
+    """Get the maximum output tokens supported by a model."""
+    model_lower = model_name.lower()
+    if 'gemini' in model_lower:
+        return MAX_OUTPUT_TOKENS['gemini']
+    elif 'gpt' in model_lower:
+        return MAX_OUTPUT_TOKENS['gpt']
+    elif 'claude' in model_lower:
+        return MAX_OUTPUT_TOKENS['claude']
+    return MAX_OUTPUT_TOKENS['default']
 
 
 # Convenience function for simple text generation
@@ -148,6 +168,8 @@ def generate_text(
     model_name: Optional[str] = None,
     json_mode: bool = False,
     temperature: float = 0.0,
+    max_tokens: Optional[int] = None,
+    extractor_name: Optional[str] = None,
 ) -> str:
     """
     Simple text generation helper.
@@ -156,20 +178,35 @@ def generate_text(
         messages: List of message dicts with 'role' and 'content'
         model_name: Model to use (defaults to environment/gemini-2.5-pro)
         json_mode: Whether to request JSON output
-        temperature: Generation temperature
+        temperature: Generation temperature (ignored if extractor_name provided)
+        max_tokens: Maximum output tokens (defaults to model's max)
+        extractor_name: Optional extractor name to use task-specific config
         
     Returns:
         Generated text content
     """
     if model_name is None:
         model_name = get_default_model()
-        
-    client = get_llm_client(model_name)
-    config = LLMConfig(
-        temperature=temperature,
-        json_mode=json_mode,
-    )
     
+    # Use task config if extractor_name provided
+    if extractor_name:
+        from extraction.llm_task_config import get_llm_task_config, to_llm_config
+        task_config = get_llm_task_config(extractor_name, model=model_name)
+        config = to_llm_config(task_config)
+        # Override max_tokens if explicitly provided
+        if max_tokens is not None:
+            config.max_tokens = max_tokens
+    else:
+        # Use model's max if not specified
+        if max_tokens is None:
+            max_tokens = _get_max_tokens_for_model(model_name)
+        config = LLMConfig(
+            temperature=temperature,
+            json_mode=json_mode,
+            max_tokens=max_tokens,
+        )
+    
+    client = get_llm_client(model_name)
     response = client.generate(messages, config)
     return response.content
 
@@ -208,6 +245,8 @@ def call_llm(
     model_name: Optional[str] = None,
     json_mode: bool = True,
     temperature: float = 0.0,
+    max_tokens: Optional[int] = None,
+    extractor_name: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Simple LLM call with a single prompt.
@@ -216,7 +255,9 @@ def call_llm(
         prompt: The prompt text
         model_name: Model to use (defaults to environment/gemini-2.5-pro)
         json_mode: Whether to request JSON output
-        temperature: Generation temperature
+        temperature: Generation temperature (ignored if extractor_name provided)
+        max_tokens: Maximum output tokens (defaults to model's max: 65536 for Gemini)
+        extractor_name: Optional extractor name to use task-specific config from llm_config.yaml
         
     Returns:
         Dict with 'response' key containing the generated text
@@ -232,6 +273,8 @@ def call_llm(
             model_name=model_name,
             json_mode=json_mode,
             temperature=temperature,
+            max_tokens=max_tokens,
+            extractor_name=extractor_name,
         )
         return {"response": content}
     except Exception as e:
@@ -247,6 +290,8 @@ def call_llm_with_image(
     """
     LLM call with an image attachment.
     
+    Uses the provider layer for consistent handling across all providers.
+    
     Args:
         prompt: The prompt text
         image_path: Path to the image file
@@ -256,7 +301,6 @@ def call_llm_with_image(
     Returns:
         Dict with 'response' key containing the generated text
     """
-    import base64
     from pathlib import Path
     
     if model_name is None:
@@ -265,11 +309,10 @@ def call_llm_with_image(
     _ensure_env_loaded()
     
     try:
-        # Read and encode image
+        # Read image data
         image_data = Path(image_path).read_bytes()
-        base64_image = base64.b64encode(image_data).decode('utf-8')
         
-        # Detect image type
+        # Detect MIME type from extension
         suffix = Path(image_path).suffix.lower()
         mime_type = {
             '.png': 'image/png',
@@ -279,62 +322,18 @@ def call_llm_with_image(
             '.webp': 'image/webp',
         }.get(suffix, 'image/png')
         
-        provider = detect_provider(model_name)
+        # Use provider layer for consistent handling
+        client = get_llm_client(model_name)
+        config = LLMConfig(json_mode=json_mode, temperature=0.0)
         
-        if provider == 'google':
-            # Use Gemini API
-            import google.generativeai as genai
-            
-            api_key = os.environ.get("GOOGLE_API_KEY")
-            if not api_key:
-                return {"error": "GOOGLE_API_KEY not set"}
-                
-            genai.configure(api_key=api_key)
-            model = genai.GenerativeModel(model_name)
-            
-            # Create image part
-            image_part = {
-                "mime_type": mime_type,
-                "data": base64_image,
-            }
-            
-            response = model.generate_content([prompt, image_part])
-            return {"response": response.text}
-            
-        elif provider == 'openai':
-            # Use OpenAI API
-            from openai import OpenAI
-            
-            api_key = os.environ.get("OPENAI_API_KEY")
-            if not api_key:
-                return {"error": "OPENAI_API_KEY not set"}
-                
-            client = OpenAI(api_key=api_key)
-            
-            messages = [
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": prompt},
-                        {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": f"data:{mime_type};base64,{base64_image}"
-                            }
-                        }
-                    ]
-                }
-            ]
-            
-            response = client.chat.completions.create(
-                model=model_name,
-                messages=messages,
-                response_format={"type": "json_object"} if json_mode else None,
-            )
-            
-            return {"response": response.choices[0].message.content}
-        else:
-            return {"error": f"Unknown provider for model: {model_name}"}
+        response = client.generate_with_image(
+            prompt=prompt,
+            image_data=image_data,
+            mime_type=mime_type,
+            config=config,
+        )
+        
+        return {"response": response.content}
             
     except Exception as e:
         return {"error": str(e)}

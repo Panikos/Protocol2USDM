@@ -1,0 +1,13 @@
+export { StudyMetadataView } from './StudyMetadataView';
+export { EligibilityCriteriaView } from './EligibilityCriteriaView';
+export { ObjectivesEndpointsView } from './ObjectivesEndpointsView';
+export { StudyDesignView } from './StudyDesignView';
+export { InterventionsView } from './InterventionsView';
+export { AmendmentHistoryView } from './AmendmentHistoryView';
+export { ExtensionsView } from './ExtensionsView';
+export { AdvancedEntitiesView } from './AdvancedEntitiesView';
+export { ProceduresDevicesView } from './ProceduresDevicesView';
+export { StudySitesView } from './StudySitesView';
+export { FootnotesView } from './FootnotesView';
+export { ScheduleTimelineView } from './ScheduleTimelineView';
+export { NarrativeView } from './NarrativeView';

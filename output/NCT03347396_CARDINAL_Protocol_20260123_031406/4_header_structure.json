@@ -1,0 +1,288 @@
+{
+  "columnHierarchy": {
+    "epochs": [
+      {
+        "id": "epoch_1",
+        "name": "Screening/observation period",
+        "instanceType": "StudyEpoch",
+        "type": {
+          "id": "8d6b63eb-98cf-48ae-8716-f050f0bc3c65",
+          "code": "C98779",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Screening Epoch",
+          "instanceType": "Code"
+        }
+      },
+      {
+        "id": "epoch_2",
+        "name": "Baseline",
+        "instanceType": "StudyEpoch",
+        "type": {
+          "id": "3a3a39b3-2260-4dc2-85ac-5fcfff324009",
+          "code": "C98780",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Treatment Epoch",
+          "instanceType": "Code"
+        }
+      },
+      {
+        "id": "epoch_3",
+        "name": "Part A",
+        "instanceType": "StudyEpoch",
+        "type": {
+          "id": "9a9b30d7-489b-4742-9673-d395f8dba0f6",
+          "code": "C98780",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Treatment Epoch",
+          "instanceType": "Code"
+        }
+      },
+      {
+        "id": "epoch_4",
+        "name": "Part B Extension phase",
+        "instanceType": "StudyEpoch",
+        "type": {
+          "id": "4ee68b14-7e04-4847-bb27-4fbe4e19871e",
+          "code": "C98780",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Treatment Epoch",
+          "instanceType": "Code"
+        }
+      },
+      {
+        "id": "epoch_5",
+        "name": "ET/EOS/Safety follow-up",
+        "instanceType": "StudyEpoch",
+        "type": {
+          "id": "f4fbde75-3859-409b-b500-ba44850c61c4",
+          "code": "C98781",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Follow-up Epoch",
+          "instanceType": "Code"
+        }
+      }
+    ],
+    "encounters": [
+      {
+        "id": "enc_1",
+        "name": "Screening (Days -42, -28 and -14)",
+        "instanceType": "Encounter",
+        "type": {
+          "id": "89ca8d10-8e6f-435f-b4cd-4aaff40756cc",
+          "code": "C48262",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Screening",
+          "instanceType": "Code"
+        },
+        "epochId": "epoch_1"
+      },
+      {
+        "id": "enc_2",
+        "name": "Baseline (Day 0)",
+        "instanceType": "Encounter",
+        "type": {
+          "id": "15ff42ce-82b1-49b4-9831-246efc53275d",
+          "code": "C82517",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Baseline",
+          "instanceType": "Code"
+        },
+        "epochId": "epoch_2"
+      },
+      {
+        "id": "enc_3",
+        "name": "Part A (Weeks 1-25)",
+        "instanceType": "Encounter",
+        "type": {
+          "id": "9d6d0cc4-0aa7-42ed-94bf-6b83ca9f30ea",
+          "code": "C99156",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Scheduled Visit",
+          "instanceType": "Code"
+        },
+        "epochId": "epoch_3"
+      },
+      {
+        "id": "enc_4",
+        "name": "Part A (Week 26 EOT)",
+        "instanceType": "Encounter",
+        "type": {
+          "id": "3cacffb3-c43d-4f88-8dcd-7f45c2c60aee",
+          "code": "C99156",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Scheduled Visit",
+          "instanceType": "Code"
+        },
+        "epochId": "epoch_3"
+      },
+      {
+        "id": "enc_5",
+        "name": "Part B (Every 2 weeks after Week 25)",
+        "instanceType": "Encounter",
+        "type": {
+          "id": "6680e5a5-8f4d-4d8e-a66e-b72b59dc72ac",
+          "code": "C99156",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Scheduled Visit",
+          "instanceType": "Code"
+        },
+        "epochId": "epoch_4"
+      },
+      {
+        "id": "enc_6",
+        "name": "Follow-up (9 weeks after last dose)",
+        "instanceType": "Encounter",
+        "type": {
+          "id": "d08d5a19-1855-489c-93ba-e3cd5ed38c5a",
+          "code": "C99158",
+          "codeSystem": "http://www.cdisc.org",
+          "codeSystemVersion": "2024-09-27",
+          "decode": "Follow-up",
+          "instanceType": "Code"
+        },
+        "epochId": "epoch_5"
+      }
+    ],
+    "plannedTimepoints": [
+      {
+        "id": "pt_1",
+        "visit": "Days -42, -28 and -14",
+        "epoch": "",
+        "epochId": "",
+        "day": "",
+        "window": null,
+        "encounterId": "enc_1",
+        "instanceType": "Timing"
+      },
+      {
+        "id": "pt_2",
+        "visit": "Day 0",
+        "epoch": "",
+        "epochId": "",
+        "day": "",
+        "window": null,
+        "encounterId": "enc_2",
+        "instanceType": "Timing"
+      },
+      {
+        "id": "pt_3",
+        "visit": "Days 7, 21, 35, 49, 63, 77, 91, 105, 119, 133, 147, 161, 175",
+        "epoch": "",
+        "epochId": "",
+        "day": "",
+        "window": null,
+        "encounterId": "enc_3",
+        "instanceType": "Timing"
+      },
+      {
+        "id": "pt_4",
+        "visit": "Day 182",
+        "epoch": "",
+        "epochId": "",
+        "day": "",
+        "window": null,
+        "encounterId": "enc_4",
+        "instanceType": "Timing"
+      },
+      {
+        "id": "pt_5",
+        "visit": "Every 2 weeks after Week 25",
+        "epoch": "",
+        "epochId": "",
+        "day": "",
+        "window": null,
+        "encounterId": "enc_5",
+        "instanceType": "Timing"
+      },
+      {
+        "id": "pt_6",
+        "visit": "9 weeks after last dose",
+        "epoch": "",
+        "epochId": "",
+        "day": "",
+        "window": null,
+        "encounterId": "enc_6",
+        "instanceType": "Timing"
+      }
+    ]
+  },
+  "rowGroups": [
+    {
+      "id": "grp_1",
+      "name": "Study Procedures",
+      "description": null,
+      "childIds": [],
+      "instanceType": "Activity",
+      "activityNames": [
+        "Written informed consent",
+        "Demographic & baseline characteristics",
+        "Detailed medical history",
+        "Inclusion/exclusion criteria",
+        "Immunization review/vaccination",
+        "Bone marrow biopsy report review",
+        "Optional bone marrow testing for MYD88 status for consenting patients",
+        "Pregnancy test (if applicable)",
+        "Body weight and height",
+        "Physical examination, full",
+        "Physical examination, brief",
+        "Vital signs (BP, PR, RR, body temperature)",
+        "12-lead electrocardiogram (predose and 1 hour after infusion on dosing days)",
+        "Virology/serology panel",
+        "Gilbert's Syndrome test (UGT1A1 gene)",
+        "SLE panel",
+        "Iron panel and erythropoietin",
+        "Hematology panel",
+        "Coagulation panel",
+        "Clinical chemistry panel",
+        "Urinalysis",
+        "FACIT-Fatigue",
+        "PGIS",
+        "PGIC",
+        "SF-12",
+        "EQ-5D-5L",
+        "Solicited symptomatic anemia",
+        "Study drug administration",
+        "ADAs against BIVV009",
+        "PK samples",
+        "PD samples",
+        "Disease-related biomarkers",
+        "Prior & concomitant medications including transfusions",
+        "Healthcare resource utilization",
+        "Adverse events"
+      ]
+    }
+  ],
+  "footnotes": [
+    "a. The 6-week Screening/Observation Period may be extended by 1 week for patients requiring a blood transfusion prior to study drug administration.",
+    "b. Patients should return to the site 9 weeks after last dose for ET procedures, EOS assessment, or Safety Follow-up procedures upon completion of dosing in the study. If patient experiences a hematological breakthrough event, a PK, PD, and ADA sample should be collected at the time of the event.",
+    "c. Applicable to patients who do not have documented vaccination against encapsulated bacterial pathogens within 5 years of enrollment. Refer to immunization recommendations per Section 6.1.1.1 for patients requiring vaccination. A blood sample for vaccine titers will be collected on Day 0 prior to study drug infusion to be used to determine serum relevant antibody titers should the patient be diagnosed with an infection associated with an encapsulated organism during the course of the study. A second sample will be collected during the study period if a patient presents with symptoms concerning for an infection with Streptococcus pneumoniae, Neisseria meningitidis or Haemophilus influenzae and analyzed if the infection is confirmed with one of the aforementioned organisms.",
+    "d. Prior bone marrow biopsy report review, prior tissue assessment, or new bone marrow biopsy (as applicable). Sites will submit de-identified biopsy reports to independent central reader for eligibility adjudication. If biopsy is deemed unsuitable or insufficient to determine eligibility, either prior tissue may be submitted for additional hematopathology assessment or a new bone marrow biopsy will be performed during the screening period.",
+    "e. Females of child-bearing potential only. Serum pregnancy test to be performed at Screening. Serum or urine pregnancy test to be performed on Days 0, 21, 49, 77, 105, 133, and 161, and at Week 26/EOT or at the ET Visit. Repeat serum or urine pregnancy test every 4 weeks (±2 days) during Part B.",
+    "f. Height measured at Screening only. Body weight measured every 3 months during Part B.",
+    "g. Vital signs measurements (supine BP, PR, RR, and oral temperature) are to be obtained at Screening and at each subsequent visit, with measurements performed predose and 1 hour (±5 minutes) after completion of administration of each dose of study drug.",
+    "h. For a complete list of analytes, see protocol (Section 10.1, Appendix A).",
+    "i. BIVV009 doses of 6.5 grams (if <75 kg) or 7.5 grams (if ≥75 kg) based on patient's baseline body weight will be administered via IV infusion over ~60 ±5 minutes on Days 0, 7, and every 14 days thereafter during Part A, and every 2 weeks starting at Week 27 during Part B. Patients with underlying cardiopulmonary disease may receive a 2-hour infusion with Sponsor approval. If a patient misses a scheduled dose (outside of the 2-day window or >17 days since last dose), they must return to site (unscheduled visit) to receive another loading dose 1 week prior to the next scheduled dose. Qualifying patients at participating sites may have study drug dosed at home during certain visits in Part B, according to the rules specified in Section 10.10 Appendix J (US, the Netherlands, Norway, France, Italy, Austria, Germany, Spain, and specific amendments.",
+    "j. During Part A, PK and PD samples will be collected at predose and 1 hour (±15 minutes) postdose (ie, 1 hour after completion of study drug infusion) from all patients on Days 0, 7, 21, 35, 49, 63, 77, 91, 105, 119, 133, 147, 161, and 175. An additional blood sample for PK and PD analysis will be collected during the EOT visit on Day 182 or at ET if a patient withdraws early. During Part B, PK and PD samples will be collected routinely at 3-month intervals during the 1st year of treatment in Part B, and then at 6-month intervals. PK and PD samples will also be collected if a patient experiences a hematologic breakthrough event at any point during the study.",
+    "k. AEs will be recorded from the time the patient signs the informed consent form until 9 weeks after administration of the last dose of study drug.",
+    "l. To be performed every 3 months.",
+    "m. Refer to the Laboratory Manual for details of sample collection during Screening.",
+    "n. Samples will be collected for a subset of the disease-related biomarkers at Day 91 only. Refer to the Laboratory Manual for details.",
+    "o. During Part B, a 12-lead ECG will be conducting pre- and postdose at 3 months (Day 273).",
+    "p. During Part B, the healthcare resource utilization data will be recorded every 4 weeks.",
+    "q. To be performed in the following order: FACIT-Fatigue first, PGIS second, PGIC third, SF-12 fourth, and EQ-5D-5L fifth.",
+    "r. During Part B, ADA samples will be collected at predose at 3-month intervals during the 1st year of treatment in Part B and then at 6-month intervals and at safety follow up visit 9 weeks after last dose. Samples will also be collected if a patient experiences a hematologic breakthrough event or withdraws from the study early.",
+    "s. SLE panel will be performed every 6 months in Part-B of the study.",
+    "t. In Part B, hematology and clinical chemistry panels to be performed every 2 weeks after Week 25 and up to Week 79. For the remainder of Part B after Week 79, hematology and clinical chemistry panels to be performed every 4 weeks.",
+    "u. To be performed at 3-month intervals during the 1st year of treatment in Part B, and then at 6-month intervals."
+  ]
+}

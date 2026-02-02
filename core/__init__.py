@@ -39,6 +39,31 @@ from .constants import (
     REASONING_MODELS,
 )
 
+# Unified Reconciliation Framework
+from .reconciliation import (
+    # Base
+    BaseReconciler,
+    EntityContribution,
+    ReconciledEntity,
+    fuzzy_match_names,
+    normalize_for_matching,
+    # Epochs
+    EpochReconciler,
+    EpochContribution,
+    ReconciledEpoch,
+    reconcile_epochs_from_pipeline,
+    # Activities
+    ActivityReconciler,
+    ActivityContribution,
+    ReconciledActivity,
+    reconcile_activities_from_pipeline,
+    # Encounters
+    EncounterReconciler,
+    EncounterContribution,
+    ReconciledEncounter,
+    reconcile_encounters_from_pipeline,
+)
+
 __all__ = [
     # LLM Client
     "get_llm_client",
@@ -68,4 +93,25 @@ __all__ = [
     "SYSTEM_VERSION",
     "DEFAULT_MODEL",
     "REASONING_MODELS",
+    # Reconciliation Framework
+    "BaseReconciler",
+    "EntityContribution",
+    "ReconciledEntity",
+    "fuzzy_match_names",
+    "normalize_for_matching",
+    # Epochs
+    "EpochReconciler",
+    "EpochContribution",
+    "ReconciledEpoch",
+    "reconcile_epochs_from_pipeline",
+    # Activities
+    "ActivityReconciler",
+    "ActivityContribution",
+    "ReconciledActivity",
+    "reconcile_activities_from_pipeline",
+    # Encounters
+    "EncounterReconciler",
+    "EncounterContribution",
+    "ReconciledEncounter",
+    "reconcile_encounters_from_pipeline",
 ]

@@ -13,9 +13,80 @@ from abc import ABC, abstractmethod
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
 import os
+import time
+import logging
+from pathlib import Path
+from dotenv import load_dotenv
+
+_logger = logging.getLogger(__name__)
+
+# Retry configuration for rate limiting (429 errors)
+MAX_RETRIES = 3
+INITIAL_BACKOFF_SECONDS = 5
+MAX_BACKOFF_SECONDS = 60
+
+
+def _retry_with_backoff(func, max_retries=MAX_RETRIES, initial_backoff=INITIAL_BACKOFF_SECONDS):
+    """
+    Retry a function with exponential backoff for rate limit (429) errors.
+    
+    Args:
+        func: Callable to retry
+        max_retries: Maximum number of retries
+        initial_backoff: Initial backoff in seconds (doubles each retry)
+    
+    Returns:
+        Result of successful function call
+        
+    Raises:
+        Last exception if all retries exhausted
+    """
+    last_exception = None
+    backoff = initial_backoff
+    
+    for attempt in range(max_retries + 1):
+        try:
+            return func()
+        except Exception as e:
+            error_str = str(e).lower()
+            # Check for rate limit errors (429) or resource exhausted
+            is_rate_limit = '429' in error_str or 'rate' in error_str or 'exhausted' in error_str or 'quota' in error_str
+            
+            if is_rate_limit and attempt < max_retries:
+                wait_time = min(backoff, MAX_BACKOFF_SECONDS)
+                _logger.warning(f"Rate limit hit, retrying in {wait_time}s (attempt {attempt + 1}/{max_retries + 1}): {e}")
+                time.sleep(wait_time)
+                backoff *= 2  # Exponential backoff
+                last_exception = e
+            else:
+                # Not a rate limit error or out of retries
+                raise e
+    
+    # Should not reach here, but just in case
+    if last_exception:
+        raise last_exception
+
+# Load .env file from project root
+_env_path = Path(__file__).parent / ".env"
+if _env_path.exists():
+    load_dotenv(_env_path)
+
 from openai import OpenAI
 import google.generativeai as genai
+from google.generativeai.types import HarmCategory, HarmBlockThreshold
 import anthropic
+
+# For Gemini 3 models via Vertex AI (requires global endpoint)
+try:
+    from google import genai as genai_new
+    from google.genai import types as genai_types
+    HAS_GENAI_SDK = True
+    # Suppress verbose SDK logging (project/location precedence, AFC enabled messages)
+    import logging
+    logging.getLogger("google.genai").setLevel(logging.WARNING)
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+except ImportError:
+    HAS_GENAI_SDK = False
 
 
 @dataclass
@@ -26,10 +97,138 @@ class LLMConfig:
     json_mode: bool = True
     stop_sequences: Optional[List[str]] = None
     top_p: Optional[float] = None
+    top_k: Optional[int] = None
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary, excluding None values."""
         return {k: v for k, v in self.__dict__.items() if v is not None}
+
+
+# Global token usage tracker
+import threading
+
+class TokenUsageTracker:
+    """
+    Tracks cumulative token usage across all LLM calls.
+    
+    Thread-safe: Uses thread-local storage for current_phase to avoid
+    race conditions when phases run in parallel with ThreadPoolExecutor.
+    """
+    
+    def __init__(self):
+        self._lock = threading.Lock()
+        self._thread_local = threading.local()
+        self.reset()
+    
+    def reset(self):
+        """Reset all counters."""
+        with self._lock:
+            self.total_input_tokens = 0
+            self.total_output_tokens = 0
+            self.call_count = 0
+            self.calls_by_phase = {}
+        self._thread_local.current_phase = "unknown"
+    
+    @property
+    def current_phase(self) -> str:
+        """Get current phase for this thread."""
+        return getattr(self._thread_local, 'current_phase', 'unknown')
+    
+    def set_phase(self, phase: str):
+        """Set the current extraction phase for tracking (thread-local)."""
+        self._thread_local.current_phase = phase
+    
+    def add_usage(self, input_tokens: int, output_tokens: int, phase: str = None):
+        """
+        Add usage from an LLM call.
+        
+        Args:
+            input_tokens: Number of input tokens
+            output_tokens: Number of output tokens  
+            phase: Optional explicit phase name. If None, uses thread-local current_phase.
+        """
+        # Use explicit phase if provided, otherwise thread-local
+        phase_name = phase if phase is not None else self.current_phase
+        
+        with self._lock:
+            self.total_input_tokens += input_tokens
+            self.total_output_tokens += output_tokens
+            self.call_count += 1
+            
+            if phase_name not in self.calls_by_phase:
+                self.calls_by_phase[phase_name] = {"input": 0, "output": 0, "calls": 0}
+            self.calls_by_phase[phase_name]["input"] += input_tokens
+            self.calls_by_phase[phase_name]["output"] += output_tokens
+            self.calls_by_phase[phase_name]["calls"] += 1
+    
+    def get_summary(self) -> Dict[str, Any]:
+        """Get usage summary (thread-safe)."""
+        with self._lock:
+            return {
+                "total_input_tokens": self.total_input_tokens,
+                "total_output_tokens": self.total_output_tokens,
+                "total_tokens": self.total_input_tokens + self.total_output_tokens,
+                "call_count": self.call_count,
+                "by_phase": dict(self.calls_by_phase),  # Copy to avoid mutation
+            }
+    
+    def print_summary(self, model: str = "claude-opus-4-5"):
+        """Print a formatted summary with cost estimates (thread-safe)."""
+        # Pricing per million tokens (as of Jan 2025)
+        pricing = {
+            # Claude models
+            "claude-opus-4-5": (15.0, 75.0),
+            "claude-sonnet-4": (3.0, 15.0),
+            "claude-3-5-sonnet": (3.0, 15.0),
+            # Gemini models (much cheaper)
+            "gemini-2.5-pro": (1.25, 10.0),
+            "gemini-2.5-flash": (0.075, 0.30),
+            "gemini-3-flash": (0.50, 3.00),
+            "gemini-3-flash-preview": (0.50, 3.00),
+            # OpenAI models
+            "gpt-4o": (2.50, 10.0),
+            "gpt-4o-mini": (0.15, 0.60),
+        }
+        # Normalize model name for lookup (handle variations)
+        model_lower = model.lower().replace("_", "-")
+        input_rate, output_rate = pricing.get(model_lower, pricing.get(model, (1.0, 4.0)))
+        
+        # Get thread-safe snapshot of data
+        with self._lock:
+            total_input = self.total_input_tokens
+            total_output = self.total_output_tokens
+            call_count = self.call_count
+            phases = dict(self.calls_by_phase)
+        
+        input_cost = (total_input / 1_000_000) * input_rate
+        output_cost = (total_output / 1_000_000) * output_rate
+        total_cost = input_cost + output_cost
+        
+        print("\n" + "=" * 70)
+        print("TOKEN USAGE SUMMARY")
+        print("=" * 70)
+        print(f"Model: {model}")
+        print(f"Total LLM Calls: {call_count}")
+        print()
+        print("By Phase:")
+        print("-" * 70)
+        for phase, data in phases.items():
+            phase_cost = (data['input']/1e6 * input_rate) + (data['output']/1e6 * output_rate)
+            print(f"  {phase:40} {data['input']:>8,} in / {data['output']:>7,} out  ${phase_cost:.2f}")
+        print("-" * 70)
+        print()
+        print(f"Total Input Tokens:  {total_input:>12,}")
+        print(f"Total Output Tokens: {total_output:>12,}")
+        print(f"Total Tokens:        {total_input + total_output:>12,}")
+        print()
+        print(f"Input Cost:  ${input_cost:>8.2f}  (@${input_rate}/1M)")
+        print(f"Output Cost: ${output_cost:>8.2f}  (@${output_rate}/1M)")
+        print(f"TOTAL COST:  ${total_cost:>8.2f}")
+        print("=" * 70)
+
+
+# Global tracker instance
+usage_tracker = TokenUsageTracker()
 
 
 @dataclass
@@ -86,6 +285,30 @@ class LLMProvider(ABC):
     
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(model='{self.model}')"
+    
+    def generate_with_image(
+        self,
+        prompt: str,
+        image_data: bytes,
+        mime_type: str = "image/png",
+        config: Optional[LLMConfig] = None
+    ) -> LLMResponse:
+        """
+        Generate completion with an image input.
+        
+        Args:
+            prompt: Text prompt
+            image_data: Raw image bytes
+            mime_type: Image MIME type (e.g., 'image/png', 'image/jpeg')
+            config: Generation configuration
+            
+        Returns:
+            LLMResponse with content and metadata
+            
+        Raises:
+            NotImplementedError: If provider doesn't support vision
+        """
+        raise NotImplementedError(f"{self.__class__.__name__} does not support image input")
 
 
 class OpenAIProvider(LLMProvider):
@@ -101,14 +324,14 @@ class OpenAIProvider(LLMProvider):
     SUPPORTED_MODELS = [
         'gpt-4', 'gpt-4-turbo', 'gpt-4o', 'gpt-4o-mini',
         'o1', 'o1-mini', 'o3', 'o3-mini', 'o3-mini-high',
-        'gpt-5', 'gpt-5-mini', 'gpt-5.1', 'gpt-5.1-mini',  # Future-proofing
+        'gpt-5', 'gpt-5-mini', 'gpt-5.1', 'gpt-5.1-mini', 'gpt-5.2', 'gpt-5.2-mini',
     ]
     
     # Models that don't support temperature parameter
-    NO_TEMP_MODELS = ['o1', 'o1-mini', 'o3', 'o3-mini', 'o3-mini-high', 'gpt-5', 'gpt-5-mini', 'gpt-5.1', 'gpt-5.1-mini']
+    NO_TEMP_MODELS = ['o1', 'o1-mini', 'o3', 'o3-mini', 'o3-mini-high', 'gpt-5', 'gpt-5-mini', 'gpt-5.1', 'gpt-5.1-mini', 'gpt-5.2', 'gpt-5.2-mini']
     
     # Models that use max_completion_tokens instead of max_tokens
-    COMPLETION_TOKENS_MODELS = ['o1', 'o1-mini', 'o3', 'o3-mini', 'o3-mini-high', 'gpt-5', 'gpt-5-mini', 'gpt-5.1', 'gpt-5.1-mini']
+    COMPLETION_TOKENS_MODELS = ['o1', 'o1-mini', 'o3', 'o3-mini', 'o3-mini-high', 'gpt-5', 'gpt-5-mini', 'gpt-5.1', 'gpt-5.1-mini', 'gpt-5.2', 'gpt-5.2-mini']
     
     def __init__(self, model: str, api_key: Optional[str] = None):
         super().__init__(model, api_key)
@@ -209,21 +432,94 @@ class OpenAIProvider(LLMProvider):
         
         except Exception as e:
             raise RuntimeError(f"OpenAI Responses API call failed for model '{self.model}': {e}")
+    
+    def generate_with_image(
+        self,
+        prompt: str,
+        image_data: bytes,
+        mime_type: str = "image/png",
+        config: Optional[LLMConfig] = None
+    ) -> LLMResponse:
+        """Generate completion with an image using OpenAI vision models."""
+        import base64
+        
+        if config is None:
+            config = LLMConfig()
+        
+        base64_image = base64.b64encode(image_data).decode('utf-8')
+        
+        messages = [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": prompt},
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:{mime_type};base64,{base64_image}"
+                        }
+                    }
+                ]
+            }
+        ]
+        
+        params = {
+            "model": self.model,
+            "messages": messages,
+        }
+        
+        if self.model not in self.NO_TEMP_MODELS:
+            params["temperature"] = config.temperature
+        
+        if config.json_mode and self.supports_json_mode():
+            params["response_format"] = {"type": "json_object"}
+        
+        if config.max_tokens:
+            params["max_tokens"] = config.max_tokens
+        
+        try:
+            response = self.client.chat.completions.create(**params)
+            
+            usage = None
+            if response.usage:
+                input_tokens = response.usage.prompt_tokens or 0
+                output_tokens = response.usage.completion_tokens or 0
+                usage = {
+                    "prompt_tokens": input_tokens,
+                    "completion_tokens": output_tokens,
+                    "total_tokens": response.usage.total_tokens or 0
+                }
+                usage_tracker.add_usage(input_tokens, output_tokens)
+            
+            return LLMResponse(
+                content=response.choices[0].message.content,
+                model=response.model,
+                usage=usage,
+                finish_reason=response.choices[0].finish_reason,
+                raw_response=response
+            )
+        except Exception as e:
+            raise RuntimeError(f"OpenAI vision call failed for model '{self.model}': {e}")
 
 
 class GeminiProvider(LLMProvider):
     """
     Google Gemini provider supporting Gemini 1.5, 2.x, and 3.x models.
     
+    Routes through Vertex AI when GOOGLE_CLOUD_PROJECT is set.
+    All safety controls are disabled for clinical protocol extraction.
+    
     Features:
     - Native JSON mode (response_mime_type)
     - Long context windows
     - Multimodal support
+    - Vertex AI routing (enterprise)
+    - Safety controls disabled
     """
     
     SUPPORTED_MODELS = [
-        # Gemini 3.x (preview)
-        'gemini-3-pro-preview',
+        # Gemini 3.x (preview) - use -preview suffix on Vertex AI
+        'gemini-3-pro', 'gemini-3-flash', 'gemini-3-pro-preview', 'gemini-3-flash-preview',
         # Gemini 2.5 (stable)
         'gemini-2.5-pro', 'gemini-2.5-flash',
         # Gemini 2.0
@@ -235,12 +531,63 @@ class GeminiProvider(LLMProvider):
         'gemini-pro', 'gemini-pro-vision',
     ]
     
+    # Vertex AI model name mappings (aliases -> actual model IDs)
+    VERTEX_MODEL_ALIASES = {
+        'gemini-3-flash': 'gemini-3-flash-preview',
+        'gemini-3-pro': 'gemini-3-pro-preview',
+    }
+    
+    # Models that require global endpoint (not regional like us-central1)
+    GLOBAL_ENDPOINT_MODELS = ['gemini-3-flash', 'gemini-3-pro', 'gemini-3-flash-preview', 'gemini-3-pro-preview']
+    
+    # Models that are only available via AI Studio (not Vertex AI)
+    AI_STUDIO_ONLY_MODELS = []  # Empty - route all models through Vertex AI when available
+    
+    # Safety settings: disable all safety filters for clinical content
+    SAFETY_SETTINGS = {
+        HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+        HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+        HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
+        HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
+    }
+    
     def __init__(self, model: str, api_key: Optional[str] = None):
         super().__init__(model, api_key)
-        genai.configure(api_key=self.api_key)
+        
+        # Check for Vertex AI configuration
+        has_vertex_config = bool(os.environ.get("GOOGLE_CLOUD_PROJECT"))
+        is_ai_studio_only = model in self.AI_STUDIO_ONLY_MODELS
+        is_gemini3 = model in self.GLOBAL_ENDPOINT_MODELS
+        
+        self.use_vertex = has_vertex_config and not is_ai_studio_only
+        self.use_genai_sdk = is_gemini3 and HAS_GENAI_SDK and self.use_vertex
+        
+        if self.use_genai_sdk:
+            # Gemini 3 models use google-genai SDK with Vertex AI backend
+            # Use explicit client config instead of environment variables to avoid
+            # polluting the environment for other models (like gemini-2.5-pro fallback)
+            project = os.environ.get("GOOGLE_CLOUD_PROJECT")
+            self._genai_client = genai_new.Client(
+                vertexai=True,
+                project=project,
+                location='global',  # Gemini 3 requires global endpoint
+            )
+        elif self.use_vertex:
+            # Configure for Vertex AI (older models)
+            import vertexai
+            project = os.environ.get("GOOGLE_CLOUD_PROJECT")
+            # Ensure we use regional endpoint, not global (which may have been set by Gemini 3)
+            location = os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1")
+            if location == 'global':
+                location = 'us-central1'  # Fallback to us-central1 for non-Gemini-3 models
+            vertexai.init(project=project, location=location)
+        else:
+            # Configure for Google AI Studio
+            genai.configure(api_key=self.api_key)
     
     def _get_api_key_from_env(self) -> str:
         """Get Google API key from environment."""
+        # Always need API key for AI Studio (including Gemini 3 models)
         api_key = os.environ.get("GOOGLE_API_KEY")
         if not api_key:
             raise ValueError("GOOGLE_API_KEY environment variable not set")
@@ -256,7 +603,7 @@ class GeminiProvider(LLMProvider):
         config: Optional[LLMConfig] = None
     ) -> LLMResponse:
         """
-        Generate completion using Gemini API.
+        Generate completion using Gemini API (Vertex AI or AI Studio).
         
         Args:
             messages: List of message dicts with 'role' and 'content'
@@ -279,36 +626,90 @@ class GeminiProvider(LLMProvider):
             gen_config_dict["stop_sequences"] = config.stop_sequences
         if config.top_p is not None:
             gen_config_dict["top_p"] = config.top_p
+        if config.top_k is not None:
+            gen_config_dict["top_k"] = config.top_k
         
         # Add JSON mode if requested
         if config.json_mode and self.supports_json_mode():
             gen_config_dict["response_mime_type"] = "application/json"
         
-        generation_config = genai.types.GenerationConfig(**gen_config_dict)
-        
         # Convert messages to Gemini format
-        # Gemini expects a single prompt string, not message history
-        # Combine system and user messages
         full_prompt = self._format_messages_for_gemini(messages)
         
-        # Create model instance
-        model = genai.GenerativeModel(
-            self.model,
-            generation_config=generation_config
+        if self.use_genai_sdk:
+            return self._generate_genai_sdk(full_prompt, gen_config_dict)
+        elif self.use_vertex:
+            return self._generate_vertex(full_prompt, gen_config_dict)
+        else:
+            return self._generate_ai_studio(full_prompt, gen_config_dict)
+    
+    def _generate_genai_sdk(self, prompt: str, gen_config_dict: dict) -> LLMResponse:
+        """Generate using google-genai SDK with Vertex AI backend (for Gemini 3 models)."""
+        # Map model aliases to actual model IDs
+        model_id = self.VERTEX_MODEL_ALIASES.get(self.model, self.model)
+        
+        # Build config with safety settings completely disabled
+        # Per https://ai.google.dev/gemini-api/docs/safety-settings
+        # BLOCK_NONE = don't block any content regardless of probability
+        # 
+        # Disable thinking mode for Gemini 3 models to reduce token consumption
+        # Per https://ai.google.dev/gemini-api/docs/thought-signatures
+        # thinking_budget=0 disables thinking entirely
+        config = genai_types.GenerateContentConfig(
+            temperature=gen_config_dict.get("temperature", 0.0),
+            max_output_tokens=gen_config_dict.get("max_output_tokens"),
+            stop_sequences=gen_config_dict.get("stop_sequences"),
+            top_p=gen_config_dict.get("top_p"),
+            top_k=gen_config_dict.get("top_k"),
+            response_mime_type=gen_config_dict.get("response_mime_type"),
+            # Disable thinking to reduce token usage and avoid 429 rate limits
+            thinking_config=genai_types.ThinkingConfig(
+                thinking_budget=0,  # 0 = DISABLED, -1 = AUTOMATIC
+            ),
+            # Disable all safety filters for clinical/medical content
+            safety_settings=[
+                genai_types.SafetySetting(
+                    category=genai_types.HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+                    threshold=genai_types.HarmBlockThreshold.BLOCK_NONE,
+                ),
+                genai_types.SafetySetting(
+                    category=genai_types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+                    threshold=genai_types.HarmBlockThreshold.BLOCK_NONE,
+                ),
+                genai_types.SafetySetting(
+                    category=genai_types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+                    threshold=genai_types.HarmBlockThreshold.BLOCK_NONE,
+                ),
+                genai_types.SafetySetting(
+                    category=genai_types.HarmCategory.HARM_CATEGORY_HARASSMENT,
+                    threshold=genai_types.HarmBlockThreshold.BLOCK_NONE,
+                ),
+            ],
         )
         
-        # Make API call
         try:
-            response = model.generate_content(full_prompt)
+            # Wrap API call with retry logic for 429 rate limit errors
+            def make_request():
+                return self._genai_client.models.generate_content(
+                    model=model_id,
+                    contents=prompt,
+                    config=config,
+                )
             
-            # Extract usage information (if available)
+            response = _retry_with_backoff(make_request)
+            
+            # Extract usage information
             usage = None
             if hasattr(response, 'usage_metadata') and response.usage_metadata:
+                input_tokens = getattr(response.usage_metadata, 'prompt_token_count', 0) or 0
+                output_tokens = getattr(response.usage_metadata, 'candidates_token_count', 0) or 0
                 usage = {
-                    "prompt_tokens": response.usage_metadata.prompt_token_count,
-                    "completion_tokens": response.usage_metadata.candidates_token_count,
-                    "total_tokens": response.usage_metadata.total_token_count
+                    "prompt_tokens": input_tokens,
+                    "completion_tokens": output_tokens,
+                    "total_tokens": getattr(response.usage_metadata, 'total_token_count', 0) or 0,
                 }
+                # Track usage globally
+                usage_tracker.add_usage(input_tokens, output_tokens)
             
             return LLMResponse(
                 content=response.text,
@@ -319,7 +720,105 @@ class GeminiProvider(LLMProvider):
             )
         
         except Exception as e:
-            raise RuntimeError(f"Gemini API call failed for model '{self.model}': {e}")
+            raise RuntimeError(f"Gemini 3 (google-genai SDK) call failed for model '{self.model}': {e}")
+    
+    def _generate_vertex(self, prompt: str, gen_config_dict: dict) -> LLMResponse:
+        """Generate using Vertex AI with safety controls disabled."""
+        from vertexai.generative_models import GenerativeModel, GenerationConfig, HarmCategory, HarmBlockThreshold
+        
+        generation_config = GenerationConfig(**gen_config_dict)
+        
+        # Vertex AI safety settings - BLOCK_NONE for medical/clinical content
+        # Reference: https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/configure-safety-filters
+        safety_settings = {
+            HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+            HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
+            HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
+            HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+        }
+        
+        # Map model aliases to actual Vertex AI model IDs
+        vertex_model = self.VERTEX_MODEL_ALIASES.get(self.model, self.model)
+        
+        # Create model instance (safety_settings passed to generate_content, not constructor)
+        model = GenerativeModel(vertex_model)
+        
+        try:
+            # Wrap API call with retry logic for 429 rate limit errors
+            def make_request():
+                return model.generate_content(
+                    prompt,
+                    generation_config=generation_config,
+                    safety_settings=safety_settings,
+                )
+            
+            response = _retry_with_backoff(make_request)
+            
+            usage = None
+            if hasattr(response, 'usage_metadata') and response.usage_metadata:
+                input_tokens = response.usage_metadata.prompt_token_count or 0
+                output_tokens = response.usage_metadata.candidates_token_count or 0
+                usage = {
+                    "prompt_tokens": input_tokens,
+                    "completion_tokens": output_tokens,
+                    "total_tokens": response.usage_metadata.total_token_count or 0
+                }
+                # Track usage globally
+                usage_tracker.add_usage(input_tokens, output_tokens)
+            
+            return LLMResponse(
+                content=response.text,
+                model=self.model,
+                usage=usage,
+                finish_reason=str(response.candidates[0].finish_reason) if response.candidates else None,
+                raw_response=response
+            )
+        
+        except Exception as e:
+            raise RuntimeError(f"Vertex AI Gemini call failed for model '{self.model}': {e}")
+    
+    def _generate_ai_studio(self, prompt: str, gen_config_dict: dict) -> LLMResponse:
+        """Generate using Google AI Studio (for Gemini 3 models)."""
+        generation_config = genai.types.GenerationConfig(**gen_config_dict)
+        
+        # Map model aliases to actual AI Studio model IDs (same as Vertex)
+        ai_studio_model = self.VERTEX_MODEL_ALIASES.get(self.model, self.model)
+        
+        model = genai.GenerativeModel(
+            ai_studio_model,
+            generation_config=generation_config,
+            safety_settings=self.SAFETY_SETTINGS,
+        )
+        
+        try:
+            # Wrap API call with retry logic for 429 rate limit errors
+            def make_request():
+                return model.generate_content(prompt)
+            
+            response = _retry_with_backoff(make_request)
+            
+            usage = None
+            if hasattr(response, 'usage_metadata') and response.usage_metadata:
+                input_tokens = response.usage_metadata.prompt_token_count or 0
+                output_tokens = response.usage_metadata.candidates_token_count or 0
+                usage = {
+                    "prompt_tokens": input_tokens,
+                    "completion_tokens": output_tokens,
+                    "total_tokens": response.usage_metadata.total_token_count or 0
+                }
+                # Track usage globally
+                usage_tracker.add_usage(input_tokens, output_tokens)
+            
+            return LLMResponse(
+                content=response.text,
+                model=self.model,
+                usage=usage,
+                finish_reason=str(response.candidates[0].finish_reason) if response.candidates else None,
+                raw_response=response
+            )
+        
+        except Exception as e:
+            raise RuntimeError(f"Gemini AI Studio call failed for model '{self.model}': {e}")
     
     def _format_messages_for_gemini(self, messages: List[Dict[str, str]]) -> str:
         """
@@ -346,6 +845,181 @@ class GeminiProvider(LLMProvider):
                 formatted_parts.append(f"\nAssistant: {content}")
         
         return '\n'.join(formatted_parts)
+    
+    def generate_with_image(
+        self,
+        prompt: str,
+        image_data: bytes,
+        mime_type: str = "image/png",
+        config: Optional[LLMConfig] = None
+    ) -> LLMResponse:
+        """Generate completion with an image using Gemini vision."""
+        import base64
+        
+        if config is None:
+            config = LLMConfig()
+        
+        base64_image = base64.b64encode(image_data).decode('utf-8')
+        
+        # Build generation config
+        gen_config_dict = {
+            "temperature": config.temperature,
+        }
+        if config.max_tokens:
+            gen_config_dict["max_output_tokens"] = config.max_tokens
+        if config.json_mode and self.supports_json_mode():
+            gen_config_dict["response_mime_type"] = "application/json"
+        
+        # Create image part
+        image_part = {
+            "mime_type": mime_type,
+            "data": base64_image,
+        }
+        
+        if self.use_genai_sdk:
+            # Gemini 3 via google-genai SDK
+            model_id = self.VERTEX_MODEL_ALIASES.get(self.model, self.model)
+            config_obj = genai_types.GenerateContentConfig(
+                temperature=gen_config_dict.get("temperature", 0.0),
+                max_output_tokens=gen_config_dict.get("max_output_tokens"),
+                response_mime_type=gen_config_dict.get("response_mime_type"),
+                thinking_config=genai_types.ThinkingConfig(thinking_budget=0),
+                safety_settings=[
+                    genai_types.SafetySetting(
+                        category=genai_types.HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+                        threshold=genai_types.HarmBlockThreshold.BLOCK_NONE,
+                    ),
+                    genai_types.SafetySetting(
+                        category=genai_types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+                        threshold=genai_types.HarmBlockThreshold.BLOCK_NONE,
+                    ),
+                    genai_types.SafetySetting(
+                        category=genai_types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+                        threshold=genai_types.HarmBlockThreshold.BLOCK_NONE,
+                    ),
+                    genai_types.SafetySetting(
+                        category=genai_types.HarmCategory.HARM_CATEGORY_HARASSMENT,
+                        threshold=genai_types.HarmBlockThreshold.BLOCK_NONE,
+                    ),
+                ],
+            )
+            
+            try:
+                def make_request():
+                    return self._genai_client.models.generate_content(
+                        model=model_id,
+                        contents=[prompt, {"inline_data": image_part}],
+                        config=config_obj,
+                    )
+                
+                response = _retry_with_backoff(make_request)
+                
+                usage = None
+                if hasattr(response, 'usage_metadata') and response.usage_metadata:
+                    input_tokens = getattr(response.usage_metadata, 'prompt_token_count', 0) or 0
+                    output_tokens = getattr(response.usage_metadata, 'candidates_token_count', 0) or 0
+                    usage = {
+                        "prompt_tokens": input_tokens,
+                        "completion_tokens": output_tokens,
+                        "total_tokens": getattr(response.usage_metadata, 'total_token_count', 0) or 0,
+                    }
+                    usage_tracker.add_usage(input_tokens, output_tokens)
+                
+                return LLMResponse(
+                    content=response.text,
+                    model=self.model,
+                    usage=usage,
+                    finish_reason=str(response.candidates[0].finish_reason) if response.candidates else None,
+                    raw_response=response
+                )
+            except Exception as e:
+                raise RuntimeError(f"Gemini 3 vision call failed for model '{self.model}': {e}")
+        
+        elif self.use_vertex:
+            # Vertex AI for older Gemini models
+            from vertexai.generative_models import GenerativeModel, GenerationConfig, Part, Image
+            from vertexai.generative_models import HarmCategory, HarmBlockThreshold
+            
+            generation_config = GenerationConfig(**gen_config_dict)
+            safety_settings = {
+                HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+            }
+            
+            vertex_model = self.VERTEX_MODEL_ALIASES.get(self.model, self.model)
+            model = GenerativeModel(vertex_model)
+            
+            try:
+                image_part_vertex = Part.from_data(data=image_data, mime_type=mime_type)
+                
+                def make_request():
+                    return model.generate_content(
+                        [prompt, image_part_vertex],
+                        generation_config=generation_config,
+                        safety_settings=safety_settings,
+                    )
+                
+                response = _retry_with_backoff(make_request)
+                
+                usage = None
+                if hasattr(response, 'usage_metadata') and response.usage_metadata:
+                    input_tokens = response.usage_metadata.prompt_token_count or 0
+                    output_tokens = response.usage_metadata.candidates_token_count or 0
+                    usage = {
+                        "prompt_tokens": input_tokens,
+                        "completion_tokens": output_tokens,
+                        "total_tokens": response.usage_metadata.total_token_count or 0
+                    }
+                    usage_tracker.add_usage(input_tokens, output_tokens)
+                
+                return LLMResponse(
+                    content=response.text,
+                    model=self.model,
+                    usage=usage,
+                    finish_reason=str(response.candidates[0].finish_reason) if response.candidates else None,
+                    raw_response=response
+                )
+            except Exception as e:
+                raise RuntimeError(f"Vertex AI Gemini vision call failed for model '{self.model}': {e}")
+        
+        else:
+            # AI Studio
+            generation_config = genai.types.GenerationConfig(**gen_config_dict)
+            ai_studio_model = self.VERTEX_MODEL_ALIASES.get(self.model, self.model)
+            model = genai.GenerativeModel(
+                ai_studio_model,
+                generation_config=generation_config,
+                safety_settings=self.SAFETY_SETTINGS,
+            )
+            
+            try:
+                def make_request():
+                    return model.generate_content([prompt, image_part])
+                
+                response = _retry_with_backoff(make_request)
+                
+                usage = None
+                if hasattr(response, 'usage_metadata') and response.usage_metadata:
+                    input_tokens = response.usage_metadata.prompt_token_count or 0
+                    output_tokens = response.usage_metadata.candidates_token_count or 0
+                    usage = {
+                        "prompt_tokens": input_tokens,
+                        "completion_tokens": output_tokens,
+                        "total_tokens": response.usage_metadata.total_token_count or 0
+                    }
+                    usage_tracker.add_usage(input_tokens, output_tokens)
+                
+                return LLMResponse(
+                    content=response.text,
+                    model=self.model,
+                    usage=usage,
+                    finish_reason=str(response.candidates[0].finish_reason) if response.candidates else None,
+                    raw_response=response
+                )
+            except Exception as e:
+                raise RuntimeError(f"Gemini AI Studio vision call failed for model '{self.model}': {e}")
 
 
 class ClaudeProvider(LLMProvider):
@@ -454,48 +1128,62 @@ class ClaudeProvider(LLMProvider):
         if config.top_p is not None:
             params["top_p"] = config.top_p
         
-        # Make API call
+        # Make API call with streaming to handle long operations
+        # Anthropic requires streaming for operations >10 minutes
         try:
-            response = self.client.messages.create(**params)
+            import logging
+            logger = logging.getLogger(__name__)
             
-            # Extract content from response
+            # Use streaming to avoid 10-minute timeout
             content = ""
-            if response.content:
-                for block in response.content:
-                    if hasattr(block, 'text'):
-                        content = block.text
-                        break
+            input_tokens = 0
+            output_tokens = 0
+            stop_reason = None
+            model_used = self.model
+            
+            with self.client.messages.stream(**params) as stream:
+                for text in stream.text_stream:
+                    content += text
+                
+                # Get final message for metadata
+                final_message = stream.get_final_message()
+                if final_message:
+                    stop_reason = final_message.stop_reason
+                    model_used = final_message.model
+                    if final_message.usage:
+                        input_tokens = final_message.usage.input_tokens
+                        output_tokens = final_message.usage.output_tokens
             
             # Log warning if response was truncated
-            if response.stop_reason == 'max_tokens':
-                import logging
-                logging.getLogger(__name__).warning(
+            if stop_reason == 'max_tokens':
+                logger.warning(
                     f"Claude response was truncated (max_tokens reached). "
-                    f"Used {response.usage.output_tokens} tokens. Consider increasing max_tokens."
+                    f"Used {output_tokens} tokens. Consider increasing max_tokens."
                 )
             
             # Log warning if empty response
             if not content:
-                import logging
-                logging.getLogger(__name__).warning(
-                    f"Claude returned empty content. Stop reason: {response.stop_reason}"
+                logger.warning(
+                    f"Claude returned empty content. Stop reason: {stop_reason}"
                 )
             
-            # Extract usage information
+            # Build usage information
             usage = None
-            if response.usage:
+            if input_tokens or output_tokens:
                 usage = {
-                    "prompt_tokens": response.usage.input_tokens,
-                    "completion_tokens": response.usage.output_tokens,
-                    "total_tokens": response.usage.input_tokens + response.usage.output_tokens
+                    "prompt_tokens": input_tokens,
+                    "completion_tokens": output_tokens,
+                    "total_tokens": input_tokens + output_tokens
                 }
+                # Track usage globally
+                usage_tracker.add_usage(input_tokens, output_tokens)
             
             return LLMResponse(
                 content=content,
-                model=response.model,
+                model=model_used,
                 usage=usage,
-                finish_reason=response.stop_reason,
-                raw_response=response
+                finish_reason=stop_reason,
+                raw_response=None  # No raw response with streaming
             )
         
         except Exception as e:

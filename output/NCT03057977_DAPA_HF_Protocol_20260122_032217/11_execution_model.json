@@ -1,0 +1,1021 @@
+{
+  "success": true,
+  "pagesUsed": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    42,
+    44,
+    45,
+    46,
+    47,
+    49,
+    50,
+    64,
+    67,
+    68,
+    69,
+    70,
+    71,
+    72,
+    73,
+    74,
+    77,
+    78
+  ],
+  "modelUsed": "gemini-3-flash-preview",
+  "data": {
+    "timeAnchors": [
+      {
+        "id": "anchor_llm_1",
+        "definition": "Randomization of the patient",
+        "anchorType": "Randomization",
+        "timelineId": null,
+        "dayValue": 1,
+        "sourceText": "The primary analysis will be performed on the randomised (intention to treat) set. It is planned that approximately 2850 patients will be randomised to accumulate approximately 841 confirmed primary events"
+      },
+      {
+        "id": "anchor_1",
+        "definition": "Screening visit",
+        "anchorType": "Screening",
+        "timelineId": null,
+        "dayValue": 1,
+        "sourceText": "screening period"
+      },
+      {
+        "id": "anchor_2",
+        "definition": "transplant",
+        "anchorType": "Custom",
+        "timelineId": null,
+        "dayValue": 1,
+        "sourceText": "transplant"
+      }
+    ],
+    "repetitions": [
+      {
+        "id": "rep_daily_1",
+        "type": "Daily",
+        "interval": "P1D",
+        "sourceText": "once daily"
+      },
+      {
+        "id": "rep_daily_7",
+        "type": "Daily",
+        "interval": "P1D",
+        "sourceText": "every day"
+      },
+      {
+        "id": "rep_daily_8",
+        "type": "Daily",
+        "interval": "P1D",
+        "sourceText": "od"
+      },
+      {
+        "id": "rep_daily_29",
+        "type": "Daily",
+        "interval": "P1D",
+        "sourceText": "q.d."
+      },
+      {
+        "id": "rep_interval_1",
+        "type": "Interval",
+        "sourceText": "tid"
+      },
+      {
+        "id": "rep_window_1",
+        "type": "Continuous",
+        "sourceText": "screening period"
+      },
+      {
+        "id": "rep_window_3",
+        "type": "Continuous",
+        "sourceText": "Treatment Period"
+      },
+      {
+        "id": "rep_window_4",
+        "type": "Continuous",
+        "sourceText": "treatment period"
+      },
+      {
+        "id": "rep_window_7",
+        "type": "Continuous",
+        "sourceText": "Follow Up\nPeriod"
+      },
+      {
+        "id": "rep_window_8",
+        "type": "Continuous",
+        "sourceText": "follow-up period"
+      },
+      {
+        "id": "rep_window_9",
+        "type": "Continuous",
+        "sourceText": "90 days after"
+      },
+      {
+        "id": "rep_window_11",
+        "type": "Continuous",
+        "sourceText": "26 hours before"
+      },
+      {
+        "id": "rep_llm_1",
+        "type": "Interval",
+        "startOffset": "P365D",
+        "endOffset": "P1037D",
+        "interval": "P24W",
+        "minObservations": 4,
+        "exitCondition": "until end of trial",
+        "sourceText": "From Visit 8 and onwards, on-site visits will be scheduled every 24 weeks until end of trial."
+      },
+      {
+        "id": "rep_llm_2",
+        "type": "Interval",
+        "startOffset": "P449D",
+        "endOffset": "P1037D",
+        "interval": "P12W",
+        "minObservations": 6,
+        "exitCondition": "If the trial continues beyond 148 weeks, visits are to be repeated with same intervals as from week 64 and onwards.",
+        "sourceText": "If the trial continues beyond 148 weeks, visits are to be repeated with same intervals as from week 64 and onwards."
+      },
+      {
+        "id": "rep_llm_3",
+        "type": "Continuous",
+        "startOffset": "-P28D",
+        "endOffset": "-P4D",
+        "interval": "P1D",
+        "minObservations": 1,
+        "exitCondition": "null",
+        "sourceText": "The screening procedures can be done on different days within the time window -28 to -4"
+      },
+      {
+        "id": "rep_llm_4",
+        "type": "Cycle",
+        "startOffset": "P0D",
+        "endOffset": "P30D",
+        "interval": "P30D",
+        "minObservations": 1,
+        "exitCondition": "null",
+        "sourceText": "All patients will have a follow up visit 30 days following regular or premature completion of the treatment period."
+      }
+    ],
+    "samplingConstraints": [],
+    "traversalConstraints": [
+      {
+        "id": "traversal_crossover_1",
+        "requiredSequence": [
+          "SCREENING",
+          "PERIOD_1",
+          "PERIOD_2",
+          "PERIOD_3",
+          "END_OF_STUDY"
+        ],
+        "allowEarlyExit": true,
+        "exitEpochIds": [
+          "EARLY_TERMINATION"
+        ],
+        "mandatoryVisits": [
+          "Screening",
+          "Day 1",
+          "End of Study"
+        ],
+        "sourceText": "Treatment Period 2"
+      },
+      {
+        "id": "traversal_1",
+        "requiredSequence": [
+          "epoch_1",
+          "epoch_2",
+          "epoch_3"
+        ],
+        "allowEarlyExit": true,
+        "exitEpochIds": [
+          "EARLY_TERMINATION"
+        ],
+        "mandatoryVisits": [
+          "EOT Visit",
+          "End of Study",
+          "Visit 4",
+          "Visit 12",
+          "Visit 16",
+          "Visit 1 (Screening)",
+          "Visit 3",
+          "FU Visit",
+          "Visit 2 (Randomisation)",
+          "Visit 10",
+          "Visit 14",
+          "Visit 6",
+          "Screening",
+          "Visit 8"
+        ],
+        "sourceText": "[{'condition': 'If subject terminates treatment early', 'path': ['EOT_VISIT', 'FOLLOW_UP_VISIT']}, {'condition': 'If LVEF not measured within 6 months prior to Visit 1', 'path': ['LVEF_MEASUREMENT_AFTER_CONSENT', 'VISIT_2']}]"
+      }
+    ],
+    "executionTypes": [
+      {
+        "activityId": "Blood Sample",
+        "executionType": "Single",
+        "rationale": "EPISODE signals: 2; SINGLE signals: 5; RECURRING signals: 1"
+      },
+      {
+        "activityId": "Vital Signs",
+        "executionType": "Single",
+        "rationale": "SINGLE signals: 5"
+      },
+      {
+        "activityId": "Ecg",
+        "executionType": "Single",
+        "rationale": "EPISODE signals: 1; SINGLE signals: 4"
+      },
+      {
+        "activityId": "Pe",
+        "executionType": "Single",
+        "rationale": "No strong signals detected"
+      },
+      {
+        "activityId": "Adverse Events",
+        "executionType": "Recurring",
+        "rationale": "RECURRING signals: 1"
+      },
+      {
+        "activityId": "Concomitant Medications",
+        "executionType": "Single",
+        "rationale": "No strong signals detected"
+      },
+      {
+        "activityId": "Laboratory Test",
+        "executionType": "Single",
+        "rationale": "SINGLE signals: 2"
+      },
+      {
+        "activityId": "Pk Sampling",
+        "executionType": "Window",
+        "rationale": "WINDOW signals: 2; SINGLE signals: 1"
+      },
+      {
+        "activityId": "Pharmacodynamic",
+        "executionType": "Single",
+        "rationale": "No strong signals detected"
+      },
+      {
+        "activityId": "Dosing",
+        "executionType": "Single",
+        "rationale": "No strong signals detected"
+      },
+      {
+        "activityId": "Mri",
+        "executionType": "Single",
+        "rationale": "SINGLE signals: 5"
+      },
+      {
+        "activityId": "Biopsy",
+        "executionType": "Single",
+        "rationale": "SINGLE signals: 2"
+      },
+      {
+        "activityId": "Epro",
+        "executionType": "Single",
+        "rationale": "No strong signals detected"
+      },
+      {
+        "activityId": "LVEF Measurement",
+        "executionType": "Single",
+        "rationale": "LVEF must be documented in an official report prior to randomization, either as a historical value within 6 months or a one-time measurement after consent."
+      },
+      {
+        "activityId": "NT-proBNP Analysis",
+        "executionType": "Single",
+        "rationale": "Elevated NT-proBNP is assessed at Visit 1 (screening) to determine eligibility based on specific ejection fraction thresholds."
+      },
+      {
+        "activityId": "Medical Therapy Stabilization",
+        "executionType": "Single",
+        "rationale": "HF medical therapy must be stable for at least 1 week prior to Visit 1 and throughout the screening period until Visit 2."
+      },
+      {
+        "activityId": "Primary Outcome Event Accrual",
+        "executionType": "Single",
+        "rationale": "The trial duration and sample size are conditional; if blinded data suggests slow accrual, recruitment may be extended or the number of patients increased until the target number of events is reached."
+      }
+    ],
+    "crossoverDesign": {
+      "id": "crossover_1",
+      "isCrossover": true,
+      "numPeriods": 3,
+      "numSequences": 6,
+      "periods": [
+        "Period 1",
+        "Period 2",
+        "Period 3"
+      ],
+      "sequences": [
+        "ABC",
+        "ACB",
+        "BAC",
+        "BCA",
+        "CAB",
+        "CBA"
+      ],
+      "washoutRequired": false,
+      "sourceText": "Treatment Period 2"
+    },
+    "footnoteConditions": [
+      {
+        "id": "fn_cond_1",
+        "conditionType": "general",
+        "text": "1 The screening procedures can be done on different days within the time window",
+        "footnoteId": "fn_1",
+        "structuredCondition": "timing.flexible(screening_window)",
+        "appliesToActivityIds": [
+          "Screening procedures"
+        ],
+        "sourceText": "1 The screening procedures can be done on different days within the time window"
+      },
+      {
+        "id": "fn_cond_2",
+        "conditionType": "sequence",
+        "text": "2 From Visit 8 and onwards, on-site visits will be scheduled every 24 weeks until end of trial. Patients who prematurely discontinue trial medication will perform EOT visit and Follow Up visit, and then continue with scheduled visits until the trial is stopped.",
+        "footnoteId": "fn_2",
+        "structuredCondition": "frequency.interval(P24W).start(Visit_8).end(EOT)",
+        "appliesToActivityIds": [
+          "On-site visits"
+        ],
+        "sourceText": "2 From Visit 8 and onwards, on-site visits will be scheduled every 24 weeks until end of trial. Pati"
+      },
+      {
+        "id": "fn_cond_3",
+        "conditionType": "general",
+        "text": "3 Timepoint for the EOT will be communicated via an Investigator letter when the Sponsor is confident that required number of events will be reached within a reasonable timeframe.",
+        "footnoteId": "fn_3",
+        "structuredCondition": "timing.event_triggered(Sponsor_Notification)",
+        "appliesToActivityIds": [
+          "EOT"
+        ],
+        "sourceText": "3 Timepoint for the EOT will be communicated via an Investigator letter when the Sponsor is confiden"
+      },
+      {
+        "id": "fn_cond_4",
+        "conditionType": "general",
+        "text": "4 Visit dates are determined per the date of randomisation. If a visit is missed, the patient should be returned to the original visit schedule at the next visit.",
+        "footnoteId": "fn_4",
+        "structuredCondition": "timing.anchor(Randomization).recovery(Original_Schedule)",
+        "appliesToActivityIds": [
+          "Visit dates"
+        ],
+        "sourceText": "4 Visit dates are determined per the date of randomisation. If a visit is missed, the patient should"
+      },
+      {
+        "id": "fn_cond_5",
+        "conditionType": "procedure_fasting",
+        "text": "5 NF = non fasting, F=fasting. Fasting means no food or liquid intake except for water the last 10-16 hours",
+        "footnoteId": "fn_5",
+        "structuredCondition": "subject.isFasting == true",
+        "appliesToActivityIds": [
+          "Fasting procedures"
+        ],
+        "sourceText": "5 NF = non fasting, F=fasting. Fasting means no food or liquid intake except for water the last 10-1"
+      },
+      {
+        "id": "fn_cond_6",
+        "conditionType": "timing_before",
+        "text": "16 For PK analysis, one blood sample will be collected prior to the next scheduled dose of trial medication at Visit 4, and between 22 to 26 h after the most recent drug intake.",
+        "footnoteId": "fn_6",
+        "sourceText": "16 For PK analysis, one blood sample will be collected prior to the next scheduled dose of trial med"
+      },
+      {
+        "id": "fn_cond_7",
+        "conditionType": "general",
+        "text": "17 Collection of biobanking samples (plasma, serum, urine, DNA) is optional. Participating patients are required to give informed consent specifically for biobanking.",
+        "footnoteId": "fn_7",
+        "sourceText": "17 Collection of biobanking samples (plasma, serum, urine, DNA) is optional. Participating patients "
+      },
+      {
+        "id": "fn_cond_8",
+        "conditionType": "procedure_timepoints",
+        "text": "18 DNA biobanking requires only one blood sample to be taken, preferably at Visit 2 (Randomisation).",
+        "footnoteId": "fn_8",
+        "sourceText": "18 DNA biobanking requires only one blood sample to be taken, preferably at Visit 2 (Randomisation)."
+      },
+      {
+        "id": "fn_cond_9",
+        "conditionType": "timing_after",
+        "text": "19 At all visits; the respective kit number has to be allocated to the patient via IRT. Trial medication should be taken after all trial related procedures are completed at an on-site visit.",
+        "footnoteId": "fn_9",
+        "sourceText": "19 At all visits; the respective kit number has to be allocated to the patient via IRT. Trial medica"
+      }
+    ],
+    "endpointAlgorithms": [
+      {
+        "id": "ep_1",
+        "name": "Primary: Composite of CV Death or HHF",
+        "endpointType": "Primary",
+        "inputs": [
+          "adjudicated CV death date",
+          "adjudicated HHF date",
+          "randomization date"
+        ],
+        "timeWindow": {
+          "reference": "randomization",
+          "duration": "until 841 confirmed events occur"
+        },
+        "algorithm": "min(date_of_adjudicated_CV_death, date_of_adjudicated_HHF) - randomization_date",
+        "successCriteria": "Statistically significant increase in time to first event vs placebo",
+        "sourceText": "The composite primary endpoint for this trial is the time to first event of adjudicated CV death or adjudicated HHF in patients with HFrEF."
+      },
+      {
+        "id": "ep_2",
+        "name": "Key Secondary: Recurrent HHF",
+        "endpointType": "Secondary",
+        "inputs": [
+          "adjudicated HHF events"
+        ],
+        "timeWindow": {
+          "reference": "randomization",
+          "duration": "trial duration"
+        },
+        "algorithm": "count(adjudicated_HHF_events)",
+        "successCriteria": "Reduction in total (first and recurrent) HHF events",
+        "sourceText": "Occurrence of adjudicated HHF (first and recurrent)"
+      },
+      {
+        "id": "ep_3",
+        "name": "Key Secondary: eGFR Slope",
+        "endpointType": "Secondary",
+        "inputs": [
+          "eGFR (CKD-EPI)cr",
+          "measurement_time"
+        ],
+        "timeWindow": {
+          "reference": "baseline",
+          "duration": "trial duration"
+        },
+        "algorithm": "linear_regression_slope(eGFR_values over time)",
+        "successCriteria": "Reduction in the rate of eGFR decline",
+        "sourceText": "eGFR (CKD-EPI)cr slope of change from baseline"
+      },
+      {
+        "id": "ep_4",
+        "name": "Secondary: Renal Composite Endpoint",
+        "endpointType": "Secondary",
+        "inputs": [
+          "dialysis_start_date",
+          "renal_transplant_date",
+          "eGFR",
+          "baseline_eGFR"
+        ],
+        "timeWindow": {
+          "reference": "randomization",
+          "duration": "trial duration"
+        },
+        "algorithm": "min(dialysis_date, transplant_date, date_of_sustained_reduction_eGFR >= 40%, date_of_sustained_eGFR < 15 [if baseline >= 30] OR < 10 [if baseline < 30])",
+        "successCriteria": "Increase in time to first renal event",
+        "sourceText": "Time to first occurrence of chronic dialysis or renal transplant or sustained reduction of ≥40% eGFR (CKD-EPI)cr or sustained eGFR (CKD-EPI)cr <15 mL/min/1.73 m2 for patients with baseline eGFR ≥30 mL"
+      },
+      {
+        "id": "ep_5",
+        "name": "Secondary: KCCQ Clinical Summary Score",
+        "endpointType": "Secondary",
+        "inputs": [
+          "KCCQ HF symptoms domain",
+          "KCCQ physical limitations domain",
+          "baseline_KCCQ"
+        ],
+        "timeWindow": {
+          "reference": "baseline",
+          "duration": "P52W"
+        },
+        "algorithm": "Week_52_KCCQ_Score - Baseline_KCCQ_Score",
+        "successCriteria": "Improvement in KCCQ clinical summary score at week 52",
+        "sourceText": "Change from baseline in clinical summary score (HF symptoms and physical limitations domains) of the KCCQ at week 52"
+      }
+    ],
+    "derivedVariables": [
+      {
+        "id": "dv_1",
+        "name": "Time to first event of adjudicated CV death or adjudicated HHF",
+        "variableType": "TimeToEvent",
+        "sourceVariables": [
+          "Adjudicated CV death date",
+          "Adjudicated HHF date",
+          "Randomization date"
+        ],
+        "derivationRule": "min(date of first adjudicated CV death, date of first adjudicated HHF) - randomization date",
+        "baselineDefinition": "Randomization date",
+        "baselineVisit": "Visit 2",
+        "analysisWindow": "From randomization until 841 confirmed primary outcome events occur trial-wide",
+        "imputationRule": "Censoring at last contact if no event occurs",
+        "unit": "Days"
+      },
+      {
+        "id": "dv_2",
+        "name": "eGFR (CKD-EPI)cr slope of change from baseline",
+        "variableType": "Custom",
+        "sourceVariables": [
+          "Serum creatinine",
+          "Age",
+          "Gender",
+          "Race"
+        ],
+        "derivationRule": "Rate of change in eGFR over time calculated via CKD-EPI formula",
+        "baselineDefinition": "eGFR at Visit 1 or last value prior to treatment",
+        "baselineVisit": "Visit 1",
+        "analysisWindow": "Entire double-blind treatment period",
+        "imputationRule": "Alpha split (0.001) for analysis; specific longitudinal model details not in snippet",
+        "unit": "mL/min/1.73m2/year"
+      },
+      {
+        "id": "dv_3",
+        "name": "Time to first occurrence of renal composite endpoint",
+        "variableType": "TimeToEvent",
+        "sourceVariables": [
+          "Chronic dialysis date",
+          "Renal transplant date",
+          "eGFR"
+        ],
+        "derivationRule": "Time to first of: chronic dialysis, renal transplant, sustained reduction of ≥40% eGFR, or sustained eGFR <15 (or <10 if baseline <30) mL/min/1.73 m2",
+        "baselineDefinition": "eGFR at baseline (thresholds of 30 mL/min/1.73 m2 used for categorization)",
+        "baselineVisit": "Visit 1",
+        "analysisWindow": "Trial duration",
+        "imputationRule": "Censoring",
+        "unit": "Days"
+      },
+      {
+        "id": "dv_4",
+        "name": "Change from baseline in KCCQ clinical summary score at week 52",
+        "variableType": "ChangeFromBaseline",
+        "sourceVariables": [
+          "KCCQ HF symptoms domain",
+          "KCCQ physical limitations domain"
+        ],
+        "derivationRule": "Week 52 score - Baseline score",
+        "baselineDefinition": "Last non-missing score prior to randomization",
+        "baselineVisit": "Visit 2",
+        "analysisWindow": "Week 52",
+        "imputationRule": "Not specified in snippet",
+        "unit": "Score points"
+      },
+      {
+        "id": "dv_5",
+        "name": "Time to onset of diabetes mellitus in patients with pre-DM",
+        "variableType": "TimeToEvent",
+        "sourceVariables": [
+          "HbA1c",
+          "Fasting Plasma Glucose",
+          "Antidiabetic medication initiation"
+        ],
+        "derivationRule": "Time from randomization to first diagnosis of DM in the subgroup with pre-DM at baseline",
+        "baselineDefinition": "Pre-diabetes status at screening/randomization",
+        "baselineVisit": "Visit 1/2",
+        "analysisWindow": "Trial duration",
+        "imputationRule": "Censoring",
+        "unit": "Days"
+      },
+      {
+        "id": "dv_6",
+        "name": "Occurrence of adjudicated HHF (first and recurrent)",
+        "variableType": "Categorical",
+        "sourceVariables": [
+          "Adjudicated HHF events"
+        ],
+        "derivationRule": "Count of all confirmed HHF events per patient",
+        "baselineDefinition": "Post-randomization events",
+        "baselineVisit": "Post-Visit 2",
+        "analysisWindow": "Trial duration",
+        "imputationRule": "Not specified in snippet",
+        "unit": "Count"
+      }
+    ],
+    "stateMachine": {
+      "id": "sm_1",
+      "initialState": "Screening",
+      "terminalStates": [
+        "Early Termination",
+        "Completed"
+      ],
+      "states": [
+        "Screening",
+        "Randomised Treatment Period",
+        "Follow Up Period",
+        "Early Termination"
+      ],
+      "transitions": [
+        {
+          "fromState": "Screening",
+          "toState": "Randomised Treatment Period",
+          "trigger": "Progress to Randomised Treatment Period"
+        },
+        {
+          "fromState": "Randomised Treatment Period",
+          "toState": "Follow Up Period",
+          "trigger": "Progress to Follow Up Period"
+        },
+        {
+          "fromState": "Randomised Treatment Period",
+          "toState": "Early Termination",
+          "trigger": "Subject exits to Early Termination"
+        },
+        {
+          "fromState": "Follow Up Period",
+          "toState": "Early Termination",
+          "trigger": "Subject exits to Early Termination"
+        }
+      ],
+      "epochIds": {
+        "Screening": "epoch_1",
+        "Randomised Treatment Period": "epoch_2",
+        "Follow Up Period": "epoch_3",
+        "Early Termination": "EARLY_TERMINATION"
+      }
+    },
+    "dosingRegimens": [
+      {
+        "id": "dosing_1",
+        "treatmentName": "Empagliflozin",
+        "frequency": "Continuous",
+        "route": "Oral",
+        "startDay": 1,
+        "doseLevels": [
+          {
+            "amount": 10.0,
+            "unit": "mg"
+          }
+        ],
+        "durationDescription": "3 weeks",
+        "sourceText": "ber of confirmed adjudicated primary endpoint events will be continuously monitored during the trial. As soon as the available data reliably suggests that the total Screening N= 3354 Placebo N=1425 Em"
+      },
+      {
+        "id": "dosing_llm_2",
+        "treatmentName": "Placebo",
+        "frequency": "QD",
+        "route": "Oral",
+        "startDay": 1,
+        "durationDescription": "Event-driven; matching the active treatment arm duration."
+      }
+    ],
+    "visitWindows": [
+      {
+        "id": "visit_6",
+        "visitName": "screening",
+        "targetDay": -14,
+        "windowBefore": 7,
+        "windowAfter": 24,
+        "isRequired": true,
+        "visitNumber": 1,
+        "epoch": "Screening",
+        "sourceText": "week prior to Visit 1(screening) and during screening period until Visit 2 (Randomisation) with the exception of diuretics stable for only one week prior to Visit 2 to control symptoms. The investigat"
+      },
+      {
+        "id": "visit_1",
+        "visitName": "Visit 2019",
+        "targetDay": null,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 2,
+        "sourceText": "20 Nov 2019 BI Trial No.: 1245.121 c09098452-04"
+      },
+      {
+        "id": "visit_2",
+        "visitName": "Early Termination",
+        "targetDay": null,
+        "windowBefore": 0,
+        "windowAfter": 0,
+        "isRequired": true,
+        "visitNumber": 3,
+        "sourceText": "Proprietary confidential information © 2019 Boehringer Ingelheim International GmbH or one or more of its affiliated companies 001-MCS-40-106-RD-03 (13.0) / Saved on: 05 Aug 2015 Name of company:"
+      },
+      {
+        "id": "visit_3",
+        "visitName": "Visit 2016",
+        "targetDay": null,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 4,
+        "sourceText": "10 NOV 2016 Trial number: 1245.121"
+      },
+      {
+        "id": "visit_4",
+        "visitName": "Visit 1",
+        "targetDay": null,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 5,
+        "sourceText": "Patients with chronic HF diagnosed for at least 3 months before Visit 1, and currently in NYHA HF class II-IV "
+      },
+      {
+        "id": "visit_7",
+        "visitName": "Visit 2",
+        "targetDay": null,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 6,
+        "sourceText": "prior to Visit 2 to control symptoms. The investigator must document the reason why patient not on target dose per local guidelines. "
+      },
+      {
+        "id": "visit_9",
+        "visitName": "Visit 30",
+        "targetDay": null,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 7,
+        "sourceText": "Follow-up visit 30 days after end of treatment The trial will continue until the required number of adjudicated primary endpoint events have occurred to be able to comply with the objective of the tri"
+      },
+      {
+        "id": "visit_10",
+        "visitName": "end of treatment",
+        "targetDay": null,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 8,
+        "sourceText": "Follow-up visit 30 days after end of treatment The trial will continue until the required number of adjudicated primary endpoint events have occurred to be able to comply with the objective of the tri"
+      },
+      {
+        "id": "visit_11",
+        "visitName": "baseline",
+        "targetDay": 0,
+        "windowBefore": 1,
+        "windowAfter": 1,
+        "isRequired": true,
+        "visitNumber": 9,
+        "sourceText": "eGFR (CKD-EPI)cr slope of change from baseline Other secondary endpoints are: "
+      },
+      {
+        "id": "visit_13",
+        "visitName": "Visit 3",
+        "targetDay": null,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 10,
+        "epoch": "Randomised Treatment Period",
+        "sourceText": "Visit 3 Trial week -3"
+      },
+      {
+        "id": "visit_14",
+        "visitName": "Visit 8",
+        "targetDay": null,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 11,
+        "epoch": "Randomised Treatment Period",
+        "sourceText": "From Visit 8 and onwards, on-site visits will be scheduled every 24 weeks until end of trial. Patients who prematurely discontinue trial medication will perform EOT visit and Follow Up visit, and then"
+      },
+      {
+        "id": "visit_16",
+        "visitName": "Visit 4",
+        "targetDay": null,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": false,
+        "visitNumber": 12,
+        "epoch": "Randomised Treatment Period",
+        "sourceText": "For PK analysis, one blood sample will be collected prior to the next scheduled dose of trial medication at Visit 4, and between 22 to 26 h after the most recent drug intake. 17 Collection of biobanki"
+      },
+      {
+        "id": "visit_llm_17",
+        "visitName": "EOT Visit",
+        "targetDay": null,
+        "windowBefore": 0,
+        "windowAfter": 0,
+        "isRequired": true,
+        "visitNumber": 17,
+        "epoch": "Randomised Treatment Period"
+      },
+      {
+        "id": "visit_5",
+        "visitName": "randomization",
+        "targetDay": 1,
+        "windowBefore": 0,
+        "windowAfter": 0,
+        "isRequired": true,
+        "visitNumber": 14,
+        "epoch": "Randomised Treatment Period",
+        "sourceText": "must be documented in an official report prior to randomization.  In addition to LVEF ≤ 40%, patient must have at least one of the following"
+      },
+      {
+        "id": "visit_llm_18",
+        "visitName": "FU Visit",
+        "targetDay": 30,
+        "windowBefore": 7,
+        "windowAfter": 7,
+        "isRequired": true,
+        "visitNumber": 18,
+        "epoch": "Follow Up Period"
+      },
+      {
+        "id": "visit_llm_5",
+        "visitName": "Visit 5",
+        "targetDay": 155,
+        "windowBefore": 7,
+        "windowAfter": 7,
+        "isRequired": true,
+        "visitNumber": 5,
+        "targetWeek": 22,
+        "epoch": "Randomised Treatment Period"
+      },
+      {
+        "id": "visit_17",
+        "visitName": "Week 24",
+        "targetDay": 162,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 17,
+        "targetWeek": 24,
+        "sourceText": "compared to placebo at Week 24, these results were sustained for up to 52 weeks [P14- 01211]. In patients with CKD4 renal impairment, while there was not change in the glycaemic response, the reductio"
+      },
+      {
+        "id": "visit_llm_6",
+        "visitName": "Phone call (Visit 6)",
+        "targetDay": 225,
+        "windowBefore": 7,
+        "windowAfter": 7,
+        "isRequired": true,
+        "visitNumber": 6,
+        "targetWeek": 32,
+        "epoch": "Randomised Treatment Period"
+      },
+      {
+        "id": "visit_llm_7",
+        "visitName": "Visit 7",
+        "targetDay": 295,
+        "windowBefore": 7,
+        "windowAfter": 7,
+        "isRequired": true,
+        "visitNumber": 7,
+        "targetWeek": 42,
+        "epoch": "Randomised Treatment Period"
+      },
+      {
+        "id": "visit_12",
+        "visitName": "Week 52",
+        "targetDay": 358,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 20,
+        "targetWeek": 52,
+        "sourceText": "limitations domains) of the KCCQ at week 52  Occurrence of all-cause hospitalisation (first and recurrent)"
+      },
+      {
+        "id": "visit_8",
+        "visitName": "Follow-up",
+        "targetDay": 365,
+        "windowBefore": 7,
+        "windowAfter": 7,
+        "isRequired": true,
+        "visitNumber": 21,
+        "sourceText": "extended beyond 18 months and the follow-up period may be adjusted to achieve the 841 confirmed primary outcome events. The estimated total trial duration and length of the double-blind treatment for "
+      },
+      {
+        "id": "visit_15",
+        "visitName": "Week 64",
+        "targetDay": 442,
+        "windowBefore": 3,
+        "windowAfter": 3,
+        "isRequired": true,
+        "visitNumber": 22,
+        "targetWeek": 64,
+        "sourceText": "If the trial continues beyond 148 weeks, visits are to be repeated with same intervals as from week 64 and onwards. 3 Timepoint for the EOT will be communicated via an Investigator letter when the Spo"
+      },
+      {
+        "id": "visit_llm_10",
+        "visitName": "Visit 10",
+        "targetDay": 533,
+        "windowBefore": 7,
+        "windowAfter": 7,
+        "isRequired": true,
+        "visitNumber": 10,
+        "targetWeek": 76,
+        "epoch": "Randomised Treatment Period"
+      },
+      {
+        "id": "visit_llm_12",
+        "visitName": "Visit 12",
+        "targetDay": 701,
+        "windowBefore": 7,
+        "windowAfter": 7,
+        "isRequired": true,
+        "visitNumber": 12,
+        "targetWeek": 100,
+        "epoch": "Randomised Treatment Period"
+      },
+      {
+        "id": "visit_llm_14",
+        "visitName": "Visit 14",
+        "targetDay": 869,
+        "windowBefore": 7,
+        "windowAfter": 7,
+        "isRequired": true,
+        "visitNumber": 14,
+        "targetWeek": 124,
+        "epoch": "Randomised Treatment Period"
+      },
+      {
+        "id": "visit_llm_16",
+        "visitName": "Visit 16",
+        "targetDay": 1037,
+        "windowBefore": 7,
+        "windowAfter": 7,
+        "isRequired": true,
+        "visitNumber": 16,
+        "targetWeek": 148,
+        "epoch": "Randomised Treatment Period"
+      }
+    ],
+    "randomizationScheme": {
+      "id": "randomization_1",
+      "ratio": "1:1",
+      "method": "Stratified randomization",
+      "centralRandomization": true,
+      "stratificationFactors": [
+        {
+          "id": "strat_1",
+          "name": "Region",
+          "categories": [
+            "North America",
+            "Europe",
+            "Asia",
+            "Rest of World"
+          ],
+          "isBlocking": false,
+          "sourceText": "geographical region, status of dm (dm, pre-dm, no dm) and egfr \n(ckd-epi)cr at screening (<60 ml/min/1"
+        },
+        {
+          "id": "strat_llm_1",
+          "name": "Geographical region",
+          "categories": [
+            "North America",
+            "Latin America",
+            "Europe",
+            "Asia",
+            "Other"
+          ],
+          "isBlocking": false
+        },
+        {
+          "id": "strat_llm_2",
+          "name": "History of diabetes",
+          "categories": [
+            "diabetes",
+            "prediabetes",
+            "no diabetes"
+          ],
+          "isBlocking": false
+        },
+        {
+          "id": "strat_llm_3",
+          "name": "eGFR at screening CKD-EPI",
+          "categories": [
+            "<60 mL/min/1.73m²",
+            ">=60mL/min/1.73m²"
+          ],
+          "isBlocking": false
+        }
+      ],
+      "sourceText": "Boehringer Ingelheim\n20 Nov 2019\nBI Trial No.: 1245.121\nc09098452-04\nTrial Protocol\nPage 16 of 136\nProprietary confidential information © 2019 Boehringer Ingelheim International GmbH or one or more of"
+    }
+  }
+}

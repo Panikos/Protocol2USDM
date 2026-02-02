@@ -174,13 +174,36 @@ def extract_procedures_devices(
     try:
         # Combine system prompt with user prompt
         full_prompt = f"{system_prompt}\n\n{prompt}"
-        result = call_llm(
-            prompt=full_prompt,
-            model_name=model,
-            json_mode=True,
-            temperature=0.1,
-        )
-        response = result.get('response', '')
+        
+        # Retry logic for empty or failed responses
+        max_retries = 3
+        response = ""
+        last_error = None
+        
+        for attempt in range(max_retries):
+            result = call_llm(
+                prompt=full_prompt,
+                model_name=model,
+                json_mode=True,
+                extractor_name="procedures",
+                temperature=0.1,
+            )
+            response = result.get('response', '')
+            
+            if response and response.strip():
+                break
+            else:
+                last_error = "Empty response from LLM"
+                logger.warning(f"Attempt {attempt+1}/{max_retries}: Empty response, retrying...")
+        
+        if not response or not response.strip():
+            logger.error(f"All {max_retries} attempts failed: {last_error}")
+            return ProceduresDevicesResult(
+                success=False,
+                error=f"LLM returned empty response after {max_retries} attempts",
+                pages_used=pages,
+                model_used=model,
+            )
         
         # Parse JSON from response
         json_match = re.search(r'```json\s*(.*?)\s*```', response, re.DOTALL)
@@ -190,6 +213,15 @@ def extract_procedures_devices(
             json_str = response
         
         raw_data = json.loads(json_str)
+        
+        # Handle case where LLM returns a list instead of a dict
+        if isinstance(raw_data, list):
+            # Try to find wrapped dict or convert list to expected structure
+            if len(raw_data) == 1 and isinstance(raw_data[0], dict):
+                raw_data = raw_data[0]
+            else:
+                # Assume list contains procedures directly
+                raw_data = {'procedures': raw_data}
         
         # Parse procedures
         procedures = []
@@ -228,13 +260,13 @@ def extract_procedures_devices(
             )
             device_identifiers.append(identifier)
         
-        # Parse ingredients
+        # Parse ingredients - use empty string for role if not extracted
         ingredients = []
         for i in raw_data.get('ingredients', []):
             ing = Ingredient(
                 id=i.get('id', f"ing_{len(ingredients)+1}"),
                 name=i.get('name', ''),
-                role=i.get('role', 'Active'),
+                role=i.get('role') or '',  # Empty if not extracted, don't inject 'Active'
                 substance_id=i.get('substanceId'),
             )
             ingredients.append(ing)

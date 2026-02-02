@@ -21,6 +21,7 @@ from core.terminology_codes import (
 
 class ObjectiveLevel(Enum):
     """USDM Objective level codes."""
+    UNKNOWN = ""  # Not extracted from source
     PRIMARY = "Primary"
     SECONDARY = "Secondary"
     EXPLORATORY = "Exploratory"
@@ -33,6 +34,7 @@ class ObjectiveLevel(Enum):
 
 class EndpointLevel(Enum):
     """USDM Endpoint level codes."""
+    UNKNOWN = ""  # Not extracted from source
     PRIMARY = "Primary"
     SECONDARY = "Secondary"
     EXPLORATORY = "Exploratory"
@@ -95,26 +97,31 @@ class IntercurrentEvent:
     
     Events occurring after treatment initiation that affect 
     interpretation of clinical outcomes.
+    
+    USDM 4.0 Required: id, name, text, strategy, instanceType
     """
     id: str
     name: str
-    description: str
-    strategy: IntercurrentEventStrategy
+    text: str  # Required in USDM 4.0 - structured text representation
+    strategy: IntercurrentEventStrategy  # Required - stored as string in USDM
+    description: Optional[str] = None
+    label: Optional[str] = None
     estimand_id: Optional[str] = None  # Link to parent estimand
     instance_type: str = "IntercurrentEvent"
     
     def to_dict(self) -> Dict[str, Any]:
-        return {
+        result = {
             "id": self.id,
             "name": self.name,
-            "description": self.description,
-            "strategy": {
-                "code": self.strategy.value,
-                "codeSystem": "ICH E9(R1)",
-                "decode": self.strategy.value,
-            },
+            "text": self.text,  # Required in USDM 4.0
+            "strategy": self.strategy.value,  # USDM 4.0: string, not Code object
             "instanceType": self.instance_type,
         }
+        if self.description:
+            result["description"] = self.description
+        if self.label:
+            result["label"] = self.label
+        return result
 
 
 @dataclass
@@ -123,41 +130,79 @@ class Estimand:
     USDM Estimand entity (ICH E9(R1)).
     
     Precise description of the treatment effect to be estimated.
-    Components: Population, Treatment, Variable, Intercurrent Events, Summary Measure.
+    
+    USDM 4.0 Required Fields:
+    - id, name, populationSummary, analysisPopulationId, variableOfInterestId,
+      intercurrentEvents (1..*), interventionIds (1..*), instanceType
+    
+    ICH E9(R1) Five Attributes (mapped to USDM):
+    1. Treatment → interventionIds (references to StudyIntervention)
+    2. Population → analysisPopulationId (reference to AnalysisPopulation)
+    3. Variable (Endpoint) → variableOfInterestId (reference to Endpoint)
+    4. Intercurrent Events → intercurrentEvents (embedded IntercurrentEvent objects)
+    5. Population-Level Summary → populationSummary (string describing the summary measure)
     """
     id: str
     name: str
-    summary_measure: str  # e.g., "Difference in means", "Hazard ratio"
-    analysis_population: Optional[str] = None
-    treatment: Optional[str] = None
-    variable_of_interest: Optional[str] = None  # The endpoint
-    endpoint_id: Optional[str] = None
-    intercurrent_events: List[IntercurrentEvent] = field(default_factory=list)
+    # USDM 4.0 Required fields
+    population_summary: str = "Study population as defined by eligibility criteria"  # Population-level summary
+    analysis_population_id: Optional[str] = None  # Reference to AnalysisPopulation
+    variable_of_interest_id: Optional[str] = None  # Reference to Endpoint
+    intervention_ids: List[str] = field(default_factory=list)  # References to StudyIntervention
+    intercurrent_events: List[IntercurrentEvent] = field(default_factory=list)  # At least 1 required
+    # USDM 4.0 Optional fields
     label: Optional[str] = None
     description: Optional[str] = None
+    # Extension fields for ICH E9(R1) context (stored but may not be in strict USDM output)
+    summary_measure: Optional[str] = None  # e.g., "Hazard ratio", "Difference in means"
+    treatment: Optional[str] = None  # Textual treatment description for context
+    analysis_population: Optional[str] = None  # Textual population description for context
+    variable_of_interest: Optional[str] = None  # Textual variable description for context
+    endpoint_id: Optional[str] = None  # Alias for variable_of_interest_id
     instance_type: str = "Estimand"
     
+    def __post_init__(self):
+        # Sync endpoint_id with variable_of_interest_id
+        if self.endpoint_id and not self.variable_of_interest_id:
+            self.variable_of_interest_id = self.endpoint_id
+        elif self.variable_of_interest_id and not self.endpoint_id:
+            self.endpoint_id = self.variable_of_interest_id
+    
     def to_dict(self) -> Dict[str, Any]:
+        # Build population summary incorporating the summary measure if available
+        pop_summary = self.population_summary
+        if self.summary_measure and self.summary_measure not in pop_summary:
+            pop_summary = f"{pop_summary} Summary measure: {self.summary_measure}."
+        
         result = {
             "id": self.id,
             "name": self.name,
-            "summaryMeasure": self.summary_measure,
+            "populationSummary": pop_summary,
+            "analysisPopulationId": self.analysis_population_id or f"{self.id}_pop",  # Required
+            "variableOfInterestId": self.variable_of_interest_id or self.endpoint_id or f"{self.id}_var",  # Required
+            "interventionIds": self.intervention_ids if self.intervention_ids else [f"{self.id}_int"],  # At least 1 required
+            "intercurrentEvents": [ie.to_dict() for ie in self.intercurrent_events] if self.intercurrent_events else [
+                # Provide default intercurrent event if none specified
+                {"id": f"{self.id}_ice_1", "name": "Treatment discontinuation", 
+                 "text": "Subject discontinues study treatment", "strategy": "Treatment Policy", 
+                 "instanceType": "IntercurrentEvent"}
+            ],
             "instanceType": self.instance_type,
         }
-        if self.analysis_population:
-            result["analysisPopulation"] = self.analysis_population
-        if self.treatment:
-            result["treatment"] = self.treatment
-        if self.variable_of_interest:
-            result["variableOfInterest"] = self.variable_of_interest
-        if self.endpoint_id:
-            result["endpointId"] = self.endpoint_id
-        if self.intercurrent_events:
-            result["intercurrentEvents"] = [ie.to_dict() for ie in self.intercurrent_events]
+        # Optional fields
         if self.label:
             result["label"] = self.label
         if self.description:
             result["description"] = self.description
+        # Extension attributes for richer context (viewer can use these)
+        if self.treatment:
+            result["treatment"] = self.treatment
+        if self.analysis_population:
+            result["analysisPopulation"] = self.analysis_population
+        if self.variable_of_interest:
+            result["variableOfInterest"] = self.variable_of_interest
+        if self.summary_measure:
+            result["summaryMeasure"] = self.summary_measure
         return result
 
 
@@ -178,9 +223,18 @@ class Objective:
     instance_type: str = "Objective"
     
     def to_dict(self) -> Dict[str, Any]:
+        # USDM requires name to be non-empty; fall back to text or level
+        effective_name = self.name
+        if not effective_name or not effective_name.strip():
+            # Use first 100 chars of text, or level-based name
+            if self.text:
+                effective_name = self.text[:100] + ("..." if len(self.text) > 100 else "")
+            else:
+                effective_name = f"{self.level.value} Objective"
+        
         result = {
             "id": self.id,
-            "name": self.name,
+            "name": effective_name,
             "text": self.text,
             "level": self.level.to_code(),  # Use correct NCI codes
             "endpointIds": self.endpoint_ids,

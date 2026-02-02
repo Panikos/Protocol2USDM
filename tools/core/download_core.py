@@ -11,7 +11,7 @@ import urllib.request
 from pathlib import Path
 
 # CDISC CORE Engine release URL
-CORE_VERSION = "0.13.0"
+CORE_VERSION = "0.14.1"
 CORE_RELEASE_URL = f"https://github.com/cdisc-org/cdisc-rules-engine/releases/download/v{CORE_VERSION}/core-windows.zip"
 
 def download_core():

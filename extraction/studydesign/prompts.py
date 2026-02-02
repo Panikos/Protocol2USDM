@@ -28,18 +28,30 @@ Analyze the provided protocol section and extract the study design structure.
 - Placebo, Active Control, Dose Comparison, No Treatment, Historical Control?
 
 ### 5. Study Arms
-Extract all treatment arms:
+Extract treatment arms - but DISTINGUISH between:
+- **Parallel Arms**: Different treatments given to DIFFERENT subjects (e.g., Drug A vs Placebo)
+- **Within-Subject Titration**: Same subjects receive sequential doses (e.g., 15mg for 4 weeks, then titrated to 30mg)
+
+**CRITICAL**: If the protocol describes dose escalation/titration where ALL subjects start at one dose and increase to another:
+- This is NOT two separate arms
+- Model as ONE arm with "isTitration": true and "doseEpochs" array
+- Look for phrases: "titrated up", "dose escalation", "following X period", "after Day X increase"
+
+For each arm extract:
 - Arm name
 - Arm type (Experimental, Active Comparator, Placebo Comparator, No Intervention)
-- Description of treatment in that arm
+- Description
+- isTitration (true/false)
+- doseEpochs (if titration): [{dose, startDay, endDay}]
 
 ### 6. Study Cohorts (if any)
-Sub-populations within the study:
+Sub-populations within the study (NOT dose levels):
 - Cohort name
-- Defining characteristic
+- Defining characteristic (e.g., treatment-naive vs experienced)
 
 ### 7. Study Phases/Epochs (if described)
 - Screening, Treatment, Follow-up, etc.
+- For titration studies, include dose-level epochs (e.g., "15mg Treatment", "30mg Treatment")
 
 ## Output Format
 
@@ -64,14 +76,14 @@ Return a JSON object with this exact structure:
   },
   "arms": [
     {
-      "name": "ALXN1840 15 mg",
+      "name": "ALXN1840 Treatment",
       "type": "Experimental Arm",
-      "description": "Participants receive ALXN1840 15 mg once daily"
-    },
-    {
-      "name": "ALXN1840 30 mg", 
-      "type": "Experimental Arm",
-      "description": "Participants receive ALXN1840 30 mg once daily"
+      "description": "All participants receive ALXN1840 with dose titration from 15mg to 30mg",
+      "isTitration": true,
+      "doseEpochs": [
+        {"dose": "15 mg/day", "startDay": 1, "endDay": 28, "description": "Initial dose period"},
+        {"dose": "30 mg/day", "startDay": 29, "endDay": null, "description": "Titrated dose period"}
+      ]
     }
   ],
   "cohorts": [
@@ -86,8 +98,30 @@ Return a JSON object with this exact structure:
   ],
   "epochs": [
     {"name": "Screening", "description": "Up to 21 days"},
-    {"name": "Treatment", "description": "24 weeks"},
+    {"name": "15mg Treatment Period", "description": "Days 1-28, initial dose"},
+    {"name": "30mg Treatment Period", "description": "Day 29 onwards, titrated dose"},
     {"name": "Follow-up", "description": "4 weeks after last dose"}
+  ]
+}
+```
+
+### Example 2: Parallel Arms (for comparison)
+If the study randomizes subjects to DIFFERENT doses (not titration):
+```json
+{
+  "arms": [
+    {
+      "name": "Low Dose Arm",
+      "type": "Experimental Arm", 
+      "description": "Randomized to receive 15mg for entire study",
+      "isTitration": false
+    },
+    {
+      "name": "High Dose Arm",
+      "type": "Experimental Arm",
+      "description": "Randomized to receive 30mg for entire study", 
+      "isTitration": false
+    }
   ]
 }
 ```
@@ -98,7 +132,7 @@ Return a JSON object with this exact structure:
 2. **Classify arms correctly** - Experimental vs Comparator based on study drug vs control
 3. **Identify cohorts** - Sub-groups based on prior treatment, disease severity, etc.
 4. **Use standard terminology** - Use USDM-compliant codes where possible
-5. **Be complete** - Extract all arms even if they seem similar
+5. **CRITICAL: Detect titration** - If ALL subjects go through sequential doses, use ONE arm with isTitration=true
 6. **Return ONLY valid JSON** - no markdown, no explanations
 
 Now analyze the protocol content and extract the study design:
@@ -127,9 +161,13 @@ Pages are 0-indexed. Return ONLY valid JSON.
 """
 
 
-def build_study_design_extraction_prompt(protocol_text: str) -> str:
-    """Build the full extraction prompt with protocol content."""
-    return f"{STUDY_DESIGN_EXTRACTION_PROMPT}\n\n---\n\nPROTOCOL CONTENT:\n\n{protocol_text}"
+def build_study_design_extraction_prompt(protocol_text: str, context_hints: str = "") -> str:
+    """Build the full extraction prompt with protocol content and optional context hints."""
+    prompt = STUDY_DESIGN_EXTRACTION_PROMPT
+    if context_hints:
+        prompt += f"\n\nCONTEXT FROM PRIOR EXTRACTION:{context_hints}"
+    prompt += f"\n\n---\n\nPROTOCOL CONTENT:\n\n{protocol_text}"
+    return prompt
 
 
 def build_page_finder_prompt() -> str:

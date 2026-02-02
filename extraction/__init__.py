@@ -14,6 +14,9 @@ This module contains the core extraction logic:
 - interventions: Interventions & products extraction (Phase 5)
 - narrative: Document structure & abbreviations extraction (Phase 7)
 - advanced: Amendments, geographic scope, sites extraction (Phase 8)
+- execution: Execution model extraction for synthetic data (Phase 9)
+  - Time anchors, repetitions, cycles, execution types
+  - Enables deterministic synthetic data generation
 
 Design Principle:
 - Vision extracts STRUCTURE (column headers, row groups)
@@ -116,6 +119,22 @@ from .advanced import (
     GeographicScope,
     Country,
 )
+from .execution import (
+    extract_execution_model,
+    enrich_usdm_with_execution_model,
+    create_execution_model_summary,
+    extract_time_anchors,
+    extract_repetitions,
+    classify_execution_types,
+    ExecutionModelResult,
+    ExecutionModelData,
+    TimeAnchor,
+    AnchorType,
+    Repetition,
+    RepetitionType,
+    ExecutionType,
+    SamplingConstraint,
+)
 
 __all__ = [
     # SoA Finder
@@ -201,4 +220,19 @@ __all__ = [
     "StudyAmendment",
     "GeographicScope",
     "Country",
+    # Execution Model (Phase 9)
+    "extract_execution_model",
+    "enrich_usdm_with_execution_model",
+    "create_execution_model_summary",
+    "extract_time_anchors",
+    "extract_repetitions",
+    "classify_execution_types",
+    "ExecutionModelResult",
+    "ExecutionModelData",
+    "TimeAnchor",
+    "AnchorType",
+    "Repetition",
+    "RepetitionType",
+    "ExecutionType",
+    "SamplingConstraint",
 ]

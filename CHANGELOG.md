@@ -4,6 +4,485 @@ All notable changes documented here. Dates in ISO-8601.
 
 ---
 
+## [7.2.0] – 2026-02-01
+
+### Execution Model Promotion to Native USDM Entities
+
+Execution model data previously stranded in `extensionAttributes` is now promoted to native USDM v4.0 entities.
+
+#### New USDM Dataclasses (`core/usdm_types_generated.py`)
+
+| Entity | Purpose |
+|--------|---------|
+| **`ScheduledDecisionInstance`** | Decision nodes in schedule timelines with conditional branching |
+| **`ConditionAssignment`** | If/then rules within decision nodes (`condition` text + `conditionTargetId`) |
+| **`StudyElement`** | Time building blocks with `transitionStartRule`/`transitionEndRule` for titration, washout |
+
+#### Enhanced Existing Dataclasses
+
+| Entity | New Fields |
+|--------|-----------|
+| **`Encounter`** | `transitionStartRule`, `transitionEndRule`, `previousId`, `nextId` |
+| **`StudyDesign`** | `conditions[]`, `estimands[]`, `elements[]` |
+| **`ScheduleTimelineExit`** | `name`, `exitId` |
+
+#### Architecture
+
+- `StudyDesign.conditions[]` now populated with `Condition` entities from footnote conditions
+- `Encounter` entities carry `TransitionRule` for state machine transitions
+- `StudyEpoch.previousId`/`nextId` chains populated from traversal constraints
+- `Timing.windowLower`/`windowUpper` enrichment from visit window extraction
+
+---
+
+## [7.1.0] – 2026-01-31
+
+### Phase Registry Architecture
+
+Complete refactor of the pipeline orchestrator from a monolithic `main_v2.py` (3,068 lines) to a clean phase registry pattern.
+
+#### New Files
+
+| File | Purpose |
+|------|---------|
+| **`main_v3.py`** | New entry point replacing `main_v2.py` |
+| **`pipeline/orchestrator.py`** | Registry-driven phase runner with dependency resolution |
+| **`pipeline/base_phase.py`** | `BasePhase` abstract class and `PhaseResult` dataclass |
+| **`pipeline/phase_registry.py`** | Global phase registry for `@register_phase` decorator |
+| **`pipeline/phases/*.py`** | 13 individual phase modules (metadata, eligibility, objectives, etc.) |
+| **`core/validation.py`** | Refactored validation: `validate_and_fix_schema`, `convert_ids_to_uuids` |
+
+#### Key Changes
+
+- **Default `--complete` mode**: No flags needed — full extraction runs by default
+- **Default model**: `gemini-3-flash-preview` (Gemini Flash 3 via Vertex AI)
+- **Parallel execution**: `--parallel` flag runs independent phases concurrently via `ThreadPoolExecutor`
+- **Dependency graph**: Phases declare dependencies (e.g., eligibility depends on metadata); orchestrator resolves execution order
+- **`main_v2.py` removed**: All functionality preserved in `main_v3.py` + `pipeline/`
+
+#### Phase Dependency Graph
+
+```
+Wave 1 (parallel): Metadata, StudyDesign, Narrative, Advanced, Procedures, Scheduling, DocStructure, AmendmentDetails, Execution
+Wave 2 (parallel): Eligibility (needs Metadata), Objectives (needs Metadata)
+Wave 3 (parallel): Interventions (needs Metadata + StudyDesign)
+```
+
+---
+
+## [6.10.0] – 2026-01-31
+
+### Comprehensive SAP Extraction with STATO Ontology Mapping
+
+Enhanced SAP extraction to support downstream systems and statistical test standardization via STATO ontology mapping.
+
+#### New SAP Data Types
+
+| Data Type | USDM Target | Purpose |
+|-----------|-------------|---------|
+| **Statistical Methods** | Extension | STATO-mapped analysis methods (ANCOVA, MMRM, etc.) |
+| **Multiplicity Adjustments** | Extension | Type I error control (Hochberg, Bonferroni, etc.) |
+| **Sensitivity Analyses** | Extension | Pre-specified robustness analyses |
+| **Subgroup Analyses** | Extension | Pre-specified subgroups with interaction tests |
+| **Interim Analyses** | Extension | Stopping boundaries and alpha spending |
+| **Sample Size Calculations** | Extension | Power and sample size assumptions |
+
+#### STATO Ontology Integration
+
+Statistical methods are now mapped to STATO codes for interoperability:
+
+| Method | STATO Code |
+|--------|------------|
+| ANCOVA | `STATO:0000029` |
+| MMRM | `STATO:0000325` |
+| Kaplan-Meier | `STATO:0000149` |
+| Cox regression | `STATO:0000223` |
+| Chi-square | `STATO:0000049` |
+| Fisher exact | `STATO:0000073` |
+
+#### CDISC ARS (Analysis Results Standard) Linkage
+
+New fields added for ARS interoperability:
+
+| SAP Entity | ARS Field | Purpose |
+|------------|-----------|---------|
+| `StatisticalMethod` | `arsOperationId` | ARS operation codes (e.g., `Mth01_ContVar_Ancova`) |
+| `StatisticalMethod` | `arsReason` | `PRIMARY`, `SENSITIVITY`, `EXPLORATORY` |
+| `SensitivityAnalysis` | `arsReason` | Analysis classification |
+| `InterimAnalysis` | `arsReportingEventType` | `INTERIM_1`, `INTERIM_2`, `FINAL` |
+
+#### CDISC ARS Deep Integration (6.11.0)
+
+Full ARS model generation with automatic conversion from SAP data:
+
+- **ARS Generator** (`extraction/conditional/ars_generator.py`)
+  - `ReportingEvent` - Top-level container for analyses
+  - `Analysis` - Individual analysis specification with reason/purpose
+  - `AnalysisSet` - Population definitions linked to USDM
+  - `AnalysisMethod` - Statistical methods with STATO mapping
+  - `Operation` - Standard operations per method type
+
+- **Output**: `ars_reporting_event.json` generated alongside USDM
+
+- **Web UI**: New "CDISC ARS" tab under Data → Timeline with:
+  - Overview panel with entity counts and reason breakdown
+  - Analysis Sets panel with USDM linkage
+  - Methods panel with operations hierarchy
+  - Analyses panel with method/set linking
+  - Categories panel for analysis organization
+
+#### Files Changed
+
+**Core:**
+* `extraction/conditional/sap_extractor.py` - Added 6 new dataclasses, enhanced prompt with STATO/ARS mapping
+* `extraction/conditional/ars_generator.py` - **NEW** Full ARS model generator
+* `pipeline/orchestrator.py` - Merge SAP elements into USDM extensions, generate ARS output
+
+**Web UI:**
+* `web-ui/components/protocol/ExtensionsView.tsx` - Added SAP Data category with 8 extension types
+* `web-ui/components/timeline/ARSDataView.tsx` - **NEW** CDISC ARS visualization component
+* `web-ui/components/timeline/SAPDataView.tsx` - Added ARS linkage display
+* `web-ui/app/api/protocols/[id]/ars/route.ts` - **NEW** API endpoint for ARS data
+* `web-ui/app/protocols/[id]/page.tsx` - Added CDISC ARS tab
+
+**Documentation:**
+* `docs/SAP_EXTENSIONS.md` - New comprehensive SAP extension schema documentation
+
+---
+
+## [6.9.0] – 2026-01-07
+
+### Gemini 3 Flash Support with Intelligent Fallback
+
+Added full support for `gemini-3-flash-preview` model with automatic fallback to `gemini-2.5-pro` for SoA text extraction due to JSON format compliance issues.
+
+#### New Features
+
+| Feature | Description |
+|---------|-------------|
+| **Gemini 3 Flash Support** | Full support for `gemini-3-flash-preview` as primary model |
+| **SoA Extraction Fallback** | Automatic fallback to `gemini-2.5-pro` for SoA text extraction |
+| **Response Validation** | New validation system checks LLM response structure |
+| **Retry Logic** | Up to 2 retries with correction prompts on validation failure |
+| **Stricter Prompts** | Enhanced prompt guardrails for JSON format compliance |
+
+#### SoA Extraction Fallback
+
+When using `gemini-3-flash-preview` or `gemini-3-flash`, the pipeline automatically uses `gemini-2.5-pro` for SoA text extraction only. This is because Gemini 3 Flash models have issues with structured JSON output format compliance for the complex SoA extraction task.
+
+```python
+# In extraction/pipeline.py
+SOA_FALLBACK_MODELS = {
+    'gemini-3-flash-preview': 'gemini-2.5-pro',
+    'gemini-3-flash': 'gemini-2.5-pro',
+}
+```
+
+**Log output:**
+```
+[INFO] Step 2: Extracting SoA data from text...
+[INFO]   Using fallback model for SoA text extraction: gemini-2.5-pro
+```
+
+#### Response Validation & Retry
+
+New `validate_extraction_response()` function in `extraction/text_extractor.py`:
+
+| Check | Description |
+|-------|-------------|
+| Root keys | Verifies `activities` key exists at root level |
+| Wrong structure | Detects nested USDM format instead of flat `{activities, activityTimepoints}` |
+| Minimum activities | Ensures at least `2 * num_groups` activities extracted |
+| Activity structure | Validates each activity has `id` and `name` |
+
+On validation failure, retry with correction prompt:
+```
+Your previous response had an invalid format: {error}
+REMINDER: Return FLAT JSON with only "activities" and "activityTimepoints" at root
+```
+
+#### Environment Pollution Fix
+
+Fixed issue where Gemini 3's global endpoint setting polluted the environment for fallback models:
+
+**Before:** `os.environ['GOOGLE_CLOUD_LOCATION'] = 'global'` caused gemini-2.5-pro to fail
+**After:** Use explicit `Client(vertexai=True, project=..., location='global')` for Gemini 3 only
+
+#### Visit Windows Epoch Resolution
+
+Enhanced `resolveEpochName()` in `ExecutionModelView.tsx`:
+
+| Fix | Description |
+|-----|-------------|
+| Late-study visits | Day 162, Day 365 now assigned to EOS epoch |
+| Gap filling | Day 0 (Baseline) resolved by interpolating from nearest neighbors |
+| Day-based matching | Uses `dayToEpochMap` from USDM encounters instead of name matching |
+
+#### Files Changed
+
+**Core:**
+* `extraction/pipeline.py` - Added `SOA_FALLBACK_MODELS` and fallback logic
+* `extraction/text_extractor.py` - Added `validate_extraction_response()`, retry logic, stricter prompts
+* `llm_providers.py` - Fixed environment pollution, explicit Gemini 3 client config
+
+**Web UI:**
+* `web-ui/components/timeline/ExecutionModelView.tsx` - Enhanced `resolveEpochName()` with day-based matching
+
+#### Best Run Results (Commit ef3e0a0)
+
+```bash
+python main_v2.py input/Alexion_NCT04573309_Wilsons.pdf --complete \
+  --sap input/Alexion_NCT04573309_Wilsons_SAP.pdf \
+  --sites input/Alexion_NCT04573309_Wilsons_sites.csv \
+  --model gemini-3-flash-preview
+```
+
+| Metric | Result |
+|--------|--------|
+| SoA Activities | 36 |
+| SoA Ticks | 216 |
+| Expansion Phases | 12/12 ✓ |
+| Schema Validation | PASSED ✓ |
+| Semantic Validation | PASSED ✓ |
+| Reconciled Epochs | 7 |
+| Reconciled Encounters | 24 |
+| Reconciled Activities | 43 |
+
+---
+
+## [6.8.0] – 2026-01-02
+
+### Execution Model Promotion to Core USDM
+
+Major architectural change: execution model data (anchors, repetitions, dosing) is now materialized into **core USDM entities**, not just stored in extensions.
+
+#### Problem Addressed
+
+Downstream consumers (synthetic generators) couldn't use execution semantics because they were stored in `extensionAttributes` as JSON strings. Core USDM was incomplete.
+
+#### Solution: ExecutionModelPromoter
+
+| Promotion | Input | Output |
+|-----------|-------|--------|
+| Time Anchors | `x-executionModel-timeAnchors` | `ScheduledActivityInstance` |
+| Repetitions | `x-executionModel-repetitions` | Expanded `ScheduledActivityInstance` per occurrence |
+| Dosing Regimens | `x-executionModel-dosingRegimens` | `Administration` entities linked to interventions |
+| Dangling Refs | `Timing.relativeFromScheduledInstanceId` | Fixed or auto-created anchor instances |
+
+#### Key Contract
+
+**Extensions are now OPTIONAL/DEBUG. Core USDM is self-sufficient.**
+
+#### Files Added/Changed
+
+* `extraction/execution/execution_model_promoter.py` - **NEW** Main promotion logic
+* `extraction/execution/pipeline_integration.py` - Integrated promoter after reconciliation
+* `docs/ARCHITECTURE.md` - Documented promotion architecture
+
+---
+
+## [6.7.3] – 2026-01-02
+
+### New Comprehensive Benchmark Tool
+
+Rewrote benchmark script from scratch with modern architecture.
+
+#### Features
+
+| Feature | Description |
+|---------|-------------|
+| **CLI Arguments** | Accepts golden and extracted paths as arguments |
+| **Auto-detection** | Finds `protocol_usdm.json` in timestamped directories |
+| **Per-entity Metrics** | Precision, recall, F1 for each entity type |
+| **18 Entity Types** | Full coverage of USDM 4.0 entities |
+| **Semantic Matching** | Configurable similarity threshold (default 75%) |
+| **Verbose Mode** | Shows unmatched entities for debugging |
+| **JSON Reports** | Machine-readable output for CI/CD integration |
+
+#### Usage
+
+```bash
+python testing/benchmark.py <golden.json> <extracted_dir/> [--verbose]
+```
+
+#### Files Added
+
+* `testing/benchmark.py` - New comprehensive benchmark tool
+
+---
+
+## [6.7.2] – 2026-01-02
+
+### Full USDM 4.0 Schema Alignment
+
+Achieved **0 validation errors** - full alignment with USDM 4.0 schema.
+
+#### Fixes
+
+| Fix | Description |
+|-----|-------------|
+| **standardCode Preservation** | Fixed `normalize_usdm_data` to preserve `standardCode` on Code objects |
+| **administrableDoseForm Fallback** | Added standardCode injection in fallback intervention path |
+
+#### Web UI Enhancements
+
+| Enhancement | Description |
+|-------------|-------------|
+| **Instance Names in Graph** | Timeline graph shows human-readable instance names |
+| **Instance Names in Tooltips** | SoA table cells show instance names on hover |
+| **Cell Metadata** | Added timingId, epochId to cell data for enhanced linking |
+
+#### Files Changed
+
+* `core/usdm_types_generated.py` - Preserve standardCode during Code normalization
+* `main_v2.py` - Added standardCode injection for fallback products
+* `web-ui/lib/adapters/toGraphModel.ts` - Use instance names for node labels
+* `web-ui/lib/adapters/toSoATableModel.ts` - Add instance metadata to cells
+* `web-ui/components/soa/ProvenanceCellRenderer.tsx` - Show instance names in tooltips
+* `tests/test_core_modules.py` - Added normalization tests (2 new tests)
+
+#### Validation Results
+
+```
+✅ VALIDATION PASSED - 0 errors
+✅ CDISC Conformance: 0 errors, 0 warnings
+✅ 25/25 unit tests passing
+```
+
+---
+
+## [6.7.1] – 2026-01-02
+
+### Additional USDM Schema Fixes
+
+Continued schema alignment improvements addressing validation errors.
+
+#### Fixes
+
+| Fix | Description |
+|-----|-------------|
+| **AnalysisPopulation.text** | Added required `text` field to SAP population extraction |
+| **Timing Required Fields** | Added `name`, `valueLabel`, `relativeToFrom`, `relativeFromScheduledInstanceId` with defaults |
+| **arms Fallback** | Default treatment arm created when not extracted |
+| **studyCells Fallback** | Auto-generated arm×epoch cells when missing |
+| **timingId Linking** | Improved multi-strategy matching (exact name, day number, visit number) |
+
+#### Files Changed
+
+* `extraction/conditional/sap_extractor.py` - Added `text` field to AnalysisPopulation.to_dict()
+* `core/usdm_types_generated.py` - Enhanced Timing class with required USDM fields
+* `main_v2.py` - Added arms/studyCells fallbacks, improved `link_timing_ids_to_instances()`
+
+---
+
+## [6.7.0] – 2026-01-02
+
+### ScheduledActivityInstance USDM Conformance Enhancements
+
+Enhanced `ScheduledActivityInstance` generation to improve USDM 4.0 schema alignment and data quality.
+
+#### New Features
+
+| Enhancement | Description |
+|-------------|-------------|
+| **epochId Population** | Instances now inherit `epochId` from their linked Encounter |
+| **Human-Readable Names** | Instance names changed from `"act_1@enc_1"` to `"Blood Draw @ Day 1"` |
+| **timingId Linking** | Instances linked to Timing entities when scheduling data available |
+| **ScheduleTimeline.timings** | Added `timings` field to ScheduleTimeline class per USDM schema |
+
+#### Files Changed
+
+**Core Types (`core/usdm_types.py`):**
+* `Timeline.to_study_design()` - Enhanced with epochId population and better naming
+* Built encounter→epoch and activity→name lookup maps
+* Name truncation (50/30 chars) to keep instance names reasonable
+
+**Generated Types (`core/usdm_types_generated.py`):**
+* `ScheduleTimeline` - Added `timings: List[Timing]` field
+* `to_dict()` now serializes timings array
+
+**Pipeline (`main_v2.py`):**
+* Added `link_timing_ids_to_instances()` function
+* Multi-strategy matching: exact name → day number → visit number
+* Called after scheduling data is merged into scheduleTimeline
+
+#### Sample Output
+
+```json
+{
+  "id": "uuid",
+  "name": "Physical Examination @ Day 1",
+  "activityIds": ["activity-uuid"],
+  "encounterId": "encounter-uuid",
+  "epochId": "epoch-uuid",
+  "timingId": "timing-uuid",
+  "instanceType": "ScheduledActivityInstance"
+}
+```
+
+#### Reference
+
+Per USDM 4.0 `dataStructure.yml`:
+- `ScheduledActivityInstance.epochId`: 0..1 (optional, reference to StudyEpoch)
+- `ScheduledActivityInstance.timingId`: 0..1 (optional, reference to Timing)
+- `ScheduleTimeline.timings`: 0..* (list of Timing entities)
+
+---
+
+## [6.6.0] – 2026-01-02
+
+### USDM Entity Placement Alignment
+
+Full audit and fix of entity placement to comply with official CDISC `dataStructure.yml`.
+
+#### Entity Placement Changes
+
+All entities now placed at their correct USDM hierarchical locations:
+
+| Entity | Before | After |
+|--------|--------|-------|
+| `eligibilityCriterionItems` | `studyDesign` | `studyVersion` |
+| `organizations` | `study` | `studyVersion` |
+| `narrativeContentItems` | root (`narrativeContents`) | `studyVersion` |
+| `abbreviations` | root | `studyVersion` |
+| `conditions` | root | `studyVersion` |
+| `amendments` | root | `studyVersion` |
+| `administrableProducts` | root | `studyVersion` |
+| `medicalDevices` | root | `studyVersion` |
+| `studyInterventions` | `studyDesign` | `studyVersion` |
+| `indications` | `study` | `studyDesign` |
+| `analysisPopulations` | root | `studyDesign` |
+| `timings` | root | `scheduleTimeline.timings` |
+| `scheduleTimelineExits` | root | `scheduleTimeline.exits` |
+| `procedures` | root | `activity.definedProcedures` |
+
+#### Files Changed
+
+**Pipeline (`main_v2.py`):**
+* Moved entity assignments to correct USDM locations
+* Added USDM placement comments referencing `dataStructure.yml`
+
+**UI Components:**
+* `EligibilityCriteriaView.tsx` - Read `eligibilityCriterionItems` from `studyVersion`
+* `ProceduresDevicesView.tsx` - Read `medicalDevices` from `studyVersion`
+* `QualityMetricsDashboard.tsx` - Read `timings` from `scheduleTimeline`, interventions from `studyVersion`
+* `DocumentStructureView.tsx` - Read `narrativeContentItems` from `studyVersion`
+
+#### Documentation Updates
+
+* Updated `docs/ARCHITECTURE.md` with USDM Output Structure section
+* Updated `README.md` with entity hierarchy diagram
+* Updated `QUICK_REFERENCE.md` with entity placement table
+* Added migration notes for v6.6 changes
+
+#### Reference
+
+Entity placement verified against:
+- `https://github.com/cdisc-org/DDF-RA/blob/main/Deliverables/UML/dataStructure.yml`
+- USDM workshop manual examples
+
+---
+
 ## [6.4.1] – 2025-11-30
 
 ### Provenance & Viewer Fix - Tick Color Display
@@ -31,9 +510,9 @@ UUID namespace mismatch between:
 
 ## [6.4.0] – 2025-11-30
 
-### Parser Fixes for USDM-Compliant LLM Responses
+### Parser Fixes for USDM-Aligned LLM Responses
 
-The LLM now produces USDM-compliant output directly (with `id`, `instanceType`, proper Code objects).
+The LLM now produces USDM-aligned output directly (with `id`, `instanceType`, proper Code objects).
 All 7 extraction parsers were updated to handle both the new format and legacy format.
 
 #### Fixed Parsers
@@ -174,7 +653,7 @@ All 7 extraction parsers were updated to handle both the new format and legacy f
 * **Iterative expansion**: Adjacent page detection now continues until no more pages added
 * **More permissive previous page check**: Checks for table content, not just "Schedule of Activities" title
 
-#### USDM v4.0 Schema Compliance (Source Fixes)
+#### USDM v4.0 Schema Alignment (Source Fixes)
 * **Code objects now include all required fields**: `id`, `codeSystem`, `codeSystemVersion`, `decode`, `instanceType`
 * **StudyDesign property names fixed at source**: `studyArms` → `arms`, `studyDesignPopulation` → `population`
 * **StudyDesign required fields added**: `name`, `rationale`, `model` now populated by default
@@ -225,16 +704,16 @@ All 7 extraction parsers were updated to handle both the new format and legacy f
 
 ### Activity Groups & SoA Footnotes
 
-#### Activity Group Hierarchy (USDM v4.0 Compliant)
+#### Activity Group Hierarchy (USDM v4.0 Aligned)
 * **Fixed activity group handling**: Groups now correctly represented as parent Activities with `childIds`
 * Activities linked to groups via `activityGroupId` field during extraction
-* `Timeline.to_study_design()` converts groups to USDM v4.0 compliant structure
+* `Timeline.to_study_design()` converts groups to USDM v4.0 aligned structure
 * Vision verification extracts visual properties (bold, merged cells) for groups
 * Viewer correctly displays hierarchical grouping with rowspan
 
 #### SoA Footnotes Support
 * **Added SoA footnote storage**: Footnotes from header structure now stored in `StudyDesign.notes`
-* Uses USDM v4.0 `CommentAnnotation` objects for CDISC compliance
+* Uses USDM v4.0 `CommentAnnotation` objects per CDISC specification
 * Viewer displays footnotes in collapsible expander below SoA table
 * Fallback loading from `4_header_structure.json` when not in final output
 
@@ -264,7 +743,7 @@ All 7 extraction parsers were updated to handle both the new format and legacy f
 * Adjacent continuation pages automatically included
 * Pipeline now calls `find_soa_pages()` instead of bypassing to heuristic-only detection
 
-#### USDM v4.0 Structure Compliance
+#### USDM v4.0 Structure Alignment
 * **Fixed schema validation error**: "Study must have at least one version"
 * Changed output structure from flat `studyDesigns[]` to proper `study.versions[0].studyDesigns[]`
 * Added `study_version` wrapper with proper USDM v4.0 nesting

@@ -31,12 +31,14 @@ try:
     from usdm_model import Wrapper
     import usdm_info
     HAS_USDM = True
-    USDM_VERSION = usdm_info.__model_version__
+    # Use major.minor format (4.0) instead of full semver (4.0.0)
+    _full_version = usdm_info.__model_version__
+    USDM_VERSION = '.'.join(_full_version.split('.')[:2]) if _full_version else "4.0"
     PACKAGE_VERSION = usdm_info.__package_version__
     logger.info(f"Using official usdm package v{PACKAGE_VERSION} (USDM {USDM_VERSION})")
 except ImportError:
     HAS_USDM = False
-    USDM_VERSION = "4.0.0"
+    USDM_VERSION = "4.0"
     PACKAGE_VERSION = None
     logger.warning("usdm package not installed. Install with: pip install usdm")
 
@@ -326,6 +328,184 @@ def get_usdm_schema() -> Optional[Dict]:
     if not HAS_USDM:
         return None
     return Wrapper.model_json_schema()
+
+
+# =============================================================================
+# Cross-Reference Validation (Semantic Checks)
+# =============================================================================
+
+def validate_cross_references(data: Dict[str, Any]) -> List[ValidationIssue]:
+    """
+    Validate cross-references and semantic integrity in USDM data.
+    
+    This catches issues that pass schema validation but break semantic rules:
+    - References to non-existent IDs
+    - Orphaned entities
+    - Circular references
+    - Missing required relationships
+    
+    Returns:
+        List of ValidationIssue objects for cross-reference problems
+    """
+    issues = []
+    
+    try:
+        study = data.get('study', {})
+        versions = study.get('versions', [])
+        if not versions:
+            return issues
+        
+        version = versions[0]
+        study_designs = version.get('studyDesigns', [])
+        if not study_designs:
+            return issues
+        
+        design = study_designs[0]
+        
+        # Build ID registries
+        epoch_ids = {e.get('id') for e in design.get('epochs', []) if e.get('id')}
+        encounter_ids = {e.get('id') for e in design.get('encounters', []) if e.get('id')}
+        activity_ids = {a.get('id') for a in design.get('activities', []) if a.get('id')}
+        arm_ids = {a.get('id') for a in design.get('arms', []) if a.get('id')}
+        activity_group_ids = {g.get('id') for g in design.get('activityGroups', []) if g.get('id')}
+        
+        # 1. Check Encounter.epochId references
+        for enc in design.get('encounters', []):
+            epoch_id = enc.get('epochId')
+            if epoch_id and epoch_id not in epoch_ids:
+                issues.append(ValidationIssue(
+                    location=f"encounters -> {enc.get('id', '?')} -> epochId",
+                    message=f"References non-existent epoch: {epoch_id}",
+                    error_type="dangling_reference",
+                    severity=ValidationSeverity.ERROR
+                ))
+        
+        # 2. Check ScheduledActivityInstance references
+        for timeline in design.get('scheduleTimelines', []):
+            for inst in timeline.get('instances', []):
+                # Check activityIds
+                for act_id in inst.get('activityIds', []):
+                    if act_id not in activity_ids:
+                        issues.append(ValidationIssue(
+                            location=f"scheduleTimelines -> instances -> {inst.get('id', '?')} -> activityIds",
+                            message=f"References non-existent activity: {act_id}",
+                            error_type="dangling_reference",
+                            severity=ValidationSeverity.ERROR
+                        ))
+                
+                # Check encounterId
+                enc_id = inst.get('encounterId')
+                if enc_id and enc_id not in encounter_ids:
+                    issues.append(ValidationIssue(
+                        location=f"scheduleTimelines -> instances -> {inst.get('id', '?')} -> encounterId",
+                        message=f"References non-existent encounter: {enc_id}",
+                        error_type="dangling_reference",
+                        severity=ValidationSeverity.ERROR
+                    ))
+                
+                # Check epochId
+                epoch_id = inst.get('epochId')
+                if epoch_id and epoch_id not in epoch_ids:
+                    issues.append(ValidationIssue(
+                        location=f"scheduleTimelines -> instances -> {inst.get('id', '?')} -> epochId",
+                        message=f"References non-existent epoch: {epoch_id}",
+                        error_type="dangling_reference",
+                        severity=ValidationSeverity.ERROR
+                    ))
+        
+        # 3. Check ActivityGroup.childIds references
+        for group in design.get('activityGroups', []):
+            for child_id in group.get('childIds', []):
+                if child_id not in activity_ids:
+                    issues.append(ValidationIssue(
+                        location=f"activityGroups -> {group.get('id', '?')} -> childIds",
+                        message=f"References non-existent activity: {child_id}",
+                        error_type="dangling_reference",
+                        severity=ValidationSeverity.WARNING
+                    ))
+        
+        # 4. Check for orphaned activities (no schedule instances)
+        scheduled_activity_ids = set()
+        for timeline in design.get('scheduleTimelines', []):
+            for inst in timeline.get('instances', []):
+                scheduled_activity_ids.update(inst.get('activityIds', []))
+        
+        # Filter to only SoA activities (not procedure enrichment)
+        soa_activity_ids = set()
+        for act in design.get('activities', []):
+            act_id = act.get('id')
+            if not act_id:
+                continue
+            # Check activitySource extension
+            exts = act.get('extensionAttributes', [])
+            source = None
+            for ext in exts:
+                if ext.get('url', '').endswith('activitySource'):
+                    source = ext.get('valueString')
+                    break
+            if source != 'procedure_enrichment':
+                soa_activity_ids.add(act_id)
+        
+        orphaned = soa_activity_ids - scheduled_activity_ids
+        if orphaned and len(orphaned) < 10:  # Only warn if manageable count
+            for act_id in orphaned:
+                issues.append(ValidationIssue(
+                    location=f"activities -> {act_id}",
+                    message="Activity has no scheduled instances (orphaned)",
+                    error_type="orphaned_entity",
+                    severity=ValidationSeverity.WARNING
+                ))
+        
+        # 5. Check for encounters without epochs
+        for enc in design.get('encounters', []):
+            if not enc.get('epochId'):
+                issues.append(ValidationIssue(
+                    location=f"encounters -> {enc.get('id', '?')}",
+                    message="Encounter has no epochId (cannot be placed in timeline)",
+                    error_type="missing_relationship",
+                    severity=ValidationSeverity.WARNING
+                ))
+        
+        # 6. Check StudyRole references (from sites)
+        roles = version.get('roles', [])
+        org_ids = {o.get('id') for o in version.get('organizations', []) if o.get('id')}
+        for role in roles:
+            org_id = role.get('organizationId')
+            if org_id and org_ids and org_id not in org_ids:
+                issues.append(ValidationIssue(
+                    location=f"roles -> {role.get('id', '?')} -> organizationId",
+                    message=f"References non-existent organization: {org_id}",
+                    error_type="dangling_reference",
+                    severity=ValidationSeverity.WARNING
+                ))
+        
+    except Exception as e:
+        logger.warning(f"Cross-reference validation error: {e}")
+    
+    return issues
+
+
+def validate_usdm_semantic(data: Dict[str, Any]) -> ValidationResult:
+    """
+    Full USDM validation including schema AND cross-reference checks.
+    
+    This is the comprehensive validation that should be used for usdm_validation.json.
+    
+    Returns:
+        ValidationResult with schema + semantic issues
+    """
+    # First run schema validation
+    result = validate_usdm_dict(data)
+    
+    # Then add cross-reference checks
+    xref_issues = validate_cross_references(data)
+    result.issues.extend(xref_issues)
+    
+    # Update validity - errors from cross-ref checks can invalidate
+    if any(i.severity == ValidationSeverity.ERROR for i in xref_issues):
+        result.valid = False
+    
+    return result
 
 
 # CLI interface

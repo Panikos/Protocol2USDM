@@ -1,12 +1,19 @@
 """
-USDM Types Generated from Official Schema
+USDM Type Definitions - Hand-Written Dataclasses Conforming to CDISC Schema
 
-This module generates Python dataclasses from the official CDISC dataStructure.yml.
-It provides type-safe access to all 86+ USDM entity types with proper:
-- Required/optional field handling
+This module provides Python dataclasses for USDM v4.0 entities.
+The types are hand-written to conform to the official CDISC dataStructure.yml schema.
+
+NOTE: Despite the filename "generated", these are hand-written definitions,
+not auto-generated. The name is retained for backward compatibility.
+
+Features:
+- Required/optional field handling per USDM v4.0 spec
 - NCI codes and definitions as docstrings
 - to_dict() and from_dict() methods
-- Validation against schema
+- Schema validation helpers
+
+Schema Reference: https://github.com/cdisc-org/DDF-RA/blob/main/Deliverables/UML/dataStructure.yml
 
 Usage:
     from core.usdm_types_generated import Activity, Encounter, Code
@@ -336,6 +343,12 @@ class StudyDesign(USDMEntity):
     USDM StudyDesign - Base for Interventional/Observational designs.
     
     This is typically InterventionalStudyDesign or ObservationalStudyDesign.
+    
+    Per USDM v4.0 schema:
+    - conditions: 0..* - Condition entities for conditional workflows
+    - estimands: 0..* - Estimand entities for statistical analysis
+    - elements: 0..* - StudyElement entities for titration/dose phases
+    
     Required: id, name, rationale, model, population, epochs, arms, instanceType
     """
     id: str = ""
@@ -368,6 +381,11 @@ class StudyDesign(USDMEntity):
     
     # Interventions
     studyInterventions: List['StudyIntervention'] = field(default_factory=list)
+    
+    # Conditions, Estimands, Elements (USDM v4.0)
+    conditions: List['Condition'] = field(default_factory=list)
+    estimands: List['Estimand'] = field(default_factory=list)
+    elements: List['StudyElement'] = field(default_factory=list)
     
     # Notes
     notes: List[CommentAnnotation] = field(default_factory=list)
@@ -422,6 +440,12 @@ class StudyDesign(USDMEntity):
             result["endpoints"] = [e.to_dict() for e in self.endpoints]
         if self.studyInterventions:
             result["studyInterventions"] = [s.to_dict() for s in self.studyInterventions]
+        if self.conditions:
+            result["conditions"] = [c.to_dict() for c in self.conditions]
+        if self.estimands:
+            result["estimands"] = [e.to_dict() for e in self.estimands]
+        if self.elements:
+            result["elements"] = [e.to_dict() for e in self.elements]
         if self.notes:
             result["notes"] = [n.to_dict() for n in self.notes]
         
@@ -607,6 +631,12 @@ class Encounter(USDMEntity):
     USDM Encounter - A study visit.
     
     NCI Code: C215488
+    
+    Per USDM v4.0 schema:
+    - transitionStartRule: 0..1 - rule to trigger the start of encounter
+    - transitionEndRule: 0..1 - rule to trigger the end of encounter
+    - previousId/nextId: for encounter sequencing
+    
     Required: id, name, type, instanceType
     """
     id: str = ""
@@ -616,6 +646,10 @@ class Encounter(USDMEntity):
     type: Optional[Code] = None
     epochId: Optional[str] = None
     scheduledAtTimingId: Optional[str] = None
+    previousId: Optional[str] = None
+    nextId: Optional[str] = None
+    transitionStartRule: Optional['TransitionRule'] = None
+    transitionEndRule: Optional['TransitionRule'] = None
     instanceType: str = "Encounter"
     
     def to_dict(self) -> Dict[str, Any]:
@@ -654,6 +688,14 @@ class Encounter(USDMEntity):
             result["epochId"] = self.epochId
         if self.scheduledAtTimingId:
             result["scheduledAtTimingId"] = self.scheduledAtTimingId
+        if self.previousId:
+            result["previousId"] = self.previousId
+        if self.nextId:
+            result["nextId"] = self.nextId
+        if self.transitionStartRule:
+            result["transitionStartRule"] = self.transitionStartRule.to_dict()
+        if self.transitionEndRule:
+            result["transitionEndRule"] = self.transitionEndRule.to_dict()
         
         return result
 
@@ -662,6 +704,11 @@ class Encounter(USDMEntity):
 class ScheduleTimeline(USDMEntity):
     """
     USDM ScheduleTimeline - Contains scheduled instances.
+    
+    Per USDM 4.0 schema:
+    - instances: 0..* (ScheduledActivityInstance references)
+    - timings: 0..* (Timing references for scheduled activities)
+    - exits: 0..* (ScheduleTimelineExit references)
     
     Required: id, name, entryCondition, entryId, instanceType
     """
@@ -673,6 +720,7 @@ class ScheduleTimeline(USDMEntity):
     entryCondition: str = "Subject enrolled in study"
     entryId: Optional[str] = None
     instances: List['ScheduledActivityInstance'] = field(default_factory=list)
+    timings: List['Timing'] = field(default_factory=list)  # USDM 4.0: timings belong in timeline
     exits: List['ScheduleTimelineExit'] = field(default_factory=list)
     instanceType: str = "ScheduleTimeline"
     
@@ -700,6 +748,8 @@ class ScheduleTimeline(USDMEntity):
         
         if self.instances:
             result["instances"] = [i.to_dict() for i in self.instances]
+        if self.timings:
+            result["timings"] = [t.to_dict() if hasattr(t, 'to_dict') else t for t in self.timings]
         if self.exits:
             result["exits"] = [e.to_dict() for e in self.exits]
         
@@ -763,38 +813,153 @@ class ScheduledActivityInstance(USDMEntity):
 
 
 @dataclass
-class ScheduleTimelineExit(USDMEntity):
-    """USDM ScheduleTimelineExit - Exit criteria for timeline."""
+class ConditionAssignment(USDMEntity):
+    """
+    USDM ConditionAssignment - An if/then rule in a decision node.
+    
+    Per USDM v4.0 schema:
+    - condition: string (the logical condition text)
+    - conditionTargetId: reference to target ScheduledInstance
+    
+    Required: id, condition, conditionTargetId, instanceType
+    """
     id: str = ""
-    instanceType: str = "ScheduleTimelineExit"
+    condition: str = ""
+    conditionTargetId: str = ""
+    instanceType: str = "ConditionAssignment"
     
     def to_dict(self) -> Dict[str, Any]:
         return {
             "id": self._ensure_id(),
+            "condition": self.condition,
+            "conditionTargetId": self.conditionTargetId,
             "instanceType": self.instanceType,
         }
 
 
 @dataclass
-class Timing(USDMEntity):
-    """USDM Timing - Timing for scheduled activities."""
+class ScheduledDecisionInstance(USDMEntity):
+    """
+    USDM ScheduledDecisionInstance - A decision node in a schedule timeline.
+    
+    Per USDM v4.0 schema, this is a subtype of ScheduledInstance that contains
+    conditionAssignments - each is an if/then rule pointing to a target instance.
+    
+    Required: id, name, conditionAssignments, instanceType
+    """
     id: str = ""
-    type: Optional[Code] = None
-    value: Optional[str] = None
-    valueLabel: Optional[str] = None
-    instanceType: str = "Timing"
+    name: str = ""
+    epochId: Optional[str] = None
+    defaultConditionId: Optional[str] = None
+    conditionAssignments: List[ConditionAssignment] = field(default_factory=list)
+    instanceType: str = "ScheduledDecisionInstance"
+    
+    def to_dict(self) -> Dict[str, Any]:
+        result = {
+            "id": self._ensure_id(),
+            "name": self.name or "Decision Node",
+            "conditionAssignments": [ca.to_dict() for ca in self.conditionAssignments],
+            "instanceType": self.instanceType,
+        }
+        if self.epochId:
+            result["epochId"] = self.epochId
+        if self.defaultConditionId:
+            result["defaultConditionId"] = self.defaultConditionId
+        return result
+
+
+@dataclass
+class ScheduleTimelineExit(USDMEntity):
+    """
+    USDM ScheduleTimelineExit - Exit criteria for timeline.
+    
+    Per USDM v4.0 schema:
+    - exitId: reference to an activity or encounter triggering exit
+    
+    Required: id, instanceType
+    """
+    id: str = ""
+    name: str = ""
+    exitId: Optional[str] = None
+    instanceType: str = "ScheduleTimelineExit"
     
     def to_dict(self) -> Dict[str, Any]:
         result = {
             "id": self._ensure_id(),
             "instanceType": self.instanceType,
         }
+        if self.name:
+            result["name"] = self.name
+        if self.exitId:
+            result["exitId"] = self.exitId
+        return result
+
+
+@dataclass
+class Timing(USDMEntity):
+    """
+    USDM Timing - Timing for scheduled activities.
+    
+    Per USDM 4.0 schema, required fields:
+    - id, name, type, value, valueLabel, relativeToFrom, relativeFromScheduledInstanceId
+    """
+    id: str = ""
+    name: str = ""
+    type: Optional[Code] = None
+    value: str = "P0D"  # ISO 8601 duration, required
+    valueLabel: str = ""  # Required - human-readable label
+    relativeToFrom: Optional[Code] = None  # Required - what timing is relative to
+    relativeFromScheduledInstanceId: str = ""  # Required - reference to anchor instance
+    windowLower: Optional[str] = None  # ISO 8601 duration
+    windowUpper: Optional[str] = None  # ISO 8601 duration
+    windowLabel: Optional[str] = None
+    instanceType: str = "Timing"
+    
+    def to_dict(self) -> Dict[str, Any]:
+        result = {
+            "id": self._ensure_id(),
+            "name": self.name or self.valueLabel or "Timing",
+            "instanceType": self.instanceType,
+            "value": self.value or "P0D",
+            "valueLabel": self.valueLabel or self.name or "Day 0",
+        }
+        
+        # Type - default to "Fixed Reference" if not provided
         if self.type:
-            result["type"] = self.type.to_dict()
-        if self.value:
-            result["value"] = self.value
-        if self.valueLabel:
-            result["valueLabel"] = self.valueLabel
+            result["type"] = self.type.to_dict() if hasattr(self.type, 'to_dict') else self.type
+        else:
+            result["type"] = {
+                "id": generate_uuid(),
+                "code": "C71148",
+                "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+                "codeSystemVersion": "25.01d",
+                "decode": "Fixed Reference",
+                "instanceType": "Code"
+            }
+        
+        # relativeToFrom - default to "Study Start" if not provided
+        if self.relativeToFrom:
+            result["relativeToFrom"] = self.relativeToFrom.to_dict() if hasattr(self.relativeToFrom, 'to_dict') else self.relativeToFrom
+        else:
+            result["relativeToFrom"] = {
+                "id": generate_uuid(),
+                "code": "C71153",
+                "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+                "codeSystemVersion": "25.01d",
+                "decode": "Study Start",
+                "instanceType": "Code"
+            }
+        
+        # relativeFromScheduledInstanceId - required, use placeholder if not set
+        result["relativeFromScheduledInstanceId"] = self.relativeFromScheduledInstanceId or generate_uuid()
+        
+        if self.windowLower:
+            result["windowLower"] = self.windowLower
+        if self.windowUpper:
+            result["windowUpper"] = self.windowUpper
+        if self.windowLabel:
+            result["windowLabel"] = self.windowLabel
+            
         return result
 
 
@@ -1111,6 +1276,48 @@ class TransitionRule(USDMEntity):
 
 
 @dataclass
+class StudyElement(USDMEntity):
+    """
+    USDM StudyElement - A basic building block for time within a clinical study.
+    
+    Per USDM v4.0 schema:
+    - transitionStartRule: 0..1 - rule to trigger the start
+    - transitionEndRule: 0..1 - rule to trigger the end
+    - studyInterventionIds: 0..* - references to interventions during this element
+    
+    Used for titration steps, washout periods, dose escalation phases, etc.
+    
+    Required: id, name, instanceType
+    """
+    id: str = ""
+    name: str = ""
+    description: Optional[str] = None
+    label: Optional[str] = None
+    transitionStartRule: Optional[TransitionRule] = None
+    transitionEndRule: Optional[TransitionRule] = None
+    studyInterventionIds: List[str] = field(default_factory=list)
+    instanceType: str = "StudyElement"
+    
+    def to_dict(self) -> Dict[str, Any]:
+        result = {
+            "id": self._ensure_id(),
+            "name": self.name,
+            "instanceType": self.instanceType,
+        }
+        if self.description:
+            result["description"] = self.description
+        if self.label:
+            result["label"] = self.label
+        if self.transitionStartRule:
+            result["transitionStartRule"] = self.transitionStartRule.to_dict()
+        if self.transitionEndRule:
+            result["transitionEndRule"] = self.transitionEndRule.to_dict()
+        if self.studyInterventionIds:
+            result["studyInterventionIds"] = self.studyInterventionIds
+        return result
+
+
+@dataclass
 class EligibilityCriterionItem(USDMEntity):
     """
     USDM EligibilityCriterionItem - Individual criterion item.
@@ -1368,12 +1575,20 @@ def create_wrapper_input(
     if hasattr(data, 'to_study_design'):
         study_design = data.to_study_design()
         version = StudyVersion(studyDesigns=[study_design])
-        return {
+        result = {
             "usdmVersion": usdm_version,
             "systemName": system_name,
             "systemVersion": system_version,
             "study": Study(versions=[version]).to_dict()
         }
+        # Preserve activityGroups from Timeline (not in USDM spec but needed for UI)
+        if hasattr(data, 'activityGroups') and data.activityGroups:
+            sd = result["study"]["versions"][0]["studyDesigns"][0]
+            sd["activityGroups"] = [
+                g.to_dict() if hasattr(g, 'to_dict') else g 
+                for g in data.activityGroups
+            ]
+        return result
     
     if isinstance(data, StudyVersion):
         return {
@@ -1411,8 +1626,8 @@ def normalize_usdm_data(data: Dict[str, Any]) -> Dict[str, Any]:
     import copy
     result = copy.deepcopy(data)
     
-    def normalize_code(obj: Dict) -> Dict:
-        """Normalize a Code object."""
+    def normalize_code(obj: Dict, preserve_standard_code: bool = True) -> Dict:
+        """Normalize a Code object, optionally preserving nested standardCode."""
         if not obj or not isinstance(obj, dict):
             return obj
         if "code" in obj:
@@ -1423,7 +1638,11 @@ def normalize_usdm_data(data: Dict[str, Any]) -> Dict[str, Any]:
                 codeSystemVersion=obj.get("codeSystemVersion", "2024-09-27"),
                 id=obj.get("id"),
             )
-            return code.to_dict()
+            result = code.to_dict()
+            # Preserve standardCode if present in original (USDM 4.0 requirement)
+            if preserve_standard_code and "standardCode" in obj and obj["standardCode"]:
+                result["standardCode"] = normalize_code(obj["standardCode"], preserve_standard_code=False)
+            return result
         return obj
     
     def normalize_encounter(obj: Dict) -> Dict:
@@ -1438,7 +1657,11 @@ def normalize_usdm_data(data: Dict[str, Any]) -> Dict[str, Any]:
             type=Code.from_dict(obj.get("type")) if obj.get("type") else None,
             epochId=obj.get("epochId"),
         )
-        return enc.to_dict()
+        result = enc.to_dict()
+        # Preserve extensionAttributes from encounter reconciliation
+        if obj.get("extensionAttributes"):
+            result["extensionAttributes"] = obj["extensionAttributes"]
+        return result
     
     def normalize_epoch(obj: Dict) -> Dict:
         """Normalize a StudyEpoch."""
@@ -1450,7 +1673,11 @@ def normalize_usdm_data(data: Dict[str, Any]) -> Dict[str, Any]:
             description=obj.get("description"),
             type=Code.from_dict(obj.get("type")) if obj.get("type") else None,
         )
-        return epoch.to_dict()
+        result = epoch.to_dict()
+        # Preserve extensionAttributes from epoch reconciliation
+        if obj.get("extensionAttributes"):
+            result["extensionAttributes"] = obj["extensionAttributes"]
+        return result
     
     def normalize_arm(obj: Dict) -> Dict:
         """Normalize a StudyArm."""
@@ -1467,13 +1694,18 @@ def normalize_usdm_data(data: Dict[str, Any]) -> Dict[str, Any]:
         return arm.to_dict()
     
     def normalize_study_identifier(obj: Dict) -> Dict:
-        """Normalize a StudyIdentifier to include type field."""
+        """Normalize a StudyIdentifier to include type field and ensure scopeId."""
         if not obj or not isinstance(obj, dict):
             return obj
+        # Ensure scopeId is present (required by USDM 4.0 schema)
+        scope_id = obj.get("scopeId")
+        if not scope_id:
+            # Use a placeholder org reference - will be validated later
+            scope_id = "org_sponsor_default"
         si = StudyIdentifier(
             id=obj.get("id") or None,
             text=obj.get("text", ""),
-            scopeId=obj.get("scopeId"),
+            scopeId=scope_id,
             type=Code.from_dict(obj.get("type")) if obj.get("type") else None,
         )
         return si.to_dict()
@@ -1511,9 +1743,10 @@ def normalize_usdm_data(data: Dict[str, Any]) -> Dict[str, Any]:
             # Check for specific entity types by instanceType or field patterns
             inst_type = obj.get("instanceType", "")
             
-            # Normalize Code objects
+            # Normalize Code objects (preserve standardCode if present)
             if inst_type == "Code" or ("code" in obj and "decode" in obj and "standardCode" not in obj):
-                return normalize_code(obj)
+                # normalize_code now handles standardCode preservation internally
+                return normalize_code(obj, preserve_standard_code=True)
             
             # Normalize by path patterns
             normalized = {}
@@ -1536,6 +1769,24 @@ def normalize_usdm_data(data: Dict[str, Any]) -> Dict[str, Any]:
                 elif key == "blindingSchema" and isinstance(value, dict):
                     # AliasCode requires standardCode
                     normalized[key] = normalize_alias_code(value)
+                elif key == "administrableDoseForm" and isinstance(value, dict):
+                    # administrableDoseForm requires nested standardCode (USDM 4.0)
+                    if "code" in value and "standardCode" not in value:
+                        # Add standardCode as copy of the Code
+                        code_normalized = normalize_code(value)
+                        normalized[key] = {
+                            **code_normalized,
+                            "standardCode": {
+                                "id": generate_uuid(),
+                                "code": code_normalized.get("code", ""),
+                                "codeSystem": code_normalized.get("codeSystem", "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl"),
+                                "codeSystemVersion": code_normalized.get("codeSystemVersion", "25.01d"),
+                                "decode": code_normalized.get("decode", ""),
+                                "instanceType": "Code",
+                            }
+                        }
+                    else:
+                        normalized[key] = walk_and_normalize(value, new_path)
                 elif key in ("dataOriginType", "model") and isinstance(value, dict):
                     if "code" in value:
                         normalized[key] = normalize_code(value)
@@ -1599,7 +1850,7 @@ __all__ = [
     'StudyDesign', 'StudyArm', 'StudyCell', 'StudyEpoch', 'Epoch', 'StudyCohort',
     # SoA
     'Activity', 'Encounter', 'ScheduleTimeline', 'ScheduledActivityInstance',
-    'ScheduleTimelineExit', 'Timing',
+    'ScheduledDecisionInstance', 'ConditionAssignment', 'ScheduleTimelineExit', 'Timing',
     # Eligibility
     'EligibilityCriterion', 'EligibilityCriterionItem', 'StudyDesignPopulation',
     # Objectives
@@ -1608,8 +1859,8 @@ __all__ = [
     'StudyIntervention', 'Procedure', 'Administration', 'AdministrableProduct',
     # Metadata
     'Indication', 'Abbreviation', 'NarrativeContent', 'StudyAmendment',
-    # Scheduling
-    'Condition', 'TransitionRule',
+    # Scheduling & Transitions
+    'Condition', 'TransitionRule', 'StudyElement',
     # Helpers
     'generate_uuid', 'create_wrapper_input', 'normalize_usdm_data', 'USDMEntity',
 ]

@@ -1,9 +1,11 @@
 # Protocol2USDM User Guide
 
-**Version:** 6.5.0  
-**Last Updated:** 2025-11-30
+**Version:** 7.2  
+**Last Updated:** 2026-01-30
 
-> **📢 What's New in v6.5.0:** External evaluation score **88%** (7/8 checks passing)! Key fixes: encounterId alignment (enc_N instead of pt_N), StudyIdentifier type auto-inference (NCT, EudraCT, IND, Sponsor), and all 28 NCI terminology codes EVS-verified. The pipeline extracts the **full protocol** including metadata, eligibility, objectives, study design, interventions, and more.
+> **📢 What's New in v7.2:** **Execution model promotion** to native USDM entities (Condition, ScheduledDecisionInstance, StudyElement, TransitionRule), `Timing.windowLower/windowUpper` population, `Epoch/Encounter.previousId/nextId` chains, post-promotion validation.
+
+> **v7.1:** Phase registry architecture (`main_v3.py`), default `--complete` mode, `gemini-3-flash-preview` as default model, parallel execution support.
 
 ---
 
@@ -27,15 +29,17 @@
 # Install
 pip install -r requirements.txt
 
-# Configure API keys
-echo "OPENAI_API_KEY=sk-..." > .env
-echo "GOOGLE_API_KEY=AIza..." >> .env
+# Configure Vertex AI for Gemini (recommended for clinical content)
+echo "GOOGLE_CLOUD_PROJECT=your-project-id" > .env
+echo "GOOGLE_CLOUD_LOCATION=us-central1" >> .env
 
-# Run full protocol extraction with viewer
-python main_v2.py .\input\Alexion_NCT04573309_Wilsons.pdf --full-protocol --sap .\input\Alexion_NCT04573309_Wilsons_SAP.pdf --model gemini-2.5-pro --view
+# Run full protocol extraction (defaults to --complete with gemini-3-flash-preview)
+python main_v3.py input/trial/NCT04573309_Wilsons/NCT04573309_Wilsons_Protocol.pdf --sap input/trial/NCT04573309_Wilsons/NCT04573309_Wilsons_SAP.pdf --sites input/trial/NCT04573309_Wilsons/NCT04573309_Wilsons_sites.csv
 ```
 
 **Expected runtime:** 3-8 minutes for full protocol extraction
+
+> **⚠️ Important:** Use **Vertex AI** (not AI Studio) for Gemini models to disable safety controls for clinical content.
 
 ---
 
@@ -72,19 +76,28 @@ pip install -r requirements.txt
 
 Create a `.env` file in the project root:
 ```bash
+# RECOMMENDED: Google Cloud Vertex AI (for Gemini models)
+# Required for clinical content - AI Studio may block medical text
+GOOGLE_CLOUD_PROJECT=your-project-id
+GOOGLE_CLOUD_LOCATION=us-central1
+
+# Alternative: Google AI Studio (may have safety restrictions)
+GOOGLE_API_KEY=AIzaSy...
+
 # OpenAI (for GPT models)
 OPENAI_API_KEY=sk-proj-...
 
-# Google AI (for Gemini models)
-GOOGLE_API_KEY=AIzaSy...
+# Anthropic (for Claude models)
+CLAUDE_API_KEY=...
 
 # CDISC API (for conformance validation)
 CDISC_API_KEY=...
 ```
 
 **Get API keys:**
+- Google Cloud: https://console.cloud.google.com/ (enable Vertex AI API)
 - OpenAI: https://platform.openai.com/api-keys
-- Google AI: https://makersuite.google.com/app/apikey
+- Anthropic: https://console.anthropic.com/
 - CDISC: https://library.cdisc.org/ (requires CDISC membership)
 
 ### Step 5: Install CDISC CORE Engine (Optional)
@@ -99,16 +112,19 @@ python tools/core/download_core.py
 
 ### Basic Usage
 ```bash
-python main_v2.py <protocol.pdf>
+# Recommended: main_v3.py (phase registry architecture)
+python main_v3.py <protocol.pdf>
+
+# Legacy main_v3.py has been removed — use main_v3.py
 ```
 
 ### With Options
 ```bash
-python main_v2.py protocol.pdf --model gpt-5.1      # Specify model
-python main_v2.py protocol.pdf --full               # Run all post-processing
-python main_v2.py protocol.pdf --view               # Open viewer after
-python main_v2.py protocol.pdf --no-validate        # Skip vision validation
-python main_v2.py protocol.pdf --verbose            # Detailed logging
+python main_v3.py protocol.pdf                      # Default: --complete with gemini-3-flash-preview
+python main_v3.py protocol.pdf --parallel           # Run phases concurrently
+python main_v3.py protocol.pdf --model gemini-2.5-pro  # Specify model
+python main_v3.py protocol.pdf --no-validate        # Skip vision validation
+python main_v3.py protocol.pdf --verbose            # Detailed logging
 ```
 
 ### Pipeline Steps
@@ -120,13 +136,13 @@ The pipeline automatically executes:
 3. **Analyze Structure** - Uses vision to understand table headers
 4. **Extract Data** - Extracts activities and timepoints from text
 5. **Validate** - Vision model validates extraction against images
-6. **Build Output** - Creates USDM-compliant JSON
+6. **Build Output** - Creates USDM-aligned JSON
 
 ### Post-Processing (Optional)
 
 ```bash
 # Add all post-processing
-python main_v2.py protocol.pdf --full
+python main_v3.py protocol.pdf --full
 
 # Or individually:
 --enrich            # Step 7: Add NCI terminology codes
@@ -141,8 +157,14 @@ python main_v2.py protocol.pdf --full
 Extract everything from a protocol with a single command:
 
 ```bash
-# Full protocol extraction (SoA + all expansion phases)
-python main_v2.py protocol.pdf --full-protocol
+# Default behavior - runs --complete automatically (no flags needed!)
+python main_v3.py protocol.pdf
+
+# Explicit full protocol extraction
+python main_v3.py protocol.pdf --full-protocol
+
+# With parallel execution for faster processing
+python main_v3.py protocol.pdf --parallel --max-workers 4
 ```
 
 ### Selective Extraction
@@ -151,10 +173,10 @@ Run specific phases alongside SoA:
 
 ```bash
 # SoA + metadata + eligibility
-python main_v2.py protocol.pdf --metadata --eligibility
+python main_v3.py protocol.pdf --metadata --eligibility
 
 # SoA + objectives + interventions
-python main_v2.py protocol.pdf --objectives --interventions
+python main_v3.py protocol.pdf --objectives --interventions
 ```
 
 ### Expansion-Only Mode
@@ -163,10 +185,10 @@ Skip SoA extraction and run only expansion phases:
 
 ```bash
 # All expansion phases, no SoA
-python main_v2.py protocol.pdf --expansion-only --metadata --eligibility --objectives --studydesign --interventions --narrative --advanced
+python main_v3.py protocol.pdf --expansion-only --metadata --eligibility --objectives --studydesign --interventions --narrative --advanced
 
 # Just metadata and eligibility
-python main_v2.py protocol.pdf --expansion-only --metadata --eligibility
+python main_v3.py protocol.pdf --expansion-only --metadata --eligibility
 ```
 
 ### Available Flags
@@ -182,10 +204,14 @@ python main_v2.py protocol.pdf --expansion-only --metadata --eligibility
 | `--advanced` | 8 | Amendments, geography |
 | `--full-protocol` | All | Everything (SoA + all phases) |
 | `--expansion-only` | - | Skip SoA extraction |
+| `--procedures` | 10 | Procedures & medical devices |
+| `--scheduling` | 11 | Scheduling logic & timings |
+| `--execution` | 14 | Execution model (anchors, windows) |
+| `--parallel` | - | Run independent phases concurrently |
 
 ### Combined Output
 
-When running multiple phases, a combined `full_usdm.json` is generated containing all extracted data in a single USDM-compliant structure.
+When running multiple phases, a combined `full_usdm.json` is generated containing all extracted data in a single USDM-aligned structure.
 
 ---
 
@@ -348,10 +374,12 @@ The `9_final_soa_provenance.json` tracks the source of each entity:
 
 ### Launch
 ```bash
-streamlit run soa_streamlit_viewer.py
+cd web-ui
+npm install  # First time only
+npm run dev
 ```
 
-Opens at: http://localhost:8504
+Opens at: http://localhost:3000
 
 ### Viewer Features
 
@@ -403,19 +431,19 @@ Opens at: http://localhost:8504
 ### Step 7: Terminology Enrichment
 Adds NCI EVS codes to activities:
 ```bash
-python main_v2.py protocol.pdf --enrich
+python main_v3.py protocol.pdf --enrich
 ```
 
 ### Step 8: Schema Validation
 Validates against USDM v4.0 schema:
 ```bash
-python main_v2.py protocol.pdf --validate-schema
+python main_v3.py protocol.pdf --validate-schema
 ```
 
 ### Step 9: CDISC CORE Conformance
 Runs CORE rules validation:
 ```bash
-python main_v2.py protocol.pdf --conformance
+python main_v3.py protocol.pdf --conformance
 ```
 
 **Note:** Requires CORE engine installed via `tools/core/download_core.py`
@@ -428,22 +456,116 @@ python main_v2.py protocol.pdf --conformance
 
 | Model | Provider | Speed | Best For |
 |-------|----------|-------|----------|
-| `gpt-5.1` | OpenAI | Medium | **Default - Best reliability** |
-| `gemini-3-pro-preview` | Google | Slow | Thorough extraction |
-| `gemini-2.5-pro` | Google | Fast | Good balance |
-| `gpt-4o` | OpenAI | Medium | OpenAI preference |
+| `gemini-3-flash` | Google | **Fast** | **Recommended - Optimized for this release** |
+| `gemini-2.5-pro` | Google | Medium | Reliable fallback |
+| `claude-opus-4-5` | Anthropic | Medium | High accuracy, higher cost |
+| `claude-sonnet-4` | Anthropic | Fast | Good balance |
+| `chatgpt-5.2` | OpenAI | Medium | Good alternative |
+
+### Gemini 3 Flash with Intelligent Fallback
+
+When using `gemini-3-flash`, the pipeline automatically uses `gemini-2.5-pro` for SoA text extraction only. This is because Gemini 3 Flash has issues with the specific JSON output format required for SoA extraction.
+
+**What happens:**
+1. SoA header analysis → Uses `gemini-3-flash` 
+1. SoA text extraction → Falls back to `gemini-2.5-pro` (automatic)
+3. All expansion phases → Uses `gemini-3-flash` 
+
+**Log output:**
+```
+[INFO] Step 2: Extracting SoA data from text...
+[INFO]   Using fallback model for SoA text extraction: gemini-2.5-pro
+```
+
+### Vertex AI Configuration (Required for Gemini)
+
+Gemini models require Vertex AI for clinical protocol extraction (to properly disable safety controls):
+
+```bash
+# In .env file
+GOOGLE_CLOUD_PROJECT=your-project-id
+GOOGLE_CLOUD_LOCATION=us-central1  # or your preferred region
+GOOGLE_API_KEY=AIzaSy...  # Still needed for authentication
+```
 
 ### Benchmark Results
 
-| Model | Success Rate | Avg Time |
-|-------|-------------|----------|
-| GPT-5.1 | 100% | 92s |
-| Gemini-3-pro-preview | 75% | 400s |
+| Model | Success Rate | SoA Extraction | Expansion Phases |
+|-------|-------------|----------------|------------------|
+| gemini-3-flash | 100% | via fallback | All 12 ✓ |
+| gemini-2.5-pro | 100% | Native | All 12 ✓ |
+| claude-opus-4-5 | 100% | Native | All 12 ✓ |
+| chatgpt-5.2 | 100% | Native | All 12 ✓ |
 
 ### Specifying Model
 ```bash
-python main_v2.py protocol.pdf --model gpt-5.1
-python main_v2.py protocol.pdf --model gemini-3-pro-preview
+# Recommended: Gemini 3 Flash (uses fallback for SoA automatically)
+python main_v3.py protocol.pdf --model gemini-3-flash
+
+# Alternative: Gemini 2.5 Pro
+python main_v3.py protocol.pdf --model gemini-2.5-pro
+
+# Claude Opus 4.5 (high accuracy)
+python main_v3.py protocol.pdf --model claude-opus-4-5
+
+# Full extraction with SAP and sites
+python main_v3.py protocol.pdf --complete --sap sap.pdf --sites sites.csv --model gemini-3-flash
+```
+
+### LLM Task Configuration (`llm_config.yaml`)
+
+The pipeline uses task-optimized LLM parameters defined in `llm_config.yaml`. This file controls temperature, top_p, top_k, and max_tokens for different extraction categories.
+
+#### Task Categories
+
+| Category | Temperature | Use Case |
+|----------|-------------|----------|
+| `deterministic` | 0.0 | Factual extraction (SoA, metadata, eligibility) |
+| `semantic` | 0.1 | Entity resolution, footnote conditions |
+| `structured_gen` | 0.2 | State machines, endpoint algorithms |
+| `narrative` | 0.3 | Amendments, narrative sections |
+
+#### Environment Variable Overrides
+
+Override any parameter at runtime without editing the config file:
+
+```bash
+# Override temperature for all tasks
+LLM_TEMPERATURE=0.1 python main_v3.py protocol.pdf
+
+# Override multiple parameters
+LLM_TEMPERATURE=0.2 LLM_TOP_P=0.9 LLM_MAX_TOKENS=16384 python main_v3.py protocol.pdf
+```
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `LLM_TEMPERATURE` | Sampling temperature (0.0-2.0) | `0.1` |
+| `LLM_TOP_P` | Nucleus sampling threshold | `0.9` |
+| `LLM_TOP_K` | Top-K sampling (Gemini/Claude only) | `40` |
+| `LLM_MAX_TOKENS` | Maximum output tokens | `8192` |
+| `LLM_CONFIG_PATH` | Path to alternative config file | `./custom_config.yaml` |
+
+#### Provider-Specific Behavior
+
+The config includes optimized settings per provider:
+- **Gemini**: Supports top_k for fine-grained control
+- **OpenAI**: top_k not supported, uses stricter top_p
+- **Claude**: Cannot use temperature + top_p together
+
+#### Customizing Parameters
+
+Edit `llm_config.yaml` to tune extraction behavior:
+
+```yaml
+# Example: Make eligibility extraction more deterministic
+extractor_mapping:
+  eligibility: deterministic  # Uses temperature=0.0
+
+# Example: Add provider override
+provider_overrides:
+  gemini:
+    deterministic:
+      top_k: 60  # Increase diversity
 ```
 
 ---
@@ -468,7 +590,7 @@ Error: GOOGLE_API_KEY environment variable not set
 **Symptom:** Pipeline fails during extraction
 
 **Solutions:**
-1. Try different model: `--model gemini-2.5-pro`
+1. Try different model: `--model gemini-3-flash` or `--model gemini-2.5-pro`
 2. Enable verbose: `--verbose`
 3. Check API quota/limits
 
@@ -487,7 +609,7 @@ Error: GOOGLE_API_KEY environment variable not set
 
 **Solutions:**
 1. Skip validation: `--no-validate`
-2. Review in Streamlit viewer
+2. Review in Web UI (`cd web-ui && npm run dev`)
 3. Check source PDF quality
 
 ---
@@ -509,7 +631,7 @@ python test_pipeline_steps.py protocol.pdf --step all # All steps
 ## FAQ
 
 **Q: Which model should I use?**
-A: Start with `gpt-5.1` (default). If it fails, try `gemini-2.5-pro`.
+A: Start with `gemini-3-flash` (recommended). If it fails, try `gemini-2.5-pro` or `claude-opus-4-5`.
 
 **Q: How long does extraction take?**
 A: 2-5 minutes for typical protocols, depending on model and protocol size.
@@ -522,11 +644,11 @@ A:
 1. Try a different model
 2. Check PDF quality (text-based vs scanned)
 3. Verify correct pages were identified
-4. Review in Streamlit viewer
+4. Review in Web UI (`cd web-ui && npm run dev`)
 
 **Q: How do I report issues?**
 A: Check logs in `output/<protocol>/`, capture error messages, report to maintainer.
 
 ---
 
-**Last Updated:** 2025-11-28
+**Last Updated:** 2026-01-30

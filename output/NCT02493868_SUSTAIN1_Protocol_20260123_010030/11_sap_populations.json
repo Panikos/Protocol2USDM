@@ -1,0 +1,139 @@
+{
+  "success": true,
+  "sourceFile": "C:\\Users\\panik\\Documents\\GitHub\\Protcol2USDMv3\\input\\trial\\NCT02493868_SUSTAIN1\\NCT02493868_SUSTAIN1_SAP.pdf",
+  "pagesUsed": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39
+  ],
+  "modelUsed": "gemini-3-flash-preview",
+  "sapData": {
+    "analysisPopulations": [
+      {
+        "id": "pop_1",
+        "name": "All Enrolled Analysis Set",
+        "text": "The all enrolled analysis set includes all subjects who signed an informed consent form and were assigned a subject number.",
+        "populationType": "Other",
+        "instanceType": "AnalysisPopulation",
+        "label": "All Enrolled",
+        "populationDescription": "The all enrolled analysis set includes all subjects who signed an informed consent form and were assigned a subject number.",
+        "criteria": "Signed informed consent AND assigned subject number"
+      },
+      {
+        "id": "pop_2",
+        "name": "Full Analysis Set (Stable Remitters)",
+        "text": "The Full (stable remitters) analysis set includes all randomized subjects who are in stable remission at the end of the optimization phase and who received at least one dose of intranasal study medication or one dose of oral antidepressant medication during the maintenance phase.",
+        "populationType": "Efficacy",
+        "instanceType": "AnalysisPopulation",
+        "label": "FAS (Stable Remitters)",
+        "populationDescription": "The Full (stable remitters) analysis set includes all randomized subjects who are in stable remission at the end of the optimization phase and who received at least one dose of intranasal study medication or one dose of oral antidepressant medication during the maintenance phase.",
+        "criteria": "Randomized AND in stable remission at end of optimization AND received >=1 dose of intranasal study medication OR >=1 dose of oral AD in maintenance phase"
+      },
+      {
+        "id": "pop_3",
+        "name": "Full Analysis Set (Stable Responders)",
+        "text": "The Full (stable responders) analysis set includes all randomized subjects who are in stable response (but not in stable remission) at the end of the optimization phase and who received at least one dose of intranasal study medication or one dose of oral antidepressant medication during the maintenance phase.",
+        "populationType": "Efficacy",
+        "instanceType": "AnalysisPopulation",
+        "label": "FAS (Stable Responders)",
+        "populationDescription": "The Full (stable responders) analysis set includes all randomized subjects who are in stable response (but not in stable remission) at the end of the optimization phase and who received at least one dose of intranasal study medication or one dose of oral antidepressant medication during the maintenance phase.",
+        "criteria": "Randomized AND in stable response (not remission) at end of optimization AND received >=1 dose of intranasal study medication OR >=1 dose of oral AD in maintenance phase"
+      },
+      {
+        "id": "pop_4",
+        "name": "Interim Full Analysis Set",
+        "text": "The Interim Full (stable remitters) analysis set includes all subjects in the Full (stable remitters) analysis set who were randomized at least 24 weeks before the interim analysis data cut-off date.",
+        "populationType": "Efficacy",
+        "instanceType": "AnalysisPopulation",
+        "label": "Interim FAS",
+        "populationDescription": "The Interim Full (stable remitters) analysis set includes all subjects in the Full (stable remitters) analysis set who were randomized at least 24 weeks before the interim analysis data cut-off date.",
+        "criteria": "Member of FAS (Stable Remitters) AND randomized >=24 weeks prior to interim data cut-off"
+      },
+      {
+        "id": "pop_5",
+        "name": "Safety Analysis Set",
+        "text": "The safety analysis set includes all subjects who received at least one dose of intranasal study medication or one dose of oral antidepressant medication during the study. For each phase, the safety analysis set includes all subjects who received at least one dose of intranasal study medication or one dose of oral antidepressant medication during that phase.",
+        "populationType": "Safety",
+        "instanceType": "AnalysisPopulation",
+        "label": "SAF",
+        "populationDescription": "The safety analysis set includes all subjects who received at least one dose of intranasal study medication or one dose of oral antidepressant medication during the study. For each phase, the safety analysis set includes all subjects who received at least one dose of intranasal study medication or one dose of oral antidepressant medication during that phase.",
+        "criteria": "Received >=1 dose of intranasal study medication OR >=1 dose of oral AD"
+      },
+      {
+        "id": "pop_6",
+        "name": "Follow-up Analysis Set",
+        "text": "The follow-up analysis set includes all subjects who entered the follow-up phase.",
+        "populationType": "Safety",
+        "instanceType": "AnalysisPopulation",
+        "label": "FU Set",
+        "populationDescription": "The follow-up analysis set includes all subjects who entered the follow-up phase.",
+        "criteria": "Entered follow-up phase"
+      }
+    ],
+    "characteristics": [
+      {
+        "id": "char_1",
+        "name": "Age",
+        "code": "AGE",
+        "codeSystem": "http://www.cdisc.org/baseline-characteristics",
+        "codeSystemVersion": "2024-03-29",
+        "decode": "Age",
+        "dataType": "Numeric",
+        "instanceType": "Characteristic",
+        "description": "Age at baseline in years"
+      },
+      {
+        "id": "char_2",
+        "name": "MADRS Total Score",
+        "code": "MADRS_TOTAL_SCORE",
+        "codeSystem": "http://www.cdisc.org/baseline-characteristics",
+        "codeSystemVersion": "2024-03-29",
+        "decode": "MADRS Total Score",
+        "dataType": "Numeric",
+        "instanceType": "Characteristic",
+        "description": "Montgomery-Asberg Depression Rating Scale total score used to define response and remission"
+      }
+    ],
+    "summary": {
+      "populationCount": 6,
+      "characteristicCount": 2
+    }
+  }
+}

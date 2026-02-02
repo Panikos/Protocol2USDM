@@ -17,6 +17,7 @@ from core.usdm_types import generate_uuid, Code
 
 class ProcedureType(Enum):
     """Types of clinical procedures."""
+    UNKNOWN = ""  # Not extracted from source
     DIAGNOSTIC = "Diagnostic"
     THERAPEUTIC = "Therapeutic"
     SURGICAL = "Surgical"
@@ -28,6 +29,7 @@ class ProcedureType(Enum):
 
 class DeviceType(Enum):
     """Types of medical devices."""
+    UNKNOWN = ""  # Not extracted from source
     DRUG_DELIVERY = "Drug Delivery Device"
     DIAGNOSTIC = "Diagnostic Device"
     MONITORING = "Monitoring Device"
@@ -52,23 +54,67 @@ class Procedure:
     instance_type: str = "Procedure"
     
     def to_dict(self) -> Dict[str, Any]:
+        # Map procedure types to NCI codes where available
+        procedure_type_codes = {
+            ProcedureType.DIAGNOSTIC: ("C25391", "Diagnostic Procedure"),
+            ProcedureType.THERAPEUTIC: ("C49236", "Therapeutic Procedure"),
+            ProcedureType.SURGICAL: ("C17173", "Surgical Procedure"),
+            ProcedureType.SAMPLING: ("C70793", "Biospecimen Collection"),
+            ProcedureType.IMAGING: ("C17369", "Imaging Technique"),
+            ProcedureType.MONITORING: ("C25548", "Monitoring"),
+            ProcedureType.ASSESSMENT: ("C25218", "Assessment"),
+        }
+        
+        # Build procedureType as proper Code object (required as string per schema)
+        if self.procedure_type:
+            code, decode = procedure_type_codes.get(self.procedure_type, (self.procedure_type.value, self.procedure_type.value))
+            proc_type_str = decode  # USDM expects string, not Code object
+        else:
+            proc_type_str = "Clinical Procedure"
+        
+        # Check if code dict has valid values (not all null)
+        has_valid_code = (
+            self.code 
+            and isinstance(self.code, dict) 
+            and self.code.get('code')  # code value must be non-null
+        )
+        
+        # Build code object - use existing if valid, otherwise create default
+        if has_valid_code:
+            # Ensure all required fields are strings (not null)
+            code_obj = {
+                "id": self.code.get('id') or generate_uuid(),
+                "code": self.code.get('code') or "",
+                "codeSystem": self.code.get('codeSystem') or "",
+                "codeSystemVersion": self.code.get('codeSystemVersion') or "",
+                "decode": self.code.get('decode') or self.name,
+                "instanceType": "Code",
+            }
+        else:
+            # Default code based on procedure type
+            default_code, default_decode = procedure_type_codes.get(
+                self.procedure_type, ("C25218", "Clinical Procedure")
+            )
+            code_obj = {
+                "id": generate_uuid(),
+                "code": default_code,
+                "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+                "codeSystemVersion": "25.01d",
+                "decode": default_decode,
+                "instanceType": "Code",
+            }
+        
         result = {
             "id": self.id,
             "name": self.name,
+            "procedureType": proc_type_str,  # Required field - string type
+            "code": code_obj,
             "instanceType": self.instance_type,
         }
         if self.label:
             result["label"] = self.label
         if self.description:
             result["description"] = self.description
-        if self.procedure_type:
-            result["procedureType"] = {
-                "code": self.procedure_type.value,
-                "codeSystem": "USDM",
-                "decode": self.procedure_type.value
-            }
-        if self.code:
-            result["code"] = self.code
         return result
 
 

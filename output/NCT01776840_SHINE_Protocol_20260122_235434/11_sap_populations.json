@@ -1,0 +1,139 @@
+{
+  "success": true,
+  "sourceFile": "C:\\Users\\panik\\Documents\\GitHub\\Protcol2USDMv3\\input\\trial\\NCT01776840_SHINE\\NCT01776840_SHINE_SAP.pdf",
+  "pagesUsed": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37
+  ],
+  "modelUsed": "gemini-3-flash-preview",
+  "sapData": {
+    "analysisPopulations": [
+      {
+        "id": "pop_1",
+        "name": "Intent-to-Treat Population",
+        "text": "The ITT population includes all subjects who are randomized in the study. Efficacy analysis will be based on the ITT population.",
+        "populationType": "Efficacy",
+        "instanceType": "AnalysisPopulation",
+        "label": "ITT",
+        "populationDescription": "The ITT population includes all subjects who are randomized in the study. Efficacy analysis will be based on the ITT population.",
+        "criteria": "All randomized subjects"
+      },
+      {
+        "id": "pop_2",
+        "name": "Safety Analysis Set",
+        "text": "The safety analysis set includes all randomized subjects who receive at least 1 dose of any study treatment (ibrutinib/placebo, bendamustine, or rituximab).",
+        "populationType": "Safety",
+        "instanceType": "AnalysisPopulation",
+        "label": "SAF",
+        "populationDescription": "The safety analysis set includes all randomized subjects who receive at least 1 dose of any study treatment (ibrutinib/placebo, bendamustine, or rituximab).",
+        "criteria": "Randomized AND received >=1 dose of any study treatment"
+      },
+      {
+        "id": "pop_3",
+        "name": "Pharmacokinetics Analysis Set",
+        "text": "The PK population is defined as all subjects who received at least 1 dose of ibrutinib and have at least 1 evaluable PK sample.",
+        "populationType": "PK/PD",
+        "instanceType": "AnalysisPopulation",
+        "label": "PK",
+        "populationDescription": "The PK population is defined as all subjects who received at least 1 dose of ibrutinib and have at least 1 evaluable PK sample.",
+        "criteria": "Received >=1 dose of ibrutinib AND has >=1 evaluable PK sample"
+      },
+      {
+        "id": "pop_4",
+        "name": "Per-Protocol Set",
+        "text": "The per-protocol set is a subset of the ITT population, excluding subjects with major protocol deviations that may impact the efficacy outcomes.",
+        "populationType": "Efficacy",
+        "instanceType": "AnalysisPopulation",
+        "label": "PP",
+        "populationDescription": "The per-protocol set is a subset of the ITT population, excluding subjects with major protocol deviations that may impact the efficacy outcomes.",
+        "criteria": "ITT population AND no major protocol deviations"
+      }
+    ],
+    "characteristics": [
+      {
+        "id": "char_1",
+        "name": "Age",
+        "code": "AGE",
+        "codeSystem": "http://www.cdisc.org/baseline-characteristics",
+        "codeSystemVersion": "2024-03-29",
+        "decode": "Age",
+        "dataType": "Numeric",
+        "instanceType": "Characteristic",
+        "description": "Age at baseline in years"
+      },
+      {
+        "id": "char_2",
+        "name": "sMIPI Score",
+        "code": "SMIPI_SCORE",
+        "codeSystem": "http://www.cdisc.org/baseline-characteristics",
+        "codeSystemVersion": "2024-03-29",
+        "decode": "sMIPI Score",
+        "dataType": "Categorical",
+        "instanceType": "Characteristic",
+        "description": "Simplified MCL international prognostic index score (low risk [0-3] vs. intermediate risk [4-5] vs. high risk [6-11])"
+      },
+      {
+        "id": "char_3",
+        "name": "TP53 Mutation Status",
+        "code": "TP53_MUTATION_STATUS",
+        "codeSystem": "http://www.cdisc.org/baseline-characteristics",
+        "codeSystemVersion": "2024-03-29",
+        "decode": "TP53 Mutation Status",
+        "dataType": "Categorical",
+        "instanceType": "Characteristic",
+        "description": "Presence or absence of TP53 mutation"
+      },
+      {
+        "id": "char_4",
+        "name": "Tumor Bulk",
+        "code": "TUMOR_BULK",
+        "codeSystem": "http://www.cdisc.org/baseline-characteristics",
+        "codeSystemVersion": "2024-03-29",
+        "decode": "Tumor Bulk",
+        "dataType": "Numeric",
+        "instanceType": "Characteristic",
+        "description": "Tumor bulk and tumor burden at baseline"
+      }
+    ],
+    "summary": {
+      "populationCount": 4,
+      "characteristicCount": 4
+    }
+  }
+}

@@ -1,0 +1,474 @@
+{
+  "usdmVersion": "4.0",
+  "systemName": "Protocol2USDM",
+  "systemVersion": "6.2.0",
+  "study": {
+    "id": "091aeb76-c136-453b-8839-432f77507c59",
+    "name": "",
+    "instanceType": "Study",
+    "versions": [
+      {
+        "id": "a2ed9408-6783-4fb3-934e-dc7f4c18b8e0",
+        "versionIdentifier": "1.0",
+        "rationale": "Initial protocol version",
+        "instanceType": "StudyVersion",
+        "studyDesigns": [
+          {
+            "id": "sd_1",
+            "name": "Study Design",
+            "rationale": "Protocol-defined study design",
+            "instanceType": "InterventionalStudyDesign",
+            "blindingSchema": {
+              "id": "c580ab1b-4bab-4cc5-a239-b7856880c854",
+              "instanceType": "AliasCode",
+              "standardCode": {
+                "id": "cc976e1c-ecb7-4981-88a0-ecd7f17669e6",
+                "code": "C49656",
+                "codeSystem": "http://www.cdisc.org",
+                "codeSystemVersion": "2024-09-27",
+                "decode": "Open Label",
+                "instanceType": "Code"
+              }
+            },
+            "model": {
+              "id": "d27d1ba5-3e68-484f-8a56-95e91a8f2301",
+              "code": "C82638",
+              "codeSystem": "http://www.cdisc.org",
+              "codeSystemVersion": "2024-09-27",
+              "decode": "Single Group Study",
+              "instanceType": "Code"
+            },
+            "epochs": [
+              {
+                "id": "epoch_1",
+                "name": "Cohort 1",
+                "instanceType": "StudyEpoch",
+                "type": {
+                  "id": "f668a6a4-9cb4-4606-b3f9-aa1f43b1a645",
+                  "code": "C98780",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Treatment Epoch",
+                  "instanceType": "Code"
+                }
+              },
+              {
+                "id": "epoch_2",
+                "name": "Cohort 2 and Cohort 3",
+                "instanceType": "StudyEpoch",
+                "type": {
+                  "id": "2952d49b-8569-4ed7-b702-000c44d5e016",
+                  "code": "C98780",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Treatment Epoch",
+                  "instanceType": "Code"
+                }
+              }
+            ],
+            "activities": [
+              {
+                "id": "grp_1",
+                "name": "Cohort 1 Assessments",
+                "instanceType": "Activity",
+                "childIds": [
+                  "act_6",
+                  "act_7",
+                  "act_8",
+                  "act_9",
+                  "act_10"
+                ]
+              },
+              {
+                "id": "grp_2",
+                "name": "Cohort 2 and Cohort 3 Assessments",
+                "instanceType": "Activity",
+                "childIds": [
+                  "act_6",
+                  "act_7",
+                  "act_8",
+                  "act_9",
+                  "act_10"
+                ]
+              },
+              {
+                "id": "act_1",
+                "name": "Prompted local reactions",
+                "instanceType": "Activity",
+                "description": "Prompted local reactions (redness, swelling, and pain at the injection site) occurring at the 20vPnC or 13vPnC injection site within 10 days after vaccination will be collected daily in the e-diary."
+              },
+              {
+                "id": "act_2",
+                "name": "Prompted systemic events",
+                "instanceType": "Activity",
+                "description": "Prompted systemic events occurring within 7 days after vaccination."
+              },
+              {
+                "id": "act_3",
+                "name": "Adverse events",
+                "instanceType": "Activity",
+                "description": "SAEs and newly diagnosed chronic medical conditions (NDCMCs) will be collected through 6 months after Visit 1."
+              },
+              {
+                "id": "act_4",
+                "name": "Immune responses to the 13vPnC serotypes: 1, 3, 4, 5, 6A, 6B, 7F, 9V, 14, 18C, 19A, 19F, 23F",
+                "instanceType": "Activity",
+                "description": "Blood will be drawn for immunogenicity assessments."
+              },
+              {
+                "id": "act_5",
+                "name": "Immune responses to the additional 7 serotypes: 8, 10A, 11A, 12F, 15B, 22F, 33F",
+                "instanceType": "Activity",
+                "description": "Blood will be drawn for immunogenicity assessments."
+              },
+              {
+                "id": "act_6",
+                "name": "Prompted local reactions",
+                "instanceType": "Activity",
+                "description": "Prompted local reactions (redness, swelling, and pain at the injection site) occurring at the 20vPnC or 13vPnC injection site within 10 days after vaccination."
+              },
+              {
+                "id": "act_7",
+                "name": "Prompted systemic events",
+                "instanceType": "Activity",
+                "description": "Prompted systemic events occurring within 7 days after vaccination."
+              },
+              {
+                "id": "act_8",
+                "name": "Adverse events",
+                "instanceType": "Activity",
+                "description": "SAEs and newly diagnosed chronic medical conditions (NDCMCs) will be collected through 6 months after Visit 1."
+              },
+              {
+                "id": "act_9",
+                "name": "Immune responses to the 13vPnC serotypes: 1, 3, 4, 5, 6A, 6B, 7F, 9V, 14, 18C, 19A, 19F, 23F",
+                "instanceType": "Activity",
+                "description": "Blood will be drawn for immunogenicity assessments."
+              },
+              {
+                "id": "act_10",
+                "name": "Immune responses to the additional 7 serotypes: 8, 10A, 11A, 12F, 15B, 22F, 33F",
+                "instanceType": "Activity",
+                "description": "Blood will be drawn for immunogenicity assessments."
+              }
+            ],
+            "encounters": [
+              {
+                "id": "enc_1",
+                "name": "Cohort 1 Investigational (20vPnC)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "22a6b4a7-1348-4047-8a9f-8b4df2a1dfa0",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_1"
+              },
+              {
+                "id": "enc_2",
+                "name": "Cohort 1 Control (13vPnC)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "2baad91e-64fb-4789-ab00-7a8474b4b989",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_1"
+              },
+              {
+                "id": "enc_3",
+                "name": "Cohort 1 Control (PPSV23)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "189468d8-12be-4eb4-acb5-8c790952e32d",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_1"
+              },
+              {
+                "id": "enc_4",
+                "name": "Cohort 2/3 Investigational (20vPnC)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "3fdabb0f-c3e2-4917-9933-5f318e7c8bd1",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_2"
+              },
+              {
+                "id": "enc_5",
+                "name": "Cohort 2/3 Control (13vPnC)",
+                "instanceType": "Encounter",
+                "type": {
+                  "id": "af173cc9-9465-4a1d-a925-9151b9e061f4",
+                  "code": "C99156",
+                  "codeSystem": "http://www.cdisc.org",
+                  "codeSystemVersion": "2024-09-27",
+                  "decode": "Scheduled Visit",
+                  "instanceType": "Code"
+                },
+                "epochId": "epoch_2"
+              }
+            ],
+            "scheduleTimelines": [
+              {
+                "id": "timeline_1",
+                "name": "Main Schedule Timeline",
+                "mainTimeline": true,
+                "instanceType": "ScheduleTimeline",
+                "entryCondition": "Subject enrolled in study",
+                "entryId": "6b5b0dc9-6c35-4f91-8a78-bbc7ee4365bd",
+                "instances": [
+                  {
+                    "id": "6b5b0dc9-6c35-4f91-8a78-bbc7ee4365bd",
+                    "activityIds": [
+                      "act_1"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_1@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "c2f9f8e1-1c30-4152-9406-c6da88425e52",
+                    "activityIds": [
+                      "act_1"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_1@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "ab62c8cf-6d03-4808-a603-571cb0ec0e6b",
+                    "activityIds": [
+                      "act_2"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_2@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "58545c83-fa2a-43ba-8c77-3ea153335acf",
+                    "activityIds": [
+                      "act_2"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_2@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "db687ed2-d2d4-48fc-a92d-249353ceff95",
+                    "activityIds": [
+                      "act_3"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_3@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "1e3203b1-0497-4443-a240-c153e18ae81e",
+                    "activityIds": [
+                      "act_3"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_3@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "d9be209f-78a6-4a6d-8d69-7bbd1c887ada",
+                    "activityIds": [
+                      "act_3"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_3@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "e15ce825-364b-474b-a762-513aad9734e4",
+                    "activityIds": [
+                      "act_4"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_4@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "b8e2e695-f82b-40eb-98cc-ec110d0db407",
+                    "activityIds": [
+                      "act_4"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_4@enc_2",
+                    "encounterId": "enc_2"
+                  },
+                  {
+                    "id": "059e15c3-2304-46d8-a3ed-d56dc487384c",
+                    "activityIds": [
+                      "act_5"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_5@enc_1",
+                    "encounterId": "enc_1"
+                  },
+                  {
+                    "id": "73cee2e3-381d-43a9-bca4-01523ea2cc08",
+                    "activityIds": [
+                      "act_5"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_5@enc_3",
+                    "encounterId": "enc_3"
+                  },
+                  {
+                    "id": "a0b1f7a8-96ec-4d8c-b59b-fe0e2ebb5789",
+                    "activityIds": [
+                      "act_6"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_6@enc_4",
+                    "encounterId": "enc_4"
+                  },
+                  {
+                    "id": "26f2ebfe-bc09-46fe-b5bb-41670df38373",
+                    "activityIds": [
+                      "act_6"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_6@enc_5",
+                    "encounterId": "enc_5"
+                  },
+                  {
+                    "id": "82cd684a-d1bd-4ae8-8e02-4267e01f15a3",
+                    "activityIds": [
+                      "act_7"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_7@enc_4",
+                    "encounterId": "enc_4"
+                  },
+                  {
+                    "id": "3103685b-de2e-4625-aa58-06c4f6484f47",
+                    "activityIds": [
+                      "act_7"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_7@enc_5",
+                    "encounterId": "enc_5"
+                  },
+                  {
+                    "id": "3923dfc6-782b-4219-87ab-5dc1f2990b02",
+                    "activityIds": [
+                      "act_8"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_8@enc_4",
+                    "encounterId": "enc_4"
+                  },
+                  {
+                    "id": "954a539a-e854-4fb5-9e6f-1b8713e390e8",
+                    "activityIds": [
+                      "act_8"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_8@enc_5",
+                    "encounterId": "enc_5"
+                  },
+                  {
+                    "id": "f4c60d1b-0017-4385-b3ca-88650a805ecc",
+                    "activityIds": [
+                      "act_9"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_9@enc_4",
+                    "encounterId": "enc_4"
+                  },
+                  {
+                    "id": "30d800aa-6674-445e-9c1c-ebe19eb076ab",
+                    "activityIds": [
+                      "act_10"
+                    ],
+                    "instanceType": "ScheduledActivityInstance",
+                    "name": "act_10@enc_4",
+                    "encounterId": "enc_4"
+                  }
+                ]
+              }
+            ],
+            "notes": [
+              {
+                "id": "soa_fn_1",
+                "text": "a. Control group from enrollment and vaccination with 13vPnC at Visit 1 until vaccination with PPSV23 at Visit 2.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_2",
+                "text": "b. Control group after vaccination with PPSV23 at Visit 2.",
+                "instanceType": "CommentAnnotation"
+              },
+              {
+                "id": "soa_fn_3",
+                "text": "c. SAEs and newly diagnosed chronic medical conditions (NDCMCs) will be collected through 6 months after Visit 1.",
+                "instanceType": "CommentAnnotation"
+              }
+            ],
+            "activityGroups": [
+              {
+                "id": "grp_1",
+                "name": "Cohort 1 Assessments",
+                "description": null,
+                "childIds": [
+                  "act_6",
+                  "act_7",
+                  "act_8",
+                  "act_9",
+                  "act_10"
+                ],
+                "instanceType": "Activity",
+                "activityNames": [
+                  "Prompted local reactions",
+                  "Prompted systemic events",
+                  "Adverse events",
+                  "Immune responses to the 13vPnC serotypes: 1, 3, 4, 5, 6A, 6B, 7F, 9V, 14, 18C, 19A, 19F, 23F",
+                  "Immune responses to the additional 7 serotypes: 8, 10A, 11A, 12F, 15B, 22F, 33F"
+                ]
+              },
+              {
+                "id": "grp_2",
+                "name": "Cohort 2 and Cohort 3 Assessments",
+                "description": null,
+                "childIds": [
+                  "act_6",
+                  "act_7",
+                  "act_8",
+                  "act_9",
+                  "act_10"
+                ],
+                "instanceType": "Activity",
+                "activityNames": [
+                  "Prompted local reactions",
+                  "Prompted systemic events",
+                  "Adverse events",
+                  "Immune responses to the 13vPnC serotypes: 1, 3, 4, 5, 6A, 6B, 7F, 9V, 14, 18C, 19A, 19F, 23F",
+                  "Immune responses to the additional 7 serotypes: 8, 10A, 11A, 12F, 15B, 22F, 33F"
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
