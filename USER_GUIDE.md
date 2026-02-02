@@ -512,6 +512,62 @@ python main_v3.py protocol.pdf --model claude-opus-4-5
 python main_v3.py protocol.pdf --complete --sap sap.pdf --sites sites.csv --model gemini-3-flash
 ```
 
+### LLM Task Configuration (`llm_config.yaml`)
+
+The pipeline uses task-optimized LLM parameters defined in `llm_config.yaml`. This file controls temperature, top_p, top_k, and max_tokens for different extraction categories.
+
+#### Task Categories
+
+| Category | Temperature | Use Case |
+|----------|-------------|----------|
+| `deterministic` | 0.0 | Factual extraction (SoA, metadata, eligibility) |
+| `semantic` | 0.1 | Entity resolution, footnote conditions |
+| `structured_gen` | 0.2 | State machines, endpoint algorithms |
+| `narrative` | 0.3 | Amendments, narrative sections |
+
+#### Environment Variable Overrides
+
+Override any parameter at runtime without editing the config file:
+
+```bash
+# Override temperature for all tasks
+LLM_TEMPERATURE=0.1 python main_v3.py protocol.pdf
+
+# Override multiple parameters
+LLM_TEMPERATURE=0.2 LLM_TOP_P=0.9 LLM_MAX_TOKENS=16384 python main_v3.py protocol.pdf
+```
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `LLM_TEMPERATURE` | Sampling temperature (0.0-2.0) | `0.1` |
+| `LLM_TOP_P` | Nucleus sampling threshold | `0.9` |
+| `LLM_TOP_K` | Top-K sampling (Gemini/Claude only) | `40` |
+| `LLM_MAX_TOKENS` | Maximum output tokens | `8192` |
+| `LLM_CONFIG_PATH` | Path to alternative config file | `./custom_config.yaml` |
+
+#### Provider-Specific Behavior
+
+The config includes optimized settings per provider:
+- **Gemini**: Supports top_k for fine-grained control
+- **OpenAI**: top_k not supported, uses stricter top_p
+- **Claude**: Cannot use temperature + top_p together
+
+#### Customizing Parameters
+
+Edit `llm_config.yaml` to tune extraction behavior:
+
+```yaml
+# Example: Make eligibility extraction more deterministic
+extractor_mapping:
+  eligibility: deterministic  # Uses temperature=0.0
+
+# Example: Add provider override
+provider_overrides:
+  gemini:
+    deterministic:
+      top_k: 60  # Increase diversity
+```
+
 ---
 
 ## Troubleshooting
