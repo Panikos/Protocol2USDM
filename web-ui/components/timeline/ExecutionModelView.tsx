@@ -928,6 +928,23 @@ function VisitWindowsPanel({
   const [sortBy, setSortBy] = useState<'day' | 'name' | 'number'>('day');
   const [sortAsc, setSortAsc] = useState(true);
 
+  // Map visit windows to USDM encounter indices for editing
+  const encounterIndexMap = useMemo(() => {
+    const encounters = (studyDesign?.encounters ?? []) as Array<{ id?: string; name?: string; epochId?: string }>;
+    const map = new Map<string, number>(); // visitName -> encounter index
+    for (const visit of visits) {
+      // Match by name (case-insensitive, trimmed)
+      const visitNameLower = visit.visitName.toLowerCase().trim();
+      const idx = encounters.findIndex(e => 
+        e.name?.toLowerCase().trim() === visitNameLower
+      );
+      if (idx !== -1) {
+        map.set(visit.id, idx);
+      }
+    }
+    return map;
+  }, [visits, studyDesign]);
+
   // Build day-to-epoch mapping from USDM encounters
   const dayToEpochMap = useMemo(() => {
     const dayRanges: Array<{ minDay: number; maxDay: number; epochName: string }> = [];
@@ -1221,7 +1238,18 @@ function VisitWindowsPanel({
                 {filteredVisits.map((visit, index) => (
                   <tr key={visit.id} className="border-b hover:bg-muted/50">
                     <td className="py-3 px-4 text-muted-foreground">{visit.visitNumber ?? index + 1}</td>
-                    <td className="py-3 px-4 font-medium capitalize">{visit.visitName}</td>
+                    <td className="py-3 px-4 font-medium">
+                      {encounterIndexMap.has(visit.id) ? (
+                        <EditableField
+                          path={`/study/versions/0/studyDesigns/0/encounters/${encounterIndexMap.get(visit.id)}/name`}
+                          value={visit.visitName}
+                          label=""
+                          className="capitalize"
+                        />
+                      ) : (
+                        <span className="capitalize">{visit.visitName}</span>
+                      )}
+                    </td>
                     <td className="py-3 px-4">
                       <Badge variant="outline">Day {visit.targetDay}</Badge>
                     </td>
