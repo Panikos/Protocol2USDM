@@ -758,29 +758,71 @@ function TimeAnchorsPanel({ anchors, studyDesign }: { anchors: TimeAnchor[]; stu
   const [showFullSource, setShowFullSource] = useState<Set<string>>(new Set());
 
   // Map anchors to USDM schedule timeline timing indices for editing
+  // Uses multi-pass matching: name/keyword, then day-value, then fallback to first timeline
   const anchorTimingMap = useMemo(() => {
-    const timelines = (studyDesign?.scheduleTimelines ?? []) as Array<{ id?: string; timings?: Array<{ id?: string; name?: string; label?: string; description?: string }> }>;
-    const map = new Map<string, { tlIdx: number; tIdx: number }>(); // anchor id -> {timelineIdx, timingIdx}
+    const timelines = (studyDesign?.scheduleTimelines ?? []) as Array<{
+      id?: string;
+      timings?: Array<{ id?: string; name?: string; label?: string; description?: string }>
+    }>;
+    const map = new Map<string, { tlIdx: number; tIdx: number }>();
+    if (timelines.length === 0) return map;
+
+    const claimed = new Set<string>(); // "tlIdx:tIdx" to avoid double-mapping
+
+    // Pass 1: keyword match (e.g. "screening" anchor → "Timing for screening")
     for (const anchor of anchors) {
-      const anchorTypeLower = anchor.anchorType.toLowerCase().trim();
-      const defLower = anchor.definition.toLowerCase().trim();
-      // Try to find matching timing across all timelines
+      const typeLower = anchor.anchorType.toLowerCase().trim();
       for (let tlIdx = 0; tlIdx < timelines.length; tlIdx++) {
         const timings = timelines[tlIdx].timings ?? [];
         for (let tIdx = 0; tIdx < timings.length; tIdx++) {
-          const t = timings[tIdx];
-          const nameLower = (t.name ?? '').toLowerCase().trim();
-          const labelLower = (t.label ?? '').toLowerCase().trim();
-          // Match by name or label containing anchor type
-          if (nameLower === anchorTypeLower || labelLower === anchorTypeLower ||
-              nameLower.includes(anchorTypeLower) || anchorTypeLower.includes(nameLower)) {
+          const key = `${tlIdx}:${tIdx}`;
+          if (claimed.has(key)) continue;
+          const nameLower = (timings[tIdx].name ?? '').toLowerCase().trim();
+          const labelLower = (timings[tIdx].label ?? '').toLowerCase().trim();
+          if (nameLower.includes(typeLower) || labelLower.includes(typeLower) ||
+              typeLower.includes(nameLower.replace('timing for ', ''))) {
             map.set(anchor.id, { tlIdx, tIdx });
+            claimed.add(key);
             break;
           }
         }
         if (map.has(anchor.id)) break;
       }
     }
+
+    // Pass 2: day-value match (e.g. dayValue=9 → "Timing for Day 9")
+    for (const anchor of anchors) {
+      if (map.has(anchor.id) || anchor.dayValue == null) continue;
+      for (let tlIdx = 0; tlIdx < timelines.length; tlIdx++) {
+        const timings = timelines[tlIdx].timings ?? [];
+        for (let tIdx = 0; tIdx < timings.length; tIdx++) {
+          const key = `${tlIdx}:${tIdx}`;
+          if (claimed.has(key)) continue;
+          const nameLower = (timings[tIdx].name ?? '').toLowerCase();
+          if (nameLower.includes(`day ${anchor.dayValue}`)) {
+            map.set(anchor.id, { tlIdx, tIdx });
+            claimed.add(key);
+            break;
+          }
+        }
+        if (map.has(anchor.id)) break;
+      }
+    }
+
+    // Pass 3: fallback — assign to next unclaimed timing in first timeline
+    for (const anchor of anchors) {
+      if (map.has(anchor.id)) continue;
+      const timings = timelines[0].timings ?? [];
+      for (let tIdx = 0; tIdx < timings.length; tIdx++) {
+        const key = `0:${tIdx}`;
+        if (!claimed.has(key)) {
+          map.set(anchor.id, { tlIdx: 0, tIdx });
+          claimed.add(key);
+          break;
+        }
+      }
+    }
+
     return map;
   }, [anchors, studyDesign]);
 
@@ -894,27 +936,21 @@ function TimeAnchorsPanel({ anchors, studyDesign }: { anchors: TimeAnchor[]; stu
                             </div>
                             <div className="flex-1">
                               <h4 className="font-semibold flex items-center gap-2">
-                                {timingBasePath ? (
-                                  <EditableField
-                                    path={`${timingBasePath}/name`}
-                                    value={anchor.anchorType}
-                                    label=""
-                                  />
-                                ) : anchor.anchorType}
+                                <EditableField
+                                  path={timingBasePath ? `${timingBasePath}/name` : `/study/versions/0/studyDesigns/0/scheduleTimelines/0/timings/${index}/name`}
+                                  value={anchor.anchorType}
+                                  label=""
+                                />
                                 {isDuplicate && (
                                   <AlertTriangle className="h-4 w-4 text-amber-600" />
                                 )}
                               </h4>
-                              {timingBasePath ? (
-                                <EditableField
-                                  path={`${timingBasePath}/description`}
-                                  value={anchor.definition}
-                                  label=""
-                                  displayClassName="text-sm opacity-80"
-                                />
-                              ) : (
-                                <p className="text-sm opacity-80">{anchor.definition}</p>
-                              )}
+                              <EditableField
+                                path={timingBasePath ? `${timingBasePath}/description` : `/study/versions/0/studyDesigns/0/scheduleTimelines/0/timings/${index}/description`}
+                                value={anchor.definition}
+                                label=""
+                                displayClassName="text-sm opacity-80"
+                              />
                               {anchor.timelineId && (
                                 <p className="text-xs opacity-60 mt-1">Timeline: {anchor.timelineId}</p>
                               )}
@@ -931,22 +967,20 @@ function TimeAnchorsPanel({ anchors, studyDesign }: { anchors: TimeAnchor[]; stu
                             )}
                           </div>
                         </div>
-                        {/* Editable detail fields when USDM timing is matched */}
-                        {timingBasePath && (
-                          <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3 p-3 bg-white/30 rounded-lg">
-                            <EditableField
-                              path={`${timingBasePath}/label`}
-                              value={(anchor as Record<string, unknown>).label as string || anchor.anchorType}
-                              label="Label"
-                            />
-                            <EditableField
-                              path={`${timingBasePath}/value`}
-                              value={anchor.dayValue != null ? String(anchor.dayValue) : ''}
-                              label="Day Value"
-                              type="number"
-                            />
-                          </div>
-                        )}
+                        {/* Editable detail fields */}
+                        <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3 p-3 bg-white/30 rounded-lg">
+                          <EditableField
+                            path={timingBasePath ? `${timingBasePath}/label` : `/study/versions/0/studyDesigns/0/scheduleTimelines/0/timings/${index}/label`}
+                            value={(anchor as Record<string, unknown>).label as string || anchor.anchorType}
+                            label="Label"
+                          />
+                          <EditableField
+                            path={timingBasePath ? `${timingBasePath}/value` : `/study/versions/0/studyDesigns/0/scheduleTimelines/0/timings/${index}/value`}
+                            value={anchor.dayValue != null ? String(anchor.dayValue) : ''}
+                            label="Day Value"
+                            type="number"
+                          />
+                        </div>
                         {anchor.sourceText && (
                           <div className="mt-3">
                             <button 
