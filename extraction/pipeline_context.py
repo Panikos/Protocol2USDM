@@ -19,7 +19,9 @@ Architecture:
     ... subsequent extractors reference accumulated context ...
 """
 
+import copy
 import logging
+import threading
 from typing import Dict, List, Any, Optional
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -51,6 +53,7 @@ class PipelineContext:
     sponsor: str = ""
     indication: str = ""
     phase: str = ""
+    study_type: str = ""  # "Interventional" or "Observational"
     
     # Arms and design
     arms: List[Dict[str, Any]] = field(default_factory=list)
@@ -92,9 +95,88 @@ class PipelineContext:
     _arm_by_id: Dict[str, Dict[str, Any]] = field(default_factory=dict)
     _intervention_by_id: Dict[str, Dict[str, Any]] = field(default_factory=dict)
     
+    # Thread lock for safe concurrent merges
+    _lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
+    
     def __post_init__(self):
         """Build lookup maps after initialization."""
         self._rebuild_lookup_maps()
+    
+    def snapshot(self) -> 'PipelineContext':
+        """
+        Create a deep-copy snapshot of this context for safe use in a parallel phase.
+        
+        The snapshot is independent — mutations by a phase won't affect the original.
+        After the phase completes, call merge_from() on the original to incorporate results.
+        """
+        with self._lock:
+            ctx = PipelineContext(
+                epochs=copy.deepcopy(self.epochs),
+                encounters=copy.deepcopy(self.encounters),
+                activities=copy.deepcopy(self.activities),
+                timepoints=copy.deepcopy(self.timepoints),
+                study_title=self.study_title,
+                study_id=self.study_id,
+                sponsor=self.sponsor,
+                indication=self.indication,
+                phase=self.phase,
+                study_type=self.study_type,
+                arms=copy.deepcopy(self.arms),
+                cohorts=copy.deepcopy(self.cohorts),
+                study_cells=copy.deepcopy(self.study_cells),
+                inclusion_criteria=copy.deepcopy(self.inclusion_criteria),
+                exclusion_criteria=copy.deepcopy(self.exclusion_criteria),
+                objectives=copy.deepcopy(self.objectives),
+                endpoints=copy.deepcopy(self.endpoints),
+                interventions=copy.deepcopy(self.interventions),
+                products=copy.deepcopy(self.products),
+                procedures=copy.deepcopy(self.procedures),
+                devices=copy.deepcopy(self.devices),
+                timings=copy.deepcopy(self.timings),
+                scheduling_rules=copy.deepcopy(self.scheduling_rules),
+                time_anchors=copy.deepcopy(self.time_anchors),
+                repetitions=copy.deepcopy(self.repetitions),
+                traversal_constraints=copy.deepcopy(self.traversal_constraints),
+                footnote_conditions=copy.deepcopy(self.footnote_conditions),
+            )
+        return ctx
+    
+    def merge_from(self, phase_name: str, phase_snapshot: 'PipelineContext') -> None:
+        """
+        Merge results from a phase's snapshot back into this (authoritative) context.
+        
+        Only fields that the given phase is known to populate are merged,
+        preventing one phase from clobbering another's data.
+        
+        Args:
+            phase_name: Name of the phase that produced the snapshot
+            phase_snapshot: The snapshot context after the phase ran
+        """
+        # Map of phase -> fields that phase is authoritative for
+        phase_fields = {
+            'metadata': ['study_title', 'study_id', 'sponsor', 'indication', 'phase', 'study_type'],
+            'eligibility': ['inclusion_criteria', 'exclusion_criteria'],
+            'objectives': ['objectives', 'endpoints'],
+            'studydesign': ['arms', 'cohorts'],
+            'interventions': ['interventions', 'products'],
+            'procedures': ['procedures', 'devices'],
+            'scheduling': ['timings', 'scheduling_rules'],
+            'execution': ['time_anchors', 'repetitions', 'traversal_constraints', 'footnote_conditions'],
+        }
+        
+        fields_to_merge = phase_fields.get(phase_name)
+        if not fields_to_merge:
+            logger.debug(f"No merge mapping for phase '{phase_name}', skipping context merge")
+            return
+        
+        with self._lock:
+            for field_name in fields_to_merge:
+                new_value = getattr(phase_snapshot, field_name, None)
+                if new_value:  # Only overwrite if the phase actually produced data
+                    setattr(self, field_name, new_value)
+            self._rebuild_lookup_maps()
+        
+        logger.debug(f"Merged context from phase '{phase_name}': {fields_to_merge}")
     
     def _rebuild_lookup_maps(self):
         """Rebuild all lookup maps from current data."""
@@ -136,7 +218,7 @@ class PipelineContext:
             if intv_id:
                 self._intervention_by_id[intv_id] = intv
     
-    # === Update methods ===
+    # === Update methods (used in sequential mode) ===
     
     def update_from_soa(self, soa_data: Dict[str, Any]):
         """Update context from SoA extraction result."""
@@ -184,6 +266,7 @@ class PipelineContext:
             self.sponsor = metadata.get('sponsor', self.sponsor)
             self.indication = metadata.get('indication', self.indication)
             self.phase = metadata.get('phase', self.phase)
+            self.study_type = metadata.get('studyType', metadata.get('study_type', self.study_type))
         logger.debug(f"Updated context from metadata: {self.study_title}")
     
     def _to_dict(self, obj):
@@ -342,6 +425,7 @@ class PipelineContext:
             'sponsor': self.sponsor,
             'indication': self.indication,
             'phase': self.phase,
+            'study_type': self.study_type,
             'inclusion_criteria': self.inclusion_criteria,
             'exclusion_criteria': self.exclusion_criteria,
             'objectives': self.objectives,

@@ -32,19 +32,22 @@ npm run dev
 web-ui/
 ├── app/                    # Next.js App Router pages
 │   ├── api/               # API routes
-│   │   └── protocols/     # Protocol CRUD
+│   │   └── protocols/     # Protocol CRUD + semantic + documents
 │   ├── protocols/         # Protocol pages
 │   │   └── [id]/         # Protocol detail
 │   ├── layout.tsx        # Root layout
 │   └── page.tsx          # Home page
 ├── components/            # React components
-│   ├── overlay/          # Draft/publish controls
+│   ├── documents/        # Document/artifact viewers
+│   ├── overlay/          # Layout draft/publish controls
+│   ├── semantic/         # Semantic editing controls
 │   ├── soa/              # SoA table (AG Grid)
 │   ├── timeline/         # Timeline (Cytoscape)
 │   └── ui/               # Base UI components
 ├── lib/                   # Core libraries
 │   ├── adapters/         # USDM → view model
-│   ├── overlay/          # Overlay schema
+│   ├── overlay/          # Layout overlay schema
+│   ├── semantic/         # Semantic editing (JSON Patch)
 │   └── provenance/       # Provenance types
 ├── stores/               # Zustand stores
 └── styles/               # CSS and themes
@@ -58,7 +61,7 @@ web-ui/
 2. **Overlay (presentation)** - Layout, ordering, visual settings
 3. **Adapters** - Transform USDM + Overlay → view models
 
-### USDM Structure (v6.6)
+### USDM Structure (v7.2)
 
 The UI reads data from USDM-compliant locations per `dataStructure.yml`:
 
@@ -76,10 +79,11 @@ The UI reads data from USDM-compliant locations per `dataStructure.yml`:
 
 ### Key Principles
 
-- USDM is never modified by the UI (read-only)
-- Overlay stores presentation-only data
-- Draft/Publish workflow for authoring
+- USDM can be edited via semantic patches (JSON Patch RFC 6902)
+- Overlay stores presentation-only data (layout, ordering)
+- Draft/Publish workflow for both semantic and layout changes
 - Full provenance tracking
+- Validation on publish (schema + USDM + CORE conformance)
 
 ## Environment Variables
 
@@ -88,6 +92,12 @@ Create `.env.local`:
 ```env
 # Path to Protocol2USDM output directory
 PROTOCOL_OUTPUT_DIR=/path/to/output
+
+# Path to semantic editing storage (drafts, history)
+SEMANTIC_DIR=/path/to/semantic
+
+# Path to input documents directory
+PROTOCOL_INPUT_DIR=/path/to/input
 
 # Optional: AG Grid license key
 AG_GRID_LICENSE_KEY=your-license-key
@@ -118,20 +128,47 @@ AG_GRID_LICENSE_KEY=your-license-key
   - 🔴 Red: Orphaned (no provenance)
 
 ### Draft/Publish Workflow
+
+**Layout (Overlay):**
 - Save Draft - persist layout changes
-- Publish - make changes visible
-- Reset - discard draft changes
-- Dirty state indicator
+- Publish - make layout visible
+- Reset - discard layout changes
+
+**Semantic Editing (USDM Data):**
+- Inline field editing with JSON Patch
+- Draft persistence with revision tracking
+- Publish with auto-validation (schema, USDM, CORE)
+- Version history and rollback support
 
 ## API Endpoints
 
+### Core APIs
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/protocols` | GET | List all protocols |
 | `/api/protocols/[id]/usdm` | GET | Get USDM + provenance |
+
+### Layout Overlay APIs
+| Endpoint | Method | Description |
+|----------|--------|-------------|
 | `/api/protocols/[id]/overlay/draft` | GET/PUT | Draft overlay |
 | `/api/protocols/[id]/overlay/published` | GET | Published overlay |
 | `/api/protocols/[id]/overlay/publish` | POST | Promote draft |
+
+### Semantic Editing APIs
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/protocols/[id]/semantic/draft` | GET/PUT/DELETE | Semantic draft |
+| `/api/protocols/[id]/semantic/publish` | POST | Apply patch + validate |
+| `/api/protocols/[id]/semantic/history` | GET | Version history |
+
+### Document APIs
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/protocols/[id]/documents` | GET | List source documents |
+| `/api/protocols/[id]/documents/[filename]` | GET | Download/preview |
+| `/api/protocols/[id]/intermediate` | GET | List extraction artifacts |
+| `/api/protocols/[id]/intermediate/[filename]` | GET | Preview/download JSON |
 
 ## Development
 
@@ -147,6 +184,15 @@ npm run build
 ```
 
 ## Recent Updates
+
+### v7.2.1 — Semantic Editing & Documents
+- **Semantic Editing** - Edit USDM data directly via JSON Patch (RFC 6902)
+- **Documents Tab** - View/download source documents (protocol PDF, SAP, sites)
+- **Intermediate Tab** - Browse extraction JSON artifacts with tree view
+- **Validation on Publish** - Auto-validate schema, USDM, and CORE conformance
+- New components: `SemanticDraftControls`, `EditableField`, `DocumentsTab`, `IntermediateFilesTab`
+- New store: `semanticStore.ts` for draft state management
+- New library: `lib/semantic/` for JSON Patch operations
 
 ### v7.2 — Execution Model Promotion
 - New USDM entity dataclasses: `ScheduledDecisionInstance`, `ConditionAssignment`, `StudyElement`
@@ -169,7 +215,8 @@ npm run build
 - [x] **M3**: Cytoscape.js timeline diagram
 - [x] **M4**: Execution Model view with visit windows
 - [x] **M4.5**: SAP Data and CDISC ARS views
-- [ ] **M5**: Semantic editing workflow
+- [x] **M5**: Semantic editing workflow
+- [x] **M5.1**: Documents and Intermediate Files tabs
 
 ## License
 

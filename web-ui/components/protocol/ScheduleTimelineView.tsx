@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { EditableField } from '@/components/semantic';
 import { 
   Calendar, 
   Clock, 
@@ -206,7 +207,13 @@ export function ScheduleTimelineView({ usdm }: ScheduleTimelineViewProps) {
                   <ChevronRight className="h-5 w-5" />
                 )}
                 <Calendar className="h-5 w-5" />
-                {timeline.name || timeline.label || `Timeline ${i + 1}`}
+                <EditableField
+                  path={`/study/versions/0/studyDesigns/0/scheduleTimelines/${i}/name`}
+                  value={timeline.name || timeline.label || `Timeline ${i + 1}`}
+                  label=""
+                  className="font-semibold"
+                  placeholder="Timeline name"
+                />
                 {timeline.mainTimeline && (
                   <Badge variant="default">Main</Badge>
                 )}
@@ -217,9 +224,14 @@ export function ScheduleTimelineView({ usdm }: ScheduleTimelineViewProps) {
             
             {isExpanded && (
               <CardContent className="space-y-6">
-                {timeline.description && (
-                  <p className="text-sm text-muted-foreground">{timeline.description}</p>
-                )}
+                <EditableField
+                  path={`/study/versions/0/studyDesigns/0/scheduleTimelines/${i}/description`}
+                  value={timeline.description || ''}
+                  label=""
+                  type="textarea"
+                  className="text-sm text-muted-foreground"
+                  placeholder="No description"
+                />
 
                 {/* Timing Definitions */}
                 {timings.length > 0 && (
@@ -231,9 +243,13 @@ export function ScheduleTimelineView({ usdm }: ScheduleTimelineViewProps) {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {timings.map((timing, ti) => (
                         <div key={timing.id || ti} className="p-3 bg-muted rounded-lg">
-                          <div className="font-medium text-sm">
-                            {timing.name || timing.label || `Timing ${ti + 1}`}
-                          </div>
+                          <EditableField
+                            path={`/study/versions/0/studyDesigns/0/scheduleTimelines/${i}/timings/${ti}/name`}
+                            value={timing.name || timing.label || `Timing ${ti + 1}`}
+                            label=""
+                            className="font-medium text-sm"
+                            placeholder="Timing name"
+                          />
                           <div className="text-xs text-muted-foreground mt-1 space-y-1">
                             {timing.type?.decode && (
                               <div>Type: <Badge variant="outline" className="text-xs">{timing.type.decode}</Badge></div>
@@ -286,6 +302,11 @@ export function ScheduleTimelineView({ usdm }: ScheduleTimelineViewProps) {
                               .map(a => a?.name || a?.label)
                               .join(', ');
                             const encounter = encounterMap.get(instance.encounterId || '');
+                            // Look up timing by ID for human-readable description
+                            const timing = timings.find(t => t.id === instance.scheduledAtTimingId);
+                            const timingDescription = timing 
+                              ? (timing.name || timing.label || timing.description || instance.scheduledAtTimingId)
+                              : (instance.scheduledAt || instance.scheduledAtTimingId || '-');
                             return (
                               <tr key={instance.id || ii} className="hover:bg-muted/50">
                                 <td className="p-2 border">
@@ -294,8 +315,8 @@ export function ScheduleTimelineView({ usdm }: ScheduleTimelineViewProps) {
                                 <td className="p-2 border">
                                   {encounter?.name || encounter?.label || instance.encounterId || '-'}
                                 </td>
-                                <td className="p-2 border font-mono text-xs">
-                                  {instance.scheduledAt || instance.scheduledAtTimingId || instance.name || '-'}
+                                <td className="p-2 border text-sm">
+                                  {timingDescription}
                                 </td>
                               </tr>
                             );

@@ -12,33 +12,46 @@ export interface ProvenanceCellRendererParams extends ICellRendererParams {
     instanceName?: string;  // Human-readable instance name
     timingId?: string;
     epochId?: string;
+    userEdited?: boolean;   // True if cell was manually edited by user
     provenance: {
       source: CellSource;
       needsReview: boolean;
     };
   }>;
+  pendingEditsRef?: React.RefObject<Map<string, { mark: string; footnoteRefs: string[] }> | null>;
 }
 
 export function ProvenanceCellRenderer(params: ProvenanceCellRendererParams) {
-  const { value, data, columnId, cellMap } = params;
+  const { value, data, columnId, cellMap, pendingEditsRef } = params;
   
   // Get cell data from map
   const cellKey = `${data?.id}|${columnId}`;
   const cellData = cellMap?.get(cellKey);
+  const pendingEdit = pendingEditsRef?.current?.get(cellKey);
   
-  if (!value && !cellData?.mark) {
+  if (!value && !cellData?.mark && !pendingEdit) {
     return null;
   }
 
-  const mark = cellData?.mark || value;
+  // Prioritize value (from rowData, includes pending edits) over cellData
+  const mark = value || cellData?.mark;
   const source = cellData?.provenance?.source || 'none';
-  const footnotes = cellData?.footnoteRefs || [];
+  const footnotes = pendingEdit?.footnoteRefs || cellData?.footnoteRefs || [];
   const needsReview = cellData?.provenance?.needsReview || false;
   const instanceName = cellData?.instanceName;
+  const userEdited = cellData?.userEdited || false;
+  const hasPendingEdit = !!pendingEdit;
 
-  // Get background color based on provenance
-  const bgColor = getProvenanceBackgroundColor(source);
-  const provenanceText = getProvenanceTooltip(source, needsReview);
+  // Get background color based on: pending edit > user edited > provenance
+  let bgColor: string;
+  if (hasPendingEdit) {
+    bgColor = 'bg-amber-200 hover:bg-amber-300 border-l-2 border-amber-500';
+  } else if (userEdited) {
+    bgColor = 'bg-purple-300 hover:bg-purple-400';
+  } else {
+    bgColor = getProvenanceBackgroundColor(source);
+  }
+  const provenanceText = getProvenanceTooltip(source, needsReview, userEdited);
   
   // Build tooltip with instance name if available
   const tooltip = instanceName 
@@ -80,7 +93,11 @@ function getProvenanceBackgroundColor(source: CellSource): string {
   }
 }
 
-function getProvenanceTooltip(source: CellSource, needsReview: boolean): string {
+function getProvenanceTooltip(source: CellSource, needsReview: boolean, userEdited?: boolean): string {
+  if (userEdited) {
+    return 'User Edited: Manually modified by user';
+  }
+  
   const base = {
     both: 'Confirmed: Text + Vision agree',
     text: 'Text-only: Not confirmed by vision',
@@ -99,6 +116,8 @@ export function ProvenanceLegend({ className }: { className?: string }) {
     { color: 'bg-blue-400', label: 'Text-only', desc: 'Not confirmed by vision' },
     { color: 'bg-orange-400', label: 'Vision-only', desc: 'Needs review' },
     { color: 'bg-red-400', label: 'Orphaned', desc: 'No provenance' },
+    { color: 'bg-purple-300', label: 'User Edited', desc: 'Manually modified' },
+    { color: 'bg-amber-200 border-l-2 border-amber-500', label: 'Pending', desc: 'Unsaved edit' },
   ];
 
   return (

@@ -63,7 +63,7 @@ This YAML file contains:
 │                    Extraction Pipeline                           │
 │  extraction/header_analyzer.py → extraction/text_extractor.py   │
 │                            ↓                                     │
-│              main_v3.py (phase registry) or main_v2.py (legacy)  │
+│              main_v3.py (phase registry architecture)              │
 │                            ↓                                     │
 │               enrichment/terminology.py (NCI EVS)                │
 │                  ↓ (uses core/evs_client.py)                     │
@@ -170,7 +170,7 @@ class MyPhase(BasePhase):
 | 11 | Scheduling | `10_scheduling_logic.json` | None |
 | 12 | DocStructure | `13_document_structure.json` | None |
 | 13 | AmendmentDetails | `14_amendment_details.json` | None |
-| 14 | Execution | `11_execution_model.json` | All above |
+| 14 | Execution | `11_execution_model.json` | Metadata, StudyDesign |
 
 ### Parallel Execution
 
@@ -183,8 +183,8 @@ python main_v3.py protocol.pdf --parallel --max-workers 4
 The orchestrator builds a dependency graph and groups phases into "waves":
 
 ```
-Wave 1 (parallel): Metadata, StudyDesign, Narrative, Advanced, Procedures, Scheduling, DocStructure, AmendmentDetails, Execution
-Wave 2 (parallel): Eligibility (needs Metadata), Objectives (needs Metadata)
+Wave 1 (parallel): Metadata, StudyDesign, Narrative, Advanced, Procedures, Scheduling, DocStructure, AmendmentDetails
+Wave 2 (parallel): Eligibility (needs Metadata), Objectives (needs Metadata), Execution (needs Metadata + StudyDesign)
 Wave 3 (parallel): Interventions (needs Metadata + StudyDesign)
 ```
 
@@ -198,7 +198,7 @@ if not any_phase_specified:
     args.complete = True  # Full extraction + post-processing
 ```
 
-This behavior differs from `main_v2.py` which defaults to SoA-only extraction.
+This behavior differs from the removed `main_v2.py` which defaulted to SoA-only extraction.
 
 ---
 
@@ -1212,7 +1212,7 @@ The pipeline extracts footnotes and abbreviations from multiple sources with cle
 Vision Extraction (4_header_structure.json)
     └── footnotes: ["a. Only at screening", "b. If clinically indicated", ...]
                 ↓
-    main_v2.py: Merge into soa_data before execution phases
+    main_v3.py: Merge into soa_data before execution phases
                 ↓
     Execution Model: extract_footnote_conditions(footnotes=soa_footnotes)
                 ↓
@@ -1405,3 +1405,204 @@ Concepts with no native USDM equivalent are documented in `docs/EXECUTION_MODEL_
 - Derived variable rules
 - Analysis windows
 - Randomization operational details
+
+---
+
+## Web UI Architecture (v7.3+)
+
+The web UI is a Next.js 16 application with TypeScript, Tailwind CSS, and Zustand for state management. It provides protocol browsing, data visualization, and **unified semantic editing** where all edits (inline fields, SoA cells) flow through a single draft system.
+
+### Architecture Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        Web UI (Next.js)                         │
+│                         web-ui/                                 │
+├─────────────────────────────────────────────────────────────────┤
+│  app/                                                           │
+│  ├── page.tsx                    Landing page                   │
+│  ├── protocols/                                                 │
+│  │   ├── page.tsx                Protocol list                  │
+│  │   └── [id]/page.tsx           Protocol detail (tabbed)       │
+│  └── api/protocols/[id]/                                        │
+│      ├── route.ts                GET protocol_usdm.json         │
+│      ├── overlay/                Layout draft/publish APIs      │
+│      ├── semantic/               Semantic editing APIs          │
+│      │   ├── draft/route.ts      GET/PUT/DELETE drafts          │
+│      │   ├── publish/route.ts    POST apply patch + validate    │
+│      │   └── history/route.ts    GET version history            │
+│      ├── documents/              Source document APIs           │
+│      │   ├── route.ts            GET list documents             │
+│      │   └── [filename]/route.ts GET download/preview           │
+│      └── intermediate/           Extraction artifact APIs       │
+│          ├── route.ts            GET list artifacts             │
+│          └── [filename]/route.ts GET download/preview           │
+├─────────────────────────────────────────────────────────────────┤
+│  components/                                                    │
+│  ├── protocol/                   USDM entity views              │
+│  ├── soa/                        SoA table + diagram            │
+│  ├── timeline/                   Timeline + execution model     │
+│  ├── provenance/                 Provenance explorer            │
+│  ├── quality/                    Validation + metrics           │
+│  ├── overlay/                    Layout draft/publish controls  │
+│  ├── semantic/                   Semantic editing components    │
+│  │   ├── SemanticDraftControls   Save/publish/discard UI        │
+│  │   └── EditableField           Inline editing primitives      │
+│  └── documents/                  Document/artifact viewers      │
+│      ├── DocumentsTab            Source documents (PDF/CSV)     │
+│      └── IntermediateFilesTab    Extraction JSON viewer         │
+├─────────────────────────────────────────────────────────────────┤
+│  stores/                         Zustand state management       │
+│  ├── protocolStore.ts            Protocol + USDM data + patching│
+│  ├── overlayStore.ts             Layout overlay state           │
+│  ├── semanticStore.ts            Semantic draft state (central) │
+│  └── soaEditStore.ts             SoA visual tracking            │
+├─────────────────────────────────────────────────────────────────┤
+│  hooks/                          React hooks                    │
+│  └── usePatchedUsdm.ts           Get USDM with patches applied  │
+├─────────────────────────────────────────────────────────────────┤
+│  lib/                            Shared utilities               │
+│  ├── overlay/                    Layout schema + helpers        │
+│  ├── semantic/                   Semantic editing core          │
+│  │   ├── schema.ts               Zod schemas, immutable paths   │
+│  │   ├── storage.ts              File operations, hashing       │
+│  │   └── patcher.ts              JSON Patch application         │
+│  ├── provenance/                 Provenance data types          │
+│  └── export/                     CSV/JSON/PDF export            │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Semantic Editing System (Unified Architecture v7.3+)
+
+The semantic editing system enables users to modify USDM data directly in the UI using JSON Patch (RFC 6902). **All edit sources** (inline fields, SoA cells) flow through a single draft system.
+
+#### Unified Edit Flow
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                       Edit Sources                               │
+│                                                                  │
+│  EditableField        SoACellEditor        (Future editors)     │
+│  (arm names,          (cell marks,                              │
+│   epoch names,         footnotes)                               │
+│   descriptions)                                                 │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                      semanticStore                               │
+│                                                                  │
+│  draft.patch: JsonPatchOp[]    ◄── All edits generate patches   │
+│  addPatchOp()                      and add them here             │
+│  clearDraft() → also clears soaEditStore.reset()                │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                   usePatchedUsdm() Hook                          │
+│                                                                  │
+│  Combines: protocolStore.usdm + semanticStore.draft.patch       │
+│  Returns: Patched USDM for immediate preview                    │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+        ┌─────────────────────┼─────────────────────┐
+        ▼                     ▼                     ▼
+   SoAView              TimelineView         ExecutionModelView
+   ProvenanceView       SAPDataView          (All views)
+```
+
+#### Draft/Publish Workflow
+
+```
+User edits (any source)
+       │
+       ▼
+┌─────────────────┐
+│ semanticStore   │  In-memory patch operations
+│ addPatchOp()    │  Views immediately show changes via usePatchedUsdm()
+└─────────────────┘
+       │
+       ▼  PUT /api/.../semantic/draft
+┌─────────────────┐
+│ draft_latest    │  Persisted draft with revision check
+│ .json           │
+└─────────────────┘
+       │
+       ▼  POST /api/.../semantic/publish
+┌─────────────────┐
+│ Apply patch to  │  1. Load protocol_usdm.json
+│ USDM            │  2. Apply JSON Patch ops
+│                 │  3. Archive old USDM → history/
+│                 │  4. Write new protocol_usdm.json
+│                 │  5. Run validation pipeline
+│                 │  6. Clear semanticStore + soaEditStore
+└─────────────────┘
+       │
+       ▼
+┌─────────────────┐
+│ Validation      │  schema + USDM + CORE conformance
+│ Results         │  Errors block publish
+└─────────────────┘
+```
+
+#### SoA-Specific Integration
+
+| Component | Role |
+|-----------|------|
+| `SoAProcessor` | Generates JSON patches for cell mark changes |
+| `soaEditStore` | Tracks `committedCellEdits` for visual indicators |
+| `SoACellEditor` | Popup editor for cell marks and footnotes |
+| `ProvenanceCellRenderer` | Renders cells with provenance + edit state colors |
+
+**Visual indicators:**
+- **Amber background** — Cell has pending edit in draft
+- **Green/blue/orange** — Provenance source (both/text/vision)
+- **User-edited badge** — Cell was manually edited (persists after publish)
+
+#### Storage Layout
+
+```
+semantic/
+  <protocolId>/
+    drafts/
+      draft_latest.json            # Current working draft
+      draft_<timestamp>.json       # Archived versions
+    published/
+      published_latest.json        # Most recent publish
+      published_<timestamp>.json   # Historical publishes
+    history/
+      protocol_usdm_<timestamp>.json   # Pre-publish USDM snapshots
+```
+
+#### Immutable Fields
+
+The following USDM paths cannot be edited via semantic patches:
+- `study.id`
+- `study.versions[*].id`
+- `usdmVersion`
+- `generatedAt`
+- `_provenance`
+
+### Data Tab Structure
+
+| Tab | Component | Data Source |
+|-----|-----------|-------------|
+| Documents | `DocumentsTab` | Source PDFs, CSVs from `run_manifest.json` |
+| Intermediate | `IntermediateFilesTab` | `*.json` in output dir (except USDM) |
+| Structure | `DocumentStructureView` | `protocol_usdm.json` documentVersions |
+| SoA Table | `SoAView` | `protocol_usdm.json` + provenance |
+| Timeline | `TimelineView` | `protocol_usdm.json` scheduleTimelines |
+| Provenance | `ProvenanceView` | `protocol_usdm_provenance.json` |
+
+### Dependencies
+
+| Package | Version | Purpose |
+|---------|---------|---------|
+| `next` | 16.1.1 | React framework |
+| `react` | 19.0.0 | UI library |
+| `zustand` | 5.0.2 | State management |
+| `zod` | 3.24.1 | Schema validation |
+| `fast-json-patch` | 3.1.1 | RFC 6902 JSON Patch |
+| `ag-grid-react` | 32.3.x | Data grids |
+| `cytoscape` | 3.30.x | Graph visualization |
+| `lucide-react` | 0.468.x | Icons |

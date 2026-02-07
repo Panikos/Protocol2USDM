@@ -116,7 +116,7 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="border-t bg-white mt-12">
         <div className="container mx-auto px-4 py-6 text-center text-sm text-muted-foreground">
-          Protocol2USDM v6.5.0 | USDM v4.0 Format
+          Protocol2USDM v7.2.0 | USDM v4.0 Format
         </div>
       </footer>
     </div>

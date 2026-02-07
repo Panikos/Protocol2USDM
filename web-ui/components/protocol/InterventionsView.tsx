@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { EditableField } from '@/components/semantic';
 import { Pill, Syringe, Clock, Beaker, FlaskConical, ChevronDown, ChevronRight } from 'lucide-react';
 
 interface InterventionsViewProps {
@@ -136,15 +137,22 @@ export function InterventionsView({ usdm }: InterventionsViewProps) {
               {studyInterventions.map((intervention, i) => (
                 <div key={intervention.id || i} className="p-4 border rounded-lg">
                   <div className="flex items-start justify-between">
-                    <div>
-                      <h4 className="font-medium">
-                        {intervention.label || intervention.name || `Intervention ${i + 1}`}
-                      </h4>
-                      {intervention.description && (
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {intervention.description}
-                        </p>
-                      )}
+                    <div className="flex-1">
+                      <EditableField
+                        path={`/study/versions/0/studyInterventions/${i}/name`}
+                        value={intervention.label || intervention.name || `Intervention ${i + 1}`}
+                        label=""
+                        className="font-medium"
+                        placeholder="Intervention name"
+                      />
+                      <EditableField
+                        path={`/study/versions/0/studyInterventions/${i}/description`}
+                        value={intervention.description || ''}
+                        label=""
+                        type="textarea"
+                        className="text-sm text-muted-foreground mt-1"
+                        placeholder="No description"
+                      />
                     </div>
                     <div className="flex gap-2">
                       {intervention.role?.decode && (
@@ -186,42 +194,49 @@ export function InterventionsView({ usdm }: InterventionsViewProps) {
             <div className="space-y-4">
               {administrableProducts.map((product, i) => (
                 <div key={product.id || i} className="p-4 border rounded-lg">
-                  <h4 className="font-medium">
-                    {product.label || product.name || `Product ${i + 1}`}
-                  </h4>
+                  <EditableField
+                    path={`/study/versions/0/administrableProducts/${i}/name`}
+                    value={product.label || product.name || `Product ${i + 1}`}
+                    label=""
+                    className="font-medium"
+                    placeholder="Product name"
+                  />
                   
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3 text-sm">
-                    {product.formulation && (
-                      <div>
-                        <span className="text-muted-foreground">Formulation</span>
-                        <p>{product.formulation}</p>
-                      </div>
-                    )}
+                    <EditableField
+                      path={`/study/versions/0/administrableProducts/${i}/formulation`}
+                      value={product.formulation || ''}
+                      label="Formulation"
+                      placeholder="Not specified"
+                    />
                     {product.route?.decode && (
                       <div>
                         <span className="text-muted-foreground">Route</span>
                         <p>{product.route.decode}</p>
                       </div>
                     )}
-                    {product.dosage && (
-                      <div>
-                        <span className="text-muted-foreground">Dosage</span>
-                        <p>{product.dosage}</p>
-                      </div>
-                    )}
-                    {product.strength && (
-                      <div>
-                        <span className="text-muted-foreground">Strength</span>
-                        <p>{product.strength}</p>
-                      </div>
-                    )}
+                    <EditableField
+                      path={`/study/versions/0/administrableProducts/${i}/dosage`}
+                      value={product.dosage || ''}
+                      label="Dosage"
+                      placeholder="Not specified"
+                    />
+                    <EditableField
+                      path={`/study/versions/0/administrableProducts/${i}/strength`}
+                      value={product.strength || ''}
+                      label="Strength"
+                      placeholder="Not specified"
+                    />
                   </div>
                   
-                  {product.description && (
-                    <p className="text-sm text-muted-foreground mt-2">
-                      {product.description}
-                    </p>
-                  )}
+                  <EditableField
+                    path={`/study/versions/0/administrableProducts/${i}/description`}
+                    value={product.description || ''}
+                    label=""
+                    type="textarea"
+                    className="text-sm text-muted-foreground mt-2"
+                    placeholder="No description"
+                  />
                 </div>
               ))}
             </div>
@@ -243,41 +258,64 @@ export function InterventionsView({ usdm }: InterventionsViewProps) {
             <div className="space-y-4">
               {(showAllAdministrations ? administrations : administrations.slice(0, 5)).map((admin, i) => (
                 <div key={admin.id || i} className="p-4 border rounded-lg bg-gradient-to-r from-blue-50/50 to-transparent dark:from-blue-950/20">
-                  <h4 className="font-medium">
-                    {admin.name || `Administration ${i + 1}`}
-                  </h4>
+                  <EditableField
+                    path={`/administrations/${i}/name`}
+                    value={admin.name || `Administration ${i + 1}`}
+                    className="font-medium"
+                    placeholder="Administration name"
+                  />
                   
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3 text-sm">
                     {admin.route?.decode && (
                       <div>
                         <span className="text-muted-foreground">Route</span>
-                        <p>{admin.route.decode}</p>
+                        <EditableField
+                          path={`/administrations/${i}/route/decode`}
+                          value={admin.route.decode}
+                          placeholder="Route"
+                        />
                       </div>
                     )}
                     {admin.frequency?.decode && (
                       <div>
                         <span className="text-muted-foreground">Frequency</span>
-                        <p>{admin.frequency.decode}</p>
+                        <EditableField
+                          path={`/administrations/${i}/frequency/decode`}
+                          value={admin.frequency.decode}
+                          placeholder="Frequency"
+                        />
                       </div>
                     )}
                     {(admin.dose || admin.doseDescription) && (
                       <div>
                         <span className="text-muted-foreground">Dose</span>
-                        <p>{admin.dose || admin.doseDescription}</p>
+                        <EditableField
+                          path={`/administrations/${i}/dose`}
+                          value={admin.dose || admin.doseDescription || ''}
+                          placeholder="Dose"
+                        />
                       </div>
                     )}
                     {(admin.duration || admin.durationDescription) && (
                       <div>
                         <span className="text-muted-foreground">Duration</span>
-                        <p>{admin.duration || admin.durationDescription}</p>
+                        <EditableField
+                          path={`/administrations/${i}/duration`}
+                          value={admin.duration || admin.durationDescription || ''}
+                          placeholder="Duration"
+                        />
                       </div>
                     )}
                   </div>
                   
                   {admin.description && (
-                    <p className="text-sm text-muted-foreground mt-2">
-                      {admin.description}
-                    </p>
+                    <EditableField
+                      path={`/administrations/${i}/description`}
+                      value={admin.description}
+                      type="textarea"
+                      className="text-sm text-muted-foreground mt-2"
+                      placeholder="No description"
+                    />
                   )}
                 </div>
               ))}
@@ -319,15 +357,22 @@ export function InterventionsView({ usdm }: InterventionsViewProps) {
               {substances.map((substance, i) => (
                 <div key={substance.id || i} className="p-3 border rounded-lg">
                   <div className="flex items-start justify-between">
-                    <div>
-                      <h4 className="font-medium">
-                        {substance.substanceName || substance.name || `Substance ${i + 1}`}
-                      </h4>
-                      {substance.description && (
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {substance.description}
-                        </p>
-                      )}
+                    <div className="flex-1">
+                      <EditableField
+                        path={`/substances/${i}/substanceName`}
+                        value={substance.substanceName || substance.name || `Substance ${i + 1}`}
+                        label=""
+                        className="font-medium"
+                        placeholder="Substance name"
+                      />
+                      <EditableField
+                        path={`/substances/${i}/description`}
+                        value={substance.description || ''}
+                        label=""
+                        type="textarea"
+                        className="text-sm text-muted-foreground mt-1"
+                        placeholder="No description"
+                      />
                     </div>
                     {substance.substanceType?.decode && (
                       <Badge variant="outline">{substance.substanceType.decode}</Badge>

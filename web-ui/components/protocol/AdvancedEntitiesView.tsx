@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { EditableField } from '@/components/semantic';
 import { 
   Microscope, 
   Pill,
@@ -217,13 +218,20 @@ export function AdvancedEntitiesView({ usdm }: AdvancedEntitiesViewProps) {
             <div className="space-y-3">
               {indications.map((indication, i) => (
                 <div key={i} className="p-3 bg-muted rounded-lg">
-                  <div className="font-medium">
-                    {indication.name || indication.description || `Indication ${i + 1}`}
-                  </div>
+                  <EditableField
+                    path={`/study/versions/0/studyDesigns/0/indications/${i}/name`}
+                    value={indication.name || indication.description || `Indication ${i + 1}`}
+                    className="font-medium"
+                    placeholder="Indication name"
+                  />
                   {indication.description && indication.name && (
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {indication.description}
-                    </p>
+                    <EditableField
+                      path={`/study/versions/0/studyDesigns/0/indications/${i}/description`}
+                      value={indication.description}
+                      type="textarea"
+                      className="text-sm text-muted-foreground mt-1"
+                      placeholder="Description"
+                    />
                   )}
                   {indication.codes && indication.codes.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-2">
@@ -255,7 +263,12 @@ export function AdvancedEntitiesView({ usdm }: AdvancedEntitiesViewProps) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {biomedicalConcepts.map((concept, i) => (
                 <div key={i} className="p-3 bg-muted rounded-lg">
-                  <div className="font-medium">{concept.name || `Concept ${i + 1}`}</div>
+                  <EditableField
+                    path={`/study/versions/0/biomedicalConcepts/${i}/name`}
+                    value={concept.name || `Concept ${i + 1}`}
+                    className="font-medium"
+                    placeholder="Concept name"
+                  />
                   {concept.synonyms && concept.synonyms.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-2">
                       {concept.synonyms.slice(0, 5).map((syn, j) => (

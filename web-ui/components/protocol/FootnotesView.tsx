@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { EditableField } from '@/components/semantic';
 import { FileText, Table, BookOpen, List } from 'lucide-react';
 
 interface FootnotesViewProps {
@@ -28,7 +29,7 @@ interface FootnoteCondition {
 
 interface FootnoteGroup {
   source: string;
-  footnotes: { id: string; text: string; pageNumber?: number }[];
+  footnotes: { id: string; text: string; pageNumber?: number; originalIndex?: number; editable?: boolean; editPath?: string }[];
 }
 
 export function FootnotesView({ usdm }: FootnotesViewProps) {
@@ -43,8 +44,9 @@ export function FootnotesView({ usdm }: FootnotesViewProps) {
     const annotationFootnotes = annotations.filter(a => a.annotationType === 'Footnote');
     
     // Separate SoA footnotes from other footnotes
-    const soaFootnotes: { id: string; text: string; pageNumber?: number }[] = [];
-    const otherSectionMap = new Map<string, { id: string; text: string; pageNumber?: number }[]>();
+    type FootnoteItem = { id: string; text: string; pageNumber?: number; originalIndex?: number; editable?: boolean; editPath?: string };
+    const soaFootnotes: FootnoteItem[] = [];
+    const otherSectionMap = new Map<string, FootnoteItem[]>();
     
     for (const fn of annotationFootnotes) {
       if (!fn.text) continue;
@@ -56,11 +58,16 @@ export function FootnotesView({ usdm }: FootnotesViewProps) {
                     section.toLowerCase().includes('table 1') ||
                     section.toLowerCase().includes('table 2');
       
+      // Find original index in commentAnnotations array
+      const originalIndex = annotationFootnotes.indexOf(fn);
+      
       if (isSoA) {
         soaFootnotes.push({
           id: fn.id,
           text: fn.text,
           pageNumber: fn.pageNumber,
+          originalIndex,
+          editable: true,
         });
       } else {
         if (!otherSectionMap.has(section)) {
@@ -70,6 +77,8 @@ export function FootnotesView({ usdm }: FootnotesViewProps) {
           id: fn.id,
           text: fn.text,
           pageNumber: fn.pageNumber,
+          originalIndex,
+          editable: true,
         });
       }
     }
@@ -98,7 +107,8 @@ export function FootnotesView({ usdm }: FootnotesViewProps) {
       }>) ?? [];
       
       // First check for authoritative SoA footnotes (from header_structure vision extraction)
-      for (const ext of extensions) {
+      for (let extIdx = 0; extIdx < extensions.length; extIdx++) {
+        const ext = extensions[extIdx];
         if (ext.url?.includes('soaFootnotes') && ext.valueString) {
           try {
             const soaFns = JSON.parse(ext.valueString) as string[];
@@ -108,6 +118,8 @@ export function FootnotesView({ usdm }: FootnotesViewProps) {
                 footnotes: soaFns.map((text, idx) => ({
                   id: `soa_fn_${idx + 1}`,
                   text,
+                  editable: true,
+                  editPath: `/study/versions/0/studyDesigns/0/extensionAttributes/${extIdx}/valueString`,
                 })),
               });
             }
@@ -133,6 +145,8 @@ export function FootnotesView({ usdm }: FootnotesViewProps) {
         footnotes: abbreviations.map((ab, idx) => ({
           id: ab.id || `abbrev_${idx}`,
           text: `${ab.abbreviatedText}: ${ab.expandedText}`,
+          editable: true,
+          editPath: `/study/versions/0/abbreviations/${idx}/expandedText`,
         })),
       });
     }
@@ -201,7 +215,18 @@ export function FootnotesView({ usdm }: FootnotesViewProps) {
                     <span className="text-muted-foreground font-mono text-xs shrink-0">
                       {fnIndex + 1}.
                     </span>
-                    <span className="text-foreground">{fn.text}</span>
+                    {fn.editable ? (
+                      <EditableField
+                        path={fn.editPath || `/commentAnnotations/${fn.originalIndex}/text`}
+                        value={fn.text}
+                        label=""
+                        type="textarea"
+                        className="text-foreground flex-1"
+                        placeholder="Footnote text"
+                      />
+                    ) : (
+                      <span className="text-foreground">{fn.text}</span>
+                    )}
                   </div>
                   {fn.pageNumber && (
                     <div className="mt-1 text-xs text-muted-foreground">

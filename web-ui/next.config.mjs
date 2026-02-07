@@ -2,9 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ['ag-grid-react', 'ag-grid-community', 'ag-grid-enterprise'],
-  experimental: {
-    serverComponentsExternalPackages: ['cytoscape'],
-  },
+  serverExternalPackages: ['cytoscape'],
 };
 
 export default nextConfig;

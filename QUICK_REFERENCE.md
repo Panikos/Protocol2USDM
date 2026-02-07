@@ -126,15 +126,14 @@ cd web-ui && npm run dev
 
 ## Models
 
-| Model | Speed | Reliability |
-|-------|-------|-------------|
-| **gemini-3-flash-preview** ⭐ | Fast | **Default model** |
-| gemini-2.5-pro | Fast | Good fallback (auto for SoA text) |
-| claude-opus-4-5 | Medium | High accuracy, higher cost |
-| claude-sonnet-4 | Fast | Good balance |
-| chatgpt-5.2 | Medium | Good alternative |
+**Supported (optimised and tested):**
 
-> Other models supported - see `llm_providers.py` for full list.
+| Model | Speed | Status |
+|-------|-------|--------|
+| **gemini-3-flash-preview** ⭐ | Fast | **Default — pipeline optimised and tuned** |
+| gemini-2.5-pro | Fast | Tested fallback (auto for SoA text) |
+
+> Provider hooks for OpenAI and Anthropic exist in `llm_providers.py` for future tuning but are **not yet optimised or tested**.
 
 ---
 
@@ -158,7 +157,9 @@ output/<protocol>/
 ├── 4_header_structure.json        # SoA table structure (vision)
 ├── terminology_enrichment.json    # NCI EVS codes (--enrich)
 ├── schema_validation.json         # Schema validation results
-└── conformance_report.json        # CDISC CORE results (--conformance)
+├── usdm_validation.json           # USDM package validation
+├── conformance_report.json        # CDISC CORE results (--conformance)
+└── run_manifest.json              # Run metadata for reproducibility
 ```
 
 ---
@@ -263,7 +264,7 @@ CDISC_API_KEY=...            # For CORE (optional)
 
 ---
 
-## USDM Entity Placement (v6.6)
+## USDM Entity Placement (v7.2)
 
 | Entity | Location |
 |--------|----------|
@@ -287,5 +288,5 @@ CDISC_API_KEY=...            # For CORE (optional)
 
 **Docs:** [README.md](README.md) | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
-**Last Updated:** 2026-01-30  
-**Version:** 7.1
+**Last Updated:** 2026-02-07  
+**Version:** 7.2

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AgGridReact } from 'ag-grid-react';
 import { 
   ColDef, 
@@ -9,27 +9,95 @@ import {
   RowDragEndEvent,
   ColumnMovedEvent,
   GridApi,
+  CellDoubleClickedEvent,
 } from 'ag-grid-community';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
-// Note: ag-grid-enterprise removed - requires license key
 
 import { ProvenanceCellRenderer } from './ProvenanceCellRenderer';
+import { SoACellEditor } from './SoACellEditor';
 import type { SoATableModel, SoACell } from '@/lib/adapters/toSoATableModel';
 import { useOverlayStore } from '@/stores/overlayStore';
+import { useSoAEditStore } from '@/stores/soaEditStore';
+import type { CellMark } from '@/lib/soa/processor';
 
 interface SoAGridProps {
   model: SoATableModel;
   onCellClick?: (activityId: string, visitId: string, cell: SoACell | undefined) => void;
+  editable?: boolean;
+  availableFootnotes?: string[];
 }
 
-export function SoAGrid({ model, onCellClick }: SoAGridProps) {
+export function SoAGrid({ model, onCellClick, editable = false, availableFootnotes = [] }: SoAGridProps) {
   const gridRef = useRef<AgGridReact>(null);
   const gridApiRef = useRef<GridApi | null>(null);
   
   const { updateDraftTableOrder } = useOverlayStore();
+  const { setCellMark, isUserEdited, getPendingMark, setActivityName, setEncounterName, committedCellEdits } = useSoAEditStore();
+  
+  // Use ref for committedCellEdits to avoid recreating columnDefs (which breaks ag-grid column groups)
+  const committedEditsRef = useRef(committedCellEdits);
+  committedEditsRef.current = committedCellEdits;
+  
+  // Refresh cells when edits change
+  useEffect(() => {
+    if (gridApiRef.current) {
+      // Force redraw all rows to pick up edit changes
+      gridApiRef.current.redrawRows();
+    }
+  }, [committedCellEdits]);
+  
+  // State for editing activity/encounter names
+  const [editingActivityId, setEditingActivityId] = useState<string | null>(null);
+  const [editingActivityName, setEditingActivityName] = useState('');
+  const [editingEncounterId, setEditingEncounterId] = useState<string | null>(null);
+  const [editingEncounterName, setEditingEncounterName] = useState('');
+  
+  // State for cell editor popup
+  const [editingCell, setEditingCell] = useState<{
+    activityId: string;
+    encounterId: string;
+    currentMark: CellMark;
+    footnoteRefs: string[];
+    rect: DOMRect;
+  } | null>(null);
 
-  // Build row data from model
+  // Handle cell edit save
+  const handleCellSave = useCallback((mark: CellMark, footnoteRefs: string[]) => {
+    if (editingCell) {
+      setCellMark(editingCell.activityId, editingCell.encounterId, mark, footnoteRefs);
+      setEditingCell(null);
+      gridApiRef.current?.refreshCells();
+    }
+  }, [editingCell, setCellMark]);
+
+  // Handle double-click to edit
+  const onCellDoubleClicked = useCallback((event: CellDoubleClickedEvent) => {
+    if (!editable) return;
+    const field = event.colDef.field;
+    if (!field?.startsWith('col_')) return;
+
+    const encounterId = field.replace('col_', '');
+    const activityId = event.data.id;
+    const cell = model.cells.get(`${activityId}|${encounterId}`);
+    const pendingEdit = getPendingMark(activityId, encounterId);
+    
+    // Get cell element position for popup
+    const cellElement = event.event?.target as HTMLElement;
+    const rect = cellElement?.getBoundingClientRect();
+    
+    if (rect) {
+      setEditingCell({
+        activityId,
+        encounterId,
+        currentMark: pendingEdit?.mark ?? (cell?.mark as CellMark) ?? null,
+        footnoteRefs: pendingEdit?.footnoteRefs ?? cell?.footnoteRefs ?? [],
+        rect,
+      });
+    }
+  }, [editable, model.cells, getPendingMark]);
+
+  // Build row data from model, incorporating committed edits
   const rowData = useMemo(() => {
     return model.rows.map((row) => {
       const rowObj: Record<string, unknown> = {
@@ -39,15 +107,22 @@ export function SoAGrid({ model, onCellClick }: SoAGridProps) {
         _rowData: row,
       };
 
-      // Add cell values for each column
+      // Add cell values for each column, checking committed edits first
       for (const col of model.columns) {
-        const cell = model.cells.get(`${row.id}|${col.id}`);
-        rowObj[`col_${col.id}`] = cell?.mark || '';
+        const cellKey = `${row.id}|${col.id}`;
+        const edit = committedCellEdits.get(cellKey);
+        if (edit) {
+          // Use edit value (clear means empty)
+          rowObj[`col_${col.id}`] = edit.mark === 'clear' ? '' : edit.mark;
+        } else {
+          const cell = model.cells.get(cellKey);
+          rowObj[`col_${col.id}`] = cell?.mark || '';
+        }
       }
 
       return rowObj;
     });
-  }, [model]);
+  }, [model, committedCellEdits]);
 
   // Build column definitions
   const columnDefs = useMemo((): (ColDef | ColGroupDef)[] => {
@@ -68,7 +143,7 @@ export function SoAGrid({ model, onCellClick }: SoAGridProps) {
       });
     }
 
-    // Activity name column
+    // Activity name column - editable when in edit mode
     defs.push({
       headerName: 'Activity',
       field: 'activityName',
@@ -80,6 +155,13 @@ export function SoAGrid({ model, onCellClick }: SoAGridProps) {
         backgroundColor: '#fafafa',
       },
       rowDrag: true,
+      editable: editable,
+      cellClass: editable ? 'cursor-pointer hover:bg-blue-50' : '',
+      onCellValueChanged: (params) => {
+        if (params.newValue !== params.oldValue) {
+          setActivityName(params.data.id, params.newValue);
+        }
+      },
     });
 
     // Group columns by epoch
@@ -95,6 +177,7 @@ export function SoAGrid({ model, onCellClick }: SoAGridProps) {
           cellRendererParams: {
             columnId: col.id,
             cellMap: model.cells,
+            pendingEditsRef: committedEditsRef,
           },
           headerClass: 'text-center ag-header-cell-wrap',
           cellClass: 'text-center p-0',
@@ -124,6 +207,7 @@ export function SoAGrid({ model, onCellClick }: SoAGridProps) {
           cellRendererParams: {
             columnId: col.id,
             cellMap: model.cells,
+            pendingEditsRef: committedEditsRef,
           },
           headerClass: 'text-center ag-header-cell-wrap',
           cellClass: 'text-center p-0',
@@ -134,7 +218,7 @@ export function SoAGrid({ model, onCellClick }: SoAGridProps) {
     }
 
     return defs;
-  }, [model]);
+  }, [model, editable, setActivityName]);
 
   // Default column settings
   const defaultColDef = useMemo<ColDef>(() => ({
@@ -186,17 +270,19 @@ export function SoAGrid({ model, onCellClick }: SoAGridProps) {
   // Cell click handler
   const onCellClicked = useCallback((event: any) => {
     const field = event.colDef.field;
-    if (!field?.startsWith('col_') || !onCellClick) return;
+    if (!field?.startsWith('col_')) return;
 
     const visitId = field.replace('col_', '');
     const activityId = event.data.id;
     const cell = model.cells.get(`${activityId}|${visitId}`);
     
-    onCellClick(activityId, visitId, cell);
+    if (onCellClick) {
+      onCellClick(activityId, visitId, cell);
+    }
   }, [model.cells, onCellClick]);
 
   return (
-    <div className="ag-theme-alpine w-full h-full">
+    <div className="ag-theme-alpine w-full h-full relative">
       <AgGridReact
         ref={gridRef}
         rowData={rowData}
@@ -210,12 +296,42 @@ export function SoAGrid({ model, onCellClick }: SoAGridProps) {
         onRowDragEnd={onRowDragEnd}
         onColumnMoved={onColumnMoved}
         onCellClicked={onCellClicked}
+        onCellDoubleClicked={onCellDoubleClicked}
         rowHeight={36}
         headerHeight={40}
         groupHeaderHeight={44}
         suppressRowClickSelection={true}
         enableCellTextSelection={true}
       />
+      
+      {/* Cell Editor Popup */}
+      {editingCell && (
+        <div
+          className="fixed z-50"
+          style={{
+            top: editingCell.rect.bottom + 4,
+            left: editingCell.rect.left,
+          }}
+        >
+          <SoACellEditor
+            activityId={editingCell.activityId}
+            encounterId={editingCell.encounterId}
+            currentMark={editingCell.currentMark}
+            footnoteRefs={editingCell.footnoteRefs}
+            availableFootnotes={availableFootnotes}
+            onSave={handleCellSave}
+            stopEditing={() => setEditingCell(null)}
+          />
+        </div>
+      )}
+      
+      {/* Backdrop to close editor */}
+      {editingCell && (
+        <div
+          className="fixed inset-0 z-40"
+          onClick={() => setEditingCell(null)}
+        />
+      )}
     </div>
   );
 }

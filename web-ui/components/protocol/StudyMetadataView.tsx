@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { EditableField } from '@/components/semantic';
 import { Building2, Calendar, FlaskConical, Users, FileText, BookOpen, ChevronDown, ChevronRight, Globe, Tag } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -18,12 +19,14 @@ interface StudyTitle {
 interface StudyIdentifier {
   text: string;
   scopeId?: string;
+  identifierType?: { decode?: string; code?: string };
 }
 
 interface Organization {
   id: string;
   name: string;
-  type?: { decode?: string };
+  identifier?: string;
+  type?: { decode?: string; code?: string };
 }
 
 interface Abbreviation {
@@ -126,26 +129,28 @@ export function StudyMetadataView({ usdm }: StudyMetadataViewProps) {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {acronym && (
-            <div>
-              <span className="text-sm text-muted-foreground">Acronym</span>
-              <p className="text-lg font-semibold">{acronym}</p>
-            </div>
-          )}
-          
-          {officialTitle && (
-            <div>
-              <span className="text-sm text-muted-foreground">Official Title</span>
-              <p className="text-base">{officialTitle}</p>
-            </div>
-          )}
-          
-          {briefTitle && briefTitle !== officialTitle && (
-            <div>
-              <span className="text-sm text-muted-foreground">Brief Title</span>
-              <p className="text-base">{briefTitle}</p>
-            </div>
-          )}
+          {titles.map((title, i) => {
+            const titleType = title.type?.decode || 'Title';
+            const isAcronym = titleType.includes('Acronym');
+            const isOfficial = titleType.includes('Official');
+            const isBrief = titleType.includes('Brief');
+            
+            // Skip brief if same as official
+            if (isBrief && title.text === officialTitle) return null;
+            
+            return (
+              <div key={i}>
+                <span className="text-sm text-muted-foreground">{titleType}</span>
+                <EditableField
+                  path={`/study/versions/0/titles/${i}/text`}
+                  value={title.text}
+                  label=""
+                  className={isAcronym ? 'text-lg font-semibold' : 'text-base'}
+                  placeholder="Not specified"
+                />
+              </div>
+            );
+          })}
 
           {identifiers.length > 0 && (
             <div>
@@ -157,13 +162,16 @@ export function StudyMetadataView({ usdm }: StudyMetadataViewProps) {
                   const isEudraCT = idType.includes('EudraCT') || /^\d{4}-\d{6}-\d{2}$/.test(id.text || '');
                   return (
                     <div key={i} className="flex items-center gap-1">
-                      <Badge 
-                        variant={isNCT ? 'default' : isEudraCT ? 'outline' : 'secondary'}
-                        className={isNCT ? 'bg-blue-600' : ''}
-                      >
-                        {idType && <span className="opacity-70 mr-1">{idType}:</span>}
-                        {id.text}
-                      </Badge>
+                      {idType && <span className="text-xs text-muted-foreground mr-1">{idType}:</span>}
+                      <EditableField
+                        path={`/study/versions/0/studyIdentifiers/${i}/text`}
+                        value={id.text}
+                        className={cn(
+                          'inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold',
+                          isNCT ? 'bg-blue-600 text-white' : isEudraCT ? 'border-current' : 'bg-secondary'
+                        )}
+                        placeholder="Identifier"
+                      />
                     </div>
                   );
                 })}
@@ -186,28 +194,48 @@ export function StudyMetadataView({ usdm }: StudyMetadataViewProps) {
             {studyPhase && (
               <div>
                 <span className="text-sm text-muted-foreground">Phase</span>
-                <p className="font-medium">{studyPhase}</p>
+                <EditableField
+                  path="/study/versions/0/studyDesigns/0/studyPhase/standardCode/decode"
+                  value={studyPhase}
+                  className="font-medium"
+                  placeholder="Not specified"
+                />
               </div>
             )}
             
             {studyType && (
               <div>
                 <span className="text-sm text-muted-foreground">Type</span>
-                <p className="font-medium">{studyType}</p>
+                <EditableField
+                  path="/study/versions/0/studyDesigns/0/studyType/decode"
+                  value={studyType}
+                  className="font-medium"
+                  placeholder="Not specified"
+                />
               </div>
             )}
             
             {blindingSchema && (
               <div>
                 <span className="text-sm text-muted-foreground">Blinding</span>
-                <p className="font-medium">{blindingSchema}</p>
+                <EditableField
+                  path="/study/versions/0/studyDesigns/0/blindingSchema/standardCode/decode"
+                  value={blindingSchema}
+                  className="font-medium"
+                  placeholder="Not specified"
+                />
               </div>
             )}
 
             {therapeuticAreas.length > 0 && (
               <div>
                 <span className="text-sm text-muted-foreground">Therapeutic Area</span>
-                <p className="font-medium">{therapeuticAreas[0]?.decode ?? 'N/A'}</p>
+                <EditableField
+                  path="/study/versions/0/studyDesigns/0/therapeuticAreas/0/decode"
+                  value={therapeuticAreas[0]?.decode ?? ''}
+                  className="font-medium"
+                  placeholder="Not specified"
+                />
               </div>
             )}
           </div>
@@ -227,15 +255,26 @@ export function StudyMetadataView({ usdm }: StudyMetadataViewProps) {
           <CardContent>
             <div className="space-y-3">
               {displayedOrgs.map((org, i) => {
+                const orgIndex = organizations.indexOf(org);
                 const orgType = org.type?.decode || org.type?.code || 'Organization';
                 const isSponsor = orgType.toLowerCase().includes('sponsor');
                 const isCRO = orgType.toLowerCase().includes('cro') || orgType.toLowerCase().includes('contract');
                 return (
                   <div key={i} className="flex items-center justify-between border-b pb-2 last:border-0">
                     <div>
-                      <p className="font-medium">{org.name}</p>
+                      <EditableField
+                        path={`/study/versions/0/organizations/${orgIndex}/name`}
+                        value={org.name}
+                        className="font-medium"
+                        placeholder="Organization name"
+                      />
                       {org.identifier && (
-                        <p className="text-xs text-muted-foreground">{org.identifier}</p>
+                        <EditableField
+                          path={`/study/versions/0/organizations/${orgIndex}/identifier`}
+                          value={org.identifier}
+                          className="text-xs text-muted-foreground"
+                          placeholder="Identifier"
+                        />
                       )}
                     </div>
                     <Badge 
@@ -286,7 +325,12 @@ export function StudyMetadataView({ usdm }: StudyMetadataViewProps) {
                   <span className="text-sm text-muted-foreground">
                     {dv.type?.decode ?? dv.name ?? 'Date'}
                   </span>
-                  <p className="font-medium">{dv.dateValue ?? 'N/A'}</p>
+                  <EditableField
+                    path={`/study/versions/0/dateValues/${i}/dateValue`}
+                    value={dv.dateValue ?? ''}
+                    className="font-medium"
+                    placeholder="N/A"
+                  />
                 </div>
               ))}
             </div>
@@ -305,15 +349,22 @@ export function StudyMetadataView({ usdm }: StudyMetadataViewProps) {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {(design.population as Record<string, unknown>)?.description && (
-                <p>{String((design.population as Record<string, unknown>).description)}</p>
-              )}
+              <EditableField
+                path="/study/versions/0/studyDesigns/0/population/description"
+                value={String((design.population as Record<string, unknown>)?.description ?? '')}
+                label="Description"
+                type="textarea"
+                placeholder="No population description"
+              />
               <div className="flex gap-4 text-sm">
                 {(design.population as Record<string, unknown>)?.plannedEnrollmentNumber && (
-                  <span>
-                    <strong>Planned Enrollment:</strong>{' '}
-                    {String(((design.population as Record<string, unknown>).plannedEnrollmentNumber as Record<string, unknown>)?.value ?? 'N/A')}
-                  </span>
+                  <EditableField
+                    path="/study/versions/0/studyDesigns/0/population/plannedEnrollmentNumber/value"
+                    value={String(((design.population as Record<string, unknown>).plannedEnrollmentNumber as Record<string, unknown>)?.value ?? '')}
+                    label="Planned Enrollment"
+                    type="number"
+                    placeholder="N/A"
+                  />
                 )}
               </div>
             </div>
@@ -335,10 +386,21 @@ export function StudyMetadataView({ usdm }: StudyMetadataViewProps) {
             <div className="space-y-2">
               {conditions.map((cond, i) => (
                 <div key={i} className="p-3 bg-muted rounded-lg">
-                  <div className="font-medium">{cond.name || `Condition ${i + 1}`}</div>
-                  {cond.description && (
-                    <p className="text-sm text-muted-foreground mt-1">{cond.description}</p>
-                  )}
+                  <EditableField
+                    path={`/study/versions/0/conditions/${i}/name`}
+                    value={cond.name || `Condition ${i + 1}`}
+                    label=""
+                    className="font-medium"
+                    placeholder="Condition name"
+                  />
+                  <EditableField
+                    path={`/study/versions/0/conditions/${i}/description`}
+                    value={cond.description || ''}
+                    label=""
+                    type="textarea"
+                    className="text-sm text-muted-foreground mt-1"
+                    placeholder="No description"
+                  />
                   {cond.codes && cond.codes.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-2">
                       {cond.codes.map((code, j) => (
@@ -392,14 +454,29 @@ export function StudyMetadataView({ usdm }: StudyMetadataViewProps) {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-              {displayedAbbreviations.map((abbr, i) => (
-                <div key={i} className="flex items-start gap-2 p-2 rounded hover:bg-muted">
-                  <Badge variant="outline" className="shrink-0 font-mono">
-                    {abbr.abbreviatedText}
-                  </Badge>
-                  <span className="text-sm text-muted-foreground">{abbr.expandedText}</span>
-                </div>
-              ))}
+              {displayedAbbreviations.map((abbr, i) => {
+                // Find original index in unsorted array
+                const originalIndex = abbreviations.findIndex(a => a.abbreviatedText === abbr.abbreviatedText);
+                const pathIndex = originalIndex >= 0 ? originalIndex : i;
+                return (
+                  <div key={i} className="flex items-start gap-2 p-2 rounded hover:bg-muted">
+                    <EditableField
+                      path={`/study/versions/0/abbreviations/${pathIndex}/abbreviatedText`}
+                      value={abbr.abbreviatedText}
+                      label=""
+                      className="shrink-0 font-mono text-xs border rounded px-1"
+                      placeholder="ABBR"
+                    />
+                    <EditableField
+                      path={`/study/versions/0/abbreviations/${pathIndex}/expandedText`}
+                      value={abbr.expandedText}
+                      label=""
+                      className="text-sm text-muted-foreground flex-1"
+                      placeholder="Expansion"
+                    />
+                  </div>
+                );
+              })}
             </div>
             {abbreviations.length > 10 && (
               <button

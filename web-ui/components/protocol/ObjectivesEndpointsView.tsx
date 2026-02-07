@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { EditableField } from '@/components/semantic';
 import { Target, TrendingUp, Beaker } from 'lucide-react';
 
 interface ObjectivesEndpointsViewProps {
@@ -80,24 +81,37 @@ export function ObjectivesEndpointsView({ usdm }: ObjectivesEndpointsViewProps) 
   const renderObjective = (objective: Objective, index: number) => {
     const text = objective.text || objective.description || objective.label || objective.name || 'No description';
     const endpoints = objective.endpoints ?? [];
+    
+    // Find original index for path
+    const originalIndex = objectives.findIndex(o => o.id === objective.id);
+    const pathIndex = originalIndex >= 0 ? originalIndex : index;
 
     return (
       <div key={objective.id || index} className="py-3 border-b last:border-b-0">
         <div className="flex items-start gap-3">
           <Badge variant="outline" className="mt-0.5">{index + 1}</Badge>
           <div className="flex-1">
-            <p className="text-sm">{text}</p>
+            <EditableField
+              path={`/study/versions/0/studyDesigns/0/objectives/${pathIndex}/text`}
+              value={text}
+              label="Objective Text"
+              type="textarea"
+              className="text-sm"
+            />
             
             {endpoints.length > 0 && (
               <div className="mt-3 pl-4 border-l-2 border-blue-200">
                 <p className="text-xs font-medium text-muted-foreground mb-2">Endpoints:</p>
-                {endpoints.map((ep, i) => (
-                  <div key={ep.id || i} className="mb-2 last:mb-0">
+                {endpoints.map((ep, epIndex) => (
+                  <div key={ep.id || epIndex} className="mb-2 last:mb-0">
                     <div className="flex items-center gap-2">
                       <TrendingUp className="h-3 w-3 text-blue-500" />
-                      <span className="text-sm">
-                        {ep.text || ep.description || ep.label || ep.name || 'Endpoint'}
-                      </span>
+                      <EditableField
+                        path={`/study/versions/0/studyDesigns/0/objectives/${pathIndex}/endpoints/${epIndex}/text`}
+                        value={ep.text || ep.description || ep.label || ep.name || 'Endpoint'}
+                        label="Endpoint Text"
+                        className="text-sm"
+                      />
                       {ep.purpose?.decode && (
                         <Badge variant="secondary" className="text-xs">
                           {ep.purpose.decode}

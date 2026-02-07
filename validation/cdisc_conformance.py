@@ -62,10 +62,14 @@ def run_cdisc_conformance(
     result = {
         'success': False,
         'engine': 'none',
+        'inputFile': json_path,
         'error': 'CDISC CORE engine not available. Download with: python tools/core/download_core.py',
+        'error_summary': None,
         'error_details': None,
         'issues': 0,
         'warnings': 0,
+        'issues_list': [],
+        'timestamp': _get_timestamp(),
     }
     _save_conformance_report(result, output_path)
     return result
@@ -128,10 +132,14 @@ def _run_local_core_engine(json_path: str, output_dir: str) -> Dict[str, Any]:
         return {
             'success': False,
             'engine': 'local_core',
+            'inputFile': json_path,
             'error': 'CORE cache not available. Set CDISC_API_KEY and run: python main_v2.py --update-cache',
+            'error_summary': None,
             'error_details': None,
             'issues': 0,
             'warnings': 0,
+            'issues_list': [],
+            'timestamp': _get_timestamp(),
         }
     
     logger.info(f"Running CDISC CORE engine (local)...")
@@ -176,10 +184,15 @@ def _run_local_core_engine(json_path: str, output_dir: str) -> Dict[str, Any]:
             return {
                 'success': True,
                 'engine': 'local_core',
+                'inputFile': json_path,
                 'output': output_path,
+                'error': None,
+                'error_summary': None,
+                'error_details': None,
                 'issues': len(errors),
                 'warnings': len(warnings),
                 'issues_list': issues,
+                'timestamp': _get_timestamp(),
             }
         else:
             # CORE engine failed - capture error details
@@ -200,39 +213,54 @@ def _run_local_core_engine(json_path: str, output_dir: str) -> Dict[str, Any]:
             return {
                 'success': False,
                 'engine': 'local_core',
+                'inputFile': json_path,
                 'error': f"CORE engine failed (exit code {result.returncode})",
                 'error_summary': error_summary,
                 'error_details': error_output,
                 'issues': 0,
                 'warnings': 0,
+                'issues_list': [],
+                'timestamp': _get_timestamp(),
             }
             
     except subprocess.TimeoutExpired:
         return {
             'success': False,
             'engine': 'local_core',
+            'inputFile': json_path,
             'error': 'CORE engine timed out (>120s)',
+            'error_summary': None,
             'error_details': None,
             'issues': 0,
             'warnings': 0,
+            'issues_list': [],
+            'timestamp': _get_timestamp(),
         }
     except FileNotFoundError:
         return {
             'success': False,
             'engine': 'local_core',
+            'inputFile': json_path,
             'error': 'CORE engine executable not found',
+            'error_summary': None,
             'error_details': None,
             'issues': 0,
             'warnings': 0,
+            'issues_list': [],
+            'timestamp': _get_timestamp(),
         }
     except Exception as e:
         return {
             'success': False,
             'engine': 'local_core',
+            'inputFile': json_path,
             'error': f'CORE engine error: {str(e)}',
+            'error_summary': None,
             'error_details': None,
             'issues': 0,
             'warnings': 0,
+            'issues_list': [],
+            'timestamp': _get_timestamp(),
         }
 
 
@@ -258,8 +286,15 @@ def _run_cdisc_api(
     if not api_key:
         return {
             'success': False,
+            'engine': 'cdisc_api',
+            'inputFile': json_path,
             'error': 'CDISC API key not configured',
+            'error_summary': None,
+            'error_details': None,
             'issues': 0,
+            'warnings': 0,
+            'issues_list': [],
+            'timestamp': _get_timestamp(),
         }
     
     # CDISC CORE API endpoint
@@ -281,21 +316,36 @@ def _run_cdisc_api(
     if response.status_code == 200:
         result = response.json()
         
-        # Save report
-        output_path = os.path.join(output_dir, 'cdisc_conformance_report.json')
+        # Save report (use consistent filename)
+        output_path = os.path.join(output_dir, 'conformance_report.json')
         with open(output_path, 'w', encoding='utf-8') as f:
             json.dump(result, f, indent=2)
         
         return {
             'success': True,
+            'engine': 'cdisc_api',
+            'inputFile': json_path,
             'output': output_path,
+            'error': None,
+            'error_summary': None,
+            'error_details': None,
             'issues': len(result.get('issues', [])),
             'warnings': len(result.get('warnings', [])),
+            'issues_list': result.get('issues', []),
+            'timestamp': _get_timestamp(),
         }
     else:
         return {
             'success': False,
+            'engine': 'cdisc_api',
+            'inputFile': json_path,
             'error': f'CDISC API error: {response.status_code}',
+            'error_summary': None,
+            'error_details': response.text[:500] if response.text else None,
+            'issues': 0,
+            'warnings': 0,
+            'issues_list': [],
+            'timestamp': _get_timestamp(),
         }
 
 

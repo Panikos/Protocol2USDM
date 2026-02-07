@@ -36,7 +36,7 @@ PHASE_DEPENDENCIES = {
     'scheduling': set(),  # Independent
     'docstructure': set(),  # Independent
     'amendmentdetails': set(),  # Independent
-    'execution': set(),  # Uses SoA data (passed separately)
+    'execution': {'metadata', 'studydesign'},  # Needs study context for enrichment
 }
 
 
@@ -93,6 +93,9 @@ class PipelineOrchestrator:
         logger.info(f"Pipeline context: {pipeline_context.get_summary()}")
         
         results = {}
+        
+        # Enforce dependencies: auto-enable required phases
+        phases_to_run = self._enforce_dependencies(phases_to_run)
         
         # Run each requested phase in registry order
         for phase in phase_registry.get_all():
@@ -164,6 +167,10 @@ class PipelineOrchestrator:
             logger.info("No phases requested")
             return {'_pipeline_context': pipeline_context}
         
+        # Enforce dependencies: auto-enable required phases
+        enforced = self._enforce_dependencies({p: True for p in requested_phases})
+        requested_phases = {name for name, enabled in enforced.items() if enabled and phase_registry.has(name)}
+        
         results = {}
         completed: Set[str] = set()
         
@@ -188,20 +195,24 @@ class PipelineOrchestrator:
                     results[phase_name] = result
                     completed.add(phase_name)
             else:
-                # Multiple phases - run in parallel
+                # Multiple phases - run in parallel with isolated context snapshots
                 logger.info(f"  Wave {wave_num}: Running {len(wave_phases)} phases in parallel: {wave_phases}")
                 
+                # Each phase gets its own snapshot to avoid shared-state races
+                phase_snapshots = {}
                 with ThreadPoolExecutor(max_workers=min(max_workers, len(wave_phases))) as executor:
                     futures = {}
                     for phase_name in wave_phases:
                         phase = phase_registry.get(phase_name)
                         if phase:
+                            ctx_snapshot = pipeline_context.snapshot()
+                            phase_snapshots[phase_name] = ctx_snapshot
                             future = executor.submit(
                                 phase.run,
                                 pdf_path=pdf_path,
                                 model=model,
                                 output_dir=output_dir,
-                                context=pipeline_context,
+                                context=ctx_snapshot,
                                 usage_tracker=self.usage_tracker,
                                 soa_data=soa_data,
                             )
@@ -218,6 +229,11 @@ class PipelineOrchestrator:
                             logger.error(f"Phase {phase_name} failed: {e}")
                             results[phase_name] = PhaseResult(success=False, error=str(e))
                             completed.add(phase_name)
+                
+                # Merge snapshots back into the authoritative context (main thread)
+                for phase_name in wave_phases:
+                    if phase_name in phase_snapshots and results.get(phase_name, PhaseResult(success=False)).success:
+                        pipeline_context.merge_from(phase_name, phase_snapshots[phase_name])
         
         results['_pipeline_context'] = pipeline_context
         self._results = results
@@ -254,6 +270,41 @@ class PipelineOrchestrator:
             remaining -= ready
         
         return waves
+    
+    def _enforce_dependencies(self, phases_to_run: Dict[str, bool]) -> Dict[str, bool]:
+        """
+        Enforce phase dependencies by auto-enabling required upstream phases.
+        
+        If a requested phase depends on another that wasn't requested,
+        the dependency is automatically enabled and a warning is logged.
+        
+        Args:
+            phases_to_run: Dict of phase_name -> bool
+            
+        Returns:
+            Updated dict with dependencies auto-enabled
+        """
+        result = dict(phases_to_run)
+        added = []
+        
+        # Iterate until stable (handles transitive deps)
+        changed = True
+        while changed:
+            changed = False
+            for phase_name, should_run in list(result.items()):
+                if not should_run:
+                    continue
+                deps = PHASE_DEPENDENCIES.get(phase_name, set())
+                for dep in deps:
+                    if not result.get(dep, False) and phase_registry.has(dep):
+                        result[dep] = True
+                        added.append(f"{dep} (required by {phase_name})")
+                        changed = True
+        
+        if added:
+            logger.info(f"Auto-enabled dependency phases: {', '.join(added)}")
+        
+        return result
     
     def get_results(self) -> Dict[str, PhaseResult]:
         """Get all phase results."""
@@ -351,43 +402,46 @@ def combine_to_full_usdm(
         "studyDesigns": [],
     }
     
-    # Study design container
+    # Study design container — instanceType will be resolved after metadata combine
     study_design = {
         "id": "sd_1",
         "name": "Study Design",
         "rationale": "Protocol-defined study design for investigating efficacy and safety",
-        "instanceType": "InterventionalStudyDesign",
+        "instanceType": "InterventionalStudyDesign",  # default, overridden below
     }
     
-    # Run combine for each registered phase
-    if expansion_results:
-        for phase in phase_registry.get_all():
-            phase_name = phase.config.name.lower()
-            result = expansion_results.get(phase_name)
-            
-            if result:
-                phase.combine(
-                    result=result,
-                    study_version=study_version,
-                    study_design=study_design,
-                    combined=combined,
-                    previous_extractions=previous_extractions,
-                )
-            else:
-                # Still call combine with empty result to allow fallback
-                phase.combine(
-                    result=PhaseResult(success=False),
-                    study_version=study_version,
-                    study_design=study_design,
-                    combined=combined,
-                    previous_extractions=previous_extractions,
-                )
+    # Run combine for each registered phase (always iterate, even without
+    # current-run results, so previous_extractions can be used as fallback)
+    for phase in phase_registry.get_all():
+        phase_name = phase.config.name.lower()
+        result = (expansion_results or {}).get(phase_name)
+        
+        phase.combine(
+            result=result if result else PhaseResult(success=False),
+            study_version=study_version,
+            study_design=study_design,
+            combined=combined,
+            previous_extractions=previous_extractions,
+        )
     
     # Apply defaults for required USDM fields
     _apply_defaults(study_version, study_design, combined, pdf_path)
     
     # Add SoA data
     _add_soa_data(study_design, soa_data)
+    
+    # Derive study design instanceType from metadata (instead of hardcoding)
+    study_type = combined.pop("_temp_study_type", None)
+    if study_type:
+        normalized = study_type.strip().lower()
+        if normalized in ("observational", "obs"):
+            study_design["instanceType"] = "ObservationalStudyDesign"
+            logger.info(f"  Study design type derived from metadata: ObservationalStudyDesign")
+        else:
+            study_design["instanceType"] = "InterventionalStudyDesign"
+            logger.info(f"  Study design type derived from metadata: InterventionalStudyDesign")
+    else:
+        logger.info("  Study design type: defaulting to InterventionalStudyDesign (no metadata)")
     
     # Add indications to studyDesign (from metadata temp storage)
     if combined.get("_temp_indications"):

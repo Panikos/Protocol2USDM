@@ -26,8 +26,10 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { EditableField } from '@/components/semantic';
 import { cn } from '@/lib/utils';
-import { useProtocolStore, type USDMStudyDesign } from '@/stores/protocolStore';
+import { usePatchedStudyDesign } from '@/hooks/usePatchedUsdm';
+import type { USDMStudyDesign } from '@/stores/protocolStore';
 
 // Types for execution model data
 interface TimeAnchor {
@@ -60,6 +62,8 @@ interface FootnoteCondition {
   structuredCondition?: string;
   appliesToActivityIds?: string[];
   sourceText?: string;
+  originalIndex?: number;
+  editable?: boolean;
 }
 
 interface Repetition {
@@ -165,10 +169,8 @@ interface ExecutionModelViewProps {
 export function ExecutionModelView({ executionModel }: ExecutionModelViewProps) {
   const [activeTab, setActiveTab] = useState<TabId>('overview');
 
-  // Get execution model from extension attributes if not passed directly
-  const studyDesign = useProtocolStore(state => 
-    state.usdm?.study?.versions?.[0]?.studyDesigns?.[0]
-  );
+  // Use patched study design to show draft changes
+  const studyDesign = usePatchedStudyDesign();
   
   const execModel = useMemo(() => {
     if (executionModel) return executionModel;
@@ -273,11 +275,13 @@ export function ExecutionModelView({ executionModel }: ExecutionModelViewProps) 
     }> | undefined;
     
     if (nativeConditions && nativeConditions.length > 0 && !baseModel.footnoteConditions) {
-      baseModel.footnoteConditions = nativeConditions.map(c => ({
+      baseModel.footnoteConditions = nativeConditions.map((c, idx) => ({
         id: c.id,
         conditionType: c.name ?? 'Condition',
         text: c.text,
         appliesToActivityIds: c.appliesToIds,
+        originalIndex: idx,
+        editable: true,
       }));
     }
     
@@ -1501,10 +1505,21 @@ function ConditionsPanel({ conditions, studyDesign }: { conditions: FootnoteCond
                               : `fn_${condIdx + 1}`}
                           </Badge>
                           <div className="flex-1 min-w-0">
-                            {/* Full text - no truncation */}
-                            <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
-                              {cond.text}
-                            </p>
+                            {/* Full text - editable if from native USDM */}
+                            {cond.editable && cond.originalIndex !== undefined ? (
+                              <EditableField
+                                path={`/study/versions/0/studyDesigns/0/conditions/${cond.originalIndex}/text`}
+                                value={cond.text}
+                                label=""
+                                type="textarea"
+                                className="text-sm leading-relaxed whitespace-pre-wrap break-words"
+                                placeholder="Condition text"
+                              />
+                            ) : (
+                              <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+                                {cond.text}
+                              </p>
+                            )}
                             
                             {/* Structured Condition */}
                             {cond.structuredCondition && (

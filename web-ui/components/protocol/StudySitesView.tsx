@@ -7,6 +7,7 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from '@/components/ui/hover-card';
+import { EditableField } from '@/components/semantic';
 import { 
   MapPin, 
   Building2,
@@ -233,8 +234,12 @@ export function StudySitesView({ usdm }: StudySitesViewProps) {
                 const siteCard = (
                   <div className={`p-3 bg-muted rounded-lg ${hasDetails ? 'cursor-pointer hover:bg-muted/80 transition-colors' : ''}`}>
                     <div className="flex items-start justify-between">
-                      <div className="font-medium flex items-center gap-2">
-                        {site.name || `Site ${i + 1}`}
+                      <div className="font-medium flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                        <EditableField
+                          path={`/study/versions/0/studyDesigns/0/studySites/${i}/name`}
+                          value={site.name || `Site ${i + 1}`}
+                          placeholder="Site name"
+                        />
                         {hasDetails && <Info className="h-3 w-3 text-muted-foreground" />}
                       </div>
                       <div className="flex items-center gap-1">
@@ -356,9 +361,12 @@ export function StudySitesView({ usdm }: StudySitesViewProps) {
               {organizations.map((org, i) => (
                 <div key={i} className="p-3 bg-muted rounded-lg">
                   <div className="flex items-start justify-between">
-                    <div className="font-medium">
-                      {org.name || `Organization ${i + 1}`}
-                    </div>
+                    <EditableField
+                      path={`/study/versions/0/organizations/${i}/name`}
+                      value={org.name || `Organization ${i + 1}`}
+                      className="font-medium"
+                      placeholder="Organization name"
+                    />
                     {org.type && (
                       <Badge variant="outline">
                         {typeof org.type === 'string' ? org.type : (org.type.decode || org.type.code || 'Unknown')}

@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { EditableField } from '@/components/semantic';
 import { GitBranch, Layers, Grid3X3, Shield, AlertTriangle, Info, CheckCircle2, Shuffle } from 'lucide-react';
 
 interface StudyDesignViewProps {
@@ -177,14 +178,24 @@ export function StudyDesignView({ usdm }: StudyDesignViewProps) {
             {studyType && (
               <div>
                 <span className="text-sm text-muted-foreground">Study Type</span>
-                <p className="font-medium">{studyType}</p>
+                <EditableField
+                  path="/study/versions/0/studyDesigns/0/studyType/decode"
+                  value={studyType}
+                  className="font-medium"
+                  placeholder="Not specified"
+                />
               </div>
             )}
             {model && (
               <div>
                 <span className="text-sm text-muted-foreground">Model</span>
                 <div className="flex items-center gap-2">
-                  <p className="font-medium">{model}</p>
+                  <EditableField
+                    path="/study/versions/0/studyDesigns/0/model/decode"
+                    value={model}
+                    className="font-medium"
+                    placeholder="Not specified"
+                  />
                   {modelCode && (
                     <Badge variant="outline" className="text-xs font-mono">
                       {modelCode}
@@ -196,13 +207,23 @@ export function StudyDesignView({ usdm }: StudyDesignViewProps) {
             {blindingSchema && (
               <div>
                 <span className="text-sm text-muted-foreground">Blinding</span>
-                <p className="font-medium">{blindingSchema}</p>
+                <EditableField
+                  path="/study/versions/0/studyDesigns/0/blindingSchema/standardCode/decode"
+                  value={blindingSchema}
+                  className="font-medium"
+                  placeholder="Not specified"
+                />
               </div>
             )}
             {allocationRatio && (
               <div>
                 <span className="text-sm text-muted-foreground">Randomization</span>
-                <p className="font-medium">{allocationRatio}</p>
+                <EditableField
+                  path="/study/versions/0/studyDesigns/0/allocationRatio/ratio"
+                  value={allocationRatio}
+                  className="font-medium"
+                  placeholder="Not specified"
+                />
               </div>
             )}
             <div>
@@ -335,14 +356,23 @@ export function StudyDesignView({ usdm }: StudyDesignViewProps) {
               {arms.map((arm, i) => (
                 <div key={arm.id || i} className="p-3 border rounded-lg">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="font-medium">{arm.label || arm.name || `Arm ${i + 1}`}</span>
+                    <EditableField
+                      path={`/study/versions/0/studyDesigns/0/arms/${i}/name`}
+                      value={arm.name || arm.label || `Arm ${i + 1}`}
+                      label="Arm Name"
+                      className="font-medium"
+                    />
                     {arm.type?.decode && (
                       <Badge variant="outline">{arm.type.decode}</Badge>
                     )}
                   </div>
-                  {arm.description && (
-                    <p className="text-sm text-muted-foreground">{arm.description}</p>
-                  )}
+                  <EditableField
+                    path={`/study/versions/0/studyDesigns/0/arms/${i}/description`}
+                    value={arm.description || ''}
+                    label="Description"
+                    type="textarea"
+                    className="text-sm text-muted-foreground"
+                  />
                 </div>
               ))}
             </div>
@@ -364,13 +394,21 @@ export function StudyDesignView({ usdm }: StudyDesignViewProps) {
             <div className="flex flex-wrap gap-2">
               {epochs.map((epoch, i) => (
                 <div key={epoch.id || i} className="p-3 border rounded-lg min-w-[150px]">
-                  <div className="font-medium">{epoch.label || epoch.name || `Epoch ${i + 1}`}</div>
+                  <EditableField
+                    path={`/study/versions/0/studyDesigns/0/epochs/${i}/name`}
+                    value={epoch.name || epoch.label || `Epoch ${i + 1}`}
+                    label="Epoch Name"
+                    className="font-medium"
+                  />
                   {epoch.type?.decode && (
                     <Badge variant="outline" className="mt-1">{epoch.type.decode}</Badge>
                   )}
-                  {epoch.description && (
-                    <p className="text-xs text-muted-foreground mt-1">{epoch.description}</p>
-                  )}
+                  <EditableField
+                    path={`/study/versions/0/studyDesigns/0/epochs/${i}/description`}
+                    value={epoch.description || ''}
+                    label="Description"
+                    className="text-xs text-muted-foreground mt-1"
+                  />
                 </div>
               ))}
             </div>
@@ -535,9 +573,12 @@ export function StudyDesignView({ usdm }: StudyDesignViewProps) {
                 return (
                   <div key={rule.id || i} className="p-3 border rounded-lg bg-gradient-to-r from-purple-50/50 to-transparent dark:from-purple-950/20">
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="font-medium">
-                        {rule.name || `Rule ${i + 1}`}
-                      </span>
+                      <EditableField
+                        path={`/transitionRules/${i}/name`}
+                        value={rule.name || `Rule ${i + 1}`}
+                        className="font-medium"
+                        placeholder="Rule name"
+                      />
                       {fromEpoch && toEpoch && (
                         <div className="flex items-center gap-1 text-sm text-muted-foreground">
                           <Badge variant="outline">{fromEpoch.name || fromEpoch.label}</Badge>
@@ -547,9 +588,13 @@ export function StudyDesignView({ usdm }: StudyDesignViewProps) {
                       )}
                     </div>
                     {(rule.description || rule.text || rule.condition) && (
-                      <p className="text-sm text-muted-foreground">
-                        {rule.description || rule.text || rule.condition}
-                      </p>
+                      <EditableField
+                        path={`/transitionRules/${i}/description`}
+                        value={rule.description || rule.text || rule.condition || ''}
+                        type="textarea"
+                        className="text-sm text-muted-foreground"
+                        placeholder="Rule description"
+                      />
                     )}
                   </div>
                 );

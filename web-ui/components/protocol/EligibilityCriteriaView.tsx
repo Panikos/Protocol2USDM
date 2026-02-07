@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { EditableField } from '@/components/semantic';
 import { CheckCircle2, XCircle, Users, AlertTriangle } from 'lucide-react';
 
 interface EligibilityCriteriaViewProps {
@@ -120,15 +121,25 @@ export function EligibilityCriteriaView({ usdm }: EligibilityCriteriaViewProps) 
   const plannedAge = population?.plannedAge as { minValue?: { value?: number }; maxValue?: { value?: number } } | undefined;
   const plannedSex = (population?.plannedSex as { decode?: string }[]) ?? [];
 
-  const renderCriterion = (criterion: EligibilityCriterion, index: number) => {
+  const renderCriterion = (criterion: EligibilityCriterion, index: number, criteriaType: 'inclusion' | 'exclusion' | 'uncategorized', typeIndex: number) => {
     const text = criterion.text || criterion.description || criterion.label || criterion.name || 'No text';
+    
+    // Find the original index in the eligibilityCriteria array for the path
+    const originalIndex = eligibilityCriteria.findIndex(c => c.id === criterion.id);
+    const pathIndex = originalIndex >= 0 ? originalIndex : index;
     
     return (
       <div key={criterion.id || index} className="flex gap-3 py-2 border-b last:border-b-0">
         <Badge variant="outline" className="h-6 min-w-[2rem] justify-center">
-          {index + 1}
+          {typeIndex + 1}
         </Badge>
-        <p className="text-sm flex-1">{text}</p>
+        <EditableField
+          path={`/study/versions/0/studyDesigns/0/eligibilityCriteria/${pathIndex}/text`}
+          value={text}
+          label="Criterion Text"
+          type="textarea"
+          className="text-sm flex-1"
+        />
       </div>
     );
   };
@@ -176,34 +187,61 @@ export function EligibilityCriteriaView({ usdm }: EligibilityCriteriaViewProps) 
               {plannedAge && (
                 <div>
                   <span className="text-sm text-muted-foreground">Age Range</span>
-                  <p className="font-medium">
-                    {plannedAge.minValue?.value ?? '?'} - {plannedAge.maxValue?.value ?? '?'} years
-                  </p>
+                  <div className="flex items-center gap-1 font-medium">
+                    <EditableField
+                      path="/study/versions/0/studyDesigns/0/population/plannedAge/minValue/value"
+                      value={String(plannedAge.minValue?.value ?? '')}
+                      type="number"
+                      className="w-12"
+                      placeholder="?"
+                    />
+                    <span>-</span>
+                    <EditableField
+                      path="/study/versions/0/studyDesigns/0/population/plannedAge/maxValue/value"
+                      value={String(plannedAge.maxValue?.value ?? '')}
+                      type="number"
+                      className="w-12"
+                      placeholder="?"
+                    />
+                    <span>years</span>
+                  </div>
                 </div>
               )}
               
               {plannedSex.length > 0 && (
                 <div>
                   <span className="text-sm text-muted-foreground">Sex</span>
-                  <p className="font-medium">{plannedSex[0]?.decode ?? 'Both'}</p>
+                  <EditableField
+                    path="/study/versions/0/studyDesigns/0/population/plannedSex/0/decode"
+                    value={plannedSex[0]?.decode ?? 'Both'}
+                    className="font-medium"
+                    placeholder="Both"
+                  />
                 </div>
               )}
 
               {population.plannedEnrollmentNumber && (
                 <div>
                   <span className="text-sm text-muted-foreground">Planned Enrollment</span>
-                  <p className="font-medium">
-                    {String((population.plannedEnrollmentNumber as Record<string, unknown>)?.value ?? 'N/A')}
-                  </p>
+                  <EditableField
+                    path="/study/versions/0/studyDesigns/0/population/plannedEnrollmentNumber/value"
+                    value={String((population.plannedEnrollmentNumber as Record<string, unknown>)?.value ?? '')}
+                    type="number"
+                    className="font-medium"
+                    placeholder="N/A"
+                  />
                 </div>
               )}
 
               {population.includesHealthySubjects !== undefined && (
                 <div>
                   <span className="text-sm text-muted-foreground">Healthy Subjects</span>
-                  <p className="font-medium">
-                    {population.includesHealthySubjects ? 'Yes' : 'No'}
-                  </p>
+                  <EditableField
+                    path="/study/versions/0/studyDesigns/0/population/includesHealthySubjects"
+                    value={population.includesHealthySubjects ? 'true' : 'false'}
+                    type="boolean"
+                    className="font-medium"
+                  />
                 </div>
               )}
             </div>
@@ -211,7 +249,13 @@ export function EligibilityCriteriaView({ usdm }: EligibilityCriteriaViewProps) 
             {population.description && (
               <div className="mt-4 pt-4 border-t">
                 <span className="text-sm text-muted-foreground">Description</span>
-                <p className="mt-1">{String(population.description)}</p>
+                <EditableField
+                  path="/study/versions/0/studyDesigns/0/population/description"
+                  value={String(population.description)}
+                  type="textarea"
+                  className="mt-1"
+                  placeholder="No description"
+                />
               </div>
             )}
           </CardContent>
@@ -230,7 +274,7 @@ export function EligibilityCriteriaView({ usdm }: EligibilityCriteriaViewProps) 
           </CardHeader>
           <CardContent>
             <div className="divide-y">
-              {inclusionCriteria.map((c, i) => renderCriterion(c, i))}
+              {inclusionCriteria.map((c, i) => renderCriterion(c, i, 'inclusion', i))}
             </div>
           </CardContent>
         </Card>
@@ -248,7 +292,7 @@ export function EligibilityCriteriaView({ usdm }: EligibilityCriteriaViewProps) 
           </CardHeader>
           <CardContent>
             <div className="divide-y">
-              {exclusionCriteria.map((c, i) => renderCriterion(c, i))}
+              {exclusionCriteria.map((c, i) => renderCriterion(c, i, 'exclusion', i))}
             </div>
           </CardContent>
         </Card>
@@ -262,7 +306,7 @@ export function EligibilityCriteriaView({ usdm }: EligibilityCriteriaViewProps) 
           </CardHeader>
           <CardContent>
             <div className="divide-y">
-              {uncategorized.map((c, i) => renderCriterion(c, i))}
+              {uncategorized.map((c, i) => renderCriterion(c, i, 'uncategorized', i))}
             </div>
           </CardContent>
         </Card>

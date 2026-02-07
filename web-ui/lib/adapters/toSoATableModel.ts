@@ -33,11 +33,12 @@ export interface SoAColumn {
 export interface SoACell {
   activityId: string;
   visitId: string;
-  mark: 'X' | 'Xa' | 'Xb' | 'O' | '' | null;
+  mark: 'X' | 'Xa' | 'Xb' | 'Xc' | 'O' | '−' | '' | null;
   footnoteRefs: string[];
   instanceName?: string;  // Human-readable instance name (e.g., "Blood Draw @ Day 1")
   timingId?: string;      // Link to timing entity
   epochId?: string;       // Link to epoch entity
+  userEdited?: boolean;   // True if cell was manually edited by user
   provenance: {
     source: CellSource;
     needsReview: boolean;
@@ -358,14 +359,34 @@ export function toSoATableModel(
         effectiveSource = 'none';
       }
 
+      // Determine cell mark priority:
+      // 1. From USDM extensionAttributes (user-edited cells)
+      // 2. Default 'X' if ScheduledActivityInstance exists
+      // 3. 'X' if provenance indicates a cell should exist
+      // 4. null if no data
+      let cellMark: 'X' | 'Xa' | 'Xb' | 'Xc' | 'O' | '−' | '' | null = null;
+      if (hasLink) {
+        // ScheduledActivityInstance exists - use its mark or default to X
+        cellMark = instanceMeta?.mark ?? 'X';
+      } else if (cellProv && cellProv !== 'none') {
+        // No instance but provenance says cell exists - show X
+        cellMark = 'X';
+      }
+      
+      // Use footnoteRefs from USDM if available
+      const cellFootnoteRefs = instanceMeta?.footnoteRefs ?? (Array.isArray(footnoteRefs) ? footnoteRefs : []);
+      // Track if cell was user-edited (from USDM extensionAttributes)
+      const cellUserEdited = instanceMeta?.userEdited ?? false;
+      
       model.cells.set(key, {
         activityId: row.id,
         visitId: col.id,
-        mark: hasLink ? 'X' : null,
-        footnoteRefs: Array.isArray(footnoteRefs) ? footnoteRefs : [],
+        mark: cellMark,
+        footnoteRefs: cellFootnoteRefs,
         instanceName: instanceMeta?.name,
         timingId: instanceMeta?.timingId,
         epochId: instanceMeta?.epochId,
+        userEdited: cellUserEdited,
         provenance: {
           source: effectiveSource,
           needsReview: cellProv === 'needs_review' || cellProv === 'vision' || 
@@ -436,6 +457,9 @@ function isEnrichmentInstance(instance: Record<string, unknown>): boolean {
 // Instance metadata for enhanced cell display
 interface InstanceMetaWithSource extends InstanceMeta {
   isEnrichment: boolean;
+  mark?: 'X' | 'Xa' | 'Xb' | 'Xc' | 'O' | '−' | null;
+  footnoteRefs?: string[];
+  userEdited?: boolean;
 }
 
 // Extract activity-encounter links from scheduleTimelines with metadata
@@ -458,6 +482,40 @@ function extractActivityEncounterLinks(
       const activityIds = instance.activityIds ?? 
         (instance.activityId ? [instance.activityId] : []);
       
+      // Extract mark and userEdited from extensionAttributes
+      let mark: 'X' | 'Xa' | 'Xb' | 'Xc' | 'O' | '−' | null = 'X'; // Default to X if instance exists
+      let footnoteRefs: string[] = [];
+      let userEdited = false;
+      const exts = (instance as Record<string, unknown>).extensionAttributes as Array<{url?: string; valueString?: string}> | undefined;
+      if (exts && exts.length > 0) {
+        console.log('[toSoATableModel] Instance has extensions:', instance.id, exts);
+        for (const ext of exts) {
+          // Match both full URL and just the extension name
+          const url = ext.url || '';
+          const isCellMark = url.endsWith('x-soaCellMark') || url.includes('soaCellMark');
+          const isFootnoteRefs = url.endsWith('x-soaFootnoteRefs') || url.includes('soaFootnoteRefs');
+          const isUserEdited = url.endsWith('x-userEdited') || url.includes('userEdited');
+          
+          if (isCellMark && ext.valueString) {
+            const v = ext.valueString;
+            console.log('[toSoATableModel] Found cell mark:', v, 'for instance:', instance.id);
+            if (v === 'X' || v === 'Xa' || v === 'Xb' || v === 'Xc' || v === 'O' || v === '−') {
+              mark = v;
+            } else if (v === 'clear') {
+              mark = null;
+            }
+          }
+          if (isFootnoteRefs && ext.valueString) {
+            try {
+              footnoteRefs = JSON.parse(ext.valueString);
+            } catch { /* ignore parse errors */ }
+          }
+          if (isUserEdited && ext.valueString === 'true') {
+            userEdited = true;
+          }
+        }
+      }
+
       for (const actId of activityIds) {
         const key = cellKey(actId, encounterId);
         // Don't overwrite SoA instance with enrichment instance
@@ -467,6 +525,9 @@ function extractActivityEncounterLinks(
           timingId: instance.timingId,
           epochId: instance.epochId,
           isEnrichment,
+          mark,
+          footnoteRefs,
+          userEdited,
         });
       }
     }

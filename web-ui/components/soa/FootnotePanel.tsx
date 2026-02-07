@@ -3,11 +3,14 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronRight, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { EditableField } from '@/components/semantic';
 
 interface FootnotePanelProps {
   footnotes: string[];
   selectedFootnoteRefs?: string[];
   className?: string;
+  /** Base path for editable footnotes, e.g. '/study/versions/0/studyDesigns/0/extensionAttributes' */
+  editBasePath?: string;
 }
 
 // Extract footnote letter prefix (e.g., "a" from "a. Some text" or "aa" from "aa. Some text")
@@ -32,7 +35,8 @@ function buildFootnoteMap(footnotes: string[]): Map<string, { text: string; inde
 export function FootnotePanel({ 
   footnotes, 
   selectedFootnoteRefs,
-  className 
+  className,
+  editBasePath,
 }: FootnotePanelProps) {
   const [isExpanded, setIsExpanded] = useState(true);
 
@@ -99,7 +103,17 @@ export function FootnotePanel({
                       [{index + 1}]
                     </span>
                   )}
-                  <span className="text-muted-foreground">{footnote}</span>
+                  {editBasePath ? (
+                    <EditableField
+                      path={`${editBasePath}/${index}`}
+                      value={footnote}
+                      type="textarea"
+                      className="text-muted-foreground inline"
+                      placeholder="Footnote text"
+                    />
+                  ) : (
+                    <span className="text-muted-foreground">{footnote}</span>
+                  )}
                 </div>
               );
             })}

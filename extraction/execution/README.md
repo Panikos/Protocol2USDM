@@ -92,7 +92,7 @@ When running with `gemini-3-flash-preview`, the execution model extractors use t
 
 **Recommended command:**
 ```bash
-python main_v2.py protocol.pdf --complete --model gemini-3-flash-preview
+python main_v3.py protocol.pdf --complete --model gemini-3-flash-preview
 ```
 
 ## Installation
@@ -105,26 +105,26 @@ The module is included in Protocol2USDMv3. No additional installation required.
 
 ```bash
 # Basic extraction (heuristic only)
-python extract_execution_model.py protocol.pdf
+python scripts/extractors/extract_execution_model.py protocol.pdf
 
 # With LLM enhancement
-python extract_execution_model.py protocol.pdf --use-llm
+python scripts/extractors/extract_execution_model.py protocol.pdf --use-llm
 
 # Save output to directory
-python extract_execution_model.py protocol.pdf --output-dir output/
+python scripts/extractors/extract_execution_model.py protocol.pdf --output-dir output/
 
 # With validation
-python extract_execution_model.py protocol.pdf --output-dir output/ --validate
+python scripts/extractors/extract_execution_model.py protocol.pdf --output-dir output/ --validate
 ```
 
 ### Complete Extraction (Recommended)
 
 ```bash
 # Run EVERYTHING with one command
-python extract_execution_model.py protocol.pdf --output-dir output/ --complete
+python scripts/extractors/extract_execution_model.py protocol.pdf --output-dir output/ --complete
 
 # With SAP document for enhanced endpoint/variable extraction
-python extract_execution_model.py protocol.pdf --output-dir output/ --complete --sap sap.pdf
+python scripts/extractors/extract_execution_model.py protocol.pdf --output-dir output/ --complete --sap sap.pdf
 ```
 
 ### SAP Integration
@@ -136,7 +136,7 @@ The SAP (Statistical Analysis Plan) document provides more detailed information 
 
 ```bash
 # Extract with SAP support
-python extract_execution_model.py protocol.pdf --sap sap.pdf --output-dir output/
+python scripts/extractors/extract_execution_model.py protocol.pdf --sap sap.pdf --output-dir output/
 ```
 
 When SAP is provided:
@@ -173,12 +173,12 @@ output/
 
 ```bash
 # Phase-specific extraction
-python extract_execution_model.py protocol.pdf --phase1-only  # Time anchors, repetitions, types
-python extract_execution_model.py protocol.pdf --phase2-only  # Crossover, traversal, footnotes
-python extract_execution_model.py protocol.pdf --phase3-only  # Endpoints, variables, state machine
+python scripts/extractors/extract_execution_model.py protocol.pdf --phase1-only  # Time anchors, repetitions, types
+python scripts/extractors/extract_execution_model.py protocol.pdf --phase2-only  # Crossover, traversal, footnotes
+python scripts/extractors/extract_execution_model.py protocol.pdf --phase3-only  # Endpoints, variables, state machine
 
 # Skip specific extractors
-python extract_execution_model.py protocol.pdf --skip-endpoints --skip-state-machine
+python scripts/extractors/extract_execution_model.py protocol.pdf --skip-endpoints --skip-state-machine
 ```
 
 ### Python API
@@ -657,10 +657,10 @@ The module supports configuration via files or environment variables:
 
 ```bash
 # Create default config
-python extract_execution_model.py --create-config execution_config.json
+python scripts/extractors/extract_execution_model.py --create-config execution_config.json
 
 # Use config file
-python extract_execution_model.py protocol.pdf --config execution_config.json
+python scripts/extractors/extract_execution_model.py protocol.pdf --config execution_config.json
 ```
 
 ### Config Options
@@ -723,7 +723,7 @@ result = cache.get("key")
 ### CSV Export
 
 ```bash
-python extract_execution_model.py protocol.pdf --output-dir output/ --export-csv
+python scripts/extractors/extract_execution_model.py protocol.pdf --output-dir output/ --export-csv
 ```
 
 Creates 8 CSV files:
@@ -739,7 +739,7 @@ Creates 8 CSV files:
 ### Markdown Report
 
 ```bash
-python extract_execution_model.py protocol.pdf --output-dir output/ --report --validate
+python scripts/extractors/extract_execution_model.py protocol.pdf --output-dir output/ --report --validate
 ```
 
 Generates a comprehensive Markdown report with:

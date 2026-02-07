@@ -2,10 +2,10 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { EditableField } from '@/components/semantic';
 import { 
   Stethoscope, 
   Cpu,
-  AlertTriangle,
 } from 'lucide-react';
 
 interface ProceduresDevicesViewProps {
@@ -146,9 +146,13 @@ export function ProceduresDevicesView({ usdm }: ProceduresDevicesViewProps) {
               {procedures.map((procedure, i) => (
                 <div key={i} className="p-3 bg-muted rounded-lg">
                   <div className="flex items-start justify-between">
-                    <div className="font-medium">
-                      {procedure.name || `Procedure ${i + 1}`}
-                    </div>
+                    <EditableField
+                      path={`/study/versions/0/studyDesigns/0/procedures/${i}/name`}
+                      value={procedure.name || `Procedure ${i + 1}`}
+                      label=""
+                      className="font-medium"
+                      placeholder="Procedure name"
+                    />
                     {procedure.procedureType && (
                       <Badge variant="outline">
                         {typeof procedure.procedureType === 'string' 
@@ -157,11 +161,14 @@ export function ProceduresDevicesView({ usdm }: ProceduresDevicesViewProps) {
                       </Badge>
                     )}
                   </div>
-                  {procedure.description && (
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {procedure.description}
-                    </p>
-                  )}
+                  <EditableField
+                    path={`/study/versions/0/studyDesigns/0/procedures/${i}/description`}
+                    value={procedure.description || ''}
+                    label=""
+                    type="textarea"
+                    className="text-sm text-muted-foreground mt-1"
+                    placeholder="No description"
+                  />
                   {procedure.code && (
                     <Badge variant="secondary" className="mt-2 text-xs">
                       {procedure.code.code}: {procedure.code.decode || 'N/A'}
@@ -189,18 +196,25 @@ export function ProceduresDevicesView({ usdm }: ProceduresDevicesViewProps) {
               {devices.map((device, i) => (
                 <div key={i} className="p-3 bg-muted rounded-lg">
                   <div className="flex items-start justify-between">
-                    <div className="font-medium">
-                      {device.name || `Device ${i + 1}`}
-                    </div>
+                    <EditableField
+                      path={`/study/versions/0/medicalDevices/${i}/name`}
+                      value={device.name || `Device ${i + 1}`}
+                      label=""
+                      className="font-medium"
+                      placeholder="Device name"
+                    />
                     {device.deviceIdentifier && (
                       <Badge variant="outline">{device.deviceIdentifier}</Badge>
                     )}
                   </div>
-                  {device.description && (
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {device.description}
-                    </p>
-                  )}
+                  <EditableField
+                    path={`/study/versions/0/medicalDevices/${i}/description`}
+                    value={device.description || ''}
+                    label=""
+                    type="textarea"
+                    className="text-sm text-muted-foreground mt-1"
+                    placeholder="No description"
+                  />
                   {device.manufacturer && (
                     <p className="text-xs text-muted-foreground mt-1">
                       Manufacturer: {device.manufacturer}
@@ -213,17 +227,6 @@ export function ProceduresDevicesView({ usdm }: ProceduresDevicesViewProps) {
         </Card>
       )}
 
-      {/* Safety Note */}
-      <Card className="border-amber-200 bg-amber-50">
-        <CardContent className="py-4">
-          <div className="flex items-center gap-2 text-amber-800">
-            <AlertTriangle className="h-5 w-5" />
-            <span className="text-sm">
-              Review all procedures and devices against protocol source documents
-            </span>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

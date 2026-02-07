@@ -115,7 +115,7 @@ python tools/core/download_core.py
 # Recommended: main_v3.py (phase registry architecture)
 python main_v3.py <protocol.pdf>
 
-# Legacy main_v3.py has been removed — use main_v3.py
+# Legacy main_v2.py has been removed — use main_v3.py
 ```
 
 ### With Options
@@ -142,7 +142,7 @@ The pipeline automatically executes:
 
 ```bash
 # Add all post-processing
-python main_v3.py protocol.pdf --full
+python main_v3.py protocol.pdf --complete
 
 # Or individually:
 --enrich            # Step 7: Add NCI terminology codes
@@ -211,7 +211,7 @@ python main_v3.py protocol.pdf --expansion-only --metadata --eligibility
 
 ### Combined Output
 
-When running multiple phases, a combined `full_usdm.json` is generated containing all extracted data in a single USDM-aligned structure.
+When running multiple phases, a combined `protocol_usdm.json` is generated containing all extracted data in a single USDM-aligned structure.
 
 ---
 
@@ -222,49 +222,49 @@ For individual phase extraction without the main pipeline:
 ### Study Metadata (Phase 2)
 Extracts study identity from title page and synopsis.
 ```bash
-python extract_metadata.py protocol.pdf
+python scripts/extractors/extract_metadata.py protocol.pdf
 ```
 **Entities:** `StudyTitle`, `StudyIdentifier`, `Organization`, `StudyRole`, `Indication`
 
 ### Eligibility Criteria (Phase 1)
 Extracts inclusion and exclusion criteria.
 ```bash
-python extract_eligibility.py protocol.pdf
+python scripts/extractors/extract_eligibility.py protocol.pdf
 ```
 **Entities:** `EligibilityCriterion`, `EligibilityCriterionItem`, `StudyDesignPopulation`
 
 ### Objectives & Endpoints (Phase 3)
 Extracts primary, secondary, exploratory objectives with linked endpoints.
 ```bash
-python extract_objectives.py protocol.pdf
+python scripts/extractors/extract_objectives.py protocol.pdf
 ```
 **Entities:** `Objective`, `Endpoint`, `Estimand`, `IntercurrentEvent`
 
 ### Study Design Structure (Phase 4)
 Extracts design type, blinding, randomization, arms, cohorts.
 ```bash
-python extract_studydesign.py protocol.pdf
+python scripts/extractors/extract_studydesign.py protocol.pdf
 ```
 **Entities:** `InterventionalStudyDesign`, `StudyArm`, `StudyCell`, `StudyCohort`
 
 ### Interventions & Products (Phase 5)
 Extracts investigational products, dosing regimens, substances.
 ```bash
-python extract_interventions.py protocol.pdf
+python scripts/extractors/extract_interventions.py protocol.pdf
 ```
 **Entities:** `StudyIntervention`, `AdministrableProduct`, `Administration`, `Substance`
 
 ### Narrative Structure (Phase 7)
 Extracts document structure, sections, and abbreviations.
 ```bash
-python extract_narrative.py protocol.pdf
+python scripts/extractors/extract_narrative.py protocol.pdf
 ```
 **Entities:** `NarrativeContent`, `Abbreviation`, `StudyDefinitionDocument`
 
 ### Advanced Entities (Phase 8)
 Extracts amendments, geographic scope, and study sites.
 ```bash
-python extract_advanced.py protocol.pdf
+python scripts/extractors/extract_advanced.py protocol.pdf
 ```
 **Entities:** `StudyAmendment`, `GeographicScope`, `Country`, `StudySite`
 
@@ -298,8 +298,11 @@ output/<protocol_name>/
 ├── 6_validation_result.json      # SoA validation details
 ├── 9_final_soa.json             # ⭐ FINAL SoA OUTPUT
 ├── 9_final_soa_provenance.json   # Source tracking
-├── step8_schema_validation.json  # Schema validation results
-└── conformance_report.json       # CORE conformance report
+├── protocol_usdm.json            ⭐ Combined full protocol output
+├── protocol_usdm_provenance.json  # UUID-based provenance
+├── schema_validation.json         # Schema validation results
+├── usdm_validation.json           # USDM package validation
+└── conformance_report.json        # CORE conformance report
 ```
 
 ### Primary Output: `9_final_soa.json`
@@ -454,13 +457,20 @@ python main_v3.py protocol.pdf --conformance
 
 ### Supported Models
 
+**Supported (optimised and tested):**
+
 | Model | Provider | Speed | Best For |
 |-------|----------|-------|----------|
-| `gemini-3-flash` | Google | **Fast** | **Recommended - Optimized for this release** |
-| `gemini-2.5-pro` | Google | Medium | Reliable fallback |
-| `claude-opus-4-5` | Anthropic | Medium | High accuracy, higher cost |
-| `claude-sonnet-4` | Anthropic | Fast | Good balance |
-| `chatgpt-5.2` | OpenAI | Medium | Good alternative |
+| `gemini-3-flash` | Google | **Fast** | **Recommended — pipeline optimised and tuned for this model** |
+| `gemini-2.5-pro` | Google | Medium | Tested fallback (auto-used for SoA text extraction) |
+
+**Future (hooks exist, not yet tuned):**
+
+| Model | Provider | Status |
+|-------|----------|--------|
+| `claude-opus-4-5` | Anthropic | Provider hook implemented, not tuned |
+| `claude-sonnet-4` | Anthropic | Provider hook implemented, not tuned |
+| `gpt-5.2` | OpenAI | Provider hook implemented, not tuned |
 
 ### Gemini 3 Flash with Intelligent Fallback
 
@@ -494,8 +504,8 @@ GOOGLE_API_KEY=AIzaSy...  # Still needed for authentication
 |-------|-------------|----------------|------------------|
 | gemini-3-flash | 100% | via fallback | All 12 ✓ |
 | gemini-2.5-pro | 100% | Native | All 12 ✓ |
-| claude-opus-4-5 | 100% | Native | All 12 ✓ |
-| chatgpt-5.2 | 100% | Native | All 12 ✓ |
+
+> Other provider hooks (OpenAI, Anthropic) exist in `llm_providers.py` for future tuning but are not currently optimised or tested.
 
 ### Specifying Model
 ```bash
@@ -595,7 +605,7 @@ Error: GOOGLE_API_KEY environment variable not set
 3. Check API quota/limits
 
 ### Schema Validation Errors
-**Symptom:** `step8_schema_validation.json` shows issues
+**Symptom:** `schema_validation.json` shows issues
 
 **Note:** Most issues are auto-fixed during post-processing. Review the specific errors in the JSON file.
 

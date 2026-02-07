@@ -5,19 +5,26 @@ import { SoAGrid } from './SoAGrid';
 import { SoAToolbar, FilterOptions } from './SoAToolbar';
 import { FootnotePanel } from './FootnotePanel';
 import { toSoATableModel, SoACell, cellKey } from '@/lib/adapters/toSoATableModel';
-import { useProtocolStore, selectStudyDesign } from '@/stores/protocolStore';
 import { useOverlayStore, selectDraftPayload } from '@/stores/overlayStore';
+import { useSoAEditStore } from '@/stores/soaEditStore';
+import { useProtocolStore } from '@/stores/protocolStore';
+import { usePatchedStudyDesign } from '@/hooks/usePatchedUsdm';
 import type { ProvenanceData } from '@/lib/provenance/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { AlertCircle } from 'lucide-react';
 
 interface SoAViewProps {
   provenance: ProvenanceData | null;
 }
 
 export function SoAView({ provenance }: SoAViewProps) {
-  const studyDesign = useProtocolStore(selectStudyDesign);
+  // Use patched study design to show draft changes
+  const studyDesign = usePatchedStudyDesign();
   const overlayPayload = useOverlayStore(selectDraftPayload);
   const { resetToPublished } = useOverlayStore();
+  const { lastError } = useSoAEditStore();
+  // Get revision to force SoAGrid re-render when USDM is reloaded
+  const revision = useProtocolStore(state => state.revision);
 
   const [filter, setFilter] = useState<FilterOptions>({
     showOnlyNeedsReview: false,
@@ -124,15 +131,17 @@ export function SoAView({ provenance }: SoAViewProps) {
   }, [tableModel]);
 
   // Get footnotes - prefer authoritative SoA footnotes from USDM extension, fall back to provenance
-  const footnotes = useMemo(() => {
+  const { footnotes, footnoteExtIndex } = useMemo(() => {
     // First check for authoritative SoA footnotes in studyDesign.extensionAttributes
-    if (studyDesign?.extensionAttributes) {
-      for (const ext of studyDesign.extensionAttributes) {
+    const extensions = studyDesign?.extensionAttributes as Array<{ url?: string; valueString?: string }> | undefined;
+    if (extensions && Array.isArray(extensions)) {
+      for (let i = 0; i < extensions.length; i++) {
+        const ext = extensions[i];
         if (ext.url?.includes('soaFootnotes') && ext.valueString) {
           try {
             const soaFns = JSON.parse(ext.valueString as string) as string[];
             if (soaFns.length > 0) {
-              return soaFns;
+              return { footnotes: soaFns, footnoteExtIndex: i };
             }
           } catch {
             // Skip malformed JSON
@@ -141,7 +150,7 @@ export function SoAView({ provenance }: SoAViewProps) {
       }
     }
     // Fall back to provenance footnotes
-    return provenance?.footnotes || [];
+    return { footnotes: provenance?.footnotes || [], footnoteExtIndex: -1 };
   }, [studyDesign, provenance]);
 
   // Get selected cell footnotes
@@ -169,13 +178,24 @@ export function SoAView({ provenance }: SoAViewProps) {
         onResetLayout={resetToPublished}
       />
 
-      {/* Grid */}
+      {/* Error display */}
+      {lastError && (
+        <div className="flex items-center gap-2 text-red-600 text-sm p-2 bg-red-50 rounded-md">
+          <AlertCircle className="h-4 w-4" />
+          {lastError}
+        </div>
+      )}
+
+      {/* Grid - always editable, changes go to semantic draft */}
       <Card>
         <CardContent className="p-0">
           <div className="h-[600px]">
             <SoAGrid
+              key={revision || 'initial'}
               model={filteredModel}
               onCellClick={handleCellClick}
+              editable={true}
+              availableFootnotes={footnotes.map((_, i) => String.fromCharCode(97 + i))}
             />
           </div>
         </CardContent>
@@ -186,6 +206,7 @@ export function SoAView({ provenance }: SoAViewProps) {
         <FootnotePanel
           footnotes={footnotes}
           selectedFootnoteRefs={selectedFootnoteRefs}
+          editBasePath={footnoteExtIndex >= 0 ? `/study/versions/0/studyDesigns/0/extensionAttributes/${footnoteExtIndex}/soaFootnotes` : undefined}
         />
       )}
 

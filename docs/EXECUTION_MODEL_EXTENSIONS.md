@@ -1,6 +1,6 @@
 # Execution Model Extension Schema
 
-This document defines the structured extension schema for execution model concepts that have no native USDM v4.0 equivalent. These extensions are used in `extensionAttributes` on appropriate USDM entities.
+This document defines the structured extension schema for execution model concepts. As of v7.2, many concepts are **promoted to native USDM entities** by the `ExecutionModelPromoter`. Extensions are retained for backward compatibility and to carry additional detail not representable in core USDM.
 
 ## Extension Namespace
 
@@ -8,17 +8,32 @@ All Protocol2USDM extensions use the namespace: `https://protocol2usdm.io/extens
 
 ## Concepts Requiring Extensions
 
-Per the USDM v4.0 schema analysis, the following concepts have no native USDM entity:
+The following extensions are written to `extensionAttributes` on appropriate USDM entities:
 
-| Concept | Extension URL | Attached To |
-|---------|---------------|-------------|
-| Sampling Constraints | `x-executionModel-samplingConstraints` | Activity, ScheduleTimeline |
-| Execution Type Classifications | `x-executionModel-executionType` | Activity |
-| Endpoint Computation Formulas | `x-algorithm` | Estimand |
-| Derived Variable Rules | `x-executionModel-derivedVariables` | Endpoint, Estimand |
-| Analysis Windows | `x-executionModel-analysisWindows` | StudyDesign |
-| Randomization Details | `x-executionModel-randomizationScheme` | StudyDesign |
-| Conceptual Time Anchors | `x-executionModel-conceptualAnchors` | ScheduleTimeline |
+| Concept | Extension URL | Attached To | Promoted in v7.2? |
+|---------|---------------|-------------|--------------------|
+| Time Anchors | `x-executionModel-timeAnchors` | StudyDesign | Partially (→ ScheduledActivityInstance) |
+| Repetitions | `x-executionModel-repetitions` | StudyDesign | Partially (→ ScheduledActivityInstance expansion) |
+| Sampling Constraints | `x-executionModel-samplingConstraints` | Activity, ScheduleTimeline | No |
+| Execution Type Classifications | `x-executionModel-executionType` | Activity | No |
+| Crossover Design | `x-executionModel-crossoverDesign` | StudyDesign | Partially (periods → Epoch) |
+| Traversal Constraints | `x-executionModel-traversalConstraints` | StudyDesign | Yes (→ Epoch.previousId/nextId) |
+| Visit Windows | `x-executionModel-visitWindows` | StudyDesign | Yes (→ Timing.windowLower/Upper) |
+| Dosing Regimens | `x-executionModel-dosingRegimens` | StudyDesign | Yes (→ Administration entities) |
+| State Machine | `x-executionModel-stateMachine` | StudyDesign | Yes (→ TransitionRule on Encounter) |
+| Endpoint Algorithms | `x-executionModel-endpointAlgorithms` | StudyDesign | Partially (→ Estimand) |
+| Derived Variable Rules | `x-executionModel-derivedVariables` | StudyDesign | No |
+| Analysis Windows | `x-executionModel-analysisWindows` | StudyDesign | No |
+| Randomization Details | `x-executionModel-randomizationScheme` | StudyDesign | No |
+| Conceptual Time Anchors | `x-executionModel-conceptualAnchors` | ScheduleTimeline | No |
+| Titration Schedules | `x-executionModel-titrationSchedules` | StudyDesign | Yes (→ StudyElement + TransitionRule) |
+| Activity Bindings | `x-executionModel-activityBindings` | StudyDesign | No |
+| Instance Bindings | `x-executionModel-instanceBindings` | StudyDesign | No |
+| Entity Mappings | `x-executionModel-entityMappings` | StudyDesign | No (debug/transparency) |
+| Entity Maps | `x-executionModel-entityMaps` | StudyDesign | No (debug/transparency) |
+| Promotion Issues | `x-executionModel-promotionIssues` | StudyDesign | No (debug/transparency) |
+| Classified Issues | `x-executionModel-classifiedIssues` | StudyDesign | No (debug/transparency) |
+| Integrity Issues | `x-executionModel-integrityIssues` | StudyDesign | No (debug/transparency) |
 
 ---
 
@@ -213,9 +228,9 @@ interface RandomizationScheme {
 
 ---
 
-## Promoted Concepts (No Longer Extensions)
+## Promoted Concepts (v7.2)
 
-The following concepts are now promoted to native USDM entities by the `ExecutionModelPromoter`:
+The following concepts are now promoted to **native USDM entities** by the `ExecutionModelPromoter` (`extraction/execution/execution_model_promoter.py`). Extensions are retained for backward compatibility and additional detail.
 
 | Concept | USDM Entity | Notes |
 |---------|-------------|-------|
@@ -223,8 +238,14 @@ The following concepts are now promoted to native USDM entities by the `Executio
 | Visit Windows | `Timing.windowLower/Upper` | ISO 8601 duration bounds |
 | State Machine | `TransitionRule` on `Encounter` | `transitionStartRule`, `transitionEndRule` |
 | Traversal Constraints | `StudyEpoch.previousId/nextId` | Epoch sequence chain |
-| Endpoint Algorithms | `Estimand` | Algorithm formula in extension |
+| Endpoint Algorithms | `Estimand` | Algorithm formula kept in extension |
 | Titration Schedules | `StudyElement` | With `transitionStartRule` |
+| Dosing Regimens | `Administration` | Linked to `StudyIntervention` |
+| Time Anchors | `ScheduledActivityInstance` | Anchor metadata in instance |
+| Repetitions | `ScheduledActivityInstance` (expanded) | Multiple instances per occurrence |
+| Crossover Periods | `StudyEpoch` | Periods and washouts as first-class epochs |
+
+**Key principle:** Core USDM output (`protocol_usdm.json`) is self-sufficient without parsing extensions. Extensions provide additional detail and debug transparency.
 
 ---
 

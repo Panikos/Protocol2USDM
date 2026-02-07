@@ -50,7 +50,7 @@ python main_v3.py input/trial/NCT04573309_Wilsons/NCT04573309_Wilsons_Protocol.p
 
 This extracts the full protocol with execution model, enriches entities with NCI terminology codes, includes SAP analysis populations (with STATO mapping and ARS linkage), and site list.
 
-> **💡 Default Model:** `gemini-3-flash-preview` (Gemini Flash 3) via Vertex AI. Other models (`claude-opus-4-5`, `claude-sonnet-4`, `chatgpt-5.2`, `gemini-2.5-pro`) are supported. The pipeline defaults to `--complete` mode when no specific phases are requested.
+> **💡 Default Model:** `gemini-3-flash-preview` (Gemini Flash 3) via Vertex AI with `gemini-2.5-pro` as fallback. These are the only models currently optimised and tested. Provider hooks for OpenAI and Anthropic models exist but are **not yet tuned** — they are reserved for future support. The pipeline defaults to `--complete` mode when no specific phases are requested.
 
 ### ⚠️ Important: Vertex AI Requirement for Gemini
 
@@ -257,14 +257,8 @@ python main_v3.py <protocol.pdf> [options]
 # Default: gemini-3-flash-preview (no --model flag needed)
 python main_v3.py protocol.pdf
 
-# Gemini 2.5 Pro (good fallback)
+# Gemini 2.5 Pro (tested fallback)
 python main_v3.py protocol.pdf --model gemini-2.5-pro
-
-# Claude Opus 4.5 (high accuracy, higher cost)
-python main_v3.py protocol.pdf --model claude-opus-4-5
-
-# ChatGPT 5.2
-python main_v3.py protocol.pdf --model chatgpt-5.2
 ```
 
 ### Complete Extraction (Default)
@@ -346,7 +340,7 @@ python main_v3.py protocol.pdf --conformance         # Step 9: CORE conformance
 | Source | Entities | Output File |
 |--------|----------|-------------|
 | SAP Document | AnalysisPopulation, Characteristic | `11_sap_populations.json` |
-| Site List | StudySite, StudyRole, AssignedPerson | `12_site_list.json` |
+| Site List | StudySite, StudyRole, AssignedPerson | `12_study_sites.json` |
 
 ### Post-Processing
 
@@ -484,13 +478,17 @@ Then open http://localhost:3000 in your browser.
 - Validation results
 - Raw USDM JSON viewer
 
-### Future Roadmap
+### Semantic Editing (v7.2.1)
 
-> **🚧 In Development:** We intend to streamline the UI further and enable **digital protocol (USDM JSON) editing directly via the UI**. Some of these editing features are present but not fully functional yet. The goal is to allow users to:
-> - Edit USDM entities directly in the browser
-> - Save draft overlays without modifying source data
-> - Publish finalized edits back to the USDM JSON
-> - Track edit history and provenance
+> **✅ Implemented:** The web UI now supports **semantic editing of USDM data** using JSON Patch (RFC 6902):
+> - Edit USDM entities directly in the browser via inline editing
+> - Draft/publish workflow with revision tracking
+> - Auto-validation on publish (schema + USDM + CORE conformance)
+> - Version history and USDM snapshots for rollback
+> - Source documents tab (protocol PDF, SAP, sites)
+> - Intermediate files browser for extraction artifacts
+>
+> See [docs/SEMANTIC_EDITING_SPEC.md](docs/SEMANTIC_EDITING_SPEC.md) for full implementation details.
 
 ---
 
@@ -501,15 +499,12 @@ SoA extraction tested on Alexion Wilson's Disease protocol (Jan 2026):
 | Model | Activities | Timepoints | Ticks | Expansion Phases | Recommendation |
 |-------|------------|------------|-------|------------------|----------------|
 | **gemini-3-flash** ⭐ | 36 ✓ | 24 ✓ | 216 | 12/12 ✓ | **Optimized for this release** |
-| gemini-2.5-pro | 36 ✓ | 24 ✓ | 207 | 12/12 ✓ | Good fallback |
-| claude-opus-4-5 | 36 ✓ | 24 ✓ | 212 | 12/12 ✓ | Good, higher cost |
-| chatgpt-5.2 | 36 ✓ | 24 ✓ | 210 | 12/12 ✓ | Good alternative |
+| gemini-2.5-pro | 36 ✓ | 24 ✓ | 207 | 12/12 ✓ | Tested fallback |
 
 **Notes:**
-- **gemini-3-flash**: This release is optimized for Gemini Flash 3. Best balance of speed, accuracy, and cost.
+- **gemini-3-flash**: This release is optimized and tuned for Gemini Flash 3. Best balance of speed, accuracy, and cost.
 - **gemini-2.5-pro**: Used as automatic fallback for SoA text extraction when Gemini 3 has JSON compliance issues.
-- **claude-opus-4-5**: High accuracy but significantly higher cost per extraction.
-- **chatgpt-5.2**: Latest OpenAI model with good accuracy.
+- Other provider hooks (OpenAI, Anthropic) exist in `llm_providers.py` for future tuning but are **not currently optimised or tested**.
 
 ---
 
@@ -616,18 +611,15 @@ CDISC_API_KEY=...           # For CORE rules cache (get from library.cdisc.org)
 
 ### Supported Models
 
-**Google (Optimized for this release):**
-- `gemini-3-flash` ⭐ **Recommended** - Pipeline optimized for this model
-- `gemini-2.5-pro` - Good fallback, used automatically for SoA extraction
+**Supported (optimised and tested):**
+- `gemini-3-flash` ⭐ **Recommended** - Pipeline optimised and tuned for this model
+- `gemini-2.5-pro` - Tested fallback, used automatically for SoA text extraction
 
-**Anthropic:**
-- `claude-opus-4-5` - High accuracy, higher cost
-- `claude-sonnet-4` - Good balance of speed and accuracy
+**Future (hooks exist, not yet tuned):**
+- `claude-opus-4-5`, `claude-sonnet-4` - Anthropic provider hooks in `llm_providers.py`
+- `gpt-5.2`, `gpt-5.1` - OpenAI provider hooks in `llm_providers.py`
 
-**OpenAI:**
-- `chatgpt-5.2` - Latest OpenAI model, good accuracy
-
-> **Note:** Other models are also supported via the unified provider interface. See `llm_providers.py` for the full list.
+> **Note:** Provider abstractions for OpenAI and Anthropic are implemented but prompts and parameters have not been tuned for these models. They are reserved for future support.
 
 ---
 

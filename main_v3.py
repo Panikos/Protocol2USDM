@@ -192,6 +192,9 @@ Examples:
     
     os.makedirs(output_dir, exist_ok=True)
     
+    # Write run manifest for reproducibility
+    _write_run_manifest(output_dir, args, config, phases_to_run)
+    
     # Run pipeline
     try:
         result = None
@@ -435,6 +438,56 @@ def _merge_header_footnotes(soa_data, output_dir, pdf_path):
         logger.debug(f"Hybrid footnote extraction skipped: {e}")
     
     return soa_data
+
+
+def _write_run_manifest(output_dir, args, config, phases_to_run):
+    """Write a run manifest for reproducibility and auditing."""
+    import hashlib
+    
+    # Compute input file hash
+    input_hash = None
+    if args.pdf_path and os.path.exists(args.pdf_path):
+        try:
+            with open(args.pdf_path, 'rb') as f:
+                input_hash = hashlib.sha256(f.read()).hexdigest()
+        except Exception:
+            pass
+    
+    # Get schema version info if available
+    schema_info = None
+    try:
+        from core.usdm_schema_loader import USDMSchemaLoader
+        schema_info = USDMSchemaLoader.get_schema_version_info()
+    except Exception:
+        pass
+    
+    manifest = {
+        "tool": "Protocol2USDM",
+        "version": "7.2.0",
+        "timestamp": datetime.now().isoformat(),
+        "input": {
+            "pdf_path": os.path.abspath(args.pdf_path) if args.pdf_path else None,
+            "pdf_sha256": input_hash,
+            "sap_path": os.path.abspath(args.sap) if getattr(args, 'sap', None) else None,
+            "sites_path": os.path.abspath(args.sites) if getattr(args, 'sites', None) else None,
+        },
+        "configuration": {
+            "model": config.model_name,
+            "parallel": getattr(args, 'parallel', False),
+            "max_workers": getattr(args, 'max_workers', 4),
+            "validate_with_vision": not getattr(args, 'no_validate', False),
+        },
+        "phases": {name: enabled for name, enabled in phases_to_run.items()},
+        "schema": schema_info,
+    }
+    
+    manifest_path = os.path.join(output_dir, "run_manifest.json")
+    try:
+        with open(manifest_path, 'w', encoding='utf-8') as f:
+            json.dump(manifest, f, indent=2, ensure_ascii=False)
+        logger.info(f"Run manifest: {manifest_path}")
+    except Exception as e:
+        logger.warning(f"Failed to write run manifest: {e}")
 
 
 def _print_soa_results(result):

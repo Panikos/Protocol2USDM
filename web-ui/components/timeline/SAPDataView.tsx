@@ -21,7 +21,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { useProtocolStore } from '@/stores/protocolStore';
+import { usePatchedStudyDesign } from '@/hooks/usePatchedUsdm';
 
 // Types for SAP data
 interface AnalysisPopulation {
@@ -143,9 +143,8 @@ type TabId = 'overview' | 'populations' | 'methods' | 'multiplicity' | 'sensitiv
 export function SAPDataView() {
   const [activeTab, setActiveTab] = useState<TabId>('overview');
 
-  const studyDesign = useProtocolStore(state => 
-    state.usdm?.study?.versions?.[0]?.studyDesigns?.[0]
-  );
+  // Use patched study design to show draft changes
+  const studyDesign = usePatchedStudyDesign();
   
   // Extract SAP data from USDM
   const sapData = useMemo(() => {

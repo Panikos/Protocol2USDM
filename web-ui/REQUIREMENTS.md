@@ -51,7 +51,7 @@
 2. **Overlay (presentation + authoring)** - Stores layout, ordering, presentation-only data
 3. **Adapters (pure functions)** - Transform USDM + Overlay into view models
 
-### 2.2 USDM Entity Locations (v6.6)
+### 2.2 USDM Entity Locations (v7.2)
 
 UI components read data from USDM-compliant paths per `dataStructure.yml`:
 
@@ -169,17 +169,27 @@ Overlay keys must be **stable IDs derived from USDM** wherever possible.
 ## 5. API Endpoints
 
 ### 5.1 USDM API
-- `GET /protocols/:id/usdm` → returns latest USDM + revision
+- `GET /api/protocols/:id/usdm` → returns latest USDM + revision
 
 ### 5.2 Overlay APIs
-- `GET /protocols/:id/overlay/published?usdmRevision=...`
-- `GET /protocols/:id/overlay/draft?user=...&usdmRevision=...`
-- `PUT /protocols/:id/overlay/draft` → save draft
-- `POST /protocols/:id/overlay/publish` → promote draft → published
-- `POST /protocols/:id/overlay/reset` → reset draft to published
+- `GET /api/protocols/:id/overlay/published?usdmRevision=...`
+- `GET /api/protocols/:id/overlay/draft?user=...&usdmRevision=...`
+- `PUT /api/protocols/:id/overlay/draft` → save draft
+- `POST /api/protocols/:id/overlay/publish` → promote draft → published
+- `POST /api/protocols/:id/overlay/reset` → reset draft to published
 
-### 5.3 Semantic Patch API
-- `POST /protocols/:id/patch` → submit semantic change (mark edits)
+### 5.3 Semantic Editing APIs *(Implemented v7.2.1)*
+- `GET /api/protocols/:id/semantic/draft` → get current semantic draft
+- `PUT /api/protocols/:id/semantic/draft` → save semantic draft (JSON Patch)
+- `DELETE /api/protocols/:id/semantic/draft` → discard semantic draft
+- `POST /api/protocols/:id/semantic/publish` → apply patch, validate, update USDM
+- `GET /api/protocols/:id/semantic/history` → list published versions and USDM snapshots
+
+### 5.4 Documents APIs *(Implemented v7.2.1)*
+- `GET /api/protocols/:id/documents` → list source documents (PDF, SAP, sites)
+- `GET /api/protocols/:id/documents/:filename` → download/preview document
+- `GET /api/protocols/:id/intermediate` → list extraction JSON artifacts
+- `GET /api/protocols/:id/intermediate/:filename` → preview/download JSON artifact
 
 ---
 
@@ -238,7 +248,9 @@ Overlay keys must be **stable IDs derived from USDM** wherever possible.
 - Draft/publish workflow
 - Reconciliation UI
 
-### Milestone 5: Semantic Editing (Week 9-10)
-- Mark editing → semantic patch
-- Pipeline integration
-- Real-time USDM reload
+### Milestone 5: Semantic Editing (Week 9-10) ✅ *Completed v7.2.1*
+- ~~Mark editing → semantic patch~~ → JSON Patch (RFC 6902) editing
+- ~~Pipeline integration~~ → Validation on publish (schema + USDM + CORE)
+- ~~Real-time USDM reload~~ → Draft/publish workflow with version history
+- Documents tab for source document viewing
+- Intermediate files tab for extraction artifact browsing

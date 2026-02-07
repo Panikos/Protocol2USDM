@@ -238,15 +238,14 @@ class USDMValidator:
                 ))
         
         if not self.has_usdm:
-            # Fallback to basic validation without the package
+            # Cannot validate without the official package — report as invalid
             result.issues.append(ValidationIssue(
                 location='validator',
-                message='usdm package not installed. Install with: pip install usdm',
+                message='usdm package not installed — schema validation cannot be performed. Install with: pip install usdm',
                 error_type='package_not_installed',
-                severity=ValidationSeverity.WARNING
+                severity=ValidationSeverity.ERROR
             ))
-            # Can't properly validate, assume valid but with warning
-            result.valid = True
+            result.valid = False
             result.validator_type = "fallback"
             return result
         

@@ -18,7 +18,6 @@ import {
   FileEdit,
   BarChart3,
   BookOpen,
-  Image,
   Microscope,
   Stethoscope,
   MapPin,
@@ -32,7 +31,6 @@ import { TabGroup, TabButton } from '@/components/ui/tab-group';
 import { ExportButton, ExportFormat } from '@/components/ui/export-button';
 import { exportToCSV, exportToJSON, exportToPDF, formatUSDMForExport } from '@/lib/export/exportUtils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { DraftPublishControls } from '@/components/overlay/DraftPublishControls';
 import { SoAView } from '@/components/soa';
 import { TimelineView, ExecutionModelView, SAPDataView, ARSDataView } from '@/components/timeline';
 import { ProvenanceView } from '@/components/provenance';
@@ -52,13 +50,16 @@ import {
   NarrativeView,
 } from '@/components/protocol';
 import { QualityMetricsDashboard, ValidationResultsView } from '@/components/quality';
-import { DocumentStructureView, SoAImagesTab } from '@/components/intermediate';
+import { DocumentStructureView } from '@/components/intermediate';
+import { DocumentsTab, IntermediateFilesTab } from '@/components/documents';
+import { UnifiedDraftControls, VersionHistoryPanel } from '@/components/semantic';
 import { useProtocolStore } from '@/stores/protocolStore';
 import { useOverlayStore } from '@/stores/overlayStore';
+import { useSemanticStore } from '@/stores/semanticStore';
 import { cn } from '@/lib/utils';
 import type { ProvenanceData } from '@/lib/provenance/types';
 
-type TabId = 'overview' | 'eligibility' | 'objectives' | 'design' | 'interventions' | 'amendments' | 'extensions' | 'entities' | 'procedures' | 'sites' | 'footnotes' | 'quality' | 'validation' | 'document' | 'images' | 'soa' | 'timeline' | 'provenance' | 'schedule' | 'narrative';
+type TabId = 'overview' | 'eligibility' | 'objectives' | 'design' | 'interventions' | 'amendments' | 'extensions' | 'entities' | 'procedures' | 'sites' | 'footnotes' | 'quality' | 'validation' | 'document' | 'documents' | 'intermediate' | 'soa' | 'timeline' | 'provenance' | 'schedule' | 'narrative';
 
 export default function ProtocolDetailPage() {
   const params = useParams();
@@ -69,9 +70,11 @@ export default function ProtocolDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [provenance, setProvenance] = useState<ProvenanceData | null>(null);
   const [intermediateFiles, setIntermediateFiles] = useState<Record<string, unknown> | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
 
   const { setProtocol, usdm, metadata } = useProtocolStore();
   const { loadOverlays, draft } = useOverlayStore();
+  const semanticDraft = useSemanticStore((state) => state.draft);
 
   // Load protocol data
   useEffect(() => {
@@ -99,6 +102,17 @@ export default function ProtocolDetailPage() {
         const draftOverlay = draftRes.ok ? await draftRes.json() : null;
 
         loadOverlays(protocolId, revision, published, draftOverlay);
+
+        // Load semantic draft
+        try {
+          const semanticDraftRes = await fetch(`/api/protocols/${protocolId}/semantic/draft`);
+          const semanticDraft = semanticDraftRes.ok ? await semanticDraftRes.json() : null;
+          useSemanticStore.getState().loadDraft(protocolId, revision, semanticDraft);
+        } catch (semanticErr) {
+          console.warn('Failed to load semantic draft:', semanticErr);
+          // Initialize with empty state even if load fails
+          useSemanticStore.getState().loadDraft(protocolId, revision, null);
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unknown error');
       } finally {
@@ -108,6 +122,34 @@ export default function ProtocolDetailPage() {
 
     loadProtocol();
   }, [protocolId, setProtocol, loadOverlays]);
+
+  // Reload USDM from server (called after publish to show updated data)
+  const handleReloadUsdm = async () => {
+    try {
+      // Add cache-busting timestamp to ensure fresh data after publish
+      const usdmRes = await fetch(`/api/protocols/${protocolId}/usdm?t=${Date.now()}`, {
+        cache: 'no-store',
+      });
+      if (!usdmRes.ok) throw new Error('Failed to reload protocol');
+      const { usdm: newUsdm, revision: newRevision, provenance: provData } = await usdmRes.json();
+      
+      console.log('[handleReloadUsdm] Loaded new USDM with revision:', newRevision);
+      
+      setProtocol(protocolId, newUsdm, newRevision);
+      setProvenance(provData);
+      
+      // Update semantic store with new revision (no draft after publish)
+      useSemanticStore.getState().loadDraft(protocolId, newRevision, null);
+      
+      console.log('[handleReloadUsdm] Protocol store and semantic store updated');
+      
+      // Clear SoA edit store AFTER USDM is reloaded so the view shows fresh data
+      const { useSoAEditStore } = await import('@/stores/soaEditStore');
+      useSoAEditStore.getState().reset();
+    } catch (err) {
+      console.error('Failed to reload USDM after publish:', err);
+    }
+  };
 
   const handleSaveDraft = async () => {
     // Access current draft from store state (not captured at render time)
@@ -214,8 +256,9 @@ export default function ProtocolDetailPage() {
   ];
 
   const dataTabs = [
-    { id: 'document', label: 'Document', icon: <BookOpen className="h-4 w-4" /> },
-    { id: 'images', label: 'Images', icon: <Image className="h-4 w-4" /> },
+    { id: 'documents', label: 'Documents', icon: <FileText className="h-4 w-4" /> },
+    { id: 'intermediate', label: 'Intermediate', icon: <FolderOpen className="h-4 w-4" /> },
+    { id: 'document', label: 'Structure', icon: <BookOpen className="h-4 w-4" /> },
     { id: 'soa', label: 'SoA Table', icon: <Table className="h-4 w-4" /> },
     { id: 'timeline', label: 'Timeline', icon: <GitBranch className="h-4 w-4" /> },
     { id: 'provenance', label: 'Provenance', icon: <Eye className="h-4 w-4" /> },
@@ -266,13 +309,21 @@ export default function ProtocolDetailPage() {
                 <p className="text-xs text-muted-foreground">
                   USDM {metadata?.usdmVersion} • Generated {metadata?.generatedAt ? 
                     new Date(metadata.generatedAt).toLocaleDateString() : 'N/A'}
+                  {semanticDraft?.updatedAt && (
+                    <> • Last Edited {new Date(semanticDraft.updatedAt).toLocaleString()}</>
+                  )}
                 </p>
               </div>
             </div>
-            <DraftPublishControls 
-              onSaveDraft={handleSaveDraft}
-              onPublish={handlePublish}
-            />
+            <div className="flex items-center gap-2">
+              <UnifiedDraftControls 
+                protocolId={protocolId}
+                onSaveOverlayDraft={handleSaveDraft}
+                onPublishOverlay={handlePublish}
+                onPublishSuccess={handleReloadUsdm}
+                onShowHistory={() => setShowHistory(true)}
+              />
+            </div>
           </div>
         </div>
 
@@ -357,11 +408,14 @@ export default function ProtocolDetailPage() {
         {activeTab === 'validation' && (
           <ValidationResultsView protocolId={protocolId} />
         )}
+        {activeTab === 'documents' && (
+          <DocumentsTab protocolId={protocolId} />
+        )}
+        {activeTab === 'intermediate' && (
+          <IntermediateFilesTab protocolId={protocolId} />
+        )}
         {activeTab === 'document' && (
           <DocumentStructureView usdm={usdm} />
-        )}
-        {activeTab === 'images' && (
-          <SoAImagesTab protocolId={protocolId} />
         )}
         {activeTab === 'soa' && (
           <SoATab provenance={provenance} />
@@ -379,6 +433,13 @@ export default function ProtocolDetailPage() {
           <NarrativeView usdm={usdm} />
         )}
       </main>
+
+      {/* Version History Panel */}
+      <VersionHistoryPanel
+        protocolId={protocolId}
+        isOpen={showHistory}
+        onClose={() => setShowHistory(false)}
+      />
     </div>
   );
 }

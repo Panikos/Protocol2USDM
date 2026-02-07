@@ -7,17 +7,22 @@ Python dataclasses that are always in sync with the USDM specification.
 Source: https://github.com/cdisc-org/DDF-RA/blob/main/Deliverables/UML/dataStructure.yml
 """
 
+import hashlib
+import json as _json
 import yaml
 import uuid
 import logging
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Any, Type, get_type_hints
 from pathlib import Path
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
-# Schema location
-SCHEMA_URL = "https://raw.githubusercontent.com/cdisc-org/DDF-RA/main/Deliverables/UML/dataStructure.yml"
+# Schema location — pinned to USDM v4.0 release tag for reproducibility
+# Update SCHEMA_TAG when upgrading to a new USDM version
+SCHEMA_TAG = "v4.0"
+SCHEMA_URL = f"https://raw.githubusercontent.com/cdisc-org/DDF-RA/{SCHEMA_TAG}/Deliverables/UML/dataStructure.yml"
 CACHE_DIR = Path(__file__).parent / "schema_cache"
 CACHED_SCHEMA = CACHE_DIR / "dataStructure.yml"
 VERSION_FILE = CACHE_DIR / "version.json"
@@ -123,14 +128,26 @@ class USDMSchemaLoader:
         
         try:
             import requests
-            logger.info(f"Downloading USDM schema from {SCHEMA_URL}")
+            logger.info(f"Downloading USDM schema from {SCHEMA_URL} (tag: {SCHEMA_TAG})")
             response = requests.get(SCHEMA_URL, timeout=30)
             response.raise_for_status()
             
+            schema_content = response.text
             with open(self.schema_path, 'w', encoding='utf-8') as f:
-                f.write(response.text)
+                f.write(schema_content)
             
-            logger.info(f"Schema cached at {self.schema_path}")
+            # Write version metadata for traceability
+            schema_hash = hashlib.sha256(schema_content.encode('utf-8')).hexdigest()
+            version_info = {
+                "schema_tag": SCHEMA_TAG,
+                "schema_url": SCHEMA_URL,
+                "schema_sha256": schema_hash,
+                "downloaded_at": datetime.now().isoformat(),
+            }
+            with open(VERSION_FILE, 'w', encoding='utf-8') as f:
+                _json.dump(version_info, f, indent=2)
+            
+            logger.info(f"Schema cached at {self.schema_path} (SHA256: {schema_hash[:12]}...)")
             return self.schema_path
             
         except Exception as e:
@@ -140,6 +157,17 @@ class USDMSchemaLoader:
             if bundled.exists():
                 return bundled
             raise RuntimeError(f"No schema available: {e}")
+    
+    @staticmethod
+    def get_schema_version_info() -> Optional[Dict[str, Any]]:
+        """Get cached schema version metadata, or None if not available."""
+        if VERSION_FILE.exists():
+            try:
+                with open(VERSION_FILE, 'r', encoding='utf-8') as f:
+                    return _json.load(f)
+            except Exception:
+                pass
+        return None
     
     def load(self) -> Dict[str, EntityDefinition]:
         """Load and parse the schema."""

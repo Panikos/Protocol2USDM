@@ -4,8 +4,8 @@ import { useMemo, useCallback, useRef, useState } from 'react';
 import { TimelineCanvas, TimelineCanvasHandle } from './TimelineCanvas';
 import { TimelineToolbar, TimelineLegend } from './TimelineToolbar';
 import { toGraphModel, ExecutionModelData } from '@/lib/adapters/toGraphModel';
-import { useProtocolStore, selectStudyDesign } from '@/stores/protocolStore';
 import { useOverlayStore, selectDraftPayload } from '@/stores/overlayStore';
+import { usePatchedStudyDesign } from '@/hooks/usePatchedUsdm';
 import { Card, CardContent } from '@/components/ui/card';
 import { X, Maximize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -18,7 +18,8 @@ interface TimelineViewProps {
 }
 
 export function TimelineView({ onNodeSelect, executionModel }: TimelineViewProps) {
-  const studyDesign = useProtocolStore(selectStudyDesign);
+  // Use patched study design to show draft changes
+  const studyDesign = usePatchedStudyDesign();
   const overlayPayload = useOverlayStore(selectDraftPayload);
   const canvasRef = useRef<TimelineCanvasHandle>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);

@@ -68,6 +68,8 @@ class MetadataPhase(BasePhase):
                 study_version["studyPhase"] = md.study_phase.to_dict()
             if md.indications:
                 combined["_temp_indications"] = [i.to_dict() for i in md.indications]
+            if md.study_type:
+                combined["_temp_study_type"] = md.study_type
             metadata_added = True
         
         # Fallback to previously extracted metadata
@@ -85,6 +87,8 @@ class MetadataPhase(BasePhase):
                     study_version["studyPhase"] = md['studyPhase']
                 if md.get('indications'):
                     combined["_temp_indications"] = md['indications']
+                if md.get('studyType'):
+                    combined["_temp_study_type"] = md['studyType']
 
 
 # Register the phase

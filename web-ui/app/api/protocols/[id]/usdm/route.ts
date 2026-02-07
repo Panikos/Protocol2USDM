@@ -89,12 +89,12 @@ export async function GET(
     const content = await fs.readFile(usdmPath, 'utf-8');
     const usdm = JSON.parse(content);
     
-    // Calculate revision hash
-    const revision = crypto
+    // Calculate revision hash (must match format in lib/semantic/storage.ts)
+    const hash = crypto
       .createHash('sha256')
       .update(content)
-      .digest('hex')
-      .slice(0, 12);
+      .digest('hex');
+    const revision = `sha256:${hash.slice(0, 16)}`;
     
     // Load provenance (use protocol_usdm_provenance.json as it has UUIDs matching final USDM)
     let provenance = await loadJsonFile(path.join(protocolDir, 'protocol_usdm_provenance.json')) as Record<string, unknown> | null;
@@ -125,6 +125,11 @@ export async function GET(
       provenance,
       intermediateFiles,
       generatedAt: usdm.generatedAt,
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+        'Pragma': 'no-cache',
+      },
     });
   } catch (error) {
     console.error('Error loading USDM:', error);

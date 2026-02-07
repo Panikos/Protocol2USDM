@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { EditableField } from '@/components/semantic';
 import { FileEdit, Calendar, ArrowRight } from 'lucide-react';
 
 interface AmendmentHistoryViewProps {
@@ -89,10 +90,14 @@ export function AmendmentHistoryView({ usdm }: AmendmentHistoryViewProps) {
                     
                     <div className="p-4 border rounded-lg bg-card">
                       <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <h4 className="font-medium">
-                            {amendment.label || amendment.name || `Amendment ${amendment.number || i + 1}`}
-                          </h4>
+                        <div className="flex-1">
+                          <EditableField
+                            path={`/study/versions/0/amendments/${i}/name`}
+                            value={amendment.label || amendment.name || `Amendment ${amendment.number || i + 1}`}
+                            label=""
+                            className="font-medium"
+                            placeholder="Amendment name"
+                          />
                           {displayDate && (
                             <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
                               <Calendar className="h-3 w-3" />
@@ -115,11 +120,14 @@ export function AmendmentHistoryView({ usdm }: AmendmentHistoryViewProps) {
                         </div>
                       </div>
                       
-                      {displaySummary && (
-                        <p className="text-sm text-muted-foreground mb-3">
-                          {displaySummary}
-                        </p>
-                      )}
+                      <EditableField
+                        path={`/study/versions/0/amendments/${i}/summary`}
+                        value={displaySummary || ''}
+                        label=""
+                        type="textarea"
+                        className="text-sm text-muted-foreground mb-3"
+                        placeholder="No summary"
+                      />
                       
                       {amendment.primaryReason?.decode && (
                         <div className="mb-2">

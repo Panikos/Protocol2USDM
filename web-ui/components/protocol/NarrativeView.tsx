@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { EditableField } from '@/components/semantic';
 import { 
   FileText, 
   ChevronDown, 
@@ -169,9 +170,12 @@ export function NarrativeView({ usdm }: NarrativeViewProps) {
 
               return (
                 <div key={section.id || i} className="border rounded-lg overflow-hidden">
-                  <button
+                  <div
                     onClick={() => toggleSection(section.id)}
-                    className="w-full p-3 flex items-center gap-3 hover:bg-muted/50 transition-colors text-left"
+                    className="w-full p-3 flex items-center gap-3 hover:bg-muted/50 transition-colors text-left cursor-pointer"
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => e.key === 'Enter' && toggleSection(section.id)}
                   >
                     {isExpanded ? (
                       <ChevronDown className="h-4 w-4 shrink-0" />
@@ -184,36 +188,53 @@ export function NarrativeView({ usdm }: NarrativeViewProps) {
                         {section.sectionNumber}
                       </Badge>
                     )}
-                    <span className="font-medium flex-1">
-                      {section.sectionTitle || section.name || `Section ${i + 1}`}
+                    <span className="font-medium flex-1" onClick={e => e.stopPropagation()}>
+                      <EditableField
+                        path={`/study/versions/0/narrativeContents/${i}/sectionTitle`}
+                        value={section.sectionTitle || section.name || `Section ${i + 1}`}
+                        label=""
+                        placeholder="Section title"
+                      />
                     </span>
                     {items.length > 0 && (
                       <Badge variant="secondary" className="shrink-0">
                         {items.length} item{items.length !== 1 ? 's' : ''}
                       </Badge>
                     )}
-                  </button>
+                  </div>
                   
                   {isExpanded && (
                     <div className="px-4 pb-4 pt-2 bg-muted/30 border-t">
-                      {section.text && (
-                        <div className="prose prose-sm dark:prose-invert max-w-none mb-4">
-                          <p className="whitespace-pre-wrap">{section.text}</p>
-                        </div>
-                      )}
+                      <div className="prose prose-sm dark:prose-invert max-w-none mb-4">
+                        <EditableField
+                          path={`/study/versions/0/narrativeContents/${i}/text`}
+                          value={section.text || ''}
+                          label=""
+                          type="textarea"
+                          className="whitespace-pre-wrap"
+                          placeholder="No content"
+                        />
+                      </div>
                       
                       {items.length > 0 && (
                         <div className="space-y-3">
                           {items.map((item, ii) => (
                             <div key={item.id || ii} className="p-3 bg-background rounded border">
-                              {item.name && (
-                                <div className="font-medium text-sm mb-1">{item.name}</div>
-                              )}
-                              {item.text && (
-                                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                                  {item.text}
-                                </p>
-                              )}
+                              <EditableField
+                                path={`/study/versions/0/narrativeContentItems/${narrativeContentItems.findIndex(nci => nci.id === item.id)}/name`}
+                                value={item.name || ''}
+                                label=""
+                                className="font-medium text-sm mb-1"
+                                placeholder="Item name"
+                              />
+                              <EditableField
+                                path={`/study/versions/0/narrativeContentItems/${narrativeContentItems.findIndex(nci => nci.id === item.id)}/text`}
+                                value={item.text || ''}
+                                label=""
+                                type="textarea"
+                                className="text-sm text-muted-foreground whitespace-pre-wrap"
+                                placeholder="No content"
+                              />
                             </div>
                           ))}
                         </div>

@@ -94,7 +94,7 @@ export default function ProtocolsPage() {
                 Run the extraction pipeline to generate protocol USDM files.
               </p>
               <code className="block bg-muted p-4 rounded-lg text-sm text-left max-w-xl mx-auto">
-                python main_v2.py &quot;input/protocol.pdf&quot; --complete --output-dir output/my_protocol
+                python main_v3.py &quot;input/protocol.pdf&quot; --complete --output-dir output/my_protocol
               </code>
             </CardContent>
           </Card>

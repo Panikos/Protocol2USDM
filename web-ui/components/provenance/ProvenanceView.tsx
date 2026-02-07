@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { ProvenanceExplorer } from './ProvenanceExplorer';
-import { useProtocolStore, selectStudyDesign } from '@/stores/protocolStore';
+import { usePatchedStudyDesign } from '@/hooks/usePatchedUsdm';
 import type { ProvenanceData } from '@/lib/provenance/types';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -11,7 +11,8 @@ interface ProvenanceViewProps {
 }
 
 export function ProvenanceView({ provenance }: ProvenanceViewProps) {
-  const studyDesign = useProtocolStore(selectStudyDesign);
+  // Use patched study design to show draft changes
+  const studyDesign = usePatchedStudyDesign();
 
   // Extract activities and encounters from study design
   const { activities, encounters } = useMemo(() => {
