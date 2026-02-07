@@ -401,7 +401,7 @@ export function ExecutionModelView({ executionModel }: ExecutionModelViewProps) 
       {/* Tab Content */}
       <div className="min-h-[500px]">
         {activeTab === 'overview' && <OverviewPanel data={execModel} />}
-        {activeTab === 'anchors' && <TimeAnchorsPanel anchors={execModel.timeAnchors ?? []} />}
+        {activeTab === 'anchors' && <TimeAnchorsPanel anchors={execModel.timeAnchors ?? []} studyDesign={studyDesign as Record<string, unknown> | undefined} />}
         {activeTab === 'visits' && <VisitWindowsPanel visits={execModel.visitWindows ?? []} anchors={execModel.timeAnchors ?? []} epochNameMap={epochNameMap} studyDesign={studyDesign as Record<string, unknown> | undefined} />}
         {activeTab === 'conditions' && <ConditionsPanel conditions={execModel.footnoteConditions ?? []} studyDesign={studyDesign ?? undefined} />}
         {activeTab === 'repetitions' && <RepetitionsPanel repetitions={execModel.repetitions ?? []} />}
@@ -754,8 +754,35 @@ function TimelineVisualization({ visits, anchors }: { visits: VisitWindow[]; anc
 // Time Anchors Panel - Enhanced with duplicate detection
 // ============================================================================
 
-function TimeAnchorsPanel({ anchors }: { anchors: TimeAnchor[] }) {
+function TimeAnchorsPanel({ anchors, studyDesign }: { anchors: TimeAnchor[]; studyDesign?: Record<string, unknown> }) {
   const [showFullSource, setShowFullSource] = useState<Set<string>>(new Set());
+
+  // Map anchors to USDM schedule timeline timing indices for editing
+  const anchorTimingMap = useMemo(() => {
+    const timelines = (studyDesign?.scheduleTimelines ?? []) as Array<{ id?: string; timings?: Array<{ id?: string; name?: string; label?: string; description?: string }> }>;
+    const map = new Map<string, { tlIdx: number; tIdx: number }>(); // anchor id -> {timelineIdx, timingIdx}
+    for (const anchor of anchors) {
+      const anchorTypeLower = anchor.anchorType.toLowerCase().trim();
+      const defLower = anchor.definition.toLowerCase().trim();
+      // Try to find matching timing across all timelines
+      for (let tlIdx = 0; tlIdx < timelines.length; tlIdx++) {
+        const timings = timelines[tlIdx].timings ?? [];
+        for (let tIdx = 0; tIdx < timings.length; tIdx++) {
+          const t = timings[tIdx];
+          const nameLower = (t.name ?? '').toLowerCase().trim();
+          const labelLower = (t.label ?? '').toLowerCase().trim();
+          // Match by name or label containing anchor type
+          if (nameLower === anchorTypeLower || labelLower === anchorTypeLower ||
+              nameLower.includes(anchorTypeLower) || anchorTypeLower.includes(nameLower)) {
+            map.set(anchor.id, { tlIdx, tIdx });
+            break;
+          }
+        }
+        if (map.has(anchor.id)) break;
+      }
+    }
+    return map;
+  }, [anchors, studyDesign]);
 
   const anchorTypeColors: Record<string, string> = {
     'FirstDose': 'bg-blue-100 text-blue-800 border-blue-300',
@@ -850,54 +877,95 @@ function TimeAnchorsPanel({ anchors }: { anchors: TimeAnchor[] }) {
                     anchorTypeColors[anchor.anchorType] ?? 'bg-gray-100 text-gray-800 border-gray-300'
                   )}
                 >
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className={cn(
-                        "w-10 h-10 rounded-full flex items-center justify-center text-white font-bold",
-                        index === 0 ? 'bg-blue-600' : 'bg-gray-500'
-                      )}>
-                        {anchor.dayValue ?? '?'}
-                      </div>
-                      <div>
-                        <h4 className="font-semibold flex items-center gap-2">
-                          {anchor.anchorType}
-                          {isDuplicate && (
-                            <AlertTriangle className="h-4 w-4 text-amber-600" />
-                          )}
-                        </h4>
-                        <p className="text-sm opacity-80">{anchor.definition}</p>
-                        {anchor.timelineId && (
-                          <p className="text-xs opacity-60 mt-1">Timeline: {anchor.timelineId}</p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      {isDuplicate && (
-                        <Badge variant="outline" className="text-amber-600 border-amber-400">
-                          Duplicate
-                        </Badge>
-                      )}
-                      {index === 0 && (
-                        <Badge className="bg-blue-600">Primary</Badge>
-                      )}
-                    </div>
-                  </div>
-                  {anchor.sourceText && (
-                    <div className="mt-3">
-                      <button 
-                        onClick={() => toggleSourceView(anchor.id)}
-                        className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
-                      >
-                        {isSourceExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                        {isSourceExpanded ? 'Hide' : 'Show'} source text
-                      </button>
-                      {isSourceExpanded && (
-                        <div className="mt-2 p-2 bg-white/50 rounded text-xs whitespace-pre-wrap">
-                          {anchor.sourceText}
+                  {(() => {
+                    const timingRef = anchorTimingMap.get(anchor.id);
+                    const timingBasePath = timingRef
+                      ? `/study/versions/0/studyDesigns/0/scheduleTimelines/${timingRef.tlIdx}/timings/${timingRef.tIdx}`
+                      : null;
+                    return (
+                      <>
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className={cn(
+                              "w-10 h-10 rounded-full flex items-center justify-center text-white font-bold",
+                              index === 0 ? 'bg-blue-600' : 'bg-gray-500'
+                            )}>
+                              {anchor.dayValue ?? '?'}
+                            </div>
+                            <div className="flex-1">
+                              <h4 className="font-semibold flex items-center gap-2">
+                                {timingBasePath ? (
+                                  <EditableField
+                                    path={`${timingBasePath}/name`}
+                                    value={anchor.anchorType}
+                                    label=""
+                                  />
+                                ) : anchor.anchorType}
+                                {isDuplicate && (
+                                  <AlertTriangle className="h-4 w-4 text-amber-600" />
+                                )}
+                              </h4>
+                              {timingBasePath ? (
+                                <EditableField
+                                  path={`${timingBasePath}/description`}
+                                  value={anchor.definition}
+                                  label=""
+                                  displayClassName="text-sm opacity-80"
+                                />
+                              ) : (
+                                <p className="text-sm opacity-80">{anchor.definition}</p>
+                              )}
+                              {anchor.timelineId && (
+                                <p className="text-xs opacity-60 mt-1">Timeline: {anchor.timelineId}</p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            {isDuplicate && (
+                              <Badge variant="outline" className="text-amber-600 border-amber-400">
+                                Duplicate
+                              </Badge>
+                            )}
+                            {index === 0 && (
+                              <Badge className="bg-blue-600">Primary</Badge>
+                            )}
+                          </div>
                         </div>
-                      )}
-                    </div>
-                  )}
+                        {/* Editable detail fields when USDM timing is matched */}
+                        {timingBasePath && (
+                          <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3 p-3 bg-white/30 rounded-lg">
+                            <EditableField
+                              path={`${timingBasePath}/label`}
+                              value={(anchor as Record<string, unknown>).label as string || anchor.anchorType}
+                              label="Label"
+                            />
+                            <EditableField
+                              path={`${timingBasePath}/value`}
+                              value={anchor.dayValue != null ? String(anchor.dayValue) : ''}
+                              label="Day Value"
+                              type="number"
+                            />
+                          </div>
+                        )}
+                        {anchor.sourceText && (
+                          <div className="mt-3">
+                            <button 
+                              onClick={() => toggleSourceView(anchor.id)}
+                              className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+                            >
+                              {isSourceExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                              {isSourceExpanded ? 'Hide' : 'Show'} source text
+                            </button>
+                            {isSourceExpanded && (
+                              <div className="mt-2 p-2 bg-white/50 rounded text-xs whitespace-pre-wrap">
+                                {anchor.sourceText}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
               );
             })}
