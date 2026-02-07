@@ -2256,6 +2256,44 @@ function TraversalPanel({
     return map;
   }, [studyDesign]);
 
+  // Map epoch names/IDs to USDM array indices for editing
+  const epochUsdmIdx = useMemo(() => {
+    const epochs = studyDesign?.epochs ?? [];
+    const map = new Map<string, number>(); // epoch name or ID -> USDM index
+    epochs.forEach((epoch, index) => {
+      if (epoch.name) map.set(epoch.name.toLowerCase().trim(), index);
+      if (epoch.id) map.set(epoch.id, index);
+      map.set(`epoch_${index + 1}`, index);
+    });
+    return map;
+  }, [studyDesign]);
+
+  // Map encounter names/IDs to USDM array indices for editing
+  const encounterUsdmIdx = useMemo(() => {
+    const encounters = studyDesign?.encounters ?? [];
+    const map = new Map<string, number>(); // encounter name or ID -> USDM index
+    encounters.forEach((enc, index) => {
+      if (enc.name) map.set(enc.name.toLowerCase().trim(), index);
+      if (enc.id) map.set(enc.id, index);
+      map.set(`enc_${index + 1}`, index);
+    });
+    return map;
+  }, [studyDesign]);
+
+  // Resolve epoch ID to its USDM index (for EditableField path)
+  const getEpochIdx = (epochId: string): number | undefined => {
+    if (epochUsdmIdx.has(epochId)) return epochUsdmIdx.get(epochId);
+    const name = resolveEpochName(epochId);
+    return epochUsdmIdx.get(name.toLowerCase().trim());
+  };
+
+  // Resolve encounter ID to its USDM index (for EditableField path)
+  const getEncounterIdx = (encId: string): number | undefined => {
+    if (encounterUsdmIdx.has(encId)) return encounterUsdmIdx.get(encId);
+    const name = resolveEncounterName(encId);
+    return encounterUsdmIdx.get(name.toLowerCase().trim());
+  };
+
   // Helper to resolve epoch ID to name (handles both UUID and epoch_X formats)
   const resolveEpochName = (epochId: string): string => {
     // First check our index map
@@ -2327,16 +2365,27 @@ function TraversalPanel({
                     <div className="mb-4">
                       <h4 className="text-sm font-medium text-muted-foreground mb-2">Required Epoch Sequence</h4>
                       <div className="flex items-center flex-wrap gap-2">
-                        {constraint.requiredSequence.map((epochId, idx) => (
+                        {constraint.requiredSequence.map((epochId, idx) => {
+                          const usdmIdx = getEpochIdx(epochId);
+                          return (
                           <div key={epochId} className="flex items-center">
-                            <Badge variant="outline" className="bg-white">
-                              {resolveEpochName(epochId)}
-                            </Badge>
+                            {usdmIdx !== undefined ? (
+                              <EditableField
+                                path={`/study/versions/0/studyDesigns/0/epochs/${usdmIdx}/name`}
+                                value={resolveEpochName(epochId)}
+                                label=""
+                              />
+                            ) : (
+                              <Badge variant="outline" className="bg-white">
+                                {resolveEpochName(epochId)}
+                              </Badge>
+                            )}
                             {idx < constraint.requiredSequence!.length - 1 && (
                               <span className="mx-2 text-gray-400">→</span>
                             )}
                           </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   )}
@@ -2358,11 +2407,21 @@ function TraversalPanel({
                     <div>
                       <h4 className="text-sm font-medium text-muted-foreground mb-2">Mandatory Visits</h4>
                       <div className="flex flex-wrap gap-2">
-                        {constraint.mandatoryVisits.map(visit => (
-                          <Badge key={visit} className="bg-green-600">
-                            {resolveEncounterName(visit)}
-                          </Badge>
-                        ))}
+                        {constraint.mandatoryVisits.map(visit => {
+                          const usdmIdx = getEncounterIdx(visit);
+                          return usdmIdx !== undefined ? (
+                            <EditableField
+                              key={visit}
+                              path={`/study/versions/0/studyDesigns/0/encounters/${usdmIdx}/name`}
+                              value={resolveEncounterName(visit)}
+                              label=""
+                            />
+                          ) : (
+                            <Badge key={visit} className="bg-green-600">
+                              {resolveEncounterName(visit)}
+                            </Badge>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
