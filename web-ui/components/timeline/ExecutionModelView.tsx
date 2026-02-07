@@ -402,13 +402,13 @@ export function ExecutionModelView({ executionModel }: ExecutionModelViewProps) 
       <div className="min-h-[500px]">
         {activeTab === 'overview' && <OverviewPanel data={execModel} />}
         {activeTab === 'anchors' && <TimeAnchorsPanel anchors={execModel.timeAnchors ?? []} />}
-        {activeTab === 'visits' && <VisitWindowsPanel visits={execModel.visitWindows ?? []} anchors={execModel.timeAnchors ?? []} epochNameMap={epochNameMap} studyDesign={studyDesign} />}
-        {activeTab === 'conditions' && <ConditionsPanel conditions={execModel.footnoteConditions ?? []} studyDesign={studyDesign} />}
+        {activeTab === 'visits' && <VisitWindowsPanel visits={execModel.visitWindows ?? []} anchors={execModel.timeAnchors ?? []} epochNameMap={epochNameMap} studyDesign={studyDesign as Record<string, unknown> | undefined} />}
+        {activeTab === 'conditions' && <ConditionsPanel conditions={execModel.footnoteConditions ?? []} studyDesign={studyDesign ?? undefined} />}
         {activeTab === 'repetitions' && <RepetitionsPanel repetitions={execModel.repetitions ?? []} />}
         {activeTab === 'dosing' && <DosingPanel regimens={execModel.dosingRegimens ?? []} />}
-        {activeTab === 'statemachine' && <StateMachinePanel stateMachine={execModel.stateMachine} studyExits={execModel.studyExits ?? []} />}
-        {activeTab === 'traversal' && <TraversalPanel constraints={execModel.traversalConstraints ?? []} executionTypes={execModel.executionTypes ?? []} epochNameMap={epochNameMap} studyDesign={studyDesign} />}
-        {activeTab === 'schedule' && <ActivitySchedulePanel instances={execModel.scheduledInstances ?? []} timings={execModel.timings ?? []} epochNameMap={epochNameMap} studyDesign={studyDesign} />}
+        {activeTab === 'statemachine' && <StateMachinePanel stateMachine={execModel.stateMachine} studyExits={execModel.studyExits ?? []} studyDesign={studyDesign as Record<string, unknown> | undefined} />}
+        {activeTab === 'traversal' && <TraversalPanel constraints={execModel.traversalConstraints ?? []} executionTypes={execModel.executionTypes ?? []} epochNameMap={epochNameMap} studyDesign={studyDesign ?? undefined} />}
+        {activeTab === 'schedule' && <ActivitySchedulePanel instances={execModel.scheduledInstances ?? []} timings={execModel.timings ?? []} epochNameMap={epochNameMap} studyDesign={studyDesign ?? undefined} />}
         {activeTab === 'issues' && <DataQualityPanel issues={execModel.classifiedIssues ?? []} />}
       </div>
     </div>
@@ -1908,7 +1908,34 @@ function DosingPanel({ regimens }: { regimens: DosingRegimen[] }) {
 // State Machine Panel - Enhanced with Study Exits
 // ============================================================================
 
-function StateMachinePanel({ stateMachine, studyExits = [] }: { stateMachine?: StateMachine; studyExits?: StudyExit[] }) {
+function StateMachinePanel({ stateMachine, studyExits = [], studyDesign }: { stateMachine?: StateMachine; studyExits?: StudyExit[]; studyDesign?: Record<string, unknown> }) {
+  // Map state names to USDM epoch indices for editing
+  const epochIndexMap = useMemo(() => {
+    const epochs = (studyDesign?.epochs ?? []) as Array<{ id?: string; name?: string }>;
+    const map = new Map<string, number>(); // state name -> epoch index
+    if (!stateMachine) return map;
+    const allStates = [stateMachine.initialState, ...stateMachine.states, ...stateMachine.terminalStates];
+    for (const state of allStates) {
+      const stateLower = state.toLowerCase().trim();
+      const idx = epochs.findIndex(e => e.name?.toLowerCase().trim() === stateLower);
+      if (idx !== -1) map.set(state, idx);
+    }
+    return map;
+  }, [stateMachine, studyDesign]);
+
+  // Map study exits to USDM scheduleTimeline exit indices
+  const exitIndexMap = useMemo(() => {
+    const timelines = (studyDesign as Record<string, unknown>)?.scheduleTimelines as Array<{ exits?: Array<{ id?: string; name?: string; description?: string }> }> | undefined;
+    const exits = timelines?.[0]?.exits ?? [];
+    const map = new Map<string, { timelineIdx: number; exitIdx: number }>(); // exit name -> path indices
+    for (const studyExit of studyExits) {
+      const exitLower = studyExit.name.toLowerCase().trim();
+      const idx = exits.findIndex(e => e.name?.toLowerCase().trim() === exitLower);
+      if (idx !== -1) map.set(studyExit.id, { timelineIdx: 0, exitIdx: idx });
+    }
+    return map;
+  }, [studyExits, studyDesign]);
+
   if (!stateMachine && studyExits.length === 0) {
     return (
       <Card>
@@ -1995,7 +2022,13 @@ function StateMachinePanel({ stateMachine, studyExits = [] }: { stateMachine?: S
                     "px-6 py-3 rounded-lg border-2 font-medium shadow-sm",
                     getStateColor(stateMachine.initialState)
                   )}>
-                    {stateMachine.initialState}
+                    {epochIndexMap.has(stateMachine.initialState) ? (
+                      <EditableField
+                        path={`/study/versions/0/studyDesigns/0/epochs/${epochIndexMap.get(stateMachine.initialState)}/name`}
+                        value={stateMachine.initialState}
+                        label=""
+                      />
+                    ) : stateMachine.initialState}
                   </div>
                   <span className="text-sm text-muted-foreground font-medium">(Start)</span>
                 </div>
@@ -2012,7 +2045,13 @@ function StateMachinePanel({ stateMachine, studyExits = [] }: { stateMachine?: S
                           "px-4 py-2 rounded-lg border-2 font-medium shadow-sm",
                           getStateColor(state)
                         )}>
-                          {state}
+                          {epochIndexMap.has(state) ? (
+                            <EditableField
+                              path={`/study/versions/0/studyDesigns/0/epochs/${epochIndexMap.get(state)}/name`}
+                              value={state}
+                              label=""
+                            />
+                          ) : state}
                         </div>
                         {idx < arr.length - 1 && (
                           <svg className="w-6 h-6 text-gray-400 mx-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -2042,7 +2081,13 @@ function StateMachinePanel({ stateMachine, studyExits = [] }: { stateMachine?: S
                       getStateColor(state)
                     )}
                   >
-                    {state}
+                    {epochIndexMap.has(state) ? (
+                      <EditableField
+                        path={`/study/versions/0/studyDesigns/0/epochs/${epochIndexMap.get(state)}/name`}
+                        value={state}
+                        label=""
+                      />
+                    ) : state}
                     <span className="text-xs ml-2 opacity-60">(Exit)</span>
                   </div>
                 ))}
@@ -2066,10 +2111,26 @@ function StateMachinePanel({ stateMachine, studyExits = [] }: { stateMachine?: S
                     {stateMachine.transitions.map((trans, i) => (
                       <tr key={i} className="border-b">
                         <td className="py-2 px-3">
-                          <Badge variant="outline">{trans.fromState}</Badge>
+                          {epochIndexMap.has(trans.fromState) ? (
+                            <EditableField
+                              path={`/study/versions/0/studyDesigns/0/epochs/${epochIndexMap.get(trans.fromState)}/name`}
+                              value={trans.fromState}
+                              label=""
+                            />
+                          ) : (
+                            <Badge variant="outline">{trans.fromState}</Badge>
+                          )}
                         </td>
                         <td className="py-2 px-3">
-                          <Badge variant="outline">{trans.toState}</Badge>
+                          {epochIndexMap.has(trans.toState) ? (
+                            <EditableField
+                              path={`/study/versions/0/studyDesigns/0/epochs/${epochIndexMap.get(trans.toState)}/name`}
+                              value={trans.toState}
+                              label=""
+                            />
+                          ) : (
+                            <Badge variant="outline">{trans.toState}</Badge>
+                          )}
                         </td>
                         <td className="py-2 px-3 text-muted-foreground">{trans.trigger}</td>
                       </tr>
@@ -2110,18 +2171,33 @@ function StateMachinePanel({ stateMachine, studyExits = [] }: { stateMachine?: S
                     )}
                   >
                     <div className="flex items-start justify-between">
-                      <div>
+                      <div className="flex-1">
                         <h4 className="font-medium flex items-center gap-2">
-                          {exit.name}
+                          {exitIndexMap.has(exit.id) ? (
+                            <EditableField
+                              path={`/study/versions/0/studyDesigns/0/scheduleTimelines/${exitIndexMap.get(exit.id)!.timelineIdx}/exits/${exitIndexMap.get(exit.id)!.exitIdx}/name`}
+                              value={exit.name}
+                              label=""
+                            />
+                          ) : exit.name}
                           <Badge className={isCompletion ? "bg-green-600" : "bg-amber-600"}>
                             {exit.exitType}
                           </Badge>
                         </h4>
-                        {exit.description && (
+                        {exitIndexMap.has(exit.id) ? (
+                          <EditableField
+                            path={`/study/versions/0/studyDesigns/0/scheduleTimelines/${exitIndexMap.get(exit.id)!.timelineIdx}/exits/${exitIndexMap.get(exit.id)!.exitIdx}/description`}
+                            value={exit.description || ''}
+                            label=""
+                            type="textarea"
+                            className="mt-2"
+                            displayClassName="text-muted-foreground"
+                          />
+                        ) : exit.description ? (
                           <p className="text-sm text-muted-foreground mt-2">
                             {exit.description}
                           </p>
-                        )}
+                        ) : null}
                       </div>
                     </div>
                   </div>
