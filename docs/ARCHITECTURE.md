@@ -722,7 +722,7 @@ Provenance tracks the **source** of each extracted entity and cell (text extract
 │                    ↓                                            │
 │   Colored tick marks + footnote superscripts                    │
 │                                                                 │
-│   Colors: 🟢 Both (confirmed)  🔵 Text-only  🟠 Needs review    │
+│   Colors: 🟢 Confirmed  🔵 Text-only  🟠 Needs review  🟣 User-edited│
 │   Footnotes: X^a, X^m,n displayed as superscripts              │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
@@ -1467,6 +1467,10 @@ The web UI is a Next.js 16 application with TypeScript, Tailwind CSS, and Zustan
 │  │   ├── schema.ts               Zod schemas, immutable paths   │
 │  │   ├── storage.ts              File operations, hashing       │
 │  │   └── patcher.ts              JSON Patch application         │
+│  ├── soa/                        SoA editing logic              │
+│  │   └── processor.ts            SoAProcessor: cell patches     │
+│  ├── adapters/                   Data transformation            │
+│  │   └── toSoATableModel.ts      USDM → SoA grid model         │
 │  ├── provenance/                 Provenance data types          │
 │  └── export/                     CSV/JSON/PDF export            │
 └─────────────────────────────────────────────────────────────────┘
@@ -1553,11 +1557,32 @@ User edits (any source)
 | `soaEditStore` | Tracks `committedCellEdits` for visual indicators |
 | `SoACellEditor` | Popup editor for cell marks and footnotes |
 | `ProvenanceCellRenderer` | Renders cells with provenance + edit state colors |
+| `toSoATableModel` | Converts USDM data → SoA grid model, reads extension attributes |
 
-**Visual indicators:**
-- **Amber background** — Cell has pending edit in draft
-- **Green/blue/orange** — Provenance source (both/text/vision)
-- **User-edited badge** — Cell was manually edited (persists after publish)
+**Visual indicators (priority order):**
+- **Amber background + left border** — Pending edit in draft (not yet published)
+- **Purple background** — User-edited cell (persists after publish via `x-userEdited` extension)
+- **Green background** — Confirmed: Text + Vision agree
+- **Blue background** — Text-only: Not confirmed by vision
+- **Orange background** — Vision-only: Needs review
+- **Red background** — Orphaned: No provenance data
+
+**SoA Extension Attributes on ScheduledActivityInstance:**
+
+| Extension URL | Field | Description |
+|---------------|-------|-------------|
+| `.../x-soaCellMark` | `valueString` | Cell mark: X, O, Xa, Xb, Xc, − |
+| `.../x-userEdited` | `valueString` | `"true"` if manually edited by user |
+| `.../x-soaFootnoteRefs` | `valueString` | JSON array of footnote references |
+
+All extensions include required USDM schema fields: `id`, `instanceType` (`ExtensionAttribute`), `url`, `valueString`.
+
+**Cell Mark Resolution Priority (toSoATableModel):**
+
+1. `x-soaCellMark` from `ScheduledActivityInstance.extensionAttributes` (user-edited)
+2. Default `X` if `ScheduledActivityInstance` exists (extraction-created)
+3. `X` if provenance indicates cell should exist (extraction without instances)
+4. `null` (empty cell)
 
 #### Storage Layout
 
@@ -1606,3 +1631,5 @@ The following USDM paths cannot be edited via semantic patches:
 | `ag-grid-react` | 32.3.x | Data grids |
 | `cytoscape` | 3.30.x | Graph visualization |
 | `lucide-react` | 0.468.x | Icons |
+
+```
