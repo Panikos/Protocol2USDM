@@ -865,11 +865,27 @@ def _filter_enrichment_epochs(combined: dict, soa_data: Optional[dict]) -> dict:
                 post_enrich_design["epochs"] = original_epochs
                 logger.info(f"  ✓ Filtered {len(removed_epochs)} non-SoA epochs: {removed_epochs}")
                 
-                # Clean up timeline instances
+                # Clean up timeline instances (preserve anchor instances)
                 if removed_epoch_ids:
                     for timeline in post_enrich_design.get("scheduleTimelines", []):
                         instances = timeline.get("instances", [])
-                        cleaned = [i for i in instances if i.get("epochId") not in removed_epoch_ids]
+                        cleaned = []
+                        for inst in instances:
+                            if inst.get("epochId") not in removed_epoch_ids:
+                                cleaned.append(inst)
+                            else:
+                                # Preserve anchor instances (they have anchorClassification extension)
+                                ext_attrs = inst.get("extensionAttributes", [])
+                                is_anchor = any(
+                                    'anchorClassification' in (e.get('url', '') or '')
+                                    for e in ext_attrs
+                                )
+                                if is_anchor:
+                                    # Re-assign to first surviving epoch instead of dropping
+                                    surviving_epochs = post_enrich_design.get("epochs", [])
+                                    if surviving_epochs:
+                                        inst["epochId"] = surviving_epochs[0].get("id")
+                                    cleaned.append(inst)
                         if len(cleaned) < len(instances):
                             timeline["instances"] = cleaned
                             logger.info(f"  ✓ Cleaned {len(instances) - len(cleaned)} timeline instances")

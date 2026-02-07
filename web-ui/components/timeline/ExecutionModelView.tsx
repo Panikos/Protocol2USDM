@@ -757,40 +757,40 @@ function TimelineVisualization({ visits, anchors }: { visits: VisitWindow[]; anc
 function TimeAnchorsPanel({ anchors, studyDesign }: { anchors: TimeAnchor[]; studyDesign?: Record<string, unknown> }) {
   const [showFullSource, setShowFullSource] = useState<Set<string>>(new Set());
 
-  // Map anchors to USDM schedule timeline timing indices for editing
-  // Uses multi-pass matching: name/keyword, then day-value, then fallback to first timeline
-  const anchorTimingMap = useMemo(() => {
+  // Map anchors to USDM entities for editing
+  // Strategy: first try anchor ScheduledActivityInstances, then fall back to timings
+  const anchorPathMap = useMemo(() => {
     const timelines = (studyDesign?.scheduleTimelines ?? []) as Array<{
       id?: string;
+      instances?: Array<{ id?: string; name?: string; description?: string; extensionAttributes?: Array<{ url?: string; valueString?: string }> }>;
       timings?: Array<{ id?: string; name?: string; label?: string; description?: string }>
     }>;
-    const map = new Map<string, { tlIdx: number; tIdx: number }>();
+    const map = new Map<string, string>(); // anchor id -> USDM base path
     if (timelines.length === 0) return map;
 
-    const claimed = new Set<string>(); // "tlIdx:tIdx" to avoid double-mapping
-
-    // Pass 1: keyword match (e.g. "screening" anchor → "Timing for screening")
-    for (const anchor of anchors) {
-      const typeLower = anchor.anchorType.toLowerCase().trim();
-      for (let tlIdx = 0; tlIdx < timelines.length; tlIdx++) {
-        const timings = timelines[tlIdx].timings ?? [];
-        for (let tIdx = 0; tIdx < timings.length; tIdx++) {
-          const key = `${tlIdx}:${tIdx}`;
-          if (claimed.has(key)) continue;
-          const nameLower = (timings[tIdx].name ?? '').toLowerCase().trim();
-          const labelLower = (timings[tIdx].label ?? '').toLowerCase().trim();
-          if (nameLower.includes(typeLower) || labelLower.includes(typeLower) ||
-              typeLower.includes(nameLower.replace('timing for ', ''))) {
-            map.set(anchor.id, { tlIdx, tIdx });
-            claimed.add(key);
-            break;
+    // Pass 1: Match anchor instances (created by promoter with anchorClassification extension)
+    for (let tlIdx = 0; tlIdx < timelines.length; tlIdx++) {
+      const instances = timelines[tlIdx].instances ?? [];
+      for (let iIdx = 0; iIdx < instances.length; iIdx++) {
+        const inst = instances[iIdx];
+        const isAnchor = (inst.extensionAttributes ?? []).some(
+          e => (e.url ?? '').includes('anchorClassification')
+        );
+        if (!isAnchor) continue;
+        const instName = (inst.name ?? '').toLowerCase().trim();
+        // Match by anchor type name
+        for (const anchor of anchors) {
+          if (map.has(anchor.id)) continue;
+          const typeLower = anchor.anchorType.toLowerCase().trim();
+          if (instName === typeLower || instName.includes(typeLower) || typeLower.includes(instName)) {
+            map.set(anchor.id, `/study/versions/0/studyDesigns/0/scheduleTimelines/${tlIdx}/instances/${iIdx}`);
           }
         }
-        if (map.has(anchor.id)) break;
       }
     }
 
-    // Pass 2: day-value match (e.g. dayValue=9 → "Timing for Day 9")
+    // Pass 2: Fall back to timing matching by day value
+    const claimed = new Set<string>();
     for (const anchor of anchors) {
       if (map.has(anchor.id) || anchor.dayValue == null) continue;
       for (let tlIdx = 0; tlIdx < timelines.length; tlIdx++) {
@@ -799,8 +799,9 @@ function TimeAnchorsPanel({ anchors, studyDesign }: { anchors: TimeAnchor[]; stu
           const key = `${tlIdx}:${tIdx}`;
           if (claimed.has(key)) continue;
           const nameLower = (timings[tIdx].name ?? '').toLowerCase();
-          if (nameLower.includes(`day ${anchor.dayValue}`)) {
-            map.set(anchor.id, { tlIdx, tIdx });
+          if (nameLower.includes(`day ${anchor.dayValue}`) ||
+              nameLower.includes(anchor.anchorType.toLowerCase())) {
+            map.set(anchor.id, `/study/versions/0/studyDesigns/0/scheduleTimelines/${tlIdx}/timings/${tIdx}`);
             claimed.add(key);
             break;
           }
@@ -816,7 +817,7 @@ function TimeAnchorsPanel({ anchors, studyDesign }: { anchors: TimeAnchor[]; stu
       for (let tIdx = 0; tIdx < timings.length; tIdx++) {
         const key = `0:${tIdx}`;
         if (!claimed.has(key)) {
-          map.set(anchor.id, { tlIdx: 0, tIdx });
+          map.set(anchor.id, `/study/versions/0/studyDesigns/0/scheduleTimelines/0/timings/${tIdx}`);
           claimed.add(key);
           break;
         }
@@ -920,10 +921,9 @@ function TimeAnchorsPanel({ anchors, studyDesign }: { anchors: TimeAnchor[]; stu
                   )}
                 >
                   {(() => {
-                    const timingRef = anchorTimingMap.get(anchor.id);
-                    const timingBasePath = timingRef
-                      ? `/study/versions/0/studyDesigns/0/scheduleTimelines/${timingRef.tlIdx}/timings/${timingRef.tIdx}`
-                      : null;
+                    const basePath = anchorPathMap.get(anchor.id);
+                    const fallbackPath = `/study/versions/0/studyDesigns/0/scheduleTimelines/0/timings/${index}`;
+                    const editPath = basePath || fallbackPath;
                     return (
                       <>
                         <div className="flex items-start justify-between">
@@ -937,7 +937,7 @@ function TimeAnchorsPanel({ anchors, studyDesign }: { anchors: TimeAnchor[]; stu
                             <div className="flex-1">
                               <h4 className="font-semibold flex items-center gap-2">
                                 <EditableField
-                                  path={timingBasePath ? `${timingBasePath}/name` : `/study/versions/0/studyDesigns/0/scheduleTimelines/0/timings/${index}/name`}
+                                  path={`${editPath}/name`}
                                   value={anchor.anchorType}
                                   label=""
                                 />
@@ -946,7 +946,7 @@ function TimeAnchorsPanel({ anchors, studyDesign }: { anchors: TimeAnchor[]; stu
                                 )}
                               </h4>
                               <EditableField
-                                path={timingBasePath ? `${timingBasePath}/description` : `/study/versions/0/studyDesigns/0/scheduleTimelines/0/timings/${index}/description`}
+                                path={`${editPath}/description`}
                                 value={anchor.definition}
                                 label=""
                                 displayClassName="text-sm opacity-80"
@@ -970,12 +970,12 @@ function TimeAnchorsPanel({ anchors, studyDesign }: { anchors: TimeAnchor[]; stu
                         {/* Editable detail fields */}
                         <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3 p-3 bg-white/30 rounded-lg">
                           <EditableField
-                            path={timingBasePath ? `${timingBasePath}/label` : `/study/versions/0/studyDesigns/0/scheduleTimelines/0/timings/${index}/label`}
+                            path={`${editPath}/label`}
                             value={(anchor as Record<string, unknown>).label as string || anchor.anchorType}
                             label="Label"
                           />
                           <EditableField
-                            path={timingBasePath ? `${timingBasePath}/value` : `/study/versions/0/studyDesigns/0/scheduleTimelines/0/timings/${index}/value`}
+                            path={`${editPath}/value`}
                             value={anchor.dayValue != null ? String(anchor.dayValue) : ''}
                             label="Day Value"
                             type="number"
