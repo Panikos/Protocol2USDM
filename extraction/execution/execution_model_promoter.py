@@ -29,6 +29,13 @@ from typing import Dict, List, Optional, Any, Set, Tuple
 logger = logging.getLogger(__name__)
 
 
+def _get(obj: Any, snake_key: str, camel_key: str = '', default: Any = '') -> Any:
+    """Get attribute from dict (camelCase) or dataclass (snake_case)."""
+    if isinstance(obj, dict):
+        return obj.get(camel_key or snake_key, obj.get(snake_key, default))
+    return getattr(obj, snake_key, default)
+
+
 @dataclass
 class PromotionResult:
     """Result of execution model promotion."""
@@ -87,7 +94,7 @@ class ExecutionModelPromoter:
         # Step 2: Expand repetitions → ScheduledActivityInstances
         if execution_data.repetitions:
             usdm_design = self._promote_repetitions(
-                usdm_design, execution_data.repetitions
+                usdm_design, execution_data.repetitions, execution_data
             )
         
         # Step 3: Promote dosing regimens → Administration entities
@@ -286,7 +293,8 @@ class ExecutionModelPromoter:
     def _promote_repetitions(
         self,
         design: Dict[str, Any],
-        repetitions: List[Any]
+        repetitions: List[Any],
+        execution_data: Any = None
     ) -> Dict[str, Any]:
         """
         Expand repetitions into scheduled activity instances.
@@ -308,22 +316,47 @@ class ExecutionModelPromoter:
         encounters = design.get('encounters', [])
         encounter_by_day = self._build_encounter_by_day_map(encounters)
         
+        # Build rep_id → activity mapping from activity bindings
+        rep_to_activity = {}
+        bindings = getattr(execution_data, 'activity_bindings', []) if execution_data else []
+        for ab in bindings:
+            rep_id_ref = _get(ab, 'repetition_id', 'repetitionId')
+            act_id_ref = _get(ab, 'activity_id', 'activityId')
+            act_name_ref = _get(ab, 'activity_name', 'activityName')
+            if rep_id_ref:
+                rep_to_activity[rep_id_ref] = (act_id_ref, act_name_ref)
+        
         for rep in repetitions:
-            rep_id = getattr(rep, 'id', str(uuid.uuid4()))
-            rep_type = getattr(rep, 'repetition_type', 'Unknown')
-            activity_name = getattr(rep, 'activity_name', '')
-            start_offset = getattr(rep, 'start_day_offset', 1)
-            end_offset = getattr(rep, 'end_day_offset', start_offset)
-            interval = getattr(rep, 'interval_days', 1)
+            rep_id = _get(rep, 'id', 'id', str(uuid.uuid4()))
+            rep_type = _get(rep, 'type', 'type', 'Unknown')
+            activity_name = _get(rep, 'activity_name', 'activityName', '')
+            start_offset = _get(rep, 'start_day_offset', 'startDayOffset', 1)
+            end_offset = _get(rep, 'end_day_offset', 'endDayOffset', start_offset)
+            interval = _get(rep, 'interval_days', 'intervalDays', 1)
             
-            # Find matching activity - prefer direct ID, fall back to name
-            raw_activity_id = getattr(rep, 'activity_id', None)
+            # Find matching activity via bindings, direct ID, or name
+            raw_activity_id = _get(rep, 'activity_id', 'activityId', None)
             activity_id = None
-            if raw_activity_id and raw_activity_id in activities:
+            
+            # Try activity bindings first (most reliable link)
+            if rep_id in rep_to_activity:
+                bound_act_id, bound_act_name = rep_to_activity[rep_id]
+                if bound_act_id and bound_act_id in activities:
+                    activity_id = bound_act_id
+                    activity_name = activity_name or bound_act_name or activities[bound_act_id].get('name', '')
+                elif bound_act_name:
+                    activity_id = self._find_activity_by_name(design, bound_act_name)
+                    activity_name = activity_name or bound_act_name
+            
+            # Then try direct activity_id on the repetition
+            if not activity_id and raw_activity_id and raw_activity_id in activities:
                 activity_id = raw_activity_id
                 activity_name = activity_name or activities[raw_activity_id].get('name', '')
+            
+            # Then try name-based matching
             if not activity_id and activity_name:
                 activity_id = self._find_activity_by_name(design, activity_name)
+            
             if not activity_id:
                 continue  # Can't bind without activity
             
@@ -1268,7 +1301,7 @@ class ExecutionModelPromoter:
         - Encounter.transitionStartRule: rule to trigger start of encounter
         - Encounter.transitionEndRule: rule to trigger end of encounter
         """
-        transitions = getattr(state_machine, 'transitions', [])
+        transitions = _get(state_machine, 'transitions', 'transitions', [])
         if not transitions:
             return design
         
@@ -1312,10 +1345,10 @@ class ExecutionModelPromoter:
             return None
 
         for transition in transitions:
-            from_state = getattr(transition, 'from_state', '') or getattr(transition, 'fromState', '')
-            to_state = getattr(transition, 'to_state', '') or getattr(transition, 'toState', '')
-            trigger = getattr(transition, 'trigger', '')
-            guard = getattr(transition, 'guard_condition', '') or getattr(transition, 'guardCondition', '')
+            from_state = _get(transition, 'from_state', 'fromState', '')
+            to_state = _get(transition, 'to_state', 'toState', '')
+            trigger = _get(transition, 'trigger', 'trigger', '')
+            guard = _get(transition, 'guard_condition', 'guardCondition', '')
             
             if not trigger:
                 continue
