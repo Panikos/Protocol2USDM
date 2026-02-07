@@ -22,6 +22,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { usePatchedStudyDesign } from '@/hooks/usePatchedUsdm';
+import { EditableField } from '@/components/semantic';
 
 // Types for SAP data
 interface AnalysisPopulation {
@@ -377,6 +378,7 @@ function OverviewPanel({ data }: { data: SAPData }) {
 // ============================================================================
 
 function PopulationsPanel({ populations }: { populations: AnalysisPopulation[] }) {
+  const basePath = '/study/versions/0/studyDesigns/0/analysisPopulations';
   const [expanded, setExpanded] = useState<string | null>(null);
 
   const populationTypeColors: Record<string, string> = {
@@ -400,9 +402,13 @@ function PopulationsPanel({ populations }: { populations: AnalysisPopulation[] }
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 {expanded === pop.id ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                <div>
+                <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium">{pop.name}</span>
+                    <EditableField
+                      path={`${basePath}/${populations.indexOf(pop)}/name`}
+                      value={pop.name}
+                      label=""
+                    />
                     {pop.label && <Badge variant="secondary">{pop.label}</Badge>}
                   </div>
                   <p className="text-sm text-muted-foreground">{pop.criteria || pop.populationType}</p>
@@ -417,20 +423,42 @@ function PopulationsPanel({ populations }: { populations: AnalysisPopulation[] }
           </div>
           {expanded === pop.id && (
             <CardContent className="pt-0 border-t bg-muted/30">
-              <dl className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mt-4">
-                {pop.populationDescription && (
-                  <div className="md:col-span-2">
-                    <dt className="font-medium text-muted-foreground">Definition</dt>
-                    <dd className="mt-1">{pop.populationDescription}</dd>
-                  </div>
-                )}
-                {pop.text && pop.text !== pop.populationDescription && (
-                  <div className="md:col-span-2">
-                    <dt className="font-medium text-muted-foreground">Description</dt>
-                    <dd className="mt-1">{pop.text}</dd>
-                  </div>
-                )}
-              </dl>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mt-4">
+                <div className="md:col-span-2">
+                  <EditableField
+                    path={`${basePath}/${populations.indexOf(pop)}/populationDescription`}
+                    value={pop.populationDescription || ''}
+                    label="Definition"
+                    type="textarea"
+                    placeholder="No definition specified"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <EditableField
+                    path={`${basePath}/${populations.indexOf(pop)}/text`}
+                    value={pop.text || ''}
+                    label="Description"
+                    type="textarea"
+                    placeholder="No description specified"
+                  />
+                </div>
+                <div>
+                  <EditableField
+                    path={`${basePath}/${populations.indexOf(pop)}/criteria`}
+                    value={pop.criteria || ''}
+                    label="Criteria"
+                    placeholder="No criteria specified"
+                  />
+                </div>
+                <div>
+                  <EditableField
+                    path={`${basePath}/${populations.indexOf(pop)}/label`}
+                    value={pop.label || ''}
+                    label="Label"
+                    placeholder="No label specified"
+                  />
+                </div>
+              </div>
             </CardContent>
           )}
         </Card>
