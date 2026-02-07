@@ -316,8 +316,14 @@ class ExecutionModelPromoter:
             end_offset = getattr(rep, 'end_day_offset', start_offset)
             interval = getattr(rep, 'interval_days', 1)
             
-            # Find matching activity
-            activity_id = self._find_activity_by_name(design, activity_name)
+            # Find matching activity - prefer direct ID, fall back to name
+            raw_activity_id = getattr(rep, 'activity_id', None)
+            activity_id = None
+            if raw_activity_id and raw_activity_id in activities:
+                activity_id = raw_activity_id
+                activity_name = activity_name or activities[raw_activity_id].get('name', '')
+            if not activity_id and activity_name:
+                activity_id = self._find_activity_by_name(design, activity_name)
             if not activity_id:
                 continue  # Can't bind without activity
             
@@ -1274,6 +1280,37 @@ class ExecutionModelPromoter:
         epochs = design.get('epochs', [])
         epoch_by_name = {e.get('name', '').lower(): e for e in epochs}
         
+        def _fuzzy_find_encounter(state_name: str) -> Optional[Dict]:
+            """Find encounter matching a state name using substring/prefix matching."""
+            state_lower = state_name.lower().strip()
+            if not state_lower:
+                return None
+            # Exact match first
+            if state_lower in encounter_by_name:
+                return encounter_by_name[state_lower]
+            # Encounter name starts with state name (e.g., "c-i" matches "c-i (day -8)")
+            for enc_name, enc in encounter_by_name.items():
+                if enc_name.startswith(state_lower):
+                    return enc
+            # State name contained in encounter name
+            for enc_name, enc in encounter_by_name.items():
+                if state_lower in enc_name:
+                    return enc
+            # Try epoch match as fallback (states often map to epochs, not encounters)
+            target_epoch = epoch_by_name.get(state_lower)
+            if not target_epoch:
+                for ep_name, ep in epoch_by_name.items():
+                    if state_lower in ep_name or ep_name in state_lower:
+                        target_epoch = ep
+                        break
+            if target_epoch:
+                # Find first encounter in this epoch
+                epoch_id = target_epoch.get('id')
+                for enc in encounters:
+                    if enc.get('epochId') == epoch_id:
+                        return enc
+            return None
+
         for transition in transitions:
             from_state = getattr(transition, 'from_state', '') or getattr(transition, 'fromState', '')
             to_state = getattr(transition, 'to_state', '') or getattr(transition, 'toState', '')
@@ -1288,12 +1325,10 @@ class ExecutionModelPromoter:
             if guard:
                 rule_text = f"{trigger} [Guard: {guard}]"
             
-            # Find target encounter or epoch
-            target_enc = encounter_by_name.get(to_state.lower())
-            target_epoch = epoch_by_name.get(to_state.lower())
+            # Find target encounter using fuzzy matching
+            target_enc = _fuzzy_find_encounter(to_state)
             
             if target_enc:
-                # Add transitionStartRule to target encounter
                 target_enc['transitionStartRule'] = {
                     "id": f"tr_start_{target_enc.get('id')}",
                     "name": f"Entry to {to_state}",
@@ -1303,7 +1338,7 @@ class ExecutionModelPromoter:
                 self.result.transition_rules_created += 1
             
             # Find source encounter for end rule
-            source_enc = encounter_by_name.get(from_state.lower())
+            source_enc = _fuzzy_find_encounter(from_state)
             if source_enc:
                 source_enc['transitionEndRule'] = {
                     "id": f"tr_end_{source_enc.get('id')}",
