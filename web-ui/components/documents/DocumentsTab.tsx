@@ -116,8 +116,8 @@ function FullscreenOverlay({ children, title, onClose }: {
 
   return (
     <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex flex-col">
-      {/* Header */}
-      <div className="flex items-center justify-between px-6 py-3 border-b bg-background shrink-0">
+      {/* Header — z-10 keeps it above the PDF iframe */}
+      <div className="relative z-10 flex items-center justify-between px-6 py-3 border-b bg-background shrink-0">
         <h2 className="font-semibold truncate">{title}</h2>
         <Button variant="outline" size="sm" onClick={onClose} className="shrink-0">
           <XIcon className="h-4 w-4 mr-2" />
@@ -210,9 +210,9 @@ export function DocumentsTab({ protocolId }: DocumentsTabProps) {
     }
     if (doc.mimeType === 'application/pdf') {
       return (
-        <div className="border rounded-lg overflow-hidden">
+        <div className="border rounded-lg">
           <iframe
-            src={getDocUrl(doc)}
+            src={`${getDocUrl(doc)}#toolbar=1&navpanes=0`}
             className={cn('w-full', fullscreen ? 'h-[calc(100vh-8rem)]' : 'h-[600px]')}
             title={doc.filename}
           />
