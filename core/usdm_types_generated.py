@@ -1656,11 +1656,19 @@ def normalize_usdm_data(data: Dict[str, Any]) -> Dict[str, Any]:
             label=obj.get("label"),
             type=Code.from_dict(obj.get("type")) if obj.get("type") else None,
             epochId=obj.get("epochId"),
+            scheduledAtTimingId=obj.get("scheduledAtTimingId"),
+            previousId=obj.get("previousId"),
+            nextId=obj.get("nextId"),
         )
         result = enc.to_dict()
         # Preserve extensionAttributes from encounter reconciliation
         if obj.get("extensionAttributes"):
             result["extensionAttributes"] = obj["extensionAttributes"]
+        # Preserve transitionStartRule/transitionEndRule from execution model promotion
+        if obj.get("transitionStartRule"):
+            result["transitionStartRule"] = obj["transitionStartRule"]
+        if obj.get("transitionEndRule"):
+            result["transitionEndRule"] = obj["transitionEndRule"]
         return result
     
     def normalize_epoch(obj: Dict) -> Dict:
