@@ -1293,12 +1293,230 @@ class ExecutionModelData:
     
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'ExecutionModelData':
+        # Phase 1
+        time_anchors = [TimeAnchor.from_dict(a) for a in data.get('timeAnchors', [])]
+        repetitions = [Repetition.from_dict(r) for r in data.get('repetitions', [])]
+        sampling_constraints = [
+            SamplingConstraint(
+                id=s.get('id', ''), activity_id=s.get('activityId', ''),
+                min_per_window=s.get('minPerWindow', 0),
+                window_duration=s.get('windowDuration'), timepoints=s.get('timepoints', []),
+                domain=s.get('domain'), anchor_id=s.get('anchorId'),
+                window_start=s.get('windowStart'), window_end=s.get('windowEnd'),
+                rationale=s.get('rationale'), source_text=s.get('sourceText'),
+            ) for s in data.get('samplingConstraints', [])
+        ]
+        execution_types = [
+            ExecutionTypeAssignment(
+                activity_id=e.get('activityId', ''),
+                execution_type=ExecutionType(e.get('executionType', 'Single')),
+                rationale=e.get('rationale'),
+            ) for e in data.get('executionTypes', [])
+        ]
+        
+        # Phase 2
+        traversal_constraints = [
+            TraversalConstraint(
+                id=t.get('id', ''), required_sequence=t.get('requiredSequence', []),
+                allow_early_exit=t.get('allowEarlyExit', True),
+                exit_epoch_ids=t.get('exitEpochIds', []),
+                mandatory_visits=t.get('mandatoryVisits', []),
+                source_text=t.get('sourceText'),
+            ) for t in data.get('traversalConstraints', [])
+        ]
+        
+        crossover_raw = data.get('crossoverDesign')
+        crossover_design = None
+        if crossover_raw:
+            crossover_design = CrossoverDesign(
+                id=crossover_raw.get('id', ''), is_crossover=crossover_raw.get('isCrossover', False),
+                num_periods=crossover_raw.get('numPeriods', 1),
+                num_sequences=crossover_raw.get('numSequences', 1),
+                periods=crossover_raw.get('periods', []), sequences=crossover_raw.get('sequences', []),
+                washout_duration=crossover_raw.get('washoutDuration'),
+                washout_required=crossover_raw.get('washoutRequired', False),
+                carryover_prevention=crossover_raw.get('carryoverPrevention'),
+                source_text=crossover_raw.get('sourceText'),
+            )
+        
+        footnote_conditions = [
+            FootnoteCondition(
+                id=f.get('id', ''), footnote_id=f.get('footnoteId'),
+                condition_type=f.get('conditionType', 'general'), text=f.get('text', ''),
+                structured_condition=f.get('structuredCondition'),
+                applies_to_activity_ids=f.get('appliesToActivityIds', []),
+                applies_to_timepoint_ids=f.get('appliesToTimepointIds', []),
+                timing_constraint=f.get('timingConstraint'),
+                source_text=f.get('sourceText'),
+            ) for f in data.get('footnoteConditions', [])
+        ]
+        
+        # Phase 3
+        endpoint_algorithms = [
+            EndpointAlgorithm(
+                id=e.get('id', ''), name=e.get('name', ''),
+                endpoint_type=EndpointType(e.get('endpointType', 'Primary')),
+                inputs=e.get('inputs', []),
+                time_window_reference=(e.get('timeWindow') or {}).get('reference'),
+                time_window_duration=(e.get('timeWindow') or {}).get('duration'),
+                algorithm=e.get('algorithm'), success_criteria=e.get('successCriteria'),
+                unit=e.get('unit'), comparator=e.get('comparator'),
+                source_text=e.get('sourceText'),
+            ) for e in data.get('endpointAlgorithms', [])
+        ]
+        
+        derived_variables = [
+            DerivedVariable(
+                id=d.get('id', ''), name=d.get('name', ''),
+                variable_type=VariableType(d.get('variableType', 'Custom')),
+                source_variables=d.get('sourceVariables', []),
+                derivation_rule=d.get('derivationRule'),
+                baseline_definition=d.get('baselineDefinition'),
+                baseline_visit=d.get('baselineVisit'),
+                analysis_window=d.get('analysisWindow'),
+                imputation_rule=d.get('imputationRule'),
+                unit=d.get('unit'), source_text=d.get('sourceText'),
+            ) for d in data.get('derivedVariables', [])
+        ]
+        
+        sm_raw = data.get('stateMachine')
+        state_machine = None
+        if sm_raw:
+            state_machine = SubjectStateMachine(
+                id=sm_raw.get('id', ''),
+                initial_state=sm_raw.get('initialState', 'Screening'),
+                terminal_states=sm_raw.get('terminalStates', []),
+                states=sm_raw.get('states', []),
+                transitions=[
+                    StateTransition(
+                        from_state=t.get('fromState', ''), to_state=t.get('toState', ''),
+                        trigger=t.get('trigger', ''),
+                        guard_condition=t.get('guardCondition'),
+                        actions=t.get('actions', []),
+                    ) for t in sm_raw.get('transitions', [])
+                ],
+                source_text=sm_raw.get('sourceText'),
+                epoch_ids=sm_raw.get('epochIds', {}),
+            )
+        
+        # Phase 4
+        dosing_regimens = [
+            DosingRegimen(
+                id=d.get('id', ''), treatment_name=d.get('treatmentName', ''),
+                dose_levels=[
+                    DoseLevel(amount=dl.get('amount', 0), unit=dl.get('unit', ''),
+                              description=dl.get('description'))
+                    for dl in d.get('doseLevels', [])
+                ],
+                frequency=DosingFrequency(d.get('frequency', '')),
+                route=RouteOfAdministration(d.get('route', '')),
+                start_day=d.get('startDay', 1), end_day=d.get('endDay'),
+                duration_description=d.get('durationDescription'),
+                titration_schedule=d.get('titrationSchedule'),
+                dose_modifications=d.get('doseModifications', []),
+                max_dose=d.get('maxDose'), min_dose=d.get('minDose'),
+                source_text=d.get('sourceText'),
+            ) for d in data.get('dosingRegimens', [])
+        ]
+        
+        visit_windows = [
+            VisitWindow(
+                id=v.get('id', ''), visit_name=v.get('visitName', ''),
+                visit_number=v.get('visitNumber'), target_day=v.get('targetDay', 1),
+                window_before=v.get('windowBefore', 0), window_after=v.get('windowAfter', 0),
+                target_week=v.get('targetWeek'), is_required=v.get('isRequired', True),
+                epoch=v.get('epoch'), activities=v.get('activities', []),
+                source_text=v.get('sourceText'),
+            ) for v in data.get('visitWindows', [])
+        ]
+        
+        rand_raw = data.get('randomizationScheme')
+        randomization_scheme = None
+        if rand_raw:
+            randomization_scheme = RandomizationScheme(
+                id=rand_raw.get('id', ''), ratio=rand_raw.get('ratio', '1:1'),
+                method=rand_raw.get('method', ''),
+                block_size=rand_raw.get('blockSize'),
+                stratification_factors=[
+                    StratificationFactor(
+                        id=sf.get('id', ''), name=sf.get('name', ''),
+                        categories=sf.get('categories', []),
+                        is_blocking=sf.get('isBlocking', False),
+                        source_text=sf.get('sourceText'),
+                    ) for sf in rand_raw.get('stratificationFactors', [])
+                ],
+                central_randomization=rand_raw.get('centralRandomization', True),
+                source_text=rand_raw.get('sourceText'),
+            )
+        
+        # FIX C: Activity bindings
+        activity_bindings = [
+            ActivityBinding(
+                id=b.get('id', ''), activity_id=b.get('activityId', ''),
+                activity_name=b.get('activityName'),
+                time_anchor_id=b.get('timeAnchorId'),
+                repetition_id=b.get('repetitionId'),
+                sampling_constraint_id=b.get('samplingConstraintId'),
+                nominal_timepoints=b.get('nominalTimepoints', []),
+                offset_from_anchor=b.get('offsetFromAnchor'),
+                expected_occurrences=b.get('expectedOccurrences'),
+                source_text=b.get('sourceText'),
+            ) for b in data.get('activityBindings', [])
+        ]
+        
+        # FIX 3: Analysis windows
+        analysis_windows = [
+            AnalysisWindow(
+                id=w.get('id', ''), window_type=w.get('windowType', ''),
+                name=w.get('name', ''), start_day=w.get('startDay', 0),
+                end_day=w.get('endDay', 0), anchor_id=w.get('anchorId'),
+                linked_endpoint_ids=w.get('linkedEndpointIds', []),
+                description=w.get('description'), source_text=w.get('sourceText'),
+            ) for w in data.get('analysisWindows', [])
+        ]
+        
+        # FIX A: Titration schedules
+        titration_schedules = [
+            DoseTitrationSchedule(
+                id=t.get('id', ''), intervention_id=t.get('interventionId'),
+                intervention_name=t.get('interventionName'),
+                dose_levels=[
+                    TitrationDoseLevel(
+                        dose_value=dl.get('doseValue', ''), start_day=dl.get('startDay', 0),
+                        end_day=dl.get('endDay'), requires_prior_dose=dl.get('requiresPriorDose'),
+                        transition_rule=dl.get('transitionRule'), source_text=dl.get('sourceText'),
+                    ) for dl in t.get('doseLevels', [])
+                ],
+                titration_type=t.get('titrationType', 'escalation'),
+                anchor_id=t.get('anchorId'), source_text=t.get('sourceText'),
+            ) for t in data.get('titrationSchedules', [])
+        ]
+        
+        # FIX B: Instance bindings
+        instance_bindings = [
+            InstanceBinding(
+                id=ib.get('id', ''), instance_id=ib.get('instanceId', ''),
+                activity_id=ib.get('activityId'), activity_name=ib.get('activityName'),
+                repetition_id=ib.get('repetitionId'),
+                time_anchor_id=ib.get('timeAnchorId'),
+                start_offset=ib.get('startOffset'), end_offset=ib.get('endOffset'),
+                expected_count=ib.get('expectedCount'),
+                collection_boundary=ib.get('collectionBoundary'),
+                encounter_id=ib.get('encounterId'), source_text=ib.get('sourceText'),
+            ) for ib in data.get('instanceBindings', [])
+        ]
+        
         return cls(
-            time_anchors=[TimeAnchor.from_dict(a) for a in data.get('timeAnchors', [])],
-            repetitions=[Repetition.from_dict(r) for r in data.get('repetitions', [])],
-            sampling_constraints=[],  # TODO: implement from_dict
-            traversal_constraints=[],  # TODO: implement from_dict
-            execution_types=[],  # TODO: implement from_dict
+            time_anchors=time_anchors, repetitions=repetitions,
+            sampling_constraints=sampling_constraints, execution_types=execution_types,
+            traversal_constraints=traversal_constraints, crossover_design=crossover_design,
+            footnote_conditions=footnote_conditions,
+            endpoint_algorithms=endpoint_algorithms, derived_variables=derived_variables,
+            state_machine=state_machine,
+            dosing_regimens=dosing_regimens, visit_windows=visit_windows,
+            randomization_scheme=randomization_scheme,
+            activity_bindings=activity_bindings, analysis_windows=analysis_windows,
+            titration_schedules=titration_schedules, instance_bindings=instance_bindings,
         )
     
     def merge(self, other: 'ExecutionModelData') -> 'ExecutionModelData':
