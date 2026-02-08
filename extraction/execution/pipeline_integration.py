@@ -1468,10 +1468,109 @@ def _add_execution_extensions(
         _set_canonical_extension(design, "x-executionModel-instanceBindings",
             [ib.to_dict() for ib in execution_data.instance_bindings])
     
-    # FIX 3: Add analysis windows
-    if execution_data.analysis_windows:
+    # FIX 3: Add analysis windows (regex-detected + epoch-derived fallback)
+    all_analysis_windows = list(execution_data.analysis_windows) if execution_data.analysis_windows else []
+    
+    # Derive additional windows from epoch structure if treatment/follow-up are missing
+    detected_types = {aw.window_type for aw in all_analysis_windows}
+    if 'treatment' not in detected_types or 'follow_up' not in detected_types:
+        epoch_windows = _derive_analysis_windows_from_epochs(design)
+        for ew in epoch_windows:
+            if ew.window_type not in detected_types:
+                all_analysis_windows.append(ew)
+                detected_types.add(ew.window_type)
+    
+    if all_analysis_windows:
         _set_canonical_extension(design, "x-executionModel-analysisWindows",
-            [aw.to_dict() for aw in execution_data.analysis_windows])
+            [aw.to_dict() for aw in all_analysis_windows])
+
+
+def _derive_analysis_windows_from_epochs(design: Dict[str, Any]) -> List:
+    """
+    Derive analysis windows from the epoch structure in the USDM design.
+    
+    Generic approach: classify epochs by name patterns into window types,
+    then compute day ranges from encounter timings within each epoch.
+    Works for any protocol, not just Wilson's.
+    """
+    from .schema import AnalysisWindow
+    from core.usdm_types_generated import generate_uuid
+    
+    epochs = design.get('epochs', [])
+    encounters = design.get('encounters', [])
+    if not epochs:
+        return []
+    
+    # Build epoch-to-encounters mapping via cells/elements
+    # Each encounter has an epochId (set during pipeline) or we infer from name
+    epoch_encounters: Dict[str, List[Dict[str, Any]]] = {ep.get('id', ''): [] for ep in epochs}
+    for enc in encounters:
+        eid = enc.get('epochId', '')
+        if eid and eid in epoch_encounters:
+            epoch_encounters[eid].append(enc)
+    
+    # Classify epochs by name → window_type
+    TREATMENT_KEYWORDS = ['treatment', 'dosing', 'active', 'intervention', 'study drug', 'run-in']
+    FOLLOWUP_KEYWORDS = ['follow-up', 'follow up', 'followup', 'post-treatment', 'observation']
+    WASHOUT_KEYWORDS = ['washout', 'wash-out', 'wash out']
+    SCREENING_KEYWORDS = ['screening', 'screen']
+    
+    windows = []
+    
+    for epoch in epochs:
+        epoch_name = (epoch.get('name') or '').lower()
+        epoch_id = epoch.get('id', '')
+        
+        # Determine window type from epoch name
+        window_type = None
+        if any(kw in epoch_name for kw in TREATMENT_KEYWORDS):
+            window_type = 'treatment'
+        elif any(kw in epoch_name for kw in FOLLOWUP_KEYWORDS):
+            window_type = 'follow_up'
+        elif any(kw in epoch_name for kw in WASHOUT_KEYWORDS):
+            window_type = 'washout'
+        elif any(kw in epoch_name for kw in SCREENING_KEYWORDS):
+            window_type = 'screening'
+        else:
+            continue  # Skip epochs we can't classify
+        
+        # Compute day range from encounters in this epoch
+        enc_list = epoch_encounters.get(epoch_id, [])
+        if not enc_list:
+            continue
+        
+        # Extract day numbers from encounter names
+        all_days = []
+        for enc in enc_list:
+            enc_name = enc.get('name', '')
+            # Match "Day X" patterns, including negative
+            for m in re.finditer(r'[Dd]ay[s]?\s*(-?\d+)', enc_name):
+                all_days.append(int(m.group(1)))
+            # Also check parenthesized numbers like "Screening (-21)"
+            for m in re.finditer(r'\((-?\d+)\)', enc_name):
+                all_days.append(int(m.group(1)))
+        
+        if not all_days:
+            continue
+        
+        start_day = min(all_days)
+        end_day = max(all_days)
+        
+        display_name = epoch.get('name', window_type.replace('_', ' ').title())
+        # Avoid double "Period" (e.g., "Treatment Period Period")
+        label = display_name if re.search(r'period|phase|window', display_name, re.IGNORECASE) else f"{display_name} Period"
+        windows.append(AnalysisWindow(
+            id=generate_uuid(),
+            window_type=window_type,
+            name=label,
+            start_day=start_day,
+            end_day=end_day,
+            description=f"{display_name} from Day {start_day} to Day {end_day}",
+            source_text=f"Derived from epoch '{epoch.get('name', '?')}' with {len(enc_list)} encounters",
+        ))
+        logger.info(f"Derived analysis window: {window_type} from epoch '{epoch.get('name')}' (Day {start_day}–{end_day})")
+    
+    return windows
 
 
 def validate_execution_model_integrity(

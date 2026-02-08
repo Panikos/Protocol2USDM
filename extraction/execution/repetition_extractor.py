@@ -589,7 +589,7 @@ def _detect_analysis_windows(text: str) -> List[AnalysisWindow]:
     # First, find explicit day ranges for baseline
     # Pattern handles "Day -4 through Day -1", "Days -4 to -1", etc.
     baseline_pattern = re.compile(
-        r'(?:baseline|pre[\-\s]?treatment)\s+(?:period|window|phase|days?)?\s*[:\-]?\s*'
+        r'(?:baseline|pre[\-\s]?treatment)\s+(?:period|window|phase|days?)?\s*[:]?\s*'
         r'(?:days?\s*)?([-–−]?\s*\d+)\s*(?:to|through|[-–−])\s*(?:days?\s*)?([-–−]?\s*\d+)',
         re.IGNORECASE
     )

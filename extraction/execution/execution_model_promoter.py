@@ -1121,6 +1121,57 @@ class ExecutionModelPromoter:
         
         conceptual_ext['valueString'] = json.dumps(anchors)
 
+    @staticmethod
+    def _parse_encounter_day_range(name: str) -> Optional[Tuple[int, int]]:
+        """
+        Extract a day range from an encounter name.
+        
+        Returns (start_day, end_day) or None if no day info found.
+        Examples:
+            "Day 1"            → (1, 1)
+            "Day 4-7"          → (4, 7)
+            "Day -4 through -1"→ (-4, -1)
+            "Day -6 through -5"→ (-6, -5)
+            "Check-in (Day -8)"→ (-8, -8)
+            "EOS Day 54+/-2"   → (54, 54)
+            "Screening (-21)"  → (-21, -21)
+            "Screening (-42 to -9)" → (-42, -9)
+            "Week 24"          → None (no day info)
+            "UNS"              → None
+        """
+        # Normalize dash variants to ASCII hyphen
+        n = name.replace('\u2013', '-').replace('\u2212', '-').replace('\u2014', '-')
+        
+        # Pattern 1: explicit range "Day X through/to Y" (handles negative days)
+        m = re.search(r'[Dd]ay[s]?\s*(-?\d+)\s*(?:through|to)\s*(-?\d+)', n)
+        if m:
+            return int(m.group(1)), int(m.group(2))
+        
+        # Pattern 2: parenthesized range "(X to Y)"
+        m = re.search(r'\((-?\d+)\s*(?:to|through)\s*(-?\d+)\)', n)
+        if m:
+            return int(m.group(1)), int(m.group(2))
+        
+        # Pattern 3: hyphenated range "Day X-Y" where X and Y are both positive
+        # Be careful: "Day 2-3" means range 2..3, NOT "2" and "-3"
+        m = re.search(r'[Dd]ay[s]?\s*(-?\d+)\s*-\s*(\d+)', n)
+        if m:
+            return int(m.group(1)), int(m.group(2))
+        
+        # Pattern 4: single day "Day X" (may be negative)
+        m = re.search(r'[Dd]ay[s]?\s*(-?\d+)', n)
+        if m:
+            d = int(m.group(1))
+            return d, d
+        
+        # Pattern 5: parenthesized single day "(-21)"
+        m = re.search(r'\((-?\d+)\)', n)
+        if m:
+            d = int(m.group(1))
+            return d, d
+        
+        return None
+
     def _promote_visit_windows(
         self,
         design: Dict[str, Any],
@@ -1135,6 +1186,11 @@ class ExecutionModelPromoter:
         - Timing.windowLabel: Human-readable window description
         
         If timings don't exist, creates them and links to encounters.
+        
+        Matching strategy (in order):
+        1. Exact name match (encounter name == visit window name)
+        2. Substring match (one contains the other)
+        3. Target-day match (visit window target_day falls within encounter's day range)
         """
         from core.usdm_types_generated import generate_uuid
         
@@ -1149,6 +1205,14 @@ class ExecutionModelPromoter:
             # Also map by label
             if enc.get('label'):
                 encounter_by_name[enc.get('label', '').lower().strip()] = enc
+        
+        # Build day-range index for encounters (Pass 3 fallback)
+        # Maps each encounter to its parsed (start_day, end_day) range
+        encounter_day_ranges: List[Tuple[Dict[str, Any], int, int]] = []
+        for enc in encounters:
+            day_range = self._parse_encounter_day_range(enc.get('name', ''))
+            if day_range:
+                encounter_day_ranges.append((enc, day_range[0], day_range[1]))
         
         # Get or create timings array in first timeline
         timelines = design.get('scheduleTimelines', [])
@@ -1180,16 +1244,33 @@ class ExecutionModelPromoter:
             if not visit_name or target_day is None:
                 continue
             
-            # Find matching encounter
+            # Pass 1: Exact name match
             enc_key = visit_name.lower().strip()
             encounter = encounter_by_name.get(enc_key)
             
+            # Pass 2: Substring match
             if not encounter:
-                # Try fuzzy match
                 for key, enc in encounter_by_name.items():
                     if enc_key in key or key in enc_key:
                         encounter = enc
                         break
+            
+            # Pass 3: Target-day match — find encounter whose day range contains target_day
+            if not encounter and isinstance(target_day, (int, float)):
+                td = int(target_day)
+                best = None
+                best_span = float('inf')
+                for enc, start_d, end_d in encounter_day_ranges:
+                    lo, hi = min(start_d, end_d), max(start_d, end_d)
+                    if lo <= td <= hi:
+                        span = hi - lo
+                        # Prefer narrower ranges (exact single-day match > range)
+                        if span < best_span:
+                            best = enc
+                            best_span = span
+                if best:
+                    encounter = best
+                    logger.debug(f"Day-matched visit window '{visit_name}' (day {td}) → encounter '{best.get('name')}'")
             
             if not encounter:
                 logger.debug(f"No encounter found for visit window: {visit_name}")
