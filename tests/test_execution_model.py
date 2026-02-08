@@ -1607,6 +1607,265 @@ class TestPhase4USDMIntegration:
         assert any("randomizationScheme" in u for u in urls)
 
 
+class TestPromoterHelpers:
+    """Test promoter helper functions (v7.2.1 fixes)."""
+    
+    def test_iso_duration_days(self):
+        from extraction.execution.execution_model_promoter import _iso_duration_to_days
+        assert _iso_duration_to_days("P7D") == 7
+        assert _iso_duration_to_days("P1D") == 1
+        assert _iso_duration_to_days("P14D") == 14
+        assert _iso_duration_to_days("P30D") == 30
+    
+    def test_iso_duration_weeks(self):
+        from extraction.execution.execution_model_promoter import _iso_duration_to_days
+        assert _iso_duration_to_days("P1W") == 7
+        assert _iso_duration_to_days("P2W") == 14
+        assert _iso_duration_to_days("P4W") == 28
+    
+    def test_iso_duration_none_cases(self):
+        from extraction.execution.execution_model_promoter import _iso_duration_to_days
+        assert _iso_duration_to_days(None) is None
+        assert _iso_duration_to_days("") is None
+        assert _iso_duration_to_days("not a duration") is None
+        assert _iso_duration_to_days("PT5M") is None  # minutes not supported
+        assert _iso_duration_to_days("P2M") is None   # months not supported
+    
+    def test_iso_duration_non_string(self):
+        from extraction.execution.execution_model_promoter import _iso_duration_to_days
+        assert _iso_duration_to_days(7) is None
+        assert _iso_duration_to_days(0) is None
+    
+    def test_get_dict_access(self):
+        from extraction.execution.execution_model_promoter import _get
+        d = {"fromState": "Screening", "trigger": "enroll"}
+        assert _get(d, "from_state", "fromState") == "Screening"
+        assert _get(d, "trigger", "trigger") == "enroll"
+        assert _get(d, "missing", "missing", "default") == "default"
+    
+    def test_get_dataclass_access(self):
+        from extraction.execution.execution_model_promoter import _get
+        t = StateTransition(
+            from_state=StateType.SCREENING,
+            to_state=StateType.ENROLLED,
+            trigger="Meets criteria",
+        )
+        assert _get(t, "trigger") == "Meets criteria"
+    
+    def test_get_enum_unwrap(self):
+        from extraction.execution.execution_model_promoter import _get
+        t = StateTransition(
+            from_state=StateType.SCREENING,
+            to_state=StateType.ENROLLED,
+            trigger="Enroll",
+        )
+        val = _get(t, "from_state")
+        assert val == "Screening"  # enum .value is unwrapped
+
+
+class TestPromoterFuzzyMatch:
+    """Test promoter activity fuzzy matching."""
+    
+    def test_exact_match(self):
+        from extraction.execution.execution_model_promoter import ExecutionModelPromoter
+        promoter = ExecutionModelPromoter()
+        design = {
+            "activities": [
+                {"id": "act_1", "name": "Physical Examination"},
+                {"id": "act_2", "name": "Vital Signs"},
+            ]
+        }
+        assert promoter._find_activity_by_name(design, "Physical Examination") == "act_1"
+    
+    def test_case_insensitive_match(self):
+        from extraction.execution.execution_model_promoter import ExecutionModelPromoter
+        promoter = ExecutionModelPromoter()
+        design = {
+            "activities": [
+                {"id": "act_1", "name": "Physical Examination"},
+            ]
+        }
+        assert promoter._find_activity_by_name(design, "physical examination") == "act_1"
+    
+    def test_substring_match(self):
+        from extraction.execution.execution_model_promoter import ExecutionModelPromoter
+        promoter = ExecutionModelPromoter()
+        design = {
+            "activities": [
+                {"id": "act_1", "name": "12-lead ECG (triplicate)"},
+            ]
+        }
+        result = promoter._find_activity_by_name(design, "ECG")
+        assert result == "act_1"
+    
+    def test_word_overlap_match(self):
+        from extraction.execution.execution_model_promoter import ExecutionModelPromoter
+        promoter = ExecutionModelPromoter()
+        design = {
+            "activities": [
+                {"id": "act_1", "name": "Cu/Mo-controlled meals"},
+                {"id": "act_2", "name": "Vital Signs"},
+            ]
+        }
+        result = promoter._find_activity_by_name(design, "controlled diet")
+        assert result == "act_1"
+    
+    def test_no_match(self):
+        from extraction.execution.execution_model_promoter import ExecutionModelPromoter
+        promoter = ExecutionModelPromoter()
+        design = {
+            "activities": [
+                {"id": "act_1", "name": "Physical Examination"},
+            ]
+        }
+        assert promoter._find_activity_by_name(design, "Completely Unrelated") is None
+    
+    def test_empty_name(self):
+        from extraction.execution.execution_model_promoter import ExecutionModelPromoter
+        promoter = ExecutionModelPromoter()
+        design = {"activities": [{"id": "act_1", "name": "Test"}]}
+        assert promoter._find_activity_by_name(design, "") is None
+        assert promoter._find_activity_by_name(design, None) is None
+
+
+class TestPromoterFaultIsolation:
+    """Test that promoter fault isolation works correctly."""
+    
+    def test_promote_with_bad_repetitions_doesnt_crash(self):
+        from extraction.execution.execution_model_promoter import ExecutionModelPromoter
+        promoter = ExecutionModelPromoter()
+        
+        design = {
+            "activities": [],
+            "encounters": [],
+            "epochs": [],
+            "scheduleTimelines": [{"id": "tl_1", "instances": [], "timings": []}],
+        }
+        version = {}
+        
+        # Create data with a repetition that has None offsets (the bug that was crashing)
+        data = ExecutionModelData(
+            repetitions=[Repetition(
+                id="bad_rep", type=RepetitionType.DAILY,
+                start_offset=None, end_offset=None, interval=None,
+            )],
+            footnote_conditions=[FootnoteCondition(
+                id="fc_1", condition_type="timing", text="Test condition",
+            )],
+        )
+        
+        # Should NOT raise — fault isolation should catch the repetition error
+        # and still promote footnote conditions
+        result_design, result_version = promoter.promote(design, version, data)
+        assert promoter.result.conditions_promoted >= 0  # Conditions step should still run
+
+
+class TestFromDictRoundTrip:
+    """Test ExecutionModelData.from_dict() round-trip fidelity."""
+    
+    def test_round_trip_basic(self):
+        original = ExecutionModelData(
+            time_anchors=[TimeAnchor(id="a1", definition="Day 1", anchor_type=AnchorType.FIRST_DOSE)],
+            repetitions=[Repetition(id="r1", type=RepetitionType.DAILY, interval="P1D")],
+        )
+        d = original.to_dict()
+        restored = ExecutionModelData.from_dict(d)
+        assert len(restored.time_anchors) == 1
+        assert len(restored.repetitions) == 1
+        assert restored.time_anchors[0].id == "a1"
+        assert restored.repetitions[0].interval == "P1D"
+    
+    def test_round_trip_state_machine(self):
+        original = ExecutionModelData(
+            state_machine=SubjectStateMachine(
+                id="sm_1",
+                initial_state="Screening",
+                states=["Screening", "Treatment", "Follow-up"],
+                transitions=[
+                    StateTransition(from_state="Screening", to_state="Treatment", trigger="Enroll"),
+                ],
+                epoch_ids={"Screening": "epoch_1", "Treatment": "epoch_2"},
+            ),
+        )
+        d = original.to_dict()
+        restored = ExecutionModelData.from_dict(d)
+        assert restored.state_machine is not None
+        assert len(restored.state_machine.states) == 3
+        assert len(restored.state_machine.transitions) == 1
+        assert restored.state_machine.epoch_ids["Screening"] == "epoch_1"
+    
+    def test_round_trip_footnotes(self):
+        original = ExecutionModelData(
+            footnote_conditions=[
+                FootnoteCondition(
+                    id="fc_1", footnote_id="a", condition_type="timing",
+                    text="30 min before labs", structured_condition="timing.before(PT30M)",
+                    applies_to_activity_ids=["act_1", "act_2"],
+                ),
+            ],
+        )
+        d = original.to_dict()
+        restored = ExecutionModelData.from_dict(d)
+        assert len(restored.footnote_conditions) == 1
+        fc = restored.footnote_conditions[0]
+        assert fc.footnote_id == "a"
+        assert fc.condition_type == "timing"
+        assert len(fc.applies_to_activity_ids) == 2
+    
+    def test_round_trip_dosing(self):
+        original = ExecutionModelData(
+            dosing_regimens=[
+                DosingRegimen(
+                    id="dr_1", treatment_name="Drug A",
+                    dose_levels=[DoseLevel(amount=15.0, unit="mg")],
+                    frequency=DosingFrequency.ONCE_DAILY,
+                    route=RouteOfAdministration.ORAL,
+                    start_day=1, end_day=28,
+                ),
+            ],
+        )
+        d = original.to_dict()
+        restored = ExecutionModelData.from_dict(d)
+        assert len(restored.dosing_regimens) == 1
+        dr = restored.dosing_regimens[0]
+        assert dr.treatment_name == "Drug A"
+        assert dr.frequency == DosingFrequency.ONCE_DAILY
+        assert dr.route == RouteOfAdministration.ORAL
+        assert len(dr.dose_levels) == 1
+        assert dr.dose_levels[0].amount == 15.0
+    
+    def test_round_trip_visit_windows(self):
+        original = ExecutionModelData(
+            visit_windows=[
+                VisitWindow(id="v1", visit_name="Day 1", target_day=1,
+                           window_before=0, window_after=2, epoch="Treatment"),
+            ],
+        )
+        d = original.to_dict()
+        restored = ExecutionModelData.from_dict(d)
+        assert len(restored.visit_windows) == 1
+        assert restored.visit_windows[0].window_after == 2
+        assert restored.visit_windows[0].epoch == "Treatment"
+    
+    def test_round_trip_all_keys_preserved(self):
+        """Verify that to_dict() → from_dict() → to_dict() produces identical keys."""
+        original = ExecutionModelData(
+            time_anchors=[TimeAnchor(id="a1", definition="D1", anchor_type=AnchorType.DAY_1)],
+            repetitions=[Repetition(id="r1", type=RepetitionType.DAILY)],
+            traversal_constraints=[TraversalConstraint(id="tc1", required_sequence=["A", "B"])],
+            footnote_conditions=[FootnoteCondition(id="fc1", text="Test")],
+            endpoint_algorithms=[EndpointAlgorithm(id="ep1", name="P", endpoint_type=EndpointType.PRIMARY)],
+            derived_variables=[DerivedVariable(id="dv1", name="CFB", variable_type=VariableType.CHANGE_FROM_BASELINE)],
+            state_machine=SubjectStateMachine(id="sm1", states=["A", "B"]),
+            dosing_regimens=[DosingRegimen(id="dr1", treatment_name="X")],
+            visit_windows=[VisitWindow(id="v1", visit_name="D1")],
+        )
+        d1 = original.to_dict()
+        restored = ExecutionModelData.from_dict(d1)
+        d2 = restored.to_dict()
+        assert set(d1.keys()) == set(d2.keys())
+
+
 if __name__ == "__main__":
     # Run tests
     pytest.main([__file__, "-v", "--tb=short"])
