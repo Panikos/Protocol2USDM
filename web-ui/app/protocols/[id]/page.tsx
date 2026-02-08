@@ -300,9 +300,9 @@ export default function ProtocolDetailPage() {
   const studyDesign = usdm?.study?.versions?.[0]?.studyDesigns?.[0];
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="h-screen flex flex-col bg-slate-50">
       {/* Header */}
-      <header className="border-b bg-white sticky top-0 z-50 overflow-visible">
+      <header className="border-b bg-white shrink-0 z-50 overflow-visible">
         <div className="container mx-auto px-4 py-3 overflow-visible">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -393,7 +393,7 @@ export default function ProtocolDetailPage() {
       </header>
 
       {/* Content */}
-      <main id="export-content" className="container mx-auto px-4 py-6 relative z-0">
+      <main id="export-content" className="flex-1 overflow-auto"><div className="container mx-auto px-4 py-6 relative z-0">
         <div className={cn(
           'flex gap-6',
           isEditMode && hasSemanticDraft ? 'flex-col lg:flex-row' : ''
@@ -467,11 +467,11 @@ export default function ProtocolDetailPage() {
         {/* DiffView sidebar — visible in edit mode when changes exist */}
         {isEditMode && hasSemanticDraft && (
           <div className="w-full lg:w-[380px] lg:shrink-0">
-            <DiffView className="lg:sticky lg:top-20" />
+            <DiffView className="lg:sticky lg:top-4" />
           </div>
         )}
         </div>
-      </main>
+      </div></main>
 
       {/* Version History Panel */}
       <VersionHistoryPanel
