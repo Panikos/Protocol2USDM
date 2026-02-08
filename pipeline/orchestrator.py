@@ -956,11 +956,29 @@ def _run_reconciliation(combined: dict, expansion_results: dict, soa_data: dict)
                 visit_windows = [vw.__dict__ if hasattr(vw, '__dict__') else vw
                                for vw in (execution_data.visit_windows or [])]
             
+            # Preserve transition rules before reconciliation (promoter adds these)
+            transition_rules_by_name = {}
+            for enc in soa_encounters:
+                enc_name = enc.get('name', '')
+                rules = {}
+                if enc.get('transitionStartRule'):
+                    rules['transitionStartRule'] = enc['transitionStartRule']
+                if enc.get('transitionEndRule'):
+                    rules['transitionEndRule'] = enc['transitionEndRule']
+                if rules:
+                    transition_rules_by_name[enc_name] = rules
+            
             reconciled_encounters = reconcile_encounters_from_pipeline(
                 soa_encounters=soa_encounters,
                 visit_windows=visit_windows,
             )
             if reconciled_encounters:
+                # Re-apply preserved transition rules to reconciled encounters
+                for enc in reconciled_encounters:
+                    rules = transition_rules_by_name.get(enc.get('name', ''))
+                    if rules:
+                        enc.update(rules)
+                
                 study_design["encounters"] = reconciled_encounters
                 logger.info(f"  ✓ Reconciled {len(reconciled_encounters)} encounters")
                 
