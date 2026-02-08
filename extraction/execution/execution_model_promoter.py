@@ -162,14 +162,13 @@ class ExecutionModelPromoter:
         
         # Step 8: Promote state machine → TransitionRule on Encounter/StudyElement
         sm = getattr(execution_data, 'state_machine', None)
-        logger.info(f"  Step 8 check: state_machine={sm is not None}, type={type(sm).__name__}")
         if sm:
             try:
                 usdm_design = self._promote_state_machine(
                     usdm_design, sm
                 )
             except Exception as e:
-                logger.warning(f"Step 8 (_promote_state_machine) failed: {e}", exc_info=True)
+                logger.warning(f"Step 8 (_promote_state_machine) failed: {e}")
         
         # Step 9: Promote endpoint algorithms → Estimand framework
         if hasattr(execution_data, 'endpoint_algorithms') and execution_data.endpoint_algorithms:
