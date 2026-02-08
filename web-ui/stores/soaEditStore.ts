@@ -238,12 +238,32 @@ export const useSoAEditStore = create<SoAEditStore>((set, get) => ({
   // ============================================================================
 
   setActivityName: (activityId, name) => {
+    const usdm = useProtocolStore.getState().usdm;
+    if (!usdm) {
+      set({ lastError: 'No USDM data available' });
+      return;
+    }
+
+    // Generate patch and push to semantic store immediately
+    const processor = new SoAProcessor(usdm as Record<string, unknown>);
+    processor.editActivity({ activityId, name });
+    const result = processor.getResult();
+
+    if (result.errors.length > 0) {
+      set({ lastError: result.errors.join('; ') });
+      return;
+    }
+
+    const semanticStore = useSemanticStore.getState();
+    for (const patch of result.patches) {
+      semanticStore.addPatchOp(patch);
+    }
+
     set(state => {
       const newEdits = new Map(state.pendingActivityNameEdits);
       newEdits.set(activityId, name);
       return {
         pendingActivityNameEdits: newEdits,
-        isDirty: true,
         lastError: null,
       };
     });
@@ -267,12 +287,32 @@ export const useSoAEditStore = create<SoAEditStore>((set, get) => ({
   // ============================================================================
 
   setEncounterName: (encounterId, name) => {
+    const usdm = useProtocolStore.getState().usdm;
+    if (!usdm) {
+      set({ lastError: 'No USDM data available' });
+      return;
+    }
+
+    // Generate patch and push to semantic store immediately
+    const processor = new SoAProcessor(usdm as Record<string, unknown>);
+    processor.editEncounter({ encounterId, name });
+    const result = processor.getResult();
+
+    if (result.errors.length > 0) {
+      set({ lastError: result.errors.join('; ') });
+      return;
+    }
+
+    const semanticStore = useSemanticStore.getState();
+    for (const patch of result.patches) {
+      semanticStore.addPatchOp(patch);
+    }
+
     set(state => {
       const newEdits = new Map(state.pendingEncounterNameEdits);
       newEdits.set(encounterId, name);
       return {
         pendingEncounterNameEdits: newEdits,
-        isDirty: true,
         lastError: null,
       };
     });

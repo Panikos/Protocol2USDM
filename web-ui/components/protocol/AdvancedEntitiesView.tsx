@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { EditableField } from '@/components/semantic';
+import { EditableField, EditableCodedValue, CDISC_TERMINOLOGIES } from '@/components/semantic';
 import { 
   Microscope, 
   Pill,
@@ -434,9 +434,12 @@ export function AdvancedEntitiesView({ usdm }: AdvancedEntitiesViewProps) {
                       <div className="font-semibold text-lg">
                         {pop.name || pop.label || `Population ${i + 1}`}
                       </div>
-                      {pop.level?.decode && (
-                        <Badge variant="outline" className="mt-1">{pop.level.decode}</Badge>
-                      )}
+                      <EditableCodedValue
+                        path={`/study/versions/0/studyDesigns/0/analysisPopulations/${i}/level`}
+                        value={pop.level}
+                        options={CDISC_TERMINOLOGIES.populationLevel}
+                        placeholder="Level"
+                      />
                     </div>
                     {pop.includesHealthySubjects !== undefined && (
                       <Badge variant={pop.includesHealthySubjects ? 'default' : 'secondary'}>

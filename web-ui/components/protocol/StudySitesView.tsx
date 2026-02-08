@@ -43,7 +43,7 @@ interface StudySite {
 interface Organization {
   id: string;
   name?: string;
-  type?: string;
+  type?: string | { decode?: string; code?: string };
   identifier?: string;
   legalAddress?: { country?: string; city?: string };
   instanceType?: string;

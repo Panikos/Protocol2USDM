@@ -971,7 +971,7 @@ function TimeAnchorsPanel({ anchors, studyDesign }: { anchors: TimeAnchor[]; stu
                         <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3 p-3 bg-white/30 rounded-lg">
                           <EditableField
                             path={`${editPath}/label`}
-                            value={(anchor as Record<string, unknown>).label as string || anchor.anchorType}
+                            value={(anchor as unknown as Record<string, unknown>).label as string || anchor.anchorType}
                             label="Label"
                           />
                           <EditableField

@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { EditableField } from '@/components/semantic';
+import { EditableField, EditableCodedValue, CDISC_TERMINOLOGIES } from '@/components/semantic';
 import { CheckCircle2, XCircle, Users, AlertTriangle } from 'lucide-react';
 
 interface EligibilityCriteriaViewProps {
@@ -208,19 +208,17 @@ export function EligibilityCriteriaView({ usdm }: EligibilityCriteriaViewProps) 
                 </div>
               )}
               
-              {plannedSex.length > 0 && (
-                <div>
-                  <span className="text-sm text-muted-foreground">Sex</span>
-                  <EditableField
-                    path="/study/versions/0/studyDesigns/0/population/plannedSex/0/decode"
-                    value={plannedSex[0]?.decode ?? 'Both'}
-                    className="font-medium"
-                    placeholder="Both"
-                  />
-                </div>
-              )}
+              <div>
+                <EditableCodedValue
+                  path="/study/versions/0/studyDesigns/0/population/plannedSex/0"
+                  value={plannedSex[0]}
+                  label="Sex"
+                  options={CDISC_TERMINOLOGIES.sex}
+                  placeholder="Both"
+                />
+              </div>
 
-              {population.plannedEnrollmentNumber && (
+              {!!population.plannedEnrollmentNumber && (
                 <div>
                   <span className="text-sm text-muted-foreground">Planned Enrollment</span>
                   <EditableField
@@ -246,7 +244,7 @@ export function EligibilityCriteriaView({ usdm }: EligibilityCriteriaViewProps) 
               )}
             </div>
 
-            {population.description && (
+            {!!population.description && (
               <div className="mt-4 pt-4 border-t">
                 <span className="text-sm text-muted-foreground">Description</span>
                 <EditableField

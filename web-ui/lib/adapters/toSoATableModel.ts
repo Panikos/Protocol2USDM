@@ -339,7 +339,7 @@ export function toSoATableModel(
       
       // Get footnotes - check both formats
       const footnoteRefs = provenance?.cellFootnotes?.[key] ?? 
-                          provenance?.cellFootnotes?.[row.id]?.[col.id] ?? [];
+                          (provenance?.cellFootnotes?.[row.id] as Record<string, string[]> | undefined)?.[col.id] ?? [];
       
       // Determine provenance source:
       // - If provenance exists, use it
@@ -373,8 +373,9 @@ export function toSoATableModel(
         cellMark = 'X';
       }
       
-      // Use footnoteRefs from USDM if available
-      const cellFootnoteRefs = instanceMeta?.footnoteRefs ?? (Array.isArray(footnoteRefs) ? footnoteRefs : []);
+      // Use footnoteRefs from USDM if available, fall back to provenance footnotes
+      const cellFootnoteRefs = (instanceMeta?.footnoteRefs?.length ? instanceMeta.footnoteRefs : null)
+        ?? (Array.isArray(footnoteRefs) ? footnoteRefs : []);
       // Track if cell was user-edited (from USDM extensionAttributes)
       const cellUserEdited = instanceMeta?.userEdited ?? false;
       
@@ -425,7 +426,7 @@ export function toSoATableModel(
         name: instance.name || `Instance ${instance.id.substring(0, 8)}`,
         activityName: activityNames || undefined,
         encounterName,
-        scheduledDay: instance.scheduledDay,
+        scheduledDay: instance.scheduledDay as number | undefined,
         epochName,
       });
     }
@@ -522,7 +523,7 @@ function extractActivityEncounterLinks(
         if (links.has(key) && isEnrichment) continue;
         links.set(key, {
           name: instance.name,
-          timingId: instance.timingId,
+          timingId: instance.timingId as string | undefined,
           epochId: instance.epochId,
           isEnrichment,
           mark,

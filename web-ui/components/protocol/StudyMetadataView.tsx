@@ -339,7 +339,7 @@ export function StudyMetadataView({ usdm }: StudyMetadataViewProps) {
       )}
 
       {/* Population Summary */}
-      {design?.population && (
+      {!!design?.population && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -357,7 +357,7 @@ export function StudyMetadataView({ usdm }: StudyMetadataViewProps) {
                 placeholder="No population description"
               />
               <div className="flex gap-4 text-sm">
-                {(design.population as Record<string, unknown>)?.plannedEnrollmentNumber && (
+                {!!(design.population as Record<string, unknown>)?.plannedEnrollmentNumber && (
                   <EditableField
                     path="/study/versions/0/studyDesigns/0/population/plannedEnrollmentNumber/value"
                     value={String(((design.population as Record<string, unknown>).plannedEnrollmentNumber as Record<string, unknown>)?.value ?? '')}

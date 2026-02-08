@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { Pencil, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSemanticStore } from '@/stores/semanticStore';
+import { useEditModeStore } from '@/stores/editModeStore';
 import { cn } from '@/lib/utils';
 import type { JsonPatchOp } from '@/lib/semantic/schema';
 
@@ -31,6 +32,10 @@ export function EditableField({
   const [isEditing, setIsEditing] = useState(false);
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
   const { addPatchOp, draft } = useSemanticStore();
+  const isEditMode = useEditModeStore((s) => s.isEditMode);
+  
+  // Only allow editing when both the field is marked editable AND global edit mode is on
+  const canEdit = editable && isEditMode;
   
   // Check if there's a pending patch for this path - use patched value if so
   const patchedValue = useMemo(() => {
@@ -40,7 +45,8 @@ export function EditableField({
     if (matchingOps.length === 0) return value;
     const lastOp = matchingOps[matchingOps.length - 1];
     if (lastOp.op === 'remove') return null;
-    return lastOp.value;
+    if ('value' in lastOp) return lastOp.value;
+    return value;
   }, [draft?.patch, path, value]);
   
   // Use patched value for display and editing
@@ -64,7 +70,7 @@ export function EditableField({
   }, [isEditing]);
 
   const handleStartEdit = () => {
-    if (!editable) return;
+    if (!canEdit) return;
     setEditValue(String(effectiveValue ?? ''));
     setIsEditing(true);
   };
@@ -112,27 +118,30 @@ export function EditableField({
 
   if (isEditing) {
     return (
-      <div className={cn('flex items-start gap-2', className)}>
+      <div className={cn(
+        'relative z-10 flex items-start gap-2 bg-white dark:bg-gray-900 border rounded-lg shadow-lg p-2 -m-2',
+        className
+      )}>
         {label && (
-          <span className="text-sm font-medium text-muted-foreground min-w-[120px]">
+          <span className="text-sm font-medium text-muted-foreground min-w-[120px] pt-1">
             {label}:
           </span>
         )}
-        <div className="flex-1 flex items-start gap-2">
+        <div className="flex-1 flex items-start gap-1.5">
           {type === 'textarea' ? (
             <textarea
               ref={inputRef as React.RefObject<HTMLTextAreaElement>}
               value={editValue}
               onChange={(e) => setEditValue(e.target.value)}
               onKeyDown={handleKeyDown}
-              className="flex-1 min-h-[80px] px-2 py-1 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              className="flex-1 min-w-0 min-h-[80px] px-2 py-1 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               rows={3}
             />
           ) : type === 'boolean' ? (
             <select
               value={editValue}
               onChange={(e) => setEditValue(e.target.value)}
-              className="flex-1 px-2 py-1 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              className="flex-1 min-w-0 px-2 py-1 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             >
               <option value="true">Yes</option>
               <option value="false">No</option>
@@ -144,25 +153,29 @@ export function EditableField({
               value={editValue}
               onChange={(e) => setEditValue(e.target.value)}
               onKeyDown={handleKeyDown}
-              className="flex-1 px-2 py-1 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              className="flex-1 min-w-0 px-2 py-1 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
           )}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            onClick={handleSave}
-          >
-            <Check className="h-4 w-4 text-green-600" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            onClick={handleCancel}
-          >
-            <X className="h-4 w-4 text-red-600" />
-          </Button>
+          <div className="flex items-center shrink-0 gap-0.5 ml-1">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8 border-green-200 hover:bg-green-50 hover:border-green-400"
+              onClick={handleSave}
+              title="Save (Enter)"
+            >
+              <Check className="h-4 w-4 text-green-600" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8 border-red-200 hover:bg-red-50 hover:border-red-400"
+              onClick={handleCancel}
+              title="Cancel (Escape)"
+            >
+              <X className="h-4 w-4 text-red-600" />
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -172,7 +185,7 @@ export function EditableField({
     <div
       className={cn(
         'group flex items-start gap-2',
-        editable && 'cursor-pointer hover:bg-muted/50 rounded-md p-1 -m-1',
+        canEdit && 'cursor-pointer hover:bg-muted/50 rounded-md p-1 -m-1',
         className
       )}
       onClick={handleStartEdit}
@@ -192,7 +205,7 @@ export function EditableField({
       >
         {displayValue}
       </span>
-      {editable && (
+      {canEdit && (
         <Pencil className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
       )}
     </div>
@@ -240,7 +253,7 @@ export function EditableListItem({
 
   if (isEditing) {
     return (
-      <div className={cn('flex items-center gap-2', className)}>
+      <div className={cn('relative z-10 flex items-center gap-2 bg-white dark:bg-gray-900 border rounded-lg shadow-lg p-2 -m-1', className)}>
         <input
           ref={inputRef}
           type="text"
@@ -250,14 +263,16 @@ export function EditableListItem({
             if (e.key === 'Enter') handleSave();
             if (e.key === 'Escape') setIsEditing(false);
           }}
-          className="flex-1 px-2 py-1 border rounded-md text-sm"
+          className="flex-1 min-w-0 px-2 py-1 border rounded-md text-sm"
         />
-        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleSave}>
-          <Check className="h-3 w-3" />
-        </Button>
-        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsEditing(false)}>
-          <X className="h-3 w-3" />
-        </Button>
+        <div className="flex items-center shrink-0 gap-0.5 ml-1">
+          <Button variant="outline" size="icon" className="h-7 w-7 border-green-200 hover:bg-green-50 hover:border-green-400" onClick={handleSave} title="Save (Enter)">
+            <Check className="h-3.5 w-3.5 text-green-600" />
+          </Button>
+          <Button variant="outline" size="icon" className="h-7 w-7 border-red-200 hover:bg-red-50 hover:border-red-400" onClick={() => setIsEditing(false)} title="Cancel (Escape)">
+            <X className="h-3.5 w-3.5 text-red-600" />
+          </Button>
+        </div>
       </div>
     );
   }

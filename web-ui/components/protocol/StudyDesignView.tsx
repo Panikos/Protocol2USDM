@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { EditableField } from '@/components/semantic';
+import { EditableField, EditableList, EditableCodedValue, CDISC_TERMINOLOGIES } from '@/components/semantic';
 import { GitBranch, Layers, Grid3X3, Shield, AlertTriangle, Info, CheckCircle2, Shuffle } from 'lucide-react';
 
 interface StudyDesignViewProps {
@@ -175,17 +175,15 @@ export function StudyDesignView({ usdm }: StudyDesignViewProps) {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {studyType && (
-              <div>
-                <span className="text-sm text-muted-foreground">Study Type</span>
-                <EditableField
-                  path="/study/versions/0/studyDesigns/0/studyType/decode"
-                  value={studyType}
-                  className="font-medium"
-                  placeholder="Not specified"
-                />
-              </div>
-            )}
+            <div>
+              <EditableCodedValue
+                path="/study/versions/0/studyDesigns/0/studyType"
+                value={design.studyType as { code?: string; decode?: string } | undefined}
+                label="Study Type"
+                options={CDISC_TERMINOLOGIES.studyType}
+                placeholder="Not specified"
+              />
+            </div>
             {model && (
               <div>
                 <span className="text-sm text-muted-foreground">Model</span>
@@ -204,17 +202,15 @@ export function StudyDesignView({ usdm }: StudyDesignViewProps) {
                 </div>
               </div>
             )}
-            {blindingSchema && (
-              <div>
-                <span className="text-sm text-muted-foreground">Blinding</span>
-                <EditableField
-                  path="/study/versions/0/studyDesigns/0/blindingSchema/standardCode/decode"
-                  value={blindingSchema}
-                  className="font-medium"
-                  placeholder="Not specified"
-                />
-              </div>
-            )}
+            <div>
+              <EditableCodedValue
+                path="/study/versions/0/studyDesigns/0/blindingSchema/standardCode"
+                value={(design.blindingSchema as { standardCode?: { code?: string; decode?: string } })?.standardCode}
+                label="Blinding"
+                options={CDISC_TERMINOLOGIES.blindingSchema}
+                placeholder="Not specified"
+              />
+            </div>
             {allocationRatio && (
               <div>
                 <span className="text-sm text-muted-foreground">Randomization</span>
@@ -342,79 +338,89 @@ export function StudyDesignView({ usdm }: StudyDesignViewProps) {
       )}
 
       {/* Arms */}
-      {arms.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <GitBranch className="h-5 w-5" />
-              Study Arms
-              <Badge variant="secondary">{arms.length}</Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {arms.map((arm, i) => (
-                <div key={arm.id || i} className="p-3 border rounded-lg">
-                  <div className="flex items-center gap-2 mb-1">
-                    <EditableField
-                      path={`/study/versions/0/studyDesigns/0/arms/${i}/name`}
-                      value={arm.name || arm.label || `Arm ${i + 1}`}
-                      label="Arm Name"
-                      className="font-medium"
-                    />
-                    {arm.type?.decode && (
-                      <Badge variant="outline">{arm.type.decode}</Badge>
-                    )}
-                  </div>
+      <EditableList
+        basePath="/study/versions/0/studyDesigns/0/arms"
+        items={arms}
+        title="Study Arms"
+        icon={<GitBranch className="h-5 w-5" />}
+        collapsible
+        newItemTemplate={{ name: 'New Arm', description: '', instanceType: 'StudyArm', type: { code: '', decode: '' } }}
+        addLabel="Add Arm"
+        itemDescriptor={{
+          labelKey: 'name',
+          render: (item, index, itemPath) => {
+            const arm = item as Arm;
+            return (
+              <div className="flex-1 space-y-2">
+                <div className="flex items-center gap-2">
                   <EditableField
-                    path={`/study/versions/0/studyDesigns/0/arms/${i}/description`}
-                    value={arm.description || ''}
-                    label="Description"
-                    type="textarea"
-                    className="text-sm text-muted-foreground"
+                    path={`${itemPath}/name`}
+                    value={arm.name || arm.label || `Arm ${index + 1}`}
+                    className="font-medium"
+                    placeholder="Arm name"
+                  />
+                  <EditableCodedValue
+                    path={`${itemPath}/type`}
+                    value={arm.type}
+                    options={CDISC_TERMINOLOGIES.armType}
+                    placeholder="Type"
+                    showCode
                   />
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                <EditableField
+                  path={`${itemPath}/description`}
+                  value={arm.description || ''}
+                  label="Description"
+                  type="textarea"
+                  className="text-sm text-muted-foreground"
+                />
+              </div>
+            );
+          },
+        }}
+      />
 
       {/* Epochs */}
-      {epochs.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Layers className="h-5 w-5" />
-              Study Epochs
-              <Badge variant="secondary">{epochs.length}</Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-2">
-              {epochs.map((epoch, i) => (
-                <div key={epoch.id || i} className="p-3 border rounded-lg min-w-[150px]">
+      <EditableList
+        basePath="/study/versions/0/studyDesigns/0/epochs"
+        items={epochs}
+        title="Study Epochs"
+        icon={<Layers className="h-5 w-5" />}
+        collapsible
+        reorderable
+        newItemTemplate={{ name: 'New Epoch', description: '', instanceType: 'StudyEpoch', type: { code: '', decode: '' } }}
+        addLabel="Add Epoch"
+        itemDescriptor={{
+          labelKey: 'name',
+          render: (item, index, itemPath) => {
+            const epoch = item as Epoch;
+            return (
+              <div className="flex-1 space-y-2">
+                <div className="flex items-center gap-2">
                   <EditableField
-                    path={`/study/versions/0/studyDesigns/0/epochs/${i}/name`}
-                    value={epoch.name || epoch.label || `Epoch ${i + 1}`}
-                    label="Epoch Name"
+                    path={`${itemPath}/name`}
+                    value={epoch.name || epoch.label || `Epoch ${index + 1}`}
                     className="font-medium"
+                    placeholder="Epoch name"
                   />
-                  {epoch.type?.decode && (
-                    <Badge variant="outline" className="mt-1">{epoch.type.decode}</Badge>
-                  )}
-                  <EditableField
-                    path={`/study/versions/0/studyDesigns/0/epochs/${i}/description`}
-                    value={epoch.description || ''}
-                    label="Description"
-                    className="text-xs text-muted-foreground mt-1"
+                  <EditableCodedValue
+                    path={`${itemPath}/type`}
+                    value={epoch.type}
+                    options={CDISC_TERMINOLOGIES.epochType}
+                    placeholder="Type"
                   />
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                <EditableField
+                  path={`${itemPath}/description`}
+                  value={epoch.description || ''}
+                  label="Description"
+                  className="text-sm text-muted-foreground"
+                />
+              </div>
+            );
+          },
+        }}
+      />
 
       {/* Masking */}
       {maskingRoles.length > 0 && (
@@ -556,53 +562,53 @@ export function StudyDesignView({ usdm }: StudyDesignViewProps) {
       )}
 
       {/* Transition Rules */}
-      {transitionRules.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <GitBranch className="h-5 w-5" />
-              Transition Rules
-              <Badge variant="secondary">{transitionRules.length}</Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {transitionRules.map((rule, i) => {
-                const fromEpoch = epochMap.get(rule.fromEpochId || '');
-                const toEpoch = epochMap.get(rule.toEpochId || '');
-                return (
-                  <div key={rule.id || i} className="p-3 border rounded-lg bg-gradient-to-r from-purple-50/50 to-transparent dark:from-purple-950/20">
-                    <div className="flex items-center gap-2 mb-2">
-                      <EditableField
-                        path={`/transitionRules/${i}/name`}
-                        value={rule.name || `Rule ${i + 1}`}
-                        className="font-medium"
-                        placeholder="Rule name"
-                      />
-                      {fromEpoch && toEpoch && (
-                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                          <Badge variant="outline">{fromEpoch.name || fromEpoch.label}</Badge>
-                          <span>→</span>
-                          <Badge variant="outline">{toEpoch.name || toEpoch.label}</Badge>
-                        </div>
-                      )}
+      <EditableList
+        basePath="/transitionRules"
+        items={transitionRules}
+        title="Transition Rules"
+        icon={<GitBranch className="h-5 w-5" />}
+        addLabel="Add Rule"
+        newItemTemplate={{
+          name: 'New Transition Rule',
+          description: '',
+          fromEpochId: epochs[0]?.id ?? '',
+          toEpochId: epochs.length > 1 ? epochs[1].id : (epochs[0]?.id ?? ''),
+        }}
+        itemDescriptor={{
+          labelKey: 'name',
+          render: (item, index, path) => {
+            const rule = item as TransitionRule;
+            const fromEpoch = epochMap.get(rule.fromEpochId || '');
+            const toEpoch = epochMap.get(rule.toEpochId || '');
+            return (
+              <div className="p-3 bg-gradient-to-r from-purple-50/50 to-transparent dark:from-purple-950/20 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <EditableField
+                    path={`${path}/name`}
+                    value={rule.name || `Rule ${index + 1}`}
+                    className="font-medium"
+                    placeholder="Rule name"
+                  />
+                  {fromEpoch && toEpoch && (
+                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                      <Badge variant="outline">{fromEpoch.name || fromEpoch.label}</Badge>
+                      <span>→</span>
+                      <Badge variant="outline">{toEpoch.name || toEpoch.label}</Badge>
                     </div>
-                    {(rule.description || rule.text || rule.condition) && (
-                      <EditableField
-                        path={`/transitionRules/${i}/description`}
-                        value={rule.description || rule.text || rule.condition || ''}
-                        type="textarea"
-                        className="text-sm text-muted-foreground"
-                        placeholder="Rule description"
-                      />
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                  )}
+                </div>
+                <EditableField
+                  path={`${path}/description`}
+                  value={rule.description || rule.text || rule.condition || ''}
+                  type="textarea"
+                  className="text-sm text-muted-foreground"
+                  placeholder="Rule description or condition"
+                />
+              </div>
+            );
+          },
+        }}
+      />
     </div>
   );
 }

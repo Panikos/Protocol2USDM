@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { EditableField } from '@/components/semantic';
+import { EditableField, EditableCodedValue, CDISC_TERMINOLOGIES } from '@/components/semantic';
 import { Pill, Syringe, Clock, Beaker, FlaskConical, ChevronDown, ChevronRight } from 'lucide-react';
 
 interface InterventionsViewProps {
@@ -154,13 +154,19 @@ export function InterventionsView({ usdm }: InterventionsViewProps) {
                         placeholder="No description"
                       />
                     </div>
-                    <div className="flex gap-2">
-                      {intervention.role?.decode && (
-                        <Badge variant="outline">{intervention.role.decode}</Badge>
-                      )}
-                      {intervention.type?.decode && (
-                        <Badge>{intervention.type.decode}</Badge>
-                      )}
+                    <div className="flex gap-2 items-start shrink-0">
+                      <EditableCodedValue
+                        path={`/study/versions/0/studyInterventions/${i}/role`}
+                        value={intervention.role}
+                        options={CDISC_TERMINOLOGIES.interventionRole}
+                        placeholder="Role"
+                      />
+                      <EditableCodedValue
+                        path={`/study/versions/0/studyInterventions/${i}/type`}
+                        value={intervention.type}
+                        options={CDISC_TERMINOLOGIES.interventionType}
+                        placeholder="Type"
+                      />
                     </div>
                   </div>
                   
@@ -209,12 +215,13 @@ export function InterventionsView({ usdm }: InterventionsViewProps) {
                       label="Formulation"
                       placeholder="Not specified"
                     />
-                    {product.route?.decode && (
-                      <div>
-                        <span className="text-muted-foreground">Route</span>
-                        <p>{product.route.decode}</p>
-                      </div>
-                    )}
+                    <EditableCodedValue
+                      path={`/study/versions/0/administrableProducts/${i}/route`}
+                      value={product.route}
+                      label="Route"
+                      options={CDISC_TERMINOLOGIES.routeOfAdministration}
+                      placeholder="Not specified"
+                    />
                     <EditableField
                       path={`/study/versions/0/administrableProducts/${i}/dosage`}
                       value={product.dosage || ''}
@@ -266,16 +273,13 @@ export function InterventionsView({ usdm }: InterventionsViewProps) {
                   />
                   
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3 text-sm">
-                    {admin.route?.decode && (
-                      <div>
-                        <span className="text-muted-foreground">Route</span>
-                        <EditableField
-                          path={`/administrations/${i}/route/decode`}
-                          value={admin.route.decode}
-                          placeholder="Route"
-                        />
-                      </div>
-                    )}
+                    <EditableCodedValue
+                      path={`/administrations/${i}/route`}
+                      value={admin.route}
+                      label="Route"
+                      options={CDISC_TERMINOLOGIES.routeOfAdministration}
+                      placeholder="Route"
+                    />
                     {admin.frequency?.decode && (
                       <div>
                         <span className="text-muted-foreground">Frequency</span>
@@ -374,9 +378,13 @@ export function InterventionsView({ usdm }: InterventionsViewProps) {
                         placeholder="No description"
                       />
                     </div>
-                    {substance.substanceType?.decode && (
-                      <Badge variant="outline">{substance.substanceType.decode}</Badge>
-                    )}
+                    <EditableCodedValue
+                      path={`/substances/${i}/substanceType`}
+                      value={substance.substanceType}
+                      options={CDISC_TERMINOLOGIES.substanceType}
+                      placeholder="Type"
+                      className="shrink-0"
+                    />
                   </div>
                   {substance.codes && substance.codes.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-2">
@@ -415,9 +423,13 @@ export function InterventionsView({ usdm }: InterventionsViewProps) {
                       <span className="font-medium">
                         {ingredient.name || substance?.substanceName || substance?.name || `Ingredient ${i + 1}`}
                       </span>
-                      {ingredient.role?.decode && (
-                        <Badge variant="outline" className="text-xs">{ingredient.role.decode}</Badge>
-                      )}
+                      <EditableCodedValue
+                        path={`/ingredients/${i}/role`}
+                        value={ingredient.role}
+                        options={CDISC_TERMINOLOGIES.ingredientRole}
+                        placeholder="Role"
+                        className="shrink-0"
+                      />
                     </div>
                     {strength && (
                       <div className="text-sm text-muted-foreground mt-1">

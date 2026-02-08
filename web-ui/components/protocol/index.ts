@@ -10,4 +10,5 @@ export { ProceduresDevicesView } from './ProceduresDevicesView';
 export { StudySitesView } from './StudySitesView';
 export { FootnotesView } from './FootnotesView';
 export { ScheduleTimelineView } from './ScheduleTimelineView';
+export { EpochTimelineChart } from './EpochTimelineChart';
 export { NarrativeView } from './NarrativeView';

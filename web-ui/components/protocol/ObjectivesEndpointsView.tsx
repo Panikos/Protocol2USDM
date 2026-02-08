@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { EditableField } from '@/components/semantic';
+import { EditableField, EditableCodedValue, CDISC_TERMINOLOGIES } from '@/components/semantic';
 import { Target, TrendingUp, Beaker } from 'lucide-react';
 
 interface ObjectivesEndpointsViewProps {
@@ -112,11 +112,13 @@ export function ObjectivesEndpointsView({ usdm }: ObjectivesEndpointsViewProps) 
                         label="Endpoint Text"
                         className="text-sm"
                       />
-                      {ep.purpose?.decode && (
-                        <Badge variant="secondary" className="text-xs">
-                          {ep.purpose.decode}
-                        </Badge>
-                      )}
+                      <EditableCodedValue
+                        path={`/study/versions/0/studyDesigns/0/objectives/${pathIndex}/endpoints/${epIndex}/purpose`}
+                        value={ep.purpose}
+                        options={CDISC_TERMINOLOGIES.endpointPurpose}
+                        placeholder="Purpose"
+                        className="shrink-0"
+                      />
                     </div>
                   </div>
                 ))}

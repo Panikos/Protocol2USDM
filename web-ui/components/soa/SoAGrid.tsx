@@ -19,6 +19,7 @@ import { SoACellEditor } from './SoACellEditor';
 import type { SoATableModel, SoACell } from '@/lib/adapters/toSoATableModel';
 import { useOverlayStore } from '@/stores/overlayStore';
 import { useSoAEditStore } from '@/stores/soaEditStore';
+import { useEditModeStore } from '@/stores/editModeStore';
 import type { CellMark } from '@/lib/soa/processor';
 
 interface SoAGridProps {
@@ -34,6 +35,8 @@ export function SoAGrid({ model, onCellClick, editable = false, availableFootnot
   
   const { updateDraftTableOrder } = useOverlayStore();
   const { setCellMark, isUserEdited, getPendingMark, setActivityName, setEncounterName, committedCellEdits } = useSoAEditStore();
+  const isEditMode = useEditModeStore((s) => s.isEditMode);
+  const canEdit = editable && isEditMode;
   
   // Use ref for committedCellEdits to avoid recreating columnDefs (which breaks ag-grid column groups)
   const committedEditsRef = useRef(committedCellEdits);
@@ -71,9 +74,62 @@ export function SoAGrid({ model, onCellClick, editable = false, availableFootnot
     }
   }, [editingCell, setCellMark]);
 
+  // Handle keyboard shortcuts for quick cell editing
+  const onCellKeyDown = useCallback((event: any) => {
+    if (!canEdit) return;
+    const field = event.colDef?.field;
+    if (!field?.startsWith('col_')) return;
+
+    const keyEvent = event.event as KeyboardEvent;
+    const key = keyEvent.key.toUpperCase();
+    const encounterId = field.replace('col_', '');
+    const activityId = event.data?.id;
+    if (!activityId) return;
+
+    // Quick-mark shortcuts
+    const quickMarks: Record<string, CellMark> = {
+      'X': 'X',
+      'O': 'O',
+      '-': '\u2212',  // minus sign
+    };
+
+    if (quickMarks[key]) {
+      keyEvent.preventDefault();
+      const cell = model.cells.get(`${activityId}|${encounterId}`);
+      setCellMark(activityId, encounterId, quickMarks[key], cell?.footnoteRefs ?? []);
+      return;
+    }
+
+    // Delete/Backspace to clear
+    if (keyEvent.key === 'Delete' || keyEvent.key === 'Backspace') {
+      keyEvent.preventDefault();
+      setCellMark(activityId, encounterId, 'clear', []);
+      return;
+    }
+
+    // Enter to open full editor popup
+    if (keyEvent.key === 'Enter') {
+      keyEvent.preventDefault();
+      const cell = model.cells.get(`${activityId}|${encounterId}`);
+      const pendingEdit = getPendingMark(activityId, encounterId);
+      const cellElement = event.event?.target as HTMLElement;
+      const rect = cellElement?.getBoundingClientRect();
+      if (rect) {
+        setEditingCell({
+          activityId,
+          encounterId,
+          currentMark: pendingEdit?.mark ?? (cell?.mark as CellMark) ?? null,
+          footnoteRefs: pendingEdit?.footnoteRefs ?? cell?.footnoteRefs ?? [],
+          rect,
+        });
+      }
+      return;
+    }
+  }, [canEdit, model.cells, setCellMark, getPendingMark]);
+
   // Handle double-click to edit
   const onCellDoubleClicked = useCallback((event: CellDoubleClickedEvent) => {
-    if (!editable) return;
+    if (!canEdit) return;
     const field = event.colDef.field;
     if (!field?.startsWith('col_')) return;
 
@@ -95,7 +151,7 @@ export function SoAGrid({ model, onCellClick, editable = false, availableFootnot
         rect,
       });
     }
-  }, [editable, model.cells, getPendingMark]);
+  }, [canEdit, model.cells, getPendingMark]);
 
   // Build row data from model, incorporating committed edits
   const rowData = useMemo(() => {
@@ -155,8 +211,8 @@ export function SoAGrid({ model, onCellClick, editable = false, availableFootnot
         backgroundColor: '#fafafa',
       },
       rowDrag: true,
-      editable: editable,
-      cellClass: editable ? 'cursor-pointer hover:bg-blue-50' : '',
+      editable: canEdit,
+      cellClass: canEdit ? 'cursor-pointer hover:bg-blue-50' : '',
       onCellValueChanged: (params) => {
         if (params.newValue !== params.oldValue) {
           setActivityName(params.data.id, params.newValue);
@@ -218,7 +274,7 @@ export function SoAGrid({ model, onCellClick, editable = false, availableFootnot
     }
 
     return defs;
-  }, [model, editable, setActivityName]);
+  }, [model, canEdit, setActivityName]);
 
   // Default column settings
   const defaultColDef = useMemo<ColDef>(() => ({
@@ -297,11 +353,12 @@ export function SoAGrid({ model, onCellClick, editable = false, availableFootnot
         onColumnMoved={onColumnMoved}
         onCellClicked={onCellClicked}
         onCellDoubleClicked={onCellDoubleClicked}
+        onCellKeyDown={onCellKeyDown}
         rowHeight={36}
+        suppressCellFocus={false}
         headerHeight={40}
         groupHeaderHeight={44}
         suppressRowClickSelection={true}
-        enableCellTextSelection={true}
       />
       
       {/* Cell Editor Popup */}

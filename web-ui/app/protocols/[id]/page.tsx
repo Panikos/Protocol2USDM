@@ -25,6 +25,8 @@ import {
   Database,
   Activity,
   FileBarChart,
+  Pencil,
+  Lock,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { TabGroup, TabButton } from '@/components/ui/tab-group';
@@ -52,10 +54,13 @@ import {
 import { QualityMetricsDashboard, ValidationResultsView } from '@/components/quality';
 import { DocumentStructureView } from '@/components/intermediate';
 import { DocumentsTab, IntermediateFilesTab } from '@/components/documents';
-import { UnifiedDraftControls, VersionHistoryPanel } from '@/components/semantic';
+import { UnifiedDraftControls, VersionHistoryPanel, DiffView } from '@/components/semantic';
+import { useSemanticStore, selectHasSemanticDraft } from '@/stores/semanticStore';
 import { useProtocolStore } from '@/stores/protocolStore';
 import { useOverlayStore } from '@/stores/overlayStore';
-import { useSemanticStore } from '@/stores/semanticStore';
+import { useUndoRedoShortcuts } from '@/hooks/useUndoRedoShortcuts';
+import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
+import { useEditModeStore } from '@/stores/editModeStore';
 import { cn } from '@/lib/utils';
 import type { ProvenanceData } from '@/lib/provenance/types';
 
@@ -75,6 +80,13 @@ export default function ProtocolDetailPage() {
   const { setProtocol, usdm, metadata } = useProtocolStore();
   const { loadOverlays, draft } = useOverlayStore();
   const semanticDraft = useSemanticStore((state) => state.draft);
+  const hasSemanticDraft = useSemanticStore(selectHasSemanticDraft);
+  const { isEditMode, toggleEditMode } = useEditModeStore();
+
+  // Ctrl+Z / Ctrl+Shift+Z for undo/redo on semantic patches
+  useUndoRedoShortcuts();
+  // Warn on tab close if unsaved changes
+  useUnsavedChangesGuard();
 
   // Load protocol data
   useEffect(() => {
@@ -316,13 +328,30 @@ export default function ProtocolDetailPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <UnifiedDraftControls 
-                protocolId={protocolId}
-                onSaveOverlayDraft={handleSaveDraft}
-                onPublishOverlay={handlePublish}
-                onPublishSuccess={handleReloadUsdm}
-                onShowHistory={() => setShowHistory(true)}
-              />
+              {/* Edit Mode Toggle */}
+              <Button
+                variant={isEditMode ? 'default' : 'outline'}
+                size="sm"
+                onClick={toggleEditMode}
+                className={isEditMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : ''}
+              >
+                {isEditMode ? (
+                  <><Pencil className="h-4 w-4 mr-2" />Editing</>
+                ) : (
+                  <><Lock className="h-4 w-4 mr-2" />View Only</>
+                )}
+              </Button>
+
+              {/* Draft controls (only visible in edit mode) */}
+              {isEditMode && (
+                <UnifiedDraftControls 
+                  protocolId={protocolId}
+                  onSaveOverlayDraft={handleSaveDraft}
+                  onPublishOverlay={handlePublish}
+                  onPublishSuccess={handleReloadUsdm}
+                  onShowHistory={() => setShowHistory(true)}
+                />
+              )}
             </div>
           </div>
         </div>
@@ -369,6 +398,11 @@ export default function ProtocolDetailPage() {
 
       {/* Content */}
       <main id="export-content" className="container mx-auto px-4 py-6 relative z-0">
+        <div className={cn(
+          'flex gap-6',
+          isEditMode && hasSemanticDraft ? 'flex-col lg:flex-row' : ''
+        )}>
+        <div className={cn('flex-1 min-w-0')}>
         {activeTab === 'overview' && (
           <StudyMetadataView usdm={usdm} />
         )}
@@ -432,6 +466,15 @@ export default function ProtocolDetailPage() {
         {activeTab === 'narrative' && (
           <NarrativeView usdm={usdm} />
         )}
+        </div>
+
+        {/* DiffView sidebar — visible in edit mode when changes exist */}
+        {isEditMode && hasSemanticDraft && (
+          <div className="w-full lg:w-[380px] lg:shrink-0">
+            <DiffView className="lg:sticky lg:top-20" />
+          </div>
+        )}
+        </div>
       </main>
 
       {/* Version History Panel */}

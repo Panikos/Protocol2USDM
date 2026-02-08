@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { EditableField } from '@/components/semantic';
+import { EpochTimelineChart } from './EpochTimelineChart';
 import { 
   Calendar, 
   Clock, 
@@ -139,6 +140,9 @@ export function ScheduleTimelineView({ usdm }: ScheduleTimelineViewProps) {
 
   return (
     <div className="space-y-6">
+      {/* Visual Epoch Timeline */}
+      <EpochTimelineChart usdm={usdm} />
+
       {/* Summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>

@@ -1,11 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { Save, Upload, Trash2, AlertTriangle, CheckCircle, XCircle, FileEdit, History } from 'lucide-react';
+import { Save, Upload, Trash2, AlertTriangle, CheckCircle, XCircle, FileEdit, History, Undo2, Redo2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useSemanticStore, selectHasSemanticDraft } from '@/stores/semanticStore';
+import { useSemanticStore, selectHasSemanticDraft, selectCanUndo, selectCanRedo } from '@/stores/semanticStore';
 import { useOverlayStore } from '@/stores/overlayStore';
 import { cn } from '@/lib/utils';
+import { toast } from '@/stores/toastStore';
 import type { PublishResponse } from '@/lib/semantic/schema';
 
 interface UnifiedDraftControlsProps {
@@ -38,6 +39,10 @@ export function UnifiedDraftControls({
   } = useSemanticStore();
   
   const hasSemanticDraft = useSemanticStore(selectHasSemanticDraft);
+  const canUndo = useSemanticStore(selectCanUndo);
+  const canRedo = useSemanticStore(selectCanRedo);
+  const undo = useSemanticStore(state => state.undo);
+  const redo = useSemanticStore(state => state.redo);
   
   // Overlay store
   const { 
@@ -88,14 +93,19 @@ export function UnifiedDraftControls({
         if (response.ok) {
           console.log('Draft saved successfully');
           useSemanticStore.getState().markClean();
+          toast.success('Draft saved');
         } else {
           const responseText = await response.text();
           console.error('Save draft error - status:', response.status, 'body:', responseText);
           try {
             const errorData = JSON.parse(responseText);
-            setError(errorData.message || errorData.error || `Save failed (${response.status})`);
+            const msg = errorData.message || errorData.error || `Save failed (${response.status})`;
+            setError(msg);
+            toast.error(msg);
           } catch {
-            setError(`Save failed: ${response.status} - ${responseText.slice(0, 100)}`);
+            const msg = `Save failed: ${response.status} - ${responseText.slice(0, 100)}`;
+            setError(msg);
+            toast.error(msg);
           }
           return;
         }
@@ -107,7 +117,9 @@ export function UnifiedDraftControls({
       }
     } catch (err) {
       console.error('Save draft exception:', err);
-      setError(err instanceof Error ? err.message : 'Failed to save draft');
+      const msg = err instanceof Error ? err.message : 'Failed to save draft';
+      setError(msg);
+      toast.error(msg);
     } finally {
       setIsSaving(false);
     }
@@ -136,6 +148,7 @@ export function UnifiedDraftControls({
         
         if (result.success) {
           useSemanticStore.getState().clearDraft();
+          toast.success('Changes published successfully');
           // Reload USDM from server to show published changes
           if (onPublishSuccess) {
             await onPublishSuccess();
@@ -155,7 +168,9 @@ export function UnifiedDraftControls({
       setShowPublishConfirm(false);
     } catch (err) {
       console.error('Publish error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to publish');
+      const msg = err instanceof Error ? err.message : 'Failed to publish';
+      setError(msg);
+      toast.error(msg);
     } finally {
       setIsPublishing(false);
     }
@@ -181,10 +196,13 @@ export function UnifiedDraftControls({
         overlayState.resetToPublished();
       }
       
+      toast.info('Draft discarded');
       setShowDiscardConfirm(false);
     } catch (err) {
       console.error('Discard error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to discard draft');
+      const msg = err instanceof Error ? err.message : 'Failed to discard draft';
+      setError(msg);
+      toast.error(msg);
     }
   };
 
@@ -215,6 +233,31 @@ export function UnifiedDraftControls({
             ({semanticChangeCount} changes)
           </span>
         )}
+      </div>
+
+      {/* Undo / Redo */}
+      <div className="flex items-center border rounded-md">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={undo}
+          disabled={!canUndo}
+          className="h-8 px-2 rounded-r-none"
+          title="Undo (Ctrl+Z)"
+        >
+          <Undo2 className="h-4 w-4" />
+        </Button>
+        <div className="w-px h-5 bg-border" />
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={redo}
+          disabled={!canRedo}
+          className="h-8 px-2 rounded-l-none"
+          title="Redo (Ctrl+Shift+Z)"
+        >
+          <Redo2 className="h-4 w-4" />
+        </Button>
       </div>
 
       {/* Unsaved indicator */}

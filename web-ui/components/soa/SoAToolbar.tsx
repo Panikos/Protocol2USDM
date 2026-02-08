@@ -8,9 +8,11 @@ import {
   EyeOff,
   RotateCcw,
   Search,
+  Keyboard,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ProvenanceLegend } from './ProvenanceCellRenderer';
+import { useEditModeStore } from '@/stores/editModeStore';
 import { cn } from '@/lib/utils';
 
 interface SoAToolbarProps {
@@ -40,6 +42,7 @@ export function SoAToolbar({
   const [showOnlyNeedsReview, setShowOnlyNeedsReview] = useState(false);
   const [searchText, setSearchText] = useState('');
   const [showLegend, setShowLegend] = useState(true);
+  const isEditMode = useEditModeStore((s) => s.isEditMode);
 
   const handleFilterToggle = () => {
     const newValue = !showOnlyNeedsReview;
@@ -137,6 +140,19 @@ export function SoAToolbar({
       {/* Legend row */}
       {showLegend && (
         <ProvenanceLegend className="pt-2 border-t" />
+      )}
+
+      {/* Keyboard shortcuts hint — only in edit mode */}
+      {isEditMode && (
+        <div className="flex items-center gap-4 text-xs text-muted-foreground pt-1 border-t">
+          <Keyboard className="h-3.5 w-3.5 shrink-0" />
+          <span><kbd className="px-1 py-0.5 bg-muted rounded text-[10px] font-mono">X</kbd> Required</span>
+          <span><kbd className="px-1 py-0.5 bg-muted rounded text-[10px] font-mono">O</kbd> Optional</span>
+          <span><kbd className="px-1 py-0.5 bg-muted rounded text-[10px] font-mono">-</kbd> N/A</span>
+          <span><kbd className="px-1 py-0.5 bg-muted rounded text-[10px] font-mono">Del</kbd> Clear</span>
+          <span><kbd className="px-1 py-0.5 bg-muted rounded text-[10px] font-mono">Enter</kbd> Full editor</span>
+          <span><kbd className="px-1 py-0.5 bg-muted rounded text-[10px] font-mono">Dbl-click</kbd> Edit cell</span>
+        </div>
       )}
     </div>
   );
