@@ -142,8 +142,8 @@ function FullscreenOverlay({ children, title, onClose }: {
           Exit Fullscreen
         </Button>
       </div>
-      {/* Content — no padding, flex-1 + min-h-0 lets iframe fill remaining space */}
-      <div className="flex-1 min-h-0">
+      {/* Content — p-4 gives the PDF toolbar room; min-h-0 enables proper flex sizing */}
+      <div className="flex-1 min-h-0 p-4">
         {children}
       </div>
     </div>
