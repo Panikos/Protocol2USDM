@@ -358,6 +358,120 @@ def load_previous_extractions(output_dir: str) -> dict:
     return loaded
 
 
+def _reconcile_estimand_population_refs(study_design: dict) -> None:
+    """
+    Reconcile estimand.analysisPopulationId → analysisPopulations references.
+    
+    The objectives phase generates estimands with LLM-created analysisPopulationId
+    UUIDs, while the SAP phase creates analysisPopulations with separate UUIDs.
+    This function links them by matching population name/text.
+    
+    Matching strategy:
+    1. Exact name match
+    2. Known clinical trial equivalences (ITT ↔ FAS, Safety ↔ Safety Set, etc.)
+    3. Word-overlap fuzzy match (>50% of words in common)
+    """
+    estimands = study_design.get('estimands', [])
+    populations = study_design.get('analysisPopulations', [])
+    
+    if not estimands or not populations:
+        return
+    
+    # Build lookup: existing population IDs
+    pop_ids = {p.get('id') for p in populations}
+    
+    # Population keyword aliases — maps common clinical trial terms to population types
+    POPULATION_ALIASES = {
+        'itt': ['full analysis', 'fas', 'intent-to-treat', 'intent to treat', 'itt'],
+        'fas': ['full analysis', 'fas', 'intent-to-treat', 'intent to treat', 'itt'],
+        'safety': ['safety', 'safety set', 'safety population'],
+        'pp': ['per protocol', 'per-protocol', 'pp'],
+        'pk': ['pharmacokinetic', 'pk analysis', 'pk'],
+        'pd': ['pharmacodynamic', 'pd analysis', 'pd'],
+        'screened': ['screened', 'screening'],
+        'enrolled': ['enrolled', 'enrollment'],
+    }
+    
+    def _normalize(text: str) -> str:
+        return text.lower().strip().replace('-', ' ').replace('_', ' ')
+    
+    def _find_best_match(est_pop_text: str) -> Optional[dict]:
+        """Find the best matching analysisPopulation for an estimand's population text."""
+        norm_text = _normalize(est_pop_text)
+        
+        # Pass 1: Exact name match
+        for pop in populations:
+            if _normalize(pop.get('name', '')) == norm_text:
+                return pop
+            if _normalize(pop.get('label', '')) == norm_text:
+                return pop
+        
+        # Pass 2: Keyword alias match
+        for pop in populations:
+            pop_name = _normalize(pop.get('name', ''))
+            pop_label = _normalize(pop.get('label', ''))
+            pop_type = _normalize(pop.get('populationType', ''))
+            pop_terms = f"{pop_name} {pop_label} {pop_type}"
+            
+            for alias_group in POPULATION_ALIASES.values():
+                # Check if the estimand text contains any alias term
+                est_matches = any(alias in norm_text for alias in alias_group)
+                pop_matches = any(alias in pop_terms for alias in alias_group)
+                if est_matches and pop_matches:
+                    return pop
+        
+        # Pass 3: Word overlap (>50% of words in common)
+        est_words = set(norm_text.split())
+        best_pop = None
+        best_overlap = 0.0
+        for pop in populations:
+            pop_words = set(_normalize(pop.get('name', '')).split())
+            pop_words |= set(_normalize(pop.get('label', '')).split())
+            if not pop_words:
+                continue
+            overlap = len(est_words & pop_words) / max(len(est_words), len(pop_words))
+            if overlap > best_overlap and overlap > 0.3:
+                best_overlap = overlap
+                best_pop = pop
+        
+        return best_pop
+    
+    reconciled = 0
+    for est in estimands:
+        current_id = est.get('analysisPopulationId', '')
+        
+        # Skip if already correctly referencing an existing population
+        if current_id in pop_ids:
+            continue
+        
+        # Get population text from the estimand (LLM sets this as human-readable text)
+        pop_text = (
+            est.get('analysisPopulation', '') or 
+            est.get('populationSummary', '')
+        )
+        if not pop_text:
+            continue
+        
+        match = _find_best_match(pop_text)
+        if match:
+            old_id = est.get('analysisPopulationId', 'MISSING')
+            est['analysisPopulationId'] = match['id']
+            reconciled += 1
+            logger.info(
+                f"  Reconciled estimand '{est.get('name', '?')[:40]}' "
+                f"population '{pop_text[:30]}' → '{match.get('name')}' "
+                f"(old: {old_id[:12]}…)"
+            )
+        else:
+            logger.warning(
+                f"  Could not reconcile estimand '{est.get('name', '?')[:40]}' "
+                f"population '{pop_text[:50]}' — no matching analysisPopulation found"
+            )
+    
+    if reconciled:
+        logger.info(f"  Reconciled {reconciled}/{len(estimands)} estimand → population references")
+
+
 def combine_to_full_usdm(
     output_dir: str,
     soa_data: dict = None,
@@ -591,6 +705,9 @@ def combine_to_full_usdm(
                 logger.info(f"    Saved to: {ars_output_path}")
             except Exception as e:
                 logger.warning(f"  ⚠ ARS generation failed: {e}")
+    
+    # Reconcile estimand.analysisPopulationId → analysisPopulations references
+    _reconcile_estimand_population_refs(study_design)
     
     # Add studyDesign to study_version
     study_version["studyDesigns"] = [study_design]
