@@ -13,6 +13,7 @@ import {
   computeUsdmRevision,
   ensureSemanticFolders,
 } from '@/lib/semantic/storage';
+import { validateProtocolId } from '@/lib/sanitize';
 
 /**
  * GET /api/protocols/[id]/semantic/draft
@@ -25,6 +26,10 @@ export async function GET(
 ) {
   try {
     const { id: protocolId } = await params;
+    const idCheck = validateProtocolId(protocolId);
+    if (!idCheck.valid) {
+      return NextResponse.json({ error: idCheck.error }, { status: 400 });
+    }
     const draft = await readDraftLatest(protocolId);
     return NextResponse.json(draft);
   } catch (error) {
@@ -48,19 +53,20 @@ export async function PUT(
 ) {
   try {
     const { id: protocolId } = await params;
+    const idCheck = validateProtocolId(protocolId);
+    if (!idCheck.valid) {
+      return NextResponse.json({ error: idCheck.error }, { status: 400 });
+    }
     
     let body;
     try {
       body = await request.json();
     } catch (jsonError) {
-      console.error('JSON parse error:', jsonError);
       return NextResponse.json(
         { error: 'Invalid JSON in request body', details: String(jsonError) },
         { status: 400 }
       );
     }
-    
-    console.log('Received draft save request:', { protocolId, patchCount: body?.patch?.length });
     
     // Validate request body
     const parseResult = SaveDraftRequestSchema.safeParse(body);
@@ -156,6 +162,10 @@ export async function DELETE(
 ) {
   try {
     const { id: protocolId } = await params;
+    const idCheck = validateProtocolId(protocolId);
+    if (!idCheck.valid) {
+      return NextResponse.json({ error: idCheck.error }, { status: 400 });
+    }
     
     // Archive before deleting
     await archiveDraft(protocolId);

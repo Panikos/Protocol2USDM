@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs/promises';
 import path from 'path';
+import { validateProtocolId, validateFilename, ensureWithinRoot } from '@/lib/sanitize';
 
 const OUTPUT_DIR = process.env.PROTOCOL_OUTPUT_DIR || 
   path.join(process.cwd(), '..', 'output');
@@ -19,15 +20,21 @@ export async function GET(
     const url = new URL(request.url);
     const download = url.searchParams.get('download') === 'true';
     
-    // Validate filename (must be .json and not contain path traversal)
-    if (!filename.endsWith('.json') || filename.includes('..') || filename.includes('/')) {
-      return NextResponse.json(
-        { error: 'Invalid filename' },
-        { status: 400 }
-      );
+    // Validate inputs
+    const idCheck = validateProtocolId(protocolId);
+    if (!idCheck.valid) {
+      return NextResponse.json({ error: idCheck.error }, { status: 400 });
+    }
+    const fnCheck = validateFilename(filename, { allowedExtensions: ['.json'] });
+    if (!fnCheck.valid) {
+      return NextResponse.json({ error: fnCheck.error }, { status: 400 });
     }
     
-    const filePath = path.join(OUTPUT_DIR, protocolId, filename);
+    const filePath = path.join(OUTPUT_DIR, idCheck.sanitized, fnCheck.sanitized);
+    const rootCheck = ensureWithinRoot(filePath, path.join(OUTPUT_DIR, idCheck.sanitized));
+    if (!rootCheck.valid) {
+      return NextResponse.json({ error: 'Invalid file path' }, { status: 400 });
+    }
     
     // Check file exists
     try {

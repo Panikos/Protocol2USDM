@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getHistoryEntries, listSemanticFiles } from '@/lib/semantic/storage';
+import { validateProtocolId } from '@/lib/sanitize';
 
 /**
  * GET /api/protocols/[id]/semantic/history
@@ -12,6 +13,10 @@ export async function GET(
 ) {
   try {
     const { id: protocolId } = await params;
+    const idCheck = validateProtocolId(protocolId);
+    if (!idCheck.valid) {
+      return NextResponse.json({ error: idCheck.error }, { status: 400 });
+    }
     
     // Get detailed history entries (published versions with metadata)
     const history = await getHistoryEntries(protocolId);

@@ -489,7 +489,6 @@ function extractActivityEncounterLinks(
       let userEdited = false;
       const exts = (instance as Record<string, unknown>).extensionAttributes as Array<{url?: string; valueString?: string}> | undefined;
       if (exts && exts.length > 0) {
-        console.log('[toSoATableModel] Instance has extensions:', instance.id, exts);
         for (const ext of exts) {
           // Match both full URL and just the extension name
           const url = ext.url || '';
@@ -499,7 +498,6 @@ function extractActivityEncounterLinks(
           
           if (isCellMark && ext.valueString) {
             const v = ext.valueString;
-            console.log('[toSoATableModel] Found cell mark:', v, 'for instance:', instance.id);
             if (v === 'X' || v === 'Xa' || v === 'Xb' || v === 'Xc' || v === 'O' || v === '−') {
               mark = v;
             } else if (v === 'clear') {

@@ -145,15 +145,11 @@ export default function ProtocolDetailPage() {
       if (!usdmRes.ok) throw new Error('Failed to reload protocol');
       const { usdm: newUsdm, revision: newRevision, provenance: provData } = await usdmRes.json();
       
-      console.log('[handleReloadUsdm] Loaded new USDM with revision:', newRevision);
-      
       setProtocol(protocolId, newUsdm, newRevision);
       setProvenance(provData);
       
       // Update semantic store with new revision (no draft after publish)
       useSemanticStore.getState().loadDraft(protocolId, newRevision, null);
-      
-      console.log('[handleReloadUsdm] Protocol store and semantic store updated');
       
       // Clear SoA edit store AFTER USDM is reloaded so the view shows fresh data
       const { useSoAEditStore } = await import('@/stores/soaEditStore');

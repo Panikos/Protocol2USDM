@@ -18,6 +18,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import crypto from 'crypto';
+import { validateProtocolId, validateFilename, ensureWithinRoot } from '@/lib/sanitize';
 
 const OUTPUT_DIR = process.env.PROTOCOL_OUTPUT_DIR || 
   path.join(process.cwd(), '..', 'output');
@@ -29,7 +30,9 @@ const SEMANTIC_DIR = process.env.SEMANTIC_DIR ||
  * Get paths for a protocol's semantic storage
  */
 export function getSemanticPaths(protocolId: string) {
-  const base = path.join(SEMANTIC_DIR, protocolId);
+  const idCheck = validateProtocolId(protocolId);
+  if (!idCheck.valid) throw new Error(`Invalid protocol ID: ${idCheck.error}`);
+  const base = path.join(SEMANTIC_DIR, idCheck.sanitized);
   return {
     base,
     drafts: path.join(base, 'drafts'),
@@ -44,14 +47,18 @@ export function getSemanticPaths(protocolId: string) {
  * Get path for a protocol's output directory
  */
 export function getOutputPath(protocolId: string) {
-  return path.join(OUTPUT_DIR, protocolId);
+  const idCheck = validateProtocolId(protocolId);
+  if (!idCheck.valid) throw new Error(`Invalid protocol ID: ${idCheck.error}`);
+  return path.join(OUTPUT_DIR, idCheck.sanitized);
 }
 
 /**
  * Get path to protocol_usdm.json for a protocol
  */
 export function getUsdmPath(protocolId: string) {
-  return path.join(OUTPUT_DIR, protocolId, 'protocol_usdm.json');
+  const idCheck = validateProtocolId(protocolId);
+  if (!idCheck.valid) throw new Error(`Invalid protocol ID: ${idCheck.error}`);
+  return path.join(OUTPUT_DIR, idCheck.sanitized, 'protocol_usdm.json');
 }
 
 /**
@@ -62,6 +69,17 @@ export async function ensureSemanticFolders(protocolId: string): Promise<void> {
   await fs.mkdir(paths.drafts, { recursive: true });
   await fs.mkdir(paths.published, { recursive: true });
   await fs.mkdir(paths.history, { recursive: true });
+}
+
+/**
+ * Atomic JSON write: serialize → write to .tmp → rename.
+ * Prevents partial/corrupt writes on crash.
+ */
+async function atomicWriteJson(targetPath: string, data: unknown): Promise<void> {
+  const content = JSON.stringify(data, null, 2);
+  const tmpPath = targetPath + '.tmp';
+  await fs.writeFile(tmpPath, content, 'utf-8');
+  await fs.rename(tmpPath, targetPath);
 }
 
 /**
@@ -173,7 +191,7 @@ export async function readDraftLatest(protocolId: string): Promise<unknown | nul
 export async function writeDraftLatest(protocolId: string, draft: unknown): Promise<void> {
   const paths = getSemanticPaths(protocolId);
   await ensureSemanticFolders(protocolId);
-  await fs.writeFile(paths.draftLatest, JSON.stringify(draft, null, 2));
+  await atomicWriteJson(paths.draftLatest, draft);
 }
 
 /**
@@ -212,9 +230,8 @@ export async function writePublished(protocolId: string, published: unknown): Pr
   const timestamp = getTimestamp();
   const timestampedPath = path.join(paths.published, `published_${timestamp}.json`);
   
-  const content = JSON.stringify(published, null, 2);
-  await fs.writeFile(paths.publishedLatest, content);
-  await fs.writeFile(timestampedPath, content);
+  await atomicWriteJson(paths.publishedLatest, published);
+  await atomicWriteJson(timestampedPath, published);
   
   return `published_${timestamp}.json`;
 }
@@ -227,10 +244,15 @@ export async function readSemanticFile(
   subdir: 'drafts' | 'published' | 'history',
   filename: string
 ): Promise<unknown | null> {
+  const fnCheck = validateFilename(filename, { allowedExtensions: ['.json'] });
+  if (!fnCheck.valid) return null;
   const paths = getSemanticPaths(protocolId);
-  const filePath = path.join(paths[subdir], filename);
+  const filePath = path.join(paths[subdir], fnCheck.sanitized);
+  // Verify resolved path stays within expected directory
+  const rootCheck = ensureWithinRoot(filePath, paths[subdir]);
+  if (!rootCheck.valid) return null;
   try {
-    const content = await fs.readFile(filePath, 'utf-8');
+    const content = await fs.readFile(rootCheck.resolved, 'utf-8');
     return JSON.parse(content);
   } catch {
     return null;
@@ -307,13 +329,17 @@ export async function restoreUsdmFromSnapshot(
   protocolId: string,
   snapshotFilename: string
 ): Promise<{ success: boolean; error?: string }> {
+  const fnCheck = validateFilename(snapshotFilename, { allowedExtensions: ['.json'] });
+  if (!fnCheck.valid) return { success: false, error: fnCheck.error };
   const paths = getSemanticPaths(protocolId);
-  const snapshotPath = path.join(paths.history, snapshotFilename);
+  const snapshotPath = path.join(paths.history, fnCheck.sanitized);
+  const rootCheck = ensureWithinRoot(snapshotPath, paths.history);
+  if (!rootCheck.valid) return { success: false, error: 'Invalid snapshot path' };
   const usdmPath = getUsdmPath(protocolId);
   
   try {
     // Read snapshot
-    const exists = await fs.access(snapshotPath).then(() => true).catch(() => false);
+    const exists = await fs.access(rootCheck.resolved).then(() => true).catch(() => false);
     if (!exists) {
       return { success: false, error: 'Snapshot not found' };
     }
@@ -321,8 +347,12 @@ export async function restoreUsdmFromSnapshot(
     // Archive current USDM first
     await archiveUsdm(protocolId);
     
-    // Copy snapshot to protocol_usdm.json
-    await fs.copyFile(snapshotPath, usdmPath);
+    // Atomic restore: read snapshot, write to temp, rename
+    const content = await fs.readFile(rootCheck.resolved, 'utf-8');
+    JSON.parse(content); // validate JSON before writing
+    const tmpPath = usdmPath + '.tmp';
+    await fs.writeFile(tmpPath, content);
+    await fs.rename(tmpPath, usdmPath);
     
     return { success: true };
   } catch (error) {

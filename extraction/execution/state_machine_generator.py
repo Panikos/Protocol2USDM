@@ -190,9 +190,10 @@ def _detect_guard_conditions(text: str, transitions: List[StateTransition]) -> L
     return enhanced
 
 
-def _sanitize_key(name: str) -> str:
+def _sanitize_key(name) -> str:
     """Sanitize a string for use as a JSON object key (no spaces for CDISC engine path traversal)."""
-    return name.replace(' ', '_').replace('-', '_')
+    s = name.value if hasattr(name, 'value') else str(name)
+    return s.replace(' ', '_').replace('-', '_')
 
 
 def _build_from_traversal(
@@ -224,19 +225,25 @@ def _build_from_traversal(
             epoch_id_to_name[ep_id.replace('_', ' ')] = ep_name
     
     # Determine initial state (first in sequence)
-    initial_state = "Screening"  # Default
+    initial_state: Any = StateType.SCREENING  # Default
     
     # Build states from required sequence using actual epoch names
     prev_state = None
     for epoch_ref in traversal.required_sequence:
         # Try to resolve to actual epoch name
-        state_name = epoch_id_to_name.get(epoch_ref)
+        state_name: Any = epoch_id_to_name.get(epoch_ref)
         if not state_name:
             # Try case-insensitive lookup
             state_name = epoch_id_to_name.get(epoch_ref.lower())
         if not state_name:
             # Use the epoch ref itself, cleaned up
             state_name = epoch_ref.replace('_', ' ').replace('epoch ', '').title()
+        
+        # Resolve to StateType enum when the string matches a known state
+        try:
+            state_name = StateType(state_name)
+        except ValueError:
+            pass  # Keep as string for protocol-specific epoch names
         
         # Track epoch ID mapping (sanitize key to avoid spaces breaking CDISC engine path traversal)
         epoch_ids[_sanitize_key(state_name)] = epoch_ref
@@ -275,7 +282,9 @@ def _build_from_traversal(
         terminal_states.append("Early Termination")
     
     # Add early exit transitions from treatment states
-    treatment_states = [s for s in states if any(kw in s.lower() for kw in 
+    def _to_str(s):
+        return s.value if hasattr(s, 'value') else str(s)
+    treatment_states = [s for s in states if any(kw in _to_str(s).lower() for kw in 
                        ['treatment', 'period', 'dose', 'titration'])]
     for treatment_state in treatment_states:
         for term in terminal_states:

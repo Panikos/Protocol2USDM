@@ -8,6 +8,7 @@ import {
   getUsdmPath,
 } from '@/lib/semantic/storage';
 import fs from 'fs/promises';
+import { validateProtocolId, validateVersionId } from '@/lib/sanitize';
 
 /**
  * POST /api/protocols/[id]/semantic/revert
@@ -26,6 +27,11 @@ export async function POST(
 ) {
   try {
     const { id: protocolId } = await params;
+    const idCheck = validateProtocolId(protocolId);
+    if (!idCheck.valid) {
+      return NextResponse.json({ error: idCheck.error }, { status: 400 });
+    }
+    
     const body = await request.json();
     const { targetVersion } = body;
     
@@ -36,10 +42,14 @@ export async function POST(
       );
     }
     
+    // Validate targetVersion to prevent path traversal
+    const versionCheck = validateVersionId(targetVersion);
+    if (!versionCheck.valid) {
+      return NextResponse.json({ error: versionCheck.error }, { status: 400 });
+    }
+    
     // Get the published file to find associated USDM snapshot
-    const publishedFilename = targetVersion.endsWith('.json') 
-      ? targetVersion 
-      : `${targetVersion}.json`;
+    const publishedFilename = versionCheck.sanitized;
     
     // Read the published version to get the patches that were applied
     const publishedData = await readSemanticFile(protocolId, 'published', publishedFilename);

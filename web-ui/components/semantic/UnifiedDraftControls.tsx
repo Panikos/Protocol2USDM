@@ -82,8 +82,6 @@ export function UnifiedDraftControls({
           updatedBy: currentDraft.updatedBy || 'ui-user',
           patch: currentDraft.patch,
         };
-        console.log('Saving semantic draft:', requestBody);
-        
         const response = await fetch(`/api/protocols/${protocolId}/semantic/draft`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -91,7 +89,6 @@ export function UnifiedDraftControls({
         });
         
         if (response.ok) {
-          console.log('Draft saved successfully');
           useSemanticStore.getState().markClean();
           toast.success('Draft saved');
         } else {

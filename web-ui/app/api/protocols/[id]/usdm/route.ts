@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import fs from 'fs/promises';
 import path from 'path';
 import crypto from 'crypto';
+import { validateProtocolId } from '@/lib/sanitize';
 
 const OUTPUT_DIR = process.env.PROTOCOL_OUTPUT_DIR || 
   path.join(process.cwd(), '..', 'output');
@@ -82,7 +83,11 @@ export async function GET(
 ) {
   try {
     const { id: protocolId } = await params;
-    const protocolDir = path.join(OUTPUT_DIR, protocolId);
+    const idCheck = validateProtocolId(protocolId);
+    if (!idCheck.valid) {
+      return NextResponse.json({ error: idCheck.error }, { status: 400 });
+    }
+    const protocolDir = path.join(OUTPUT_DIR, idCheck.sanitized);
     const usdmPath = path.join(protocolDir, 'protocol_usdm.json');
     
     // Read USDM file

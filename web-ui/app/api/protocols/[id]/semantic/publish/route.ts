@@ -13,6 +13,7 @@ import {
   computeUsdmRevision,
 } from '@/lib/semantic/storage';
 import { applySemanticPatch } from '@/lib/semantic/patcher';
+import { validateProtocolId } from '@/lib/sanitize';
 
 /**
  * Run Python validation pipeline
@@ -27,11 +28,11 @@ async function runValidation(
   const outputDir = getOutputPath(protocolId);
   const usdmPath = getUsdmPath(protocolId);
   
-  // Default result if validation fails to run
+  // Default result if validation cannot run — fail closed
   const defaultResult = {
-    schema: { valid: true, errors: 0, warnings: 0 },
-    usdm: { valid: true, errors: 0, warnings: 0 },
-    core: { success: true, issues: 0, warnings: 0 },
+    schema: { valid: false, errors: 1, warnings: 0 },
+    usdm: { valid: false, errors: 1, warnings: 0 },
+    core: { success: false, issues: 1, warnings: 0 },
   };
   
   try {
@@ -95,6 +96,10 @@ export async function POST(
 ) {
   try {
     const { id: protocolId } = await params;
+    const idCheck = validateProtocolId(protocolId);
+    if (!idCheck.valid) {
+      return NextResponse.json({ error: idCheck.error }, { status: 400 });
+    }
     
     // 1. Load draft
     const draft = await readDraftLatest(protocolId) as SemanticDraft | null;
@@ -133,10 +138,8 @@ export async function POST(
     }
     
     // 4. Apply JSON Patch
-    console.log('Applying patch:', JSON.stringify(draft.patch, null, 2));
     const patchResult = applySemanticPatch(usdm, draft.patch);
     if (!patchResult.success) {
-      console.error('Patch failed:', patchResult.error);
       return NextResponse.json(
         { 
           error: 'patch_failed', 
@@ -150,8 +153,11 @@ export async function POST(
     // 5. Archive current USDM to history
     await archiveUsdm(protocolId);
     
-    // 6. Write updated USDM
-    await fs.writeFile(usdmPath, JSON.stringify(patchResult.result, null, 2));
+    // 6. Write updated USDM (atomic: temp file → rename)
+    const content = JSON.stringify(patchResult.result, null, 2);
+    const tmpPath = usdmPath + '.tmp';
+    await fs.writeFile(tmpPath, content, 'utf-8');
+    await fs.rename(tmpPath, usdmPath);
     
     // 7. Archive draft and write published version
     await archiveDraft(protocolId);

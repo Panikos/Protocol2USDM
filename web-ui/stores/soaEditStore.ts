@@ -1,11 +1,11 @@
 /**
  * SoA Edit Store - Zustand store for Schedule of Activities editing state
  * 
- * Manages:
- * - Pending cell edits before committing to semantic store
- * - User-edited cell tracking for visual indicators
- * - Activity/encounter additions pending commit
- * - Integration with SoAProcessor and SemanticStore
+ * All edits are pushed to semanticStore immediately (no staging/commit flow).
+ * This store tracks:
+ * - Committed cell edits (visual indicators until publish/discard)
+ * - User-edited cell tracking
+ * - Activity/encounter name edits
  */
 
 import { create } from 'zustand';
@@ -25,28 +25,7 @@ interface PendingCellEdit {
   editedAt: string;
 }
 
-interface PendingActivityAdd {
-  tempId: string;
-  name: string;
-  label?: string;
-  groupId?: string;
-  insertAfter?: string;
-}
-
-interface PendingEncounterAdd {
-  tempId: string;
-  name: string;
-  epochId: string;
-  timing?: string;
-  insertAfter?: string;
-}
-
 interface SoAEditState {
-  // Pending edits (not yet committed to semantic store)
-  pendingCellEdits: Map<string, PendingCellEdit>; // key: "activityId|encounterId"
-  pendingActivityAdds: PendingActivityAdd[];
-  pendingEncounterAdds: PendingEncounterAdd[];
-  
   // Committed edits (added to semantic store, visible until publish/discard)
   committedCellEdits: Map<string, PendingCellEdit>;
   
@@ -77,14 +56,11 @@ interface SoAEditActions {
   
   // Activity editing
   setActivityName: (activityId: string, name: string) => void;
-  addActivity: (name: string, groupId?: string, insertAfter?: string) => string;
   
   // Encounter editing
   setEncounterName: (encounterId: string, name: string) => void;
-  addEncounter: (name: string, epochId: string, timing?: string, insertAfter?: string) => string;
   
-  // Commit changes to semantic store
-  commitChanges: () => Promise<{ success: boolean; errors: string[] }>;
+  // Discard all edits
   discardChanges: () => void;
   
   // Load user-edited cells from USDM
@@ -107,9 +83,6 @@ type SoAEditStore = SoAEditState & SoAEditActions;
 // ============================================================================
 
 const initialState: SoAEditState = {
-  pendingCellEdits: new Map(),
-  pendingActivityAdds: [],
-  pendingEncounterAdds: [],
   committedCellEdits: new Map(),
   userEditedCells: new Set(),
   pendingActivityNameEdits: new Map(),
@@ -269,19 +242,6 @@ export const useSoAEditStore = create<SoAEditStore>((set, get) => ({
     });
   },
 
-  addActivity: (name, groupId, insertAfter) => {
-    const tempId = `temp_activity_${Date.now()}`;
-    set(state => ({
-      pendingActivityAdds: [
-        ...state.pendingActivityAdds,
-        { tempId, name, groupId, insertAfter },
-      ],
-      isDirty: true,
-      lastError: null,
-    }));
-    return tempId;
-  },
-
   // ============================================================================
   // Encounter Editing
   // ============================================================================
@@ -318,131 +278,13 @@ export const useSoAEditStore = create<SoAEditStore>((set, get) => ({
     });
   },
 
-  addEncounter: (name, epochId, timing, insertAfter) => {
-    const tempId = `temp_encounter_${Date.now()}`;
-    set(state => ({
-      pendingEncounterAdds: [
-        ...state.pendingEncounterAdds,
-        { tempId, name, epochId, timing, insertAfter },
-      ],
-      isDirty: true,
-      lastError: null,
-    }));
-    return tempId;
-  },
-
-  // ============================================================================
-  // Commit Changes
-  // ============================================================================
-
-  commitChanges: async () => {
-    const state = get();
-    const usdm = useProtocolStore.getState().usdm;
-    
-    if (!usdm) {
-      return { success: false, errors: ['No USDM data available'] };
-    }
-
-    const processor = new SoAProcessor(usdm as Record<string, unknown>);
-    const errors: string[] = [];
-
-    // Process cell edits
-    for (const [, edit] of state.pendingCellEdits) {
-      processor.editCell({
-        activityId: edit.activityId,
-        encounterId: edit.encounterId,
-        mark: edit.mark,
-        footnoteRefs: edit.footnoteRefs,
-      });
-    }
-
-    // Process activity name edits
-    for (const [activityId, name] of state.pendingActivityNameEdits) {
-      processor.editActivity({ activityId, name });
-    }
-
-    // Process encounter name edits
-    for (const [encounterId, name] of state.pendingEncounterNameEdits) {
-      processor.editEncounter({ encounterId, name });
-    }
-
-    // Process new activities
-    for (const add of state.pendingActivityAdds) {
-      processor.addActivity({
-        name: add.name,
-        label: add.label,
-        groupId: add.groupId,
-        insertAfter: add.insertAfter,
-      });
-    }
-
-    // Process new encounters
-    for (const add of state.pendingEncounterAdds) {
-      processor.addEncounter({
-        name: add.name,
-        epochId: add.epochId,
-        timing: add.timing,
-        insertAfter: add.insertAfter,
-      });
-    }
-
-    const result = processor.getResult();
-    
-    if (result.errors.length > 0) {
-      errors.push(...result.errors);
-    }
-
-    if (result.warnings.length > 0) {
-      console.warn('SoA Edit Warnings:', result.warnings);
-    }
-
-    // Add patches to semantic store
-    if (result.patches.length > 0 && errors.length === 0) {
-      const semanticStore = useSemanticStore.getState();
-      for (const patch of result.patches) {
-        semanticStore.addPatchOp(patch);
-      }
-
-      // Move pending edits to committed edits (keep visible until publish)
-      set(state => {
-        const newCommitted = new Map(state.committedCellEdits);
-        for (const [key, edit] of state.pendingCellEdits) {
-          newCommitted.set(key, edit);
-        }
-        return {
-          userEditedCells: new Set([...state.userEditedCells, ...result.userEditedCells]),
-          pendingCellEdits: new Map(),
-          committedCellEdits: newCommitted,
-          pendingActivityAdds: [],
-          pendingEncounterAdds: [],
-          pendingActivityNameEdits: new Map(),
-          pendingEncounterNameEdits: new Map(),
-          isDirty: false,
-          lastError: null,
-        };
-      });
-
-      return { success: true, errors: [] };
-    }
-
-    if (errors.length > 0) {
-      set({ lastError: errors.join('; ') });
-      return { success: false, errors };
-    }
-
-    return { success: true, errors: [] };
-  },
-
   discardChanges: () => {
     // Also clear the semantic store draft patches
     const semanticStore = useSemanticStore.getState();
     semanticStore.clearPatch();
     
     set({
-      pendingCellEdits: new Map(),
       committedCellEdits: new Map(),
-      pendingActivityAdds: [],
-      pendingEncounterAdds: [],
       pendingActivityNameEdits: new Map(),
       pendingEncounterNameEdits: new Map(),
       isDirty: false,
@@ -510,12 +352,12 @@ export const useSoAEditStore = create<SoAEditStore>((set, get) => ({
   isUserEdited: (activityId, encounterId) => {
     const state = get();
     const key = cellKey(activityId, encounterId);
-    return state.userEditedCells.has(key) || state.pendingCellEdits.has(key);
+    return state.userEditedCells.has(key) || state.committedCellEdits.has(key);
   },
 
   getPendingMark: (activityId, encounterId) => {
     const key = cellKey(activityId, encounterId);
-    return get().pendingCellEdits.get(key) ?? null;
+    return get().committedCellEdits.get(key) ?? null;
   },
 
   reset: () => {

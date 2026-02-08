@@ -6,6 +6,43 @@
 
 import { applyPatch, Operation, validate } from 'fast-json-patch';
 import type { JsonPatchOp } from './schema';
+import { isImmutablePath } from './schema';
+
+/** RFC 6902 path must start with / */
+const VALID_PATH_RE = /^\/[\w\[\]\-\.~\/]*$/;
+
+/**
+ * Validate structural correctness of patch operations beyond immutable-path checks.
+ * Catches malformed paths, missing values, and invalid op types before application.
+ */
+export function validatePatchOps(patch: JsonPatchOp[]): { valid: boolean; errors: string[] } {
+  const errors: string[] = [];
+  for (let i = 0; i < patch.length; i++) {
+    const op = patch[i];
+    const prefix = `Op[${i}] (${op.op})`;
+
+    // Path must start with /
+    if (!op.path || !op.path.startsWith('/')) {
+      errors.push(`${prefix}: path must start with / (got "${op.path}")`);
+    }
+
+    // Immutable path check
+    if (isImmutablePath(op.path)) {
+      errors.push(`${prefix}: targets immutable path ${op.path}`);
+    }
+
+    // add/replace require a value
+    if ((op.op === 'add' || op.op === 'replace') && op.value === undefined) {
+      errors.push(`${prefix}: missing required 'value'`);
+    }
+
+    // move/copy require a from
+    if ((op.op === 'move' || op.op === 'copy') && !('from' in op && op.from)) {
+      errors.push(`${prefix}: missing required 'from'`);
+    }
+  }
+  return { valid: errors.length === 0, errors };
+}
 
 /**
  * Convert our schema's patch ops to fast-json-patch format
@@ -72,12 +109,16 @@ export function applySemanticPatch(
     if (!patch || patch.length === 0) {
       return { success: true, result: document };
     }
+
+    // Structural validation before applying
+    const structCheck = validatePatchOps(patch);
+    if (!structCheck.valid) {
+      return { success: false, error: structCheck.errors.join('; ') };
+    }
     
     // Deep clone to avoid mutating original
     const cloned = JSON.parse(JSON.stringify(document));
     const ops = toFastJsonPatchOps(patch);
-    
-    console.log('Applying', ops.length, 'patch operations');
     
     // Apply patch: validateOperation=false (skip to avoid false positives), mutateDocument=true
     applyPatch(cloned, ops, false, true);
@@ -85,7 +126,6 @@ export function applySemanticPatch(
     // Return the mutated clone
     return { success: true, result: cloned };
   } catch (error) {
-    console.error('Patch error:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown patch error',
