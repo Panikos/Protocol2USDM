@@ -61,15 +61,29 @@ Add epoch transition rules with min/max gaps and within-epoch day offsets:
 
 ---
 
-## Issue C: Repetitions Not Bound to Activities
+## Issue C: Repetitions Not Bound to Activities — ✅ RESOLVED (v7.2.1)
 
 ### Problem
 Repetition patterns exist in `x-executionModel-repetitions` but no linkage like:
 - "Plasma Glucose for PD uses rep_interval_9 (PT5M)"
 - "PK (Glucagon) uses rep_interval_5 (PT15M)"
 
-### Fix
-Create activity-to-execution binding map:
+### Resolution (2026-02-08)
+
+The `ExecutionModelPromoter` now resolves repetitions to activities via three strategies:
+
+1. **Activity bindings** (most reliable): `activity_bindings[]` maps `repetition_id` → `(activity_id, activity_name)`
+2. **Direct `activity_id`**: Repetition's own `activity_id` field looked up in USDM activities
+3. **Fuzzy name matching**: Word-level overlap between repetition `source_text` and activity `name`/`label`
+
+Additionally:
+- ISO 8601 durations (`P7D`, `P1W`) parsed via `_iso_duration_to_days()`
+- Source text regex extracts day ranges (e.g., "Day -7 through Day -5")
+- Fault isolation prevents one bad repetition from blocking all promotions
+
+**Result**: 32 `ScheduledActivityInstance` entities promoted from 64 extracted repetitions (Wilson's protocol).
+
+### Original Proposed Fix (superseded)
 
 ```python
 # Add to each ScheduledActivityInstance.extensionAttributes
@@ -174,13 +188,13 @@ for constraint in execution_data.traversal_constraints:
 
 ---
 
-## Implementation Order
+## Implementation Status
 
-1. **Fix A (Critical)**: Set base model correctly - ~30 min
-2. **Fix C (Critical)**: Bind timing to activities - ~2 hours
-3. **Fix D (Critical)**: Add PD sampling constraints - ~1 hour
-4. **Fix E (Medium)**: Resolve traversal constraints - ~1 hour
-5. **Fix B (Medium)**: Add epoch transition rules - ~1 hour
+1. **Fix A (Critical)**: Set base model correctly — ✅ Resolved in v7.2.0
+2. **Fix C (Critical)**: Bind timing to activities — ✅ Resolved in v7.2.1 (activity bindings + fuzzy matching + ISO duration parsing)
+3. **Fix D (Critical)**: Add PD sampling constraints — Open
+4. **Fix E (Medium)**: Resolve traversal constraints — ✅ Resolved in v7.2.0 (traversal → epoch previousId/nextId)
+5. **Fix B (Medium)**: Add epoch transition rules — ✅ Resolved in v7.2.1 (state machine → TransitionRule on Encounter)
 
 ---
 

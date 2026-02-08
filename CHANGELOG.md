@@ -4,6 +4,58 @@ All notable changes documented here. Dates in ISO-8601.
 
 ---
 
+## [7.2.1] – 2026-02-08
+
+### Execution Model Promoter Bug Fixes
+
+Fixed critical bugs preventing repetitions and transitions from being promoted to core USDM.
+
+#### Repetition Promotion Fix
+
+| Issue | Fix |
+|-------|-----|
+| **`TypeError: int - NoneType` crash** | `_iso_duration_to_days()` returns `None` for unrecognized ISO strings; added `or 1` fallback after duration parsing |
+| **Cascading failure** | Step 2 crash blocked Steps 3–10 (admins, windows, conditions, transitions); added per-step fault isolation |
+| **Missing activity matches** | Added word-level fuzzy matching for activity names (e.g., "controlled diet" → "Cu/Mo-controlled meals") |
+| **ISO 8601 parsing** | Added `_iso_duration_to_days()` helper for `P7D`, `P1W`, `P2M` duration strings |
+
+**Result**: 0 → 32 repetition instances from 64 extracted patterns.
+
+#### Transition Rule Promotion Fix
+
+| Issue | Fix |
+|-------|-----|
+| **Encounter reconciliation drops rules** | `ReconciledEncounter.to_usdm_dict()` reconstructs from scratch; added preservation by name in `_run_reconciliation()` |
+| **Encounter normalization drops rules** | `normalize_encounter()` only passed 6 fields to constructor; added `transitionStartRule`/`transitionEndRule` preservation |
+| **Missing encounter fields** | Also preserved `scheduledAtTimingId`, `previousId`, `nextId` through normalization |
+
+**Result**: 0 → 14 transition rules (6 start + 6 end) from 8 state machine transitions.
+
+#### Fault Isolation
+
+Wrapped each promoter step (2–10) in individual `try/except` blocks. This was critical: the Step 2 crash was silently preventing Steps 3–10, causing loss of administrations, visit windows, conditions, and transitions.
+
+#### Files Changed
+
+* `extraction/execution/execution_model_promoter.py` - Fixed duration parsing, added fault isolation, improved fuzzy matching
+* `core/usdm_types_generated.py` - Preserved transition rules and encounter fields through normalization
+* `pipeline/orchestrator.py` - Preserved transition rules through encounter reconciliation
+
+#### Verified Results (Wilson's Protocol NCT04573309)
+
+| Component | Before | After |
+|-----------|--------|-------|
+| Anchors | 3 | 3 |
+| Repetition Instances | 0 (crash) | 32 |
+| Transition Rules | 0 (stripped) | 14 |
+| Administrations | 0 (blocked) | 2 |
+| Visit Windows | 0 (blocked) | 11/11 |
+| Conditions | 0 (blocked) | 30 |
+| Schema Validation | PASSED | PASSED |
+| CDISC Conformance | 0 errors | 0 errors |
+
+---
+
 ## [7.2.0] – 2026-02-01
 
 ### Execution Model Promotion to Native USDM Entities

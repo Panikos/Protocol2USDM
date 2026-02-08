@@ -254,3 +254,4 @@ The following concepts are now promoted to **native USDM entities** by the `Exec
 | Version | Date | Changes |
 |---------|------|---------|
 | 1.0 | 2026-01-30 | Initial schema based on USDM v4.0 gap analysis |
+| 1.1 | 2026-02-08 | Updated promotion status: repetitions (32 instances), transitions (14 rules) now fully functional. Added fault isolation, ISO 8601 duration parsing, fuzzy activity matching, reconciliation/normalization preservation for transition rules. |

@@ -514,20 +514,24 @@ Study:
 
 ## Execution Model Promotion
 
-The pipeline extracts rich execution model data (time anchors, repetitions, dosing regimens) which must be materialized into **core USDM** rather than stored only in extensions. This ensures downstream consumers (synthetic generators) can use core USDM without parsing extensions.
+The pipeline extracts rich execution model data (time anchors, repetitions, dosing regimens, state machine, footnote conditions, visit windows, etc.) which must be materialized into **core USDM** rather than stored only in extensions. This ensures downstream consumers (synthetic generators) can use core USDM without parsing extensions.
 
 ### Architecture
 
 ```
-PDF → Execution Extractors → Execution Model Data
+PDF → Execution Extractors → ExecutionModelData (10 extraction steps)
                                     ↓
-                          ExecutionModelPromoter
+                          ExecutionModelPromoter (10 promotion steps)
                                     ↓
                           Core USDM Entities:
-                            - ScheduledActivityInstance (anchors)
-                            - ScheduledActivityInstance (repetitions)
+                            - ScheduledActivityInstance (anchors + repetitions)
                             - Administration (dosing regimens)
-                            - Timing (with valid references)
+                            - Timing (visit windows, valid references)
+                            - Condition + ScheduledDecisionInstance (footnotes)
+                            - TransitionRule on Encounter (state machine)
+                            - StudyEpoch.previousId/nextId (traversal)
+                            - Estimand (endpoint algorithms)
+                            - StudyElement (titration schedules)
 ```
 
 ### Key Contract
@@ -536,18 +540,73 @@ PDF → Execution Extractors → Execution Model Data
 
 ### Promotion Steps
 
+Each step is wrapped in fault isolation (`try/except`) so that a failure in one step does not prevent subsequent steps from executing.
+
 | Step | Input | Output |
 |------|-------|--------|
 | 1. Anchor Promotion | `time_anchors[]` | `ScheduledActivityInstance` with anchor metadata |
-| 2. Repetition Expansion | `repetitions[]` | Multiple `ScheduledActivityInstance` per occurrence |
+| 2. Repetition Expansion | `repetitions[]` + `activity_bindings[]` | Multiple `ScheduledActivityInstance` per occurrence |
 | 3. Dosing Normalization | `dosing_regimens[]` | `Administration` linked to `StudyIntervention` |
-| 4. Reference Reconciliation | `Timing.relativeFromScheduledInstanceId` | Fix dangling references |
+| 4. Visit Window Enrichment | `visit_windows[]` | `Timing.windowLower/windowUpper` on existing timings |
+| 5. Reference Reconciliation | `Timing.relativeFromScheduledInstanceId` | Fix dangling references |
+| 6. Traversal Constraints | `traversal_constraints[]` | `StudyEpoch.previousId/nextId` chain |
+| 7. Footnote Conditions | `footnote_conditions[]` | `Condition` + `ScheduledDecisionInstance` |
+| 8. State Machine | `state_machine` (SubjectStateMachine) | `TransitionRule` on `Encounter.transitionStartRule/EndRule` |
+| 9. Endpoint Algorithms | `endpoint_algorithms[]` | `Estimand` entities |
+| 10. Titration Schedules | `titration_schedules[]` | `StudyElement` with `TransitionRule` |
+
+### Repetition Expansion (Step 2)
+
+Repetitions map extracted repetition patterns to USDM `ScheduledActivityInstance` entities:
+
+1. **Activity resolution**: Uses `activity_bindings` (most reliable), then direct `activity_id`, then fuzzy name matching (word-level overlap)
+2. **Duration parsing**: ISO 8601 durations (e.g., `P7D`, `P1W`) are converted to day offsets via `_iso_duration_to_days()`
+3. **Source text fallback**: When offsets are missing, day ranges are extracted from `source_text` via regex (e.g., "Day -7 through Day -5" → start=5, end=7)
+4. **Instance creation**: Based on repetition type (`Daily`, `Weekly`, `Interval`, `Continuous`), one or more `ScheduledActivityInstance` entities are created
+
+### State Machine Promotion (Step 8)
+
+Transitions from `SubjectStateMachine` are promoted to `TransitionRule` entities on encounters:
+
+1. **Encounter matching**: Uses fuzzy matching — exact name, prefix, substring, then epoch-based fallback
+2. **Rule creation**: Each transition creates up to two rules: `transitionStartRule` on the target encounter, `transitionEndRule` on the source encounter
+3. **Preservation through reconciliation**: The orchestrator preserves transition rules by encounter name before encounter reconciliation, then re-applies them after (since `ReconciledEncounter.to_usdm_dict()` reconstructs encounters from scratch)
+4. **Preservation through normalization**: `normalize_encounter()` in `usdm_types_generated.py` explicitly preserves `transitionStartRule`/`transitionEndRule` fields
+
+### Fault Isolation
+
+Each promotion step (2–10) is wrapped in an individual `try/except` block:
+
+```python
+if execution_data.repetitions:
+    try:
+        usdm_design = self._promote_repetitions(...)
+    except Exception as e:
+        logger.warning(f"Step 2 (_promote_repetitions) failed: {e}")
+```
+
+This prevents a crash in one step (e.g., an unexpected data format in repetitions) from blocking all subsequent promotions (e.g., conditions, transitions, administrations).
 
 ### Files
 
-- `extraction/execution/execution_model_promoter.py` - Main promotion logic
+- `extraction/execution/execution_model_promoter.py` - Main promotion logic (10 steps)
 - `extraction/execution/reconciliation_layer.py` - Entity resolution and issue classification
 - `extraction/execution/pipeline_integration.py` - Integration into enrichment flow
+- `extraction/execution/schema.py` - `ExecutionModelData` dataclass and sub-schemas
+
+### Data Flow Through the Pipeline
+
+```
+1. Execution extractors produce ExecutionModelData (in-memory)
+2. pipeline_integration.py calls promote_execution_model() during enrich_usdm
+3. Promoter adds entities to studyDesign dict (e.g., encounters get TransitionRule)
+4. Orchestrator runs _run_reconciliation() which reconstructs encounters
+   → Transition rules are preserved by name before reconciliation, re-applied after
+5. Validation pipeline normalizes encounters (normalize_encounter)
+   → Transition rules explicitly preserved during normalization
+6. UUID conversion converts all IDs
+7. Final USDM written to protocol_usdm.json
+```
 
 ### Reference Reconciliation
 
