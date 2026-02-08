@@ -94,9 +94,9 @@ function CSVTable({ headers, rows, className }: {
 // ---------------------------------------------------------------------------
 // Fullscreen overlay
 // ---------------------------------------------------------------------------
-function FullscreenOverlay({ children, title, onClose }: {
-  children: React.ReactNode;
+function FullscreenOverlay({ title, pdfUrl, onClose }: {
   title: string;
+  pdfUrl: string;
   onClose: () => void;
 }) {
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -134,20 +134,20 @@ function FullscreenOverlay({ children, title, onClose }: {
       tabIndex={-1}
       className="fixed inset-0 z-[60] bg-background flex flex-col outline-none"
     >
-      {/* Header — z-10 + shadow keeps it visible above PDF iframe */}
-      <div className="relative z-10 flex items-center justify-between px-6 py-3 border-b bg-background shadow-md shrink-0">
+      {/* Header */}
+      <div className="flex items-center justify-between px-6 py-3 border-b bg-background shadow-md shrink-0">
         <h2 className="font-semibold truncate">{title}</h2>
         <Button variant="outline" size="sm" onClick={onClose} className="shrink-0">
           <XIcon className="h-4 w-4 mr-2" />
           Exit Fullscreen
         </Button>
       </div>
-      {/* Content — absolute positioning guarantees iframe fills remaining space */}
-      <div className="flex-1 min-h-0 relative">
-        <div className="absolute inset-0 overflow-hidden">
-          {children}
-        </div>
-      </div>
+      {/* iframe as direct flex child — no wrappers, no clipping */}
+      <iframe
+        src={pdfUrl}
+        className="flex-1 w-full border-0"
+        title={title}
+      />
     </div>
   );
 }
@@ -357,9 +357,11 @@ export function DocumentsTab({ protocolId }: DocumentsTabProps) {
 
       {/* Fullscreen overlay */}
       {isFullscreen && selectedDoc && (
-        <FullscreenOverlay title={selectedDoc.filename} onClose={closeFullscreen}>
-          {renderContent(selectedDoc, true)}
-        </FullscreenOverlay>
+        <FullscreenOverlay
+          title={selectedDoc.filename}
+          pdfUrl={`${getDocUrl(selectedDoc)}#toolbar=1&navpanes=0`}
+          onClose={closeFullscreen}
+        />
       )}
     </>
   );
