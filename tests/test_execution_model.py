@@ -1703,12 +1703,26 @@ class TestPromoterFuzzyMatch:
         promoter = ExecutionModelPromoter()
         design = {
             "activities": [
+                {"id": "act_1", "name": "Complete blood count panel"},
+                {"id": "act_2", "name": "Vital Signs"},
+            ]
+        }
+        # "blood count panel" has 3/3 word overlap with "Complete blood count panel" (3/4 = 0.75)
+        result = promoter._find_activity_by_name(design, "blood count panel")
+        assert result == "act_1"
+    
+    def test_word_overlap_below_threshold(self):
+        from extraction.execution.execution_model_promoter import ExecutionModelPromoter
+        promoter = ExecutionModelPromoter()
+        design = {
+            "activities": [
                 {"id": "act_1", "name": "Cu/Mo-controlled meals"},
                 {"id": "act_2", "name": "Vital Signs"},
             ]
         }
+        # "controlled diet" vs "Cu/Mo-controlled meals": 1/2 = 0.5 overlap, below 0.75 threshold
         result = promoter._find_activity_by_name(design, "controlled diet")
-        assert result == "act_1"
+        assert result is None
     
     def test_no_match(self):
         from extraction.execution.execution_model_promoter import ExecutionModelPromoter

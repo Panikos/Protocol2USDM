@@ -108,17 +108,25 @@ class ExecutionModelPromoter:
                 usdm_design, execution_data.time_anchors
             )
         
-        # Steps 2-10: Each wrapped in try/except for fault isolation
-        # Step 2: Expand repetitions → ScheduledActivityInstances
+        # Steps 2-10: Each wrapped in try/except for fault isolation.
+        # Classification:
+        #   MUST-SUCCEED (severity=error): Steps whose failure corrupts the USDM
+        #     - Step 2: Repetitions (creates core schedule instances)
+        #     - Step 4: Fix dangling refs (structural integrity)
+        #   BEST-EFFORT (severity=warning): Enrichment that is additive
+        #     - Steps 3, 5-10: dosing, windows, traversals, conditions, etc.
+
+        # Step 2 [must-succeed]: Expand repetitions → ScheduledActivityInstances
         if execution_data.repetitions:
             try:
                 usdm_design = self._promote_repetitions(
                     usdm_design, execution_data.repetitions, execution_data
                 )
             except Exception as e:
-                logger.warning(f"Step 2 (_promote_repetitions) failed: {e}")
+                logger.error(f"Step 2 (_promote_repetitions) failed: {e}")
+                self.result.issues.append({"step": 2, "severity": "error", "message": str(e)})
         
-        # Step 3: Promote dosing regimens → Administration entities
+        # Step 3 [best-effort]: Promote dosing regimens → Administration entities
         if execution_data.dosing_regimens:
             try:
                 study_version = self._promote_dosing_regimens(
@@ -126,14 +134,16 @@ class ExecutionModelPromoter:
                 )
             except Exception as e:
                 logger.warning(f"Step 3 (_promote_dosing_regimens) failed: {e}")
+                self.result.issues.append({"step": 3, "severity": "warning", "message": str(e)})
         
-        # Step 4: Fix dangling references in timings
+        # Step 4 [must-succeed]: Fix dangling references in timings
         try:
             usdm_design = self._fix_timing_references(usdm_design)
         except Exception as e:
-            logger.warning(f"Step 4 (_fix_timing_references) failed: {e}")
+            logger.error(f"Step 4 (_fix_timing_references) failed: {e}")
+            self.result.issues.append({"step": 4, "severity": "error", "message": str(e)})
         
-        # Step 5: Promote visit windows → Timing.windowLower/windowUpper
+        # Step 5 [best-effort]: Promote visit windows → Timing.windowLower/windowUpper
         if hasattr(execution_data, 'visit_windows') and execution_data.visit_windows:
             try:
                 usdm_design = self._promote_visit_windows(
@@ -141,8 +151,9 @@ class ExecutionModelPromoter:
                 )
             except Exception as e:
                 logger.warning(f"Step 5 (_promote_visit_windows) failed: {e}")
+                self.result.issues.append({"step": 5, "severity": "warning", "message": str(e)})
         
-        # Step 6: Promote traversal constraints → epoch/encounter chains
+        # Step 6 [best-effort]: Promote traversal constraints → epoch/encounter chains
         if hasattr(execution_data, 'traversal_constraints') and execution_data.traversal_constraints:
             try:
                 usdm_design = self._promote_traversals(
@@ -150,8 +161,9 @@ class ExecutionModelPromoter:
                 )
             except Exception as e:
                 logger.warning(f"Step 6 (_promote_traversals) failed: {e}")
+                self.result.issues.append({"step": 6, "severity": "warning", "message": str(e)})
         
-        # Step 7: Promote footnote conditions → Condition + ScheduledDecisionInstance
+        # Step 7 [best-effort]: Promote footnote conditions → Condition + ScheduledDecisionInstance
         if hasattr(execution_data, 'footnote_conditions') and execution_data.footnote_conditions:
             try:
                 usdm_design = self._promote_conditions(
@@ -159,8 +171,9 @@ class ExecutionModelPromoter:
                 )
             except Exception as e:
                 logger.warning(f"Step 7 (_promote_conditions) failed: {e}")
+                self.result.issues.append({"step": 7, "severity": "warning", "message": str(e)})
         
-        # Step 8: Promote state machine → TransitionRule on Encounter/StudyElement
+        # Step 8 [best-effort]: Promote state machine → TransitionRule on Encounter/StudyElement
         sm = getattr(execution_data, 'state_machine', None)
         if sm:
             try:
@@ -169,8 +182,9 @@ class ExecutionModelPromoter:
                 )
             except Exception as e:
                 logger.warning(f"Step 8 (_promote_state_machine) failed: {e}")
+                self.result.issues.append({"step": 8, "severity": "warning", "message": str(e)})
         
-        # Step 9: Promote endpoint algorithms → Estimand framework
+        # Step 9 [best-effort]: Promote endpoint algorithms → Estimand framework
         if hasattr(execution_data, 'endpoint_algorithms') and execution_data.endpoint_algorithms:
             try:
                 usdm_design = self._promote_estimands(
@@ -178,8 +192,9 @@ class ExecutionModelPromoter:
                 )
             except Exception as e:
                 logger.warning(f"Step 9 (_promote_estimands) failed: {e}")
+                self.result.issues.append({"step": 9, "severity": "warning", "message": str(e)})
         
-        # Step 10: Promote titration schedules → StudyElement with transitions
+        # Step 10 [best-effort]: Promote titration schedules → StudyElement with transitions
         if hasattr(execution_data, 'titration_schedules') and execution_data.titration_schedules:
             try:
                 usdm_design = self._promote_elements(
@@ -187,6 +202,7 @@ class ExecutionModelPromoter:
                 )
             except Exception as e:
                 logger.warning(f"Step 10 (_promote_elements) failed: {e}")
+                self.result.issues.append({"step": 10, "severity": "warning", "message": str(e)})
         
         logger.info(
             f"Promotion complete: {self.result.anchors_created} anchors, "
@@ -797,7 +813,7 @@ class ExecutionModelPromoter:
                 if act_words:
                     overlap = len(name_words & act_words)
                     score = overlap / min(len(name_words), len(act_words))
-                    if score > best_score and score >= 0.5:  # At least 50% word overlap
+                    if score > best_score and score >= 0.75:  # At least 75% word overlap
                         best_score = score
                         best_match = activity['id']
             if best_match:

@@ -31,7 +31,7 @@ def normalize_for_matching(name: str) -> str:
     return name
 
 
-def fuzzy_match_names(name1: str, name2: str, threshold: float = 0.85) -> bool:
+def fuzzy_match_names(name1: str, name2: str, threshold: float = 0.9) -> bool:
     """
     Check if two entity names are fuzzy matches.
     
@@ -232,7 +232,7 @@ class BaseReconciler(ABC, Generic[T, R]):
     - _reconcile_entity(): Merge contributions into reconciled entity
     """
     
-    def __init__(self, match_threshold: float = 0.85):
+    def __init__(self, match_threshold: float = 0.9):
         self.contributions: Dict[str, List[T]] = {}
         self._entity_id_map: Dict[str, str] = {}
         self.match_threshold = match_threshold
