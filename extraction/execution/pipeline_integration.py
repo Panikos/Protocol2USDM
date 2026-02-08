@@ -505,6 +505,10 @@ def enrich_usdm_with_execution_model(
                 study_version = enriched['study']['versions'][0]
             
             if study_version:
+                logger.info(f"  [PROMOTER PRE-CHECK] state_machine={execution_data.state_machine is not None}, "
+                           f"bindings={len(execution_data.activity_bindings)}, "
+                           f"reps={len(execution_data.repetitions)}, "
+                           f"dosing={len(execution_data.dosing_regimens)}")
                 promoted_design, promoted_version, promotion_result = promote_execution_model(
                     design, study_version, execution_data
                 )

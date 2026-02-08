@@ -33,7 +33,24 @@ def _get(obj: Any, snake_key: str, camel_key: str = '', default: Any = '') -> An
     """Get attribute from dict (camelCase) or dataclass (snake_case)."""
     if isinstance(obj, dict):
         return obj.get(camel_key or snake_key, obj.get(snake_key, default))
-    return getattr(obj, snake_key, default)
+    val = getattr(obj, snake_key, default)
+    # Handle enum values (e.g., StateType.SCREENING → "Screening")
+    if hasattr(val, 'value'):
+        return val.value
+    return val
+
+
+def _iso_duration_to_days(duration: str) -> Optional[int]:
+    """Parse ISO 8601 duration to integer days. E.g., 'P7D' → 7, 'P1D' → 1."""
+    if not duration or not isinstance(duration, str):
+        return None
+    m = re.match(r'P(\d+)D', duration)
+    if m:
+        return int(m.group(1))
+    m = re.match(r'P(\d+)W', duration)
+    if m:
+        return int(m.group(1)) * 7
+    return None
 
 
 @dataclass
@@ -329,10 +346,33 @@ class ExecutionModelPromoter:
         for rep in repetitions:
             rep_id = _get(rep, 'id', 'id', str(uuid.uuid4()))
             rep_type = _get(rep, 'type', 'type', 'Unknown')
-            activity_name = _get(rep, 'activity_name', 'activityName', '')
-            start_offset = _get(rep, 'start_day_offset', 'startDayOffset', 1)
-            end_offset = _get(rep, 'end_day_offset', 'endDayOffset', start_offset)
-            interval = _get(rep, 'interval_days', 'intervalDays', 1)
+            activity_name = ''
+            
+            # Parse day offsets from ISO durations or direct fields
+            raw_start = _get(rep, 'start_offset', 'startOffset', None)
+            raw_end = _get(rep, 'end_offset', 'endOffset', None)
+            raw_interval = _get(rep, 'interval', 'interval', None)
+            count = _get(rep, 'count', 'count', None)
+            source_text = _get(rep, 'source_text', 'sourceText', '')
+            
+            start_offset = _iso_duration_to_days(raw_start) if isinstance(raw_start, str) else (raw_start or 1)
+            end_offset = _iso_duration_to_days(raw_end) if isinstance(raw_end, str) else raw_end
+            interval_days = _iso_duration_to_days(raw_interval) if isinstance(raw_interval, str) else (raw_interval or 1)
+            
+            # Try to extract day range from source text if offsets are missing
+            if not end_offset and source_text:
+                day_matches = re.findall(r'[Dd]ay\s*[-]?\s*(\d+)', source_text)
+                if len(day_matches) >= 2:
+                    days = [int(d) for d in day_matches]
+                    start_offset = min(days)
+                    end_offset = max(days)
+            
+            # Calculate end from count if available
+            if not end_offset and count and isinstance(count, int):
+                end_offset = start_offset + (count - 1) * max(interval_days, 1)
+            
+            if not end_offset:
+                end_offset = start_offset  # Single occurrence
             
             # Find matching activity via bindings, direct ID, or name
             raw_activity_id = _get(rep, 'activity_id', 'activityId', None)
@@ -343,31 +383,33 @@ class ExecutionModelPromoter:
                 bound_act_id, bound_act_name = rep_to_activity[rep_id]
                 if bound_act_id and bound_act_id in activities:
                     activity_id = bound_act_id
-                    activity_name = activity_name or bound_act_name or activities[bound_act_id].get('name', '')
+                    activity_name = bound_act_name or activities[bound_act_id].get('name', '')
                 elif bound_act_name:
                     activity_id = self._find_activity_by_name(design, bound_act_name)
-                    activity_name = activity_name or bound_act_name
+                    activity_name = bound_act_name
             
             # Then try direct activity_id on the repetition
             if not activity_id and raw_activity_id and raw_activity_id in activities:
                 activity_id = raw_activity_id
                 activity_name = activity_name or activities[raw_activity_id].get('name', '')
             
-            # Then try name-based matching
-            if not activity_id and activity_name:
-                activity_id = self._find_activity_by_name(design, activity_name)
+            # Then try name-based matching from source text
+            if not activity_id and source_text:
+                activity_id = self._find_activity_by_name(design, source_text)
+                if activity_id:
+                    activity_name = activity_name or source_text[:40]
             
             if not activity_id:
                 continue  # Can't bind without activity
             
-            # Calculate occurrence days
-            if rep_type == 'Daily':
-                interval = 1
-            elif rep_type == 'Weekly':
-                interval = 7
-            elif rep_type == 'Continuous':
-                # For continuous, just mark start and end
-                interval = max(1, end_offset - start_offset)
+            # Calculate interval in days
+            if rep_type in ('Daily', 'DAILY'):
+                interval_days = 1
+            elif rep_type in ('Weekly', 'WEEKLY'):
+                interval_days = 7
+            elif rep_type in ('Continuous', 'CONTINUOUS'):
+                interval_days = max(1, end_offset - start_offset)
+            interval = interval_days
             
             # Generate instances for each day
             created_instances = []
@@ -698,12 +740,13 @@ class ExecutionModelPromoter:
         return day_map
     
     def _find_activity_by_name(self, design: Dict[str, Any], name: str) -> Optional[str]:
-        """Find activity ID by name."""
+        """Find activity ID by name with multi-tier matching."""
         if not name:
             return None
         
-        name_lower = name.lower()
+        name_lower = name.lower().strip()
         
+        # Pass 1: exact or substring match
         for activity in design.get('activities', []):
             act_name = activity.get('name', '').lower()
             act_label = activity.get('label', '').lower()
@@ -713,6 +756,23 @@ class ExecutionModelPromoter:
             
             if name_lower in act_name or act_name in name_lower:
                 return activity['id']
+        
+        # Pass 2: word-level matching (e.g. 'controlled diet' matches 'Cu/Mo-controlled meals')
+        name_words = set(re.findall(r'[a-z]{3,}', name_lower))  # words >= 3 chars
+        if name_words:
+            best_match = None
+            best_score = 0
+            for activity in design.get('activities', []):
+                act_name = activity.get('name', '').lower()
+                act_words = set(re.findall(r'[a-z]{3,}', act_name))
+                if act_words:
+                    overlap = len(name_words & act_words)
+                    score = overlap / min(len(name_words), len(act_words))
+                    if score > best_score and score >= 0.5:  # At least 50% word overlap
+                        best_score = score
+                        best_match = activity['id']
+            if best_match:
+                return best_match
         
         return None
     
