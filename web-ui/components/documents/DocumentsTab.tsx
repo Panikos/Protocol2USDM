@@ -142,9 +142,11 @@ function FullscreenOverlay({ children, title, onClose }: {
           Exit Fullscreen
         </Button>
       </div>
-      {/* Content — p-4 gives the PDF toolbar room; min-h-0 enables proper flex sizing */}
-      <div className="flex-1 min-h-0 p-4">
-        {children}
+      {/* Content — absolute positioning guarantees iframe fills remaining space */}
+      <div className="flex-1 min-h-0 relative">
+        <div className="absolute inset-0 overflow-hidden">
+          {children}
+        </div>
       </div>
     </div>
   );
@@ -228,10 +230,10 @@ export function DocumentsTab({ protocolId }: DocumentsTabProps) {
     }
     if (doc.mimeType === 'application/pdf') {
       return (
-        <div className={cn('border rounded-lg', fullscreen ? 'h-full' : '')}>
+        <div className={cn(fullscreen ? 'w-full h-full' : 'border rounded-lg')}>
           <iframe
             src={`${getDocUrl(doc)}#toolbar=1&navpanes=0`}
-            className={cn('w-full', fullscreen ? 'h-full' : 'h-[600px]')}
+            className={cn('w-full border-0', fullscreen ? 'h-full' : 'h-[600px]')}
             title={doc.filename}
           />
         </div>
