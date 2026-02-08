@@ -132,7 +132,7 @@ function FullscreenOverlay({ children, title, onClose }: {
     <div
       ref={overlayRef}
       tabIndex={-1}
-      className="fixed inset-0 z-50 bg-background flex flex-col outline-none"
+      className="fixed inset-0 z-[60] bg-background flex flex-col outline-none"
     >
       {/* Header — z-10 + shadow keeps it visible above PDF iframe */}
       <div className="relative z-10 flex items-center justify-between px-6 py-3 border-b bg-background shadow-md shrink-0">
