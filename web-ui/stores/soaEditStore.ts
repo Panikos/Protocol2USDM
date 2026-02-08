@@ -12,6 +12,7 @@ import { create } from 'zustand';
 import { SoAProcessor, type CellMark, type SoACellEdit, cellKey, parseCellKey } from '@/lib/soa/processor';
 import { useSemanticStore } from './semanticStore';
 import { useProtocolStore } from './protocolStore';
+import { getExtBoolean } from '@/lib/extensions';
 
 // ============================================================================
 // Types
@@ -316,7 +317,7 @@ export const useSoAEditStore = create<SoAEditStore>((set, get) => ({
       instances?: Array<{
         activityIds?: string[];
         encounterId?: string;
-        extensionAttributes?: Array<{ url?: string; valueString?: string }>;
+        extensionAttributes?: unknown[];
       }>;
     }>) ?? [];
 
@@ -325,16 +326,7 @@ export const useSoAEditStore = create<SoAEditStore>((set, get) => ({
         const encId = instance.encounterId;
         if (!encId) continue;
 
-        // Check for user-edited extension
-        let isEdited = false;
-        for (const ext of instance.extensionAttributes ?? []) {
-          if (ext.url?.includes('x-userEdited') && ext.valueString === 'true') {
-            isEdited = true;
-            break;
-          }
-        }
-
-        if (isEdited) {
+        if (getExtBoolean(instance.extensionAttributes, 'userEdited') === true) {
           for (const actId of instance.activityIds ?? []) {
             userEdited.add(cellKey(actId, encId));
           }

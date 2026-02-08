@@ -9,6 +9,10 @@
  * plus [key: string]: unknown for extensionAttributes and custom fields.
  */
 
+// Import ExtensionAttribute for use in runtime-safe types below
+import type { ExtensionAttribute as _ExtensionAttribute } from './usdm.generated';
+type ExtensionAttribute = _ExtensionAttribute;
+
 // Re-export all generated types as-is for strict usage
 export type {
   // Core
@@ -143,7 +147,7 @@ export interface USDMStudyDesign {
   estimands?: unknown[];
   maskingRoles?: unknown[];
   population?: unknown;
-  extensionAttributes?: unknown[];
+  extensionAttributes?: ExtensionAttribute[];
   [key: string]: unknown;
 }
 
@@ -158,7 +162,7 @@ export interface USDMActivity {
   previousId?: string;
   timelineId?: string;
   definedProcedures?: unknown[];
-  extensionAttributes?: unknown[];
+  extensionAttributes?: ExtensionAttribute[];
   [key: string]: unknown;
 }
 
@@ -170,7 +174,7 @@ export interface USDMActivityGroup {
   instanceType?: string;
   activityIds?: string[];
   childIds?: string[];
-  extensionAttributes?: unknown[];
+  extensionAttributes?: ExtensionAttribute[];
   [key: string]: unknown;
 }
 
@@ -195,7 +199,7 @@ export interface USDMEncounter {
   previousId?: string;
   environmentalSettings?: unknown[];
   contactModes?: unknown[];
-  extensionAttributes?: unknown[];
+  extensionAttributes?: ExtensionAttribute[];
   [key: string]: unknown;
 }
 
@@ -208,7 +212,7 @@ export interface USDMEpoch {
   type?: unknown;
   nextId?: string;
   previousId?: string;
-  extensionAttributes?: unknown[];
+  extensionAttributes?: ExtensionAttribute[];
   [key: string]: unknown;
 }
 
@@ -219,7 +223,7 @@ export interface USDMArm {
   description?: string;
   instanceType?: string;
   type?: unknown;
-  extensionAttributes?: unknown[];
+  extensionAttributes?: ExtensionAttribute[];
   [key: string]: unknown;
 }
 
@@ -235,7 +239,7 @@ export interface USDMScheduleTimeline {
   instances?: USDMScheduledInstance[];
   timings?: USDMTiming[];
   exits?: { id: string; instanceType?: string; [key: string]: unknown }[];
-  extensionAttributes?: unknown[];
+  extensionAttributes?: ExtensionAttribute[];
   [key: string]: unknown;
 }
 
@@ -253,7 +257,7 @@ export interface USDMScheduledInstance {
   timelineExitId?: string;
   timelineId?: string;
   scheduledAtTimingId?: string;
-  extensionAttributes?: unknown[];
+  extensionAttributes?: ExtensionAttribute[];
   [key: string]: unknown;
 }
 
@@ -274,7 +278,7 @@ export interface USDMTiming {
   relativeFromScheduledInstanceId?: string;
   relativeToScheduledInstanceId?: string;
   relativeToFrom?: string | { code?: string; decode?: string; [key: string]: unknown };
-  extensionAttributes?: unknown[];
+  extensionAttributes?: ExtensionAttribute[];
   [key: string]: unknown;
 }
 

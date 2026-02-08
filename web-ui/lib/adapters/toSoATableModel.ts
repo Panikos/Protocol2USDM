@@ -8,6 +8,7 @@ import type {
 } from '@/stores/protocolStore';
 import type { OverlayPayload } from '@/lib/overlay/schema';
 import type { ProvenanceData, CellSource } from '@/lib/provenance/types';
+import { getExtString, getExtBoolean, hasExt, EXT_URLS } from '@/lib/extensions';
 
 // SoA Table Model types
 export interface SoARow {
@@ -67,14 +68,8 @@ export interface SoATableModel {
 
 // Helper to check if activity is from SoA (has ticks) vs procedure enrichment
 function getActivitySource(activity: USDMActivity): 'soa' | 'procedure_enrichment' | 'unknown' {
-  const exts = (activity as Record<string, unknown>).extensionAttributes as Array<{url?: string; valueString?: string}> | undefined;
-  if (exts) {
-    for (const ext of exts) {
-      if (ext.url?.endsWith('activitySource')) {
-        return ext.valueString as 'soa' | 'procedure_enrichment' || 'unknown';
-      }
-    }
-  }
+  const source = getExtString(activity.extensionAttributes, 'activitySource');
+  if (source === 'soa' || source === 'procedure_enrichment') return source;
   return 'unknown';
 }
 
@@ -173,19 +168,14 @@ export function toSoATableModel(
   // Strategy 3: Check extensionAttributes for group info
   for (const activity of activities) {
     if (activityIdToGroupId.has(activity.id)) continue;
-    const exts = (activity as Record<string, unknown>).extensionAttributes as Array<{url?: string; valueString?: string}> | undefined;
-    if (exts) {
-      for (const ext of exts) {
-        if (ext.url?.includes('activityGroup') && ext.valueString) {
-          // Find matching group by name
-          const matchingGroup = activityGroups.find(g => 
-            g.name.toLowerCase() === ext.valueString?.toLowerCase() ||
-            g.id === ext.valueString
-          );
-          if (matchingGroup) {
-            activityIdToGroupId.set(activity.id, matchingGroup.id);
-          }
-        }
+    const groupRef = getExtString(activity.extensionAttributes, 'activityGroup');
+    if (groupRef) {
+      const matchingGroup = activityGroups.find(g => 
+        g.name.toLowerCase() === groupRef.toLowerCase() ||
+        g.id === groupRef
+      );
+      if (matchingGroup) {
+        activityIdToGroupId.set(activity.id, matchingGroup.id);
       }
     }
   }
@@ -444,15 +434,7 @@ interface InstanceMeta {
 
 // Check if instance is from execution model enrichment (not original SoA)
 function isEnrichmentInstance(instance: Record<string, unknown>): boolean {
-  const exts = instance.extensionAttributes as Array<{url?: string; valueString?: string}> | undefined;
-  if (exts) {
-    for (const ext of exts) {
-      if (ext.url?.endsWith('instanceSource') && ext.valueString === 'execution_model') {
-        return true;
-      }
-    }
-  }
-  return false;
+  return getExtString(instance.extensionAttributes as unknown[], 'instanceSource') === 'execution_model';
 }
 
 // Instance metadata for enhanced cell display
@@ -477,7 +459,7 @@ function extractActivityEncounterLinks(
       if (!encounterId) continue;
 
       // Check if this is an enrichment instance
-      const isEnrichment = isEnrichmentInstance(instance as Record<string, unknown>);
+      const isEnrichment = getExtString(instance.extensionAttributes, 'instanceSource') === 'execution_model';
 
       // Handle both singular and plural activity IDs
       const activityIds = instance.activityIds ?? 
@@ -487,32 +469,23 @@ function extractActivityEncounterLinks(
       let mark: 'X' | 'Xa' | 'Xb' | 'Xc' | 'O' | '−' | null = 'X'; // Default to X if instance exists
       let footnoteRefs: string[] = [];
       let userEdited = false;
-      const exts = (instance as Record<string, unknown>).extensionAttributes as Array<{url?: string; valueString?: string}> | undefined;
+      const exts = instance.extensionAttributes;
       if (exts && exts.length > 0) {
-        for (const ext of exts) {
-          // Match both full URL and just the extension name
-          const url = ext.url || '';
-          const isCellMark = url.endsWith('x-soaCellMark') || url.includes('soaCellMark');
-          const isFootnoteRefs = url.endsWith('x-soaFootnoteRefs') || url.includes('soaFootnoteRefs');
-          const isUserEdited = url.endsWith('x-userEdited') || url.includes('userEdited');
-          
-          if (isCellMark && ext.valueString) {
-            const v = ext.valueString;
-            if (v === 'X' || v === 'Xa' || v === 'Xb' || v === 'Xc' || v === 'O' || v === '−') {
-              mark = v;
-            } else if (v === 'clear') {
-              mark = null;
-            }
-          }
-          if (isFootnoteRefs && ext.valueString) {
-            try {
-              footnoteRefs = JSON.parse(ext.valueString);
-            } catch { /* ignore parse errors */ }
-          }
-          if (isUserEdited && ext.valueString === 'true') {
-            userEdited = true;
+        const cellMarkVal = getExtString(exts, 'soaCellMark');
+        if (cellMarkVal) {
+          if (cellMarkVal === 'X' || cellMarkVal === 'Xa' || cellMarkVal === 'Xb' || cellMarkVal === 'Xc' || cellMarkVal === 'O' || cellMarkVal === '−') {
+            mark = cellMarkVal;
+          } else if (cellMarkVal === 'clear') {
+            mark = null;
           }
         }
+        const fnRefsVal = getExtString(exts, 'soaFootnoteRefs');
+        if (fnRefsVal) {
+          try {
+            footnoteRefs = JSON.parse(fnRefsVal);
+          } catch { /* ignore parse errors */ }
+        }
+        userEdited = getExtBoolean(exts, 'userEdited') === true;
       }
 
       for (const actId of activityIds) {

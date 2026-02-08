@@ -11,6 +11,7 @@
  */
 
 import type { JsonPatchOp } from '@/lib/semantic/schema';
+import { getExtString, getExtBoolean, makeStringExt, makeBooleanExt, EXT_URLS } from '@/lib/extensions';
 
 // ============================================================================
 // Types
@@ -236,28 +237,13 @@ export class SoAProcessor {
     const instance = timelines[timelineIdx]?.instances?.[instanceIdx] as Record<string, unknown> | undefined;
     const hasExtensionAttributes = Array.isArray(instance?.extensionAttributes);
     
-    const extensions: Array<{ id: string; url: string; valueString: string; instanceType: string }> = [
-      {
-        id: crypto.randomUUID(),
-        url: 'https://usdm.cdisc.org/extensions/x-soaCellMark',
-        valueString: mark as string,
-        instanceType: 'ExtensionAttribute',
-      },
-      {
-        id: crypto.randomUUID(),
-        url: 'https://usdm.cdisc.org/extensions/x-userEdited',
-        valueString: 'true',
-        instanceType: 'ExtensionAttribute',
-      },
+    const extensions = [
+      makeStringExt(EXT_URLS.CELL_MARK, mark as string),
+      makeBooleanExt(EXT_URLS.USER_EDITED, true),
     ];
     
     if (footnoteRefs && footnoteRefs.length > 0) {
-      extensions.push({
-        id: crypto.randomUUID(),
-        url: 'https://usdm.cdisc.org/extensions/x-soaFootnoteRefs',
-        valueString: JSON.stringify(footnoteRefs),
-        instanceType: 'ExtensionAttribute',
-      });
+      extensions.push(makeStringExt(EXT_URLS.FOOTNOTE_REFS, JSON.stringify(footnoteRefs)));
     }
     
     if (hasExtensionAttributes) {
@@ -287,12 +273,7 @@ export class SoAProcessor {
     const instance = timelines[timelineIdx]?.instances?.[instanceIdx] as Record<string, unknown> | undefined;
     const hasExtensionAttributes = Array.isArray(instance?.extensionAttributes);
     
-    const ext = {
-      id: crypto.randomUUID(),
-      url: 'https://usdm.cdisc.org/extensions/x-soaFootnoteRefs',
-      valueString: JSON.stringify(footnoteRefs),
-      instanceType: 'ExtensionAttribute',
-    };
+    const ext = makeStringExt(EXT_URLS.FOOTNOTE_REFS, JSON.stringify(footnoteRefs));
     
     if (hasExtensionAttributes) {
       this.patches.push({
@@ -342,30 +323,13 @@ export class SoAProcessor {
       encounterId: encounterId,
       name: `Activity at Visit`,
       extensionAttributes: [
-        {
-          id: crypto.randomUUID(),
-          url: 'https://usdm.cdisc.org/extensions/x-userEdited',
-          valueString: 'true',
-          instanceType: 'ExtensionAttribute',
-        },
-        {
-          id: crypto.randomUUID(),
-          url: 'https://usdm.cdisc.org/extensions/x-soaCellMark',
-          valueString: mark || 'X',
-          instanceType: 'ExtensionAttribute',
-        },
+        makeBooleanExt(EXT_URLS.USER_EDITED, true),
+        makeStringExt(EXT_URLS.CELL_MARK, mark || 'X'),
+        ...(footnoteRefs && footnoteRefs.length > 0
+          ? [makeStringExt(EXT_URLS.FOOTNOTE_REFS, JSON.stringify(footnoteRefs))]
+          : []),
       ],
     };
-
-    // Add footnote refs if provided
-    if (footnoteRefs && footnoteRefs.length > 0) {
-      (newInstance.extensionAttributes as Array<Record<string, unknown>>).push({
-        id: crypto.randomUUID(),
-        url: 'https://usdm.cdisc.org/extensions/x-soaFootnoteRefs',
-        valueString: JSON.stringify(footnoteRefs),
-        instanceType: 'ExtensionAttribute',
-      });
-    }
 
     this.patches.push({
       op: 'add',
@@ -435,14 +399,8 @@ export class SoAProcessor {
       name: newActivity.name,
       label: newActivity.label ?? newActivity.name,
       extensionAttributes: [
-        {
-          url: 'https://usdm.cdisc.org/extensions/x-userEdited',
-          valueString: 'true',
-        },
-        {
-          url: 'https://usdm.cdisc.org/extensions/x-activitySource',
-          valueString: 'user',
-        },
+        makeBooleanExt(EXT_URLS.USER_EDITED, true),
+        makeStringExt(EXT_URLS.ACTIVITY_SOURCE, 'user'),
       ],
     };
 
@@ -540,10 +498,7 @@ export class SoAProcessor {
       name: newEncounter.name,
       epochId: newEncounter.epochId,
       extensionAttributes: [
-        {
-          url: 'https://usdm.cdisc.org/extensions/x-userEdited',
-          valueString: 'true',
-        },
+        makeBooleanExt(EXT_URLS.USER_EDITED, true),
       ],
     };
 
@@ -699,7 +654,7 @@ export function isUserEditedCell(
     instances?: Array<{
       activityIds?: string[];
       encounterId?: string;
-      extensionAttributes?: Array<{ url?: string; valueString?: string }>;
+      extensionAttributes?: unknown[];
     }>;
   }>) ?? [];
 
@@ -708,11 +663,8 @@ export function isUserEditedCell(
       if (instance.encounterId !== encounterId) continue;
       if (!instance.activityIds?.includes(activityId)) continue;
       
-      // Check for user-edited extension
-      for (const ext of instance.extensionAttributes ?? []) {
-        if (ext.url?.includes('x-userEdited') && ext.valueString === 'true') {
-          return true;
-        }
+      if (getExtBoolean(instance.extensionAttributes, 'userEdited') === true) {
+        return true;
       }
     }
   }
@@ -740,7 +692,7 @@ export function getCellMark(
     instances?: Array<{
       activityIds?: string[];
       encounterId?: string;
-      extensionAttributes?: Array<{ url?: string; valueString?: string }>;
+      extensionAttributes?: unknown[];
     }>;
   }>) ?? [];
 
@@ -749,12 +701,8 @@ export function getCellMark(
       if (instance.encounterId !== encounterId) continue;
       if (!instance.activityIds?.includes(activityId)) continue;
       
-      // Check for custom mark extension
-      for (const ext of instance.extensionAttributes ?? []) {
-        if (ext.url?.includes('x-soaCellMark') && ext.valueString) {
-          return ext.valueString as CellMark;
-        }
-      }
+      const markVal = getExtString(instance.extensionAttributes, 'soaCellMark');
+      if (markVal) return markVal as CellMark;
       
       // Default to X if instance exists
       return 'X';

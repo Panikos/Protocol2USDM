@@ -3,6 +3,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import crypto from 'crypto';
 import { validateProtocolId } from '@/lib/sanitize';
+import { getExtString } from '@/lib/extensions';
 
 const OUTPUT_DIR = process.env.PROTOCOL_OUTPUT_DIR || 
   path.join(process.cwd(), '..', 'output');
@@ -23,18 +24,17 @@ function extractFootnotesFromUSDM(usdm: Record<string, unknown>): string[] {
     if (!studyDesign) return footnotes;
     
     // Look for extensionAttributes containing footnoteConditions
-    const extensions = (studyDesign.extensionAttributes as Array<{
-      url?: string;
-      valueString?: string;
-    }>) ?? [];
+    const fnConditionsJson = getExtString(
+      studyDesign.extensionAttributes as unknown[],
+      'footnoteConditions',
+    );
     
-    for (const ext of extensions) {
-      if (ext.url?.includes('footnoteConditions') && ext.valueString) {
-        try {
-          const conditions = JSON.parse(ext.valueString) as Array<{
-            footnoteId?: string;
-            text?: string;
-          }>;
+    if (fnConditionsJson) {
+      try {
+        const conditions = JSON.parse(fnConditionsJson) as Array<{
+          footnoteId?: string;
+          text?: string;
+        }>;
           
           // Build unique footnotes by footnoteId
           for (const cond of conditions) {
@@ -42,9 +42,8 @@ function extractFootnotesFromUSDM(usdm: Record<string, unknown>): string[] {
               footnoteMap.set(cond.footnoteId, cond.text);
             }
           }
-        } catch {
-          // Skip malformed JSON
-        }
+      } catch {
+        // Skip malformed JSON
       }
     }
     
