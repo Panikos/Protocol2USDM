@@ -119,8 +119,9 @@ function FullscreenOverlay({ children, title, onClose }: {
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-3 border-b bg-background shrink-0">
         <h2 className="font-semibold truncate">{title}</h2>
-        <Button variant="ghost" size="icon" onClick={onClose} className="shrink-0">
-          <XIcon className="h-5 w-5" />
+        <Button variant="outline" size="sm" onClick={onClose} className="shrink-0">
+          <XIcon className="h-4 w-4 mr-2" />
+          Exit Fullscreen
         </Button>
       </div>
       {/* Content */}
@@ -183,7 +184,7 @@ export function DocumentsTab({ protocolId }: DocumentsTabProps) {
 
   const handleDownload = (doc: DocumentInfo) => {
     window.open(
-      `/api/protocols/${protocolId}/documents/${encodeURIComponent(doc.filename)}`,
+      `/api/protocols/${protocolId}/documents/${encodeURIComponent(doc.filename)}?download=true`,
       '_blank'
     );
   };

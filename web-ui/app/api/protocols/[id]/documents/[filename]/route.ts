@@ -144,8 +144,9 @@ export async function GET(
       });
     }
     
-    // For download, stream the file
+    // Stream the file
     const content = await fs.readFile(filePath);
+    const forceDownload = url.searchParams.get('download') === 'true';
     
     const mimeTypes: Record<string, string> = {
       '.pdf': 'application/pdf',
@@ -157,11 +158,14 @@ export async function GET(
     };
     
     const contentType = mimeTypes[ext] || 'application/octet-stream';
+    // Use 'inline' for browser-viewable types (PDF, text) so iframes work;
+    // use 'attachment' only when the user explicitly requests a download.
+    const disposition = forceDownload ? 'attachment' : 'inline';
     
     return new NextResponse(content, {
       headers: {
         'Content-Type': contentType,
-        'Content-Disposition': `attachment; filename="${filename}"`,
+        'Content-Disposition': `${disposition}; filename="${filename}"`,
         'Content-Length': stat.size.toString(),
       },
     });
