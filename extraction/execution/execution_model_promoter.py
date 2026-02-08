@@ -161,13 +161,15 @@ class ExecutionModelPromoter:
                 logger.warning(f"Step 7 (_promote_conditions) failed: {e}")
         
         # Step 8: Promote state machine → TransitionRule on Encounter/StudyElement
-        if hasattr(execution_data, 'state_machine') and execution_data.state_machine:
+        sm = getattr(execution_data, 'state_machine', None)
+        logger.info(f"  Step 8 check: state_machine={sm is not None}, type={type(sm).__name__}")
+        if sm:
             try:
                 usdm_design = self._promote_state_machine(
-                    usdm_design, execution_data.state_machine
+                    usdm_design, sm
                 )
             except Exception as e:
-                logger.warning(f"Step 8 (_promote_state_machine) failed: {e}")
+                logger.warning(f"Step 8 (_promote_state_machine) failed: {e}", exc_info=True)
         
         # Step 9: Promote endpoint algorithms → Estimand framework
         if hasattr(execution_data, 'endpoint_algorithms') and execution_data.endpoint_algorithms:
@@ -383,9 +385,9 @@ class ExecutionModelPromoter:
             count = _get(rep, 'count', 'count', None)
             source_text = _get(rep, 'source_text', 'sourceText', '')
             
-            start_offset = _iso_duration_to_days(raw_start) if isinstance(raw_start, str) else (raw_start or 1)
+            start_offset = (_iso_duration_to_days(raw_start) if isinstance(raw_start, str) else raw_start) or 1
             end_offset = _iso_duration_to_days(raw_end) if isinstance(raw_end, str) else raw_end
-            interval_days = _iso_duration_to_days(raw_interval) if isinstance(raw_interval, str) else (raw_interval or 1)
+            interval_days = (_iso_duration_to_days(raw_interval) if isinstance(raw_interval, str) else raw_interval) or 1
             
             # Try to extract day range from source text if offsets are missing
             if not end_offset and source_text:
