@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { FileText, Download, File, Table2, Loader2, Maximize2, X as XIcon } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -99,7 +99,14 @@ function FullscreenOverlay({ children, title, onClose }: {
   title: string;
   onClose: () => void;
 }) {
-  // Close on Escape
+  const overlayRef = useRef<HTMLDivElement>(null);
+
+  // Focus overlay on mount so Escape works before user clicks the iframe
+  useEffect(() => {
+    overlayRef.current?.focus();
+  }, []);
+
+  // Close on Escape — works while overlay (not iframe) has focus
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -108,6 +115,13 @@ function FullscreenOverlay({ children, title, onClose }: {
     return () => document.removeEventListener('keydown', handler);
   }, [onClose]);
 
+  // Re-attach Escape when focus returns from iframe to the main window
+  useEffect(() => {
+    const onFocus = () => overlayRef.current?.focus();
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, []);
+
   // Prevent body scroll
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -115,17 +129,21 @@ function FullscreenOverlay({ children, title, onClose }: {
   }, []);
 
   return (
-    <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex flex-col">
-      {/* Header — z-10 keeps it above the PDF iframe */}
-      <div className="relative z-10 flex items-center justify-between px-6 py-3 border-b bg-background shrink-0">
+    <div
+      ref={overlayRef}
+      tabIndex={-1}
+      className="fixed inset-0 z-50 bg-background flex flex-col outline-none"
+    >
+      {/* Header — z-10 + shadow keeps it visible above PDF iframe */}
+      <div className="relative z-10 flex items-center justify-between px-6 py-3 border-b bg-background shadow-md shrink-0">
         <h2 className="font-semibold truncate">{title}</h2>
         <Button variant="outline" size="sm" onClick={onClose} className="shrink-0">
           <XIcon className="h-4 w-4 mr-2" />
           Exit Fullscreen
         </Button>
       </div>
-      {/* Content */}
-      <div className="flex-1 overflow-auto p-6">
+      {/* Content — no padding, flex-1 + min-h-0 lets iframe fill remaining space */}
+      <div className="flex-1 min-h-0">
         {children}
       </div>
     </div>
@@ -210,10 +228,10 @@ export function DocumentsTab({ protocolId }: DocumentsTabProps) {
     }
     if (doc.mimeType === 'application/pdf') {
       return (
-        <div className="border rounded-lg">
+        <div className={cn('border rounded-lg', fullscreen ? 'h-full' : '')}>
           <iframe
             src={`${getDocUrl(doc)}#toolbar=1&navpanes=0`}
-            className={cn('w-full', fullscreen ? 'h-[calc(100vh-8rem)]' : 'h-[600px]')}
+            className={cn('w-full', fullscreen ? 'h-full' : 'h-[600px]')}
             title={doc.filename}
           />
         </div>
