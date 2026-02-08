@@ -136,10 +136,16 @@ export async function GET(
       },
     });
   } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      return NextResponse.json(
+        { error: 'Protocol not found' },
+        { status: 404 }
+      );
+    }
     console.error('Error loading USDM:', error);
     return NextResponse.json(
-      { error: 'Protocol not found' },
-      { status: 404 }
+      { error: 'Internal server error' },
+      { status: 500 }
     );
   }
 }

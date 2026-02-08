@@ -178,7 +178,7 @@ export function SoAGrid({ model, onCellClick, editable = false, availableFootnot
 
       return rowObj;
     });
-  }, [model, committedCellEdits]);
+  }, [model.rows, model.columns, model.cells, committedCellEdits]);
 
   // Build column definitions
   const columnDefs = useMemo((): (ColDef | ColGroupDef)[] => {
@@ -274,7 +274,7 @@ export function SoAGrid({ model, onCellClick, editable = false, availableFootnot
     }
 
     return defs;
-  }, [model, canEdit, setActivityName]);
+  }, [model.columns, model.columnGroups, model.rowGroups, model.cells, canEdit, setActivityName]);
 
   // Default column settings
   const defaultColDef = useMemo<ColDef>(() => ({

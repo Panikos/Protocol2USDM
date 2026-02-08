@@ -118,8 +118,33 @@ export function StudyMetadataView({ usdm }: StudyMetadataViewProps) {
   const otherOrgs = organizations.filter(o => !sponsors.includes(o) && !cros.includes(o));
   const displayedOrgs = showAllOrgs ? organizations : [...sponsors, ...cros].slice(0, 5);
 
+  // Stats counts
+  const activities = (design?.activities as unknown[]) ?? [];
+  const encounters = (design?.encounters as unknown[]) ?? [];
+  const epochs = (design?.epochs as unknown[]) ?? [];
+  const arms = (design?.arms as unknown[]) ?? [];
+
+  const stats = [
+    { label: 'Activities', value: activities.length },
+    { label: 'Encounters', value: encounters.length },
+    { label: 'Epochs', value: epochs.length },
+    { label: 'Arms', value: arms.length },
+  ];
+
   return (
     <div className="space-y-6">
+      {/* Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {stats.map(stat => (
+          <Card key={stat.label}>
+            <CardContent className="pt-6">
+              <p className="text-3xl font-bold">{stat.value}</p>
+              <p className="text-sm text-muted-foreground">{stat.label}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
       {/* Study Identification */}
       <Card>
         <CardHeader>
