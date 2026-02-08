@@ -108,56 +108,84 @@ class ExecutionModelPromoter:
                 usdm_design, execution_data.time_anchors
             )
         
+        # Steps 2-10: Each wrapped in try/except for fault isolation
         # Step 2: Expand repetitions → ScheduledActivityInstances
         if execution_data.repetitions:
-            usdm_design = self._promote_repetitions(
-                usdm_design, execution_data.repetitions, execution_data
-            )
+            try:
+                usdm_design = self._promote_repetitions(
+                    usdm_design, execution_data.repetitions, execution_data
+                )
+            except Exception as e:
+                logger.warning(f"Step 2 (_promote_repetitions) failed: {e}")
         
         # Step 3: Promote dosing regimens → Administration entities
         if execution_data.dosing_regimens:
-            study_version = self._promote_dosing_regimens(
-                usdm_design, study_version, execution_data.dosing_regimens
-            )
+            try:
+                study_version = self._promote_dosing_regimens(
+                    usdm_design, study_version, execution_data.dosing_regimens
+                )
+            except Exception as e:
+                logger.warning(f"Step 3 (_promote_dosing_regimens) failed: {e}")
         
         # Step 4: Fix dangling references in timings
-        usdm_design = self._fix_timing_references(usdm_design)
+        try:
+            usdm_design = self._fix_timing_references(usdm_design)
+        except Exception as e:
+            logger.warning(f"Step 4 (_fix_timing_references) failed: {e}")
         
         # Step 5: Promote visit windows → Timing.windowLower/windowUpper
         if hasattr(execution_data, 'visit_windows') and execution_data.visit_windows:
-            usdm_design = self._promote_visit_windows(
-                usdm_design, execution_data.visit_windows
-            )
+            try:
+                usdm_design = self._promote_visit_windows(
+                    usdm_design, execution_data.visit_windows
+                )
+            except Exception as e:
+                logger.warning(f"Step 5 (_promote_visit_windows) failed: {e}")
         
         # Step 6: Promote traversal constraints → epoch/encounter chains
         if hasattr(execution_data, 'traversal_constraints') and execution_data.traversal_constraints:
-            usdm_design = self._promote_traversals(
-                usdm_design, execution_data.traversal_constraints
-            )
+            try:
+                usdm_design = self._promote_traversals(
+                    usdm_design, execution_data.traversal_constraints
+                )
+            except Exception as e:
+                logger.warning(f"Step 6 (_promote_traversals) failed: {e}")
         
         # Step 7: Promote footnote conditions → Condition + ScheduledDecisionInstance
         if hasattr(execution_data, 'footnote_conditions') and execution_data.footnote_conditions:
-            usdm_design = self._promote_conditions(
-                usdm_design, execution_data.footnote_conditions
-            )
+            try:
+                usdm_design = self._promote_conditions(
+                    usdm_design, execution_data.footnote_conditions
+                )
+            except Exception as e:
+                logger.warning(f"Step 7 (_promote_conditions) failed: {e}")
         
         # Step 8: Promote state machine → TransitionRule on Encounter/StudyElement
         if hasattr(execution_data, 'state_machine') and execution_data.state_machine:
-            usdm_design = self._promote_state_machine(
-                usdm_design, execution_data.state_machine
-            )
+            try:
+                usdm_design = self._promote_state_machine(
+                    usdm_design, execution_data.state_machine
+                )
+            except Exception as e:
+                logger.warning(f"Step 8 (_promote_state_machine) failed: {e}")
         
         # Step 9: Promote endpoint algorithms → Estimand framework
         if hasattr(execution_data, 'endpoint_algorithms') and execution_data.endpoint_algorithms:
-            usdm_design = self._promote_estimands(
-                usdm_design, execution_data.endpoint_algorithms
-            )
+            try:
+                usdm_design = self._promote_estimands(
+                    usdm_design, execution_data.endpoint_algorithms
+                )
+            except Exception as e:
+                logger.warning(f"Step 9 (_promote_estimands) failed: {e}")
         
         # Step 10: Promote titration schedules → StudyElement with transitions
         if hasattr(execution_data, 'titration_schedules') and execution_data.titration_schedules:
-            usdm_design = self._promote_elements(
-                usdm_design, execution_data.titration_schedules
-            )
+            try:
+                usdm_design = self._promote_elements(
+                    usdm_design, execution_data.titration_schedules
+                )
+            except Exception as e:
+                logger.warning(f"Step 10 (_promote_elements) failed: {e}")
         
         logger.info(
             f"Promotion complete: {self.result.anchors_created} anchors, "
