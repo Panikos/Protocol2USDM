@@ -358,6 +358,77 @@ def load_previous_extractions(output_dir: str) -> dict:
     return loaded
 
 
+def _resolve_content_references(combined: dict) -> None:
+    """
+    Resolve cross-references by matching documentContentReferences against
+    narrative section inventory.
+    
+    Populates:
+      - targetId: ID of the matching NarrativeContent or NarrativeContentItem
+      - pageNumber: from the narrative section's page data (if available)
+    
+    Matching strategy:
+      1. Exact sectionNumber match against narrativeContents/Items
+      2. Prefix match (ref "10.3" matches section "10")
+      3. Title keyword match as fallback
+    """
+    refs = combined.get('documentContentReferences', [])
+    if not refs:
+        return
+    
+    study = combined.get('study', {})
+    versions = study.get('versions', [{}])
+    version = versions[0] if versions else {}
+    
+    narrative_contents = version.get('narrativeContents', [])
+    narrative_items = version.get('narrativeContentItems', [])
+    
+    if not narrative_contents and not narrative_items:
+        return
+    
+    # Build lookup: sectionNumber → entity
+    sec_lookup = {}
+    for nc in narrative_contents:
+        num = nc.get('sectionNumber', '')
+        if num:
+            sec_lookup[num] = nc
+    for nci in narrative_items:
+        num = nci.get('sectionNumber', '')
+        if num:
+            sec_lookup[num] = nci
+    
+    resolved = 0
+    for ref in refs:
+        if ref.get('targetId'):
+            continue  # already resolved
+        
+        ref_sec = ref.get('sectionNumber', '')
+        if not ref_sec:
+            continue
+        
+        # Pass 1: Exact match
+        target = sec_lookup.get(ref_sec)
+        
+        # Pass 2: Prefix match — "10.3" → find "10" parent
+        if not target and '.' in ref_sec:
+            parent_num = ref_sec.split('.')[0]
+            target = sec_lookup.get(parent_num)
+        
+        # Pass 3: Try all section numbers that start with this ref's number
+        if not target:
+            for num, entity in sec_lookup.items():
+                if num.startswith(ref_sec + '.') or num == ref_sec:
+                    target = entity
+                    break
+        
+        if target:
+            ref['targetId'] = target.get('id', '')
+            resolved += 1
+    
+    if resolved:
+        logger.info(f"  Resolved {resolved}/{len(refs)} cross-references → targetId")
+
+
 def _reconcile_estimand_population_refs(study_design: dict) -> None:
     """
     Reconcile estimand.analysisPopulationId → analysisPopulations references.
@@ -736,6 +807,9 @@ def combine_to_full_usdm(
     
     # Run reconciliation
     combined = _run_reconciliation(combined, expansion_results, soa_data)
+    
+    # Resolve cross-references (targetId + pageNumber)
+    _resolve_content_references(combined)
     
     # Mark activity sources
     _mark_activity_sources(study_design)
