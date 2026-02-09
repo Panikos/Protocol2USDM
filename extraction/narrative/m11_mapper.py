@@ -195,7 +195,7 @@ def map_sections_to_m11(
         for sec in sections:
             sec_num = sec.get('number', '')
             sec_title = sec.get('title', '').lower().strip()
-            if not sec_title:
+            if not sec_title or sec_num in assigned:
                 continue
             
             # Check alias matches
@@ -251,6 +251,25 @@ def map_sections_to_m11(
             result.mappings[m11_num] = [(sec_num, 0.6)]
             assigned.add(sec_num)
     
+    # Pass 4: Section number prefix matching (e.g. 10.2, 10.3 → M11 §10)
+    for m11 in M11_TEMPLATE:
+        if m11.number in result.mappings:
+            continue
+        
+        prefix_matches = []
+        for sec in sections:
+            sec_num = sec.get('number', '')
+            if sec_num in assigned or not sec_num:
+                continue
+            # Check if protocol section number starts with this M11 number
+            if sec_num == m11.number or sec_num.startswith(m11.number + '.'):
+                prefix_matches.append((sec_num, 0.7))
+        
+        if prefix_matches:
+            result.mappings[m11.number] = prefix_matches
+            for sec_num, _ in prefix_matches:
+                assigned.add(sec_num)
+    
     # Collect unmapped protocol sections
     all_sec_nums = {sec.get('number', '') for sec in sections if sec.get('number')}
     result.unmapped = sorted(all_sec_nums - assigned)
@@ -279,8 +298,10 @@ def _fuzzy_title_match(title: str, alias: str) -> bool:
     if title == alias:
         return True
     
-    # Title contains alias or vice versa
-    if alias in title or title in alias:
+    # Title contains alias or vice versa — require ≥50% coverage of longer string
+    if alias in title and len(alias) >= len(title) * 0.5:
+        return True
+    if title in alias and len(title) >= len(alias) * 0.5:
         return True
     
     # Word overlap — require ≥75% shared words

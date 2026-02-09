@@ -388,39 +388,62 @@ def _find_section_pages(
     Searches the full PDF for heading patterns like "3. Study Design" or
     "3  STUDY DESIGN" to locate each section, avoiding reliance on TOC
     page numbers and eliminating page-offset calibration.
+    
+    TOC pages (pages matching 3+ section headings) are detected and
+    excluded so that only body-text headings are returned.
     """
     import fitz
     
     doc = fitz.open(pdf_path)
     total = len(doc)
-    section_pages: Dict[str, int] = {}
     
     # Pre-extract all page texts once
     page_texts = [doc[p].get_text() for p in range(total)]
     doc.close()
     
+    # Build patterns for all sections
+    sec_patterns: List[tuple] = []  # (number, [patterns])
     for sec in sections_raw:
         number = sec.get('number', '')
         title = sec.get('title', '')
         if not number or not title:
             continue
         
-        # Build patterns from most specific to least
-        # e.g. "3.  Study Design" or "3 STUDY DESIGN" or "Section 3: Study Design"
         escaped_num = re.escape(number)
-        title_words = title.strip().split()[:4]  # first 4 words
+        title_words = title.strip().split()[:4]
         title_prefix = r'\s+'.join(re.escape(w) for w in title_words)
         
         patterns = [
             rf'(?:^|\n)\s*{escaped_num}\.?\s+{title_prefix}',
             rf'(?:^|\n)\s*Section\s+{escaped_num}[.:]?\s+{title_prefix}',
         ]
-        
-        # Use TOC page hint to narrow search range if available
-        hint_page = sec.get('page')
+        sec_patterns.append((number, patterns, sec.get('page')))
+    
+    # --- Pass 1: Detect TOC pages ---
+    # A TOC page matches many section headings; a body page matches 1-2.
+    page_match_counts: Dict[int, int] = {}
+    for p in range(total):
+        count = 0
+        for number, patterns, _ in sec_patterns:
+            for pat in patterns:
+                if re.search(pat, page_texts[p], re.IGNORECASE):
+                    count += 1
+                    break
+        if count > 0:
+            page_match_counts[p] = count
+    
+    # Pages matching 3+ distinct sections are TOC/index pages
+    toc_pages = {p for p, count in page_match_counts.items() if count >= 3}
+    if toc_pages:
+        logger.debug(f"Detected TOC pages: {sorted(toc_pages)} (matching 3+ headings each)")
+    
+    # --- Pass 2: Find first non-TOC page for each section ---
+    section_pages: Dict[str, int] = {}
+    
+    for number, patterns, hint_page in sec_patterns:
+        # Use TOC page hint to narrow search, but skip TOC pages
         if hint_page and isinstance(hint_page, (int, float)):
-            # Search ±10 pages around the hint first, then fall back to full scan
-            hint_idx = int(hint_page) - 1  # printed→0-indexed rough guess
+            hint_idx = int(hint_page) - 1
             search_ranges = [
                 range(max(0, hint_idx - 10), min(total, hint_idx + 10)),
                 range(total),
@@ -433,6 +456,8 @@ def _find_section_pages(
             if found:
                 break
             for p in search_range:
+                if p in toc_pages:
+                    continue  # skip TOC pages
                 for pat in patterns:
                     if re.search(pat, page_texts[p], re.IGNORECASE):
                         section_pages[number] = p
@@ -441,7 +466,7 @@ def _find_section_pages(
                 if found:
                     break
     
-    logger.info(f"Located {len(section_pages)}/{len(sections_raw)} sections in PDF")
+    logger.info(f"Located {len(section_pages)}/{len(sections_raw)} sections in PDF (skipped {len(toc_pages)} TOC pages)")
     return section_pages
 
 
