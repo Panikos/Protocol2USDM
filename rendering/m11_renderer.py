@@ -316,6 +316,217 @@ def _compose_estimands(usdm: Dict) -> str:
     return '\n'.join(lines)
 
 
+def _compose_statistics(usdm: Dict) -> str:
+    """Compose Section 9 content from SAP extension attributes."""
+    study = usdm.get('study', {})
+    versions = study.get('versions', [{}])
+    version = versions[0] if versions else {}
+    design = (version.get('studyDesigns', [{}]) or [{}])[0]
+
+    # Collect SAP extensions by URL
+    exts = design.get('extensionAttributes', [])
+    sap_data: Dict[str, list] = {}
+    for ext in exts:
+        url = ext.get('url', '')
+        if 'x-sap-' in url:
+            key = url.rsplit('/', 1)[-1].replace('x-sap-', '')
+            try:
+                sap_data[key] = json.loads(ext.get('valueString', '[]'))
+            except (json.JSONDecodeError, TypeError):
+                pass
+
+    # Also get analysisPopulations directly from studyDesign
+    pops = design.get('analysisPopulations', [])
+
+    lines = []
+
+    # 9.1 Analysis Populations
+    if pops:
+        lines.append('Analysis Populations:')
+        for p in pops:
+            if not isinstance(p, dict):
+                continue
+            name = p.get('name', '')
+            desc = p.get('populationDescription', p.get('text', ''))
+            ptype = p.get('populationType', '')
+            lines.append(f'  - **{name}** ({ptype}): {desc}')
+        lines.append('')
+
+    # 9.2 Statistical Methods
+    methods = sap_data.get('statistical-methods', [])
+    if methods:
+        lines.append('Statistical Methods:')
+        for m in methods:
+            if not isinstance(m, dict):
+                continue
+            name = m.get('name', '')
+            desc = m.get('description', '')
+            endpoint = m.get('endpointName', '')
+            stato = m.get('statoCode', '')
+            alpha = m.get('alphaLevel', '')
+            line = f'  - **{name}**'
+            if stato:
+                line += f' ({stato})'
+            if endpoint:
+                line += f' — {endpoint}'
+            lines.append(line)
+            if desc:
+                lines.append(f'    {desc}')
+            if alpha:
+                lines.append(f'    Alpha level: {alpha}')
+        lines.append('')
+
+    # 9.3 Sample Size
+    ss = sap_data.get('sample-size-calculations', [])
+    if ss:
+        lines.append('Sample Size and Power:')
+        for calc in ss:
+            if not isinstance(calc, dict):
+                continue
+            name = calc.get('name', '')
+            desc = calc.get('description', '')
+            n = calc.get('targetSampleSize', '')
+            power = calc.get('power', '')
+            alpha = calc.get('alpha', '')
+            effect = calc.get('effectSize', '')
+            dropout = calc.get('dropoutRate', '')
+            lines.append(f'  - **{name}**')
+            if desc:
+                lines.append(f'    {desc}')
+            details = []
+            if n:
+                details.append(f'N={n}')
+            if power:
+                details.append(f'Power={power}')
+            if alpha:
+                details.append(f'Alpha={alpha}')
+            if effect:
+                details.append(f'Effect size: {effect}')
+            if dropout:
+                details.append(f'Dropout: {dropout}')
+            if details:
+                lines.append(f'    {", ".join(details)}')
+        lines.append('')
+
+    # 9.4 Interim Analyses
+    ia = sap_data.get('interim-analyses', [])
+    if ia:
+        lines.append('Interim Analyses:')
+        for analysis in ia:
+            if not isinstance(analysis, dict):
+                continue
+            name = analysis.get('name', '')
+            desc = analysis.get('description', '')
+            timing = analysis.get('timing', '')
+            spending = analysis.get('spendingFunction', '')
+            lines.append(f'  - **{name}**')
+            if desc:
+                lines.append(f'    {desc}')
+            if timing:
+                lines.append(f'    Timing: {timing}')
+            if spending:
+                lines.append(f'    Spending function: {spending}')
+        lines.append('')
+
+    # 9.5 Multiplicity Adjustments
+    mult = sap_data.get('multiplicity-adjustments', [])
+    if mult:
+        lines.append('Multiplicity Adjustments:')
+        for adj in mult:
+            if not isinstance(adj, dict):
+                continue
+            name = adj.get('name', '')
+            desc = adj.get('description', '')
+            lines.append(f'  - **{name}**: {desc}')
+        lines.append('')
+
+    # 9.6 Sensitivity Analyses
+    sens = sap_data.get('sensitivity-analyses', [])
+    if sens:
+        lines.append('Sensitivity Analyses:')
+        for sa in sens:
+            if not isinstance(sa, dict):
+                continue
+            name = sa.get('name', '')
+            desc = sa.get('description', '')
+            lines.append(f'  - **{name}**: {desc}')
+        lines.append('')
+
+    # 9.7 Subgroup Analyses
+    sub = sap_data.get('subgroup-analyses', [])
+    if sub:
+        lines.append('Subgroup Analyses:')
+        for sg in sub:
+            if not isinstance(sg, dict):
+                continue
+            name = sg.get('name', '')
+            desc = sg.get('description', '')
+            var = sg.get('subgroupVariable', '')
+            lines.append(f'  - **{name}** (variable: {var}): {desc}')
+        lines.append('')
+
+    # 9.8 Data Handling Rules
+    rules = sap_data.get('data-handling-rules', [])
+    if rules:
+        lines.append('Data Handling Rules:')
+        for r in rules:
+            if not isinstance(r, dict):
+                continue
+            name = r.get('name', '')
+            rule = r.get('rule', '')
+            lines.append(f'  - **{name}**: {rule}')
+        lines.append('')
+
+    return '\n'.join(lines)
+
+
+def _compose_discontinuation(usdm: Dict) -> str:
+    """Compose Section 7 content from narrative text containing discontinuation info.
+
+    Many protocols embed discontinuation/withdrawal rules within the Study
+    Intervention section (§6) or Study Population section (§5). This
+    composer searches all narrative sections for discontinuation-related
+    content and aggregates it.
+    """
+    import re as _re
+
+    study = usdm.get('study', {})
+    versions = study.get('versions', [{}])
+    version = versions[0] if versions else {}
+
+    nc = version.get('narrativeContents', [])
+    nci = version.get('narrativeContentItems', [])
+    all_items = nc + nci
+
+    discontinuation_keywords = [
+        'discontinu', 'withdraw', 'dropout', 'drop-out', 'drop out',
+        'early termination', 'stopping rule', 'lost to follow',
+        'premature', 'removal from study',
+    ]
+
+    pattern = _re.compile('|'.join(discontinuation_keywords), _re.IGNORECASE)
+
+    fragments = []
+    for item in all_items:
+        if not isinstance(item, dict):
+            continue
+        title = item.get('sectionTitle', item.get('name', ''))
+        text = item.get('text', '')
+        if not text or text == title:
+            continue
+
+        # Check if title or text mentions discontinuation
+        if pattern.search(title) or pattern.search(text[:500]):
+            source = item.get('sectionNumber', '')
+            header = f'{source} {title}'.strip() if source else title
+            fragments.append(f'**{header}**\n{text}')
+
+    if not fragments:
+        return ''
+
+    return '\n\n'.join(fragments)
+
+
 # ---------------------------------------------------------------------------
 # Main renderer
 # ---------------------------------------------------------------------------
@@ -363,6 +574,8 @@ def render_m11_docx(
             '3': _compose_objectives,
             '4': _compose_study_design,
             '5': _compose_eligibility,
+            '7': _compose_discontinuation,
+            '9': _compose_statistics,
         }
 
         # Render each M11 section
