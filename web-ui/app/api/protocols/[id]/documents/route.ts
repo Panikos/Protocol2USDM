@@ -11,7 +11,7 @@ const INPUT_DIR = process.env.PROTOCOL_INPUT_DIR ||
 
 interface DocumentInfo {
   filename: string;
-  type: 'protocol' | 'sap' | 'sites' | 'other';
+  type: 'protocol' | 'sap' | 'sites' | 'm11' | 'other';
   mimeType: string;
   size: number;
   updatedAt: string;
@@ -23,6 +23,7 @@ interface DocumentInfo {
  */
 function detectDocumentType(filename: string): DocumentInfo['type'] {
   const lower = filename.toLowerCase();
+  if (lower.startsWith('m11_') || lower.includes('m11_protocol')) return 'm11';
   if (lower.includes('sap')) return 'sap';
   if (lower.includes('site')) return 'sites';
   if (lower.includes('protocol') || lower.endsWith('.pdf')) return 'protocol';
@@ -39,6 +40,7 @@ function getMimeType(filename: string): string {
     '.csv': 'text/csv',
     '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     '.xls': 'application/vnd.ms-excel',
+    '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     '.json': 'application/json',
     '.txt': 'text/plain',
   };
@@ -213,6 +215,28 @@ export async function GET(
       }
     }
     
+    // Also scan the output directory for generated documents (e.g. m11_protocol.docx)
+    const genOutputDir = path.join(OUTPUT_DIR, idCheck.sanitized);
+    const generatedFilePatterns = ['m11_protocol.docx'];
+    for (const pattern of generatedFilePatterns) {
+      // Skip if already in the list
+      if (documents.some(d => d.filename === pattern)) continue;
+      const genPath = path.join(genOutputDir, pattern);
+      try {
+        const stat = await fs.stat(genPath);
+        if (stat.isFile()) {
+          documents.push({
+            filename: pattern,
+            type: detectDocumentType(pattern),
+            mimeType: getMimeType(pattern),
+            size: stat.size,
+            updatedAt: stat.mtime.toISOString(),
+            path: genPath,
+          });
+        }
+      } catch { /* Generated file not present */ }
+    }
+
     return NextResponse.json({ documents });
   } catch (error) {
     console.error('Error listing documents:', error);

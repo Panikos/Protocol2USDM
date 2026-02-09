@@ -1,20 +1,24 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { 
   FileText, 
-  ChevronRight,
   Hash,
-  CheckCircle2,
   XCircle,
   AlertCircle,
   FileCheck,
+  Download,
+  FileOutput,
+  Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface DocumentStructureViewProps {
   usdm: Record<string, unknown> | null;
+  protocolId?: string;
 }
 
 interface DocumentContent {
@@ -41,6 +45,12 @@ interface M11SectionData {
   }>;
 }
 
+interface M11DocInfo {
+  filename: string;
+  size: number;
+  updatedAt: string;
+}
+
 type TextQuality = 'populated' | 'placeholder' | 'empty';
 
 function getTextQuality(content: DocumentContent): TextQuality {
@@ -51,7 +61,34 @@ function getTextQuality(content: DocumentContent): TextQuality {
   return 'populated';
 }
 
-export function DocumentStructureView({ usdm }: DocumentStructureViewProps) {
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+export function DocumentStructureView({ usdm, protocolId }: DocumentStructureViewProps) {
+  const [m11Doc, setM11Doc] = useState<M11DocInfo | null>(null);
+  const [docLoading, setDocLoading] = useState(false);
+
+  // Fetch M11 document info
+  useEffect(() => {
+    if (!protocolId) return;
+    setDocLoading(true);
+    fetch(`/api/protocols/${protocolId}/documents`)
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data?.documents) {
+          const m11 = data.documents.find(
+            (d: { filename: string }) => d.filename === 'm11_protocol.docx'
+          );
+          if (m11) setM11Doc({ filename: m11.filename, size: m11.size, updatedAt: m11.updatedAt });
+        }
+      })
+      .catch(() => {})
+      .finally(() => setDocLoading(false));
+  }, [protocolId]);
+
   if (!usdm) {
     return (
       <Card>
@@ -100,73 +137,105 @@ export function DocumentStructureView({ usdm }: DocumentStructureViewProps) {
       .map(c => c.sectionNumber?.split('.')[0])
   );
 
-  // Compute quality stats
-  const qualityCounts = { populated: 0, placeholder: 0, empty: 0 };
-  allContent.forEach(c => {
-    qualityCounts[getTextQuality(c)]++;
-  });
-
-  if (allContent.length === 0) {
-    return (
-      <Card>
-        <CardContent className="py-12 text-center">
-          <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-          <p className="text-muted-foreground">No document structure found</p>
-          <p className="text-sm text-muted-foreground mt-2">
-            Document contents will appear here after extraction
-          </p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  // Build content map for hierarchy
-  const contentMap = new Map(allContent.map(c => [c.id, c]));
-  
-  // Find root-level content (not referenced as children)
-  const allChildIds = new Set(
-    allContent.flatMap(c => c.childIds ?? [])
-  );
-  const rootContent = allContent.filter(c => !allChildIds.has(c.id));
-
-  // Readiness score: weighted by text quality and required coverage
+  // Readiness score
   const sectionsWithText = m11Sections.filter(s => {
     const mapped = m11MappedSections[s.number];
     if (mapped?.hasContent) return true;
-    // Fallback to presence check with text quality
     const matchingContent = allContent.find(
       c => c.sectionNumber?.split('.')[0] === s.number && getTextQuality(c) === 'populated'
     );
     return !!matchingContent;
   });
   const readinessScore = Math.round((sectionsWithText.length / m11Sections.length) * 100);
+  const requiredWithText = m11Sections.filter(s => {
+    if (!s.required) return false;
+    const mapped = m11MappedSections[s.number];
+    if (mapped?.hasContent) return true;
+    return allContent.some(
+      c => c.sectionNumber?.split('.')[0] === s.number && getTextQuality(c) === 'populated'
+    );
+  });
 
   return (
     <div className="space-y-6">
+      {/* M11 Document Card */}
+      <Card className={cn(
+        'border-2',
+        m11Doc ? 'border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20' : 'border-dashed'
+      )}>
+        <CardContent className="py-5">
+          <div className="flex items-center gap-4">
+            <div className={cn(
+              'rounded-lg p-3',
+              m11Doc ? 'bg-blue-100 dark:bg-blue-900' : 'bg-muted'
+            )}>
+              <FileOutput className={cn(
+                'h-8 w-8',
+                m11Doc ? 'text-blue-600 dark:text-blue-400' : 'text-muted-foreground'
+              )} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-lg font-semibold">
+                ICH M11 Protocol Document
+              </h3>
+              {m11Doc ? (
+                <p className="text-sm text-muted-foreground">
+                  {m11Doc.filename} &bull; {formatFileSize(m11Doc.size)} &bull; Generated {new Date(m11Doc.updatedAt).toLocaleString()}
+                </p>
+              ) : docLoading ? (
+                <p className="text-sm text-muted-foreground flex items-center gap-2">
+                  <Loader2 className="h-3 w-3 animate-spin" /> Checking for document...
+                </p>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  No M11 document generated yet. Run the pipeline with --complete to generate.
+                </p>
+              )}
+            </div>
+            {m11Doc && protocolId && (
+              <Button
+                onClick={() => window.open(
+                  `/api/protocols/${protocolId}/documents/${encodeURIComponent(m11Doc.filename)}?download=true`,
+                  '_blank'
+                )}
+                className="shrink-0"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download DOCX
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Readiness Summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
-          <CardContent className="pt-4">
-            <div className="text-2xl font-bold">{readinessScore}%</div>
+          <CardContent className="pt-4 pb-3">
+            <div className={cn(
+              'text-2xl font-bold',
+              readinessScore >= 75 ? 'text-green-600' :
+              readinessScore >= 50 ? 'text-amber-500' : 'text-red-500'
+            )}>{readinessScore}%</div>
             <div className="text-xs text-muted-foreground">M11 Readiness</div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="pt-4">
-            <div className="text-2xl font-bold text-green-600">{qualityCounts.populated}</div>
-            <div className="text-xs text-muted-foreground">Populated</div>
+          <CardContent className="pt-4 pb-3">
+            <div className="text-2xl font-bold">{sectionsWithText.length}<span className="text-base font-normal text-muted-foreground">/{m11Sections.length}</span></div>
+            <div className="text-xs text-muted-foreground">Sections with Content</div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="pt-4">
-            <div className="text-2xl font-bold text-amber-500">{qualityCounts.placeholder}</div>
-            <div className="text-xs text-muted-foreground">Placeholder</div>
+          <CardContent className="pt-4 pb-3">
+            <div className="text-2xl font-bold">{requiredWithText.length}<span className="text-base font-normal text-muted-foreground">/9</span></div>
+            <div className="text-xs text-muted-foreground">Required Sections</div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="pt-4">
-            <div className="text-2xl font-bold text-red-500">{qualityCounts.empty}</div>
-            <div className="text-xs text-muted-foreground">Empty</div>
+          <CardContent className="pt-4 pb-3">
+            <div className="text-2xl font-bold text-muted-foreground">{allContent.length}</div>
+            <div className="text-xs text-muted-foreground">Source Narrative Items</div>
           </CardContent>
         </Card>
       </div>
@@ -176,7 +245,7 @@ export function DocumentStructureView({ usdm }: DocumentStructureViewProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Hash className="h-5 w-5" />
-            M11 Template Coverage
+            M11 Section Coverage
             {m11Mapping && (
               <Badge variant="outline" className="text-xs ml-2">
                 {(m11Mapping.coverage as string) ?? ''}
@@ -262,94 +331,6 @@ export function DocumentStructureView({ usdm }: DocumentStructureViewProps) {
           </div>
         </CardContent>
       </Card>
-
-      {/* Document Contents Tree */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            Document Contents
-            <Badge variant="secondary">{allContent.length}</Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-1 max-h-[500px] overflow-auto">
-            {rootContent.map((content) => (
-              <ContentNode 
-                key={content.id} 
-                content={content} 
-                contentMap={contentMap}
-                depth={0}
-              />
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
-function ContentNode({
-  content,
-  contentMap,
-  depth,
-}: {
-  content: DocumentContent;
-  contentMap: Map<string, DocumentContent>;
-  depth: number;
-}) {
-  const children = (content.childIds ?? [])
-    .map(id => contentMap.get(id))
-    .filter(Boolean) as DocumentContent[];
-
-  const indent = depth * 20;
-  const quality = getTextQuality(content);
-
-  return (
-    <div>
-      <div 
-        className="flex items-start gap-2 py-1 px-2 hover:bg-muted rounded text-sm"
-        style={{ marginLeft: indent }}
-      >
-        {children.length > 0 && (
-          <ChevronRight className="h-4 w-4 mt-0.5 text-muted-foreground" />
-        )}
-        {children.length === 0 && (
-          <span className="w-4" />
-        )}
-        
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            {content.sectionNumber && (
-              <Badge variant="outline" className="text-xs">
-                {content.sectionNumber}
-              </Badge>
-            )}
-            <span className="font-medium truncate">
-              {content.sectionTitle || content.name || 'Untitled'}
-            </span>
-            <span className={cn(
-              'inline-block w-2 h-2 rounded-full flex-shrink-0',
-              quality === 'populated' ? 'bg-green-500' :
-              quality === 'placeholder' ? 'bg-amber-400' : 'bg-red-400'
-            )} title={quality} />
-          </div>
-          {content.text && quality === 'populated' && (
-            <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
-              {content.text.substring(0, 200)}{content.text.length > 200 ? '...' : ''}
-            </p>
-          )}
-        </div>
-      </div>
-      
-      {children.map((child) => (
-        <ContentNode
-          key={child.id}
-          content={child}
-          contentMap={contentMap}
-          depth={depth + 1}
-        />
-      ))}
     </div>
   );
 }

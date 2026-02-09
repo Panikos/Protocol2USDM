@@ -1,14 +1,14 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { FileText, Download, File, Table2, Loader2, Maximize2, X as XIcon } from 'lucide-react';
+import { FileText, Download, File, Table2, Loader2, Maximize2, X as XIcon, FileOutput } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 interface DocumentInfo {
   filename: string;
-  type: 'protocol' | 'sap' | 'sites' | 'other';
+  type: 'protocol' | 'sap' | 'sites' | 'm11' | 'other';
   mimeType: string;
   size: number;
   updatedAt: string;
@@ -35,6 +35,8 @@ function getDocumentIcon(type: DocumentInfo['type']) {
     case 'protocol':
     case 'sap':
       return <FileText className="h-5 w-5 text-red-500" />;
+    case 'm11':
+      return <FileOutput className="h-5 w-5 text-blue-500" />;
     case 'sites':
       return <Table2 className="h-5 w-5 text-green-500" />;
     default:
@@ -48,6 +50,8 @@ function getDocumentLabel(type: DocumentInfo['type']): string {
       return 'Protocol Document';
     case 'sap':
       return 'Statistical Analysis Plan';
+    case 'm11':
+      return 'M11 Protocol (Generated)';
     case 'sites':
       return 'Study Sites';
     default:
@@ -324,7 +328,7 @@ export function DocumentsTab({ protocolId }: DocumentsTabProps) {
         {/* Document List */}
         <div className="md:col-span-1 space-y-3">
           <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-            Source Documents
+            Documents
           </h3>
           {documents.map((doc) => (
             <Card

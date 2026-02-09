@@ -25,6 +25,7 @@ import {
   Database,
   Activity,
   FileBarChart,
+  FileOutput,
   Pencil,
   Lock,
 } from 'lucide-react';
@@ -266,7 +267,7 @@ export default function ProtocolDetailPage() {
   const dataTabs = [
     { id: 'documents', label: 'Documents', icon: <FileText className="h-4 w-4" /> },
     { id: 'intermediate', label: 'Intermediate', icon: <FolderOpen className="h-4 w-4" /> },
-    { id: 'document', label: 'Structure', icon: <BookOpen className="h-4 w-4" /> },
+    { id: 'document', label: 'M11 Protocol', icon: <FileOutput className="h-4 w-4" /> },
     { id: 'soa', label: 'SoA Table', icon: <Table className="h-4 w-4" /> },
     { id: 'timeline', label: 'Timeline', icon: <GitBranch className="h-4 w-4" /> },
     { id: 'provenance', label: 'Provenance', icon: <Eye className="h-4 w-4" /> },
@@ -445,7 +446,7 @@ export default function ProtocolDetailPage() {
           <IntermediateFilesTab protocolId={protocolId} />
         )}
         {activeTab === 'document' && (
-          <DocumentStructureView usdm={usdm} />
+          <DocumentStructureView usdm={usdm} protocolId={protocolId} />
         )}
         {activeTab === 'soa' && (
           <SoATab provenance={provenance} />

@@ -40,6 +40,17 @@ async function findDocumentPath(protocolId: string, filename: string): Promise<s
     }
   } catch { /* No manifest */ }
   
+  // Check output directory for generated files (e.g. m11_protocol.docx)
+  const genDir = path.join(OUTPUT_DIR, idCheck.sanitized);
+  const outputPath = path.join(genDir, fnCheck.sanitized);
+  const outputCheck = ensureWithinRoot(outputPath, OUTPUT_DIR);
+  if (outputCheck.valid) {
+    try {
+      await fs.access(outputCheck.resolved);
+      return outputCheck.resolved;
+    } catch { /* Not in output dir */ }
+  }
+
   // Search input/trial directories (only basename matching, no user-controlled path joins)
   try {
     const trialDirs = await fs.readdir(path.join(INPUT_DIR, 'trial'));
@@ -153,6 +164,7 @@ export async function GET(
       '.csv': 'text/csv',
       '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       '.xls': 'application/vnd.ms-excel',
+      '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       '.json': 'application/json',
       '.txt': 'text/plain',
     };
