@@ -100,6 +100,42 @@ function FullscreenOverlay({ title, pdfUrl, onClose }: {
   onClose: () => void;
 }) {
   const overlayRef = useRef<HTMLDivElement>(null);
+  const [topOffset, setTopOffset] = useState(0);
+
+  // Keep fullscreen overlay below the protocol page sticky header.
+  useEffect(() => {
+    const getHeaderElement = () =>
+      document.querySelector<HTMLElement>('[data-protocol-sticky-header]') ??
+      document.querySelector<HTMLElement>('header');
+
+    const updateTopOffset = () => {
+      const header = getHeaderElement();
+      if (!header) {
+        setTopOffset(0);
+        return;
+      }
+
+      const headerBottom = header.getBoundingClientRect().bottom;
+      setTopOffset(Math.max(0, Math.ceil(headerBottom)));
+    };
+
+    updateTopOffset();
+
+    const header = getHeaderElement();
+    const resizeObserver = header ? new ResizeObserver(updateTopOffset) : null;
+    if (resizeObserver && header) {
+      resizeObserver.observe(header);
+    }
+
+    window.addEventListener('resize', updateTopOffset);
+    window.addEventListener('scroll', updateTopOffset, true);
+
+    return () => {
+      resizeObserver?.disconnect();
+      window.removeEventListener('resize', updateTopOffset);
+      window.removeEventListener('scroll', updateTopOffset, true);
+    };
+  }, []);
 
   // Focus overlay on mount so Escape works before user clicks the iframe
   useEffect(() => {
@@ -132,7 +168,8 @@ function FullscreenOverlay({ title, pdfUrl, onClose }: {
     <div
       ref={overlayRef}
       tabIndex={-1}
-      className="fixed inset-0 z-[60] bg-background flex flex-col outline-none"
+      className="fixed inset-x-0 bottom-0 z-[60] bg-background flex flex-col outline-none"
+      style={{ top: `${topOffset}px` }}
     >
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-3 border-b bg-background shadow-md shrink-0">

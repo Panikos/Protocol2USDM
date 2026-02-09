@@ -141,8 +141,22 @@ def extract_narrative_structure(
         
         result.raw_response = raw_responses
         
+        # --- Full-text extraction from PDF page ranges ---
+        section_texts: Dict[str, str] = {}
+        if sections:
+            try:
+                from core.pdf_utils import get_page_count
+                total = get_page_count(pdf_path)
+                section_pages = _find_section_pages(pdf_path, sections)
+                if section_pages:
+                    section_texts = _extract_section_texts(
+                        pdf_path, sections, section_pages, total,
+                    )
+            except Exception as e:
+                logger.warning(f"Full-text extraction failed (non-fatal): {e}")
+        
         # Convert to structured data
-        result.data = _build_narrative_data(abbreviations, sections, document)
+        result.data = _build_narrative_data(abbreviations, sections, document, section_texts)
         result.success = result.data is not None
         
         if result.success:
@@ -360,15 +374,247 @@ def _repair_json(text: str) -> Optional[str]:
     return text
 
 
+# ---------------------------------------------------------------------------
+# Full-text extraction helpers
+# ---------------------------------------------------------------------------
+
+def _find_section_pages(
+    pdf_path: str,
+    sections_raw: List[Dict],
+) -> Dict[str, int]:
+    """
+    Find the actual 0-indexed PDF page where each section heading appears.
+    
+    Searches the full PDF for heading patterns like "3. Study Design" or
+    "3  STUDY DESIGN" to locate each section, avoiding reliance on TOC
+    page numbers and eliminating page-offset calibration.
+    """
+    import fitz
+    
+    doc = fitz.open(pdf_path)
+    total = len(doc)
+    section_pages: Dict[str, int] = {}
+    
+    # Pre-extract all page texts once
+    page_texts = [doc[p].get_text() for p in range(total)]
+    doc.close()
+    
+    for sec in sections_raw:
+        number = sec.get('number', '')
+        title = sec.get('title', '')
+        if not number or not title:
+            continue
+        
+        # Build patterns from most specific to least
+        # e.g. "3.  Study Design" or "3 STUDY DESIGN" or "Section 3: Study Design"
+        escaped_num = re.escape(number)
+        title_words = title.strip().split()[:4]  # first 4 words
+        title_prefix = r'\s+'.join(re.escape(w) for w in title_words)
+        
+        patterns = [
+            rf'(?:^|\n)\s*{escaped_num}\.?\s+{title_prefix}',
+            rf'(?:^|\n)\s*Section\s+{escaped_num}[.:]?\s+{title_prefix}',
+        ]
+        
+        # Use TOC page hint to narrow search range if available
+        hint_page = sec.get('page')
+        if hint_page and isinstance(hint_page, (int, float)):
+            # Search ±10 pages around the hint first, then fall back to full scan
+            hint_idx = int(hint_page) - 1  # printed→0-indexed rough guess
+            search_ranges = [
+                range(max(0, hint_idx - 10), min(total, hint_idx + 10)),
+                range(total),
+            ]
+        else:
+            search_ranges = [range(total)]
+        
+        found = False
+        for search_range in search_ranges:
+            if found:
+                break
+            for p in search_range:
+                for pat in patterns:
+                    if re.search(pat, page_texts[p], re.IGNORECASE):
+                        section_pages[number] = p
+                        found = True
+                        break
+                if found:
+                    break
+    
+    logger.info(f"Located {len(section_pages)}/{len(sections_raw)} sections in PDF")
+    return section_pages
+
+
+def _compute_section_page_ranges(
+    sections_raw: List[Dict],
+    section_pages: Dict[str, int],
+    total_pages: int,
+) -> Dict[str, tuple]:
+    """
+    Compute (start_page, end_page) for each section.
+    
+    A section's text runs from its start page to the page before the next
+    section starts.  Returns 0-indexed inclusive page ranges.
+    """
+    # Build ordered list of (page, section_number) sorted by page
+    located = [(page, num) for num, page in section_pages.items()]
+    located.sort(key=lambda x: x[0])
+    
+    ranges: Dict[str, tuple] = {}
+    for idx, (start, num) in enumerate(located):
+        if idx + 1 < len(located):
+            end = located[idx + 1][0] - 1
+        else:
+            end = total_pages - 1
+        # Clamp to reasonable size (max 30 pages per section)
+        end = min(end, start + 29)
+        ranges[num] = (start, end)
+    
+    return ranges
+
+
+def _strip_header_footer(text: str) -> str:
+    """
+    Remove repeated header/footer lines from extracted PDF text.
+    
+    Protocol PDFs typically repeat the protocol number, page number,
+    and confidentiality notice on every page.
+    """
+    lines = text.split('\n')
+    if len(lines) < 20:
+        return text
+    
+    # Count line occurrences (normalized) — repeated lines are headers/footers
+    from collections import Counter
+    normalized = [l.strip().lower() for l in lines]
+    counts = Counter(normalized)
+    
+    # Lines appearing on >30% of pages are likely headers/footers
+    page_markers = sum(1 for l in lines if l.strip().startswith('--- Page'))
+    threshold = max(3, page_markers * 0.3)
+    
+    repeated = {line for line, cnt in counts.items() if cnt >= threshold and len(line) > 3}
+    
+    cleaned = []
+    for line in lines:
+        norm = line.strip().lower()
+        if norm in repeated:
+            continue
+        # Skip page markers from extract_text_from_pages
+        if line.strip().startswith('--- Page'):
+            continue
+        cleaned.append(line)
+    
+    return '\n'.join(cleaned).strip()
+
+
+def _extract_section_texts(
+    pdf_path: str,
+    sections_raw: List[Dict],
+    section_pages: Dict[str, int],
+    total_pages: int,
+) -> Dict[str, str]:
+    """
+    Extract cleaned body text for each section from its page range.
+    
+    Returns a dict mapping section number → extracted text.
+    """
+    ranges = _compute_section_page_ranges(sections_raw, section_pages, total_pages)
+    
+    if not ranges:
+        return {}
+    
+    import fitz
+    doc = fitz.open(pdf_path)
+    
+    texts: Dict[str, str] = {}
+    for sec_num, (start, end) in ranges.items():
+        page_texts = []
+        for p in range(start, min(end + 1, len(doc))):
+            page_texts.append(doc[p].get_text())
+        
+        raw = '\n'.join(page_texts)
+        cleaned = _strip_header_footer(raw)
+        
+        # Remove the section heading itself from the start of the text
+        # (it's already captured in the section title)
+        sec_data = next((s for s in sections_raw if s.get('number') == sec_num), None)
+        if sec_data:
+            title = sec_data.get('title', '')
+            # Try to remove "3. Study Design\n" or similar from start
+            heading_pat = rf'^\s*{re.escape(sec_num)}\.?\s+{re.escape(title)}\s*\n?'
+            cleaned = re.sub(heading_pat, '', cleaned, count=1, flags=re.IGNORECASE).strip()
+        
+        if cleaned:
+            texts[sec_num] = cleaned
+    
+    doc.close()
+    logger.info(f"Extracted text for {len(texts)} sections ({sum(len(t) for t in texts.values())} chars total)")
+    return texts
+
+
+def _split_subsection_texts(
+    parent_text: str,
+    subsections: List[Dict],
+) -> Dict[str, str]:
+    """
+    Split a parent section's text into subsection texts.
+    
+    Uses subsection headings to find boundaries within the parent text.
+    """
+    if not subsections or not parent_text:
+        return {}
+    
+    # Build list of (position, subsection_number) for each subsection heading found
+    boundaries = []
+    for sub in subsections:
+        num = sub.get('number', '')
+        title = sub.get('title', '')
+        if not num:
+            continue
+        
+        pat = rf'{re.escape(num)}\.?\s+{re.escape(title[:30])}'
+        m = re.search(pat, parent_text, re.IGNORECASE)
+        if m:
+            boundaries.append((m.start(), m.end(), num))
+    
+    if not boundaries:
+        return {}
+    
+    boundaries.sort(key=lambda x: x[0])
+    
+    texts: Dict[str, str] = {}
+    for idx, (start, heading_end, num) in enumerate(boundaries):
+        if idx + 1 < len(boundaries):
+            end = boundaries[idx + 1][0]
+        else:
+            end = len(parent_text)
+        
+        # Text after the heading, before the next subsection
+        sub_text = parent_text[heading_end:end].strip()
+        if sub_text:
+            texts[num] = sub_text
+    
+    return texts
+
+
+# ---------------------------------------------------------------------------
+# Data builders
+# ---------------------------------------------------------------------------
+
 def _build_narrative_data(
     abbreviations_raw: List[Dict],
     sections_raw: List[Dict],
     document_raw: Optional[Dict],
+    section_texts: Optional[Dict[str, str]] = None,
 ) -> NarrativeData:
     """Build NarrativeData from raw extraction results.
     
     Handles both legacy format and new USDM-compliant format.
+    If section_texts is provided, populates text fields from extracted content.
     """
+    if section_texts is None:
+        section_texts = {}
     
     # Process abbreviations - accept multiple key names
     abbreviations = []
@@ -398,29 +644,40 @@ def _build_narrative_data(
         section_id = sec.get('id', f"nc_{i+1}")
         section_ids.append(section_id)
         
+        # Split parent text into subsection texts if available
+        parent_text = section_texts.get(sec.get('number', ''), '')
+        subsections = sec.get('subsections', [])
+        sub_texts = _split_subsection_texts(parent_text, subsections) if parent_text else {}
+        
         # Process subsections
         child_ids = []
-        for j, sub in enumerate(sec.get('subsections', [])):
+        for j, sub in enumerate(subsections):
             if isinstance(sub, dict):
                 item_id = f"nci_{i+1}_{j+1}"
                 child_ids.append(item_id)
+                sub_num = sub.get('number', '')
+                sub_text = sub_texts.get(sub_num, '')
                 items.append(NarrativeContentItem(
                     id=item_id,
-                    name=sub.get('title', f'Section {sub.get("number", "")}'),
-                    text="",  # Text not extracted in this phase
-                    section_number=sub.get('number'),
+                    name=sub.get('title', f'Section {sub_num}'),
+                    text=sub_text,
+                    section_number=sub_num,
                     section_title=sub.get('title'),
                     order=j,
                 ))
         
         section_type = _map_section_type(sec.get('type', 'Other'))
         
+        sec_num = sec.get('number', '')
+        sec_text = section_texts.get(sec_num, '')
+        
         sections.append(NarrativeContent(
             id=section_id,
-            name=sec.get('title', f'Section {sec.get("number", "")}'),
-            section_number=sec.get('number'),
+            name=sec.get('title', f'Section {sec_num}'),
+            section_number=sec_num,
             section_title=sec.get('title'),
             section_type=section_type,
+            text=sec_text if sec_text else None,
             child_ids=child_ids,
             order=i,
         ))

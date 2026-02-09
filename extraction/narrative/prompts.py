@@ -52,7 +52,7 @@ Now analyze the protocol content and extract the abbreviations:
 
 STRUCTURE_EXTRACTION_PROMPT = """You are an expert at extracting document structure from clinical trial protocols.
 
-Analyze the provided protocol content and extract the section structure.
+Analyze the provided protocol content and extract the COMPLETE section structure.
 
 ## Required Information
 
@@ -60,12 +60,14 @@ Analyze the provided protocol content and extract the section structure.
 - Protocol title
 - Version number
 - Version date
+- Total number of pages in the document (if determinable)
 
 ### 2. Major Sections
 For each section extract:
 - Section number (e.g., "1", "2.1", "5.1.2")
 - Section title
-- Section type (Synopsis, Objectives, Study Design, Eligibility, Treatment, etc.)
+- Section type
+- **Page number** where the section starts (from Table of Contents or headers)
 
 ## Output Format
 
@@ -76,26 +78,30 @@ Return a JSON object with this exact structure:
   "document": {
     "title": "A Phase 2, Open-Label Study...",
     "version": "3.0",
-    "versionDate": "2020-06-15"
+    "versionDate": "2020-06-15",
+    "totalPages": 85
   },
   "sections": [
     {
       "number": "1",
       "title": "Introduction",
-      "type": "Introduction"
+      "type": "Introduction",
+      "page": 10
     },
     {
       "number": "2",
       "title": "Study Objectives",
-      "type": "Objectives"
+      "type": "Objectives",
+      "page": 12
     },
     {
       "number": "3",
       "title": "Study Design",
       "type": "Study Design",
+      "page": 15,
       "subsections": [
-        {"number": "3.1", "title": "Overview of Study Design"},
-        {"number": "3.2", "title": "Rationale for Study Design"}
+        {"number": "3.1", "title": "Overview of Study Design", "page": 15},
+        {"number": "3.2", "title": "Rationale for Study Design", "page": 17}
       ]
     }
   ]
@@ -118,14 +124,16 @@ Use these standard types:
 - Ethics
 - References
 - Appendix
+- Discontinuation
 - Other
 
 ## Rules
 
 1. **Extract from TOC** - Use table of contents if available
-2. **Include all levels** - Main sections and subsections
-3. **Preserve numbering** - Keep original section numbers
-4. **Return ONLY valid JSON** - no markdown, no explanations
+2. **Include ALL sections** - Extract every section and subsection, even minor ones
+3. **Preserve numbering** - Keep original section numbers exactly as written
+4. **Extract page numbers** - From TOC entries, headers, or footers. Use the PRINTED page number.
+5. **Return ONLY valid JSON** - no markdown, no explanations
 
 Now analyze the protocol content and extract the structure:
 """

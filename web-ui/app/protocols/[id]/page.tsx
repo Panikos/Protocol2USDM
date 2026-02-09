@@ -302,7 +302,7 @@ export default function ProtocolDetailPage() {
   return (
     <div className="h-screen flex flex-col bg-slate-50">
       {/* Header */}
-      <header className="border-b bg-white shrink-0 z-50 overflow-visible">
+      <header data-protocol-sticky-header className="border-b bg-white shrink-0 z-50 overflow-visible">
         <div className="container mx-auto px-4 py-3 overflow-visible">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
