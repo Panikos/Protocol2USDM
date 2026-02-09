@@ -331,21 +331,22 @@ def build_m11_narrative(
     for m11 in M11_TEMPLATE:
         mapped = mapping.mappings.get(m11.number, [])
         
-        # Gather text from all mapped protocol sections
+        # Gather text and source info from all mapped protocol sections
         combined_texts = []
         source_sections = []
         
         for sec_num, score in mapped:
             sec_data = sec_lookup.get(sec_num, {})
             text = section_texts.get(sec_num, '')
+            source_title = sec_data.get('title', sec_num)
+            source_sections.append({
+                'protocolSection': sec_num,
+                'protocolTitle': source_title,
+                'matchScore': round(score, 2),
+                'hasText': bool(text),
+            })
             if text:
-                source_title = sec_data.get('title', sec_num)
                 combined_texts.append(text)
-                source_sections.append({
-                    'protocolSection': sec_num,
-                    'protocolTitle': source_title,
-                    'matchScore': round(score, 2),
-                })
         
         m11_narrative[m11.number] = {
             'm11Number': m11.number,

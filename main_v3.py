@@ -307,6 +307,23 @@ Examples:
             
             combined_data = fixed_data
             
+            # Render M11 DOCX
+            try:
+                from rendering.m11_renderer import render_m11_docx
+                m11_docx_path = os.path.join(output_dir, "m11_protocol.docx")
+                m11_mapping = combined_data.get("m11Mapping")
+                m11_result = render_m11_docx(combined_data, m11_docx_path, m11_mapping)
+                if m11_result.success:
+                    logger.info(
+                        f"  ✓ M11 DOCX rendered: m11_protocol.docx "
+                        f"({m11_result.sections_with_content}/{m11_result.sections_rendered} sections, "
+                        f"{m11_result.total_words} words)"
+                    )
+                else:
+                    logger.warning(f"  ⚠ M11 DOCX rendering failed: {m11_result.error}")
+            except Exception as e:
+                logger.warning(f"  ⚠ M11 DOCX rendering skipped: {e}")
+            
             # Save schema validation results
             _save_schema_validation(output_dir, schema_validation_result, schema_fixer_result, usdm_result)
         
