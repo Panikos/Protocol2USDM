@@ -17,7 +17,6 @@ import {
   Pill,
   FileEdit,
   BarChart3,
-  BookOpen,
   Microscope,
   Stethoscope,
   MapPin,
@@ -50,7 +49,6 @@ import {
   StudySitesView,
   FootnotesView,
   ScheduleTimelineView,
-  NarrativeView,
 } from '@/components/protocol';
 import { QualityMetricsDashboard, ValidationResultsView } from '@/components/quality';
 import { DocumentStructureView } from '@/components/intermediate';
@@ -65,7 +63,7 @@ import { useEditModeStore } from '@/stores/editModeStore';
 import { cn } from '@/lib/utils';
 import type { ProvenanceData } from '@/lib/provenance/types';
 
-type TabId = 'overview' | 'eligibility' | 'objectives' | 'design' | 'interventions' | 'amendments' | 'extensions' | 'entities' | 'procedures' | 'sites' | 'footnotes' | 'quality' | 'validation' | 'document' | 'documents' | 'intermediate' | 'soa' | 'timeline' | 'provenance' | 'schedule' | 'narrative';
+type TabId = 'overview' | 'eligibility' | 'objectives' | 'design' | 'interventions' | 'amendments' | 'extensions' | 'entities' | 'procedures' | 'sites' | 'footnotes' | 'quality' | 'validation' | 'document' | 'documents' | 'intermediate' | 'soa' | 'timeline' | 'provenance' | 'schedule';
 
 export default function ProtocolDetailPage() {
   const params = useParams();
@@ -256,7 +254,6 @@ export default function ProtocolDetailPage() {
     { id: 'sites', label: 'Sites', icon: <MapPin className="h-4 w-4" /> },
     { id: 'footnotes', label: 'Footnotes', icon: <FileText className="h-4 w-4" /> },
     { id: 'schedule', label: 'Schedule', icon: <Activity className="h-4 w-4" /> },
-    { id: 'narrative', label: 'Narrative', icon: <BookOpen className="h-4 w-4" /> },
   ];
 
   const qualityTabs = [
@@ -459,9 +456,6 @@ export default function ProtocolDetailPage() {
         )}
         {activeTab === 'schedule' && (
           <ScheduleTimelineView usdm={usdm} />
-        )}
-        {activeTab === 'narrative' && (
-          <NarrativeView usdm={usdm} />
         )}
         </div>
 

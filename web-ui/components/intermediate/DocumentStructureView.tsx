@@ -106,8 +106,8 @@ export function DocumentStructureView({ usdm, protocolId }: DocumentStructureVie
   const version = versions[0] as Record<string, unknown> | undefined;
   
   const documentContents = (version?.documentContents as DocumentContent[]) ?? [];
-  const narrativeContents = (version?.narrativeContentItems as DocumentContent[]) ?? 
-                            (version?.narrativeContents as DocumentContent[]) ?? [];
+  const narrativeSections = (version?.narrativeContents as DocumentContent[]) ?? [];
+  const narrativeItems = (version?.narrativeContentItems as DocumentContent[]) ?? [];
   
   // M11 mapping from pipeline (if available)
   const m11Mapping = (usdm as Record<string, unknown>).m11Mapping as Record<string, unknown> | undefined;
@@ -130,7 +130,7 @@ export function DocumentStructureView({ usdm, protocolId }: DocumentStructureVie
   ];
 
   // Check which sections are present and their quality
-  const allContent = [...documentContents, ...narrativeContents];
+  const allContent = [...documentContents, ...narrativeSections, ...narrativeItems];
   const presentSections = new Set(
     allContent
       .filter(c => c.sectionNumber)
