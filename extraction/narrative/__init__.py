@@ -6,6 +6,7 @@ Extracts document structure elements from protocol:
 - NarrativeContentItem (subsections)
 - Abbreviation
 - StudyDefinitionDocument
+- M11 section mapping
 """
 
 from .extractor import (
@@ -19,6 +20,12 @@ from .schema import (
     Abbreviation,
     StudyDefinitionDocument,
 )
+from .m11_mapper import (
+    map_sections_to_m11,
+    build_m11_narrative,
+    M11MappingResult,
+    M11_TEMPLATE,
+)
 
 __all__ = [
     # Main extraction function
@@ -30,4 +37,9 @@ __all__ = [
     "NarrativeContentItem",
     "Abbreviation",
     "StudyDefinitionDocument",
+    # M11 mapping
+    "map_sections_to_m11",
+    "build_m11_narrative",
+    "M11MappingResult",
+    "M11_TEMPLATE",
 ]

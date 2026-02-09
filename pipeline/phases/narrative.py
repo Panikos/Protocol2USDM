@@ -53,6 +53,8 @@ class NarrativePhase(BasePhase):
         previous_extractions: dict,
     ) -> None:
         """Add narrative content to study_version."""
+        import logging
+        _logger = logging.getLogger(__name__)
         narrative_added = False
         
         if result.success and result.data:
@@ -63,6 +65,43 @@ class NarrativePhase(BasePhase):
             if data.document:
                 combined["studyDefinitionDocument"] = data.document.to_dict()
             narrative_added = True
+            
+            # Run M11 section mapping
+            try:
+                from extraction.narrative.m11_mapper import map_sections_to_m11, build_m11_narrative, M11_TEMPLATE
+                
+                # Build section dicts for the mapper
+                sec_dicts = []
+                for s in data.sections:
+                    sec_dicts.append({
+                        'number': s.section_number or '',
+                        'title': s.section_title or s.name or '',
+                        'type': s.section_type.value if s.section_type else 'Other',
+                    })
+                
+                # Build section texts dict
+                sec_texts = {}
+                for s in data.sections:
+                    if s.text and s.text != s.name:
+                        sec_texts[s.section_number or ''] = s.text
+                
+                mapping = map_sections_to_m11(sec_dicts)
+                m11_narrative = build_m11_narrative(sec_dicts, sec_texts, mapping)
+                
+                # Store M11 mapping as extension data
+                combined["m11Mapping"] = {
+                    "coverage": f"{mapping.m11_covered}/{mapping.m11_total}",
+                    "requiredCoverage": f"{mapping.m11_required_covered}/{mapping.m11_required_total}",
+                    "unmappedSections": mapping.unmapped,
+                    "sections": m11_narrative,
+                }
+                
+                _logger.info(
+                    f"M11 mapping: {mapping.m11_covered}/{mapping.m11_total} covered "
+                    f"({mapping.m11_required_covered}/{mapping.m11_required_total} required)"
+                )
+            except Exception as e:
+                _logger.warning(f"M11 mapping failed (non-fatal): {e}")
         
         # Fallback to previously extracted narrative
         if not narrative_added and previous_extractions.get('narrative'):
