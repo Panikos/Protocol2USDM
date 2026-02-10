@@ -2,7 +2,7 @@
 
 **v7.3** | One-page command reference
 
-> **Current:** M11 DOCX rendering, 372 unit tests (42.5% coverage), pipeline decomposition, LLM provider abstraction, phase registry architecture (`main_v3.py`), default `--complete` mode, `gemini-3-flash-preview` default model, parallel execution.
+> **Current:** M11 DOCX rendering, 405 tests (42.5% coverage), pipeline decomposition, LLM provider abstraction, phase registry architecture (`main_v3.py`), default `--complete` mode, `gemini-3-flash-preview` default model, parallel execution.
 
 ---
 
@@ -182,7 +182,7 @@ output/<protocol>/
 ## Testing
 
 ```bash
-# All unit tests (372 tests, ~2 min)
+# All unit tests (405 collected, 372 pass, ~2 min)
 python -m pytest tests/ -v
 
 # With coverage

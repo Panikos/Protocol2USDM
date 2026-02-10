@@ -74,7 +74,7 @@ GOOGLE_CLOUD_LOCATION=us-central1  # or your preferred region
 - Output: `m11_protocol.docx` + `m11_conformance.json`
 
 ### 🧪 Testing Infrastructure (E7–E13)
-- **372 unit tests** (33 e2e skipped by default) with **42.5% code coverage**
+- **405 tests collected** (372 passed, 33 e2e skipped by default) with **42.5% code coverage**
 - **pytest-cov** integration with HTML reports
 - **Mocked LLM tests** for all 5 extractors (metadata, eligibility, objectives, studydesign, interventions)
 - **Composer tests** for all 9 M11 entity composers
@@ -575,7 +575,7 @@ Protocol2USDMv3/
 │   └── m11_conformance.py    # M11 conformance scoring
 ├── enrichment/               # Terminology enrichment
 │   └── terminology.py        # NCI EVS enrichment
-├── tests/                    # Unit tests (372 tests, 42.5% coverage)
+├── tests/                    # Unit tests (405 collected, 42.5% coverage)
 │   ├── test_extractors.py    # Mocked LLM extractor tests (58)
 │   ├── test_composers.py     # M11 composer tests (22)
 │   ├── test_pipeline_context.py # PipelineContext tests (48)
@@ -599,7 +599,7 @@ For detailed architecture, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 ## Testing
 
 ```bash
-# Run all unit tests (372 tests, ~2 min)
+# Run all unit tests (405 collected, 372 pass, ~2 min)
 python -m pytest tests/ -v
 
 # Run with coverage report
@@ -696,7 +696,7 @@ The following items are planned for upcoming releases:
 - [ ] **Provenance Tracking for Expansion Phases** (E14): Track source pages/sections per entity
 - [ ] **Prompt Versioning** (E15): Hash prompts, store in output metadata
 - [x] **ICH M11 Document Rendering**: DOCX generation with 9 entity composers *(completed v7.3)*
-- [x] **Testing Infrastructure**: 372 tests, 42.5% coverage, mocked LLM tests *(completed v7.3)*
+- [x] **Testing Infrastructure**: 405 tests (372 pass), 42.5% coverage, mocked LLM tests *(completed v7.3)*
 - [x] **Pipeline Decomposition**: combiner/integrations/post_processing/promotion *(completed v7.3)*
 - [x] **Web UI Semantic Editing**: JSON Patch editing with draft/publish workflow *(completed v7.2.1)*
 - [x] **Execution Model Promotion**: Native USDM entities instead of extensions *(completed v7.2)*

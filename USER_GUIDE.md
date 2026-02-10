@@ -3,7 +3,7 @@
 **Version:** 7.3  
 **Last Updated:** 2026-02-10
 
-> **📢 What's New in v7.3:** **ICH M11 DOCX rendering** (9 entity composers, 7-pass section mapper, conformance scoring), **testing infrastructure** (372 tests, 42.5% coverage, mocked LLM tests), **pipeline decomposition** (combiner/integrations/post_processing/promotion), **LLM provider abstraction** (`providers/` module).
+> **📢 What's New in v7.3:** **ICH M11 DOCX rendering** (9 entity composers, 7-pass section mapper, conformance scoring), **testing infrastructure** (405 tests, 42.5% coverage, mocked LLM tests), **pipeline decomposition** (combiner/integrations/post_processing/promotion), **LLM provider abstraction** (`providers/` module).
 
 > **v7.2:** Execution model promotion to native USDM entities, semantic editing in web UI.
 > **v7.1:** Phase registry architecture (`main_v3.py`), default `--complete` mode, parallel execution.
@@ -630,7 +630,7 @@ Error: GOOGLE_API_KEY environment variable not set
 ### Unit Tests
 
 ```bash
-# Run all unit tests (372 tests, ~2 min)
+# Run all unit tests (405 collected, 372 pass, ~2 min)
 python -m pytest tests/ -v
 
 # Run with coverage report
