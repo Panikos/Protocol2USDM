@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { EditableField } from '@/components/semantic';
+import { designPath } from '@/lib/semantic/schema';
 import { EpochTimelineChart } from './EpochTimelineChart';
 import { 
   Calendar, 
@@ -212,7 +213,7 @@ export function ScheduleTimelineView({ usdm }: ScheduleTimelineViewProps) {
                 )}
                 <Calendar className="h-5 w-5" />
                 <EditableField
-                  path={`/study/versions/0/studyDesigns/0/scheduleTimelines/${i}/name`}
+                  path={timeline.id ? designPath('scheduleTimelines', timeline.id, 'name') : `/study/versions/0/studyDesigns/0/scheduleTimelines/${i}/name`}
                   value={timeline.name || timeline.label || `Timeline ${i + 1}`}
                   label=""
                   className="font-semibold"
@@ -229,7 +230,7 @@ export function ScheduleTimelineView({ usdm }: ScheduleTimelineViewProps) {
             {isExpanded && (
               <CardContent className="space-y-6">
                 <EditableField
-                  path={`/study/versions/0/studyDesigns/0/scheduleTimelines/${i}/description`}
+                  path={timeline.id ? designPath('scheduleTimelines', timeline.id, 'description') : `/study/versions/0/studyDesigns/0/scheduleTimelines/${i}/description`}
                   value={timeline.description || ''}
                   label=""
                   type="textarea"
@@ -248,7 +249,9 @@ export function ScheduleTimelineView({ usdm }: ScheduleTimelineViewProps) {
                       {timings.map((timing, ti) => (
                         <div key={timing.id || ti} className="p-3 bg-muted rounded-lg">
                           <EditableField
-                            path={`/study/versions/0/studyDesigns/0/scheduleTimelines/${i}/timings/${ti}/name`}
+                            path={timing.id && timeline.id
+                              ? `/study/versions/0/studyDesigns/0/scheduleTimelines/@id:${timeline.id}/timings/@id:${timing.id}/name`
+                              : `/study/versions/0/studyDesigns/0/scheduleTimelines/${i}/timings/${ti}/name`}
                             value={timing.name || timing.label || `Timing ${ti + 1}`}
                             label=""
                             className="font-medium text-sm"

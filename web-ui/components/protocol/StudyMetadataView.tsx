@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { EditableField } from '@/components/semantic';
+import { versionPath } from '@/lib/semantic/schema';
 import { Building2, Calendar, FlaskConical, Users, FileText, BookOpen, ChevronDown, ChevronRight, Globe, Tag } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -100,7 +101,7 @@ export function StudyMetadataView({ usdm }: StudyMetadataViewProps) {
   const characteristics = (design?.characteristics as Characteristic[]) ?? [];
 
   // Extract conditions (medical conditions)
-  const conditions = (version.conditions as { name?: string; description?: string; codes?: { decode?: string }[] }[]) ?? [];
+  const conditions = (version.conditions as { id?: string; name?: string; description?: string; codes?: { decode?: string }[] }[]) ?? [];
 
   // State for collapsible sections
   const [showAllAbbreviations, setShowAllAbbreviations] = useState(false);
@@ -288,14 +289,14 @@ export function StudyMetadataView({ usdm }: StudyMetadataViewProps) {
                   <div key={i} className="flex items-center justify-between border-b pb-2 last:border-0">
                     <div>
                       <EditableField
-                        path={`/study/versions/0/organizations/${orgIndex}/name`}
+                        path={versionPath('organizations', org.id, 'name')}
                         value={org.name}
                         className="font-medium"
                         placeholder="Organization name"
                       />
                       {org.identifier && (
                         <EditableField
-                          path={`/study/versions/0/organizations/${orgIndex}/identifier`}
+                          path={versionPath('organizations', org.id, 'identifier')}
                           value={org.identifier}
                           className="text-xs text-muted-foreground"
                           placeholder="Identifier"
@@ -410,16 +411,16 @@ export function StudyMetadataView({ usdm }: StudyMetadataViewProps) {
           <CardContent>
             <div className="space-y-2">
               {conditions.map((cond, i) => (
-                <div key={i} className="p-3 bg-muted rounded-lg">
+                <div key={cond.id || i} className="p-3 bg-muted rounded-lg">
                   <EditableField
-                    path={`/study/versions/0/conditions/${i}/name`}
+                    path={cond.id ? versionPath('conditions', cond.id, 'name') : `/study/versions/0/conditions/${i}/name`}
                     value={cond.name || `Condition ${i + 1}`}
                     label=""
                     className="font-medium"
                     placeholder="Condition name"
                   />
                   <EditableField
-                    path={`/study/versions/0/conditions/${i}/description`}
+                    path={cond.id ? versionPath('conditions', cond.id, 'description') : `/study/versions/0/conditions/${i}/description`}
                     value={cond.description || ''}
                     label=""
                     type="textarea"
@@ -480,20 +481,17 @@ export function StudyMetadataView({ usdm }: StudyMetadataViewProps) {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
               {displayedAbbreviations.map((abbr, i) => {
-                // Find original index in unsorted array
-                const originalIndex = abbreviations.findIndex(a => a.abbreviatedText === abbr.abbreviatedText);
-                const pathIndex = originalIndex >= 0 ? originalIndex : i;
                 return (
-                  <div key={i} className="flex items-start gap-2 p-2 rounded hover:bg-muted">
+                  <div key={abbr.id || i} className="flex items-start gap-2 p-2 rounded hover:bg-muted">
                     <EditableField
-                      path={`/study/versions/0/abbreviations/${pathIndex}/abbreviatedText`}
+                      path={abbr.id ? versionPath('abbreviations', abbr.id, 'abbreviatedText') : `/study/versions/0/abbreviations/${i}/abbreviatedText`}
                       value={abbr.abbreviatedText}
                       label=""
                       className="shrink-0 font-mono text-xs border rounded px-1"
                       placeholder="ABBR"
                     />
                     <EditableField
-                      path={`/study/versions/0/abbreviations/${pathIndex}/expandedText`}
+                      path={abbr.id ? versionPath('abbreviations', abbr.id, 'expandedText') : `/study/versions/0/abbreviations/${i}/expandedText`}
                       value={abbr.expandedText}
                       label=""
                       className="text-sm text-muted-foreground flex-1"

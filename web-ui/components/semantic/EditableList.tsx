@@ -80,7 +80,10 @@ export function EditableList({
   };
 
   const handleRemove = (index: number) => {
-    addPatchOp({ op: 'remove', path: `${basePath}/${index}` });
+    const item = items[index] as Record<string, unknown> | undefined;
+    const itemId = item?.id as string | undefined;
+    const removePath = itemId ? `${basePath}/@id:${itemId}` : `${basePath}/${index}`;
+    addPatchOp({ op: 'remove', path: removePath });
   };
 
   const handleMoveUp = (index: number) => {
@@ -103,8 +106,9 @@ export function EditableList({
   };
 
   const renderItem = (item: unknown, index: number) => {
-    const itemPath = `${basePath}/${index}`;
     const itemObj = (item && typeof item === 'object' ? item : {}) as Record<string, unknown>;
+    const itemId = itemObj.id as string | undefined;
+    const itemPath = itemId ? `${basePath}/@id:${itemId}` : `${basePath}/${index}`;
 
     if (itemDescriptor.render) {
       return itemDescriptor.render(item, index, itemPath);

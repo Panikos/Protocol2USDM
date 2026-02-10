@@ -92,7 +92,7 @@ export function AmendmentHistoryView({ usdm }: AmendmentHistoryViewProps) {
                       <div className="flex items-start justify-between mb-2">
                         <div className="flex-1">
                           <EditableField
-                            path={`/study/versions/0/amendments/${i}/name`}
+                            path={amendment.id ? `/study/versions/0/amendments/@id:${amendment.id}/name` : `/study/versions/0/amendments/${i}/name`}
                             value={amendment.label || amendment.name || `Amendment ${amendment.number || i + 1}`}
                             label=""
                             className="font-medium"
@@ -121,7 +121,7 @@ export function AmendmentHistoryView({ usdm }: AmendmentHistoryViewProps) {
                       </div>
                       
                       <EditableField
-                        path={`/study/versions/0/amendments/${i}/summary`}
+                        path={amendment.id ? `/study/versions/0/amendments/@id:${amendment.id}/summary` : `/study/versions/0/amendments/${i}/summary`}
                         value={displaySummary || ''}
                         label=""
                         type="textarea"

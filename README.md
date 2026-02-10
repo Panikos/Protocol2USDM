@@ -694,9 +694,10 @@ CDISC_API_KEY=...           # For CORE rules cache (get from library.cdisc.org)
 
 The following items are planned for upcoming releases:
 
+- [ ] **User Access Management & E-Signatures**: RBAC, authentication, 21 CFR Part 11 e-signatures *(deferred — requires user access management)*
 - [ ] **Biomedical Concepts**: Add extraction via a separate comprehensive canonical model for standardized concept mapping
 - [ ] **Multi-Protocol Comparison**: Compare USDM outputs across protocol versions
-- [ ] **Structured JSON Logging** (E12): Replace print-based logging with structured JSON
+- [x] **Structured JSON Logging** (E12): `core/logging_config.py` with JSON/console formatters *(completed v7.4)*
 - [x] **Async LLM Calls** (E23): Native async for all 3 providers *(completed v7.4)*
 - [x] **LLM Streaming** (E21): StreamChunk + StreamCallback *(completed v7.4)*
 - [x] **Parallel Execution Model** (E20): Two-wave ThreadPoolExecutor *(completed v7.4)*

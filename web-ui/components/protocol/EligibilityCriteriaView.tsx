@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { EditableField, EditableCodedValue, CDISC_TERMINOLOGIES } from '@/components/semantic';
+import { designPath } from '@/lib/semantic/schema';
 import { CheckCircle2, XCircle, Users, AlertTriangle } from 'lucide-react';
 
 interface EligibilityCriteriaViewProps {
@@ -124,17 +125,13 @@ export function EligibilityCriteriaView({ usdm }: EligibilityCriteriaViewProps) 
   const renderCriterion = (criterion: EligibilityCriterion, index: number, criteriaType: 'inclusion' | 'exclusion' | 'uncategorized', typeIndex: number) => {
     const text = criterion.text || criterion.description || criterion.label || criterion.name || 'No text';
     
-    // Find the original index in the eligibilityCriteria array for the path
-    const originalIndex = eligibilityCriteria.findIndex(c => c.id === criterion.id);
-    const pathIndex = originalIndex >= 0 ? originalIndex : index;
-    
     return (
       <div key={criterion.id || index} className="flex gap-3 py-2 border-b last:border-b-0">
         <Badge variant="outline" className="h-6 min-w-[2rem] justify-center">
           {typeIndex + 1}
         </Badge>
         <EditableField
-          path={`/study/versions/0/studyDesigns/0/eligibilityCriteria/${pathIndex}/text`}
+          path={designPath('eligibilityCriteria', criterion.id, 'text')}
           value={text}
           label="Criterion Text"
           type="textarea"

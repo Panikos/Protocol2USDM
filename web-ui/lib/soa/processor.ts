@@ -376,7 +376,7 @@ export class SoAProcessor {
       return;
     }
 
-    const basePath = `/study/versions/0/studyDesigns/0/activities/${idx}`;
+    const basePath = `/study/versions/0/studyDesigns/0/activities/@id:${edit.activityId}`;
 
     if (edit.name !== undefined) {
       this.patches.push({
@@ -475,7 +475,7 @@ export class SoAProcessor {
       return;
     }
 
-    const basePath = `/study/versions/0/studyDesigns/0/encounters/${idx}`;
+    const basePath = `/study/versions/0/studyDesigns/0/encounters/@id:${edit.encounterId}`;
 
     if (edit.name !== undefined) {
       this.patches.push({

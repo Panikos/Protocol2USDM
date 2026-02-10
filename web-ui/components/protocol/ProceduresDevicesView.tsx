@@ -3,6 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { EditableField } from '@/components/semantic';
+import { designPath, versionPath } from '@/lib/semantic/schema';
 import { 
   Stethoscope, 
   Cpu,
@@ -144,10 +145,10 @@ export function ProceduresDevicesView({ usdm }: ProceduresDevicesViewProps) {
           <CardContent>
             <div className="space-y-3">
               {procedures.map((procedure, i) => (
-                <div key={i} className="p-3 bg-muted rounded-lg">
+                <div key={procedure.id || i} className="p-3 bg-muted rounded-lg">
                   <div className="flex items-start justify-between">
                     <EditableField
-                      path={`/study/versions/0/studyDesigns/0/procedures/${i}/name`}
+                      path={designPath('procedures', procedure.id, 'name')}
                       value={procedure.name || `Procedure ${i + 1}`}
                       label=""
                       className="font-medium"
@@ -162,7 +163,7 @@ export function ProceduresDevicesView({ usdm }: ProceduresDevicesViewProps) {
                     )}
                   </div>
                   <EditableField
-                    path={`/study/versions/0/studyDesigns/0/procedures/${i}/description`}
+                    path={designPath('procedures', procedure.id, 'description')}
                     value={procedure.description || ''}
                     label=""
                     type="textarea"
@@ -194,10 +195,10 @@ export function ProceduresDevicesView({ usdm }: ProceduresDevicesViewProps) {
           <CardContent>
             <div className="space-y-3">
               {devices.map((device, i) => (
-                <div key={i} className="p-3 bg-muted rounded-lg">
+                <div key={device.id || i} className="p-3 bg-muted rounded-lg">
                   <div className="flex items-start justify-between">
                     <EditableField
-                      path={`/study/versions/0/medicalDevices/${i}/name`}
+                      path={versionPath('medicalDevices', device.id, 'name')}
                       value={device.name || `Device ${i + 1}`}
                       label=""
                       className="font-medium"
@@ -208,7 +209,7 @@ export function ProceduresDevicesView({ usdm }: ProceduresDevicesViewProps) {
                     )}
                   </div>
                   <EditableField
-                    path={`/study/versions/0/medicalDevices/${i}/description`}
+                    path={versionPath('medicalDevices', device.id, 'description')}
                     value={device.description || ''}
                     label=""
                     type="textarea"

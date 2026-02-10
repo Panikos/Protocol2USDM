@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { EditableField } from '@/components/semantic';
+import { versionPath } from '@/lib/semantic/schema';
 import { 
   FileText, 
   ChevronDown, 
@@ -190,7 +191,7 @@ export function NarrativeView({ usdm }: NarrativeViewProps) {
                     )}
                     <span className="font-medium flex-1" onClick={e => e.stopPropagation()}>
                       <EditableField
-                        path={`/study/versions/0/narrativeContents/${i}/sectionTitle`}
+                        path={section.id ? versionPath('narrativeContents', section.id, 'sectionTitle') : `/study/versions/0/narrativeContents/${i}/sectionTitle`}
                         value={section.sectionTitle || section.name || `Section ${i + 1}`}
                         label=""
                         placeholder="Section title"
@@ -207,7 +208,7 @@ export function NarrativeView({ usdm }: NarrativeViewProps) {
                     <div className="px-4 pb-4 pt-2 bg-muted/30 border-t">
                       <div className="prose prose-sm dark:prose-invert max-w-none mb-4">
                         <EditableField
-                          path={`/study/versions/0/narrativeContents/${i}/text`}
+                          path={section.id ? versionPath('narrativeContents', section.id, 'text') : `/study/versions/0/narrativeContents/${i}/text`}
                           value={section.text || ''}
                           label=""
                           type="textarea"
@@ -221,14 +222,14 @@ export function NarrativeView({ usdm }: NarrativeViewProps) {
                           {items.map((item, ii) => (
                             <div key={item.id || ii} className="p-3 bg-background rounded border">
                               <EditableField
-                                path={`/study/versions/0/narrativeContentItems/${narrativeContentItems.findIndex(nci => nci.id === item.id)}/name`}
+                                path={versionPath('narrativeContentItems', item.id, 'name')}
                                 value={item.name || ''}
                                 label=""
                                 className="font-medium text-sm mb-1"
                                 placeholder="Item name"
                               />
                               <EditableField
-                                path={`/study/versions/0/narrativeContentItems/${narrativeContentItems.findIndex(nci => nci.id === item.id)}/text`}
+                                path={versionPath('narrativeContentItems', item.id, 'text')}
                                 value={item.text || ''}
                                 label=""
                                 type="textarea"

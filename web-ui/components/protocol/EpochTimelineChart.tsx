@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { EditableField, EditableCodedValue, CDISC_TERMINOLOGIES } from '@/components/semantic';
+import { designPath } from '@/lib/semantic/schema';
 import { useEditModeStore } from '@/stores/editModeStore';
 import { cn } from '@/lib/utils';
 import { Calendar, ChevronDown, ChevronRight, Info } from 'lucide-react';
@@ -262,14 +263,14 @@ export function EpochTimelineChart({ usdm, className }: EpochTimelineChartProps)
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <EditableField
-                  path={`/study/versions/0/studyDesigns/0/encounters/${selectedEncIndex}/name`}
+                  path={designPath('encounters', selectedEnc.id, 'name')}
                   value={selectedEnc.name || ''}
                   label="Name"
                   placeholder="Encounter name"
                 />
                 {selectedEnc.type && (
                   <EditableCodedValue
-                    path={`/study/versions/0/studyDesigns/0/encounters/${selectedEncIndex}/type`}
+                    path={designPath('encounters', selectedEnc.id, 'type')}
                     value={selectedEnc.type}
                     label="Type"
                     options={CDISC_TERMINOLOGIES.encounterType}
@@ -277,7 +278,7 @@ export function EpochTimelineChart({ usdm, className }: EpochTimelineChartProps)
                 )}
                 {selectedEnc.scheduledDay != null && (
                   <EditableField
-                    path={`/study/versions/0/studyDesigns/0/encounters/${selectedEncIndex}/scheduledDay`}
+                    path={designPath('encounters', selectedEnc.id, 'scheduledDay')}
                     value={String(selectedEnc.scheduledDay)}
                     label="Scheduled Day"
                     type="number"
@@ -285,7 +286,7 @@ export function EpochTimelineChart({ usdm, className }: EpochTimelineChartProps)
                 )}
                 {selectedEnc.description && (
                   <EditableField
-                    path={`/study/versions/0/studyDesigns/0/encounters/${selectedEncIndex}/description`}
+                    path={designPath('encounters', selectedEnc.id, 'description')}
                     value={selectedEnc.description}
                     label="Description"
                     type="textarea"

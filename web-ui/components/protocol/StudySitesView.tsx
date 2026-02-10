@@ -8,6 +8,7 @@ import {
   HoverCardTrigger,
 } from '@/components/ui/hover-card';
 import { EditableField } from '@/components/semantic';
+import { designPath, versionPath } from '@/lib/semantic/schema';
 import { 
   MapPin, 
   Building2,
@@ -236,7 +237,7 @@ export function StudySitesView({ usdm }: StudySitesViewProps) {
                     <div className="flex items-start justify-between">
                       <div className="font-medium flex items-center gap-2" onClick={e => e.stopPropagation()}>
                         <EditableField
-                          path={`/study/versions/0/studyDesigns/0/studySites/${i}/name`}
+                          path={site.id ? designPath('studySites', site.id, 'name') : `/study/versions/0/studyDesigns/0/studySites/${i}/name`}
                           value={site.name || `Site ${i + 1}`}
                           placeholder="Site name"
                         />
@@ -359,10 +360,10 @@ export function StudySitesView({ usdm }: StudySitesViewProps) {
           <CardContent>
             <div className="space-y-3">
               {organizations.map((org, i) => (
-                <div key={i} className="p-3 bg-muted rounded-lg">
+                <div key={org.id || i} className="p-3 bg-muted rounded-lg">
                   <div className="flex items-start justify-between">
                     <EditableField
-                      path={`/study/versions/0/organizations/${i}/name`}
+                      path={org.id ? versionPath('organizations', org.id, 'name') : `/study/versions/0/organizations/${i}/name`}
                       value={org.name || `Organization ${i + 1}`}
                       className="font-medium"
                       placeholder="Organization name"

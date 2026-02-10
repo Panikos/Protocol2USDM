@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { EditableField, EditableCodedValue, CDISC_TERMINOLOGIES } from '@/components/semantic';
+import { versionPath, entityPath } from '@/lib/semantic/schema';
 import { Pill, Syringe, Clock, Beaker, FlaskConical, ChevronDown, ChevronRight } from 'lucide-react';
 
 interface InterventionsViewProps {
@@ -139,14 +140,14 @@ export function InterventionsView({ usdm }: InterventionsViewProps) {
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <EditableField
-                        path={`/study/versions/0/studyInterventions/${i}/name`}
+                        path={versionPath('studyInterventions', intervention.id, 'name')}
                         value={intervention.label || intervention.name || `Intervention ${i + 1}`}
                         label=""
                         className="font-medium"
                         placeholder="Intervention name"
                       />
                       <EditableField
-                        path={`/study/versions/0/studyInterventions/${i}/description`}
+                        path={versionPath('studyInterventions', intervention.id, 'description')}
                         value={intervention.description || ''}
                         label=""
                         type="textarea"
@@ -156,13 +157,13 @@ export function InterventionsView({ usdm }: InterventionsViewProps) {
                     </div>
                     <div className="flex gap-2 items-start shrink-0">
                       <EditableCodedValue
-                        path={`/study/versions/0/studyInterventions/${i}/role`}
+                        path={versionPath('studyInterventions', intervention.id, 'role')}
                         value={intervention.role}
                         options={CDISC_TERMINOLOGIES.interventionRole}
                         placeholder="Role"
                       />
                       <EditableCodedValue
-                        path={`/study/versions/0/studyInterventions/${i}/type`}
+                        path={versionPath('studyInterventions', intervention.id, 'type')}
                         value={intervention.type}
                         options={CDISC_TERMINOLOGIES.interventionType}
                         placeholder="Type"
@@ -201,7 +202,7 @@ export function InterventionsView({ usdm }: InterventionsViewProps) {
               {administrableProducts.map((product, i) => (
                 <div key={product.id || i} className="p-4 border rounded-lg">
                   <EditableField
-                    path={`/study/versions/0/administrableProducts/${i}/name`}
+                    path={versionPath('administrableProducts', product.id, 'name')}
                     value={product.label || product.name || `Product ${i + 1}`}
                     label=""
                     className="font-medium"
@@ -210,26 +211,26 @@ export function InterventionsView({ usdm }: InterventionsViewProps) {
                   
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3 text-sm">
                     <EditableField
-                      path={`/study/versions/0/administrableProducts/${i}/formulation`}
+                      path={versionPath('administrableProducts', product.id, 'formulation')}
                       value={product.formulation || ''}
                       label="Formulation"
                       placeholder="Not specified"
                     />
                     <EditableCodedValue
-                      path={`/study/versions/0/administrableProducts/${i}/route`}
+                      path={versionPath('administrableProducts', product.id, 'route')}
                       value={product.route}
                       label="Route"
                       options={CDISC_TERMINOLOGIES.routeOfAdministration}
                       placeholder="Not specified"
                     />
                     <EditableField
-                      path={`/study/versions/0/administrableProducts/${i}/dosage`}
+                      path={versionPath('administrableProducts', product.id, 'dosage')}
                       value={product.dosage || ''}
                       label="Dosage"
                       placeholder="Not specified"
                     />
                     <EditableField
-                      path={`/study/versions/0/administrableProducts/${i}/strength`}
+                      path={versionPath('administrableProducts', product.id, 'strength')}
                       value={product.strength || ''}
                       label="Strength"
                       placeholder="Not specified"
@@ -237,7 +238,7 @@ export function InterventionsView({ usdm }: InterventionsViewProps) {
                   </div>
                   
                   <EditableField
-                    path={`/study/versions/0/administrableProducts/${i}/description`}
+                    path={versionPath('administrableProducts', product.id, 'description')}
                     value={product.description || ''}
                     label=""
                     type="textarea"
@@ -266,7 +267,7 @@ export function InterventionsView({ usdm }: InterventionsViewProps) {
               {(showAllAdministrations ? administrations : administrations.slice(0, 5)).map((admin, i) => (
                 <div key={admin.id || i} className="p-4 border rounded-lg bg-gradient-to-r from-blue-50/50 to-transparent dark:from-blue-950/20">
                   <EditableField
-                    path={`/administrations/${i}/name`}
+                    path={entityPath('/administrations', admin.id, 'name')}
                     value={admin.name || `Administration ${i + 1}`}
                     className="font-medium"
                     placeholder="Administration name"
@@ -274,7 +275,7 @@ export function InterventionsView({ usdm }: InterventionsViewProps) {
                   
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3 text-sm">
                     <EditableCodedValue
-                      path={`/administrations/${i}/route`}
+                      path={entityPath('/administrations', admin.id, 'route')}
                       value={admin.route}
                       label="Route"
                       options={CDISC_TERMINOLOGIES.routeOfAdministration}
@@ -284,7 +285,7 @@ export function InterventionsView({ usdm }: InterventionsViewProps) {
                       <div>
                         <span className="text-muted-foreground">Frequency</span>
                         <EditableField
-                          path={`/administrations/${i}/frequency/decode`}
+                          path={entityPath('/administrations', admin.id, 'frequency/decode')}
                           value={admin.frequency.decode}
                           placeholder="Frequency"
                         />
@@ -294,7 +295,7 @@ export function InterventionsView({ usdm }: InterventionsViewProps) {
                       <div>
                         <span className="text-muted-foreground">Dose</span>
                         <EditableField
-                          path={`/administrations/${i}/dose`}
+                          path={entityPath('/administrations', admin.id, 'dose')}
                           value={admin.dose || admin.doseDescription || ''}
                           placeholder="Dose"
                         />
@@ -304,7 +305,7 @@ export function InterventionsView({ usdm }: InterventionsViewProps) {
                       <div>
                         <span className="text-muted-foreground">Duration</span>
                         <EditableField
-                          path={`/administrations/${i}/duration`}
+                          path={entityPath('/administrations', admin.id, 'duration')}
                           value={admin.duration || admin.durationDescription || ''}
                           placeholder="Duration"
                         />
@@ -314,7 +315,7 @@ export function InterventionsView({ usdm }: InterventionsViewProps) {
                   
                   {admin.description && (
                     <EditableField
-                      path={`/administrations/${i}/description`}
+                      path={entityPath('/administrations', admin.id, 'description')}
                       value={admin.description}
                       type="textarea"
                       className="text-sm text-muted-foreground mt-2"
@@ -363,14 +364,14 @@ export function InterventionsView({ usdm }: InterventionsViewProps) {
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <EditableField
-                        path={`/substances/${i}/substanceName`}
+                        path={entityPath('/substances', substance.id, 'substanceName')}
                         value={substance.substanceName || substance.name || `Substance ${i + 1}`}
                         label=""
                         className="font-medium"
                         placeholder="Substance name"
                       />
                       <EditableField
-                        path={`/substances/${i}/description`}
+                        path={entityPath('/substances', substance.id, 'description')}
                         value={substance.description || ''}
                         label=""
                         type="textarea"
@@ -379,7 +380,7 @@ export function InterventionsView({ usdm }: InterventionsViewProps) {
                       />
                     </div>
                     <EditableCodedValue
-                      path={`/substances/${i}/substanceType`}
+                      path={entityPath('/substances', substance.id, 'substanceType')}
                       value={substance.substanceType}
                       options={CDISC_TERMINOLOGIES.substanceType}
                       placeholder="Type"
@@ -424,7 +425,7 @@ export function InterventionsView({ usdm }: InterventionsViewProps) {
                         {ingredient.name || substance?.substanceName || substance?.name || `Ingredient ${i + 1}`}
                       </span>
                       <EditableCodedValue
-                        path={`/ingredients/${i}/role`}
+                        path={entityPath('/ingredients', ingredient.id, 'role')}
                         value={ingredient.role}
                         options={CDISC_TERMINOLOGIES.ingredientRole}
                         placeholder="Role"

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { EditableField, EditableCodedValue, CDISC_TERMINOLOGIES } from '@/components/semantic';
+import { designPath, versionPath } from '@/lib/semantic/schema';
 import { 
   Microscope, 
   Pill,
@@ -217,16 +218,16 @@ export function AdvancedEntitiesView({ usdm }: AdvancedEntitiesViewProps) {
           <CardContent>
             <div className="space-y-3">
               {indications.map((indication, i) => (
-                <div key={i} className="p-3 bg-muted rounded-lg">
+                <div key={indication.id || i} className="p-3 bg-muted rounded-lg">
                   <EditableField
-                    path={`/study/versions/0/studyDesigns/0/indications/${i}/name`}
+                    path={designPath('indications', indication.id, 'name')}
                     value={indication.name || indication.description || `Indication ${i + 1}`}
                     className="font-medium"
                     placeholder="Indication name"
                   />
                   {indication.description && indication.name && (
                     <EditableField
-                      path={`/study/versions/0/studyDesigns/0/indications/${i}/description`}
+                      path={designPath('indications', indication.id, 'description')}
                       value={indication.description}
                       type="textarea"
                       className="text-sm text-muted-foreground mt-1"
@@ -262,9 +263,9 @@ export function AdvancedEntitiesView({ usdm }: AdvancedEntitiesViewProps) {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {biomedicalConcepts.map((concept, i) => (
-                <div key={i} className="p-3 bg-muted rounded-lg">
+                <div key={concept.id || i} className="p-3 bg-muted rounded-lg">
                   <EditableField
-                    path={`/study/versions/0/biomedicalConcepts/${i}/name`}
+                    path={versionPath('biomedicalConcepts', concept.id, 'name')}
                     value={concept.name || `Concept ${i + 1}`}
                     className="font-medium"
                     placeholder="Concept name"
@@ -435,7 +436,7 @@ export function AdvancedEntitiesView({ usdm }: AdvancedEntitiesViewProps) {
                         {pop.name || pop.label || `Population ${i + 1}`}
                       </div>
                       <EditableCodedValue
-                        path={`/study/versions/0/studyDesigns/0/analysisPopulations/${i}/level`}
+                        path={designPath('analysisPopulations', pop.id, 'level')}
                         value={pop.level}
                         options={CDISC_TERMINOLOGIES.populationLevel}
                         placeholder="Level"

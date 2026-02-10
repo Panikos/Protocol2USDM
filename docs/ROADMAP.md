@@ -2,6 +2,33 @@
 
 ## Future Enhancements
 
+### User Access Management & E-Signatures (Future)
+
+**Status:** Future enhancement  
+**Priority:** Medium  
+**Added:** 2026-02-10
+
+1. **User Access Management**
+   - Role-based access control (RBAC) for protocol editing
+   - User authentication and session management
+   - Permission levels: viewer, editor, approver
+
+2. **E-Signatures (21 CFR Part 11)**
+   - Electronic signature capture on publish
+   - Signature meaning (authored, reviewed, approved)
+   - Full GxP compliance with audit trail integration
+
+### Web UI Editing Improvements (In Progress)
+
+**Status:** In progress  
+**Priority:** High  
+**Added:** 2026-02-10
+
+1. **ID-Based Patch Paths** — Replace fragile array-index JSON Patches with entity ID-based paths (`@id:` syntax)
+2. **Live Validation on Publish** — Run schema/USDM/CORE validators on candidate USDM before writing to disk
+3. **Audit Trail** — Reason-for-change on publish, SHA-256 hash chain, change log
+4. **Extended Editing Coverage** — Add/remove/reorder for objectives, endpoints, eligibility, interventions, narrative
+
 ### ARS Output Display Generation (Future)
 
 **Status:** Future enhancement  

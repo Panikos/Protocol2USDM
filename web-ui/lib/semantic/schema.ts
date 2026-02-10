@@ -166,3 +166,76 @@ export const PublishResponseSchema = z.object({
 });
 
 export type PublishResponse = z.infer<typeof PublishResponseSchema>;
+
+// ── ID-based Path Helpers ──────────────────────────────────────────
+
+/** Common USDM base paths */
+const SD = '/study/versions/0/studyDesigns/0';
+const SV = '/study/versions/0';
+
+/**
+ * Build an ID-based JSON Patch path for a USDM entity property.
+ * 
+ * Instead of fragile array-index paths like:
+ *   `/study/versions/0/studyDesigns/0/objectives/3/text`
+ * 
+ * This produces stable ID-based paths like:
+ *   `/study/versions/0/studyDesigns/0/objectives/@id:obj-uuid/text`
+ * 
+ * The `@id:` segments are resolved to indices at patch-application time
+ * by `resolveIdPath()` in patcher.ts.
+ */
+export function idPath(
+  collection: string,
+  entityId: string,
+  property?: string,
+  options?: { nested?: { collection: string; entityId: string; property?: string } }
+): string {
+  // Determine base path based on collection location in USDM hierarchy
+  const versionLevelCollections = new Set([
+    'eligibilityCriterionItems', 'narrativeContentItems', 'abbreviations',
+    'studyInterventions', 'administrableProducts', 'titles',
+    'studyIdentifiers', 'amendments', 'conditions', 'medicalDevices',
+  ]);
+
+  const base = versionLevelCollections.has(collection) ? SV : SD;
+  let path = `${base}/${collection}/@id:${entityId}`;
+
+  if (options?.nested) {
+    const n = options.nested;
+    path += `/${n.collection}/@id:${n.entityId}`;
+    if (n.property) path += `/${n.property}`;
+  } else if (property) {
+    path += `/${property}`;
+  }
+
+  return path;
+}
+
+/**
+ * Build an ID-based path for a study-design-level entity.
+ * Shorthand for common case.
+ */
+export function designPath(collection: string, entityId: string, property?: string): string {
+  return idPath(collection, entityId, property);
+}
+
+/**
+ * Build an ID-based path for a study-version-level entity.
+ * Shorthand for eligibilityCriterionItems, narrativeContentItems, etc.
+ */
+export function versionPath(collection: string, entityId: string, property?: string): string {
+  let path = `${SV}/${collection}/@id:${entityId}`;
+  if (property) path += `/${property}`;
+  return path;
+}
+
+/**
+ * Build an ID-based path for an arbitrary base path + collection.
+ * Use for top-level or non-standard collections (e.g. /administrations, /substances).
+ */
+export function entityPath(basePath: string, entityId: string, property?: string): string {
+  let path = `${basePath}/@id:${entityId}`;
+  if (property) path += `/${property}`;
+  return path;
+}

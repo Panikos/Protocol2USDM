@@ -3,6 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { EditableField, EditableCodedValue, CDISC_TERMINOLOGIES } from '@/components/semantic';
+import { designPath, idPath } from '@/lib/semantic/schema';
 import { Target, TrendingUp, Beaker } from 'lucide-react';
 
 interface ObjectivesEndpointsViewProps {
@@ -81,10 +82,6 @@ export function ObjectivesEndpointsView({ usdm }: ObjectivesEndpointsViewProps) 
   const renderObjective = (objective: Objective, index: number) => {
     const text = objective.text || objective.description || objective.label || objective.name || 'No description';
     const endpoints = objective.endpoints ?? [];
-    
-    // Find original index for path
-    const originalIndex = objectives.findIndex(o => o.id === objective.id);
-    const pathIndex = originalIndex >= 0 ? originalIndex : index;
 
     return (
       <div key={objective.id || index} className="py-3 border-b last:border-b-0">
@@ -92,7 +89,7 @@ export function ObjectivesEndpointsView({ usdm }: ObjectivesEndpointsViewProps) 
           <Badge variant="outline" className="mt-0.5">{index + 1}</Badge>
           <div className="flex-1">
             <EditableField
-              path={`/study/versions/0/studyDesigns/0/objectives/${pathIndex}/text`}
+              path={designPath('objectives', objective.id, 'text')}
               value={text}
               label="Objective Text"
               type="textarea"
@@ -107,13 +104,17 @@ export function ObjectivesEndpointsView({ usdm }: ObjectivesEndpointsViewProps) 
                     <div className="flex items-center gap-2">
                       <TrendingUp className="h-3 w-3 text-blue-500" />
                       <EditableField
-                        path={`/study/versions/0/studyDesigns/0/objectives/${pathIndex}/endpoints/${epIndex}/text`}
+                        path={idPath('objectives', objective.id, undefined, {
+                          nested: { collection: 'endpoints', entityId: ep.id, property: 'text' }
+                        })}
                         value={ep.text || ep.description || ep.label || ep.name || 'Endpoint'}
                         label="Endpoint Text"
                         className="text-sm"
                       />
                       <EditableCodedValue
-                        path={`/study/versions/0/studyDesigns/0/objectives/${pathIndex}/endpoints/${epIndex}/purpose`}
+                        path={idPath('objectives', objective.id, undefined, {
+                          nested: { collection: 'endpoints', entityId: ep.id, property: 'purpose' }
+                        })}
                         value={ep.purpose}
                         options={CDISC_TERMINOLOGIES.endpointPurpose}
                         placeholder="Purpose"
