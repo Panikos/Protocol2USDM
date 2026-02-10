@@ -148,17 +148,33 @@ def combine_to_full_usdm(
     # Add SoA data
     _add_soa_data(study_design, soa_data)
     
-    # Derive study design instanceType from metadata (instead of hardcoding)
+    # Derive study design instanceType and studyType from metadata
     study_type = combined.pop("_temp_study_type", None)
     if study_type:
         normalized = study_type.strip().lower()
         if normalized in ("observational", "obs"):
             study_design["instanceType"] = "ObservationalStudyDesign"
+            study_design["studyType"] = {
+                "code": "C142615", "codeSystem": "http://www.cdisc.org",
+                "codeSystemVersion": "2024-09-27", "decode": "Observational",
+                "instanceType": "Code",
+            }
             logger.info(f"  Study design type derived from metadata: ObservationalStudyDesign")
         else:
             study_design["instanceType"] = "InterventionalStudyDesign"
+            study_design["studyType"] = {
+                "code": "C98388", "codeSystem": "http://www.cdisc.org",
+                "codeSystemVersion": "2024-09-27", "decode": "Interventional",
+                "instanceType": "Code",
+            }
             logger.info(f"  Study design type derived from metadata: InterventionalStudyDesign")
     else:
+        # Default to Interventional
+        study_design["studyType"] = {
+            "code": "C98388", "codeSystem": "http://www.cdisc.org",
+            "codeSystemVersion": "2024-09-27", "decode": "Interventional",
+            "instanceType": "Code",
+        }
         logger.info("  Study design type: defaulting to InterventionalStudyDesign (no metadata)")
     
     # Add indications to studyDesign (from metadata temp storage)
