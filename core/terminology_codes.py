@@ -168,6 +168,44 @@ ARM_TYPE_CODES: Dict[str, Dict[str, str]] = {
 
 
 # =============================================================================
+# STUDY TYPE CODES
+# =============================================================================
+
+STUDY_TYPE_CODES: Dict[str, Dict[str, str]] = {
+    "interventional": {"code": "C98388", "decode": "Interventional Study"},
+    "observational": {"code": "C15208", "decode": "Observational Study"},
+    "clinical trial": {"code": "C15273", "decode": "Clinical Trial"},
+    "not applicable": {"code": "C48660", "decode": "Not Applicable"},
+}
+
+
+# =============================================================================
+# RANDOMIZATION CODES
+# =============================================================================
+
+RANDOMIZATION_CODES: Dict[str, Dict[str, str]] = {
+    "randomized": {"code": "C25196", "decode": "Randomized"},
+    "non-randomized": {"code": "C127779", "decode": "Non-Randomized"},
+    "not randomized": {"code": "C127779", "decode": "Non-Randomized"},
+}
+
+
+# =============================================================================
+# ENCOUNTER TYPE CODES (for visits)
+# =============================================================================
+
+ENCOUNTER_TYPE_CODES: Dict[str, Dict[str, str]] = {
+    "initial visit": {"code": "C16741", "decode": "Initial Visit"},
+    "screening": {"code": "C25188", "decode": "Screening"},
+    "baseline": {"code": "C25582", "decode": "Baseline"},
+    "follow-up": {"code": "C18080", "decode": "Follow-up"},
+    "follow up": {"code": "C18080", "decode": "Follow-up"},
+    "end of study": {"code": "C41379", "decode": "End of Study"},
+    "end of treatment": {"code": "C41379", "decode": "End of Study"},
+}
+
+
+# =============================================================================
 # STUDY IDENTIFIER TYPE CODES
 # Source: CDISC Protocol Controlled Terminology
 # =============================================================================
@@ -322,6 +360,29 @@ def get_study_identifier_type(identifier_text: str) -> Dict[str, Any]:
         "decode": info["decode"],
         "instanceType": "Code",
     }
+
+
+# =============================================================================
+# UNIFIED REGISTRY — single flat {nci_code: decode} for EVS cache seeding
+# Derived from all dicts above. Import this instead of maintaining a copy.
+# =============================================================================
+
+def _build_registry() -> Dict[str, str]:
+    """Build a flat {code: decode} dict from all terminology dicts."""
+    registry: Dict[str, str] = {}
+    for codes_dict in [
+        OBJECTIVE_LEVEL_CODES, ENDPOINT_LEVEL_CODES, STUDY_PHASE_CODES,
+        BLINDING_CODES, ELIGIBILITY_CODES, STUDY_MODEL_CODES,
+        ARM_TYPE_CODES, STUDY_TYPE_CODES, RANDOMIZATION_CODES,
+        ENCOUNTER_TYPE_CODES, STUDY_IDENTIFIER_TYPE_CODES,
+    ]:
+        for info in codes_dict.values():
+            registry[info["code"]] = info["decode"]
+    return registry
+
+
+USDM_CODES_REGISTRY: Dict[str, str] = _build_registry()
+"""Flat {NCI_code: decode} dict covering all USDM-relevant terminology codes."""
 
 
 def find_code_by_text(text: str, codes_dict: Dict[str, Dict[str, str]]) -> str | None:

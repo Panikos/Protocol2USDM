@@ -19,6 +19,8 @@ import time
 from pathlib import Path
 from typing import Optional, Dict, List, Any
 
+from core.terminology_codes import USDM_CODES_REGISTRY
+
 try:
     import requests
 except ImportError:
@@ -275,59 +277,9 @@ class EVSClient:
         return {"success": success, "failed": failed}
 
 
-# Pre-defined USDM-relevant NCI codes
-USDM_CODES = {
-    # Study Phase
-    "C15600": "Phase I Trial",
-    "C15601": "Phase II Trial", 
-    "C15602": "Phase III Trial",
-    "C15603": "Phase IV Trial",
-    "C15693": "Phase I/II Trial",
-    "C15694": "Phase II/III Trial",
-    "C48660": "Not Applicable",
-    
-    # Blinding Schema
-    "C82639": "Open Label Study",
-    "C15228": "Single Blind Study",
-    "C15227": "Double Blind Study",
-    "C156397": "Triple Blind Study",
-    
-    # Objective Level
-    "C98772": "Primary Objective",
-    "C98781": "Secondary Objective",
-    "C98724": "Exploratory Objective",
-    
-    # Eligibility Category
-    "C25532": "Inclusion Criteria",
-    "C25370": "Exclusion Criteria",
-    
-    # Study Type
-    "C98388": "Interventional Study",
-    "C15208": "Observational Study",
-    "C15273": "Clinical Trial",
-    
-    # Randomization
-    "C25196": "Randomized",
-    "C127779": "Non-Randomized",
-    
-    # Endpoint Types
-    "C98770": "Primary Endpoint",
-    "C98784": "Secondary Endpoint",
-    "C157551": "Exploratory Endpoint",
-    
-    # Arm Types
-    "C174266": "Experimental Arm",
-    "C49648": "Placebo Comparator Arm",
-    "C49649": "Active Comparator Arm",
-    "C174269": "No Intervention Arm",
-    
-    # Encounter Types (for visits)
-    "C16741": "Initial Visit",
-    "C25188": "Screening",
-    "C25582": "Baseline",
-    "C18080": "Follow-up",
-    "C41379": "End of Study",
-}
+# Backward-compatible alias — now derived from the single source of truth
+# in core.terminology_codes.USDM_CODES_REGISTRY.
+USDM_CODES = USDM_CODES_REGISTRY
 
 
 def ensure_usdm_codes_cached(client: EVSClient = None) -> Dict[str, int]:
