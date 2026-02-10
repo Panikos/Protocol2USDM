@@ -28,6 +28,20 @@ from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
+# Phase → fields that phase is authoritative for during merge_from().
+# This is the single source of truth for which phase owns which context fields.
+# Tests in test_pipeline_context.py verify this mapping stays in sync.
+PHASE_FIELD_OWNERSHIP: Dict[str, List[str]] = {
+    'metadata': ['study_title', 'study_id', 'sponsor', 'indication', 'phase', 'study_type'],
+    'eligibility': ['inclusion_criteria', 'exclusion_criteria'],
+    'objectives': ['objectives', 'endpoints'],
+    'studydesign': ['arms', 'cohorts'],
+    'interventions': ['interventions', 'products'],
+    'procedures': ['procedures', 'devices'],
+    'scheduling': ['timings', 'scheduling_rules'],
+    'execution': ['time_anchors', 'repetitions', 'traversal_constraints', 'footnote_conditions'],
+}
+
 
 @dataclass
 class PipelineContext:
@@ -152,19 +166,7 @@ class PipelineContext:
             phase_name: Name of the phase that produced the snapshot
             phase_snapshot: The snapshot context after the phase ran
         """
-        # Map of phase -> fields that phase is authoritative for
-        phase_fields = {
-            'metadata': ['study_title', 'study_id', 'sponsor', 'indication', 'phase', 'study_type'],
-            'eligibility': ['inclusion_criteria', 'exclusion_criteria'],
-            'objectives': ['objectives', 'endpoints'],
-            'studydesign': ['arms', 'cohorts'],
-            'interventions': ['interventions', 'products'],
-            'procedures': ['procedures', 'devices'],
-            'scheduling': ['timings', 'scheduling_rules'],
-            'execution': ['time_anchors', 'repetitions', 'traversal_constraints', 'footnote_conditions'],
-        }
-        
-        fields_to_merge = phase_fields.get(phase_name)
+        fields_to_merge = PHASE_FIELD_OWNERSHIP.get(phase_name)
         if not fields_to_merge:
             logger.debug(f"No merge mapping for phase '{phase_name}', skipping context merge")
             return

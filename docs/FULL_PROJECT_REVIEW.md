@@ -644,7 +644,7 @@ When prompts change, existing extraction results become unreproducible. Storing 
 ### Phase 3: Architecture Improvements (Weeks 5-8)
 | ID | Enhancement | Priority | Effort |
 |----|------------|----------|--------|
-| E13 | Decompose `PipelineContext` into sub-contexts | HIGH | 2d |
+| E13 | Decompose `PipelineContext` into sub-contexts | ✅ FIXED | 2d |
 | E14 | Add provenance tracking for expansion phases | HIGH | 3d |
 | E15 | Prompt versioning — hash prompts, store in output metadata | MEDIUM | 1d |
 | E16 | Define `PipelineError` hierarchy | MEDIUM | 1d |
