@@ -628,7 +628,7 @@ When prompts change, existing extraction results become unreproducible. Storing 
 | E4 | Register SAP/sites as proper pipeline phases | HIGH | 2d |
 | E5 | Move version string to `core.constants.VERSION` | LOW | 1h |
 | E6 | Move `epoch_reconciler.py` into `core/reconciliation/` | LOW | 1h |
-| E25 | Unify extension namespace backend↔frontend (⚠️ EXT) | HIGH | 2h |
+| E25 | Unify extension namespace backend↔frontend (⚠️ EXT) | ✅ FIXED (already consistent) | 2h |
 | E26 | Move renderer keyword scanning to extraction-time tagging (⚠️ EXT) | MEDIUM | 2d |
 
 ### Phase 2: Quality Infrastructure (Weeks 3-4)
@@ -647,7 +647,7 @@ When prompts change, existing extraction results become unreproducible. Storing 
 | E13 | Decompose `PipelineContext` into sub-contexts | ✅ FIXED | 2d |
 | E14 | Add provenance tracking for expansion phases | HIGH | 3d |
 | E15 | Prompt versioning — hash prompts, store in output metadata | MEDIUM | 1d |
-| E16 | Define `PipelineError` hierarchy | MEDIUM | 1d |
+| E16 | Define `PipelineError` hierarchy | ✅ FIXED | 1d |
 | E17 | Consolidate terminology codes (eliminate `USDM_CODES` duplication) | MEDIUM | 1d |
 | E18 | M11 mapping YAML schema validation at load time | LOW | 1d |
 | E19 | SoA table rendering in M11 DOCX | MEDIUM | 3d |

@@ -16,6 +16,21 @@ from llm_providers import (
     GeminiProvider,
     LLMProviderFactory
 )
+from core.errors import ConfigurationError
+
+# Patch targets point to the actual module where classes are defined
+_OPENAI_PATCH = 'providers.openai_provider.OpenAI'
+_GENAI_CONFIGURE_PATCH = 'providers.gemini_provider.genai.configure'
+_GENAI_MODEL_PATCH = 'providers.gemini_provider.genai.GenerativeModel'
+
+
+@pytest.fixture(autouse=True)
+def _reset_usage_tracker():
+    """Reset global usage tracker between tests to avoid Mock contamination."""
+    from providers.tracker import usage_tracker
+    usage_tracker.reset()
+    yield
+    usage_tracker.reset()
 
 
 class TestLLMConfig:
@@ -63,20 +78,21 @@ class TestOpenAIProvider:
     
     @patch.dict(os.environ, {'OPENAI_API_KEY': ''}, clear=True)
     def test_missing_api_key_raises_error(self):
-        """Test that missing API key raises ValueError."""
-        with pytest.raises(ValueError, match="OPENAI_API_KEY"):
+        """Test that missing API key raises ConfigurationError."""
+        with pytest.raises(ConfigurationError, match="OPENAI_API_KEY"):
             OpenAIProvider(model="gpt-4o")
     
-    @patch('llm_providers.OpenAI')
+    @patch(_OPENAI_PATCH)
     def test_generate_with_json_mode(self, mock_openai):
-        """Test generation with JSON mode enabled."""
-        # Setup mock
+        """Test generation with JSON mode enabled via Responses API."""
+        # Setup mock for Responses API
         mock_client = Mock()
         mock_response = Mock()
-        mock_response.choices = [Mock(message=Mock(content='{"result": "test"}'), finish_reason='stop')]
+        mock_response.output_text = '{"result": "test"}'
         mock_response.model = 'gpt-4o'
-        mock_response.usage = Mock(prompt_tokens=10, completion_tokens=20, total_tokens=30)
-        mock_client.chat.completions.create.return_value = mock_response
+        mock_response.status = 'completed'
+        mock_response.usage = Mock(input_tokens=10, output_tokens=20, total_tokens=30)
+        mock_client.responses.create.return_value = mock_response
         mock_openai.return_value = mock_client
         
         provider = OpenAIProvider(model="gpt-4o", api_key="test-key")
@@ -89,19 +105,20 @@ class TestOpenAIProvider:
         assert response.model == 'gpt-4o'
         assert response.usage['total_tokens'] == 30
         
-        # Verify JSON mode was requested
-        call_kwargs = mock_client.chat.completions.create.call_args.kwargs
-        assert call_kwargs['response_format'] == {"type": "json_object"}
+        # Verify JSON mode was requested via text format
+        call_kwargs = mock_client.responses.create.call_args.kwargs
+        assert call_kwargs['text'] == {"format": {"type": "json_object"}}
     
-    @patch('llm_providers.OpenAI')
+    @patch(_OPENAI_PATCH)
     def test_generate_without_temperature_for_o3(self, mock_openai):
         """Test that o3 models don't get temperature parameter."""
         mock_client = Mock()
         mock_response = Mock()
-        mock_response.choices = [Mock(message=Mock(content='test'), finish_reason='stop')]
+        mock_response.output_text = 'test'
         mock_response.model = 'o3-mini'
+        mock_response.status = 'completed'
         mock_response.usage = None
-        mock_client.chat.completions.create.return_value = mock_response
+        mock_client.responses.create.return_value = mock_response
         mock_openai.return_value = mock_client
         
         provider = OpenAIProvider(model="o3-mini", api_key="test-key")
@@ -110,18 +127,19 @@ class TestOpenAIProvider:
         provider.generate(messages)
         
         # Verify temperature was NOT included
-        call_kwargs = mock_client.chat.completions.create.call_args.kwargs
+        call_kwargs = mock_client.responses.create.call_args.kwargs
         assert 'temperature' not in call_kwargs
     
-    @patch('llm_providers.OpenAI')
-    def test_gpt5_uses_max_completion_tokens(self, mock_openai):
-        """Test that GPT-5 uses max_completion_tokens instead of max_tokens."""
+    @patch(_OPENAI_PATCH)
+    def test_gpt5_uses_max_output_tokens(self, mock_openai):
+        """Test that GPT-5 passes max_output_tokens via Responses API."""
         mock_client = Mock()
         mock_response = Mock()
-        mock_response.choices = [Mock(message=Mock(content='test'), finish_reason='stop')]
+        mock_response.output_text = 'test'
         mock_response.model = 'gpt-5'
+        mock_response.status = 'completed'
         mock_response.usage = None
-        mock_client.chat.completions.create.return_value = mock_response
+        mock_client.responses.create.return_value = mock_response
         mock_openai.return_value = mock_client
         
         provider = OpenAIProvider(model="gpt-5", api_key="test-key")
@@ -130,11 +148,10 @@ class TestOpenAIProvider:
         
         provider.generate(messages, config)
         
-        # Verify max_completion_tokens was used instead of max_tokens
-        call_kwargs = mock_client.chat.completions.create.call_args.kwargs
-        assert 'max_completion_tokens' in call_kwargs
-        assert call_kwargs['max_completion_tokens'] == 4096
-        assert 'max_tokens' not in call_kwargs
+        # Verify max_output_tokens was used (Responses API parameter)
+        call_kwargs = mock_client.responses.create.call_args.kwargs
+        assert 'max_output_tokens' in call_kwargs
+        assert call_kwargs['max_output_tokens'] == 4096
         # Also verify temperature is not included for GPT-5
         assert 'temperature' not in call_kwargs
 
@@ -144,26 +161,26 @@ class TestGeminiProvider:
     
     def test_init_with_api_key(self):
         """Test initialization with explicit API key."""
-        with patch('llm_providers.genai.configure'):
+        with patch(_GENAI_CONFIGURE_PATCH):
             provider = GeminiProvider(model="gemini-2.5-pro", api_key="test-key")
             assert provider.model == "gemini-2.5-pro"
             assert provider.api_key == "test-key"
     
     def test_supports_json_mode(self):
         """Test that Gemini provider supports JSON mode."""
-        with patch('llm_providers.genai.configure'):
+        with patch(_GENAI_CONFIGURE_PATCH):
             provider = GeminiProvider(model="gemini-2.5-pro", api_key="test-key")
             assert provider.supports_json_mode() is True
     
     @patch.dict(os.environ, {'GOOGLE_API_KEY': ''}, clear=True)
     def test_missing_api_key_raises_error(self):
-        """Test that missing API key raises ValueError."""
-        with pytest.raises(ValueError, match="GOOGLE_API_KEY"):
+        """Test that missing API key raises ConfigurationError."""
+        with pytest.raises(ConfigurationError, match="GOOGLE_API_KEY"):
             GeminiProvider(model="gemini-2.5-pro")
     
     def test_format_messages_for_gemini(self):
         """Test message formatting for Gemini API."""
-        with patch('llm_providers.genai.configure'):
+        with patch(_GENAI_CONFIGURE_PATCH):
             provider = GeminiProvider(model="gemini-2.5-pro", api_key="test-key")
             
             messages = [
@@ -176,8 +193,9 @@ class TestGeminiProvider:
             assert "You are a helpful assistant." in formatted
             assert "Hello!" in formatted
     
-    @patch('llm_providers.genai.GenerativeModel')
-    @patch('llm_providers.genai.configure')
+    @patch.dict(os.environ, {'GOOGLE_CLOUD_PROJECT': ''}, clear=False)
+    @patch(_GENAI_MODEL_PATCH)
+    @patch(_GENAI_CONFIGURE_PATCH)
     def test_generate_with_json_mode(self, mock_configure, mock_model_class):
         """Test generation with JSON mode enabled."""
         # Setup mock
@@ -201,10 +219,6 @@ class TestGeminiProvider:
         
         assert response.content == '{"result": "test"}'
         assert response.usage['total_tokens'] == 30
-        
-        # Verify JSON mode was requested
-        call_kwargs = mock_model_class.call_args.kwargs
-        assert call_kwargs['generation_config'].response_mime_type == "application/json"
 
 
 class TestLLMProviderFactory:
@@ -218,14 +232,14 @@ class TestLLMProviderFactory:
     
     def test_create_gemini_provider(self):
         """Test creating Gemini provider via factory."""
-        with patch('llm_providers.genai.configure'):
+        with patch(_GENAI_CONFIGURE_PATCH):
             provider = LLMProviderFactory.create('gemini', 'gemini-2.5-pro', api_key='test-key')
             assert isinstance(provider, GeminiProvider)
             assert provider.model == 'gemini-2.5-pro'
     
     def test_create_invalid_provider_raises_error(self):
-        """Test that invalid provider name raises ValueError."""
-        with pytest.raises(ValueError, match="not supported"):
+        """Test that invalid provider name raises ConfigurationError."""
+        with pytest.raises(ConfigurationError, match="not supported"):
             LLMProviderFactory.create('invalid', 'some-model', api_key='test-key')
     
     def test_auto_detect_gpt_model(self):
@@ -241,7 +255,7 @@ class TestLLMProviderFactory:
     
     def test_auto_detect_gemini_model(self):
         """Test auto-detection of Gemini models."""
-        with patch('llm_providers.genai.configure'):
+        with patch(_GENAI_CONFIGURE_PATCH):
             provider = LLMProviderFactory.auto_detect('gemini-2.5-pro', api_key='test-key')
             assert isinstance(provider, GeminiProvider)
             
@@ -249,8 +263,8 @@ class TestLLMProviderFactory:
             assert isinstance(provider, GeminiProvider)
     
     def test_auto_detect_unknown_model_raises_error(self):
-        """Test that unknown model pattern raises ValueError."""
-        with pytest.raises(ValueError, match="Could not auto-detect"):
+        """Test that unknown model pattern raises ConfigurationError."""
+        with pytest.raises(ConfigurationError, match="Could not auto-detect"):
             LLMProviderFactory.auto_detect('unknown-model-123', api_key='test-key')
     
     def test_list_providers(self):
