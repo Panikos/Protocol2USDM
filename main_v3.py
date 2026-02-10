@@ -275,6 +275,12 @@ Examples:
                               if k != '_pipeline_context' and hasattr(r, 'success') and r.success)
             total_count = sum(1 for k in expansion_results if k != '_pipeline_context')
             logger.info(f"\n✓ Expansion phases: {success_count}/{total_count} successful")
+            
+            # Save extraction provenance
+            try:
+                orchestrator.save_provenance(output_dir)
+            except Exception as e:
+                logger.warning(f"Failed to save extraction provenance: {e}")
         
         # Run conditional source extraction
         expansion_results = _run_conditional_sources(

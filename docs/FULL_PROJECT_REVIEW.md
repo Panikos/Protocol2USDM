@@ -556,8 +556,8 @@ SAP and sites extraction bypass the phase registry, losing parallel execution, d
 #### W-HIGH-2: PipelineContext Growing into God Object
 28 data fields + 7 lookup maps with no decomposition. As phases are added, this will become unwieldy. Domain-specific sub-contexts (metadata, eligibility, design, scheduling) would scale better.
 
-#### W-HIGH-3: No Provenance for Expansion Phases
-Only SoA entities have provenance tracking. Objectives, eligibility criteria, interventions, and study design entities extracted by LLM have no source tracking.
+#### W-HIGH-3: ✅ FIXED — Provenance for Expansion Phases
+All expansion phases now auto-capture provenance (phase, model, timing, entity counts, confidence) via `PhaseProvenance` in `BasePhase.run()`. Aggregated to `extraction_provenance.json` by `PipelineOrchestrator.save_provenance()`.
 
 #### W-HIGH-4: Mutable Global State
 `phase_registry`, `usage_tracker`, and EVS `_client` singleton are mutable module-level globals. This makes testing difficult and creates hidden coupling.
@@ -645,7 +645,7 @@ When prompts change, existing extraction results become unreproducible. Storing 
 | ID | Enhancement | Priority | Effort |
 |----|------------|----------|--------|
 | E13 | Decompose `PipelineContext` into sub-contexts | ✅ FIXED | 2d |
-| E14 | Add provenance tracking for expansion phases | HIGH | 3d |
+| E14 | Add provenance tracking for expansion phases | ✅ FIXED | 3d |
 | E15 | Prompt versioning — hash prompts, store in output metadata | ✅ FIXED | 1d |
 | E16 | Define `PipelineError` hierarchy | ✅ FIXED | 1d |
 | E17 | Consolidate terminology codes (eliminate `USDM_CODES` duplication) | ✅ FIXED | 1d |

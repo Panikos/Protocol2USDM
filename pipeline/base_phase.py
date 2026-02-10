@@ -10,11 +10,40 @@ Each phase implements a common interface for:
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Callable
 from extraction.pipeline_context import PipelineContext
 import logging
+import time
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class PhaseProvenance:
+    """Provenance metadata captured automatically for every phase run."""
+    phase: str = ''
+    model: str = ''
+    started_at: str = ''
+    duration_seconds: float = 0.0
+    entity_counts: Dict[str, int] = field(default_factory=dict)
+    confidence: Optional[float] = None
+    error: Optional[str] = None
+    
+    def to_dict(self) -> dict:
+        d: dict = {
+            'phase': self.phase,
+            'model': self.model,
+            'startedAt': self.started_at,
+            'durationSeconds': round(self.duration_seconds, 2),
+        }
+        if self.entity_counts:
+            d['entityCounts'] = self.entity_counts
+        if self.confidence is not None:
+            d['confidence'] = round(self.confidence, 4)
+        if self.error:
+            d['error'] = self.error
+        return d
 
 
 @dataclass
@@ -24,6 +53,7 @@ class PhaseResult:
     data: Any = None
     error: Optional[str] = None
     confidence: Optional[float] = None
+    provenance: Optional[PhaseProvenance] = None
     
     def to_dict(self) -> dict:
         """Convert to dictionary for serialization."""
@@ -38,6 +68,8 @@ class PhaseResult:
                 result['data'] = self.data
         if self.confidence is not None:
             result['confidence'] = self.confidence
+        if self.provenance is not None:
+            result['provenance'] = self.provenance.to_dict()
         return result
 
 
@@ -207,6 +239,14 @@ class BasePhase(ABC):
         if usage_tracker:
             usage_tracker.set_phase(config.name)
         
+        # Start provenance tracking
+        prov = PhaseProvenance(
+            phase=config.name,
+            model=model,
+            started_at=datetime.now(timezone.utc).isoformat(timespec='seconds').replace('+00:00', 'Z'),
+        )
+        t0 = time.monotonic()
+        
         try:
             # Get context parameters
             context_params = self.get_context_params(context)
@@ -226,6 +266,14 @@ class BasePhase(ABC):
             if result.success and result.data:
                 result.confidence = self.calculate_confidence(result)
             
+            # Finalize provenance
+            prov.duration_seconds = time.monotonic() - t0
+            prov.confidence = result.confidence
+            prov.error = result.error
+            if result.success and result.data:
+                prov.entity_counts = self._count_entities(result.data)
+            result.provenance = prov
+            
             # Save result
             output_path = os.path.join(output_dir, config.output_filename)
             self.save_result(result, output_path)
@@ -233,18 +281,44 @@ class BasePhase(ABC):
             # Update context
             if result.success and result.data:
                 self.update_context(context, result)
-                conf_str = f" (📊 {result.confidence:.0%})" if result.confidence else ""
-                logger.info(f"  ✓ {config.display_name} extraction{conf_str}")
+                conf_str = f" (\U0001f4ca {result.confidence:.0%})" if result.confidence else ""
+                logger.info(f"  \u2713 {config.display_name} extraction{conf_str}")
             else:
-                logger.info(f"  ✗ {config.display_name} extraction failed")
+                logger.info(f"  \u2717 {config.display_name} extraction failed")
             
             return result
             
         except ImportError as e:
+            prov.duration_seconds = time.monotonic() - t0
+            prov.error = str(e)
             if config.optional:
-                logger.warning(f"  ✗ {config.display_name} module not available: {e}")
-                return PhaseResult(success=False, error=str(e))
+                logger.warning(f"  \u2717 {config.display_name} module not available: {e}")
+                return PhaseResult(success=False, error=str(e), provenance=prov)
             raise
         except Exception as e:
-            logger.error(f"  ✗ {config.display_name} extraction error: {e}")
-            return PhaseResult(success=False, error=str(e))
+            prov.duration_seconds = time.monotonic() - t0
+            prov.error = str(e)
+            logger.error(f"  \u2717 {config.display_name} extraction error: {e}")
+            return PhaseResult(success=False, error=str(e), provenance=prov)
+    
+    @staticmethod
+    def _count_entities(data: Any) -> Dict[str, int]:
+        """Count entities in extraction result data for provenance."""
+        counts: Dict[str, int] = {}
+        if data is None:
+            return counts
+        
+        # Handle Pydantic-like schema objects with known list attributes
+        obj = data
+        if hasattr(obj, '__dict__'):
+            for attr_name, attr_val in vars(obj).items():
+                if isinstance(attr_val, list) and attr_val:
+                    counts[attr_name] = len(attr_val)
+                elif isinstance(attr_val, dict) and attr_val:
+                    counts[attr_name] = len(attr_val)
+        elif isinstance(data, dict):
+            for key, val in data.items():
+                if isinstance(val, list) and val:
+                    counts[key] = len(val)
+        
+        return counts
