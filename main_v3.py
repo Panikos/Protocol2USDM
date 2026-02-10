@@ -490,6 +490,16 @@ def _write_run_manifest(output_dir, args, config, phases_to_run):
     except Exception:
         pass
     
+    # Get prompt version hashes for reproducibility
+    prompt_versions = None
+    prompt_fingerprint = None
+    try:
+        from core.prompt_registry import get_prompt_versions, get_prompt_fingerprint
+        prompt_versions = get_prompt_versions()
+        prompt_fingerprint = get_prompt_fingerprint()
+    except Exception:
+        pass
+    
     manifest = {
         "tool": SYSTEM_NAME,
         "version": SYSTEM_VERSION,
@@ -508,6 +518,10 @@ def _write_run_manifest(output_dir, args, config, phases_to_run):
         },
         "phases": {name: enabled for name, enabled in phases_to_run.items()},
         "schema": schema_info,
+        "prompts": {
+            "fingerprint": prompt_fingerprint,
+            "versions": prompt_versions,
+        },
     }
     
     manifest_path = os.path.join(output_dir, "run_manifest.json")

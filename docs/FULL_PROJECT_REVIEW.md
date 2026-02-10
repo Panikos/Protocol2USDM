@@ -646,7 +646,7 @@ When prompts change, existing extraction results become unreproducible. Storing 
 |----|------------|----------|--------|
 | E13 | Decompose `PipelineContext` into sub-contexts | ✅ FIXED | 2d |
 | E14 | Add provenance tracking for expansion phases | HIGH | 3d |
-| E15 | Prompt versioning — hash prompts, store in output metadata | MEDIUM | 1d |
+| E15 | Prompt versioning — hash prompts, store in output metadata | ✅ FIXED | 1d |
 | E16 | Define `PipelineError` hierarchy | ✅ FIXED | 1d |
 | E17 | Consolidate terminology codes (eliminate `USDM_CODES` duplication) | ✅ FIXED | 1d |
 | E18 | M11 mapping YAML schema validation at load time | LOW | 1d |
