@@ -248,13 +248,21 @@ export function EligibilityCriteriaView({ usdm }: EligibilityCriteriaViewProps) 
               )}
               
               <div>
-                <EditableCodedValue
-                  path="/study/versions/0/studyDesigns/0/population/plannedSex/0"
-                  value={plannedSex[0]}
-                  label="Sex"
-                  options={CDISC_TERMINOLOGIES.sex}
-                  placeholder="Both"
-                />
+                <span className="text-sm text-muted-foreground">Sex</span>
+                <div className="font-medium">
+                  {plannedSex.length === 0 ? (
+                    <span className="text-muted-foreground italic text-sm">Not specified</span>
+                  ) : plannedSex.length >= 2 ? (
+                    <span className="text-sm">Both (Male & Female)</span>
+                  ) : (
+                    <EditableCodedValue
+                      path="/study/versions/0/studyDesigns/0/population/plannedSex/0"
+                      value={plannedSex[0]}
+                      options={CDISC_TERMINOLOGIES.sex}
+                      placeholder="Not specified"
+                    />
+                  )}
+                </div>
               </div>
 
               {!!population.plannedEnrollmentNumber && (
