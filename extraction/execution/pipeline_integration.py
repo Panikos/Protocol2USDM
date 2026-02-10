@@ -10,9 +10,12 @@ output with execution semantics via extensionAttributes.
 
 import json
 import logging
+import os
 import re
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Tuple, Callable
 
 from .schema import ExecutionModelData, ExecutionModelResult, ExecutionModelExtension
 from .validation import validate_execution_model, ValidationResult
@@ -40,21 +43,56 @@ from .processing_warnings import get_processing_warnings, _add_processing_warnin
 logger = logging.getLogger(__name__)
 
 
+_DEFAULT_MAX_WORKERS = 6
+
+
+def _run_sub_extractor(
+    name: str,
+    fn: Callable[..., Any],
+    kwargs: Dict[str, Any],
+) -> Tuple[str, Any]:
+    """Run a single sub-extractor, returning (name, result).
+
+    Exceptions are caught so one failure doesn't kill the whole wave.
+    """
+    try:
+        return name, fn(**kwargs)
+    except Exception as exc:
+        logger.error(f"Sub-extractor '{name}' raised: {exc}")
+        return name, ExecutionModelResult(
+            success=False,
+            data=ExecutionModelData(),
+            error=str(exc),
+            pages_used=[],
+            model_used=kwargs.get("model", ""),
+        )
+
+
 def extract_execution_model(
     pdf_path: str,
     model: str = "gemini-2.5-pro",
     activities: Optional[List[Dict[str, Any]]] = None,
-    use_llm: bool = True,  # LLM is now the default for better accuracy
-    skip_llm: bool = False,  # Explicit flag to disable LLM (for testing/offline)
-    sap_path: Optional[str] = None,  # Path to SAP PDF for enhanced extraction
-    soa_data: Optional[Dict[str, Any]] = None,  # SOA extraction result for enhanced context
+    use_llm: bool = True,
+    skip_llm: bool = False,
+    sap_path: Optional[str] = None,
+    soa_data: Optional[Dict[str, Any]] = None,
     output_dir: Optional[str] = None,
+    parallel: bool = True,
+    max_workers: Optional[int] = None,
 ) -> ExecutionModelResult:
     """
     Extract complete execution model from a protocol PDF.
     
     This is the main entry point for execution model extraction.
-    It runs all extractors and merges results.
+    It runs all sub-extractors and merges results.
+
+    When ``parallel=True`` (default), independent sub-extractors run
+    concurrently in two waves:
+      - **Wave 1** (12 extractors): all independent sub-extractors
+      - **Wave 2** (1 extractor): state machine (depends on traversal + crossover)
+
+    Set ``parallel=False`` to fall back to sequential execution (useful
+    for debugging or when LLM providers have strict rate limits).
     
     Args:
         pdf_path: Path to protocol PDF
@@ -66,6 +104,8 @@ def extract_execution_model(
         sap_path: Optional path to SAP PDF for enhanced extraction
         soa_data: Optional SOA extraction result (contains encounters, timepoints)
         output_dir: Optional directory to save results
+        parallel: Run independent sub-extractors concurrently (default True)
+        max_workers: Max threads for parallel execution (default 6)
         
     Returns:
         ExecutionModelResult with combined ExecutionModelData
@@ -76,286 +116,152 @@ def extract_execution_model(
     
     if sap_path:
         logger.info(f"SAP document provided: {sap_path}")
-        # Validate SAP path
         if not Path(sap_path).exists():
             logger.warning(f"SAP file not found: {sap_path}")
             sap_path = None
     
-    all_pages = []
-    errors = []
-    
-    # Determine if LLM should be used
     enable_llm = use_llm and not skip_llm
     
-    # Extract SoA context once - pass to all extractors for entity resolution
+    # Extract SoA context once — shared by all sub-extractors
     soa_context = extract_soa_context(soa_data)
     if soa_context.has_epochs() or soa_context.has_encounters():
         logger.info(f"SoA context available: {soa_context.get_summary()}")
     
-    # 1. Extract time anchors (with SoA context for better resolution)
-    logger.info("Step 1/10: Extracting time anchors...")
-    anchor_result = extract_time_anchors(
-        pdf_path=pdf_path,
-        model=model,
-        use_llm=enable_llm,
-        existing_encounters=soa_context.encounters if soa_context.has_encounters() else None,
-        existing_epochs=soa_context.epochs if soa_context.has_epochs() else None,
-    )
-    
-    if anchor_result.success:
-        logger.info(f"  ✓ Found {len(anchor_result.data.time_anchors)} time anchors")
-        all_pages.extend(anchor_result.pages_used)
-    else:
-        logger.warning(f"  ✗ Time anchor extraction failed: {anchor_result.error}")
-        errors.append(f"TimeAnchor: {anchor_result.error}")
-    
-    # 2. Extract repetitions (with SoA context for activity binding)
-    logger.info("Step 2/10: Extracting repetition patterns...")
-    repetition_result = extract_repetitions(
-        pdf_path=pdf_path,
-        model=model,
-        use_llm=enable_llm,
-        existing_activities=soa_context.activities if soa_context.has_activities() else None,
-        existing_encounters=soa_context.encounters if soa_context.has_encounters() else None,
-    )
-    
-    if repetition_result.success:
-        logger.info(
-            f"  ✓ Found {len(repetition_result.data.repetitions)} repetitions, "
-            f"{len(repetition_result.data.sampling_constraints)} sampling constraints"
-        )
-        all_pages.extend(repetition_result.pages_used)
-    else:
-        logger.warning(f"  ✗ Repetition extraction failed: {repetition_result.error}")
-        errors.append(f"Repetition: {repetition_result.error}")
-    
-    # 3. Classify execution types
-    logger.info("Step 3/10: Classifying execution types...")
-    classification_result = classify_execution_types(
-        pdf_path=pdf_path,
-        activities=activities,
-        model=model,
-        use_llm=enable_llm,
-    )
-    
-    if classification_result.success:
-        logger.info(f"  ✓ Classified {len(classification_result.data.execution_types)} activities")
-        all_pages.extend(classification_result.pages_used)
-    else:
-        logger.warning(f"  ✗ Execution type classification failed: {classification_result.error}")
-        errors.append(f"ExecutionType: {classification_result.error}")
-    
-    # 4. Extract crossover design (Phase 2)
-    logger.info("Step 4/10: Detecting crossover design...")
-    crossover_result = extract_crossover_design(
-        pdf_path=pdf_path,
-        model=model,
-        use_llm=enable_llm,
-        existing_epochs=soa_context.epochs if soa_context.has_epochs() else None,
-    )
-    
-    if crossover_result.success and crossover_result.data.crossover_design:
-        logger.info(
-            f"  ✓ Detected crossover: {crossover_result.data.crossover_design.num_periods} periods, "
-            f"washout={crossover_result.data.crossover_design.washout_duration}"
-        )
-        all_pages.extend(crossover_result.pages_used)
-    else:
-        logger.info("  ○ No crossover design detected (parallel or other)")
-    
-    # 5. Extract traversal constraints (Phase 2)
-    logger.info("Step 5/10: Extracting traversal constraints...")
-    
-    # Use SoA epochs as reference (avoids abstract labels that need resolution)
-    if soa_context.has_epochs():
-        logger.info(f"  Using {len(soa_context.epochs)} SoA epochs as traversal reference")
-    
-    traversal_result = extract_traversal_constraints(
-        pdf_path=pdf_path,
-        model=model,
-        use_llm=enable_llm,
-        existing_epochs=soa_context.epochs if soa_context.has_epochs() else None,
-    )
-    
-    if traversal_result.success:
-        tc = traversal_result.data.traversal_constraints[0] if traversal_result.data.traversal_constraints else None
-        if tc:
-            logger.info(f"  ✓ Found {len(tc.required_sequence)} epochs, {len(tc.mandatory_visits)} mandatory visits")
-        all_pages.extend(traversal_result.pages_used)
-    else:
-        logger.warning(f"  ✗ Traversal extraction failed: {traversal_result.error}")
-        errors.append(f"Traversal: {traversal_result.error}")
-    
-    # 6. Extract footnote conditions (Phase 2)
-    # Use authoritative SoA footnotes from vision extraction if available
-    logger.info("Step 6/10: Extracting footnote conditions...")
     soa_footnotes = soa_context.footnotes if soa_context.has_footnotes() else None
-    if soa_footnotes:
-        logger.info(f"  Using {len(soa_footnotes)} authoritative SoA footnotes from vision extraction")
-    footnote_result = extract_footnote_conditions(
-        pdf_path=pdf_path,
-        model=model,
-        footnotes=soa_footnotes,  # Pass authoritative SoA footnotes instead of re-extracting
-        use_llm=enable_llm,
-        existing_activities=soa_context.activities if soa_context.has_activities() else None,
-    )
-    
-    if footnote_result.success:
-        logger.info(f"  ✓ Found {len(footnote_result.data.footnote_conditions)} footnote conditions")
-        all_pages.extend(footnote_result.pages_used)
+
+    # ── Define all sub-extractor tasks ────────────────────────────────
+    # Each entry: (name, callable, kwargs_dict)
+    wave1_tasks: List[Tuple[str, Callable, Dict[str, Any]]] = [
+        ("time_anchors", extract_time_anchors, dict(
+            pdf_path=pdf_path, model=model, use_llm=enable_llm,
+            existing_encounters=soa_context.encounters if soa_context.has_encounters() else None,
+            existing_epochs=soa_context.epochs if soa_context.has_epochs() else None,
+        )),
+        ("repetitions", extract_repetitions, dict(
+            pdf_path=pdf_path, model=model, use_llm=enable_llm,
+            existing_activities=soa_context.activities if soa_context.has_activities() else None,
+            existing_encounters=soa_context.encounters if soa_context.has_encounters() else None,
+        )),
+        ("execution_types", classify_execution_types, dict(
+            pdf_path=pdf_path, activities=activities, model=model, use_llm=enable_llm,
+        )),
+        ("crossover", extract_crossover_design, dict(
+            pdf_path=pdf_path, model=model, use_llm=enable_llm,
+            existing_epochs=soa_context.epochs if soa_context.has_epochs() else None,
+        )),
+        ("traversal", extract_traversal_constraints, dict(
+            pdf_path=pdf_path, model=model, use_llm=enable_llm,
+            existing_epochs=soa_context.epochs if soa_context.has_epochs() else None,
+        )),
+        ("footnotes", extract_footnote_conditions, dict(
+            pdf_path=pdf_path, model=model, use_llm=enable_llm,
+            footnotes=soa_footnotes,
+            existing_activities=soa_context.activities if soa_context.has_activities() else None,
+        )),
+        ("endpoints", extract_endpoint_algorithms, dict(
+            pdf_path=pdf_path, model=model, use_llm=enable_llm,
+            sap_path=sap_path,
+        )),
+        ("derived_vars", extract_derived_variables, dict(
+            pdf_path=pdf_path, model=model, use_llm=enable_llm,
+            sap_path=sap_path,
+        )),
+        ("dosing", extract_dosing_regimens, dict(
+            pdf_path=pdf_path, model=model, use_llm=enable_llm,
+            existing_interventions=None,
+            existing_arms=soa_context.arms if soa_context.arms else None,
+        )),
+        ("visit_windows", extract_visit_windows, dict(
+            pdf_path=pdf_path, model=model, use_llm=enable_llm,
+            soa_data=soa_data,
+        )),
+        ("stratification", extract_stratification, dict(
+            pdf_path=pdf_path, model=model, use_llm=enable_llm,
+        )),
+        ("sampling", extract_sampling_density, dict(
+            pdf_path=pdf_path, model=model, use_llm=enable_llm,
+        )),
+    ]
+
+    # ── Execute Wave 1 ────────────────────────────────────────────────
+    results: Dict[str, Any] = {}
+    t0 = time.monotonic()
+
+    workers = max_workers or int(os.environ.get("EXEC_MAX_WORKERS", _DEFAULT_MAX_WORKERS))
+
+    if parallel and len(wave1_tasks) > 1:
+        logger.info(f"Running {len(wave1_tasks)} sub-extractors in parallel (max_workers={workers})")
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            futures = {
+                pool.submit(_run_sub_extractor, name, fn, kwargs): name
+                for name, fn, kwargs in wave1_tasks
+            }
+            for future in as_completed(futures):
+                name, result = future.result()
+                results[name] = result
     else:
-        logger.info("  ○ No footnote conditions extracted")
-    
-    # 7. Extract endpoint algorithms (Phase 3)
-    logger.info("Step 7/10: Extracting endpoint algorithms...")
-    endpoint_result = extract_endpoint_algorithms(
-        pdf_path=pdf_path,
-        model=model,
-        use_llm=enable_llm,
-        sap_path=sap_path,
-    )
-    
-    if endpoint_result.success and endpoint_result.data.endpoint_algorithms:
-        logger.info(f"  ✓ Found {len(endpoint_result.data.endpoint_algorithms)} endpoint algorithms")
-        all_pages.extend(endpoint_result.pages_used)
-    else:
-        logger.info("  ○ No endpoint algorithms extracted")
-    
-    # 8. Extract derived variables (Phase 3)
-    logger.info("Step 8/10: Extracting derived variables...")
-    variable_result = extract_derived_variables(
-        pdf_path=pdf_path,
-        model=model,
-        use_llm=enable_llm,
-        sap_path=sap_path,
-    )
-    
-    if variable_result.success and variable_result.data.derived_variables:
-        logger.info(f"  ✓ Found {len(variable_result.data.derived_variables)} derived variables")
-        all_pages.extend(variable_result.pages_used)
-    else:
-        logger.info("  ○ No derived variables extracted")
-    
-    # 9. Generate state machine (Phase 3)
-    logger.info("Step 9/10: Generating subject state machine...")
-    # Use traversal constraints if available
+        logger.info(f"Running {len(wave1_tasks)} sub-extractors sequentially")
+        for name, fn, kwargs in wave1_tasks:
+            _, result = _run_sub_extractor(name, fn, kwargs)
+            results[name] = result
+
+    wave1_elapsed = time.monotonic() - t0
+    logger.info(f"Wave 1 complete: {len(wave1_tasks)} sub-extractors in {wave1_elapsed:.1f}s")
+
+    # ── Log Wave 1 results ────────────────────────────────────────────
+    _log_sub_result("time_anchors", results.get("time_anchors"))
+    _log_sub_result("repetitions", results.get("repetitions"))
+    _log_sub_result("execution_types", results.get("execution_types"))
+    _log_sub_result("crossover", results.get("crossover"))
+    _log_sub_result("traversal", results.get("traversal"))
+    _log_sub_result("footnotes", results.get("footnotes"))
+    _log_sub_result("endpoints", results.get("endpoints"))
+    _log_sub_result("derived_vars", results.get("derived_vars"))
+    _log_sub_result("dosing", results.get("dosing"))
+    _log_sub_result("visit_windows", results.get("visit_windows"))
+    _log_sub_result("stratification", results.get("stratification"))
+    _log_sub_result("sampling", results.get("sampling"))
+
+    # ── Execute Wave 2: state machine (depends on traversal + crossover) ──
+    t1 = time.monotonic()
+    traversal_result = results.get("traversal")
+    crossover_result = results.get("crossover")
+
     traversal_for_sm = None
-    if traversal_result.success and traversal_result.data.traversal_constraints:
+    if traversal_result and traversal_result.success and traversal_result.data.traversal_constraints:
         traversal_for_sm = traversal_result.data.traversal_constraints[0]
-    
+
     crossover_for_sm = None
-    if crossover_result.success and crossover_result.data.crossover_design:
+    if crossover_result and crossover_result.success and crossover_result.data.crossover_design:
         crossover_for_sm = crossover_result.data.crossover_design
-    
-    state_machine_result = generate_state_machine(
-        pdf_path=pdf_path,
-        model=model,
-        traversal=traversal_for_sm,
-        crossover=crossover_for_sm,
-        use_llm=enable_llm,
+
+    _, sm_result = _run_sub_extractor("state_machine", generate_state_machine, dict(
+        pdf_path=pdf_path, model=model, use_llm=enable_llm,
+        traversal=traversal_for_sm, crossover=crossover_for_sm,
         existing_epochs=soa_context.epochs if soa_context else None,
-    )
-    
-    if state_machine_result.success and state_machine_result.data.state_machine:
-        sm = state_machine_result.data.state_machine
-        logger.info(f"  ✓ Generated state machine: {len(sm.states)} states, {len(sm.transitions)} transitions")
-        all_pages.extend(state_machine_result.pages_used)
-    else:
-        logger.info("  ○ No state machine generated")
-    
-    # 10. Extract dosing regimens (Phase 4) - with SoA context for intervention binding
-    logger.info("Step 10/13: Extracting dosing regimens...")
-    dosing_result = extract_dosing_regimens(
-        pdf_path=pdf_path,
-        model=model,
-        use_llm=enable_llm,
-        existing_interventions=None,  # Will be populated from pipeline_context when available
-        existing_arms=soa_context.arms if soa_context.arms else None,
-    )
-    
-    if dosing_result.success and dosing_result.data.dosing_regimens:
-        logger.info(f"  ✓ Found {len(dosing_result.data.dosing_regimens)} dosing regimens")
-        all_pages.extend(dosing_result.pages_used)
-    else:
-        logger.info("  ○ No dosing regimens extracted")
-    
-    # 11. Extract visit windows (Phase 4)
-    logger.info("Step 11/13: Extracting visit windows...")
-    visit_result = extract_visit_windows(
-        pdf_path=pdf_path,
-        model=model,
-        use_llm=enable_llm,
-        soa_data=soa_data,
-    )
-    
-    if visit_result.success and visit_result.data.visit_windows:
-        logger.info(f"  ✓ Found {len(visit_result.data.visit_windows)} visit windows")
-        all_pages.extend(visit_result.pages_used)
-    else:
-        logger.info("  ○ No visit windows extracted")
-    
-    # 12. Extract stratification/randomization (Phase 4)
-    logger.info("Step 12/13: Extracting stratification scheme...")
-    strat_result = extract_stratification(
-        pdf_path=pdf_path,
-        model=model,
-        use_llm=enable_llm,
-    )
-    
-    if strat_result.success and strat_result.data.randomization_scheme:
-        scheme = strat_result.data.randomization_scheme
-        logger.info(f"  ✓ Found randomization: {scheme.ratio}, {len(scheme.stratification_factors)} factors")
-        all_pages.extend(strat_result.pages_used)
-    else:
-        logger.info("  ○ No randomization scheme extracted")
-    
-    # 13. Extract sampling density (Phase 5)
-    logger.info("Step 13/13: Extracting sampling density...")
-    sampling_result = extract_sampling_density(
-        pdf_path=pdf_path,
-        model=model,
-        use_llm=enable_llm,
-    )
-    
-    if sampling_result.success and sampling_result.data.sampling_constraints:
-        logger.info(f"  ✓ Found {len(sampling_result.data.sampling_constraints)} sampling constraints")
-        all_pages.extend(sampling_result.pages_used)
-    else:
-        logger.info("  ○ No additional sampling constraints found")
-    
-    # Merge all results
+    ))
+    results["state_machine"] = sm_result
+    _log_sub_result("state_machine", sm_result)
+
+    wave2_elapsed = time.monotonic() - t1
+    total_elapsed = time.monotonic() - t0
+    logger.info(f"Wave 2 complete: state machine in {wave2_elapsed:.1f}s (total: {total_elapsed:.1f}s)")
+
+    # ── Merge all results ─────────────────────────────────────────────
+    all_pages: List[int] = []
+    errors: List[str] = []
     merged_data = ExecutionModelData()
-    
-    if anchor_result.data:
-        merged_data = merged_data.merge(anchor_result.data)
-    if repetition_result.data:
-        merged_data = merged_data.merge(repetition_result.data)
-    if classification_result.data:
-        merged_data = merged_data.merge(classification_result.data)
-    if crossover_result.data:
-        merged_data = merged_data.merge(crossover_result.data)
-    if traversal_result.data:
-        merged_data = merged_data.merge(traversal_result.data)
-    if footnote_result.data:
-        merged_data = merged_data.merge(footnote_result.data)
-    # Phase 3 merges
-    if endpoint_result.data:
-        merged_data = merged_data.merge(endpoint_result.data)
-    if variable_result.data:
-        merged_data = merged_data.merge(variable_result.data)
-    if state_machine_result.data:
-        merged_data = merged_data.merge(state_machine_result.data)
-    # Phase 4 merges
-    if dosing_result.data:
-        merged_data = merged_data.merge(dosing_result.data)
-    if visit_result.data:
-        merged_data = merged_data.merge(visit_result.data)
-    if strat_result.data:
-        merged_data = merged_data.merge(strat_result.data)
-    # Phase 5 merge
-    if sampling_result.data:
-        merged_data = merged_data.merge(sampling_result.data)
-    
+
+    for name, res in results.items():
+        if res is None:
+            continue
+        if hasattr(res, 'pages_used') and res.pages_used:
+            all_pages.extend(res.pages_used)
+        if hasattr(res, 'data') and res.data:
+            merged_data = merged_data.merge(res.data)
+        if hasattr(res, 'success') and not res.success and hasattr(res, 'error') and res.error:
+            errors.append(f"{name}: {res.error}")
+
     # Determine success
     has_data = (
         len(merged_data.time_anchors) > 0 or
@@ -388,10 +294,47 @@ def extract_execution_model(
         logger.info(f"Saved execution model to {output_path}")
     
     logger.info("=" * 60)
-    logger.info("Execution Model Extraction Complete")
+    logger.info(f"Execution Model Extraction Complete ({total_elapsed:.1f}s)")
     logger.info("=" * 60)
     
     return result
+
+
+def _log_sub_result(name: str, result: Any) -> None:
+    """Log the outcome of a single sub-extractor."""
+    if result is None:
+        logger.warning(f"  ✗ {name}: no result")
+        return
+    if not hasattr(result, 'success'):
+        return
+    if not result.success:
+        err = getattr(result, 'error', 'unknown')
+        logger.warning(f"  ✗ {name}: {err}")
+        return
+    data = getattr(result, 'data', None)
+    if data is None:
+        logger.info(f"  ○ {name}: no data")
+        return
+    # Count entities for logging
+    counts = []
+    for attr in ('time_anchors', 'repetitions', 'execution_types',
+                 'traversal_constraints', 'footnote_conditions',
+                 'endpoint_algorithms', 'derived_variables',
+                 'dosing_regimens', 'visit_windows', 'sampling_constraints'):
+        val = getattr(data, attr, None)
+        if val and len(val) > 0:
+            counts.append(f"{len(val)} {attr}")
+    if getattr(data, 'crossover_design', None):
+        counts.append("crossover_design")
+    if getattr(data, 'state_machine', None):
+        sm = data.state_machine
+        counts.append(f"state_machine({len(sm.states)}s/{len(sm.transitions)}t)")
+    if getattr(data, 'randomization_scheme', None):
+        counts.append("randomization_scheme")
+    if counts:
+        logger.info(f"  ✓ {name}: {', '.join(counts)}")
+    else:
+        logger.info(f"  ○ {name}: empty")
 
 
 def enrich_usdm_with_execution_model(
@@ -1491,7 +1434,7 @@ def _derive_analysis_windows_from_epochs(design: Dict[str, Any]) -> List:
     
     Generic approach: classify epochs by name patterns into window types,
     then compute day ranges from encounter timings within each epoch.
-    Works for any protocol, not just Wilson's.
+    Works for any protocol structure.
     """
     from .schema import AnalysisWindow
     from core.usdm_types_generated import generate_uuid

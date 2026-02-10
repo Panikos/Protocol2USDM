@@ -655,7 +655,7 @@ When prompts change, existing extraction results become unreproducible. Storing 
 ### Phase 4: Performance & Scalability (Weeks 9-12)
 | ID | Enhancement | Priority | Effort |
 |----|------------|----------|--------|
-| E20 | Parallelize execution model sub-extractors | HIGH | 2d |
+| E20 | Parallelize execution model sub-extractors | ✅ FIXED | 2d |
 | E21 | LLM response streaming for progress visibility | MEDIUM | 2d |
 | E22 | Chunked EVS cache (per-code files instead of single JSON) | LOW | 1d |
 | E23 | Async LLM calls (`asyncio`/`aiohttp` instead of threading) | MEDIUM | 5d |
