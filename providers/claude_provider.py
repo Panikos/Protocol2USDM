@@ -14,6 +14,7 @@ from .base import LLMProvider, LLMConfig, LLMResponse, StreamChunk, StreamCallba
 from .tracker import usage_tracker
 
 import anthropic
+from anthropic import AsyncAnthropic
 
 _logger = logging.getLogger(__name__)
 
@@ -51,6 +52,14 @@ class ClaudeProvider(LLMProvider):
     def __init__(self, model: str, api_key: Optional[str] = None):
         super().__init__(model, api_key)
         self.client = anthropic.Anthropic(api_key=self.api_key)
+        self._async_client: Optional[AsyncAnthropic] = None
+
+    @property
+    def async_client(self) -> AsyncAnthropic:
+        """Lazy-init async client to avoid event-loop issues at import time."""
+        if self._async_client is None:
+            self._async_client = AsyncAnthropic(api_key=self.api_key)
+        return self._async_client
     
     def _get_api_key_from_env(self) -> str:
         """Get Anthropic API key from environment."""
@@ -264,4 +273,137 @@ class ClaudeProvider(LLMProvider):
             )
         except Exception as e:
             raise LLMError(f"Anthropic streaming failed for model '{self.model}': {e}",
+                          model=self.model, cause=e)
+
+    def _build_claude_params(self, messages: List[Dict[str, str]], config: LLMConfig) -> dict:
+        """Build API params shared by sync and async paths."""
+        system_content = ""
+        api_messages = []
+        for msg in messages:
+            role = msg.get('role', 'user')
+            content = msg.get('content', '')
+            if role == 'system':
+                system_content = content
+            else:
+                api_messages.append({"role": role, "content": content})
+
+        if config.json_mode:
+            json_instruction = "\n\nYou must respond with valid JSON only. No markdown, no explanation, just the JSON object."
+            system_content = (system_content + json_instruction) if system_content else json_instruction.strip()
+
+        params: dict = {
+            "model": self.model,
+            "messages": api_messages,
+            "max_tokens": config.max_tokens or 16384,
+            "temperature": config.temperature,
+        }
+        if system_content:
+            params["system"] = system_content
+        if config.stop_sequences:
+            params["stop_sequences"] = config.stop_sequences
+        if config.top_p is not None:
+            params["top_p"] = config.top_p
+        return params
+
+    async def agenerate(
+        self,
+        messages: List[Dict[str, str]],
+        config: Optional[LLMConfig] = None,
+    ) -> LLMResponse:
+        """Native async generation via Anthropic streaming API."""
+        if config is None:
+            config = LLMConfig()
+        params = self._build_claude_params(messages, config)
+
+        try:
+            accumulated = ""
+            input_tokens = 0
+            output_tokens = 0
+            stop_reason = None
+            model_used = self.model
+
+            async with self.async_client.messages.stream(**params) as stream:
+                async for text in stream.text_stream:
+                    accumulated += text
+
+                final_message = await stream.get_final_message()
+                if final_message:
+                    stop_reason = final_message.stop_reason
+                    model_used = final_message.model
+                    if final_message.usage:
+                        input_tokens = final_message.usage.input_tokens
+                        output_tokens = final_message.usage.output_tokens
+
+            usage = None
+            if input_tokens or output_tokens:
+                usage = {
+                    "prompt_tokens": input_tokens,
+                    "completion_tokens": output_tokens,
+                    "total_tokens": input_tokens + output_tokens,
+                }
+                usage_tracker.add_usage(input_tokens, output_tokens)
+
+            return LLMResponse(
+                content=accumulated, model=model_used,
+                usage=usage, finish_reason=stop_reason,
+            )
+        except Exception as e:
+            raise LLMError(f"Anthropic async generate failed for model '{self.model}': {e}",
+                          model=self.model, cause=e)
+
+    async def agenerate_stream(
+        self,
+        messages: List[Dict[str, str]],
+        config: Optional[LLMConfig] = None,
+        callback: Optional[StreamCallback] = None,
+    ) -> LLMResponse:
+        """Native async streaming via Anthropic API."""
+        if config is None:
+            config = LLMConfig()
+        params = self._build_claude_params(messages, config)
+
+        try:
+            accumulated = ""
+            input_tokens = 0
+            output_tokens = 0
+            stop_reason = None
+            model_used = self.model
+
+            async with self.async_client.messages.stream(**params) as stream:
+                async for text in stream.text_stream:
+                    accumulated += text
+                    if callback and text:
+                        callback(StreamChunk(
+                            text=text, accumulated_text=accumulated, done=False,
+                        ))
+
+                final_message = await stream.get_final_message()
+                if final_message:
+                    stop_reason = final_message.stop_reason
+                    model_used = final_message.model
+                    if final_message.usage:
+                        input_tokens = final_message.usage.input_tokens
+                        output_tokens = final_message.usage.output_tokens
+
+            usage = None
+            if input_tokens or output_tokens:
+                usage = {
+                    "prompt_tokens": input_tokens,
+                    "completion_tokens": output_tokens,
+                    "total_tokens": input_tokens + output_tokens,
+                }
+                usage_tracker.add_usage(input_tokens, output_tokens)
+
+            if callback:
+                callback(StreamChunk(
+                    text="", accumulated_text=accumulated, done=True,
+                    usage=usage, finish_reason=stop_reason,
+                ))
+
+            return LLMResponse(
+                content=accumulated, model=model_used,
+                usage=usage, finish_reason=stop_reason,
+            )
+        except Exception as e:
+            raise LLMError(f"Anthropic async streaming failed for model '{self.model}': {e}",
                           model=self.model, cause=e)

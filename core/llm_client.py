@@ -281,6 +281,73 @@ def call_llm(
         return {"error": str(e)}
 
 
+async def agenerate_text(
+    messages: List[Dict[str, str]],
+    model_name: Optional[str] = None,
+    json_mode: bool = False,
+    temperature: float = 0.0,
+    max_tokens: Optional[int] = None,
+    extractor_name: Optional[str] = None,
+) -> str:
+    """
+    Async version of :func:`generate_text`.
+
+    Uses the provider's native ``agenerate`` when available,
+    falling back to ``asyncio.to_thread`` otherwise.
+    """
+    if model_name is None:
+        model_name = get_default_model()
+
+    if extractor_name:
+        from extraction.llm_task_config import get_llm_task_config, to_llm_config
+        task_config = get_llm_task_config(extractor_name, model=model_name)
+        config = to_llm_config(task_config)
+        if max_tokens is not None:
+            config.max_tokens = max_tokens
+    else:
+        if max_tokens is None:
+            max_tokens = _get_max_tokens_for_model(model_name)
+        config = LLMConfig(
+            temperature=temperature,
+            json_mode=json_mode,
+            max_tokens=max_tokens,
+        )
+
+    client = get_llm_client(model_name)
+    response = await client.agenerate(messages, config)
+    return response.content
+
+
+async def acall_llm(
+    prompt: str,
+    model_name: Optional[str] = None,
+    json_mode: bool = True,
+    temperature: float = 0.0,
+    max_tokens: Optional[int] = None,
+    extractor_name: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Async version of :func:`call_llm`.
+    """
+    if model_name is None:
+        model_name = get_default_model()
+
+    messages = [{"role": "user", "content": prompt}]
+
+    try:
+        content = await agenerate_text(
+            messages=messages,
+            model_name=model_name,
+            json_mode=json_mode,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            extractor_name=extractor_name,
+        )
+        return {"response": content}
+    except Exception as e:
+        return {"error": str(e)}
+
+
 def call_llm_with_image(
     prompt: str,
     image_path: str,

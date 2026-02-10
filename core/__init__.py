@@ -15,6 +15,8 @@ from .llm_client import (
     get_default_model,
     call_llm,
     call_llm_with_image,
+    acall_llm,
+    agenerate_text,
 )
 from .json_utils import (
     parse_llm_json,
@@ -70,6 +72,8 @@ __all__ = [
     "get_default_model",
     "call_llm",
     "call_llm_with_image",
+    "acall_llm",
+    "agenerate_text",
     "LLMConfig",
     "LLMResponse",
     # JSON Utilities

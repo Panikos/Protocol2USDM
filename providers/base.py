@@ -8,6 +8,7 @@ and shared utilities like retry logic.
 from abc import ABC, abstractmethod
 from typing import Dict, Generator, List, Optional, Any, Callable
 from dataclasses import dataclass, field
+import asyncio
 import time
 import logging
 
@@ -184,6 +185,33 @@ class LLMProvider(ABC):
             callback(chunk)
         return response
     
+    async def agenerate(
+        self,
+        messages: List[Dict[str, str]],
+        config: Optional[LLMConfig] = None,
+    ) -> LLMResponse:
+        """Async version of :meth:`generate`.
+
+        Providers that have native async SDKs should override this.
+        The default implementation runs :meth:`generate` in a thread
+        via :func:`asyncio.to_thread`.
+        """
+        return await asyncio.to_thread(self.generate, messages, config)
+
+    async def agenerate_stream(
+        self,
+        messages: List[Dict[str, str]],
+        config: Optional[LLMConfig] = None,
+        callback: Optional[StreamCallback] = None,
+    ) -> LLMResponse:
+        """Async version of :meth:`generate_stream`.
+
+        Providers that have native async SDKs should override this.
+        The default implementation runs :meth:`generate_stream` in a thread
+        via :func:`asyncio.to_thread`.
+        """
+        return await asyncio.to_thread(self.generate_stream, messages, config, callback)
+
     def generate_with_image(
         self,
         prompt: str,

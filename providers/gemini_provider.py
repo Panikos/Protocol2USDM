@@ -6,6 +6,7 @@ Routes through Vertex AI when GOOGLE_CLOUD_PROJECT is set.
 All safety controls are disabled for clinical protocol extraction.
 """
 
+import asyncio
 import os
 import time
 import logging
@@ -500,6 +501,132 @@ class GeminiProvider(LLMProvider):
         except Exception as e:
             from core.errors import LLMError
             raise LLMError(f"AI Studio streaming failed for model '{self.model}': {e}", model=self.model, cause=e)
+
+    # ── Async methods ─────────────────────────────────────────────────
+
+    async def agenerate(
+        self,
+        messages: List[Dict[str, str]],
+        config: Optional[LLMConfig] = None,
+    ) -> LLMResponse:
+        """Async generation. Native for genai SDK; thread-wrapped for Vertex/AI Studio."""
+        if config is None:
+            config = LLMConfig()
+
+        gen_config_dict = self._build_gen_config(config)
+        prompt = self._format_messages_for_gemini(messages)
+
+        if self.use_genai_sdk:
+            return await self._agenerate_genai_sdk(prompt, gen_config_dict)
+        else:
+            # Vertex AI and AI Studio SDKs lack native async — use thread
+            return await asyncio.to_thread(self.generate, messages, config)
+
+    async def agenerate_stream(
+        self,
+        messages: List[Dict[str, str]],
+        config: Optional[LLMConfig] = None,
+        callback: Optional["StreamCallback"] = None,
+    ) -> LLMResponse:
+        """Async streaming. Native for genai SDK; thread-wrapped for Vertex/AI Studio."""
+        if config is None:
+            config = LLMConfig()
+
+        gen_config_dict = self._build_gen_config(config)
+        prompt = self._format_messages_for_gemini(messages)
+
+        if self.use_genai_sdk:
+            return await self._astream_genai_sdk(prompt, gen_config_dict, callback)
+        else:
+            return await asyncio.to_thread(self.generate_stream, messages, config, callback)
+
+    async def _agenerate_genai_sdk(self, prompt: str, gen_config_dict: dict) -> LLMResponse:
+        """Native async generation via google-genai SDK."""
+        model_id = self.VERTEX_MODEL_ALIASES.get(self.model, self.model)
+        sdk_config = self._build_genai_sdk_config(gen_config_dict)
+        try:
+            response = await self._genai_client.aio.models.generate_content(
+                model=model_id, contents=prompt, config=sdk_config,
+            )
+            usage = None
+            if hasattr(response, 'usage_metadata') and response.usage_metadata:
+                inp = getattr(response.usage_metadata, 'prompt_token_count', 0) or 0
+                out = getattr(response.usage_metadata, 'candidates_token_count', 0) or 0
+                usage = {"prompt_tokens": inp, "completion_tokens": out,
+                         "total_tokens": getattr(response.usage_metadata, 'total_token_count', 0) or 0}
+                usage_tracker.add_usage(inp, out)
+            return LLMResponse(
+                content=response.text, model=self.model, usage=usage,
+                finish_reason=str(response.candidates[0].finish_reason) if response.candidates else None,
+                raw_response=response,
+            )
+        except Exception as e:
+            raise LLMError(f"Gemini async generate failed for model '{self.model}': {e}",
+                          model=self.model, cause=e)
+
+    async def _astream_genai_sdk(self, prompt: str, gen_config_dict: dict, callback) -> LLMResponse:
+        """Native async streaming via google-genai SDK."""
+        model_id = self.VERTEX_MODEL_ALIASES.get(self.model, self.model)
+        sdk_config = self._build_genai_sdk_config(gen_config_dict)
+        try:
+            accumulated = ""
+            last_chunk = None
+            async for chunk_resp in self._genai_client.aio.models.generate_content_stream(
+                model=model_id, contents=prompt, config=sdk_config,
+            ):
+                text = chunk_resp.text or ""
+                accumulated += text
+                last_chunk = chunk_resp
+                if callback and text:
+                    callback(StreamChunk(text=text, accumulated_text=accumulated, done=False))
+
+            usage = None
+            if last_chunk and hasattr(last_chunk, 'usage_metadata') and last_chunk.usage_metadata:
+                inp = getattr(last_chunk.usage_metadata, 'prompt_token_count', 0) or 0
+                out = getattr(last_chunk.usage_metadata, 'candidates_token_count', 0) or 0
+                usage = {"prompt_tokens": inp, "completion_tokens": out,
+                         "total_tokens": getattr(last_chunk.usage_metadata, 'total_token_count', 0) or 0}
+                usage_tracker.add_usage(inp, out)
+
+            if callback:
+                callback(StreamChunk(text="", accumulated_text=accumulated, done=True, usage=usage))
+            return LLMResponse(content=accumulated, model=self.model, usage=usage)
+        except Exception as e:
+            raise LLMError(f"Gemini async streaming failed for model '{self.model}': {e}",
+                          model=self.model, cause=e)
+
+    def _build_gen_config(self, config: LLMConfig) -> dict:
+        """Build gen_config_dict from LLMConfig (shared by sync/async)."""
+        d: dict = {"temperature": config.temperature}
+        if config.max_tokens:
+            d["max_output_tokens"] = config.max_tokens
+        if config.stop_sequences:
+            d["stop_sequences"] = config.stop_sequences
+        if config.top_p is not None:
+            d["top_p"] = config.top_p
+        if config.top_k is not None:
+            d["top_k"] = config.top_k
+        if config.json_mode and self.supports_json_mode():
+            d["response_mime_type"] = "application/json"
+        return d
+
+    def _build_genai_sdk_config(self, gen_config_dict: dict):
+        """Build genai_types.GenerateContentConfig from dict (shared by sync/async)."""
+        return genai_types.GenerateContentConfig(
+            temperature=gen_config_dict.get("temperature", 0.0),
+            max_output_tokens=gen_config_dict.get("max_output_tokens"),
+            stop_sequences=gen_config_dict.get("stop_sequences"),
+            top_p=gen_config_dict.get("top_p"),
+            top_k=gen_config_dict.get("top_k"),
+            response_mime_type=gen_config_dict.get("response_mime_type"),
+            thinking_config=genai_types.ThinkingConfig(thinking_budget=0),
+            safety_settings=[
+                genai_types.SafetySetting(category=genai_types.HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold=genai_types.HarmBlockThreshold.BLOCK_NONE),
+                genai_types.SafetySetting(category=genai_types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold=genai_types.HarmBlockThreshold.BLOCK_NONE),
+                genai_types.SafetySetting(category=genai_types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold=genai_types.HarmBlockThreshold.BLOCK_NONE),
+                genai_types.SafetySetting(category=genai_types.HarmCategory.HARM_CATEGORY_HARASSMENT, threshold=genai_types.HarmBlockThreshold.BLOCK_NONE),
+            ],
+        )
 
     def _format_messages_for_gemini(self, messages: List[Dict[str, str]]) -> str:
         """
