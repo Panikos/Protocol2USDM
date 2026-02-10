@@ -113,7 +113,11 @@ SAMPLE_POPULATION = {
     "name": "Study Population",
     "includesHealthySubjects": False,
     "plannedEnrollmentNumber": {"maxValue": 150},
-    "plannedAge": {"minValue": 18, "maxValue": 75, "unit": "Years"},
+    "plannedAge": {
+        "id": "age_1", "instanceType": "Range", "isApproximate": False,
+        "minValue": {"id": "q_min", "value": 18, "unit": {"id": "u1", "standardCode": {"code": "C29848", "decode": "Years", "instanceType": "Code"}, "instanceType": "AliasCode"}, "instanceType": "Quantity"},
+        "maxValue": {"id": "q_max", "value": 75, "unit": {"id": "u2", "standardCode": {"code": "C29848", "decode": "Years", "instanceType": "Code"}, "instanceType": "AliasCode"}, "instanceType": "Quantity"},
+    },
     "plannedSex": [{"code": "C16576", "decode": "Female"}, {"code": "C20197", "decode": "Male"}],
 }
 

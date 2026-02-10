@@ -140,7 +140,18 @@ export function EligibilityCriteriaView({ usdm }: EligibilityCriteriaViewProps) 
 
   // Extract population info
   const population = design.population as Record<string, unknown> | undefined;
-  const plannedAge = population?.plannedAge as { minValue?: { value?: number }; maxValue?: { value?: number } } | undefined;
+  const rawPlannedAge = population?.plannedAge as Record<string, unknown> | undefined;
+  // Support both USDM v4.0 Quantity objects and legacy flat ints
+  const extractAgeValue = (v: unknown): string => {
+    if (v == null) return '';
+    if (typeof v === 'object' && v !== null && 'value' in v) return String((v as Record<string, unknown>).value ?? '');
+    if (typeof v === 'number') return String(v);
+    return String(v);
+  };
+  const plannedAge = rawPlannedAge ? {
+    minValue: { value: extractAgeValue(rawPlannedAge.minValue) ? Number(extractAgeValue(rawPlannedAge.minValue)) : undefined },
+    maxValue: { value: extractAgeValue(rawPlannedAge.maxValue) ? Number(extractAgeValue(rawPlannedAge.maxValue)) : undefined },
+  } : undefined;
   const plannedSex = (population?.plannedSex as { decode?: string }[]) ?? [];
 
   const renderCriterion = (criterion: EligibilityCriterion, index: number, criteriaType: 'inclusion' | 'exclusion' | 'uncategorized', typeIndex: number) => {

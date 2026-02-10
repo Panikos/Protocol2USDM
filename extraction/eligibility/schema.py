@@ -155,14 +155,29 @@ class StudyDesignPopulation:
                 "unit": "participants",
                 "instanceType": "QuantityRange",
             }
-        # USDM v4.0: plannedAge is a Range with minValue/maxValue
+        # USDM v4.0: plannedAge is a Range with minValue/maxValue as Quantity objects
         if self.planned_age_min is not None or self.planned_age_max is not None:
-            age_range: Dict[str, Any] = {"instanceType": "Range"}
+            unit_code = {
+                "id": generate_uuid(),
+                "standardCode": {"code": "C29848", "codeSystem": "http://www.cdisc.org", "decode": self.planned_age_unit, "instanceType": "Code"},
+                "standardCodeAliases": [],
+                "instanceType": "AliasCode",
+            }
+            age_range: Dict[str, Any] = {"id": generate_uuid(), "instanceType": "Range", "isApproximate": False}
             if self.planned_age_min is not None:
-                age_range["minValue"] = self.planned_age_min
+                age_range["minValue"] = {
+                    "id": generate_uuid(),
+                    "value": self.planned_age_min,
+                    "unit": unit_code,
+                    "instanceType": "Quantity",
+                }
             if self.planned_age_max is not None:
-                age_range["maxValue"] = self.planned_age_max
-            age_range["unit"] = self.planned_age_unit
+                age_range["maxValue"] = {
+                    "id": generate_uuid(),
+                    "value": self.planned_age_max,
+                    "unit": unit_code,
+                    "instanceType": "Quantity",
+                }
             result["plannedAge"] = age_range
         # USDM v4.0: plannedSex is Code[] (up to 2)
         if self.planned_sex:

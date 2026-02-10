@@ -83,12 +83,21 @@ def _compose_synopsis(usdm: Dict) -> str:
 
     # ---- Population Age (min/max) ----
     if isinstance(pop, dict):
-        # USDM v4.0: plannedAge is a Range {minValue, maxValue, unit}
+        # USDM v4.0: plannedAge is a Range {minValue: Quantity, maxValue: Quantity}
         planned_age = pop.get('plannedAge', {})
         if isinstance(planned_age, dict) and (planned_age.get('minValue') or planned_age.get('maxValue')):
-            age_min = planned_age.get('minValue', '')
-            age_max = planned_age.get('maxValue', '')
+            raw_min = planned_age.get('minValue', '')
+            raw_max = planned_age.get('maxValue', '')
+            # Support both Quantity objects and raw ints (backward compat)
+            age_min = raw_min.get('value', raw_min) if isinstance(raw_min, dict) else raw_min
+            age_max = raw_max.get('value', raw_max) if isinstance(raw_max, dict) else raw_max
+            # Unit may be on the Quantity or on the Range itself (legacy)
             age_unit = planned_age.get('unit', 'Years')
+            if isinstance(age_unit, dict):
+                age_unit = age_unit.get('decode', age_unit.get('standardCode', {}).get('decode', 'Years'))
+            if isinstance(raw_min, dict) and raw_min.get('unit'):
+                u = raw_min['unit']
+                age_unit = u.get('standardCode', {}).get('decode', u.get('decode', 'Years')) if isinstance(u, dict) else u
         else:
             # Fallback: legacy field names
             age_min = pop.get('plannedMinimumAgeOfSubjects', pop.get('minimumAge', ''))

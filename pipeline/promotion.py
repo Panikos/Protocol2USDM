@@ -89,11 +89,9 @@ def promote_extensions_to_usdm(combined: dict) -> None:
             inferred_age = _infer_age_from_criteria(design, version)
             if inferred_age:
                 population['plannedAge'] = inferred_age
-                logger.info(
-                    f"  ✓ Inferred population age from criteria: "
-                    f"{inferred_age.get('minValue', '?')}-{inferred_age.get('maxValue', '?')} "
-                    f"{inferred_age.get('unit', 'Years')}"
-                )
+                min_v = inferred_age.get('minValue', {}).get('value', '?') if isinstance(inferred_age.get('minValue'), dict) else '?'
+                max_v = inferred_age.get('maxValue', {}).get('value', '?') if isinstance(inferred_age.get('maxValue'), dict) else '?'
+                logger.info(f"  ✓ Inferred population age from criteria: {min_v}-{max_v} Years")
                 promotions += 1
         
         # Write back if we made changes
@@ -238,11 +236,27 @@ def _infer_age_from_criteria(design: dict, version: dict) -> Optional[dict]:
             max_age = int(m.group(1))
     
     if min_age is not None or max_age is not None:
-        age_range: dict = {'instanceType': 'Range', 'unit': 'Years'}
+        unit_code = {
+            'id': str(uuid.uuid4()),
+            'standardCode': {'code': 'C29848', 'codeSystem': 'http://www.cdisc.org', 'decode': 'Years', 'instanceType': 'Code'},
+            'standardCodeAliases': [],
+            'instanceType': 'AliasCode',
+        }
+        age_range: dict = {'id': str(uuid.uuid4()), 'instanceType': 'Range', 'isApproximate': False}
         if min_age is not None:
-            age_range['minValue'] = min_age
+            age_range['minValue'] = {
+                'id': str(uuid.uuid4()),
+                'value': min_age,
+                'unit': unit_code,
+                'instanceType': 'Quantity',
+            }
         if max_age is not None:
-            age_range['maxValue'] = max_age
+            age_range['maxValue'] = {
+                'id': str(uuid.uuid4()),
+                'value': max_age,
+                'unit': unit_code,
+                'instanceType': 'Quantity',
+            }
         return age_range
     
     return None
