@@ -310,7 +310,7 @@ This is the **single most critical function** in the entire codebase.
 
 **Weaknesses**:
 - **W-R1**: Single 2,227-line file. The renderer, composers, style setup, and section mapper are all in one file. Extracting composers into separate modules would improve maintainability
-- **W-R2**: No SoA table rendering in DOCX — the Schedule of Activities is a critical M11 section (§1.3) but is not rendered as a table in the DOCX output
+- **W-R2**: ✅ FIXED — SoA table now renders in DOCX with group separators, header shading, column widths, empty-activity filtering, and repeat-header-on-page-break
 - **W-R3**: No configurable template — the document styling is hardcoded. Sponsors may have their own protocol templates with different headers, footers, and branding
 - **W-R4**: Heading level determination uses dot-counting in section numbers, which fails for non-standard numbering (e.g., appendix sub-sections)
 
@@ -650,7 +650,7 @@ When prompts change, existing extraction results become unreproducible. Storing 
 | E16 | Define `PipelineError` hierarchy | ✅ FIXED | 1d |
 | E17 | Consolidate terminology codes (eliminate `USDM_CODES` duplication) | ✅ FIXED | 1d |
 | E18 | M11 mapping YAML schema validation at load time | LOW | 1d |
-| E19 | SoA table rendering in M11 DOCX | MEDIUM | 3d |
+| E19 | SoA table rendering in M11 DOCX | ✅ FIXED | 3d |
 
 ### Phase 4: Performance & Scalability (Weeks 9-12)
 | ID | Enhancement | Priority | Effort |
