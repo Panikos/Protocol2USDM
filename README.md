@@ -64,21 +64,40 @@ GOOGLE_CLOUD_LOCATION=us-central1  # or your preferred region
 
 ---
 
-## What's New in v7.1
+## What's New in v7.3
 
-### 🏗️ Phase Registry Architecture (NEW)
-- **`main_v3.py`** - New refactored entry point with clean phase registry pattern
-- **`pipeline/`** module - Modular phase definitions with dependency-aware execution
-- **Parallel execution** - Run independent phases concurrently with `--parallel`
-- **Default `--complete` mode** - Full extraction when no specific phases requested
+### 📝 ICH M11 Document Rendering (NEW)
+- **M11 DOCX generation** — Produces ICH M11-formatted Word documents from USDM JSON
+- **9 entity composers** — Synopsis, Objectives, Study Design, Eligibility, Interventions, Estimands, Discontinuation, Safety, Statistics
+- **7-pass section mapper** — Maps extracted narrative + composed content to 14 M11 sections
+- **M11 conformance validator** — Title page, synopsis, section coverage scoring
+- Output: `m11_protocol.docx` + `m11_conformance.json`
 
-### 🎯 Gemini Flash 3 Optimization
-- Pipeline **optimized and tested with `gemini-3-flash-preview`** as default model
-- Intelligent fallback to `gemini-2.5-pro` for SoA text extraction when needed
-- Response validation with automatic retry logic (up to 2 retries)
-- Stricter prompt guardrails for JSON format compliance
+### 🧪 Testing Infrastructure (E7–E13)
+- **372 unit tests** (33 e2e skipped by default) with **42.5% code coverage**
+- **pytest-cov** integration with HTML reports
+- **Mocked LLM tests** for all 5 extractors (metadata, eligibility, objectives, studydesign, interventions)
+- **Composer tests** for all 9 M11 entity composers
+- **PipelineContext tests** (48 tests, 93.6% coverage) with thread isolation verification
+- **E2E integration tests** against real pipeline output (`--run-e2e`)
 
-### 🧠 Execution Model Extraction & Promotion (v7.2)
+### 🔧 Pipeline Decomposition
+- **`pipeline/combiner.py`** — `combine_to_full_usdm()`, USDM defaults, SoA integration
+- **`pipeline/integrations.py`** — SAP/sites integration, content references, estimand reconciliation
+- **`pipeline/post_processing.py`** — Entity reconciliation, activity sources, procedure linking
+- **`pipeline/promotion.py`** — Extension→USDM promotion rules (sample size, completers, sex, age)
+- **`PHASE_FIELD_OWNERSHIP`** constant — Single source of truth for context merge mapping
+
+### 📦 LLM Provider Abstraction
+- **`providers/`** module — `BaseProvider`, `GeminiProvider`, `OpenAIProvider`, `AnthropicProvider`
+- **`providers/factory.py`** — Auto-detect provider from model name
+- **`providers/tracker.py`** — `TokenUsageTracker` with per-phase cost breakdown
+
+### Previous Releases
+
+<details>
+<summary><b>v7.2 — Execution Model Promotion</b></summary>
+
 - **Time Anchors**: Extract temporal reference points (VISIT/EVENT/CONCEPTUAL classification)
 - **Visit Windows**: Timing tolerances → `Timing.windowLower/windowUpper` (ISO 8601)
 - **Subject State Machine**: Subject flow → `TransitionRule` on `Encounter`
@@ -88,18 +107,17 @@ GOOGLE_CLOUD_LOCATION=us-central1  # or your preferred region
 - **Footnote Conditions**: Conditional rules → `Condition` + `ScheduledDecisionInstance`
 - **Titration Schedules**: Dose escalation → `StudyElement` with `TransitionRule`
 
-**v7.2 Promotion**: Execution model data is now promoted to **native USDM entities** instead of extensions. Core USDM output is self-sufficient without parsing `11_execution_model.json`.
+**Promotion**: Execution model data promoted to **native USDM entities** instead of extensions.
+</details>
 
-### 🔄 Pipeline Context Architecture
-- Context-aware extraction where each phase builds on previous results
-- Extractors receive existing SoA entities (epochs, encounters, activities) as context
-- Eliminates arbitrary labels that require downstream resolution
-- Consistent ID references across USDM output
+<details>
+<summary><b>v7.1 — Phase Registry Architecture</b></summary>
 
-### 🔗 Entity Reconciliation Framework
-- LLM-based semantic mapping of abstract concepts to protocol entities
-- Epoch, encounter, and activity reconciliation with ID preservation
-- Replaces fuzzy string matching with intelligent entity resolution
+- **`main_v3.py`** — Clean phase registry pattern replacing monolithic `main_v2.py`
+- **Parallel execution** — Run independent phases concurrently with `--parallel`
+- **Default `--complete` mode** — Full extraction when no specific phases requested
+- **Gemini Flash 3** — Pipeline optimized and tested with `gemini-3-flash-preview`
+</details>
 
 ### 🏛️ USDM 4.0 Alignment
 - All entities placed at correct locations per CDISC `dataStructure.yml`
@@ -513,53 +531,62 @@ SoA extraction tested on Alexion Wilson's Disease protocol (Jan 2026):
 ```
 Protocol2USDMv3/
 ├── main_v3.py                # Entry point (phase registry architecture)
-├── llm_providers.py          # LLM provider abstraction layer
-├── pipeline/                 # ⭐ NEW: Phase registry architecture
-│   ├── __init__.py           # Package exports
+├── llm_config.yaml           # LLM task-optimized parameters
+├── llm_providers.py          # Legacy LLM provider (see providers/)
+├── providers/                # LLM provider abstraction layer
+│   ├── base.py               # BaseProvider ABC
+│   ├── factory.py            # Auto-detect provider from model name
+│   ├── gemini.py             # GeminiProvider (Vertex AI)
+│   ├── openai_provider.py    # OpenAIProvider
+│   ├── anthropic_provider.py # AnthropicProvider
+│   └── tracker.py            # TokenUsageTracker with per-phase cost
+├── pipeline/                 # Phase registry architecture
 │   ├── base_phase.py         # BasePhase class with extract/combine/save
 │   ├── phase_registry.py     # Phase registration and discovery
 │   ├── orchestrator.py       # Pipeline orchestration with parallel support
-│   └── phases/               # Individual phase implementations
-│       ├── eligibility.py    # Eligibility criteria phase
-│       ├── metadata.py       # Study metadata phase
-│       ├── objectives.py     # Objectives & endpoints phase
-│       ├── studydesign.py    # Study design phase
-│       ├── interventions.py  # Interventions phase
-│       ├── narrative.py      # Narrative structure phase
-│       ├── advanced.py       # Advanced entities phase
-│       ├── procedures.py     # Procedures & devices phase
-│       ├── scheduling.py     # Scheduling logic phase
-│       ├── docstructure.py   # Document structure phase
-│       ├── amendmentdetails.py # Amendment details phase
-│       └── execution.py      # Execution model phase
+│   ├── combiner.py           # combine_to_full_usdm(), USDM defaults
+│   ├── integrations.py       # SAP/sites integration, content refs
+│   ├── post_processing.py    # Entity reconciliation, procedure linking
+│   ├── promotion.py          # Extension→USDM promotion rules
+│   └── phases/               # 14 individual phase implementations
 ├── core/                     # Core modules
-│   ├── usdm_schema_loader.py # Official CDISC schema parser + USDMEntity base
-│   ├── usdm_types_generated.py # 86+ USDM types (hand-written, schema-aligned)
-│   ├── usdm_types.py         # Unified type interface
-│   ├── llm_client.py         # LLM client utilities
+│   ├── usdm_schema_loader.py # Official CDISC schema parser
+│   ├── usdm_types_generated.py # 86+ USDM types (schema-aligned)
+│   ├── llm_client.py         # LLM client utilities (call_llm, call_llm_with_image)
 │   ├── constants.py          # Centralized constants (DEFAULT_MODEL, etc.)
-│   ├── evs_client.py         # NCI EVS API client with caching
-│   ├── provenance.py         # ProvenanceTracker for source tracking
+│   ├── evs_client.py         # NCI EVS API client with 30-day cache
+│   ├── terminology_codes.py  # EVS-verified NCI C-codes
+│   ├── m11_mapping_config.py # M11 section ↔ USDM entity mapping
 │   └── reconciliation/       # Entity reconciliation framework
 ├── extraction/               # Extraction modules
-│   ├── header_analyzer.py    # Vision-based structure
-│   ├── text_extractor.py     # Text-based extraction
+│   ├── pipeline_context.py   # PipelineContext with PHASE_FIELD_OWNERSHIP
+│   ├── header_analyzer.py    # Vision-based SoA structure
+│   ├── text_extractor.py     # Text-based SoA extraction
 │   ├── pipeline.py           # SoA extraction pipeline
-│   ├── pipeline_context.py   # Context passing between extractors
-│   ├── execution/            # Execution model extractors (27 modules)
-│   └── */                    # Domain extractors (13 modules)
-├── enrichment/               # Terminology enrichment
-│   └── terminology.py        # NCI EVS enrichment
+│   ├── execution/            # Execution model extractors
+│   └── */                    # Domain extractors (metadata, eligibility, etc.)
+├── rendering/                # M11 document rendering
+│   ├── m11_renderer.py       # DOCX generation with 7-pass section mapper
+│   ├── composers.py          # 9 entity composers (synopsis, objectives, etc.)
+│   └── tables.py             # SoA table rendering
 ├── validation/               # Validation package
 │   ├── usdm_validator.py     # Official USDM validation
-│   └── cdisc_conformance.py  # CDISC CORE conformance
+│   ├── cdisc_conformance.py  # CDISC CORE conformance
+│   └── m11_conformance.py    # M11 conformance scoring
+├── enrichment/               # Terminology enrichment
+│   └── terminology.py        # NCI EVS enrichment
+├── tests/                    # Unit tests (372 tests, 42.5% coverage)
+│   ├── test_extractors.py    # Mocked LLM extractor tests (58)
+│   ├── test_composers.py     # M11 composer tests (22)
+│   ├── test_pipeline_context.py # PipelineContext tests (48)
+│   ├── test_e2e_pipeline.py  # E2E integration tests (33)
+│   └── conftest.py           # Shared fixtures, --run-e2e marker
 ├── scripts/                  # Utility scripts
 │   ├── extractors/           # Standalone CLI extractors
 │   └── debug/                # Debug utilities
-├── testing/                  # Benchmarking & integration tests
-├── tests/                    # Unit tests
+├── testing/                  # Benchmarking tools
 ├── docs/                     # Architecture documentation
-├── web-ui/                   # React/Next.js protocol viewer
+├── web-ui/                   # React/Next.js protocol viewer & editor
 ├── tools/                    # External tools (CDISC CORE engine)
 ├── archive/                  # Archived legacy files
 └── output/                   # Pipeline outputs
@@ -572,18 +599,41 @@ For detailed architecture, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 ## Testing
 
 ```bash
-# Run unit tests
-pytest tests/
+# Run all unit tests (372 tests, ~2 min)
+python -m pytest tests/ -v
 
-# Run integration tests
-python testing/test_pipeline_steps.py
+# Run with coverage report
+python -m pytest tests/ --cov --cov-report=term-missing
 
-# Run golden standard comparison
-python testing/compare_golden_vs_extracted.py
+# Run with HTML coverage report
+python -m pytest tests/ --cov --cov-report=html
+# Open htmlcov/index.html in browser
+
+# Run E2E integration tests (requires recent pipeline output)
+python -m pytest tests/test_e2e_pipeline.py --run-e2e -v
+
+# Run specific test modules
+python -m pytest tests/test_extractors.py -v      # Mocked LLM extractor tests
+python -m pytest tests/test_composers.py -v       # M11 composer tests
+python -m pytest tests/test_pipeline_context.py -v # PipelineContext tests
+python -m pytest tests/test_pipeline_registry.py -v # Phase registry tests
+python -m pytest tests/test_m11_regression.py -v   # M11 renderer tests
 
 # Benchmark models
-python testing/benchmark_models.py
+python testing/benchmark.py <golden.json> <extracted_dir/> [--verbose]
 ```
+
+### Test Coverage (v7.3)
+
+| Module | Coverage |
+|--------|----------|
+| `extraction/pipeline_context.py` | 93.6% |
+| `validation/m11_conformance.py` | 99.4% |
+| `extraction/metadata/schema.py` | 96.6% |
+| `extraction/eligibility/schema.py` | 92.1% |
+| `rendering/composers.py` | 88.0% |
+| `rendering/m11_renderer.py` | 89.6% |
+| **Overall** | **42.5%** |
 
 ---
 
@@ -640,18 +690,20 @@ CDISC_API_KEY=...           # For CORE rules cache (get from library.cdisc.org)
 
 The following items are planned for upcoming releases:
 
-- [ ] **Web UI Protocol Editing**: Enable direct USDM JSON editing via browser with draft/publish workflow
 - [ ] **Biomedical Concepts**: Add extraction via a separate comprehensive canonical model for standardized concept mapping
 - [ ] **Multi-Protocol Comparison**: Compare USDM outputs across protocol versions
-- [x] **Gemini Flash 3 Optimization**: Pipeline optimized for `gemini-3-flash` with Vertex AI *(completed v7.0)*
-- [x] **Execution Model Extraction**: Time anchors, visit windows, state machine, dosing regimens *(completed v7.0)*
+- [ ] **Structured JSON Logging** (E12): Replace print-based logging with structured JSON
+- [ ] **Provenance Tracking for Expansion Phases** (E14): Track source pages/sections per entity
+- [ ] **Prompt Versioning** (E15): Hash prompts, store in output metadata
+- [x] **ICH M11 Document Rendering**: DOCX generation with 9 entity composers *(completed v7.3)*
+- [x] **Testing Infrastructure**: 372 tests, 42.5% coverage, mocked LLM tests *(completed v7.3)*
+- [x] **Pipeline Decomposition**: combiner/integrations/post_processing/promotion *(completed v7.3)*
+- [x] **Web UI Semantic Editing**: JSON Patch editing with draft/publish workflow *(completed v7.2.1)*
 - [x] **Execution Model Promotion**: Native USDM entities instead of extensions *(completed v7.2)*
-- [x] **Pipeline Context Architecture**: Context-aware extraction with accumulated results *(completed v7.0)*
-- [x] **Entity Reconciliation Framework**: LLM-based semantic mapping and ID preservation *(completed v7.0)*
+- [x] **Phase Registry Architecture**: `main_v3.py` with parallel execution *(completed v7.1)*
+- [x] **Gemini Flash 3 Optimization**: Pipeline optimized for `gemini-3-flash` *(completed v7.0)*
 - [x] **Modern Web UI**: Complete React/Next.js revamp from Streamlit *(completed v7.0)*
 - [x] **USDM 4.0 Alignment**: All entities at correct locations per `dataStructure.yml` *(completed v7.0)*
-- [x] **NCI Code Mappings**: Dose forms, timing types, identifier types with NCI codes *(completed v7.0)*
-- [x] **Repository Cleanup**: Organized scripts, archived legacy files *(completed v7.0)*
 
 ---
 

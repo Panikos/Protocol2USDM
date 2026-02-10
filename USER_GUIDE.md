@@ -1,11 +1,12 @@
 # Protocol2USDM User Guide
 
-**Version:** 7.2  
-**Last Updated:** 2026-01-30
+**Version:** 7.3  
+**Last Updated:** 2026-02-10
 
-> **📢 What's New in v7.2:** **Execution model promotion** to native USDM entities (Condition, ScheduledDecisionInstance, StudyElement, TransitionRule), `Timing.windowLower/windowUpper` population, `Epoch/Encounter.previousId/nextId` chains, post-promotion validation.
+> **📢 What's New in v7.3:** **ICH M11 DOCX rendering** (9 entity composers, 7-pass section mapper, conformance scoring), **testing infrastructure** (372 tests, 42.5% coverage, mocked LLM tests), **pipeline decomposition** (combiner/integrations/post_processing/promotion), **LLM provider abstraction** (`providers/` module).
 
-> **v7.1:** Phase registry architecture (`main_v3.py`), default `--complete` mode, `gemini-3-flash-preview` as default model, parallel execution support.
+> **v7.2:** Execution model promotion to native USDM entities, semantic editing in web UI.
+> **v7.1:** Phase registry architecture (`main_v3.py`), default `--complete` mode, parallel execution.
 
 ---
 
@@ -624,16 +625,35 @@ Error: GOOGLE_API_KEY environment variable not set
 
 ---
 
-## Step-by-Step Testing
+## Testing
 
-For debugging, run individual steps:
+### Unit Tests
 
 ```bash
-python test_pipeline_steps.py protocol.pdf --step 3   # Header analysis
-python test_pipeline_steps.py protocol.pdf --step 4   # Text extraction
-python test_pipeline_steps.py protocol.pdf --step 5   # Vision validation
-python test_pipeline_steps.py protocol.pdf --step 6   # Build output
-python test_pipeline_steps.py protocol.pdf --step all # All steps
+# Run all unit tests (372 tests, ~2 min)
+python -m pytest tests/ -v
+
+# Run with coverage report
+python -m pytest tests/ --cov --cov-report=term-missing
+
+# Run specific test modules
+python -m pytest tests/test_extractors.py -v       # Mocked LLM extractor tests
+python -m pytest tests/test_composers.py -v        # M11 composer tests
+python -m pytest tests/test_pipeline_context.py -v  # PipelineContext tests
+python -m pytest tests/test_m11_regression.py -v    # M11 renderer tests
+```
+
+### E2E Integration Tests
+
+```bash
+# Requires recent pipeline output (reuses if <1h old)
+python -m pytest tests/test_e2e_pipeline.py --run-e2e -v
+```
+
+### Benchmarking
+
+```bash
+python testing/benchmark.py <golden.json> <extracted_dir/> [--verbose]
 ```
 
 ---
@@ -661,4 +681,4 @@ A: Check logs in `output/<protocol>/`, capture error messages, report to maintai
 
 ---
 
-**Last Updated:** 2026-01-30
+**Last Updated:** 2026-02-10

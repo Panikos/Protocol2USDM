@@ -1,8 +1,8 @@
 # Protocol2USDM Quick Reference
 
-**v7.2** | One-page command reference
+**v7.3** | One-page command reference
 
-> **Current:** Phase registry architecture (`main_v3.py`), default `--complete` mode, `gemini-3-flash-preview` default model, parallel execution support.
+> **Current:** M11 DOCX rendering, 372 unit tests (42.5% coverage), pipeline decomposition, LLM provider abstraction, phase registry architecture (`main_v3.py`), default `--complete` mode, `gemini-3-flash-preview` default model, parallel execution.
 
 ---
 
@@ -142,6 +142,8 @@ cd web-ui && npm run dev
 ```
 output/<protocol>/
 ├── protocol_usdm.json            ⭐ Combined full protocol output
+├── m11_protocol.docx             ⭐ ICH M11-formatted Word document
+├── m11_conformance.json          # M11 conformance scoring
 ├── protocol_usdm_provenance.json  # UUID-based provenance
 ├── 9_final_soa.json              ⭐ SoA extraction
 ├── 9_final_soa_provenance.json    # Source tracking (text/vision/both)
@@ -180,25 +182,21 @@ output/<protocol>/
 ## Testing
 
 ```bash
-pytest                              # All tests
-pytest tests/test_pipeline_api.py   # Pipeline tests
-pytest tests/test_llm_providers.py  # Provider tests
+# All unit tests (372 tests, ~2 min)
+python -m pytest tests/ -v
 
-# SoA step-by-step debugging
-python test_pipeline_steps.py protocol.pdf --step 3  # Header
-python test_pipeline_steps.py protocol.pdf --step 4  # Text
-python test_pipeline_steps.py protocol.pdf --step 5  # Vision
-python test_pipeline_steps.py protocol.pdf --step 6  # Output
+# With coverage
+python -m pytest tests/ --cov --cov-report=term-missing
 
-# USDM Expansion steps
-python test_pipeline_steps.py protocol.pdf --step M  # Metadata
-python test_pipeline_steps.py protocol.pdf --step E  # Eligibility
-python test_pipeline_steps.py protocol.pdf --step O  # Objectives
-python test_pipeline_steps.py protocol.pdf --step D  # Study Design
-python test_pipeline_steps.py protocol.pdf --step I  # Interventions
-python test_pipeline_steps.py protocol.pdf --step N  # Narrative
-python test_pipeline_steps.py protocol.pdf --step A  # Advanced
-python test_pipeline_steps.py protocol.pdf --step expand  # All phases
+# Specific test modules
+python -m pytest tests/test_extractors.py -v       # Mocked LLM tests (58)
+python -m pytest tests/test_composers.py -v        # M11 composers (22)
+python -m pytest tests/test_pipeline_context.py -v  # PipelineContext (48)
+python -m pytest tests/test_pipeline_registry.py -v # Phase registry (11)
+python -m pytest tests/test_m11_regression.py -v    # M11 renderer
+
+# E2E integration (requires recent pipeline output)
+python -m pytest tests/test_e2e_pipeline.py --run-e2e -v
 ```
 
 ---
@@ -288,5 +286,5 @@ CDISC_API_KEY=...            # For CORE (optional)
 
 **Docs:** [README.md](README.md) | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
-**Last Updated:** 2026-02-07  
-**Version:** 7.2
+**Last Updated:** 2026-02-10  
+**Version:** 7.3

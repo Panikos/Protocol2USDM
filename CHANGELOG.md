@@ -4,6 +4,103 @@ All notable changes documented here. Dates in ISO-8601.
 
 ---
 
+## [7.3.0] – 2026-02-10
+
+### ICH M11 Document Rendering
+
+Full ICH M11-formatted DOCX generation from USDM JSON.
+
+#### New Files
+
+| File | Purpose |
+|------|---------|
+| **`rendering/m11_renderer.py`** | DOCX generation with 7-pass section mapper |
+| **`rendering/composers.py`** | 9 entity composers (synopsis, objectives, design, eligibility, interventions, estimands, discontinuation, safety, statistics) |
+| **`rendering/tables.py`** | SoA table rendering for M11 documents |
+| **`validation/m11_conformance.py`** | M11 conformance scoring (title page, synopsis, section coverage) |
+| **`core/m11_mapping_config.py`** | M11 section ↔ USDM entity mapping configuration |
+
+#### Key Features
+
+- **7-pass section mapper** — Maps extracted narrative + composed content to 14 M11 sections
+- **Dual-path architecture** — Extractors (narrative from PDF) vs Composers (USDM entities → prose)
+- **M11 conformance validator** — Title page, synopsis, section coverage scoring
+- **Output**: `m11_protocol.docx` + `m11_conformance.json`
+
+### Pipeline Decomposition
+
+Decomposed monolithic `pipeline/orchestrator.py` into focused modules:
+
+| Module | Lines | Purpose |
+|--------|-------|---------|
+| **`pipeline/combiner.py`** | 420 | `combine_to_full_usdm()`, USDM defaults, SoA integration |
+| **`pipeline/integrations.py`** | 289 | SAP/sites integration, content refs, estimand reconciliation |
+| **`pipeline/post_processing.py`** | 436 | Entity reconciliation, activity sources, procedure linking |
+| **`pipeline/promotion.py`** | 260 | Extension→USDM promotion rules (4 rules) |
+
+### LLM Provider Abstraction
+
+New `providers/` module replacing inline LLM logic:
+
+| File | Purpose |
+|------|---------|
+| **`providers/base.py`** | `BaseProvider` ABC with `generate()` and `generate_with_image()` |
+| **`providers/factory.py`** | Auto-detect provider from model name |
+| **`providers/gemini.py`** | GeminiProvider (Vertex AI) |
+| **`providers/openai_provider.py`** | OpenAIProvider |
+| **`providers/anthropic_provider.py`** | AnthropicProvider |
+| **`providers/tracker.py`** | `TokenUsageTracker` with per-phase cost breakdown |
+
+### Testing Infrastructure (E7–E13)
+
+| Enhancement | Details |
+|-------------|---------|
+| **E7** | `pyproject.toml` with pytest config, test discovery |
+| **E8** | E2E integration tests (33 tests, `--run-e2e` marker) |
+| **E9** | `pytest-cov` coverage tracking with HTML reports |
+| **E10** | Mocked LLM tests for 5 extractors + 9 composers (80 tests) |
+| **E13** | PipelineContext contract tests (48 tests, 93.6% coverage) |
+
+#### New Test Files
+
+| File | Tests | Coverage Target |
+|------|-------|----------------|
+| `tests/test_extractors.py` | 58 | metadata, eligibility, objectives, studydesign, interventions |
+| `tests/test_composers.py` | 22 | All 9 M11 entity composers |
+| `tests/test_pipeline_context.py` | 48 | PipelineContext (93.6% coverage) |
+| `tests/test_e2e_pipeline.py` | 33 | Full pipeline integration |
+| `tests/test_pipeline_registry.py` | 11 | Phase registry, promotion, orchestrator |
+| `tests/test_token_tracker.py` | 12 | TokenUsageTracker |
+| `tests/test_m11_regression.py` | — | M11 renderer regression |
+| `tests/conftest.py` | — | Shared fixtures, `--run-e2e` marker |
+
+**Test suite**: 372 passed, 33 skipped (e2e), 0 failed  
+**Coverage**: 42.5% overall
+
+### PipelineContext Contract Tightening
+
+- Extracted `PHASE_FIELD_OWNERSHIP` constant — single source of truth for merge field mapping
+- 48 tests covering init, update, query, snapshot/merge, serialization, and contract validation
+- `pipeline_context.py` coverage: 0% → 93.6%
+
+### Files Changed
+
+**New:**
+* `rendering/` — M11 renderer, composers, tables
+* `validation/m11_conformance.py` — M11 conformance scoring
+* `providers/` — LLM provider abstraction (6 files)
+* `pipeline/combiner.py`, `pipeline/integrations.py`, `pipeline/post_processing.py`, `pipeline/promotion.py`
+* `core/m11_mapping_config.py` — M11↔USDM mapping
+* `tests/` — 8 new test files
+* `pyproject.toml` — pytest + coverage config
+
+**Modified:**
+* `extraction/pipeline_context.py` — `PHASE_FIELD_OWNERSHIP` constant
+* `requirements.txt` — Added `pytest-cov>=7.0.0`
+* `.gitignore` — Added `htmlcov/`, `.coverage`
+
+---
+
 ## [7.2.1] – 2026-02-08
 
 ### Execution Model Promoter Bug Fixes
