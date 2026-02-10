@@ -659,7 +659,7 @@ When prompts change, existing extraction results become unreproducible. Storing 
 | E21 | LLM response streaming for progress visibility | MEDIUM | 2d |
 | E22 | Chunked EVS cache (per-code files instead of single JSON) | LOW | 1d |
 | E23 | Async LLM calls (`asyncio`/`aiohttp` instead of threading) | MEDIUM | 5d |
-| E24 | Cache-aware execution model (model+prompt hash in cache key) | MEDIUM | 1d |
+| E24 | Cache-aware execution model (model+prompt hash in cache key) | ✅ FIXED | 1d |
 
 ---
 

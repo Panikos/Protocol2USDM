@@ -92,6 +92,7 @@ from .cache import (
     get_cache,
     set_cache,
     cached,
+    hash_prompt,
 )
 from .pipeline_integration import (
     extract_execution_model,
@@ -183,4 +184,5 @@ __all__ = [
     "get_cache",
     "set_cache",
     "cached",
+    "hash_prompt",
 ]

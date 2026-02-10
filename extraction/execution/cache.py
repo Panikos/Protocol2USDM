@@ -77,8 +77,43 @@ class ExecutionCache:
             self.cache_dir.mkdir(parents=True, exist_ok=True)
     
     def _get_key(self, *args, **kwargs) -> str:
-        """Generate cache key from arguments."""
+        """Generate cache key from arguments.
+
+        The key incorporates all positional and keyword arguments so that
+        different models, prompts, or inputs produce distinct keys.
+        """
         key_data = json.dumps({"args": args, "kwargs": kwargs}, sort_keys=True, default=str)
+        return hashlib.sha256(key_data.encode()).hexdigest()[:16]
+
+    @staticmethod
+    def make_key(
+        func_name: str,
+        *,
+        model: str = "",
+        prompt_hash: str = "",
+        **extra,
+    ) -> str:
+        """Build a deterministic cache key that includes model + prompt hash.
+
+        This is the recommended way to create keys for LLM-backed extractors
+        so that switching models or editing prompts automatically invalidates
+        stale entries.
+
+        Args:
+            func_name: Logical name of the extractor / function.
+            model: LLM model identifier (e.g. ``gemini-2.5-pro``).
+            prompt_hash: Truncated SHA-256 of the prompt text.  Use
+                :func:`hash_prompt` to compute this.
+            **extra: Any additional discriminators (pdf_path, pages, etc.).
+
+        Returns:
+            16-char hex digest suitable for use as a cache key.
+        """
+        key_data = json.dumps(
+            {"fn": func_name, "model": model, "prompt": prompt_hash, **extra},
+            sort_keys=True,
+            default=str,
+        )
         return hashlib.sha256(key_data.encode()).hexdigest()[:16]
     
     def _get_cache_path(self, key: str) -> Path:
@@ -232,31 +267,54 @@ def set_cache(cache: ExecutionCache) -> None:
     _global_cache = cache
 
 
+def hash_prompt(prompt_text: str) -> str:
+    """Return a 12-char hex digest of *prompt_text*.
+
+    Suitable for embedding in cache keys so that prompt edits
+    automatically invalidate stale cached LLM responses.
+    """
+    return hashlib.sha256(prompt_text.encode()).hexdigest()[:12]
+
+
 def cached(
     key_prefix: str = "",
     ttl_seconds: Optional[int] = None,
+    include_model: bool = True,
+    prompt_text: Optional[str] = None,
 ) -> Callable:
     """
     Decorator to cache function results.
+
+    Cache keys now incorporate the ``model`` kwarg (if present) and an
+    optional prompt hash so that switching models or editing prompts
+    produces a cache miss instead of returning stale data.
     
     Args:
         key_prefix: Prefix for cache keys
         ttl_seconds: Custom TTL for this function
+        include_model: If True, include the ``model`` kwarg in the key
+        prompt_text: If provided, its hash is folded into the key
         
     Returns:
         Decorated function
     """
+    _prompt_hash = hash_prompt(prompt_text) if prompt_text else ""
+
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         def wrapper(*args, **kwargs):
             cache = get_cache()
             
-            # Generate cache key
+            # Generate cache key — model + prompt aware
             key_data = {
                 "prefix": key_prefix or func.__name__,
                 "args": args[1:] if args else [],  # Skip 'self' if present
                 "kwargs": kwargs,
             }
+            if include_model and "model" in kwargs:
+                key_data["_model"] = kwargs["model"]
+            if _prompt_hash:
+                key_data["_prompt"] = _prompt_hash
             key = hashlib.sha256(
                 json.dumps(key_data, sort_keys=True, default=str).encode()
             ).hexdigest()[:16]
@@ -264,15 +322,21 @@ def cached(
             # Check cache
             cached_value = cache.get(key)
             if cached_value is not None:
-                logger.debug(f"Cache hit for {func.__name__}")
+                logger.debug(f"Cache hit for {func.__name__} (key={key})")
                 return cached_value
             
             # Call function
             result = func(*args, **kwargs)
             
-            # Store in cache
-            cache.set(key, result, ttl_seconds=ttl_seconds)
-            logger.debug(f"Cached result for {func.__name__}")
+            # Store in cache with model metadata
+            metadata = {}
+            if "model" in kwargs:
+                metadata["model"] = kwargs["model"]
+            if _prompt_hash:
+                metadata["prompt_hash"] = _prompt_hash
+            cache.set(key, result, ttl_seconds=ttl_seconds,
+                      metadata=metadata if metadata else None)
+            logger.debug(f"Cached result for {func.__name__} (key={key})")
             
             return result
         
@@ -280,24 +344,27 @@ def cached(
     return decorator
 
 
-def cache_pdf_text(pdf_path: str, pages: Optional[list] = None) -> str:
+def cache_pdf_text(
+    pdf_path: str,
+    pages: Optional[list] = None,
+    model: str = "",
+) -> str:
     """
     Get cached PDF text or extract and cache it.
     
     Args:
         pdf_path: Path to PDF file
         pages: Optional list of page numbers
+        model: LLM model name (included in key for model-specific caching)
         
     Returns:
         Cached key for the PDF text
     """
-    import hashlib
-    
-    # Generate key based on file path and modification time
+    # Generate key based on file path, modification time, and model
     path = Path(pdf_path)
     if not path.exists():
         return ""
     
     mtime = path.stat().st_mtime
-    key_data = f"{pdf_path}:{mtime}:{pages}"
+    key_data = f"{pdf_path}:{mtime}:{pages}:{model}"
     return hashlib.sha256(key_data.encode()).hexdigest()[:16]
