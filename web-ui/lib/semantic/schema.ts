@@ -167,6 +167,50 @@ export const PublishResponseSchema = z.object({
 
 export type PublishResponse = z.infer<typeof PublishResponseSchema>;
 
+// ── Audit Trail (P3) ─────────────────────────────────────────────
+
+/**
+ * A single entry in the protocol change log.
+ * Forms a SHA-256 hash chain: each entry's `hash` covers its own content
+ * plus the previous entry's hash, creating a tamper-evident chain.
+ */
+export interface ChangeLogEntry {
+  /** Sequential version number (1-based) */
+  version: number;
+  /** ISO 8601 timestamp */
+  publishedAt: string;
+  /** User who published */
+  publishedBy: string;
+  /** Reason for change (required on publish) */
+  reason: string;
+  /** Number of JSON Patch operations applied */
+  patchCount: number;
+  /** Summary of changed paths (first N) */
+  changedPaths: string[];
+  /** SHA-256 of the published USDM JSON */
+  usdmHash: string;
+  /** SHA-256 of the previous entry's hash (empty string for first entry) */
+  previousHash: string;
+  /** SHA-256 hash of this entry (covers all fields above + previousHash) */
+  hash: string;
+  /** Validation result summary */
+  validation?: {
+    schemaValid: boolean;
+    usdmValid: boolean;
+    errorCount: number;
+    warningCount: number;
+    forcedPublish: boolean;
+  };
+}
+
+/**
+ * The full change log for a protocol.
+ */
+export interface ChangeLog {
+  protocolId: string;
+  entries: ChangeLogEntry[];
+}
+
 // ── ID-based Path Helpers ──────────────────────────────────────────
 
 /** Common USDM base paths */

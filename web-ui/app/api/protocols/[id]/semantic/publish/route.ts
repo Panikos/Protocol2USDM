@@ -11,6 +11,7 @@ import {
   getUsdmPath,
   getOutputPath,
   computeUsdmRevision,
+  appendChangeLogEntry,
 } from '@/lib/semantic/storage';
 import { applySemanticPatch } from '@/lib/semantic/patcher';
 import { validateProtocolId } from '@/lib/sanitize';
@@ -158,13 +159,25 @@ export async function POST(
       return NextResponse.json({ error: idCheck.error }, { status: 400 });
     }
     
-    // Parse optional request body for forcePublish flag
+    // Parse request body
     let forcePublish = false;
+    let reason = '';
+    let publishedBy = 'ui-user';
     try {
       const body = await request.json();
       forcePublish = body?.forcePublish === true;
+      reason = typeof body?.reason === 'string' ? body.reason.trim() : '';
+      publishedBy = typeof body?.publishedBy === 'string' ? body.publishedBy.trim() : 'ui-user';
     } catch {
-      // No body or invalid JSON — default to non-forced
+      // No body or invalid JSON — default values
+    }
+    
+    // Require reason-for-change (skip for force-publish which already showed the modal)
+    if (!reason && !forcePublish) {
+      return NextResponse.json(
+        { error: 'reason_required', message: 'A reason for change is required to publish.' },
+        { status: 400 }
+      );
     }
     
     // 1. Load draft
@@ -264,7 +277,26 @@ export async function POST(
     };
     const publishedFile = await writePublished(protocolId, publishedDraft);
     
-    // 10. Clear draft_latest.json
+    // 10. Append audit trail entry
+    try {
+      await appendChangeLogEntry(protocolId, {
+        publishedBy,
+        reason: reason || '(force-published with validation errors)',
+        patch: draft.patch,
+        candidateJson,
+        validation: {
+          schemaValid: validation.schema.valid,
+          usdmValid: validation.usdm.valid,
+          errorCount: validation.schema.errors + validation.usdm.errors,
+          warningCount: validation.schema.warnings + validation.usdm.warnings,
+          forcedPublish: hasErrors && forcePublish,
+        },
+      });
+    } catch (auditErr) {
+      console.error('Failed to write audit trail (publish succeeded):', auditErr);
+    }
+    
+    // 11. Clear draft_latest.json
     const { deleteDraftLatest } = await import('@/lib/semantic/storage');
     await deleteDraftLatest(protocolId);
     

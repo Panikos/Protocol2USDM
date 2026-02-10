@@ -20,6 +20,8 @@ import path from 'path';
 import crypto from 'crypto';
 import { validateProtocolId, validateFilename, ensureWithinRoot } from '@/lib/sanitize';
 
+import type { ChangeLogEntry, ChangeLog, JsonPatchOp } from '@/lib/semantic/schema';
+
 const OUTPUT_DIR = process.env.PROTOCOL_OUTPUT_DIR || 
   path.join(process.cwd(), '..', 'output');
 
@@ -397,4 +399,143 @@ export async function findSnapshotForPublish(
   } catch {
     return null;
   }
+}
+
+// ── Audit Trail (P3) ─────────────────────────────────────────────
+
+/**
+ * Compute SHA-256 hash of a string.
+ */
+function sha256(data: string): string {
+  return crypto.createHash('sha256').update(data, 'utf-8').digest('hex');
+}
+
+/**
+ * Compute the hash for a change log entry.
+ * Covers all fields except `hash` itself, creating a tamper-evident chain.
+ */
+export function computeEntryHash(entry: Omit<ChangeLogEntry, 'hash'>): string {
+  const payload = JSON.stringify({
+    version: entry.version,
+    publishedAt: entry.publishedAt,
+    publishedBy: entry.publishedBy,
+    reason: entry.reason,
+    patchCount: entry.patchCount,
+    changedPaths: entry.changedPaths,
+    usdmHash: entry.usdmHash,
+    previousHash: entry.previousHash,
+    validation: entry.validation,
+  });
+  return sha256(payload);
+}
+
+/**
+ * Get the path to the change log file for a protocol.
+ */
+function getChangeLogPath(protocolId: string): string {
+  const paths = getSemanticPaths(protocolId);
+  return path.join(paths.base, 'changelog.json');
+}
+
+/**
+ * Read the change log for a protocol.
+ */
+export async function readChangeLog(protocolId: string): Promise<ChangeLog> {
+  const logPath = getChangeLogPath(protocolId);
+  try {
+    const content = await fs.readFile(logPath, 'utf-8');
+    return JSON.parse(content) as ChangeLog;
+  } catch {
+    return { protocolId, entries: [] };
+  }
+}
+
+/**
+ * Build and append a new change log entry after a successful publish.
+ */
+export async function appendChangeLogEntry(
+  protocolId: string,
+  params: {
+    publishedBy: string;
+    reason: string;
+    patch: JsonPatchOp[];
+    candidateJson: string;
+    validation: ChangeLogEntry['validation'];
+  }
+): Promise<ChangeLogEntry> {
+  await ensureSemanticFolders(protocolId);
+  const log = await readChangeLog(protocolId);
+
+  const previousEntry = log.entries.length > 0 ? log.entries[log.entries.length - 1] : null;
+  const previousHash = previousEntry?.hash ?? '';
+
+  // Extract unique top-level changed paths (first 20)
+  const changedPaths = [
+    ...new Set(params.patch.map(op => {
+      const segments = op.path.split('/').filter(Boolean);
+      return '/' + segments.slice(0, 4).join('/');
+    }))
+  ].slice(0, 20);
+
+  const entryWithoutHash: Omit<ChangeLogEntry, 'hash'> = {
+    version: (previousEntry?.version ?? 0) + 1,
+    publishedAt: new Date().toISOString(),
+    publishedBy: params.publishedBy,
+    reason: params.reason,
+    patchCount: params.patch.length,
+    changedPaths,
+    usdmHash: sha256(params.candidateJson),
+    previousHash,
+    validation: params.validation,
+  };
+
+  const entry: ChangeLogEntry = {
+    ...entryWithoutHash,
+    hash: computeEntryHash(entryWithoutHash),
+  };
+
+  log.entries.push(entry);
+
+  const logPath = getChangeLogPath(protocolId);
+  const content = JSON.stringify(log, null, 2);
+  const tmpPath = logPath + '.tmp';
+  await fs.writeFile(tmpPath, content, 'utf-8');
+  await fs.rename(tmpPath, logPath);
+
+  return entry;
+}
+
+/**
+ * Verify the integrity of the change log hash chain.
+ * Returns the first broken entry index, or -1 if chain is valid.
+ */
+export function verifyChangeLogIntegrity(log: ChangeLog): {
+  valid: boolean;
+  brokenAt?: number;
+  message?: string;
+} {
+  for (let i = 0; i < log.entries.length; i++) {
+    const entry = log.entries[i];
+    const expectedPrevHash = i === 0 ? '' : log.entries[i - 1].hash;
+
+    if (entry.previousHash !== expectedPrevHash) {
+      return {
+        valid: false,
+        brokenAt: i,
+        message: `Entry ${i} (v${entry.version}): previousHash mismatch`,
+      };
+    }
+
+    const { hash: _storedHash, ...rest } = entry;
+    const computedHash = computeEntryHash(rest);
+    if (computedHash !== entry.hash) {
+      return {
+        valid: false,
+        brokenAt: i,
+        message: `Entry ${i} (v${entry.version}): hash mismatch (tampered?)`,
+      };
+    }
+  }
+
+  return { valid: true };
 }

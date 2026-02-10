@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Clock, RotateCcw, FileText, ChevronDown, ChevronRight, AlertCircle, CheckCircle } from 'lucide-react';
+import { X, Clock, RotateCcw, FileText, ChevronDown, ChevronRight, AlertCircle, CheckCircle, Shield, ShieldAlert, Hash } from 'lucide-react';
+import type { ChangeLogEntry } from '@/lib/semantic/schema';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -25,6 +26,7 @@ interface VersionHistoryPanelProps {
 }
 
 export function VersionHistoryPanel({ protocolId, isOpen, onClose }: VersionHistoryPanelProps) {
+  const [activeTab, setActiveTab] = useState<'history' | 'changelog'>('history');
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,13 +35,19 @@ export function VersionHistoryPanel({ protocolId, isOpen, onClose }: VersionHist
   const [entryDetails, setEntryDetails] = useState<Record<string, unknown> | null>(null);
   const [isReverting, setIsReverting] = useState(false);
   const [showRevertConfirm, setShowRevertConfirm] = useState<string | null>(null);
+  const [changeLog, setChangeLog] = useState<ChangeLogEntry[]>([]);
+  const [changeLogIntegrity, setChangeLogIntegrity] = useState<{ valid: boolean; message?: string } | null>(null);
+  const [isLoadingLog, setIsLoadingLog] = useState(false);
+  const [logError, setLogError] = useState<string | null>(null);
 
-  // Load history when panel opens
+  // Load data when panel opens or tab changes
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && activeTab === 'history') {
       loadHistory();
+    } else if (isOpen && activeTab === 'changelog') {
+      loadChangeLog();
     }
-  }, [isOpen, protocolId]);
+  }, [isOpen, protocolId, activeTab]);
 
   const loadHistory = async () => {
     setIsLoading(true);
@@ -56,6 +64,25 @@ export function VersionHistoryPanel({ protocolId, isOpen, onClose }: VersionHist
       setError(err instanceof Error ? err.message : 'Failed to load history');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadChangeLog = async () => {
+    setIsLoadingLog(true);
+    setLogError(null);
+    try {
+      const response = await fetch(`/api/protocols/${protocolId}/semantic/changelog`);
+      if (response.ok) {
+        const data = await response.json();
+        setChangeLog(data.entries || []);
+        setChangeLogIntegrity(data.integrity || null);
+      } else {
+        setLogError('Failed to load change log');
+      }
+    } catch (err) {
+      setLogError(err instanceof Error ? err.message : 'Failed to load change log');
+    } finally {
+      setIsLoadingLog(false);
     }
   };
 
@@ -114,9 +141,44 @@ export function VersionHistoryPanel({ protocolId, isOpen, onClose }: VersionHist
           </Button>
         </div>
 
+        {/* Tabs */}
+        <div className="flex border-b">
+          <button
+            className={cn(
+              'flex-1 py-2 text-sm font-medium border-b-2 transition-colors',
+              activeTab === 'history'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            )}
+            onClick={() => setActiveTab('history')}
+          >
+            <Clock className="h-4 w-4 inline mr-1.5" />
+            Versions
+          </button>
+          <button
+            className={cn(
+              'flex-1 py-2 text-sm font-medium border-b-2 transition-colors',
+              activeTab === 'changelog'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            )}
+            onClick={() => setActiveTab('changelog')}
+          >
+            <Shield className="h-4 w-4 inline mr-1.5" />
+            Audit Trail
+          </button>
+        </div>
+
         {/* Content */}
         <div className="flex-1 overflow-auto p-4">
-          {isLoading ? (
+          {activeTab === 'changelog' ? (
+            <ChangeLogView
+              entries={changeLog}
+              integrity={changeLogIntegrity}
+              isLoading={isLoadingLog}
+              error={logError}
+            />
+          ) : isLoading ? (
             <div className="flex items-center justify-center py-8">
               <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full" />
             </div>
@@ -276,9 +338,9 @@ export function VersionHistoryPanel({ protocolId, isOpen, onClose }: VersionHist
 
         {/* Footer */}
         <div className="border-t p-4">
-          <Button variant="outline" className="w-full" onClick={loadHistory}>
+          <Button variant="outline" className="w-full" onClick={activeTab === 'changelog' ? loadChangeLog : loadHistory}>
             <RotateCcw className="h-4 w-4 mr-2" />
-            Refresh History
+            Refresh {activeTab === 'changelog' ? 'Audit Trail' : 'History'}
           </Button>
         </div>
       </div>
@@ -299,6 +361,176 @@ function ValidationBadge({ label, valid }: { label: string; valid: boolean }) {
       )}
       {label}
     </span>
+  );
+}
+
+function ChangeLogView({
+  entries,
+  integrity,
+  isLoading,
+  error,
+}: {
+  entries: ChangeLogEntry[];
+  integrity: { valid: boolean; message?: string } | null;
+  isLoading: boolean;
+  error: string | null;
+}) {
+  const [expandedVersion, setExpandedVersion] = useState<number | null>(null);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center gap-2 p-4 bg-red-50 border border-red-200 rounded-md text-red-700">
+        <AlertCircle className="h-5 w-5" />
+        <span>{error}</span>
+      </div>
+    );
+  }
+
+  if (entries.length === 0) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        <Shield className="h-12 w-12 mx-auto mb-2 opacity-50" />
+        <p>No audit trail yet</p>
+        <p className="text-sm">Entries will appear after you publish changes</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {/* Hash chain integrity banner */}
+      {integrity && (
+        <div className={cn(
+          'flex items-center gap-2 p-3 rounded-md text-sm',
+          integrity.valid
+            ? 'bg-green-50 border border-green-200 text-green-700'
+            : 'bg-red-50 border border-red-200 text-red-700'
+        )}>
+          {integrity.valid ? (
+            <Shield className="h-5 w-5 flex-shrink-0" />
+          ) : (
+            <ShieldAlert className="h-5 w-5 flex-shrink-0" />
+          )}
+          <div>
+            <span className="font-medium">
+              {integrity.valid ? 'Hash chain verified' : 'Hash chain broken'}
+            </span>
+            {integrity.message && (
+              <span className="block text-xs mt-0.5">{integrity.message}</span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Entries (newest first) */}
+      {[...entries].reverse().map((entry) => (
+        <div key={entry.version} className="border rounded-lg overflow-hidden">
+          <button
+            className={cn(
+              'w-full flex items-center justify-between p-3 text-left hover:bg-muted/50 transition-colors',
+              expandedVersion === entry.version && 'bg-muted/50'
+            )}
+            onClick={() => setExpandedVersion(expandedVersion === entry.version ? null : entry.version)}
+          >
+            <div className="flex items-center gap-3">
+              {expandedVersion === entry.version ? (
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              )}
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs px-1.5 py-0.5 rounded font-medium bg-blue-100 text-blue-700">
+                    v{entry.version}
+                  </span>
+                  {entry.validation?.forcedPublish && (
+                    <span className="text-xs px-1.5 py-0.5 rounded font-medium bg-amber-100 text-amber-700">
+                      Forced
+                    </span>
+                  )}
+                  {entry.version === entries.length && (
+                    <span className="text-xs text-muted-foreground">(current)</span>
+                  )}
+                </div>
+                <div className="text-sm text-muted-foreground mt-1">
+                  {new Date(entry.publishedAt).toLocaleString()}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {entry.validation && (
+                entry.validation.schemaValid && entry.validation.usdmValid ? (
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                ) : (
+                  <AlertCircle className="h-4 w-4 text-amber-500" />
+                )
+              )}
+              <span className="text-xs text-muted-foreground">
+                {entry.patchCount} changes
+              </span>
+            </div>
+          </button>
+
+          {expandedVersion === entry.version && (
+            <div className="border-t p-3 bg-muted/30 space-y-3">
+              {/* Reason for change */}
+              <div>
+                <div className="text-xs font-medium text-muted-foreground mb-1">Reason for Change</div>
+                <div className="text-sm bg-background border rounded-md p-2">{entry.reason}</div>
+              </div>
+
+              {/* Published by */}
+              <div className="text-sm">
+                <span className="text-muted-foreground">Published by:</span>{' '}
+                <span className="font-medium">{entry.publishedBy}</span>
+              </div>
+
+              {/* Validation summary */}
+              {entry.validation && (
+                <div className="space-y-1">
+                  <div className="text-xs font-medium text-muted-foreground">Validation</div>
+                  <div className="flex flex-wrap gap-2">
+                    <ValidationBadge label="Schema" valid={entry.validation.schemaValid} />
+                    <ValidationBadge label="USDM" valid={entry.validation.usdmValid} />
+                    {(entry.validation.errorCount > 0 || entry.validation.warningCount > 0) && (
+                      <span className="text-xs text-muted-foreground">
+                        {entry.validation.errorCount} errors, {entry.validation.warningCount} warnings
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Changed paths */}
+              {entry.changedPaths.length > 0 && (
+                <div className="space-y-1">
+                  <div className="text-xs font-medium text-muted-foreground">Changed Paths</div>
+                  <div className="text-xs font-mono bg-slate-900 text-slate-300 rounded p-2 max-h-32 overflow-auto">
+                    {entry.changedPaths.map((p, i) => (
+                      <div key={i}>{p}</div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Hash */}
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Hash className="h-3 w-3" />
+                <span className="font-mono">{entry.hash.slice(0, 16)}...</span>
+              </div>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
   );
 }
 

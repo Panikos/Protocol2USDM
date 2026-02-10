@@ -56,6 +56,7 @@ export function UnifiedDraftControls({
   const [showPublishConfirm, setShowPublishConfirm] = useState(false);
   const [showPublishResult, setShowPublishResult] = useState(false);
   const [pendingForcePublish, setPendingForcePublish] = useState(false);
+  const [publishReason, setPublishReason] = useState('');
 
   // Combined state
   const hasAnyChanges = hasSemanticDraft || semanticIsDirty || overlayIsDirty;
@@ -139,7 +140,7 @@ export function UnifiedDraftControls({
         const response = await fetch(`/api/protocols/${protocolId}/semantic/publish`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({}),
+          body: JSON.stringify({ reason: publishReason }),
         });
         
         const result = await response.json();
@@ -291,20 +292,30 @@ export function UnifiedDraftControls({
         {isSaving ? 'Saving...' : 'Save'}
       </Button>
 
-      {/* Publish with confirmation */}
+      {/* Publish with confirmation + reason */}
       {showPublishConfirm ? (
-        <div className="flex items-center gap-2 p-2 bg-muted rounded-md">
-          <span className="text-sm">Publish all changes?</span>
-          <Button size="sm" onClick={handlePublish} disabled={isPublishing}>
-            {isPublishing ? 'Publishing...' : 'Confirm'}
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowPublishConfirm(false)}
-          >
-            Cancel
-          </Button>
+        <div className="flex flex-col gap-2 p-3 bg-muted rounded-md min-w-[300px]">
+          <span className="text-sm font-medium">Publish all changes?</span>
+          <textarea
+            className="w-full text-sm border rounded-md p-2 bg-background resize-none"
+            rows={2}
+            placeholder="Reason for change (required)"
+            value={publishReason}
+            onChange={(e) => setPublishReason(e.target.value)}
+            autoFocus
+          />
+          <div className="flex items-center gap-2">
+            <Button size="sm" onClick={handlePublish} disabled={isPublishing || !publishReason.trim()}>
+              {isPublishing ? 'Publishing...' : 'Confirm'}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => { setShowPublishConfirm(false); setPublishReason(''); }}
+            >
+              Cancel
+            </Button>
+          </div>
         </div>
       ) : (
         <Button
@@ -365,7 +376,7 @@ export function UnifiedDraftControls({
               const forceResponse = await fetch(`/api/protocols/${protocolId}/semantic/publish`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ forcePublish: true }),
+                body: JSON.stringify({ forcePublish: true, reason: publishReason || '(force-published)' }),
               });
               const forceResult = await forceResponse.json();
               setPublishResult(forceResult as PublishResponse);
