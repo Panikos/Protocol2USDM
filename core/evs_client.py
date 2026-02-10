@@ -30,7 +30,8 @@ logger = logging.getLogger(__name__)
 
 # Cache configuration
 CACHE_DIR = Path(__file__).parent / "evs_cache"
-CACHE_FILE = CACHE_DIR / "nci_codes.json"
+CACHE_FILE = CACHE_DIR / "nci_codes.json"  # legacy monolithic file
+CACHE_CODES_DIR = CACHE_DIR / "codes"  # chunked per-code directory
 CACHE_TTL_SECONDS = 60 * 60 * 24 * 30  # 30 days
 
 # API endpoints
@@ -38,32 +39,89 @@ EVS_CT_BASE = os.getenv("EVS_API_BASE", "https://evs.nci.nih.gov/ctapi/v1")
 EVS_REST_BASE = "https://api-evsrest.nci.nih.gov/api/v1"
 
 
+def _key_to_filename(key: str) -> str:
+    """Convert a cache key like 'ncit:C85826' to a safe filename."""
+    return key.replace(":", "_").replace("/", "_").replace(" ", "_") + ".json"
+
+
 class EVSClient:
-    """Client for NCI EVS APIs with local caching."""
+    """Client for NCI EVS APIs with per-code chunked caching.
+
+    Each cache entry is stored as a separate JSON file under
+    ``evs_cache/codes/``.  On first instantiation the legacy monolithic
+    ``nci_codes.json`` is auto-migrated to per-code files.
+    """
     
-    def __init__(self, cache_file: Path = CACHE_FILE):
-        self.cache_file = cache_file
+    def __init__(self, cache_dir: Path = CACHE_DIR):
+        self.cache_dir = cache_dir
+        self.codes_dir = cache_dir / "codes"
         self.cache: Dict[str, dict] = {}
         self._load_cache()
     
     def _load_cache(self) -> None:
-        """Load cache from disk."""
-        if self.cache_file.exists():
+        """Load cache — migrate from legacy monolithic file if needed."""
+        self.codes_dir.mkdir(parents=True, exist_ok=True)
+
+        # Auto-migrate legacy monolithic cache
+        legacy_file = self.cache_dir / "nci_codes.json"
+        if legacy_file.exists():
+            self._migrate_legacy(legacy_file)
+
+        # Load per-code files into memory
+        for code_file in self.codes_dir.glob("*.json"):
             try:
-                with open(self.cache_file, 'r', encoding='utf-8') as f:
-                    self.cache = json.load(f)
-                logger.debug(f"Loaded {len(self.cache)} codes from EVS cache")
+                with open(code_file, 'r', encoding='utf-8') as f:
+                    entry = json.load(f)
+                key = entry.get("_key", code_file.stem)
+                self.cache[key] = entry
             except Exception as e:
-                logger.warning(f"EVS cache corrupted, starting fresh: {e}")
-                self.cache = {}
-        else:
-            self.cache = {}
+                logger.warning(f"Skipping corrupt cache file {code_file.name}: {e}")
+
+        if self.cache:
+            logger.debug(f"Loaded {len(self.cache)} codes from chunked EVS cache")
+
+    def _migrate_legacy(self, legacy_file: Path) -> None:
+        """Migrate monolithic nci_codes.json to per-code files."""
+        try:
+            with open(legacy_file, 'r', encoding='utf-8') as f:
+                legacy_data = json.load(f)
+            migrated = 0
+            for key, entry in legacy_data.items():
+                entry["_key"] = key
+                dest = self.codes_dir / _key_to_filename(key)
+                if not dest.exists():
+                    with open(dest, 'w', encoding='utf-8') as f:
+                        json.dump(entry, f, indent=2)
+                    migrated += 1
+            # Rename legacy file so migration doesn't re-run
+            legacy_file.rename(legacy_file.with_suffix(".json.migrated"))
+            logger.info(f"Migrated {migrated} entries from legacy EVS cache")
+        except Exception as e:
+            logger.warning(f"Legacy EVS cache migration failed: {e}")
     
+    def _save_entry(self, key: str, entry: dict) -> None:
+        """Save a single cache entry to its own file."""
+        entry["_key"] = key
+        self.cache[key] = entry
+        dest = self.codes_dir / _key_to_filename(key)
+        try:
+            self.codes_dir.mkdir(parents=True, exist_ok=True)
+            with open(dest, 'w', encoding='utf-8') as f:
+                json.dump(entry, f, indent=2)
+        except (IOError, TypeError) as e:
+            logger.warning(f"Failed to write cache entry {key}: {e}")
+
     def _save_cache(self) -> None:
-        """Save cache to disk."""
-        self.cache_file.parent.mkdir(parents=True, exist_ok=True)
-        with open(self.cache_file, 'w', encoding='utf-8') as f:
-            json.dump(self.cache, f, indent=2)
+        """Save all in-memory entries to per-code files (batch)."""
+        self.codes_dir.mkdir(parents=True, exist_ok=True)
+        for key, entry in self.cache.items():
+            entry["_key"] = key
+            dest = self.codes_dir / _key_to_filename(key)
+            try:
+                with open(dest, 'w', encoding='utf-8') as f:
+                    json.dump(entry, f, indent=2)
+            except (IOError, TypeError) as e:
+                logger.warning(f"Failed to write cache entry {key}: {e}")
     
     def _is_fresh(self, entry: dict) -> bool:
         """Check if cache entry is still valid."""
@@ -137,16 +195,14 @@ class EVSClient:
                 ):
                     # Cache and return exact match
                     cache_key = f"ct:{term_lower}"
-                    self.cache[cache_key] = {"_cached_at": time.time(), "data": entry}
-                    self._save_cache()
+                    self._save_entry(cache_key, {"_cached_at": time.time(), "data": entry})
                     return entry
             
             # Return first result if no exact match
             if data:
                 entry = data[0]
                 cache_key = f"ct:{term_lower}"
-                self.cache[cache_key] = {"_cached_at": time.time(), "data": entry}
-                self._save_cache()
+                self._save_entry(cache_key, {"_cached_at": time.time(), "data": entry})
                 return entry
         
         return None
@@ -196,7 +252,7 @@ class EVSClient:
         }
         
         # Cache the result with additional metadata
-        self.cache[cache_key] = {
+        self._save_entry(cache_key, {
             "_cached_at": time.time(),
             "data": result,
             "_raw": {
@@ -205,8 +261,7 @@ class EVSClient:
                 "definitions": data.get("definitions", []),
                 "synonyms": data.get("synonyms", []),
             }
-        }
-        self._save_cache()
+        })
         
         return result
     
@@ -238,19 +293,22 @@ class EVSClient:
         """Get cache statistics."""
         total = len(self.cache)
         fresh = sum(1 for v in self.cache.values() if self._is_fresh(v))
+        disk_files = len(list(self.codes_dir.glob("*.json"))) if self.codes_dir.exists() else 0
         
         return {
             "total_entries": total,
             "fresh_entries": fresh,
             "stale_entries": total - fresh,
-            "cache_file": str(self.cache_file),
+            "disk_files": disk_files,
+            "cache_dir": str(self.codes_dir),
         }
     
     def clear_cache(self) -> None:
-        """Clear the cache."""
+        """Clear the cache (memory + per-code files)."""
         self.cache = {}
-        if self.cache_file.exists():
-            self.cache_file.unlink()
+        if self.codes_dir.exists():
+            for f in self.codes_dir.glob("*.json"):
+                f.unlink()
         logger.info("EVS cache cleared")
     
     def update_cache(self, codes: List[str]) -> Dict[str, int]:
@@ -267,6 +325,10 @@ class EVSClient:
             cache_key = f"ncit:{code}"
             if cache_key in self.cache:
                 del self.cache[cache_key]
+            # Also remove per-code file
+            code_file = self.codes_dir / _key_to_filename(cache_key)
+            if code_file.exists():
+                code_file.unlink()
             
             result = self.fetch_ncit_code(code)
             if result:
