@@ -649,7 +649,7 @@ When prompts change, existing extraction results become unreproducible. Storing 
 | E15 | Prompt versioning — hash prompts, store in output metadata | ✅ FIXED | 1d |
 | E16 | Define `PipelineError` hierarchy | ✅ FIXED | 1d |
 | E17 | Consolidate terminology codes (eliminate `USDM_CODES` duplication) | ✅ FIXED | 1d |
-| E18 | M11 mapping YAML schema validation at load time | LOW | 1d |
+| E18 | M11 mapping YAML schema validation at load time | ✅ FIXED | 1d |
 | E19 | SoA table rendering in M11 DOCX | ✅ FIXED | 3d |
 
 ### Phase 4: Performance & Scalability (Weeks 9-12)
