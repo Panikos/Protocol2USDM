@@ -541,7 +541,7 @@ def _write_run_manifest(output_dir, args, config, phases_to_run):
 
 def _print_soa_results(result):
     """Print SoA extraction results."""
-    print()
+    logger.info("")
     logger.info("="*60)
     if result.success:
         logger.info("SOA EXTRACTION COMPLETED SUCCESSFULLY")
