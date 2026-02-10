@@ -4,6 +4,7 @@ Unit tests for TokenUsageTracker (providers/tracker.py).
 Tests thread safety, per-phase tracking, cost estimation, and summary generation.
 """
 
+import logging
 import threading
 import pytest
 from providers.tracker import TokenUsageTracker
@@ -143,23 +144,23 @@ class TestTokenUsageTracker:
         assert summary1["total_tokens"] == 150
         assert summary2["total_tokens"] == 450
 
-    def test_print_summary_does_not_crash(self, capsys):
+    def test_print_summary_does_not_crash(self, caplog):
         """print_summary runs without error for various models."""
         self.tracker.set_phase("test")
         self.tracker.add_usage(1000, 500)
         # Should not raise for any model
-        for model in ["gpt-4o", "gemini-3-flash", "claude-opus-4-5", "unknown-model"]:
-            self.tracker.print_summary(model=model)
-        captured = capsys.readouterr()
-        assert "TOKEN USAGE SUMMARY" in captured.out
+        with caplog.at_level(logging.INFO, logger="providers.tracker"):
+            for model in ["gpt-4o", "gemini-3-flash", "claude-opus-4-5", "unknown-model"]:
+                self.tracker.print_summary(model=model)
+        assert "TOKEN USAGE SUMMARY" in caplog.text
 
-    def test_cost_calculation_gemini(self, capsys):
+    def test_cost_calculation_gemini(self, caplog):
         """Verify cost calculation for gemini-3-flash pricing."""
         self.tracker.set_phase("test")
         self.tracker.add_usage(1_000_000, 1_000_000)
-        self.tracker.print_summary(model="gemini-3-flash")
-        captured = capsys.readouterr()
+        with caplog.at_level(logging.INFO, logger="providers.tracker"):
+            self.tracker.print_summary(model="gemini-3-flash")
         # gemini-3-flash: $0.50/1M input + $3.00/1M output = $3.50
-        assert "0.50" in captured.out  # input cost
-        assert "3.00" in captured.out  # output cost
-        assert "3.50" in captured.out  # total cost
+        assert "0.50" in caplog.text  # input cost
+        assert "3.00" in caplog.text  # output cost
+        assert "3.50" in caplog.text  # total cost

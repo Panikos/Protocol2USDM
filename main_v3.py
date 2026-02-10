@@ -24,14 +24,14 @@ from datetime import datetime
 from dotenv import load_dotenv
 load_dotenv()
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='[%(levelname)s] %(message)s'
-)
+from core.logging_config import configure_logging
+
+# Logging is configured later in main() after arg parsing.
+# Provide a module-level logger that will inherit the root config.
 logger = logging.getLogger(__name__)
 
 from extraction import run_from_files, PipelineConfig
-from core.constants import DEFAULT_MODEL
+from core.constants import DEFAULT_MODEL, SYSTEM_NAME, SYSTEM_VERSION
 from llm_providers import usage_tracker
 
 # Import pipeline module (triggers phase registration)
@@ -97,12 +97,24 @@ Examples:
     expansion_group.add_argument("--parallel", action="store_true", help="Run independent phases in parallel")
     expansion_group.add_argument("--max-workers", type=int, default=4, help="Max parallel workers (default: 4)")
     
+    # Logging options
+    log_group = parser.add_argument_group('Logging')
+    log_group.add_argument("--json-log", action="store_true", help="Emit structured JSON log lines to stderr")
+    log_group.add_argument("--log-file", type=str, metavar="PATH", help="Write JSON logs to file")
+    
     # Conditional sources
     conditional_group = parser.add_argument_group('Conditional Sources')
     conditional_group.add_argument("--sap", type=str, metavar="PATH", help="Path to SAP PDF")
     conditional_group.add_argument("--sites", type=str, metavar="PATH", help="Path to site list (CSV/Excel)")
     
     args = parser.parse_args()
+    
+    # Configure logging (must happen before any log output)
+    configure_logging(
+        json_mode=getattr(args, 'json_log', False),
+        log_file=getattr(args, 'log_file', None),
+        level=logging.DEBUG if getattr(args, 'verbose', False) else logging.INFO,
+    )
     
     # Handle --update-cache
     if args.update_cache:
@@ -179,7 +191,7 @@ Examples:
     
     # Print configuration
     logger.info("="*60)
-    logger.info("Protocol2USDM v7.2.0 - Refactored Pipeline (v3)")
+    logger.info(f"{SYSTEM_NAME} v{SYSTEM_VERSION} - Refactored Pipeline (v3)")
     logger.info("="*60)
     logger.info(f"Input PDF: {args.pdf_path}")
     logger.info(f"Output Directory: {output_dir}")
@@ -479,8 +491,8 @@ def _write_run_manifest(output_dir, args, config, phases_to_run):
         pass
     
     manifest = {
-        "tool": "Protocol2USDM",
-        "version": "7.2.0",
+        "tool": SYSTEM_NAME,
+        "version": SYSTEM_VERSION,
         "timestamp": datetime.now().isoformat(),
         "input": {
             "pdf_path": os.path.abspath(args.pdf_path) if args.pdf_path else None,
