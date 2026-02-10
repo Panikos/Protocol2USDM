@@ -32,7 +32,6 @@ def test_epoch_reconciler():
     # Verify name cleaning
     assert result[0]['name'] == 'Screening', f"Expected 'Screening', got '{result[0]['name']}'"
     print("  ✓ Name cleaning works")
-    return True
 
 
 def test_activity_reconciler():
@@ -58,7 +57,6 @@ def test_activity_reconciler():
     blood_draw = next((a for a in result if 'Blood' in a['name']), None)
     assert blood_draw and blood_draw['name'] == 'Blood Draw', "Footnote should be stripped"
     print("  ✓ Activity reconciliation works")
-    return True
 
 
 def test_encounter_reconciler():
@@ -83,7 +81,6 @@ def test_encounter_reconciler():
         print(f"  - {enc['name']}{day_info}")
     
     print("  ✓ Encounter reconciliation works")
-    return True
 
 
 if __name__ == '__main__':

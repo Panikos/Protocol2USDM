@@ -1,0 +1,78 @@
+[project]
+name = "protocol2usdm"
+version = "7.2.0"
+description = "AI-powered pipeline that extracts structured data from clinical protocol PDFs and produces USDM v4.0-compliant JSON and ICH M11-formatted DOCX documents"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+# Default: run fast unit tests only. Use --run-e2e for full pipeline tests.
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--tb=short",
+]
+
+markers = [
+    "e2e: end-to-end pipeline test (slow, requires LLM API key)",
+]
+
+# Exclude stale/legacy directories
+norecursedirs = [
+    "tests/archive",
+    "tests/test_outputs",
+    "archive",
+    ".git",
+    "node_modules",
+    "web-ui",
+]
+
+filterwarnings = [
+    "ignore::DeprecationWarning:importlib._bootstrap",
+    "ignore::pytest.PytestReturnNotNoneWarning",
+]
+
+# ---------------------------------------------------------------------------
+# Coverage configuration (pytest-cov / coverage.py)
+# ---------------------------------------------------------------------------
+[tool.coverage.run]
+source = [
+    "core",
+    "extraction",
+    "pipeline",
+    "providers",
+    "rendering",
+    "validation",
+    "enrichment",
+]
+omit = [
+    "*/tests/*",
+    "*/archive/*",
+    "*/test_outputs/*",
+    "scripts/*",
+    "tools/*",
+    "web-ui/*",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true
+precision = 1
+# Exclude common non-testable patterns
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "pass",
+    "\\.\\.\\.\\s*$",
+]
+# Sort by coverage % ascending (worst-covered files first)
+sort = "Cover"
+
+[tool.coverage.html]
+directory = "htmlcov"
