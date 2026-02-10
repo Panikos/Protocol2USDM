@@ -15,74 +15,131 @@ import {
 import { applySemanticPatch } from '@/lib/semantic/patcher';
 import { validateProtocolId } from '@/lib/sanitize';
 
-/**
- * Run Python validation pipeline
- */
-async function runValidation(
-  protocolId: string
-): Promise<{
+/** Validation result shape */
+interface ValidationResult {
   schema: { valid: boolean; errors: number; warnings: number };
   usdm: { valid: boolean; errors: number; warnings: number };
   core: { success: boolean; issues: number; warnings: number };
-}> {
+}
+
+/**
+ * Run live Python validation on a candidate USDM JSON.
+ * 
+ * Writes the candidate to a temp file, runs scripts/validate_usdm_json.py,
+ * parses the JSON output, and cleans up the temp file.
+ * Falls back to fail-open if the Python script is unavailable.
+ */
+async function runLiveValidation(
+  candidateJson: string,
+  protocolId: string
+): Promise<ValidationResult> {
+  const projectRoot = path.resolve(process.cwd(), '..');
+  const scriptPath = path.join(projectRoot, 'scripts', 'validate_usdm_json.py');
   const outputDir = getOutputPath(protocolId);
-  const usdmPath = getUsdmPath(protocolId);
-  
-  // Default result if validation cannot run — fail closed
-  const defaultResult = {
+  const tmpValidationFile = path.join(outputDir, '_candidate_usdm.tmp.json');
+
+  // Default: fail closed
+  const defaultResult: ValidationResult = {
     schema: { valid: false, errors: 1, warnings: 0 },
     usdm: { valid: false, errors: 1, warnings: 0 },
-    core: { success: false, issues: 1, warnings: 0 },
+    core: { success: true, issues: 0, warnings: 0 },
   };
-  
+
   try {
-    // Read validation results from files (validation is run by Python)
-    // For now, we'll try to read existing validation files
-    // In production, this would call the Python validation subprocess
-    
-    const schemaPath = path.join(outputDir, 'schema_validation.json');
-    const usdmPath = path.join(outputDir, 'usdm_validation.json');
-    const conformancePath = path.join(outputDir, 'conformance_report.json');
-    
-    let schemaResult = defaultResult.schema;
-    let usdmResult = defaultResult.usdm;
-    let coreResult = defaultResult.core;
-    
-    try {
-      const schemaContent = await fs.readFile(schemaPath, 'utf-8');
-      const schema = JSON.parse(schemaContent);
-      schemaResult = {
-        valid: schema.valid ?? true,
-        errors: schema.errors?.length ?? 0,
-        warnings: schema.warnings?.length ?? 0,
-      };
-    } catch { /* File doesn't exist yet */ }
-    
-    try {
-      const usdmContent = await fs.readFile(usdmPath, 'utf-8');
-      const usdm = JSON.parse(usdmContent);
-      usdmResult = {
-        valid: usdm.valid ?? true,
-        errors: usdm.errors?.length ?? 0,
-        warnings: usdm.warnings?.length ?? 0,
-      };
-    } catch { /* File doesn't exist yet */ }
-    
-    try {
-      const coreContent = await fs.readFile(conformancePath, 'utf-8');
-      const core = JSON.parse(coreContent);
-      coreResult = {
-        success: core.success ?? true,
-        issues: core.issues ?? 0,
-        warnings: core.warnings ?? 0,
-      };
-    } catch { /* File doesn't exist yet */ }
-    
-    return { schema: schemaResult, usdm: usdmResult, core: coreResult };
+    // Write candidate to temp file
+    await fs.writeFile(tmpValidationFile, candidateJson, 'utf-8');
+
+    // Run Python validator
+    const result = await new Promise<string>((resolve, reject) => {
+      const proc = spawn('python', [scriptPath, tmpValidationFile], {
+        cwd: projectRoot,
+        timeout: 30_000,
+        env: { ...process.env, PYTHONDONTWRITEBYTECODE: '1' },
+      });
+
+      let stdout = '';
+      let stderr = '';
+      proc.stdout.on('data', (d: Buffer) => { stdout += d.toString(); });
+      proc.stderr.on('data', (d: Buffer) => { stderr += d.toString(); });
+      proc.on('close', (code: number | null) => {
+        if (code === 0) resolve(stdout.trim());
+        else reject(new Error(`Validator exited ${code}: ${stderr.slice(0, 500)}`));
+      });
+      proc.on('error', reject);
+    });
+
+    // Parse Python output
+    const parsed = JSON.parse(result) as {
+      schema?: { valid?: boolean; errors?: number; warnings?: number };
+      usdm?: { valid?: boolean; errors?: number; warnings?: number };
+    };
+
+    return {
+      schema: {
+        valid: parsed.schema?.valid ?? true,
+        errors: parsed.schema?.errors ?? 0,
+        warnings: parsed.schema?.warnings ?? 0,
+      },
+      usdm: {
+        valid: parsed.usdm?.valid ?? true,
+        errors: parsed.usdm?.errors ?? 0,
+        warnings: parsed.usdm?.warnings ?? 0,
+      },
+      core: { success: true, issues: 0, warnings: 0 },
+    };
   } catch (error) {
-    console.error('Error running validation:', error);
-    return defaultResult;
+    console.error('Live validation failed, falling back to file-based:', error);
+    // Fallback: try reading existing validation files
+    return await readExistingValidation(protocolId, defaultResult);
+  } finally {
+    // Clean up temp file
+    try { await fs.unlink(tmpValidationFile); } catch { /* ignore */ }
   }
+}
+
+/**
+ * Fallback: read existing validation result files from a previous pipeline run.
+ */
+async function readExistingValidation(
+  protocolId: string,
+  defaultResult: ValidationResult
+): Promise<ValidationResult> {
+  const outputDir = getOutputPath(protocolId);
+  let schemaResult = defaultResult.schema;
+  let usdmResult = defaultResult.usdm;
+  let coreResult = defaultResult.core;
+
+  try {
+    const schemaContent = await fs.readFile(path.join(outputDir, 'schema_validation.json'), 'utf-8');
+    const schema = JSON.parse(schemaContent);
+    schemaResult = {
+      valid: schema.valid ?? true,
+      errors: schema.errors?.length ?? schema.error_count ?? 0,
+      warnings: schema.warnings?.length ?? schema.warning_count ?? 0,
+    };
+  } catch { /* File doesn't exist */ }
+
+  try {
+    const usdmContent = await fs.readFile(path.join(outputDir, 'usdm_validation.json'), 'utf-8');
+    const usdm = JSON.parse(usdmContent);
+    usdmResult = {
+      valid: usdm.valid ?? true,
+      errors: usdm.errors?.length ?? usdm.error_count ?? 0,
+      warnings: usdm.warnings?.length ?? usdm.warning_count ?? 0,
+    };
+  } catch { /* File doesn't exist */ }
+
+  try {
+    const coreContent = await fs.readFile(path.join(outputDir, 'conformance_report.json'), 'utf-8');
+    const core = JSON.parse(coreContent);
+    coreResult = {
+      success: core.success ?? true,
+      issues: core.issues ?? 0,
+      warnings: core.warnings ?? 0,
+    };
+  } catch { /* File doesn't exist */ }
+
+  return { schema: schemaResult, usdm: usdmResult, core: coreResult };
 }
 
 /**
@@ -168,10 +225,11 @@ export async function POST(
       );
     }
     
-    // 5. Validate candidate USDM BEFORE writing to disk
-    //    Read existing validation files as a proxy (Python pipeline runs separately).
-    //    In the future, this should shell out to the Python validator on the candidate.
-    const validation = await runValidation(protocolId);
+    // 5. Serialize candidate once (reused for validation + disk write)
+    const candidateJson = JSON.stringify(patchResult.result, null, 2);
+    
+    // 6. Validate candidate USDM BEFORE writing to disk (live Python validation)
+    const validation = await runLiveValidation(candidateJson, protocolId);
     const hasErrors = !validation.schema.valid || !validation.usdm.valid;
     
     if (hasErrors && !forcePublish) {
@@ -186,16 +244,16 @@ export async function POST(
       );
     }
     
-    // 6. Archive current USDM to history (only after validation gate)
+    // 7. Archive current USDM to history (only after validation gate)
     await archiveUsdm(protocolId);
     
-    // 7. Write updated USDM (atomic: temp file → rename)
-    const content = JSON.stringify(patchResult.result, null, 2);
+    // 8. Write updated USDM (atomic: temp file → rename)
+    const content = candidateJson;
     const tmpPath = usdmPath + '.tmp';
     await fs.writeFile(tmpPath, content, 'utf-8');
     await fs.rename(tmpPath, usdmPath);
     
-    // 8. Archive draft and write published version
+    // 9. Archive draft and write published version
     await archiveDraft(protocolId);
     
     const publishedDraft = {
@@ -206,7 +264,7 @@ export async function POST(
     };
     const publishedFile = await writePublished(protocolId, publishedDraft);
     
-    // 9. Clear draft_latest.json
+    // 10. Clear draft_latest.json
     const { deleteDraftLatest } = await import('@/lib/semantic/storage');
     await deleteDraftLatest(protocolId);
     

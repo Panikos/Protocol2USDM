@@ -55,6 +55,7 @@ export function UnifiedDraftControls({
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
   const [showPublishConfirm, setShowPublishConfirm] = useState(false);
   const [showPublishResult, setShowPublishResult] = useState(false);
+  const [pendingForcePublish, setPendingForcePublish] = useState(false);
 
   // Combined state
   const hasAnyChanges = hasSemanticDraft || semanticIsDirty || overlayIsDirty;
@@ -143,28 +144,18 @@ export function UnifiedDraftControls({
         
         const result = await response.json();
         
-        // Handle validation gate — offer force-publish
+        // Handle validation gate — show errors and let user decide
         if (!response.ok && result.error === 'validation_failed') {
-          toast.error('Validation errors found. Publishing anyway...');
-          const forceResponse = await fetch(`/api/protocols/${protocolId}/semantic/publish`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ forcePublish: true }),
-          });
-          const forceResult = await forceResponse.json();
-          setPublishResult(forceResult as PublishResponse);
+          setPublishResult({ ...result, success: false } as PublishResponse);
+          setPendingForcePublish(true);
           setShowPublishResult(true);
-          if (forceResult.success) {
-            useSemanticStore.getState().clearDraft();
-            toast.success('Changes published (with validation warnings)');
-            if (onPublishSuccess) await onPublishSuccess();
-          } else {
-            setShowPublishConfirm(false);
-            setIsPublishing(false);
-            return;
-          }
+          toast.error('Validation errors found — review before publishing.');
+          setShowPublishConfirm(false);
+          setIsPublishing(false);
+          return;
         } else {
           setPublishResult(result as PublishResponse);
+          setPendingForcePublish(false);
           setShowPublishResult(true);
           if (result.success) {
             useSemanticStore.getState().clearDraft();
@@ -365,7 +356,32 @@ export function UnifiedDraftControls({
       {showPublishResult && lastPublishResult && (
         <PublishResultModal
           result={lastPublishResult}
-          onClose={() => setShowPublishResult(false)}
+          onClose={() => { setShowPublishResult(false); setPendingForcePublish(false); }}
+          canForcePublish={pendingForcePublish}
+          isForcePublishing={isPublishing}
+          onForcePublish={async () => {
+            setIsPublishing(true);
+            try {
+              const forceResponse = await fetch(`/api/protocols/${protocolId}/semantic/publish`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ forcePublish: true }),
+              });
+              const forceResult = await forceResponse.json();
+              setPublishResult(forceResult as PublishResponse);
+              setPendingForcePublish(false);
+              if (forceResult.success) {
+                useSemanticStore.getState().clearDraft();
+                toast.success('Changes published (with validation warnings)');
+                if (onPublishSuccess) await onPublishSuccess();
+              }
+            } catch (err) {
+              const msg = err instanceof Error ? err.message : 'Force publish failed';
+              toast.error(msg);
+            } finally {
+              setIsPublishing(false);
+            }
+          }}
         />
       )}
     </div>
@@ -375,20 +391,25 @@ export function UnifiedDraftControls({
 interface PublishResultModalProps {
   result: PublishResponse;
   onClose: () => void;
+  canForcePublish?: boolean;
+  isForcePublishing?: boolean;
+  onForcePublish?: () => void;
 }
 
-function PublishResultModal({ result, onClose }: PublishResultModalProps) {
+function PublishResultModal({ result, onClose, canForcePublish, isForcePublishing, onForcePublish }: PublishResultModalProps) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+      <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
         <div className="flex items-center gap-3 mb-4">
           {result.success ? (
             <CheckCircle className="h-8 w-8 text-green-500" />
+          ) : canForcePublish ? (
+            <AlertTriangle className="h-8 w-8 text-amber-500" />
           ) : (
             <XCircle className="h-8 w-8 text-red-500" />
           )}
           <h2 className="text-lg font-semibold">
-            {result.success ? 'Published Successfully' : 'Publish Failed'}
+            {result.success ? 'Published Successfully' : canForcePublish ? 'Validation Errors Found' : 'Publish Failed'}
           </h2>
         </div>
 
@@ -415,14 +436,32 @@ function PublishResultModal({ result, onClose }: PublishResultModalProps) {
           </div>
         )}
 
-        {result.error && (
-          <div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm mb-4">
+        {result.error && result.error !== 'validation_failed' && (
+          <div className="p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-md text-red-700 dark:text-red-400 text-sm mb-4">
             {result.error}
           </div>
         )}
 
-        <div className="flex justify-end">
-          <Button onClick={onClose}>Close</Button>
+        {canForcePublish && (
+          <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md text-amber-700 dark:text-amber-400 text-sm mb-4">
+            The candidate USDM has validation errors. You can still publish, but the output may not conform to the USDM v4.0 schema.
+          </div>
+        )}
+
+        <div className="flex justify-end gap-2">
+          {canForcePublish && onForcePublish && (
+            <Button
+              variant="destructive"
+              onClick={onForcePublish}
+              disabled={isForcePublishing}
+            >
+              <AlertTriangle className="h-4 w-4 mr-2" />
+              {isForcePublishing ? 'Publishing...' : 'Publish Anyway'}
+            </Button>
+          )}
+          <Button variant={canForcePublish ? 'outline' : 'default'} onClick={onClose}>
+            {canForcePublish ? 'Cancel' : 'Close'}
+          </Button>
         </div>
       </div>
     </div>
