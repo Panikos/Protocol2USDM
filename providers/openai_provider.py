@@ -10,7 +10,7 @@ import base64
 from typing import Dict, List, Optional, Any
 
 from core.errors import ConfigurationError, LLMError
-from .base import LLMProvider, LLMConfig, LLMResponse
+from .base import LLMProvider, LLMConfig, LLMResponse, StreamChunk, StreamCallback
 from .tracker import usage_tracker
 
 from openai import OpenAI
@@ -142,6 +142,70 @@ class OpenAIProvider(LLMProvider):
             raise LLMError(f"OpenAI Responses API call failed for model '{self.model}': {e}",
                           model=self.model, cause=e)
     
+    def generate_stream(
+        self,
+        messages: List[Dict[str, str]],
+        config: Optional[LLMConfig] = None,
+        callback: Optional[StreamCallback] = None,
+    ) -> LLMResponse:
+        """Generate with native OpenAI streaming via Chat Completions API."""
+        if config is None:
+            config = LLMConfig()
+
+        params = {
+            "model": self.model,
+            "messages": messages,
+            "stream": True,
+        }
+        if self.model not in self.NO_TEMP_MODELS:
+            params["temperature"] = config.temperature
+        if config.json_mode and self.supports_json_mode():
+            params["response_format"] = {"type": "json_object"}
+        if config.max_tokens:
+            if self.model in self.COMPLETION_TOKENS_MODELS:
+                params["max_completion_tokens"] = config.max_tokens
+            else:
+                params["max_tokens"] = config.max_tokens
+        # Request usage in stream
+        params["stream_options"] = {"include_usage": True}
+
+        try:
+            accumulated = ""
+            usage = None
+            finish_reason = None
+            with self.client.chat.completions.create(**params) as stream:
+                for chunk in stream:
+                    if chunk.choices:
+                        delta = chunk.choices[0].delta
+                        text = delta.content or ""
+                        if text:
+                            accumulated += text
+                            if callback:
+                                callback(StreamChunk(text=text, accumulated_text=accumulated, done=False))
+                        if chunk.choices[0].finish_reason:
+                            finish_reason = chunk.choices[0].finish_reason
+                    if chunk.usage:
+                        inp = chunk.usage.prompt_tokens or 0
+                        out = chunk.usage.completion_tokens or 0
+                        usage = {
+                            "prompt_tokens": inp,
+                            "completion_tokens": out,
+                            "total_tokens": chunk.usage.total_tokens or 0,
+                        }
+                        usage_tracker.add_usage(inp, out)
+
+            if callback:
+                callback(StreamChunk(text="", accumulated_text=accumulated, done=True,
+                                     usage=usage, finish_reason=finish_reason))
+
+            return LLMResponse(
+                content=accumulated, model=self.model,
+                usage=usage, finish_reason=finish_reason,
+            )
+        except Exception as e:
+            raise LLMError(f"OpenAI streaming failed for model '{self.model}': {e}",
+                          model=self.model, cause=e)
+
     def generate_with_image(
         self,
         prompt: str,

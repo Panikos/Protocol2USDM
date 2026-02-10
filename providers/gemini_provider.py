@@ -13,7 +13,7 @@ from typing import Dict, List, Optional, Any
 
 from core.errors import ConfigurationError, LLMError, LLMRateLimitError, LLMConnectionError
 
-from .base import LLMProvider, LLMConfig, LLMResponse, _retry_with_backoff
+from .base import LLMProvider, LLMConfig, LLMResponse, StreamChunk, StreamCallback, _retry_with_backoff
 from .tracker import usage_tracker
 
 import google.generativeai as genai
@@ -353,6 +353,154 @@ class GeminiProvider(LLMProvider):
             raise LLMError(f"Gemini AI Studio call failed for model '{self.model}': {e}",
                           model=self.model, cause=e)
     
+    def generate_stream(
+        self,
+        messages: List[Dict[str, str]],
+        config: Optional[LLMConfig] = None,
+        callback: Optional["StreamCallback"] = None,
+    ) -> LLMResponse:
+        """Generate with native Gemini streaming, invoking *callback* per chunk."""
+        if config is None:
+            config = LLMConfig()
+
+        gen_config_dict = {"temperature": config.temperature}
+        if config.max_tokens:
+            gen_config_dict["max_output_tokens"] = config.max_tokens
+        if config.stop_sequences:
+            gen_config_dict["stop_sequences"] = config.stop_sequences
+        if config.top_p is not None:
+            gen_config_dict["top_p"] = config.top_p
+        if config.top_k is not None:
+            gen_config_dict["top_k"] = config.top_k
+        if config.json_mode and self.supports_json_mode():
+            gen_config_dict["response_mime_type"] = "application/json"
+
+        prompt = self._format_messages_for_gemini(messages)
+
+        if self.use_genai_sdk:
+            return self._stream_genai_sdk(prompt, gen_config_dict, callback)
+        elif self.use_vertex:
+            return self._stream_vertex(prompt, gen_config_dict, callback)
+        else:
+            return self._stream_ai_studio(prompt, gen_config_dict, callback)
+
+    def _stream_genai_sdk(self, prompt: str, gen_config_dict: dict, callback) -> LLMResponse:
+        """Streaming via google-genai SDK (Gemini 3 models)."""
+        model_id = self.VERTEX_MODEL_ALIASES.get(self.model, self.model)
+        config = genai_types.GenerateContentConfig(
+            temperature=gen_config_dict.get("temperature", 0.0),
+            max_output_tokens=gen_config_dict.get("max_output_tokens"),
+            stop_sequences=gen_config_dict.get("stop_sequences"),
+            top_p=gen_config_dict.get("top_p"),
+            top_k=gen_config_dict.get("top_k"),
+            response_mime_type=gen_config_dict.get("response_mime_type"),
+            thinking_config=genai_types.ThinkingConfig(thinking_budget=0),
+            safety_settings=[
+                genai_types.SafetySetting(category=genai_types.HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold=genai_types.HarmBlockThreshold.BLOCK_NONE),
+                genai_types.SafetySetting(category=genai_types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold=genai_types.HarmBlockThreshold.BLOCK_NONE),
+                genai_types.SafetySetting(category=genai_types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold=genai_types.HarmBlockThreshold.BLOCK_NONE),
+                genai_types.SafetySetting(category=genai_types.HarmCategory.HARM_CATEGORY_HARASSMENT, threshold=genai_types.HarmBlockThreshold.BLOCK_NONE),
+            ],
+        )
+        try:
+            accumulated = ""
+            for chunk_resp in self._genai_client.models.generate_content_stream(
+                model=model_id, contents=prompt, config=config,
+            ):
+                text = chunk_resp.text or ""
+                accumulated += text
+                if callback and text:
+                    callback(StreamChunk(text=text, accumulated_text=accumulated, done=False))
+
+            # Final usage from last chunk
+            usage = None
+            if hasattr(chunk_resp, 'usage_metadata') and chunk_resp.usage_metadata:
+                inp = getattr(chunk_resp.usage_metadata, 'prompt_token_count', 0) or 0
+                out = getattr(chunk_resp.usage_metadata, 'candidates_token_count', 0) or 0
+                usage = {"prompt_tokens": inp, "completion_tokens": out, "total_tokens": getattr(chunk_resp.usage_metadata, 'total_token_count', 0) or 0}
+                usage_tracker.add_usage(inp, out)
+
+            if callback:
+                callback(StreamChunk(text="", accumulated_text=accumulated, done=True, usage=usage))
+
+            return LLMResponse(content=accumulated, model=self.model, usage=usage)
+        except Exception as e:
+            from core.errors import LLMError
+            raise LLMError(f"Gemini 3 streaming failed for model '{self.model}': {e}", model=self.model, cause=e)
+
+    def _stream_vertex(self, prompt: str, gen_config_dict: dict, callback) -> LLMResponse:
+        """Streaming via Vertex AI."""
+        from vertexai.generative_models import GenerativeModel, GenerationConfig, HarmCategory, HarmBlockThreshold
+        generation_config = GenerationConfig(**gen_config_dict)
+        safety_settings = {
+            HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+            HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
+            HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
+            HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+        }
+        vertex_model = self.VERTEX_MODEL_ALIASES.get(self.model, self.model)
+        model = GenerativeModel(vertex_model)
+        try:
+            accumulated = ""
+            last_chunk = None
+            for chunk_resp in model.generate_content(
+                prompt, generation_config=generation_config,
+                safety_settings=safety_settings, stream=True,
+            ):
+                text = chunk_resp.text or ""
+                accumulated += text
+                last_chunk = chunk_resp
+                if callback and text:
+                    callback(StreamChunk(text=text, accumulated_text=accumulated, done=False))
+
+            usage = None
+            if last_chunk and hasattr(last_chunk, 'usage_metadata') and last_chunk.usage_metadata:
+                inp = last_chunk.usage_metadata.prompt_token_count or 0
+                out = last_chunk.usage_metadata.candidates_token_count or 0
+                usage = {"prompt_tokens": inp, "completion_tokens": out, "total_tokens": last_chunk.usage_metadata.total_token_count or 0}
+                usage_tracker.add_usage(inp, out)
+
+            if callback:
+                callback(StreamChunk(text="", accumulated_text=accumulated, done=True, usage=usage))
+
+            return LLMResponse(content=accumulated, model=self.model, usage=usage)
+        except Exception as e:
+            from core.errors import LLMError
+            raise LLMError(f"Vertex AI streaming failed for model '{self.model}': {e}", model=self.model, cause=e)
+
+    def _stream_ai_studio(self, prompt: str, gen_config_dict: dict, callback) -> LLMResponse:
+        """Streaming via AI Studio."""
+        generation_config = genai.types.GenerationConfig(**gen_config_dict)
+        ai_studio_model = self.VERTEX_MODEL_ALIASES.get(self.model, self.model)
+        model = genai.GenerativeModel(
+            ai_studio_model, generation_config=generation_config,
+            safety_settings=self.SAFETY_SETTINGS,
+        )
+        try:
+            accumulated = ""
+            last_chunk = None
+            for chunk_resp in model.generate_content(prompt, stream=True):
+                text = chunk_resp.text or ""
+                accumulated += text
+                last_chunk = chunk_resp
+                if callback and text:
+                    callback(StreamChunk(text=text, accumulated_text=accumulated, done=False))
+
+            usage = None
+            if last_chunk and hasattr(last_chunk, 'usage_metadata') and last_chunk.usage_metadata:
+                inp = last_chunk.usage_metadata.prompt_token_count or 0
+                out = last_chunk.usage_metadata.candidates_token_count or 0
+                usage = {"prompt_tokens": inp, "completion_tokens": out, "total_tokens": last_chunk.usage_metadata.total_token_count or 0}
+                usage_tracker.add_usage(inp, out)
+
+            if callback:
+                callback(StreamChunk(text="", accumulated_text=accumulated, done=True, usage=usage))
+
+            return LLMResponse(content=accumulated, model=self.model, usage=usage)
+        except Exception as e:
+            from core.errors import LLMError
+            raise LLMError(f"AI Studio streaming failed for model '{self.model}': {e}", model=self.model, cause=e)
+
     def _format_messages_for_gemini(self, messages: List[Dict[str, str]]) -> str:
         """
         Convert OpenAI-style messages to Gemini prompt format.
