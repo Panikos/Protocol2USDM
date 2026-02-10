@@ -3,9 +3,12 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { EditableField, EditableCodedValue, CDISC_TERMINOLOGIES } from '@/components/semantic';
 import { versionPath, entityPath } from '@/lib/semantic/schema';
-import { Pill, Syringe, Clock, Beaker, FlaskConical, ChevronDown, ChevronRight } from 'lucide-react';
+import { useSemanticStore } from '@/stores/semanticStore';
+import { useEditModeStore } from '@/stores/editModeStore';
+import { Pill, Syringe, Clock, Beaker, FlaskConical, ChevronDown, ChevronRight, Plus, Trash2 } from 'lucide-react';
 
 interface InterventionsViewProps {
   usdm: Record<string, unknown> | null;
@@ -105,6 +108,25 @@ export function InterventionsView({ usdm }: InterventionsViewProps) {
   const substanceMap = new Map(substances.map(s => [s.id, s]));
   const strengthMap = new Map(strengths.map(s => [s.id, s]));
 
+  const { addPatchOp } = useSemanticStore();
+  const isEditMode = useEditModeStore((s) => s.isEditMode);
+
+  const handleAddIntervention = () => {
+    const newIntervention = {
+      id: `int_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      name: '',
+      description: '',
+      role: { code: '', decode: '' },
+      type: { code: '', decode: '' },
+      instanceType: 'StudyIntervention',
+    };
+    addPatchOp({ op: 'add', path: '/study/versions/0/studyInterventions/-', value: newIntervention });
+  };
+
+  const handleRemoveIntervention = (interventionId: string) => {
+    addPatchOp({ op: 'remove', path: versionPath('studyInterventions', interventionId) });
+  };
+
   // State for collapsible sections
   const [showAllAdministrations, setShowAllAdministrations] = useState(false);
 
@@ -136,7 +158,7 @@ export function InterventionsView({ usdm }: InterventionsViewProps) {
           <CardContent>
             <div className="space-y-4">
               {studyInterventions.map((intervention, i) => (
-                <div key={intervention.id || i} className="p-4 border rounded-lg">
+                <div key={intervention.id || i} className="p-4 border rounded-lg group/int">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <EditableField
@@ -168,6 +190,16 @@ export function InterventionsView({ usdm }: InterventionsViewProps) {
                         options={CDISC_TERMINOLOGIES.interventionType}
                         placeholder="Type"
                       />
+                      {isEditMode && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 shrink-0 opacity-0 group-hover/int:opacity-100 transition-opacity text-destructive hover:text-destructive"
+                          onClick={() => handleRemoveIntervention(intervention.id)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                   
@@ -183,6 +215,17 @@ export function InterventionsView({ usdm }: InterventionsViewProps) {
                 </div>
               ))}
             </div>
+            {isEditMode && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleAddIntervention}
+                className="mt-3 w-full border-dashed"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Intervention
+              </Button>
+            )}
           </CardContent>
         </Card>
       )}

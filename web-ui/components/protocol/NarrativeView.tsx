@@ -3,14 +3,19 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { EditableField } from '@/components/semantic';
 import { versionPath } from '@/lib/semantic/schema';
+import { useSemanticStore } from '@/stores/semanticStore';
+import { useEditModeStore } from '@/stores/editModeStore';
 import { 
   FileText, 
   ChevronDown, 
   ChevronRight,
   BookOpen,
   Hash,
+  Plus,
+  Trash2,
 } from 'lucide-react';
 
 interface NarrativeViewProps {
@@ -37,6 +42,8 @@ interface NarrativeContentItem {
 
 export function NarrativeView({ usdm }: NarrativeViewProps) {
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+  const { addPatchOp } = useSemanticStore();
+  const isEditMode = useEditModeStore((s) => s.isEditMode);
 
   if (!usdm) {
     return (
@@ -92,6 +99,40 @@ export function NarrativeView({ usdm }: NarrativeViewProps) {
       newExpanded.add(id);
     }
     setExpandedSections(newExpanded);
+  };
+
+  const handleAddSection = () => {
+    const newSection: NarrativeContent = {
+      id: `nc_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      sectionTitle: '',
+      sectionNumber: '',
+      text: '',
+      contentItemIds: [],
+      instanceType: 'NarrativeContent',
+    };
+    addPatchOp({ op: 'add', path: '/study/versions/0/narrativeContents/-', value: newSection });
+  };
+
+  const handleRemoveSection = (sectionId: string) => {
+    addPatchOp({ op: 'remove', path: versionPath('narrativeContents', sectionId) });
+  };
+
+  const handleAddContentItem = (sectionId: string) => {
+    const newItem: NarrativeContentItem = {
+      id: `nci_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      name: '',
+      text: '',
+      sequence: 0,
+      instanceType: 'NarrativeContentItem',
+    };
+    // Add the item to narrativeContentItems
+    addPatchOp({ op: 'add', path: '/study/versions/0/narrativeContentItems/-', value: newItem });
+    // Link it to the section
+    addPatchOp({ op: 'add', path: `${versionPath('narrativeContents', sectionId)}/contentItemIds/-`, value: newItem.id });
+  };
+
+  const handleRemoveContentItem = (itemId: string) => {
+    addPatchOp({ op: 'remove', path: versionPath('narrativeContentItems', itemId) });
   };
 
   const expandAll = () => {
@@ -202,6 +243,16 @@ export function NarrativeView({ usdm }: NarrativeViewProps) {
                         {items.length} item{items.length !== 1 ? 's' : ''}
                       </Badge>
                     )}
+                    {isEditMode && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 shrink-0 text-destructive hover:text-destructive"
+                        onClick={(e) => { e.stopPropagation(); handleRemoveSection(section.id); }}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
                   </div>
                   
                   {isExpanded && (
@@ -220,28 +271,54 @@ export function NarrativeView({ usdm }: NarrativeViewProps) {
                       {items.length > 0 && (
                         <div className="space-y-3">
                           {items.map((item, ii) => (
-                            <div key={item.id || ii} className="p-3 bg-background rounded border">
-                              <EditableField
-                                path={versionPath('narrativeContentItems', item.id, 'name')}
-                                value={item.name || ''}
-                                label=""
-                                className="font-medium text-sm mb-1"
-                                placeholder="Item name"
-                              />
-                              <EditableField
-                                path={versionPath('narrativeContentItems', item.id, 'text')}
-                                value={item.text || ''}
-                                label=""
-                                type="textarea"
-                                className="text-sm text-muted-foreground whitespace-pre-wrap"
-                                placeholder="No content"
-                              />
+                            <div key={item.id || ii} className="p-3 bg-background rounded border group/nci">
+                              <div className="flex items-start gap-2">
+                                <div className="flex-1">
+                                  <EditableField
+                                    path={versionPath('narrativeContentItems', item.id, 'name')}
+                                    value={item.name || ''}
+                                    label=""
+                                    className="font-medium text-sm mb-1"
+                                    placeholder="Item name"
+                                  />
+                                  <EditableField
+                                    path={versionPath('narrativeContentItems', item.id, 'text')}
+                                    value={item.text || ''}
+                                    label=""
+                                    type="textarea"
+                                    className="text-sm text-muted-foreground whitespace-pre-wrap"
+                                    placeholder="No content"
+                                  />
+                                </div>
+                                {isEditMode && (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6 shrink-0 opacity-0 group-hover/nci:opacity-100 transition-opacity text-destructive hover:text-destructive"
+                                    onClick={() => handleRemoveContentItem(item.id)}
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                )}
+                              </div>
                             </div>
                           ))}
                         </div>
                       )}
                       
-                      {!section.text && items.length === 0 && (
+                      {isEditMode && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleAddContentItem(section.id)}
+                          className="mt-3 w-full border-dashed text-xs"
+                        >
+                          <Plus className="h-3 w-3 mr-1" />
+                          Add Content Item
+                        </Button>
+                      )}
+
+                      {!section.text && items.length === 0 && !isEditMode && (
                         <p className="text-sm text-muted-foreground italic">
                           No content available for this section
                         </p>
@@ -252,6 +329,17 @@ export function NarrativeView({ usdm }: NarrativeViewProps) {
               );
             })}
           </div>
+          {isEditMode && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleAddSection}
+              className="mt-3 w-full border-dashed"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Section
+            </Button>
+          )}
         </CardContent>
       </Card>
 

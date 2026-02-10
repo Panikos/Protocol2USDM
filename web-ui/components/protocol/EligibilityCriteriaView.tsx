@@ -3,9 +3,12 @@
 import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { EditableField, EditableCodedValue, CDISC_TERMINOLOGIES } from '@/components/semantic';
 import { designPath } from '@/lib/semantic/schema';
-import { CheckCircle2, XCircle, Users, AlertTriangle } from 'lucide-react';
+import { useSemanticStore } from '@/stores/semanticStore';
+import { useEditModeStore } from '@/stores/editModeStore';
+import { CheckCircle2, XCircle, Users, AlertTriangle, Plus, Trash2 } from 'lucide-react';
 
 interface EligibilityCriteriaViewProps {
   usdm: Record<string, unknown> | null;
@@ -97,6 +100,24 @@ export function EligibilityCriteriaView({ usdm }: EligibilityCriteriaViewProps) 
     c.criterionItemId && !criterionItemsMap.has(c.criterionItemId) && !c.text
   );
 
+  const { addPatchOp } = useSemanticStore();
+  const isEditMode = useEditModeStore((s) => s.isEditMode);
+
+  const handleAddCriterion = (category: { code: string; decode: string }) => {
+    const newCriterion = {
+      id: `ec_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      text: '',
+      description: '',
+      category,
+      instanceType: 'EligibilityCriterion',
+    };
+    addPatchOp({ op: 'add', path: '/study/versions/0/studyDesigns/0/eligibilityCriteria/-', value: newCriterion });
+  };
+
+  const handleRemoveCriterion = (criterionId: string) => {
+    addPatchOp({ op: 'remove', path: designPath('eligibilityCriteria', criterionId) });
+  };
+
   // Separate inclusion vs exclusion
   const inclusionCriteria = resolvedCriteria.filter(c => 
     c.category?.decode?.toLowerCase().includes('inclusion') ||
@@ -126,7 +147,7 @@ export function EligibilityCriteriaView({ usdm }: EligibilityCriteriaViewProps) 
     const text = criterion.text || criterion.description || criterion.label || criterion.name || 'No text';
     
     return (
-      <div key={criterion.id || index} className="flex gap-3 py-2 border-b last:border-b-0">
+      <div key={criterion.id || index} className="flex gap-3 py-2 border-b last:border-b-0 group/crit">
         <Badge variant="outline" className="h-6 min-w-[2rem] justify-center">
           {typeIndex + 1}
         </Badge>
@@ -137,6 +158,16 @@ export function EligibilityCriteriaView({ usdm }: EligibilityCriteriaViewProps) 
           type="textarea"
           className="text-sm flex-1"
         />
+        {isEditMode && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 shrink-0 opacity-0 group-hover/crit:opacity-100 transition-opacity text-destructive hover:text-destructive"
+            onClick={() => handleRemoveCriterion(criterion.id)}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        )}
       </div>
     );
   };
@@ -271,6 +302,17 @@ export function EligibilityCriteriaView({ usdm }: EligibilityCriteriaViewProps) 
             <div className="divide-y">
               {inclusionCriteria.map((c, i) => renderCriterion(c, i, 'inclusion', i))}
             </div>
+            {isEditMode && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleAddCriterion({ code: 'C25532', decode: 'Inclusion' })}
+                className="mt-3 w-full border-dashed"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Inclusion Criterion
+              </Button>
+            )}
           </CardContent>
         </Card>
       )}
@@ -289,6 +331,17 @@ export function EligibilityCriteriaView({ usdm }: EligibilityCriteriaViewProps) 
             <div className="divide-y">
               {exclusionCriteria.map((c, i) => renderCriterion(c, i, 'exclusion', i))}
             </div>
+            {isEditMode && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleAddCriterion({ code: 'C25370', decode: 'Exclusion' })}
+                className="mt-3 w-full border-dashed"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Exclusion Criterion
+              </Button>
+            )}
           </CardContent>
         </Card>
       )}
