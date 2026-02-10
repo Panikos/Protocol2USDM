@@ -25,6 +25,7 @@ from .m11_mapper import (
     build_m11_narrative,
     M11MappingResult,
     M11_TEMPLATE,
+    M11_SUBHEADINGS,
 )
 
 __all__ = [
@@ -42,4 +43,5 @@ __all__ = [
     "build_m11_narrative",
     "M11MappingResult",
     "M11_TEMPLATE",
+    "M11_SUBHEADINGS",
 ]

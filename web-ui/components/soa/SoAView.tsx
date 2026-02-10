@@ -100,36 +100,6 @@ export function SoAView({ provenance }: SoAViewProps) {
     []
   );
 
-  // Export to CSV
-  const handleExportCSV = useCallback(() => {
-    const headers = [
-      'Category',
-      'Activity',
-      ...tableModel.columns.map((col) => `${col.epochName} - ${col.name}`),
-    ];
-
-    const rows = tableModel.rows.map((row) => {
-      const values = [
-        row.groupName || '',
-        row.name,
-        ...tableModel.columns.map((col) => {
-          const cell = tableModel.cells.get(cellKey(row.id, col.id));
-          return cell?.mark || '';
-        }),
-      ];
-      return values.map((v) => `"${v}"`).join(',');
-    });
-
-    const csv = [headers.join(','), ...rows].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'soa_export.csv';
-    a.click();
-    URL.revokeObjectURL(url);
-  }, [tableModel]);
-
   // Get footnotes - prefer authoritative SoA footnotes from USDM extension, fall back to provenance
   const { footnotes, footnoteExtIndex } = useMemo(() => {
     // First check for authoritative SoA footnotes in studyDesign.extensionAttributes
@@ -153,6 +123,154 @@ export function SoAView({ provenance }: SoAViewProps) {
     return { footnotes: provenance?.footnotes || [], footnoteExtIndex: -1 };
   }, [studyDesign, provenance]);
 
+  // Export to CSV — includes footnote refs and footnote list
+  const handleExportCSV = useCallback(() => {
+    const headers = [
+      'Category',
+      'Activity',
+      ...tableModel.columns.map((col) => `${col.epochName} - ${col.name}`),
+    ];
+
+    const rows = tableModel.rows.map((row) => {
+      const values = [
+        row.groupName || '',
+        row.name,
+        ...tableModel.columns.map((col) => {
+          const cell = tableModel.cells.get(cellKey(row.id, col.id));
+          const mark = cell?.mark || '';
+          const refs = cell?.footnoteRefs?.length ? `(${cell.footnoteRefs.join(',')})` : '';
+          return mark + refs;
+        }),
+      ];
+      return values.map((v) => `"${v}"`).join(',');
+    });
+
+    // Add footnotes section at the bottom
+    const footnoteRows: string[] = [];
+    if (footnotes.length > 0) {
+      footnoteRows.push('');
+      footnoteRows.push('"Footnotes"');
+      footnotes.forEach((fn, i) => {
+        footnoteRows.push(`"${(i + 1)}. ${fn.replace(/"/g, '""')}"`);
+      });
+    }
+
+    const csv = [headers.join(','), ...rows, ...footnoteRows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'soa_export.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [tableModel, footnotes]);
+
+  // Export to printable HTML (WYSIWYG PDF via browser print)
+  const handleExportPrint = useCallback(() => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    // Build epoch column groups for merged header
+    const epochSpans: { name: string; span: number }[] = [];
+    let lastEpoch = '';
+    for (const col of tableModel.columns) {
+      if (col.epochName !== lastEpoch) {
+        epochSpans.push({ name: col.epochName || '', span: 1 });
+        lastEpoch = col.epochName || '';
+      } else {
+        epochSpans[epochSpans.length - 1].span++;
+      }
+    }
+
+    // Build rows with group headers
+    type RowEntry = { type: 'group'; name: string } | { type: 'activity'; row: typeof tableModel.rows[0] };
+    const entries: RowEntry[] = [];
+    let currentGroup = '';
+    for (const row of tableModel.rows) {
+      if (row.groupName && row.groupName !== currentGroup) {
+        entries.push({ type: 'group', name: row.groupName });
+        currentGroup = row.groupName;
+      }
+      entries.push({ type: 'activity', row });
+    }
+
+    const colCount = tableModel.columns.length;
+
+    const epochHeaderCells = epochSpans
+      .map(ep => `<th colspan="${ep.span}" style="background:#d9e2f3;text-align:center;font-size:8px;padding:3px 4px;border:1px solid #999">${ep.name}</th>`)
+      .join('');
+
+    const visitHeaderCells = tableModel.columns
+      .map(col => `<th style="background:#e2efda;text-align:center;font-size:7px;padding:2px 3px;border:1px solid #999;white-space:nowrap">${col.timing || col.name}</th>`)
+      .join('');
+
+    const dataRows = entries.map(entry => {
+      if (entry.type === 'group') {
+        return `<tr><td colspan="${1 + colCount}" style="background:#f2f2f2;font-weight:bold;font-size:8px;padding:3px 4px;border:1px solid #999">${entry.name}</td></tr>`;
+      }
+      const row = entry.row;
+      const cells = tableModel.columns.map(col => {
+        const cell = tableModel.cells.get(cellKey(row.id, col.id));
+        const mark = cell?.mark || '';
+        const refs = cell?.footnoteRefs?.length
+          ? `<sup style="font-size:5px;color:#2563eb">${cell.footnoteRefs.join(',')}</sup>`
+          : '';
+        return `<td style="text-align:center;font-size:8px;padding:2px;border:1px solid #999">${mark}${refs}</td>`;
+      }).join('');
+      return `<tr><td style="font-size:8px;padding:2px 4px;border:1px solid #999;white-space:nowrap">${row.name}</td>${cells}</tr>`;
+    }).join('');
+
+    const footnoteHtml = footnotes.length > 0
+      ? `<div style="margin-top:12px;font-size:7px;color:#555">${footnotes.map((fn, i) => `<p style="margin:2px 0">${fn}</p>`).join('')}</div>`
+      : '';
+
+    printWindow.document.write(`<!DOCTYPE html><html><head><title>Schedule of Activities</title>
+      <style>
+        @page { size: landscape; margin: 0.5cm; }
+        body { font-family: 'Times New Roman', serif; margin: 8px; }
+        table { border-collapse: collapse; width: 100%; }
+        @media print { body { margin: 0; } }
+      </style></head><body>
+      <h2 style="font-size:12px;margin:0 0 8px">Schedule of Activities</h2>
+      <table>
+        <thead>
+          <tr><th style="background:#d9e2f3;font-size:8px;padding:3px 4px;border:1px solid #999">Procedure</th>${epochHeaderCells}</tr>
+          <tr><th style="background:#e2efda;border:1px solid #999"></th>${visitHeaderCells}</tr>
+        </thead>
+        <tbody>${dataRows}</tbody>
+      </table>
+      ${footnoteHtml}
+      </body></html>`);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => printWindow.print(), 300);
+  }, [tableModel, footnotes]);
+
+  // Add activity handler
+  const handleAddActivity = useCallback(() => {
+    const name = window.prompt('Activity name:');
+    if (!name?.trim()) return;
+    const id = useSoAEditStore.getState().addActivity({ name: name.trim() });
+    if (!id) {
+      const err = useSoAEditStore.getState().lastError;
+      if (err) window.alert(`Failed: ${err}`);
+    }
+  }, []);
+
+  // Add encounter handler
+  const handleAddEncounter = useCallback(() => {
+    const name = window.prompt('Visit/encounter name:');
+    if (!name?.trim()) return;
+    // Get first epoch as default
+    const epochs = studyDesign?.epochs as Array<{ id: string; name?: string }> | undefined;
+    const epochId = epochs?.[0]?.id ?? '';
+    const id = useSoAEditStore.getState().addEncounter({ name: name.trim(), epochId });
+    if (!id) {
+      const err = useSoAEditStore.getState().lastError;
+      if (err) window.alert(`Failed: ${err}`);
+    }
+  }, [studyDesign]);
+
   // Get selected cell footnotes
   const selectedFootnoteRefs = selectedCell?.cell?.footnoteRefs;
 
@@ -174,8 +292,11 @@ export function SoAView({ provenance }: SoAViewProps) {
         totalVisits={stats.totalVisits}
         needsReviewCount={stats.needsReviewCount}
         onExportCSV={handleExportCSV}
+        onExportPrint={handleExportPrint}
         onFilterChange={setFilter}
         onResetLayout={resetToPublished}
+        onAddActivity={handleAddActivity}
+        onAddEncounter={handleAddEncounter}
       />
 
       {/* Error display */}

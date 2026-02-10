@@ -85,7 +85,7 @@ class NarrativePhase(BasePhase):
                     if s.text and s.text != s.name:
                         sec_texts[s.section_number or ''] = s.text
                 
-                mapping = map_sections_to_m11(sec_dicts)
+                mapping = map_sections_to_m11(sec_dicts, sec_texts)
                 m11_narrative = build_m11_narrative(sec_dicts, sec_texts, mapping)
                 
                 # Store M11 mapping as extension data

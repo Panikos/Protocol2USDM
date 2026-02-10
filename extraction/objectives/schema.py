@@ -46,12 +46,38 @@ class EndpointLevel(Enum):
 
 
 class IntercurrentEventStrategy(Enum):
-    """ICH E9(R1) strategies for handling intercurrent events."""
+    """ICH E9(R1) strategies for handling intercurrent events.
+    
+    Per ICH E9(R1) Section 3, each intercurrent event must specify
+    exactly one of these strategies to define how the event affects
+    the treatment effect being estimated.
+    """
     TREATMENT_POLICY = "Treatment Policy"
     COMPOSITE = "Composite"
     HYPOTHETICAL = "Hypothetical"
     PRINCIPAL_STRATUM = "Principal Stratum"
     WHILE_ON_TREATMENT = "While on Treatment"
+    
+    @classmethod
+    def from_string(cls, text: str) -> Optional['IntercurrentEventStrategy']:
+        """Parse a strategy string into the enum, tolerating common variations."""
+        if not text:
+            return None
+        normalized = text.strip().lower().replace('_', ' ').replace('-', ' ')
+        mapping = {
+            'treatment policy': cls.TREATMENT_POLICY,
+            'composite': cls.COMPOSITE,
+            'hypothetical': cls.HYPOTHETICAL,
+            'principal stratum': cls.PRINCIPAL_STRATUM,
+            'while on treatment': cls.WHILE_ON_TREATMENT,
+            # Common abbreviations / alternatives
+            'tp': cls.TREATMENT_POLICY,
+            'hyp': cls.HYPOTHETICAL,
+            'comp': cls.COMPOSITE,
+            'ps': cls.PRINCIPAL_STRATUM,
+            'wot': cls.WHILE_ON_TREATMENT,
+        }
+        return mapping.get(normalized)
 
 
 @dataclass
@@ -168,6 +194,74 @@ class Estimand:
         elif self.variable_of_interest_id and not self.endpoint_id:
             self.endpoint_id = self.variable_of_interest_id
     
+    def validate_e9_completeness(self) -> List[Dict[str, str]]:
+        """Validate all 5 ICH E9(R1) estimand attributes are present.
+        
+        ICH E9(R1) requires every estimand to specify:
+          1. Treatment (interventionIds or treatment text)
+          2. Population (analysisPopulationId or analysis_population text)
+          3. Variable of interest (variableOfInterestId or endpoint_id)
+          4. Intercurrent events (at least one with a valid strategy)
+          5. Population-level summary measure (summary_measure)
+        
+        Returns:
+            List of issue dicts with keys: attribute, severity, message
+        """
+        issues: List[Dict[str, str]] = []
+        
+        # 1. Treatment
+        has_treatment = bool(self.intervention_ids) or bool(self.treatment)
+        if not has_treatment:
+            issues.append({
+                "attribute": "treatment",
+                "severity": "ERROR",
+                "message": f"Estimand '{self.name}': missing treatment (ICH E9(R1) attribute 1)",
+            })
+        
+        # 2. Population
+        has_population = bool(self.analysis_population_id) or bool(self.analysis_population)
+        if not has_population:
+            issues.append({
+                "attribute": "population",
+                "severity": "ERROR",
+                "message": f"Estimand '{self.name}': missing population (ICH E9(R1) attribute 2)",
+            })
+        
+        # 3. Variable (endpoint)
+        has_variable = bool(self.variable_of_interest_id) or bool(self.endpoint_id) or bool(self.variable_of_interest)
+        if not has_variable:
+            issues.append({
+                "attribute": "variable",
+                "severity": "ERROR",
+                "message": f"Estimand '{self.name}': missing variable of interest (ICH E9(R1) attribute 3)",
+            })
+        
+        # 4. Intercurrent events
+        if not self.intercurrent_events:
+            issues.append({
+                "attribute": "intercurrent_events",
+                "severity": "WARNING",
+                "message": f"Estimand '{self.name}': no intercurrent events specified (ICH E9(R1) attribute 4)",
+            })
+        else:
+            for ice in self.intercurrent_events:
+                if not isinstance(ice.strategy, IntercurrentEventStrategy):
+                    issues.append({
+                        "attribute": "intercurrent_events",
+                        "severity": "ERROR",
+                        "message": f"Estimand '{self.name}': ICE '{ice.name}' has invalid strategy (ICH E9(R1))",
+                    })
+        
+        # 5. Summary measure
+        if not self.summary_measure:
+            issues.append({
+                "attribute": "summary_measure",
+                "severity": "WARNING",
+                "message": f"Estimand '{self.name}': missing summary measure (ICH E9(R1) attribute 5)",
+            })
+        
+        return issues
+    
     def to_dict(self) -> Dict[str, Any]:
         # Build population summary incorporating the summary measure if available
         pop_summary = self.population_summary
@@ -262,6 +356,52 @@ class ObjectivesData:
     primary_objectives_count: int = 0
     secondary_objectives_count: int = 0
     exploratory_objectives_count: int = 0
+    
+    def validate_e9_completeness(self) -> List[Dict[str, str]]:
+        """Validate ICH E9(R1) compliance across all estimands.
+        
+        Checks:
+        - Each estimand has all 5 mandatory attributes
+        - At least one estimand references a primary endpoint
+        - All intercurrent event strategies are valid
+        
+        Returns:
+            List of issue dicts with keys: attribute, severity, message
+        """
+        all_issues: List[Dict[str, str]] = []
+        
+        # Per-estimand validation
+        for est in self.estimands:
+            all_issues.extend(est.validate_e9_completeness())
+        
+        # Cross-estimand checks
+        if self.estimands:
+            primary_ep_ids = {
+                ep.id for ep in self.endpoints
+                if ep.level == EndpointLevel.PRIMARY
+            }
+            has_primary_estimand = any(
+                (est.variable_of_interest_id in primary_ep_ids or
+                 est.endpoint_id in primary_ep_ids)
+                for est in self.estimands
+            )
+            if primary_ep_ids and not has_primary_estimand:
+                all_issues.append({
+                    "attribute": "primary_estimand",
+                    "severity": "WARNING",
+                    "message": "No estimand references a primary endpoint (ICH E9(R1) best practice)",
+                })
+        elif self.endpoints:
+            # Have endpoints but no estimands at all
+            primary_eps = [ep for ep in self.endpoints if ep.level == EndpointLevel.PRIMARY]
+            if primary_eps:
+                all_issues.append({
+                    "attribute": "estimand_existence",
+                    "severity": "WARNING",
+                    "message": f"Protocol has {len(primary_eps)} primary endpoint(s) but no estimands defined (ICH E9(R1))",
+                })
+        
+        return all_issues
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert to USDM-compatible dictionary structure."""

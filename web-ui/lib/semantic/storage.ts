@@ -85,8 +85,10 @@ async function atomicWriteJson(targetPath: string, data: unknown): Promise<void>
 /**
  * Generate ISO timestamp for file naming
  */
+// eslint-disable-next-line no-useless-escape
+const TIMESTAMP_STRIP_RE = new RegExp('[\\-:.]', 'g');
 export function getTimestamp(): string {
-  return new Date().toISOString().replace(/[:.]/g, '').replace('T', 'T').slice(0, 15) + 'Z';
+  return new Date().toISOString().replace(TIMESTAMP_STRIP_RE, '').slice(0, 15) + 'Z';
 }
 
 /**

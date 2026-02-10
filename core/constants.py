@@ -9,7 +9,7 @@ USDM_VERSION: str = "4.0"
 
 # System Metadata (appears in output JSON)
 SYSTEM_NAME: str = "Protocol2USDM"
-SYSTEM_VERSION: str = "0.1.0"
+SYSTEM_VERSION: str = "7.2.0"
 
 # Default Model Preference
 DEFAULT_MODEL: str = "gemini-3-flash-preview"

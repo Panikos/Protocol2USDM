@@ -121,12 +121,14 @@ export function makeBooleanExt(url: string, value: boolean): ExtensionAttribute 
 // Constants — canonical extension URLs
 // ---------------------------------------------------------------------------
 
+export const EXT_BASE_URL = 'https://protocol2usdm.io/extensions';
+
 export const EXT_URLS = {
-  CELL_MARK: 'https://usdm.cdisc.org/extensions/x-soaCellMark',
-  USER_EDITED: 'https://usdm.cdisc.org/extensions/x-userEdited',
-  FOOTNOTE_REFS: 'https://usdm.cdisc.org/extensions/x-soaFootnoteRefs',
-  ACTIVITY_SOURCE: 'https://usdm.cdisc.org/extensions/x-activitySource',
-  ACTIVITY_GROUP: 'https://usdm.cdisc.org/extensions/x-activityGroup',
-  INSTANCE_SOURCE: 'https://usdm.cdisc.org/extensions/x-instanceSource',
-  EPOCH_CATEGORY: 'https://usdm.cdisc.org/extensions/x-epochCategory',
+  CELL_MARK: `${EXT_BASE_URL}/x-soaCellMark`,
+  USER_EDITED: `${EXT_BASE_URL}/x-userEdited`,
+  FOOTNOTE_REFS: `${EXT_BASE_URL}/x-soaFootnoteRefs`,
+  ACTIVITY_SOURCE: `${EXT_BASE_URL}/x-activitySource`,
+  ACTIVITY_GROUP: `${EXT_BASE_URL}/x-activityGroup`,
+  INSTANCE_SOURCE: `${EXT_BASE_URL}/x-instanceSource`,
+  EPOCH_CATEGORY: `${EXT_BASE_URL}/x-epochCategory`,
 } as const;

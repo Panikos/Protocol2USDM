@@ -374,7 +374,7 @@ def _extract_regimens_heuristic(text: str) -> List[DosingRegimen]:
             continue
         
         # Drug names typically have specific patterns - require alphanumeric with possible hyphen/numbers
-        # Valid: ALXN1840, Aspirin, Drug-123
+        # Valid: ABC-1234, Aspirin, Drug-123
         # Invalid: "state at", "end of", "Interventionm"
         if not re.match(r'^[A-Z][A-Za-z0-9\-]+$', treatment_name):
             # Multi-word: at least one word should look like a drug name

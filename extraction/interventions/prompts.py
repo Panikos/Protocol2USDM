@@ -49,9 +49,9 @@ Return a JSON object with this exact structure:
 {
   "interventions": [
     {
-      "name": "ALXN1840",
+      "name": "ABC-1234",
       "role": "Investigational Product",
-      "description": "Investigational product for Wilson disease"
+      "description": "Investigational product under evaluation"
     },
     {
       "name": "Placebo",
@@ -66,32 +66,32 @@ Return a JSON object with this exact structure:
   ],
   "products": [
     {
-      "name": "ALXN1840 tablets",
+      "name": "ABC-1234 tablets",
       "doseForm": "Tablet",
-      "strength": "15 mg",
-      "manufacturer": "Alexion Pharmaceuticals"
+      "strength": "100 mg",
+      "manufacturer": "Sponsor Pharmaceuticals"
     }
   ],
   "substances": [
     {
-      "name": "bis-choline tetrathiomolybdate",
+      "name": "abcizumab",
       "description": "Active pharmaceutical ingredient"
     }
   ],
   "administrations": [
     {
-      "name": "ALXN1840 15 mg daily",
-      "dose": "15 mg",
+      "name": "ABC-1234 100 mg daily",
+      "dose": "100 mg",
       "frequency": "once daily",
       "route": "Oral",
       "duration": "24 weeks"
     },
     {
-      "name": "ALXN1840 30 mg daily",
-      "dose": "30 mg",
+      "name": "ABC-1234 200 mg daily",
+      "dose": "200 mg",
       "frequency": "once daily",
       "route": "Oral",
-      "duration": "After Day 29"
+      "duration": "After Week 4"
     }
   ],
   "devices": []

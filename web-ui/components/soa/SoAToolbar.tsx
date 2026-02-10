@@ -9,6 +9,8 @@ import {
   RotateCcw,
   Search,
   Keyboard,
+  Printer,
+  Plus,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ProvenanceLegend } from './ProvenanceCellRenderer';
@@ -20,8 +22,11 @@ interface SoAToolbarProps {
   totalVisits: number;
   needsReviewCount: number;
   onExportCSV?: () => void;
+  onExportPrint?: () => void;
   onFilterChange?: (filter: FilterOptions) => void;
   onResetLayout?: () => void;
+  onAddActivity?: () => void;
+  onAddEncounter?: () => void;
   className?: string;
 }
 
@@ -35,8 +40,11 @@ export function SoAToolbar({
   totalVisits,
   needsReviewCount,
   onExportCSV,
+  onExportPrint,
   onFilterChange,
   onResetLayout,
+  onAddActivity,
+  onAddEncounter,
   className,
 }: SoAToolbarProps) {
   const [showOnlyNeedsReview, setShowOnlyNeedsReview] = useState(false);
@@ -115,6 +123,30 @@ export function SoAToolbar({
             Legend
           </Button>
 
+          {/* Add Activity / Add Visit — edit mode only */}
+          {isEditMode && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onAddActivity}
+                className="border-dashed"
+              >
+                <Plus className="h-4 w-4 mr-1.5" />
+                Add Row
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onAddEncounter}
+                className="border-dashed"
+              >
+                <Plus className="h-4 w-4 mr-1.5" />
+                Add Visit
+              </Button>
+            </>
+          )}
+
           {/* Reset layout */}
           <Button
             variant="ghost"
@@ -133,6 +165,16 @@ export function SoAToolbar({
           >
             <Download className="h-4 w-4 mr-1.5" />
             Export CSV
+          </Button>
+
+          {/* Print PDF */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onExportPrint}
+          >
+            <Printer className="h-4 w-4 mr-1.5" />
+            Print PDF
           </Button>
         </div>
       </div>

@@ -9,7 +9,7 @@
  */
 
 import { create } from 'zustand';
-import { SoAProcessor, type CellMark, type SoACellEdit, cellKey, parseCellKey } from '@/lib/soa/processor';
+import { SoAProcessor, type CellMark, type SoACellEdit, type SoANewActivity, type SoANewEncounter, cellKey, parseCellKey } from '@/lib/soa/processor';
 import { useSemanticStore } from './semanticStore';
 import { useProtocolStore } from './protocolStore';
 import { getExtBoolean } from '@/lib/extensions';
@@ -57,9 +57,11 @@ interface SoAEditActions {
   
   // Activity editing
   setActivityName: (activityId: string, name: string) => void;
+  addActivity: (newActivity: SoANewActivity) => string | null;
   
   // Encounter editing
   setEncounterName: (encounterId: string, name: string) => void;
+  addEncounter: (newEncounter: SoANewEncounter) => string | null;
   
   // Discard all edits
   discardChanges: () => void;
@@ -126,11 +128,13 @@ export const useSoAEditStore = create<SoAEditStore>((set, get) => ({
       return;
     }
 
-    // Add patches to semantic store (like EditableField does)
+    // Add patches to semantic store as a single undoable group
     const semanticStore = useSemanticStore.getState();
+    semanticStore.beginGroup();
     for (const patch of result.patches) {
       semanticStore.addPatchOp(patch);
     }
+    semanticStore.endGroup();
 
     // Track edit visually in committedCellEdits
     set(state => {
@@ -169,11 +173,13 @@ export const useSoAEditStore = create<SoAEditStore>((set, get) => ({
       return;
     }
 
-    // Add patches to semantic store
+    // Add patches to semantic store as a single undoable group
     const semanticStore = useSemanticStore.getState();
+    semanticStore.beginGroup();
     for (const patch of result.patches) {
       semanticStore.addPatchOp(patch);
     }
+    semanticStore.endGroup();
 
     // Track edit visually
     set(state => {
@@ -243,6 +249,33 @@ export const useSoAEditStore = create<SoAEditStore>((set, get) => ({
     });
   },
 
+  addActivity: (newActivity) => {
+    const usdm = useProtocolStore.getState().usdm;
+    if (!usdm) {
+      set({ lastError: 'No USDM data available' });
+      return null;
+    }
+
+    const processor = new SoAProcessor(usdm as Record<string, unknown>);
+    const activityId = processor.addActivity(newActivity);
+    const result = processor.getResult();
+
+    if (result.errors.length > 0) {
+      set({ lastError: result.errors.join('; ') });
+      return null;
+    }
+
+    const semanticStore = useSemanticStore.getState();
+    semanticStore.beginGroup();
+    for (const patch of result.patches) {
+      semanticStore.addPatchOp(patch);
+    }
+    semanticStore.endGroup();
+
+    set({ lastError: null, isDirty: true });
+    return activityId;
+  },
+
   // ============================================================================
   // Encounter Editing
   // ============================================================================
@@ -277,6 +310,33 @@ export const useSoAEditStore = create<SoAEditStore>((set, get) => ({
         lastError: null,
       };
     });
+  },
+
+  addEncounter: (newEncounter) => {
+    const usdm = useProtocolStore.getState().usdm;
+    if (!usdm) {
+      set({ lastError: 'No USDM data available' });
+      return null;
+    }
+
+    const processor = new SoAProcessor(usdm as Record<string, unknown>);
+    const encounterId = processor.addEncounter(newEncounter);
+    const result = processor.getResult();
+
+    if (result.errors.length > 0) {
+      set({ lastError: result.errors.join('; ') });
+      return null;
+    }
+
+    const semanticStore = useSemanticStore.getState();
+    semanticStore.beginGroup();
+    for (const patch of result.patches) {
+      semanticStore.addPatchOp(patch);
+    }
+    semanticStore.endGroup();
+
+    set({ lastError: null, isDirty: true });
+    return encounterId;
   },
 
   discardChanges: () => {

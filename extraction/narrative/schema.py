@@ -30,6 +30,7 @@ class SectionType(Enum):
     STUDY_PROCEDURES = "Study Procedures"
     ASSESSMENTS = "Assessments"
     SAFETY = "Safety"
+    DISCONTINUATION = "Discontinuation"
     STATISTICS = "Statistics"
     ETHICS = "Ethics"
     REFERENCES = "References"

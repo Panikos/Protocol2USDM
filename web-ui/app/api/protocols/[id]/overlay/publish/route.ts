@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs/promises';
 import path from 'path';
+import { validateProtocolId } from '@/lib/sanitize';
 
 const OUTPUT_DIR = process.env.PROTOCOL_OUTPUT_DIR || 
   path.join(process.cwd(), '..', 'output');
@@ -15,8 +16,12 @@ export async function POST(
 ) {
   try {
     const { id: protocolId } = await params;
-    const draftPath = getOverlayPath(protocolId, 'draft');
-    const publishedPath = getOverlayPath(protocolId, 'published');
+    const idCheck = validateProtocolId(protocolId);
+    if (!idCheck.valid) {
+      return NextResponse.json({ error: idCheck.error }, { status: 400 });
+    }
+    const draftPath = getOverlayPath(idCheck.sanitized, 'draft');
+    const publishedPath = getOverlayPath(idCheck.sanitized, 'published');
     
     // Read draft overlay
     let draft;

@@ -141,6 +141,15 @@ def extract_narrative_structure(
         
         result.raw_response = raw_responses
         
+        # --- Strategy A: Full-PDF heading discovery ---
+        # Scan the entire PDF for numbered section headings the LLM missed
+        # from the TOC (which only covers the first ~30 pages).
+        if sections:
+            try:
+                sections = _discover_sections_from_pdf(pdf_path, sections)
+            except Exception as e:
+                logger.warning(f"Full-PDF heading discovery failed (non-fatal): {e}")
+        
         # --- Full-text extraction from PDF page ranges ---
         section_texts: Dict[str, str] = {}
         if sections:
@@ -154,6 +163,31 @@ def extract_narrative_structure(
                     )
             except Exception as e:
                 logger.warning(f"Full-text extraction failed (non-fatal): {e}")
+        
+        # --- Strategy B: Targeted LLM gap-filling ---
+        # Detect which M11 sections are still empty and fill them via
+        # targeted LLM calls on the later pages of the PDF.
+        if sections and extract_sections:
+            try:
+                gaps = _detect_m11_gaps(sections, section_texts)
+                if gaps:
+                    logger.info(f"M11 gaps detected: {gaps}")
+                    gap_sections, gap_texts = _fill_m11_gaps(
+                        pdf_path, model_name, sections, section_texts, gaps,
+                    )
+                    if gap_sections:
+                        # Merge gap-filled sections — avoid duplicating existing numbers
+                        existing_nums = {s.get('number', '') for s in sections}
+                        for gs in gap_sections:
+                            if gs.get('number', '') not in existing_nums:
+                                sections.append(gs)
+                        section_texts.update(gap_texts)
+                        logger.info(
+                            f"After gap-fill: {len(sections)} sections, "
+                            f"{len(section_texts)} with text"
+                        )
+            except Exception as e:
+                logger.warning(f"M11 gap-filling failed (non-fatal): {e}")
         
         # Convert to structured data
         result.data = _build_narrative_data(abbreviations, sections, document, section_texts)
@@ -375,6 +409,389 @@ def _repair_json(text: str) -> Optional[str]:
 
 
 # ---------------------------------------------------------------------------
+# Full-PDF heading discovery (Strategy A)
+# ---------------------------------------------------------------------------
+
+def _discover_sections_from_pdf(
+    pdf_path: str,
+    known_sections: List[Dict],
+) -> List[Dict]:
+    """
+    Scan the full PDF for numbered section headings not found by the LLM.
+
+    The LLM only sees TOC/synopsis pages (~30 pages), so it may miss sections
+    that appear later in the document. This function scans every page for
+    patterns like "7. Discontinuation" or "8  TRIAL ASSESSMENTS" and returns
+    any newly discovered sections merged with the known ones.
+
+    Returns the merged section list (known + discovered), sorted by number.
+    """
+    import fitz
+
+    known_nums = {s.get('number', '') for s in known_sections}
+
+    # Pattern: start-of-line, optional whitespace, section number (1-2 digits,
+    # optionally with .N.N), followed by whitespace and title words (ALL CAPS
+    # or Title Case, at least 2 words).
+    heading_re = re.compile(
+        r'(?:^|\n)\s*'
+        r'(\d{1,2}(?:\.\d{1,2}){0,3})'   # section number
+        r'\.?\s{1,6}'                       # separator
+        r'([A-Z][A-Za-z,/\-&\' ]{4,80})',  # title (starts uppercase, 5-80 chars)
+    )
+
+    doc = fitz.open(pdf_path)
+    total = len(doc)
+
+    # Detect TOC pages (pages matching 5+ headings) to skip them
+    page_heading_counts: Dict[int, int] = {}
+    page_headings: Dict[int, List[tuple]] = {}
+    for p in range(total):
+        text = doc[p].get_text()
+        matches = heading_re.findall(text)
+        page_heading_counts[p] = len(matches)
+        page_headings[p] = matches
+
+    toc_pages = {p for p, count in page_heading_counts.items() if count >= 5}
+
+    discovered: Dict[str, Dict] = {}
+    for p in range(total):
+        if p in toc_pages:
+            continue
+        for num, title in page_headings.get(p, []):
+            num = num.rstrip('.')
+            if num in known_nums or num in discovered:
+                continue
+            # Only accept sections with depth ≤ 3 (e.g. "7", "8.1", "8.1.1")
+            depth = num.count('.') + 1
+            if depth > 3:
+                continue
+            # Top-level number must be 1-14 (M11 range) to avoid false positives
+            # like "24 Blood sampling" or "30 Randomization"
+            top_level = num.split('.')[0]
+            if top_level.isdigit() and int(top_level) > 14:
+                continue
+            # Clean title and require at least 2 words
+            title = title.strip().rstrip('.')
+            title_words = title.split()
+            if len(title) < 5 or len(title_words) < 2:
+                continue
+            # Reject common false-positive patterns
+            title_lower = title.lower()
+            if any(fp in title_lower for fp in [
+                'table ', 'figure ', 'page ', 'visit ', 'day ',
+                'week ', 'month ', 'year ', 'dose ', 'mg ',
+            ]):
+                continue
+            discovered[num] = {
+                'number': num,
+                'title': title,
+                'type': _infer_section_type_from_title(title),
+                'page': p + 1,  # 1-indexed for consistency with LLM output
+                '_discovered_page0': p,  # 0-indexed page for direct use
+            }
+
+    doc.close()
+
+    if discovered:
+        logger.info(
+            f"Discovered {len(discovered)} additional sections from full PDF scan: "
+            f"{sorted(discovered.keys())}"
+        )
+
+    # Merge: known sections first, then discovered, sorted by number
+    merged = list(known_sections)
+    merged.extend(discovered.values())
+    merged.sort(key=lambda s: [
+        int(x) if x.isdigit() else 0
+        for x in s.get('number', '0').split('.')
+    ])
+    return merged
+
+
+# ---------------------------------------------------------------------------
+# M11 gap-filling via targeted LLM (Strategy B)
+# ---------------------------------------------------------------------------
+
+# M11 section definitions for gap detection
+_M11_SECTION_DEFS = {
+    '1': 'Protocol Summary',
+    '2': 'Introduction',
+    '3': 'Objectives and Estimands',
+    '4': 'Trial Design',
+    '5': 'Study Population',
+    '6': 'Study Intervention(s)',
+    '7': 'Discontinuation of Trial Intervention and Participant Discontinuation/Withdrawal',
+    '8': 'Trial Assessments and Procedures',
+    '9': 'Adverse Events and Other Safety',
+    '10': 'Statistics',
+    '11': 'Oversight, Compliance, and Integrity',
+    '12': 'Appendix: Supporting Information',
+    '13': 'Appendix: Glossary of Terms and Abbreviations',
+    '14': 'Appendix: References',
+}
+
+
+def _detect_m11_gaps(
+    sections: List[Dict],
+    section_texts: Dict[str, str],
+) -> List[str]:
+    """
+    Detect which M11 sections have no narrative content after initial extraction.
+
+    Uses the M11 mapper to determine coverage, returns list of M11 section
+    numbers (e.g. ['7', '8', '9']) that are empty.
+    """
+    try:
+        from .m11_mapper import map_sections_to_m11, build_m11_narrative
+        mapping = map_sections_to_m11(sections, section_texts)
+        m11_narrative = build_m11_narrative(sections, section_texts, mapping)
+
+        gaps = []
+        for m11_num in sorted(_M11_SECTION_DEFS.keys(), key=int):
+            entry = m11_narrative.get(m11_num, {})
+            if not entry.get('hasContent', False):
+                gaps.append(m11_num)
+        return gaps
+    except Exception as e:
+        logger.warning(f"M11 gap detection failed: {e}")
+        return []
+
+
+_M11_GAP_FILL_PROMPT = """You are an expert at extracting clinical protocol content.
+
+I need you to extract the content that belongs to ICH M11 Section {m11_number}: "{m11_title}" from the following protocol text.
+
+## What to extract for this section:
+{section_guidance}
+
+## Rules:
+1. Extract VERBATIM text from the protocol — do not paraphrase or summarize
+2. Include all relevant paragraphs, tables, and lists
+3. If the content for this section is embedded within another section, extract just the relevant parts
+4. If no content matches this section, return an empty string
+5. Return ONLY a JSON object with the exact format below
+
+## Output format:
+```json
+{{
+  "sectionNumber": "{m11_number}",
+  "sectionTitle": "{m11_title}",
+  "text": "<extracted verbatim text here>",
+  "sourcePages": "<page numbers where content was found, e.g. '45-52'>"
+}}
+```
+
+## Protocol text:
+{protocol_text}
+"""
+
+_M11_SECTION_GUIDANCE = {
+    '7': (
+        "Discontinuation/withdrawal content including:\n"
+        "- Criteria for discontinuing trial intervention\n"
+        "- Criteria for participant withdrawal from the trial\n"
+        "- Lost to follow-up procedures\n"
+        "- Stopping rules\n"
+        "Look in sections about study population, study intervention, or study procedures."
+    ),
+    '8': (
+        "Trial assessments and procedures including:\n"
+        "- Efficacy assessments and procedures\n"
+        "- Safety assessments and procedures\n"
+        "- Laboratory tests and procedures\n"
+        "- Imaging, ECG, vital signs\n"
+        "- Pharmacokinetic/pharmacodynamic assessments\n"
+        "Look in sections about study procedures, assessments, or clinical laboratory tests."
+    ),
+    '9': (
+        "Adverse events and safety content including:\n"
+        "- Definition of adverse events (AE) and serious adverse events (SAE)\n"
+        "- AE recording and reporting procedures\n"
+        "- Adverse events of special interest (AESI)\n"
+        "- Pregnancy reporting\n"
+        "- Safety reporting timelines\n"
+        "- Follow-up of AEs and SAEs\n"
+        "Look in sections about adverse events, safety, or pharmacovigilance."
+    ),
+    '11': (
+        "Oversight, compliance, and integrity including:\n"
+        "- Regulatory and ethical considerations\n"
+        "- Informed consent process\n"
+        "- Data protection and privacy\n"
+        "- Committees (DMC, steering committee)\n"
+        "- Quality management\n"
+        "- Protocol deviations\n"
+        "Look in sections about ethics, regulatory, oversight, or compliance."
+    ),
+    '12': (
+        "Supporting appendix content including:\n"
+        "- Country-specific requirements\n"
+        "- Contraceptive guidance\n"
+        "- Liver safety monitoring\n"
+        "- COVID-19 considerations\n"
+        "- Amendment history\n"
+        "Look in appendices or supplementary sections."
+    ),
+}
+
+
+def _fill_m11_gaps(
+    pdf_path: str,
+    model_name: str,
+    sections: List[Dict],
+    section_texts: Dict[str, str],
+    gaps: List[str],
+) -> tuple:
+    """
+    Fill M11 narrative gaps using targeted LLM calls.
+
+    For each gap, sends relevant PDF pages to the LLM with a focused prompt
+    asking it to extract content for that specific M11 section.
+
+    Returns (new_sections, new_section_texts) to merge into the main data.
+    """
+    if not gaps:
+        return [], {}
+
+    # Only fill gaps where we have guidance (skip §1-§6 which should come from
+    # structured extraction, and §13-§14 which are glossary/references)
+    fillable = [g for g in gaps if g in _M11_SECTION_GUIDANCE or int(g) >= 7]
+
+    if not fillable:
+        return [], {}
+
+    logger.info(f"Filling M11 narrative gaps via LLM: {fillable}")
+
+    # Extract full PDF text for the LLM (pages after the first 30, where
+    # most missing content lives). Cap at 60k chars to stay within context.
+    from core.pdf_utils import get_page_count
+    total_pages = get_page_count(pdf_path)
+    # Use pages 20+ to capture content beyond TOC/synopsis
+    late_pages = list(range(min(20, total_pages), total_pages))
+    late_text = extract_text_from_pages(pdf_path, late_pages)
+    if not late_text:
+        logger.warning("Could not extract late-page text for gap filling")
+        return [], {}
+
+    # Cap text length for LLM context
+    if len(late_text) > 60000:
+        late_text = late_text[:60000] + "\n\n[...text truncated...]"
+
+    new_sections = []
+    new_texts: Dict[str, str] = {}
+
+    for m11_num in fillable:
+        m11_title = _M11_SECTION_DEFS.get(m11_num, f'Section {m11_num}')
+        guidance = _M11_SECTION_GUIDANCE.get(
+            m11_num,
+            f"Extract all content relevant to {m11_title}."
+        )
+
+        prompt = _M11_GAP_FILL_PROMPT.format(
+            m11_number=m11_num,
+            m11_title=m11_title,
+            section_guidance=guidance,
+            protocol_text=late_text,
+        )
+
+        try:
+            response = call_llm(
+                prompt=prompt,
+                model_name=model_name,
+                json_mode=True,
+                extractor_name="narrative_gap_fill",
+            )
+
+            if 'error' in response:
+                logger.warning(f"Gap fill for M11 §{m11_num} failed: {response['error']}")
+                continue
+
+            result = _parse_json_response(response.get('response', ''))
+            if not result:
+                continue
+
+            text = result.get('text', '').strip()
+            if not text or len(text) < 20:
+                logger.info(f"  M11 §{m11_num}: no content found in protocol")
+                continue
+
+            # Create a synthetic section for this M11 gap
+            sec_id = f"m11_{m11_num}"
+            new_sections.append({
+                'number': m11_num,
+                'title': m11_title,
+                'type': _infer_section_type(m11_num),
+                'page': None,
+                '_synthetic': True,  # Flag: created by gap-fill, not from TOC
+            })
+            new_texts[m11_num] = text
+
+            logger.info(
+                f"  M11 §{m11_num} ({m11_title}): filled with {len(text)} chars"
+            )
+
+        except Exception as e:
+            logger.warning(f"Gap fill for M11 §{m11_num} error: {e}")
+            continue
+
+    return new_sections, new_texts
+
+
+def _infer_section_type_from_title(title: str) -> str:
+    """Infer a section type string from the section title text."""
+    title_lower = title.lower()
+    mappings = {
+        'synopsis': 'Synopsis', 'protocol summary': 'Synopsis',
+        'introduction': 'Introduction', 'background': 'Introduction',
+        'rationale': 'Introduction',
+        'objective': 'Objectives', 'endpoint': 'Objectives',
+        'estimand': 'Objectives',
+        'study design': 'Study Design', 'overall design': 'Study Design',
+        'trial design': 'Study Design',
+        'population': 'Study Population', 'eligibility': 'Eligibility Criteria',
+        'screen fail': 'Study Population',
+        'intervention': 'Treatment', 'dosing': 'Treatment',
+        'dose modif': 'Treatment', 'concomitant': 'Treatment',
+        'discontinu': 'Discontinuation', 'withdraw': 'Discontinuation',
+        'lost to follow': 'Discontinuation',
+        'assessment': 'Assessments', 'procedure': 'Study Procedures',
+        'efficacy': 'Assessments', 'laboratory': 'Assessments',
+        'electrocardiogram': 'Assessments', 'ecg': 'Assessments',
+        'pharmacokinetic': 'Assessments',
+        'adverse event': 'Safety', 'safety': 'Safety',
+        'serious adverse': 'Safety', 'sae': 'Safety',
+        'statistic': 'Statistics', 'interim analys': 'Statistics',
+        'sample size': 'Statistics', 'data monitoring': 'Statistics',
+        'ethic': 'Ethics', 'regulatory': 'Ethics',
+        'informed consent': 'Ethics', 'oversight': 'Ethics',
+        'data protection': 'Ethics', 'quality assurance': 'Ethics',
+        'financial disclosure': 'Ethics', 'publication': 'Ethics',
+        'reference': 'References',
+        'abbreviation': 'Abbreviations', 'glossary': 'Abbreviations',
+        'appendix': 'Appendix', 'amendment': 'Appendix',
+        'contracepti': 'Ethics', 'pregnancy': 'Ethics',
+        'covid': 'Appendix',
+    }
+    for key, value in mappings.items():
+        if key in title_lower:
+            return value
+    return 'Other'
+
+
+def _infer_section_type(m11_num: str) -> str:
+    """Infer a SectionType string from M11 section number."""
+    type_map = {
+        '1': 'Synopsis', '2': 'Introduction', '3': 'Objectives',
+        '4': 'Study Design', '5': 'Study Population', '6': 'Treatment',
+        '7': 'Discontinuation', '8': 'Assessments', '9': 'Safety',
+        '10': 'Statistics', '11': 'Ethics', '12': 'Appendix',
+        '13': 'Abbreviations', '14': 'References',
+    }
+    return type_map.get(m11_num, 'Other')
+
+
+# ---------------------------------------------------------------------------
 # Full-text extraction helpers
 # ---------------------------------------------------------------------------
 
@@ -402,7 +819,7 @@ def _find_section_pages(
     doc.close()
     
     # Build patterns for all sections
-    sec_patterns: List[tuple] = []  # (number, [patterns])
+    sec_patterns: List[tuple] = []  # (number, [patterns], hint_page)
     for sec in sections_raw:
         number = sec.get('number', '')
         title = sec.get('title', '')
@@ -413,9 +830,14 @@ def _find_section_pages(
         title_words = title.strip().split()[:4]
         title_prefix = r'\s+'.join(re.escape(w) for w in title_words)
         
+        # Primary: number + title on same line
+        # Fallback 1: number + title separated by newline (multi-line headings)
+        # Fallback 2: number alone at line start followed by newline + uppercase text
         patterns = [
             rf'(?:^|\n)\s*{escaped_num}\.?\s+{title_prefix}',
             rf'(?:^|\n)\s*Section\s+{escaped_num}[.:]?\s+{title_prefix}',
+            rf'(?:^|\n)\s*{escaped_num}\.?\s*\n\s*{title_prefix}',
+            rf'(?:^|\n)\s*{escaped_num}\.?\s*\n\s*[A-Z]{{2,}}',
         ]
         sec_patterns.append((number, patterns, sec.get('page')))
     
@@ -466,6 +888,20 @@ def _find_section_pages(
                 if found:
                     break
     
+    # --- Pass 3: Use discovery page hints for sections not found by regex ---
+    # Sections discovered by _discover_sections_from_pdf have a known page
+    # (stored as _discovered_page0). Use it directly when regex fails, which
+    # commonly happens with multi-line headings like "7.\nDISCONTINUATION...".
+    # Note: bypass TOC filtering here because _discover_sections_from_pdf
+    # already has its own TOC detection (threshold 5 headings per page).
+    for sec in sections_raw:
+        number = sec.get('number', '')
+        if not number or number in section_pages:
+            continue
+        disc_page = sec.get('_discovered_page0')
+        if disc_page is not None:
+            section_pages[number] = disc_page
+
     logger.info(f"Located {len(section_pages)}/{len(sections_raw)} sections in PDF (skipped {len(toc_pages)} TOC pages)")
     return section_pages
 
@@ -491,6 +927,8 @@ def _compute_section_page_ranges(
             end = located[idx + 1][0] - 1
         else:
             end = total_pages - 1
+        # Ensure end >= start (multiple sections can share a page)
+        end = max(end, start)
         # Clamp to reasonable size (max 30 pages per section)
         end = min(end, start + 29)
         ranges[num] = (start, end)
@@ -741,6 +1179,10 @@ def _map_section_type(type_str: str) -> SectionType:
         'procedure': SectionType.STUDY_PROCEDURES,
         'assessment': SectionType.ASSESSMENTS,
         'safety': SectionType.SAFETY,
+        'discontinu': SectionType.DISCONTINUATION,
+        'withdraw': SectionType.DISCONTINUATION,
+        'dropout': SectionType.DISCONTINUATION,
+        'drop-out': SectionType.DISCONTINUATION,
         'statistic': SectionType.STATISTICS,
         'ethic': SectionType.ETHICS,
         'reference': SectionType.REFERENCES,

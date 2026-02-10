@@ -1,0 +1,1142 @@
+# =============================================================================
+# M11 ↔ USDM v4.0 Mapping Configuration
+# =============================================================================
+#
+# Single source of truth for:
+#   1. ICH M11 template sections (§1–§14)
+#   2. USDM v4.0 entity paths each section reads/writes
+#   3. Extraction phase responsible for populating each entity
+#   4. Composer function that renders each section
+#   5. Conformance validation rules
+#   6. Section-matching keywords and aliases
+#
+# Consumers:
+#   - extraction/narrative/m11_mapper.py  → keywords, aliases, subheadings
+#   - rendering/m11_renderer.py          → composer, usdm_entities
+#   - validation/m11_conformance.py      → conformance, required fields
+#   - pipeline/orchestrator.py           → promotion rules
+#
+# Reference: ICH M11 Guideline, Template & Technical Specification
+#            (Step 4, 19 Nov 2025)
+# Schema:    USDM v4.0 (CDISC, 2024-09-27)
+# =============================================================================
+
+schema_version: "1.0"
+m11_version: "Step 4, 19 Nov 2025"
+usdm_version: "4.0"
+
+# -----------------------------------------------------------------------------
+# M11 Sections
+# -----------------------------------------------------------------------------
+sections:
+
+  # ===========================================================================
+  # §1  Protocol Summary
+  # ===========================================================================
+  "1":
+    title: "Protocol Summary"
+    required: true
+    composer: "_compose_synopsis"
+    # Synopsis is a read-only composer — it reads from multiple USDM entities
+    # populated by other extractors. No single extractor "owns" this section.
+    extractor_phase: null
+    usdm_entities:
+      - path: "studyDesigns[0].population"
+        fields: ["plannedEnrollmentNumber", "plannedAge", "plannedSex",
+                 "includesHealthySubjects"]
+      - path: "studyDesigns[0].arms"
+        fields: ["name", "type"]
+      - path: "studyDesigns[0].model"
+        fields: ["decode"]
+      - path: "studyDesigns[0].blindingSchema"
+        fields: ["standardCode"]
+      - path: "studyDesigns[0].randomizationType"
+        fields: ["code", "decode"]
+      - path: "studyDesigns[0].indications"
+        fields: ["name"]
+      - path: "studyDesigns[0].epochs"
+        fields: ["name"]
+      - path: "studyDesigns[0].studySites"
+        fields: ["name"]
+      - path: "studyDesigns[0].maskingRoles"
+        fields: ["role", "isMasked"]
+    keywords:
+      - "synopsis"
+      - "summary"
+      - "protocol summary"
+      - "schema"
+      - "schedule of activities"
+    aliases:
+      - "synopsis"
+      - "protocol synopsis"
+      - "study synopsis"
+      - "clinical study synopsis"
+      - "protocol summary"
+      - "trial synopsis"
+    subheadings:
+      - number: "1.1"
+        title: "Protocol Synopsis"
+        level: 2
+        keywords: ["synopsis", "summary"]
+      - number: "1.1.2"
+        title: "Overall Design"
+        level: 3
+        keywords: ["overall design", "design summary"]
+      - number: "1.2"
+        title: "Protocol Schema"
+        level: 2
+        keywords: ["schema", "study schema", "trial schema"]
+      - number: "1.3"
+        title: "Schedule of Activities"
+        level: 2
+        keywords: ["schedule of activities", "soa", "schedule of assessments"]
+
+    # Synopsis conformance fields — the structured table in §1.1.2
+    synopsis_fields:
+      - name: "Intervention Model"
+        conformance: "Required"
+        usdm_path: "studyDesigns[0].model.decode"
+        check: "model"
+      - name: "Population Type"
+        conformance: "Required"
+        usdm_path: "studyDesigns[0].population.includesHealthySubjects"
+        check: "pop_type"
+      - name: "Population Diagnosis or Condition"
+        conformance: "Required"
+        usdm_path: "studyDesigns[0].indications[*].name"
+        check: "indication"
+      - name: "Control Type"
+        conformance: "Required"
+        usdm_path: "studyDesigns[0].arms[*].type.decode"
+        check: "control"
+      - name: "Intervention Assignment Method"
+        conformance: "Required"
+        usdm_path: "studyDesigns[0].randomizationType.decode"
+        check: "randomization"
+      - name: "Number of Arms"
+        conformance: "Required"
+        usdm_path: "studyDesigns[0].arms"
+        check: "arms"
+      - name: "Trial Blind Schema"
+        conformance: "Required"
+        usdm_path: "studyDesigns[0].blindingSchema.standardCode.decode"
+        check: "blinding"
+      - name: "Number of Participants"
+        conformance: "Required"
+        usdm_path: "studyDesigns[0].population.plannedEnrollmentNumber.maxValue"
+        check: "participants"
+      - name: "Site Distribution"
+        conformance: "Required"
+        usdm_path: "studyDesigns[0].studySites"
+        check: "sites"
+      - name: "Population Age"
+        conformance: "Optional"
+        usdm_path: "studyDesigns[0].population.plannedAge"
+        check: "age"
+      - name: "Site Geographic Scope"
+        conformance: "Optional"
+        usdm_path: "studyDesigns[0].studySites[*].address.country"
+        check: "geo_scope"
+      - name: "Stratification Indicator"
+        conformance: "Optional"
+        usdm_path: "studyDesigns[0].studyCohorts"
+        check: "strat"
+      - name: "Master Protocol Indicator"
+        conformance: "Optional"
+        usdm_path: null
+        check: "master"
+      - name: "Adaptive Trial Design Indicator"
+        conformance: "Optional"
+        usdm_path: null
+        check: "adaptive"
+      - name: "Drug/Device Combination Indicator"
+        conformance: "Optional"
+        usdm_path: null
+        check: "combo"
+      - name: "Blinded Roles"
+        conformance: "Optional"
+        usdm_path: "studyDesigns[0].maskingRoles"
+        check: "blind_roles"
+      - name: "Duration"
+        conformance: "Optional"
+        usdm_path: "studyDesigns[0].epochs"
+        check: "duration"
+      - name: "Committees"
+        conformance: "Optional"
+        usdm_path: null
+        check: "committees"
+
+  # ===========================================================================
+  # §2  Introduction
+  # ===========================================================================
+  "2":
+    title: "Introduction"
+    required: true
+    composer: null  # Pure narrative — no entity composer needed
+    extractor_phase: "narrative"
+    usdm_entities:
+      - path: "narrativeContents"
+        fields: ["name", "text", "sectionType"]
+    keywords:
+      - "introduction"
+      - "background"
+      - "rationale"
+      - "purpose of trial"
+      - "risk"
+      - "benefit"
+    aliases:
+      - "introduction"
+      - "background and rationale"
+      - "study rationale"
+      - "introduction and rationale"
+      - "trial rationale"
+    subheadings: []
+
+  # ===========================================================================
+  # §3  Trial Objectives and Associated Estimands
+  # ===========================================================================
+  "3":
+    title: "Trial Objectives and Associated Estimands"
+    required: true
+    composer: "_compose_objectives"
+    extractor_phase: "objectives"
+    regulatory_references:
+      - framework: "ich_e9_r1"
+        scope: "Estimand framework — all 5 attributes mandatory per ICH E9(R1)"
+      - framework: "cdisc_ct"
+        scope: "Objective/endpoint level codes (Primary, Secondary, Exploratory)"
+    usdm_entities:
+      - path: "studyDesigns[0].objectives"
+        fields: ["name", "text", "level"]
+        entity_type: "Objective"
+      - path: "studyDesigns[0].objectives[*].endpoints"
+        fields: ["name", "text", "level"]
+        entity_type: "Endpoint"
+      - path: "studyDesigns[0].estimands"
+        fields: ["name", "summaryMeasure"]
+        entity_type: "Estimand"
+    keywords:
+      - "objective"
+      - "endpoint"
+      - "primary objective"
+      - "secondary objective"
+      - "estimand"
+      - "exploratory"
+    aliases:
+      - "trial objectives"
+      - "objectives and endpoints"
+      - "study objectives and endpoints"
+      - "trial objectives and associated estimands"
+      - "study objectives"
+      - "objectives, endpoints, and estimands"
+    subheadings:
+      - number: "3.1"
+        title: "Primary Objective(s) and Associated Estimand(s)"
+        level: 2
+        keywords: ["primary objective", "primary endpoint", "primary estimand"]
+      - number: "3.2"
+        title: "Secondary Objective(s) and Associated Estimand(s)"
+        level: 2
+        keywords: ["secondary objective", "secondary endpoint", "secondary estimand"]
+      - number: "3.3"
+        title: "Exploratory Objective(s)"
+        level: 2
+        keywords: ["exploratory objective", "exploratory endpoint"]
+
+  # ===========================================================================
+  # §4  Trial Design
+  # ===========================================================================
+  "4":
+    title: "Trial Design"
+    required: true
+    composer: "_compose_study_design"
+    extractor_phase: "studydesign"
+    regulatory_references:
+      - framework: "ich_e8_r1"
+        scope: "Fit-for-purpose design, control justification, adaptive features"
+      - framework: "ich_e17"
+        scope: "Multi-regional design considerations"
+    usdm_entities:
+      - path: "studyDesigns[0]"
+        fields: ["name", "rationale", "studyType"]
+        entity_type: "InterventionalStudyDesign"
+      - path: "studyDesigns[0].arms"
+        fields: ["name", "type", "description"]
+        entity_type: "StudyArm"
+      - path: "studyDesigns[0].studyCells"
+        fields: ["name", "armId", "epochId"]
+        entity_type: "StudyCell"
+      - path: "studyDesigns[0].elements"
+        fields: ["name", "description"]
+        entity_type: "StudyElement"
+      - path: "studyDesigns[0].epochs"
+        fields: ["name", "type"]
+        entity_type: "StudyEpoch"
+      - path: "studyDesigns[0].characteristics"
+        fields: ["name", "value"]
+        entity_type: "Characteristic"
+      - path: "studyDesigns[0].blindingSchema"
+        fields: ["standardCode"]
+        entity_type: "Masking"
+      - path: "studyDesigns[0].randomizationType"
+        fields: ["code", "decode"]
+        entity_type: "Code"
+    extractor_gaps:
+      - field: "blindingSchema"
+        status: "pending"
+        priority: "P14"
+      - field: "randomizationType"
+        status: "pending"
+        priority: "P14"
+      - field: "characteristics"
+        status: "pending"
+        priority: "P14"
+    keywords:
+      - "trial design"
+      - "study design"
+      - "design"
+      - "overall design"
+      - "study scheme"
+      - "randomization"
+      - "randomisation"
+      - "blinding"
+      - "adaptive"
+      - "stopping rule"
+    aliases:
+      - "trial design"
+      - "study design"
+      - "overall study design"
+      - "study design and plan"
+      - "investigational plan"
+      - "overall trial design"
+    subheadings: []
+
+  # ===========================================================================
+  # §5  Trial Population
+  # ===========================================================================
+  "5":
+    title: "Trial Population"
+    required: true
+    composer: "_compose_eligibility"
+    extractor_phase: "eligibility"
+    regulatory_references:
+      - framework: "ich_e6_r2"
+        scope: "Unambiguous, verifiable eligibility criteria"
+      - framework: "ich_e17"
+        scope: "Regional population considerations for MRCTs"
+    usdm_entities:
+      - path: "studyDesigns[0].eligibilityCriteria"
+        fields: ["name", "identifier", "category", "criterionItemId"]
+        entity_type: "EligibilityCriterion"
+      - path: "eligibilityCriterionItems"
+        fields: ["name", "text"]
+        entity_type: "EligibilityCriterionItem"
+      - path: "studyDesigns[0].population"
+        fields: ["plannedEnrollmentNumber", "plannedAge", "plannedSex",
+                 "includesHealthySubjects", "plannedCompletionNumber"]
+        entity_type: "StudyDesignPopulation"
+    promotion_rules:
+      - source: "extension:x-sap-sample-size-calculations[].targetSampleSize"
+        target: "studyDesigns[0].population.plannedEnrollmentNumber"
+        condition: "target_empty"
+        description: "SAP sample size overrides eligibility estimate"
+      - source: "inference:eligibilityCriteria[*].text"
+        target: "studyDesigns[0].population.plannedAge"
+        condition: "target_empty"
+        description: "Infer age range from criteria text patterns"
+      - source: "inference:eligibilityCriteria[*].text"
+        target: "studyDesigns[0].population.plannedSex"
+        condition: "target_empty"
+        description: "Infer sex from criteria text patterns"
+    keywords:
+      - "population"
+      - "eligibility"
+      - "inclusion"
+      - "exclusion"
+      - "subject selection"
+      - "patient population"
+      - "participant selection"
+      - "contraception"
+      - "screen failure"
+      - "rescreening"
+    aliases:
+      - "trial population"
+      - "study population"
+      - "selection of study population"
+      - "eligibility criteria"
+      - "selection of subjects"
+      - "selection and withdrawal of subjects"
+    subheadings:
+      - number: "5.1"
+        title: "Description of Trial Population"
+        level: 2
+        keywords: ["description of population", "trial population", "study population"]
+      - number: "5.2"
+        title: "Inclusion Criteria"
+        level: 2
+        keywords: ["inclusion", "inclusion criteria"]
+      - number: "5.3"
+        title: "Exclusion Criteria"
+        level: 2
+        keywords: ["exclusion", "exclusion criteria"]
+
+  # ===========================================================================
+  # §6  Trial Intervention and Concomitant Therapy
+  # ===========================================================================
+  "6":
+    title: "Trial Intervention and Concomitant Therapy"
+    required: true
+    composer: "_compose_interventions"
+    extractor_phase: "interventions"
+    usdm_entities:
+      - path: "studyInterventions"
+        fields: ["name", "description", "role"]
+        entity_type: "StudyIntervention"
+      - path: "administrations"
+        fields: ["name", "route", "doseForm"]
+        entity_type: "Administration"
+      - path: "administrableProducts"
+        fields: ["name", "productDesignation"]
+        entity_type: "AdministrableProduct"
+    extractor_gaps:
+      - field: "productIds linkage"
+        status: "pending"
+        priority: "P15+"
+    keywords:
+      - "intervention"
+      - "treatment"
+      - "investigational product"
+      - "study drug"
+      - "dosage"
+      - "dosing"
+      - "medication"
+      - "concomitant"
+      - "prohibited"
+      - "dose modification"
+      - "randomisation"
+      - "blinding"
+      - "unblinding"
+      - "rescue therapy"
+      - "adherence"
+    aliases:
+      - "trial intervention"
+      - "study intervention"
+      - "trial intervention and concomitant therapy"
+      - "study treatment"
+      - "investigational product"
+      - "description of study treatment"
+      - "treatments administered"
+    subheadings:
+      - number: "6.1"
+        title: "Trial Intervention Overview"
+        level: 2
+        keywords: ["intervention overview", "treatment overview"]
+      - number: "6.2"
+        title: "Description of Trial Intervention"
+        level: 2
+        keywords: ["description of intervention", "investigational product",
+                    "study drug", "trial intervention description"]
+      - number: "6.3"
+        title: "Dose Modification"
+        level: 2
+        keywords: ["dose modification", "dose adjustment", "dose reduction",
+                    "dose escalation", "dose titration"]
+      - number: "6.4"
+        title: "Preparation, Handling, and Storage of Trial Intervention"
+        level: 2
+        keywords: ["preparation", "handling", "storage"]
+      - number: "6.5"
+        title: "Randomization and Blinding"
+        level: 2
+        keywords: ["randomization", "randomisation", "blinding", "unblinding"]
+      - number: "6.6"
+        title: "Trial Intervention Compliance"
+        level: 2
+        keywords: ["compliance", "adherence", "accountability"]
+      - number: "6.7"
+        title: "Concomitant Therapy"
+        level: 2
+        keywords: ["concomitant", "permitted medication", "allowed medication"]
+      - number: "6.8"
+        title: "Prohibited Concomitant Therapy"
+        level: 2
+        keywords: ["prohibited", "restricted medication"]
+      - number: "6.9"
+        title: "Rescue Therapy"
+        level: 2
+        keywords: ["rescue therapy", "rescue medication"]
+      - number: "6.10"
+        title: "Other Therapy"
+        level: 2
+        keywords: ["other therapy", "background therapy", "supportive care"]
+
+  # ===========================================================================
+  # §7  Participant Discontinuation
+  # ===========================================================================
+  "7":
+    title: "Participant Discontinuation of Trial Intervention and Discontinuation or Withdrawal from Trial"
+    required: true
+    composer: "_compose_discontinuation"
+    # No dedicated extractor — content comes from narrative sections tagged
+    # with sectionType containing discontinuation/withdrawal keywords.
+    # This is an ANTI-PATTERN: should be enhanced in narrative extractor (P15).
+    extractor_phase: "narrative"
+    extractor_strategy: "section_type_filter"
+    section_type_filter: ["discontinuation", "withdrawal"]
+    usdm_entities:
+      - path: "narrativeContents"
+        fields: ["name", "text", "sectionType"]
+        filter: "sectionType contains 'discontinuation' or 'withdrawal'"
+    extractor_gaps:
+      - field: "M11-aware narrative tagging"
+        status: "pending"
+        priority: "P15"
+        description: "Narrative extractor should tag sections with M11-relevant types"
+    keywords:
+      - "discontinuation"
+      - "withdrawal"
+      - "dropout"
+      - "early termination"
+      - "lost to follow"
+      - "rechallenge"
+      - "temporary discontinuation"
+    aliases:
+      - "discontinuation"
+      - "withdrawal"
+      - "participant discontinuation"
+      - "discontinuation of study treatment"
+      - "discontinuation of trial intervention"
+      - "discontinuation of study intervention"
+      - "subject discontinuation"
+      - "participant withdrawal"
+      - "premature withdrawal"
+      - "subject withdrawal"
+    subheadings: []
+
+  # ===========================================================================
+  # §8  Trial Assessments and Procedures
+  # ===========================================================================
+  "8":
+    title: "Trial Assessments and Procedures"
+    required: true
+    composer: null  # Content comes from SoA + narrative mapping
+    extractor_phase: "procedures"
+    usdm_entities:
+      - path: "studyDesigns[0].activities"
+        fields: ["name", "description", "definedProcedures"]
+        entity_type: "Activity"
+      - path: "studyDesigns[0].procedures"
+        fields: ["name", "code", "procedureType"]
+        entity_type: "Procedure"
+    keywords:
+      - "assessment"
+      - "procedure"
+      - "schedule of activities"
+      - "study procedure"
+      - "efficacy assessment"
+      - "safety assessment"
+      - "laboratory"
+      - "vital signs"
+      - "physical exam"
+      - "pharmacokinetic"
+      - "biomarker"
+      - "immunogenicity"
+      - "electrocardiogram"
+    aliases:
+      - "trial assessments and procedures"
+      - "study assessments and procedures"
+      - "study procedures"
+      - "study assessments"
+      - "schedule of assessments"
+      - "study evaluations"
+      - "trial assessments"
+    subheadings:
+      - number: "8.1"
+        title: "Efficacy Assessments"
+        level: 2
+        keywords: ["efficacy assessment", "primary efficacy", "secondary efficacy"]
+      - number: "8.2"
+        title: "Safety Assessments"
+        level: 2
+        keywords: ["safety assessment", "vital signs", "physical examination",
+                    "laboratory", "ecg", "electrocardiogram"]
+      - number: "8.3"
+        title: "Other Assessments"
+        level: 2
+        keywords: ["pharmacokinetic", "biomarker", "immunogenicity",
+                    "pharmacodynamic", "other assessment", "quality of life"]
+
+  # ===========================================================================
+  # §9  Adverse Events
+  # ===========================================================================
+  "9":
+    title: "Adverse Events, Serious Adverse Events, Product Complaints, Pregnancy and Postpartum Information, and Special Safety Situations"
+    required: true
+    composer: "_compose_safety"
+    # Same anti-pattern as §7 — uses runtime keyword scanning.
+    extractor_phase: "narrative"
+    extractor_strategy: "section_type_filter"
+    section_type_filter: ["safety", "adverse_event", "pharmacovigilance"]
+    usdm_entities:
+      - path: "narrativeContents"
+        fields: ["name", "text", "sectionType"]
+        filter: "sectionType contains 'safety' or 'adverse'"
+    extractor_gaps:
+      - field: "M11-aware narrative tagging for safety"
+        status: "pending"
+        priority: "P15"
+    keywords:
+      - "adverse event"
+      - "serious adverse event"
+      - "product complaint"
+      - "safety reporting"
+      - "pharmacovigilance"
+      - "pregnancy"
+      - "postpartum"
+      - "special safety"
+      - "aesi"
+      - "disease-related event"
+    aliases:
+      - "adverse events"
+      - "serious adverse events"
+      - "adverse events and serious adverse events"
+      - "safety reporting"
+      - "pharmacovigilance"
+      - "adverse event reporting"
+    subheadings:
+      - number: "9.1"
+        title: "Time Period for Collecting AE and SAE Information"
+        level: 2
+        keywords: ["time period", "ae collection", "reporting period"]
+      - number: "9.2"
+        title: "Adverse Events"
+        level: 2
+        keywords: ["adverse event definition", "ae definition"]
+      - number: "9.3"
+        title: "Serious Adverse Events"
+        level: 2
+        keywords: ["serious adverse event", "sae definition"]
+      - number: "9.4"
+        title: "Adverse Events of Special Interest"
+        level: 2
+        keywords: ["aesi", "special interest", "adverse event of special interest"]
+      - number: "9.5"
+        title: "Disease-Related Events or Outcomes Not Qualifying as AEs or SAEs"
+        level: 2
+        keywords: ["disease-related", "not qualifying"]
+      - number: "9.6"
+        title: "Product Complaints"
+        level: 2
+        keywords: ["product complaint"]
+      - number: "9.7"
+        title: "Pregnancy and Postpartum Information"
+        level: 2
+        keywords: ["pregnancy", "postpartum"]
+      - number: "9.8"
+        title: "Special Safety Situations"
+        level: 2
+        keywords: ["special safety", "overdose", "medication error"]
+      - number: "9.9"
+        title: "Reporting of AEs, SAEs, Product Complaints, Pregnancy and Postpartum Information, and Special Safety Situations"
+        level: 2
+        keywords: ["reporting", "pharmacovigilance", "safety reporting"]
+      - number: "9.10"
+        title: "Follow-up of AEs, SAEs, and Special Safety Situations"
+        level: 2
+        keywords: ["follow-up", "follow up"]
+
+  # ===========================================================================
+  # §10  Statistical Considerations
+  # ===========================================================================
+  "10":
+    title: "Statistical Considerations"
+    required: true
+    composer: "_compose_statistics"
+    extractor_phase: "sap"  # Conditional phase
+    regulatory_references:
+      - framework: "ich_e9_r1"
+        scope: "Estimand-aligned analysis, sensitivity analyses, intercurrent event handling"
+      - framework: "ich_e17"
+        scope: "Multi-regional sample size and consistency assessment"
+    usdm_entities:
+      - path: "studyDesigns[0].analysisPopulations"
+        fields: ["name", "text", "populationType"]
+        entity_type: "AnalysisPopulation"
+    keywords:
+      - "statistic"
+      - "statistical"
+      - "sample size"
+      - "analysis"
+      - "power calculation"
+      - "interim analysis"
+      - "multiplicity"
+      - "missing data"
+      - "analysis set"
+      - "sensitivity analysis"
+    aliases:
+      - "statistical considerations"
+      - "statistical methods"
+      - "statistical analysis"
+      - "statistical analysis plan"
+      - "data analysis"
+    subheadings:
+      - number: "10.1"
+        title: "Statistical Hypotheses"
+        level: 2
+        keywords: ["statistical hypothesis", "null hypothesis"]
+      - number: "10.2"
+        title: "Analysis Sets"
+        level: 2
+        keywords: ["analysis set", "analysis population", "itt", "per protocol",
+                    "safety population", "intent to treat"]
+      - number: "10.3"
+        title: "Statistical Analyses"
+        level: 2
+        keywords: ["statistical analysis", "primary analysis",
+                    "secondary analysis", "sensitivity analysis"]
+      - number: "10.4"
+        title: "Sample Size Determination"
+        level: 2
+        keywords: ["sample size", "power calculation", "power analysis"]
+      - number: "10.5"
+        title: "Interim Analyses"
+        level: 2
+        keywords: ["interim analysis", "interim"]
+      - number: "10.6"
+        title: "Multiplicity Adjustments"
+        level: 2
+        keywords: ["multiplicity", "multiple comparison", "adjustment"]
+      - number: "10.7"
+        title: "Missing Data"
+        level: 2
+        keywords: ["missing data", "imputation"]
+      - number: "10.8"
+        title: "Subgroup Analyses"
+        level: 2
+        keywords: ["subgroup"]
+      - number: "10.9"
+        title: "Sensitivity Analyses"
+        level: 2
+        keywords: ["sensitivity"]
+      - number: "10.10"
+        title: "Supplemental Analyses"
+        level: 2
+        keywords: ["supplemental"]
+      - number: "10.11"
+        title: "Other Analyses"
+        level: 2
+        keywords: ["other analysis"]
+
+  # ===========================================================================
+  # §11  Trial Oversight
+  # ===========================================================================
+  "11":
+    title: "Trial Oversight and Other General Considerations"
+    required: true
+    composer: null  # No composer yet — narrative only
+    extractor_phase: "narrative"
+    extractor_strategy: "section_type_filter"
+    section_type_filter: ["oversight", "regulatory", "ethics", "governance"]
+    usdm_entities:
+      - path: "narrativeContents"
+        fields: ["name", "text", "sectionType"]
+        filter: "sectionType contains 'oversight' or 'regulatory'"
+    extractor_gaps:
+      - field: "GovernanceDate entities"
+        status: "pending"
+        priority: "P13"
+      - field: "M11-aware narrative tagging for oversight"
+        status: "pending"
+        priority: "P15"
+    keywords:
+      - "oversight"
+      - "regulatory"
+      - "ethical"
+      - "ethics"
+      - "irb"
+      - "iec"
+      - "informed consent"
+      - "committee"
+      - "data governance"
+      - "data protection"
+      - "insurance"
+      - "indemnity"
+      - "quality management"
+      - "monitoring"
+      - "source record"
+      - "protocol deviation"
+      - "site closure"
+      - "data dissemination"
+    aliases:
+      - "trial oversight"
+      - "trial oversight and other general considerations"
+      - "supporting documentation"
+      - "study administration"
+      - "administrative procedures"
+      - "regulatory and ethical considerations"
+      - "ethical considerations"
+      - "study governance"
+      - "general considerations"
+    subheadings:
+      - number: "11.1"
+        title: "Regulatory and Ethical Considerations"
+        level: 2
+        keywords: ["regulatory", "ethical", "ethics committee", "irb", "iec"]
+      - number: "11.2"
+        title: "Informed Consent Process"
+        level: 2
+        keywords: ["informed consent"]
+      - number: "11.3"
+        title: "Data Protection"
+        level: 2
+        keywords: ["data protection", "privacy", "gdpr", "hipaa"]
+      - number: "11.4"
+        title: "Committees"
+        level: 2
+        keywords: ["committee", "dmc", "dsmb", "steering", "adjudication"]
+      - number: "11.5"
+        title: "Risk Management"
+        level: 2
+        keywords: ["risk management", "risk assessment", "benefit-risk"]
+      - number: "11.6"
+        title: "Insurance and Indemnity"
+        level: 2
+        keywords: ["insurance", "indemnity"]
+      - number: "11.7"
+        title: "Clinical Trial Monitoring"
+        level: 2
+        keywords: ["monitoring", "source data verification"]
+      - number: "11.8"
+        title: "Quality Management"
+        level: 2
+        keywords: ["quality management", "quality assurance", "audit"]
+      - number: "11.9"
+        title: "Data Handling and Record Keeping"
+        level: 2
+        keywords: ["data handling", "record keeping", "source record",
+                    "case report form", "crf"]
+      - number: "11.10"
+        title: "Protocol Deviations"
+        level: 2
+        keywords: ["protocol deviation", "protocol violation"]
+      - number: "11.11"
+        title: "Site Closure Rules"
+        level: 2
+        keywords: ["site closure"]
+      - number: "11.12"
+        title: "Data Dissemination Policy"
+        level: 2
+        keywords: ["dissemination", "publication policy", "data sharing"]
+
+  # ===========================================================================
+  # §12–14  Appendices
+  # ===========================================================================
+  "12":
+    title: "Appendix: Supporting Details"
+    required: false
+    composer: null
+    extractor_phase: "narrative"
+    usdm_entities:
+      - path: "narrativeContents"
+        fields: ["name", "text"]
+    keywords:
+      - "appendix"
+      - "appendices"
+      - "supporting detail"
+      - "laboratory test"
+      - "country-specific"
+      - "region-specific"
+      - "prior amendment"
+    aliases:
+      - "appendix"
+      - "appendices"
+      - "appendix supporting details"
+      - "supporting details"
+      - "supplements"
+      - "attachments"
+    subheadings: []
+
+  "13":
+    title: "Appendix: Glossary of Terms and Abbreviations"
+    required: false
+    composer: null
+    extractor_phase: "narrative"
+    usdm_entities:
+      - path: "abbreviations"
+        fields: ["abbreviation", "expansion"]
+    keywords:
+      - "glossary"
+      - "abbreviation"
+      - "definition"
+      - "acronym"
+    aliases:
+      - "glossary"
+      - "glossary of terms"
+      - "glossary of terms and abbreviations"
+      - "abbreviations"
+      - "list of abbreviations"
+    subheadings: []
+
+  "14":
+    title: "Appendix: References"
+    required: false
+    composer: null
+    extractor_phase: "narrative"
+    usdm_entities:
+      - path: "narrativeContents"
+        fields: ["name", "text"]
+    keywords:
+      - "reference"
+      - "bibliography"
+      - "citation"
+    aliases:
+      - "references"
+      - "bibliography"
+      - "literature references"
+      - "appendix references"
+    subheadings: []
+
+
+# -----------------------------------------------------------------------------
+# Title Page conformance fields
+# -----------------------------------------------------------------------------
+title_page_fields:
+  - name: "Full Title"
+    conformance: "Required"
+    usdm_path: "titles[?type.decode=='Official Study Title'].text"
+    check: "titles"
+    cCode: "C132346"
+  - name: "Sponsor Protocol Identifier"
+    conformance: "Required"
+    usdm_path: "studyIdentifiers[?type.decode=='Sponsor Protocol Number'].text"
+    check: "identifiers"
+    cCode: "C132351"
+  - name: "Original Protocol Indicator"
+    conformance: "Required"
+    usdm_path: null
+    check: "amendments"
+    cCode: "C217046"
+  - name: "Trial Phase"
+    conformance: "Required"
+    usdm_path: "studyPhase"
+    check: "phase"
+    cCode: "C15601"
+  - name: "Sponsor Name and Address"
+    conformance: "Required"
+    usdm_path: "organizations[?type.decode=='Sponsor']"
+    check: "sponsor"
+    cCode: "C70793"
+  - name: "Regulatory/Clinical Trial Identifiers"
+    conformance: "Required"
+    usdm_path: "studyIdentifiers"
+    check: "reg_identifiers"
+    cCode: "C172240"
+  - name: "Sponsor Approval"
+    conformance: "Required"
+    usdm_path: "dateValues[?type=='Sponsor Approval']"
+    check: "approval"
+  - name: "Trial Acronym"
+    conformance: "Optional"
+    usdm_path: "titles[?type.decode=='Acronym'].text"
+    check: "acronym"
+  - name: "Short Title"
+    conformance: "Optional"
+    usdm_path: "titles[?type.decode=='Short Study Title'].text"
+    check: "short_title"
+  - name: "Version Number"
+    conformance: "Optional"
+    usdm_path: "versionIdentifier"
+    check: "version"
+  - name: "Version Date"
+    conformance: "Optional"
+    usdm_path: "effectiveDate"
+    check: "date"
+  - name: "Investigational Product Name(s)"
+    conformance: "Optional"
+    usdm_path: "studyInterventions[*].name"
+    check: "ip_names"
+
+
+# -----------------------------------------------------------------------------
+# Extractor Phase → M11 Section Coverage Matrix
+# -----------------------------------------------------------------------------
+# This documents which extractor phases contribute to which M11 sections.
+# Used for gap analysis and to plan new extractors.
+extractor_coverage:
+  metadata:
+    m11_sections: ["1"]
+    usdm_targets:
+      - "titles"
+      - "studyIdentifiers"
+      - "organizations"
+      - "studyPhase"
+      - "studyType"
+    gaps: ["GovernanceDate", "effectiveDate", "sponsor.legalAddress"]
+
+  narrative:
+    m11_sections: ["1", "2", "7", "8", "9", "11", "12", "13", "14"]
+    usdm_targets:
+      - "narrativeContents"
+      - "narrativeContentItems"
+      - "abbreviations"
+    gaps: ["M11-aware sectionType tagging"]
+
+  objectives:
+    m11_sections: ["3"]
+    usdm_targets:
+      - "studyDesigns[0].objectives"
+      - "studyDesigns[0].estimands"
+    gaps: []
+
+  studydesign:
+    m11_sections: ["4"]
+    usdm_targets:
+      - "studyDesigns[0].arms"
+      - "studyDesigns[0].studyCells"
+      - "studyDesigns[0].elements"
+      - "studyDesigns[0].epochs"
+    gaps: ["blindingSchema", "randomizationType", "characteristics"]
+
+  eligibility:
+    m11_sections: ["5"]
+    usdm_targets:
+      - "studyDesigns[0].eligibilityCriteria"
+      - "eligibilityCriterionItems"
+      - "studyDesigns[0].population"
+    gaps: []  # Fixed in P12
+
+  interventions:
+    m11_sections: ["6"]
+    usdm_targets:
+      - "studyInterventions"
+      - "administrations"
+      - "administrableProducts"
+    gaps: ["AdministrableProduct.productIds linkage"]
+
+  procedures:
+    m11_sections: ["8"]
+    usdm_targets:
+      - "studyDesigns[0].activities"
+      - "studyDesigns[0].procedures"
+    gaps: []
+
+  sap:
+    m11_sections: ["10"]
+    usdm_targets:
+      - "studyDesigns[0].analysisPopulations"
+    gaps: []
+    conditional: true
+    note: "SAP is a conditional phase — only runs if SAP document is provided"
+
+
+# -----------------------------------------------------------------------------
+# Regulatory Frameworks
+# -----------------------------------------------------------------------------
+# ICH and other guidelines that inform extraction rules, validation logic,
+# and M11 section content. Each entry describes the guidance, its scope,
+# and which M11 sections / USDM entities it influences.
+#
+# Extractors and validators SHOULD use these to:
+#   1. Validate extracted entities against regulatory requirements
+#   2. Ensure completeness (e.g., ICH E9 requires all 5 estimand attributes)
+#   3. Apply correct terminology (e.g., ICH E6 consent language)
+#   4. Flag deviations from expected structure
+regulatory_frameworks:
+
+  ich_m11:
+    name: "ICH M11"
+    full_title: "Clinical Electronic Structured Harmonised Protocol"
+    version: "Step 4, 19 Nov 2025"
+    scope: "Protocol structure, content, and terminology"
+    m11_sections: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"]
+    notes: "Primary framework — defines the 14-section template this config models"
+
+  ich_e9_r1:
+    name: "ICH E9(R1)"
+    full_title: "Addendum on Estimands and Sensitivity Analysis in Clinical Trials"
+    version: "November 2019"
+    scope: "Estimand framework: 5 mandatory attributes for treatment effect definition"
+    m11_sections: ["3", "10"]
+    usdm_entities:
+      - "Estimand"
+      - "IntercurrentEvent"
+      - "Endpoint"
+      - "AnalysisPopulation"
+    extraction_rules:
+      - "Every estimand MUST have all 5 ICH E9(R1) attributes: treatment, population, variable, intercurrent_events, summary_measure"
+      - "Each intercurrent event MUST specify one of 5 strategies: treatment_policy, composite, hypothetical, principal_stratum, while_on_treatment"
+      - "Primary estimands MUST reference a primary endpoint"
+      - "The summary measure MUST be a population-level summary (e.g., difference in means, hazard ratio)"
+      - "Intercurrent events MUST be clinically meaningful events post-randomization"
+    validation_checks:
+      - check: "estimand_completeness"
+        description: "All 5 attributes present for each estimand"
+        severity: "ERROR"
+      - check: "ice_strategy_valid"
+        description: "Each intercurrent event has a valid strategy"
+        severity: "ERROR"
+      - check: "primary_estimand_exists"
+        description: "At least one estimand references a primary endpoint"
+        severity: "WARNING"
+
+  ich_e6_r2:
+    name: "ICH E6(R2)"
+    full_title: "Guideline for Good Clinical Practice"
+    version: "R2, November 2016 (R3 draft 2023)"
+    scope: "GCP requirements for protocol content"
+    m11_sections: ["5", "7", "9", "11"]
+    usdm_entities:
+      - "EligibilityCriterion"
+      - "StudyDesignPopulation"
+      - "NarrativeContent"
+    extraction_rules:
+      - "Eligibility criteria must be unambiguous and verifiable"
+      - "Discontinuation rules must specify criteria, procedures, and data collection"
+      - "Safety reporting must define AE/SAE definitions and reporting timelines"
+      - "Oversight must address IRB/IEC review, informed consent, monitoring"
+
+  ich_e8_r1:
+    name: "ICH E8(R1)"
+    full_title: "General Considerations for Clinical Studies"
+    version: "R1, October 2021"
+    scope: "Study design quality, fit-for-purpose design elements"
+    m11_sections: ["4"]
+    usdm_entities:
+      - "InterventionalStudyDesign"
+      - "StudyArm"
+      - "StudyEpoch"
+      - "Masking"
+    extraction_rules:
+      - "Study design should be fit-for-purpose for the research question"
+      - "Control group selection must be justified"
+      - "Blinding approach must be justified and described"
+      - "Adaptive design features must be pre-specified"
+
+  ich_e17:
+    name: "ICH E17"
+    full_title: "General Principles for Planning and Design of Multi-Regional Clinical Trials"
+    version: "November 2017"
+    scope: "MRCT design, regional consistency, sample size"
+    m11_sections: ["4", "5", "10"]
+    usdm_entities:
+      - "StudyDesignPopulation"
+      - "StudySite"
+    extraction_rules:
+      - "Multi-regional trials should document regional enrollment targets"
+      - "Population eligibility should consider regional variations"
+
+  cdisc_ct:
+    name: "CDISC Controlled Terminology"
+    full_title: "CDISC Controlled Terminology (NCI C-codes)"
+    version: "2024-09-27"
+    scope: "Standard codes for study design elements"
+    m11_sections: ["1", "3", "4", "5"]
+    usdm_entities:
+      - "Code"
+      - "ObjectiveLevel"
+      - "EndpointLevel"
+      - "StudyPhase"
+    extraction_rules:
+      - "Use NCI C-codes from CDISC CT for: objective level, endpoint level, study phase, sex"
+      - "Study type codes: C98388 (Interventional), C142615 (Observational)"
+      - "Blinding codes: C15228 (Open Label), C15479 (Single Blind), C15327 (Double Blind)"

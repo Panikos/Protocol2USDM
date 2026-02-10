@@ -72,34 +72,34 @@ Return a JSON object with this exact structure:
       "stratificationFactors": []
     },
     "controlType": null,
-    "therapeuticAreas": ["Hepatology"]
+    "therapeuticAreas": ["Cardiology"]
   },
   "arms": [
     {
-      "name": "ALXN1840 Treatment",
+      "name": "ABC-1234 Treatment",
       "type": "Experimental Arm",
-      "description": "All participants receive ALXN1840 with dose titration from 15mg to 30mg",
+      "description": "All participants receive ABC-1234 with dose titration from 50mg to 100mg",
       "isTitration": true,
       "doseEpochs": [
-        {"dose": "15 mg/day", "startDay": 1, "endDay": 28, "description": "Initial dose period"},
-        {"dose": "30 mg/day", "startDay": 29, "endDay": null, "description": "Titrated dose period"}
+        {"dose": "50 mg/day", "startDay": 1, "endDay": 28, "description": "Initial dose period"},
+        {"dose": "100 mg/day", "startDay": 29, "endDay": null, "description": "Titrated dose period"}
       ]
     }
   ],
   "cohorts": [
     {
       "name": "Treatment-naive",
-      "characteristic": "Participants who have not received prior WD therapy"
+      "characteristic": "Participants who have not received prior therapy for this condition"
     },
     {
       "name": "Previously treated",
-      "characteristic": "Participants with prior chelator or zinc therapy"
+      "characteristic": "Participants with prior standard-of-care therapy"
     }
   ],
   "epochs": [
-    {"name": "Screening", "description": "Up to 21 days"},
-    {"name": "15mg Treatment Period", "description": "Days 1-28, initial dose"},
-    {"name": "30mg Treatment Period", "description": "Day 29 onwards, titrated dose"},
+    {"name": "Screening", "description": "Up to 28 days"},
+    {"name": "Low-Dose Treatment", "description": "Days 1-28, initial dose"},
+    {"name": "Full-Dose Treatment", "description": "Day 29 onwards, titrated dose"},
     {"name": "Follow-up", "description": "4 weeks after last dose"}
   ]
 }

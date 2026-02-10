@@ -1,12 +1,12 @@
 """
 M11 Section Mapper — maps protocol-native section structure to ICH M11 template.
 
-The ICH M11 template defines 12 canonical sections for clinical protocol documents.
+The ICH M11 template defines 14 canonical sections for clinical protocol documents.
 Protocol PDFs use their own numbering which may not match M11 directly.
 This module provides deterministic title-based semantic matching to map
 protocol sections → M11 sections, enabling M11-compliant document generation.
 
-Reference: ICH M11 Technical Specification (Step 4, 2023)
+Reference: ICH M11 Guideline, Template & Technical Specification (Step 4, 19 Nov 2025)
 """
 
 import logging
@@ -20,137 +20,42 @@ logger = logging.getLogger(__name__)
 @dataclass
 class M11Section:
     """Canonical M11 template section definition."""
-    number: str           # "1" through "12"
+    number: str           # "1" through "14"
     title: str            # Official M11 section title
     required: bool        # Whether this section is required per M11
     keywords: List[str]   # Keywords for matching protocol sections
     aliases: List[str]    # Alternative section titles commonly used
 
 
-# ICH M11 Template — 12 canonical sections
-M11_TEMPLATE: List[M11Section] = [
-    M11Section(
-        number="1",
-        title="Protocol Summary",
-        required=True,
-        keywords=["synopsis", "summary", "protocol summary"],
-        aliases=["synopsis", "protocol synopsis", "study synopsis",
-                 "clinical study synopsis", "protocol summary"],
-    ),
-    M11Section(
-        number="2",
-        title="Introduction",
-        required=True,
-        keywords=["introduction", "background", "rationale"],
-        aliases=["introduction", "background and rationale",
-                 "study rationale", "introduction and rationale"],
-    ),
-    M11Section(
-        number="3",
-        title="Study Objectives and Endpoints",
-        required=True,
-        keywords=["objective", "endpoint", "primary objective",
-                  "secondary objective", "estimand"],
-        aliases=["study objectives", "objectives and endpoints",
-                 "study objectives and endpoints",
-                 "objectives, endpoints, and estimands"],
-    ),
-    M11Section(
-        number="4",
-        title="Study Design",
-        required=True,
-        keywords=["study design", "design", "overall design",
-                  "study scheme", "randomization", "blinding"],
-        aliases=["study design", "overall study design",
-                 "study design and plan", "investigational plan"],
-    ),
-    M11Section(
-        number="5",
-        title="Study Population",
-        required=True,
-        keywords=["population", "eligibility", "inclusion", "exclusion",
-                  "subject selection", "patient population"],
-        aliases=["study population", "selection of study population",
-                 "eligibility criteria", "selection of subjects",
-                 "selection and withdrawal of subjects"],
-    ),
-    M11Section(
-        number="6",
-        title="Study Intervention",
-        required=True,
-        keywords=["intervention", "treatment", "investigational product",
-                  "study drug", "dosage", "dosing", "medication",
-                  "concomitant", "prohibited"],
-        aliases=["study intervention", "study treatment",
-                 "investigational product", "study drug",
-                 "description of study treatment",
-                 "treatments administered"],
-    ),
-    M11Section(
-        number="7",
-        title="Discontinuation of Study Intervention and Participant Discontinuation/Withdrawal",
-        required=True,
-        keywords=["discontinuation", "withdrawal", "dropout",
-                  "early termination", "stopping rules", "lost to follow"],
-        aliases=["discontinuation", "withdrawal",
-                 "discontinuation of study treatment",
-                 "discontinuation of study intervention",
-                 "subject discontinuation", "participant withdrawal",
-                 "premature withdrawal", "subject withdrawal"],
-    ),
-    M11Section(
-        number="8",
-        title="Study Assessments and Procedures",
-        required=True,
-        keywords=["assessment", "procedure", "schedule of activities",
-                  "study procedure", "efficacy assessment",
-                  "safety assessment", "laboratory", "vital signs",
-                  "physical exam", "pharmacokinetic"],
-        aliases=["study assessments and procedures",
-                 "study procedures", "study assessments",
-                 "schedule of assessments", "study evaluations"],
-    ),
-    M11Section(
-        number="9",
-        title="Statistical Considerations",
-        required=True,
-        keywords=["statistic", "statistical", "sample size", "analysis",
-                  "power calculation", "interim analysis",
-                  "multiplicity", "missing data"],
-        aliases=["statistical considerations",
-                 "statistical methods", "statistical analysis",
-                 "statistical analysis plan", "data analysis"],
-    ),
-    M11Section(
-        number="10",
-        title="Supporting Documentation",
-        required=False,
-        keywords=["supporting", "administration", "regulatory",
-                  "ethical", "ethics", "irb", "iec", "informed consent",
-                  "data handling", "quality control", "monitoring",
-                  "adverse event", "serious adverse event",
-                  "safety reporting", "pharmacovigilance"],
-        aliases=["supporting documentation",
-                 "study administration", "administrative procedures",
-                 "regulatory and ethical considerations",
-                 "ethical considerations", "study governance",
-                 "general considerations"],
-    ),
-    M11Section(
-        number="11",
-        title="References",
-        required=False,
-        keywords=["reference", "bibliography"],
-        aliases=["references", "bibliography", "literature references"],
-    ),
-    M11Section(
-        number="12",
-        title="Appendices",
-        required=False,
-        keywords=["appendix", "appendices", "supplement", "attachment"],
-        aliases=["appendices", "appendix", "supplements", "attachments"],
-    ),
-]
+def _build_template_from_config() -> List[M11Section]:
+    """Build M11_TEMPLATE from the YAML config (single source of truth)."""
+    from core.m11_mapping_config import get_m11_config
+    config = get_m11_config()
+    return [
+        M11Section(
+            number=sec.number,
+            title=sec.title,
+            required=sec.required,
+            keywords=list(sec.keywords),
+            aliases=list(sec.aliases),
+        )
+        for sec in config.sections()
+    ]
+
+
+def _build_subheadings_from_config() -> Dict[str, List[Tuple[str, str, int, List[str]]]]:
+    """Build M11_SUBHEADINGS from the YAML config."""
+    from core.m11_mapping_config import get_m11_config
+    return get_m11_config().get_m11_subheadings()
+
+
+# ICH M11 Template — derived from core/m11_usdm_mapping.yaml
+# These module-level symbols are kept for backward compatibility.
+M11_TEMPLATE: List[M11Section] = _build_template_from_config()
+
+
+# M11 Template sub-headings — derived from core/m11_usdm_mapping.yaml
+M11_SUBHEADINGS: Dict[str, List[Tuple[str, str, int, List[str]]]] = _build_subheadings_from_config()
 
 
 @dataclass
@@ -163,28 +68,36 @@ class M11MappingResult:
     # Summary statistics
     m11_covered: int = 0
     m11_required_covered: int = 0
-    m11_total: int = 12
-    m11_required_total: int = 9
+    m11_total: int = 14
+    m11_required_total: int = 11
 
 
 def map_sections_to_m11(
     sections: List[Dict],
+    section_texts: Optional[Dict[str, str]] = None,
 ) -> M11MappingResult:
     """
     Map protocol-native sections to ICH M11 template sections.
     
     Uses a multi-pass approach:
       1. Exact title match against known aliases
-      2. Keyword overlap scoring
+      2. Keyword overlap scoring (for unmapped M11 sections)
       3. Section type matching (from narrative extraction)
+      4. Section number prefix matching
+      5. Subsection-to-parent rescue (map orphan subsections to parent's M11)
+      6. Text-content keyword matching (use actual text for remaining unmapped)
+      7. Keyword append (add high-scoring unassigned sections to existing M11 mappings)
     
     Args:
         sections: List of section dicts with 'number', 'title', 'type' keys
+        section_texts: Optional dict of section_number → full text content
         
     Returns:
         M11MappingResult with mappings and coverage stats
     """
     result = M11MappingResult()
+    if section_texts is None:
+        section_texts = {}
     
     # Track which protocol sections have been assigned
     assigned: set = set()
@@ -236,8 +149,11 @@ def map_sections_to_m11(
         'study design': '4', 'population': '5', 'eligibility': '5',
         'treatment': '6', 'discontinuation': '7',
         'study procedures': '8', 'assessments': '8',
-        'statistics': '9', 'safety': '10', 'ethics': '10',
-        'references': '11', 'appendix': '12',
+        'adverse events': '9', 'safety': '9',
+        'statistics': '10', 'statistical': '10',
+        'oversight': '11', 'ethics': '11', 'regulatory': '11',
+        'appendix': '12', 'glossary': '13',
+        'references': '14',
     }
     
     for sec in sections:
@@ -270,6 +186,84 @@ def map_sections_to_m11(
             for sec_num, _ in prefix_matches:
                 assigned.add(sec_num)
     
+    # Pass 5: Subsection-to-parent rescue
+    # Map orphan subsections (e.g. 5.1, 5.2) to the same M11 section as
+    # their parent (e.g. 5 → M11 §5), appending to existing mappings.
+    # Build reverse map: protocol section number → M11 section number
+    proto_to_m11: Dict[str, str] = {}
+    for m11_num, mapped_list in result.mappings.items():
+        for sec_num, _ in mapped_list:
+            proto_to_m11[sec_num] = m11_num
+    
+    for sec in sections:
+        sec_num = sec.get('number', '')
+        if sec_num in assigned or not sec_num or '.' not in sec_num:
+            continue
+        
+        # Find parent section number (e.g. "5.1" → "5", "5.1.2" → "5.1" then "5")
+        parts = sec_num.split('.')
+        for depth in range(len(parts) - 1, 0, -1):
+            parent = '.'.join(parts[:depth])
+            if parent in proto_to_m11:
+                m11_num = proto_to_m11[parent]
+                result.mappings[m11_num].append((sec_num, 0.85))
+                assigned.add(sec_num)
+                proto_to_m11[sec_num] = m11_num
+                break
+    
+    # Pass 6: Text-content keyword matching for remaining unmapped sections
+    # Use actual section text to match against M11 keyword lists
+    if section_texts:
+        for sec in sections:
+            sec_num = sec.get('number', '')
+            if sec_num in assigned or not sec_num:
+                continue
+            
+            text = section_texts.get(sec_num, '')
+            if not text:
+                continue
+            
+            text_lower = text[:2000].lower()  # First 2000 chars for efficiency
+            best_m11 = None
+            best_score = 0.0
+            
+            for m11 in M11_TEMPLATE:
+                kw_hits = sum(1 for kw in m11.keywords if kw in text_lower)
+                if kw_hits > 0:
+                    score = min(1.0, kw_hits / max(2, len(m11.keywords) * 0.3))
+                    if score > best_score and score > 0.3:
+                        best_score = score
+                        best_m11 = m11.number
+            
+            if best_m11:
+                if best_m11 in result.mappings:
+                    result.mappings[best_m11].append((sec_num, best_score * 0.8))
+                else:
+                    result.mappings[best_m11] = [(sec_num, best_score * 0.8)]
+                assigned.add(sec_num)
+    
+    # Pass 7: Keyword-append — high-scoring unassigned sections get added
+    # to already-mapped M11 sections (e.g. "Benefit-Risk" → M11 §2)
+    for sec in sections:
+        sec_num = sec.get('number', '')
+        if sec_num in assigned or not sec_num:
+            continue
+        
+        best_m11 = None
+        best_score = 0.0
+        for m11 in M11_TEMPLATE:
+            score = _keyword_score(sec, m11)
+            if score > best_score and score > 0.4:
+                best_score = score
+                best_m11 = m11.number
+        
+        if best_m11:
+            if best_m11 in result.mappings:
+                result.mappings[best_m11].append((sec_num, best_score))
+            else:
+                result.mappings[best_m11] = [(sec_num, best_score)]
+            assigned.add(sec_num)
+    
     # Collect unmapped protocol sections
     all_sec_nums = {sec.get('number', '') for sec in sections if sec.get('number')}
     result.unmapped = sorted(all_sec_nums - assigned)
@@ -283,7 +277,8 @@ def map_sections_to_m11(
     
     logger.info(
         f"M11 mapping: {result.m11_covered}/{result.m11_total} sections covered "
-        f"({result.m11_required_covered}/{result.m11_required_total} required)"
+        f"({result.m11_required_covered}/{result.m11_required_total} required), "
+        f"{len(result.unmapped)} unmapped"
     )
     
     return result

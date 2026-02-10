@@ -24,7 +24,7 @@ Extract ALL title variations found:
 ### 2. Study Identifiers
 Extract ALL identifier numbers found anywhere in the document:
 - **NCT Number**: ClinicalTrials.gov ID (format: NCT########)
-- **Sponsor Protocol Number**: Company internal ID (e.g., "ALXN1840-WD-301", "LY3298176")
+- **Sponsor Protocol Number**: Company internal ID (e.g., "ABC-1234-ONCO-301", "LY3298176")
 - **EudraCT Number**: European registry (format: ####-######-##)
 - **IND/IDE Number**: FDA application numbers (e.g., "IND 123456")
 - **ISRCTN Number**: International registry (format: ISRCTN########)

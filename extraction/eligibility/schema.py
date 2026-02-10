@@ -107,17 +107,26 @@ class StudyDesignPopulation:
     
     Defines the target population for a study design,
     linking to eligibility criteria.
+    
+    USDM v4.0 field mapping:
+      plannedAge           -> Range (minValue / maxValue)
+      plannedEnrollmentNumber -> QuantityRange (maxValue + unit)
+      plannedCompletionNumber -> QuantityRange (maxValue + unit)
+      plannedSex           -> Code[] (up to 2)
     """
     id: str
     name: str
     description: Optional[str] = None
     label: Optional[str] = None
     includes_healthy_subjects: bool = False
+    # --- Demographics (USDM v4.0 names) ---
     planned_enrollment_number: Optional[int] = None
-    planned_maximum_age: Optional[str] = None  # ISO 8601 duration or description
-    planned_minimum_age: Optional[str] = None
-    planned_sex: Optional[List[str]] = None  # ["Male", "Female", "Both"]
-    criterion_ids: List[str] = field(default_factory=list)  # References to EligibilityCriterion
+    planned_completion_number: Optional[int] = None
+    planned_age_min: Optional[int] = None       # e.g. 18
+    planned_age_max: Optional[int] = None       # e.g. 75
+    planned_age_unit: str = "Years"              # ISO 8601 unit label
+    planned_sex: Optional[List[str]] = None     # ["Male", "Female"]
+    criterion_ids: List[str] = field(default_factory=list)
     instance_type: str = "StudyDesignPopulation"
     
     def to_dict(self) -> Dict[str, Any]:
@@ -132,18 +141,41 @@ class StudyDesignPopulation:
             result["description"] = self.description
         if self.label:
             result["label"] = self.label
+        # USDM v4.0: plannedEnrollmentNumber is a QuantityRange
         if self.planned_enrollment_number:
             result["plannedEnrollmentNumber"] = {
                 "maxValue": self.planned_enrollment_number,
-                "instanceType": "Range",
+                "unit": "participants",
+                "instanceType": "QuantityRange",
             }
-        if self.planned_maximum_age:
-            result["plannedMaximumAge"] = self.planned_maximum_age
-        if self.planned_minimum_age:
-            result["plannedMinimumAge"] = self.planned_minimum_age
+        # USDM v4.0: plannedCompletionNumber is a QuantityRange
+        if self.planned_completion_number:
+            result["plannedCompletionNumber"] = {
+                "maxValue": self.planned_completion_number,
+                "unit": "participants",
+                "instanceType": "QuantityRange",
+            }
+        # USDM v4.0: plannedAge is a Range with minValue/maxValue
+        if self.planned_age_min is not None or self.planned_age_max is not None:
+            age_range: Dict[str, Any] = {"instanceType": "Range"}
+            if self.planned_age_min is not None:
+                age_range["minValue"] = self.planned_age_min
+            if self.planned_age_max is not None:
+                age_range["maxValue"] = self.planned_age_max
+            age_range["unit"] = self.planned_age_unit
+            result["plannedAge"] = age_range
+        # USDM v4.0: plannedSex is Code[] (up to 2)
         if self.planned_sex:
             result["plannedSex"] = [
-                {"code": s, "codeSystem": "USDM", "decode": s} for s in self.planned_sex
+                {
+                    "id": generate_uuid(),
+                    "code": s,
+                    "codeSystem": "http://www.cdisc.org/USDM/sex",
+                    "codeSystemVersion": "2024-09-27",
+                    "decode": s,
+                    "instanceType": "Code",
+                }
+                for s in self.planned_sex
             ]
         return result
 

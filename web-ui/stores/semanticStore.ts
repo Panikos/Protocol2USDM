@@ -176,6 +176,8 @@ export const useSemanticStore = create<SemanticState>()(
         state.draft.updatedAt = new Date().toISOString();
         state.isDirty = true;
       });
+      // Reset SoA visual tracking so it re-derives from the restored patch state
+      if (resetSoAEditStore) resetSoAEditStore();
     },
 
     redo: () => {
@@ -189,6 +191,8 @@ export const useSemanticStore = create<SemanticState>()(
         state.draft.updatedAt = new Date().toISOString();
         state.isDirty = true;
       });
+      // Reset SoA visual tracking so it re-derives from the restored patch state
+      if (resetSoAEditStore) resetSoAEditStore();
     },
 
     beginGroup: () => {

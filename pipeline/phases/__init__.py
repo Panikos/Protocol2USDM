@@ -16,6 +16,8 @@ from .scheduling import SchedulingPhase
 from .docstructure import DocStructurePhase
 from .amendments import AmendmentDetailsPhase
 from .execution import ExecutionPhase
+from .sap import SAPPhase
+from .sites import SitesPhase
 
 # Import to trigger registration
 __all__ = [
@@ -31,4 +33,6 @@ __all__ = [
     'DocStructurePhase',
     'AmendmentDetailsPhase',
     'ExecutionPhase',
+    'SAPPhase',
+    'SitesPhase',
 ]

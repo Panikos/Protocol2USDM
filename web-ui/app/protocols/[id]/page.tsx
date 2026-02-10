@@ -59,6 +59,7 @@ import { useProtocolStore } from '@/stores/protocolStore';
 import { useOverlayStore } from '@/stores/overlayStore';
 import { useUndoRedoShortcuts } from '@/hooks/useUndoRedoShortcuts';
 import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
+import { usePatchedUsdm } from '@/hooks/usePatchedUsdm';
 import { useEditModeStore } from '@/stores/editModeStore';
 import { cn } from '@/lib/utils';
 import type { ProvenanceData } from '@/lib/provenance/types';
@@ -76,7 +77,8 @@ export default function ProtocolDetailPage() {
   const [intermediateFiles, setIntermediateFiles] = useState<Record<string, unknown> | null>(null);
   const [showHistory, setShowHistory] = useState(false);
 
-  const { setProtocol, usdm, metadata } = useProtocolStore();
+  const { setProtocol, metadata } = useProtocolStore();
+  const usdm = usePatchedUsdm();
   const { loadOverlays, draft } = useOverlayStore();
   const semanticDraft = useSemanticStore((state) => state.draft);
   const hasSemanticDraft = useSemanticStore(selectHasSemanticDraft);

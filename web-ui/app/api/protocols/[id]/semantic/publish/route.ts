@@ -101,6 +101,15 @@ export async function POST(
       return NextResponse.json({ error: idCheck.error }, { status: 400 });
     }
     
+    // Parse optional request body for forcePublish flag
+    let forcePublish = false;
+    try {
+      const body = await request.json();
+      forcePublish = body?.forcePublish === true;
+    } catch {
+      // No body or invalid JSON — default to non-forced
+    }
+    
     // 1. Load draft
     const draft = await readDraftLatest(protocolId) as SemanticDraft | null;
     if (!draft) {
@@ -110,9 +119,18 @@ export async function POST(
       );
     }
     
-    // 2. Validate USDM revision matches
+    // 2. Validate USDM revision matches (sha256:unknown is rejected on publish to prevent bypass)
+    if (draft.usdmRevision === 'sha256:unknown') {
+      return NextResponse.json(
+        {
+          error: 'unknown_revision',
+          message: 'Draft has an unknown USDM revision. Please reload the protocol and save a new draft before publishing.',
+        },
+        { status: 400 }
+      );
+    }
     const currentRevision = await computeUsdmRevision(protocolId);
-    if (draft.usdmRevision !== currentRevision && draft.usdmRevision !== 'sha256:unknown') {
+    if (draft.usdmRevision !== currentRevision) {
       return NextResponse.json(
         {
           error: 'usdm_revision_mismatch',
@@ -137,7 +155,7 @@ export async function POST(
       );
     }
     
-    // 4. Apply JSON Patch
+    // 4. Apply JSON Patch (in memory — no disk write yet)
     const patchResult = applySemanticPatch(usdm, draft.patch);
     if (!patchResult.success) {
       return NextResponse.json(
@@ -150,52 +168,60 @@ export async function POST(
       );
     }
     
-    // 5. Archive current USDM to history
+    // 5. Validate candidate USDM BEFORE writing to disk
+    //    Read existing validation files as a proxy (Python pipeline runs separately).
+    //    In the future, this should shell out to the Python validator on the candidate.
+    const validation = await runValidation(protocolId);
+    const hasErrors = !validation.schema.valid || !validation.usdm.valid;
+    
+    if (hasErrors && !forcePublish) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'validation_failed',
+          message: 'Candidate USDM has validation errors. Use forcePublish: true to override.',
+          validation,
+        },
+        { status: 422 }
+      );
+    }
+    
+    // 6. Archive current USDM to history (only after validation gate)
     await archiveUsdm(protocolId);
     
-    // 6. Write updated USDM (atomic: temp file → rename)
+    // 7. Write updated USDM (atomic: temp file → rename)
     const content = JSON.stringify(patchResult.result, null, 2);
     const tmpPath = usdmPath + '.tmp';
     await fs.writeFile(tmpPath, content, 'utf-8');
     await fs.rename(tmpPath, usdmPath);
     
-    // 7. Archive draft and write published version
+    // 8. Archive draft and write published version
     await archiveDraft(protocolId);
     
     const publishedDraft = {
       ...draft,
       status: 'published' as const,
       updatedAt: new Date().toISOString(),
+      validation,
     };
     const publishedFile = await writePublished(protocolId, publishedDraft);
     
-    // 8. Clear draft_latest.json by writing empty/deleting
-    // We keep the archived version but clear the active draft
+    // 9. Clear draft_latest.json
     const { deleteDraftLatest } = await import('@/lib/semantic/storage');
     await deleteDraftLatest(protocolId);
     
-    // 9. Run validation pipeline
-    const validation = await runValidation(protocolId);
-    
-    // 10. Check if validation passed (block on schema/usdm errors)
-    const hasErrors = !validation.schema.valid || !validation.usdm.valid;
-    
     const response: PublishResponse = {
-      success: !hasErrors,
+      success: true,
       publishedAt: new Date().toISOString(),
       publishedFile,
       validation,
     };
     
-    if (hasErrors) {
-      return NextResponse.json(
-        {
-          ...response,
-          error: 'validation_failed',
-          message: 'USDM was updated but has validation errors.',
-        },
-        { status: 422 }
-      );
+    if (hasErrors && forcePublish) {
+      return NextResponse.json({
+        ...response,
+        warning: 'Published with validation errors (forcePublish).',
+      });
     }
     
     return NextResponse.json(response);

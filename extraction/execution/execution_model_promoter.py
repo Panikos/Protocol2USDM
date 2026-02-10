@@ -860,7 +860,7 @@ class ExecutionModelPromoter:
         """
         Check if text is a prose fragment rather than a valid treatment name.
         
-        Filters out garbage like "for the", "day and", "mg and", "to ALXN1840"
+        Filters out garbage like "for the", "day and", "mg and", "to Drug-X"
         that sometimes get extracted as treatment names.
         """
         if not text:

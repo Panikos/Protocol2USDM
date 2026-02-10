@@ -383,14 +383,10 @@ def _parse_usdm_eligibility_format(raw: Dict[str, Any]) -> Optional[EligibilityD
         # Parse population if present, linking to all criteria
         population = None
         pop_data = raw.get('population')
-        if isinstance(pop_data, dict) and pop_data.get('description'):
-            population = StudyDesignPopulation(
-                id=pop_data.get('id', 'pop_1'),
-                name=pop_data.get('name', 'Study Population'),
-                description=pop_data['description'],
-                criterion_ids=[c.id for c in criteria],  # Link to all criteria
-            )
-        elif criteria:
+        if isinstance(pop_data, dict):
+            population = _build_population_from_raw(pop_data, [c.id for c in criteria])
+        
+        if population is None and criteria:
             # Create default population with criterion IDs even if no population data
             population = StudyDesignPopulation(
                 id='pop_1',
@@ -537,23 +533,7 @@ def _parse_eligibility_response(raw: Dict[str, Any]) -> Optional[EligibilityData
         population = None
         pop_data = raw.get('population', {})
         if pop_data:
-            criterion_ids = [c.id for c in criteria]
-            
-            # Parse sex
-            sex_list = pop_data.get('sex', [])
-            if isinstance(sex_list, str):
-                sex_list = [sex_list]
-            
-            population = StudyDesignPopulation(
-                id="pop_1",
-                name="Study Population",
-                includes_healthy_subjects=pop_data.get('includesHealthySubjects', False),
-                planned_enrollment_number=pop_data.get('plannedEnrollment'),
-                planned_minimum_age=pop_data.get('minimumAge'),
-                planned_maximum_age=pop_data.get('maximumAge'),
-                planned_sex=sex_list if sex_list else None,
-                criterion_ids=criterion_ids,
-            )
+            population = _build_population_from_raw(pop_data, [c.id for c in criteria])
         
         return EligibilityData(
             criterion_items=criterion_items,
@@ -566,6 +546,185 @@ def _parse_eligibility_response(raw: Dict[str, Any]) -> Optional[EligibilityData
     except Exception as e:
         logger.error(f"Failed to parse eligibility response: {e}")
         return None
+
+
+def _parse_age_value(raw_val) -> Optional[int]:
+    """Parse an age value from various LLM formats into an integer.
+    
+    Handles: 18, "18", "P18Y", "18 years", "18Y", "≥18", ">=18"
+    """
+    if raw_val is None:
+        return None
+    if isinstance(raw_val, (int, float)):
+        return int(raw_val)
+    if isinstance(raw_val, str):
+        raw_val = raw_val.strip()
+        # ISO 8601 duration: P18Y, P6M
+        m = re.match(r'^P(\d+)Y', raw_val, re.IGNORECASE)
+        if m:
+            return int(m.group(1))
+        # Strip comparators and units: "≥18 years" -> "18"
+        cleaned = re.sub(r'[≥≤><]=?\s*', '', raw_val)
+        cleaned = re.sub(r'\s*(years?|months?|yr|y)\s*$', '', cleaned, flags=re.IGNORECASE)
+        cleaned = cleaned.strip()
+        try:
+            return int(float(cleaned))
+        except (ValueError, TypeError):
+            pass
+    return None
+
+
+def _normalize_sex_list(raw_sex) -> Optional[List[str]]:
+    """Normalize sex/gender data from LLM into a list of standard codes."""
+    if raw_sex is None:
+        return None
+    
+    # Handle Code objects from USDM format
+    if isinstance(raw_sex, list):
+        result = []
+        for item in raw_sex:
+            if isinstance(item, dict):
+                code = item.get('code', item.get('decode', ''))
+            else:
+                code = str(item)
+            code_lower = code.strip().lower()
+            if code_lower in ('male', 'm'):
+                result.append('Male')
+            elif code_lower in ('female', 'f'):
+                result.append('Female')
+            elif code_lower in ('both', 'all'):
+                return ['Male', 'Female']
+        return result if result else None
+    
+    if isinstance(raw_sex, str):
+        s = raw_sex.strip().lower()
+        if s in ('both', 'all', 'male and female', 'male or female'):
+            return ['Male', 'Female']
+        if s in ('male', 'm'):
+            return ['Male']
+        if s in ('female', 'f'):
+            return ['Female']
+    
+    return None
+
+
+def _parse_enrollment_number(raw_val) -> Optional[int]:
+    """Parse enrollment number from various LLM formats.
+    
+    Handles: 24, "24", "approximately 24", {"maxValue": 24}, "~24"
+    """
+    if raw_val is None:
+        return None
+    if isinstance(raw_val, (int, float)):
+        return int(raw_val)
+    if isinstance(raw_val, dict):
+        # QuantityRange or Range: {maxValue: 24}
+        v = raw_val.get('maxValue', raw_val.get('value'))
+        if v is not None:
+            return int(v) if isinstance(v, (int, float)) else _parse_enrollment_number(v)
+        return None
+    if isinstance(raw_val, str):
+        raw_val = raw_val.strip()
+        # Extract first number from text like "approximately 24 participants"
+        m = re.search(r'(\d[\d,]*)', raw_val)
+        if m:
+            return int(m.group(1).replace(',', ''))
+    return None
+
+
+def _build_population_from_raw(
+    pop_data: Dict[str, Any],
+    criterion_ids: List[str],
+) -> Optional[StudyDesignPopulation]:
+    """Build a StudyDesignPopulation from raw LLM response data.
+    
+    Handles multiple field naming conventions from different LLM response
+    formats (USDM format, legacy format, freeform) and normalizes them
+    to USDM v4.0 aligned fields.
+    
+    This is the single canonical parser for population data — used by
+    both the USDM-format and legacy-format eligibility parsers.
+    """
+    if not isinstance(pop_data, dict):
+        return None
+    
+    # --- Enrollment number ---
+    enrollment = _parse_enrollment_number(
+        pop_data.get('plannedEnrollmentNumber')
+        or pop_data.get('plannedEnrollment')
+        or pop_data.get('targetEnrollment')
+        or pop_data.get('enrollmentNumber')
+        or pop_data.get('numberOfSubjects')
+    )
+    
+    # --- Age range ---
+    # Try USDM Range format: {minValue: 18, maxValue: 75}
+    planned_age = pop_data.get('plannedAge', {})
+    if isinstance(planned_age, dict):
+        age_min = _parse_age_value(planned_age.get('minValue'))
+        age_max = _parse_age_value(planned_age.get('maxValue'))
+    else:
+        age_min = None
+        age_max = None
+    
+    # Fallback to separate min/max fields
+    if age_min is None:
+        age_min = _parse_age_value(
+            pop_data.get('plannedMinimumAge')
+            or pop_data.get('minimumAge')
+            or pop_data.get('minAge')
+            or pop_data.get('ageMin')
+        )
+    if age_max is None:
+        age_max = _parse_age_value(
+            pop_data.get('plannedMaximumAge')
+            or pop_data.get('maximumAge')
+            or pop_data.get('maxAge')
+            or pop_data.get('ageMax')
+        )
+    
+    # --- Sex ---
+    sex = _normalize_sex_list(
+        pop_data.get('plannedSex')
+        or pop_data.get('sex')
+        or pop_data.get('gender')
+    )
+    
+    # --- Healthy subjects ---
+    healthy = pop_data.get('includesHealthySubjects', False)
+    if isinstance(healthy, str):
+        healthy = healthy.lower() in ('true', 'yes', '1')
+    
+    # --- Description ---
+    description = pop_data.get('description', '')
+    
+    # Only create a population if we have SOMETHING beyond just the default
+    has_demographics = any([enrollment, age_min is not None, age_max is not None, sex])
+    has_description = bool(description)
+    has_criteria = bool(criterion_ids)
+    
+    if not (has_demographics or has_description or has_criteria):
+        return None
+    
+    pop = StudyDesignPopulation(
+        id=pop_data.get('id', 'pop_1'),
+        name=pop_data.get('name', 'Study Population'),
+        description=description or 'Target population defined by eligibility criteria',
+        includes_healthy_subjects=bool(healthy),
+        planned_enrollment_number=enrollment,
+        planned_age_min=age_min,
+        planned_age_max=age_max,
+        planned_sex=sex,
+        criterion_ids=criterion_ids,
+    )
+    
+    if has_demographics:
+        logger.info(
+            f"Population demographics: N={enrollment}, "
+            f"age={age_min}-{age_max}, sex={sex}"
+        )
+    
+    return pop
 
 
 def save_eligibility_result(

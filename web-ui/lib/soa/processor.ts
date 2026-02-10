@@ -87,6 +87,10 @@ export function parseCellKey(key: string): { activityId: string; encounterId: st
 // ============================================================================
 
 function generateUUID(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  // Fallback for environments without crypto.randomUUID
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
     const r = Math.random() * 16 | 0;
     const v = c === 'x' ? r : (r & 0x3 | 0x8);
@@ -232,23 +236,37 @@ export class SoAProcessor {
   private addMarkExtension(timelineIdx: number, instanceIdx: number, mark: CellMark, footnoteRefs?: string[]): void {
     const basePath = `/study/versions/0/studyDesigns/0/scheduleTimelines/${timelineIdx}/instances/${instanceIdx}`;
     
-    // Check if extensionAttributes exists on the instance
     const timelines = this.getScheduleTimelines();
     const instance = timelines[timelineIdx]?.instances?.[instanceIdx] as Record<string, unknown> | undefined;
-    const hasExtensionAttributes = Array.isArray(instance?.extensionAttributes);
+    const existingExts = instance?.extensionAttributes as Array<{ url?: string }> | undefined;
+    const hasExtensionAttributes = Array.isArray(existingExts);
     
-    const extensions = [
+    const newExtensions = [
       makeStringExt(EXT_URLS.CELL_MARK, mark as string),
       makeBooleanExt(EXT_URLS.USER_EDITED, true),
     ];
     
     if (footnoteRefs && footnoteRefs.length > 0) {
-      extensions.push(makeStringExt(EXT_URLS.FOOTNOTE_REFS, JSON.stringify(footnoteRefs)));
+      newExtensions.push(makeStringExt(EXT_URLS.FOOTNOTE_REFS, JSON.stringify(footnoteRefs)));
     }
     
     if (hasExtensionAttributes) {
-      // Append to existing array
-      for (const ext of extensions) {
+      const urlsToReplace = new Set(newExtensions.map(e => e.url));
+      
+      const indicesToRemove = existingExts
+        .map((ext, idx) => ({ idx, url: ext?.url }))
+        .filter(e => e.url && urlsToReplace.has(e.url))
+        .map(e => e.idx)
+        .sort((a, b) => b - a);
+      
+      for (const idx of indicesToRemove) {
+        this.patches.push({
+          op: 'remove',
+          path: `${basePath}/extensionAttributes/${idx}`,
+        });
+      }
+      
+      for (const ext of newExtensions) {
         this.patches.push({
           op: 'add',
           path: `${basePath}/extensionAttributes/-`,
@@ -256,11 +274,10 @@ export class SoAProcessor {
         });
       }
     } else {
-      // Create the array with the extensions
       this.patches.push({
         op: 'add',
         path: `${basePath}/extensionAttributes`,
-        value: extensions,
+        value: newExtensions,
       });
     }
   }

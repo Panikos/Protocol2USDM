@@ -137,23 +137,44 @@ export function UnifiedDraftControls({
       if (currentDraft && currentDraft.patch.length > 0) {
         const response = await fetch(`/api/protocols/${protocolId}/semantic/publish`, {
           method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({}),
         });
         
-        const result: PublishResponse = await response.json();
-        setPublishResult(result);
-        setShowPublishResult(true);
+        const result = await response.json();
         
-        if (result.success) {
-          useSemanticStore.getState().clearDraft();
-          toast.success('Changes published successfully');
-          // Reload USDM from server to show published changes
-          if (onPublishSuccess) {
-            await onPublishSuccess();
+        // Handle validation gate — offer force-publish
+        if (!response.ok && result.error === 'validation_failed') {
+          toast.error('Validation errors found. Publishing anyway...');
+          const forceResponse = await fetch(`/api/protocols/${protocolId}/semantic/publish`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ forcePublish: true }),
+          });
+          const forceResult = await forceResponse.json();
+          setPublishResult(forceResult as PublishResponse);
+          setShowPublishResult(true);
+          if (forceResult.success) {
+            useSemanticStore.getState().clearDraft();
+            toast.success('Changes published (with validation warnings)');
+            if (onPublishSuccess) await onPublishSuccess();
+          } else {
+            setShowPublishConfirm(false);
+            setIsPublishing(false);
+            return;
           }
         } else {
-          setShowPublishConfirm(false);
-          setIsPublishing(false);
-          return;
+          setPublishResult(result as PublishResponse);
+          setShowPublishResult(true);
+          if (result.success) {
+            useSemanticStore.getState().clearDraft();
+            toast.success('Changes published successfully');
+            if (onPublishSuccess) await onPublishSuccess();
+          } else {
+            setShowPublishConfirm(false);
+            setIsPublishing(false);
+            return;
+          }
         }
       }
       
