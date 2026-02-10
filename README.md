@@ -80,7 +80,7 @@ GOOGLE_CLOUD_LOCATION=us-central1  # or your preferred region
 - **SoA table rendering** quality overhaul in M11 DOCX
 
 ### 🧪 Testing
-- **611 tests collected** (578 passed, 33 e2e skipped by default)
+- **611 tests** (all pass, including 33 e2e integration tests)
 - 7 new test files covering parallel execution, async, streaming, caching, EVS cache
 
 <details>
@@ -574,7 +574,7 @@ Protocol2USDMv3/
 │   └── m11_conformance.py    # M11 conformance scoring
 ├── enrichment/               # Terminology enrichment
 │   └── terminology.py        # NCI EVS enrichment
-├── tests/                    # Unit tests (611 collected, 578 pass)
+├── tests/                    # 611 tests (unit + e2e)
 │   ├── test_extractors.py    # Mocked LLM extractor tests (58)
 │   ├── test_composers.py     # M11 composer tests (22)
 │   ├── test_pipeline_context.py # PipelineContext tests (48)
@@ -603,7 +603,7 @@ For detailed architecture, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 ## Testing
 
 ```bash
-# Run all unit tests (611 collected, 578 pass, ~1 min)
+# Run all unit tests (611 collected, ~1 min)
 python -m pytest tests/ -v
 
 # Run with coverage report

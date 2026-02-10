@@ -631,7 +631,7 @@ Error: GOOGLE_API_KEY environment variable not set
 ### Unit Tests
 
 ```bash
-# Run all unit tests (611 collected, 578 pass, ~1 min)
+# Run all unit tests (611 collected, ~1 min)
 python -m pytest tests/ -v
 
 # Run with coverage report

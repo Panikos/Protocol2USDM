@@ -182,7 +182,7 @@ output/<protocol>/
 ## Testing
 
 ```bash
-# All unit tests (611 collected, 578 pass, ~1 min)
+# All unit tests (611 collected, ~1 min)
 python -m pytest tests/ -v
 
 # With coverage

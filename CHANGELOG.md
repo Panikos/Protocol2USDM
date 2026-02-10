@@ -54,8 +54,10 @@ All notable changes documented here. Dates in ISO-8601.
 | `tests/test_provenance_expansion.py` | 14 | PhaseProvenance for all phases |
 | `tests/test_m11_config_validation.py` | 12 | M11 mapping YAML validation |
 
-**Test suite**: 578 passed, 33 skipped (e2e), 0 failed  
+**Test suite**: 611 passed (including 33 e2e), 0 failed  
 **Total collected**: 611 tests
+
+**E2E improvement**: `E2E_MAX_AGE_HOURS` env var controls output reuse age (default 1h)
 
 #### Files Changed
 
