@@ -4,6 +4,78 @@ All notable changes documented here. Dates in ISO-8601.
 
 ---
 
+## [7.4.0] – 2026-02-10
+
+### Performance & Scalability (E20–E24)
+
+| Enhancement | Details |
+|-------------|---------|
+| **E20** | Parallel execution model sub-extractors — two-wave `ThreadPoolExecutor` (12 independent + state machine) |
+| **E21** | LLM response streaming — `StreamChunk` + `StreamCallback` + `generate_stream()` on all 3 providers |
+| **E22** | Chunked EVS cache — per-code JSON files under `evs_cache/codes/`, auto-migration from monolithic file |
+| **E23** | Async LLM calls — `agenerate()` + `agenerate_stream()` on all 3 providers (native async SDKs) |
+| **E24** | Cache-aware execution model — model+prompt hash in cache keys for invalidation |
+
+### Code Quality & Robustness (E14–E19)
+
+| Enhancement | Details |
+|-------------|---------|
+| **E14** | Provenance tracking for all expansion phases — `PhaseProvenance` dataclass |
+| **E15** | Prompt versioning — SHA-256 hashes stored in `run_manifest.json` |
+| **E18** | M11 mapping YAML schema validation at load time — `M11ConfigValidationError` |
+| **E19** | SoA table rendering quality overhaul in M11 DOCX |
+
+### LLM Provider Architecture
+
+- **Async support**: `agenerate()` / `agenerate_stream()` on `LLMProvider` base + all 3 providers
+  - OpenAI: `AsyncOpenAI` (native)
+  - Claude: `AsyncAnthropic` (native)
+  - Gemini: `client.aio` namespace (genai SDK); `asyncio.to_thread` for Vertex/AI Studio
+- **Streaming**: `generate_stream()` with `StreamChunk` callback on all providers
+- **Async convenience**: `acall_llm()` and `agenerate_text()` in `core.llm_client`
+- Lazy `async_client` properties to avoid event-loop issues at import time
+
+### EVS Cache Refactoring
+
+- Per-code JSON files under `evs_cache/codes/` (O(1) writes vs O(n) for monolithic file)
+- Auto-migration from legacy `nci_codes.json` on first load
+- `_key_to_filename()` for safe filename generation
+- `update_cache()` deletes old per-code file before refresh
+
+#### New Test Files
+
+| File | Tests | Coverage Target |
+|------|-------|----------------|
+| `tests/test_parallel_execution.py` | 13 | Parallel sub-extractor execution |
+| `tests/test_cache_aware.py` | 19 | Cache key generation, model+prompt hash |
+| `tests/test_llm_streaming.py` | 15 | StreamChunk, provider streaming |
+| `tests/test_async_llm.py` | 16 | Async generate, gather, provider methods |
+| `tests/test_evs_chunked_cache.py` | 17 | Per-code files, migration, stats |
+| `tests/test_provenance_expansion.py` | 14 | PhaseProvenance for all phases |
+| `tests/test_m11_config_validation.py` | 12 | M11 mapping YAML validation |
+
+**Test suite**: 578 passed, 33 skipped (e2e), 0 failed  
+**Total collected**: 611 tests
+
+#### Files Changed
+
+**New:**
+* `tests/test_parallel_execution.py`, `tests/test_cache_aware.py`, `tests/test_llm_streaming.py`
+* `tests/test_async_llm.py`, `tests/test_evs_chunked_cache.py`
+
+**Modified:**
+* `providers/base.py` — `StreamChunk`, `agenerate()`, `agenerate_stream()`
+* `providers/openai_provider.py` — `AsyncOpenAI`, native async methods
+* `providers/claude_provider.py` — `AsyncAnthropic`, `_build_claude_params()`
+* `providers/gemini_provider.py` — `client.aio`, `_build_gen_config()`, `_build_genai_sdk_config()`
+* `core/llm_client.py` — `acall_llm()`, `agenerate_text()`
+* `core/evs_client.py` — Per-code chunked cache with migration
+* `extraction/execution/pipeline_integration.py` — Parallel two-wave execution
+* `extraction/execution/cache.py` — Model+prompt hash in cache keys
+* `requirements.txt` — Added `pytest-asyncio>=1.0.0`
+
+---
+
 ## [7.3.0] – 2026-02-10
 
 ### ICH M11 Document Rendering

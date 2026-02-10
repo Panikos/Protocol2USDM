@@ -1,8 +1,8 @@
 # Protocol2USDM Quick Reference
 
-**v7.3** | One-page command reference
+**v7.4** | One-page command reference
 
-> **Current:** M11 DOCX rendering, 405 tests (42.5% coverage), pipeline decomposition, LLM provider abstraction, phase registry architecture (`main_v3.py`), default `--complete` mode, `gemini-3-flash-preview` default model, parallel execution.
+> **Current:** Async LLM calls, LLM streaming, parallel execution model, chunked EVS cache, 611 tests (578 pass), M11 DOCX rendering, pipeline decomposition, LLM provider abstraction, phase registry architecture (`main_v3.py`), default `--complete` mode, `gemini-3-flash-preview` default model.
 
 ---
 
@@ -182,7 +182,7 @@ output/<protocol>/
 ## Testing
 
 ```bash
-# All unit tests (405 collected, 372 pass, ~2 min)
+# All unit tests (611 collected, 578 pass, ~1 min)
 python -m pytest tests/ -v
 
 # With coverage
@@ -192,6 +192,9 @@ python -m pytest tests/ --cov --cov-report=term-missing
 python -m pytest tests/test_extractors.py -v       # Mocked LLM tests (58)
 python -m pytest tests/test_composers.py -v        # M11 composers (22)
 python -m pytest tests/test_pipeline_context.py -v  # PipelineContext (48)
+python -m pytest tests/test_async_llm.py -v         # Async LLM (16)
+python -m pytest tests/test_llm_streaming.py -v     # LLM streaming (15)
+python -m pytest tests/test_evs_chunked_cache.py -v # EVS cache (17)
 python -m pytest tests/test_pipeline_registry.py -v # Phase registry (11)
 python -m pytest tests/test_m11_regression.py -v    # M11 renderer
 
@@ -287,4 +290,4 @@ CDISC_API_KEY=...            # For CORE (optional)
 **Docs:** [README.md](README.md) | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
 **Last Updated:** 2026-02-10  
-**Version:** 7.3
+**Version:** 7.4

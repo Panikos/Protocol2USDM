@@ -1,10 +1,11 @@
 # Protocol2USDM User Guide
 
-**Version:** 7.3  
+**Version:** 7.4  
 **Last Updated:** 2026-02-10
 
-> **📢 What's New in v7.3:** **ICH M11 DOCX rendering** (9 entity composers, 7-pass section mapper, conformance scoring), **testing infrastructure** (405 tests, 42.5% coverage, mocked LLM tests), **pipeline decomposition** (combiner/integrations/post_processing/promotion), **LLM provider abstraction** (`providers/` module).
+> **📢 What's New in v7.4:** **Async LLM calls** (native async for OpenAI/Claude/Gemini), **LLM streaming** (StreamChunk + StreamCallback), **parallel execution model** (12 concurrent sub-extractors), **chunked EVS cache** (per-code files), **cache-aware execution** (model+prompt hash). 611 tests (578 pass).
 
+> **v7.3:** ICH M11 DOCX rendering, testing infrastructure, pipeline decomposition, LLM provider abstraction.
 > **v7.2:** Execution model promotion to native USDM entities, semantic editing in web UI.
 > **v7.1:** Phase registry architecture (`main_v3.py`), default `--complete` mode, parallel execution.
 
@@ -630,7 +631,7 @@ Error: GOOGLE_API_KEY environment variable not set
 ### Unit Tests
 
 ```bash
-# Run all unit tests (405 collected, 372 pass, ~2 min)
+# Run all unit tests (611 collected, 578 pass, ~1 min)
 python -m pytest tests/ -v
 
 # Run with coverage report
@@ -640,6 +641,8 @@ python -m pytest tests/ --cov --cov-report=term-missing
 python -m pytest tests/test_extractors.py -v       # Mocked LLM extractor tests
 python -m pytest tests/test_composers.py -v        # M11 composer tests
 python -m pytest tests/test_pipeline_context.py -v  # PipelineContext tests
+python -m pytest tests/test_async_llm.py -v         # Async LLM tests
+python -m pytest tests/test_llm_streaming.py -v     # LLM streaming tests
 python -m pytest tests/test_m11_regression.py -v    # M11 renderer tests
 ```
 
@@ -681,4 +684,5 @@ A: Check logs in `output/<protocol>/`, capture error messages, report to maintai
 
 ---
 
-**Last Updated:** 2026-02-10
+**Last Updated:** 2026-02-10  
+**Version:** 7.4

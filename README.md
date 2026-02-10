@@ -64,34 +64,33 @@ GOOGLE_CLOUD_LOCATION=us-central1  # or your preferred region
 
 ---
 
-## What's New in v7.3
+## What's New in v7.4
 
-### 📝 ICH M11 Document Rendering (NEW)
-- **M11 DOCX generation** — Produces ICH M11-formatted Word documents from USDM JSON
-- **9 entity composers** — Synopsis, Objectives, Study Design, Eligibility, Interventions, Estimands, Discontinuation, Safety, Statistics
-- **7-pass section mapper** — Maps extracted narrative + composed content to 14 M11 sections
-- **M11 conformance validator** — Title page, synopsis, section coverage scoring
-- Output: `m11_protocol.docx` + `m11_conformance.json`
+### ⚡ Performance & Scalability (E20–E24)
+- **Parallel execution model** — 12 independent sub-extractors run concurrently via `ThreadPoolExecutor`
+- **Async LLM calls** — `agenerate()` / `agenerate_stream()` on all 3 providers (OpenAI, Claude, Gemini) with native async SDKs
+- **LLM streaming** — `StreamChunk` + `StreamCallback` for real-time progress visibility
+- **Chunked EVS cache** — Per-code JSON files (O(1) writes), auto-migration from monolithic file
+- **Cache-aware execution model** — Model+prompt hash in cache keys for proper invalidation
 
-### 🧪 Testing Infrastructure (E7–E13)
-- **405 tests collected** (372 passed, 33 e2e skipped by default) with **42.5% code coverage**
-- **pytest-cov** integration with HTML reports
-- **Mocked LLM tests** for all 5 extractors (metadata, eligibility, objectives, studydesign, interventions)
-- **Composer tests** for all 9 M11 entity composers
-- **PipelineContext tests** (48 tests, 93.6% coverage) with thread isolation verification
-- **E2E integration tests** against real pipeline output (`--run-e2e`)
+### 🛡️ Code Quality (E14–E19)
+- **Provenance tracking** for all expansion phases via `PhaseProvenance` dataclass
+- **Prompt versioning** — SHA-256 hashes stored in `run_manifest.json`
+- **M11 mapping validation** — YAML schema validation at load time
+- **SoA table rendering** quality overhaul in M11 DOCX
 
-### 🔧 Pipeline Decomposition
-- **`pipeline/combiner.py`** — `combine_to_full_usdm()`, USDM defaults, SoA integration
-- **`pipeline/integrations.py`** — SAP/sites integration, content references, estimand reconciliation
-- **`pipeline/post_processing.py`** — Entity reconciliation, activity sources, procedure linking
-- **`pipeline/promotion.py`** — Extension→USDM promotion rules (sample size, completers, sex, age)
-- **`PHASE_FIELD_OWNERSHIP`** constant — Single source of truth for context merge mapping
+### 🧪 Testing
+- **611 tests collected** (578 passed, 33 e2e skipped by default)
+- 7 new test files covering parallel execution, async, streaming, caching, EVS cache
 
-### 📦 LLM Provider Abstraction
-- **`providers/`** module — `BaseProvider`, `GeminiProvider`, `OpenAIProvider`, `AnthropicProvider`
-- **`providers/factory.py`** — Auto-detect provider from model name
-- **`providers/tracker.py`** — `TokenUsageTracker` with per-phase cost breakdown
+<details>
+<summary><b>v7.3 — ICH M11 Document Rendering</b></summary>
+
+- **M11 DOCX generation** — 9 entity composers, 7-pass section mapper, conformance scoring
+- **Testing infrastructure** (E7–E13) — mocked LLM tests, PipelineContext tests, E2E integration
+- **Pipeline decomposition** — combiner/integrations/post_processing/promotion
+- **LLM provider abstraction** — `providers/` module with factory pattern
+</details>
 
 ### Previous Releases
 
@@ -575,10 +574,15 @@ Protocol2USDMv3/
 │   └── m11_conformance.py    # M11 conformance scoring
 ├── enrichment/               # Terminology enrichment
 │   └── terminology.py        # NCI EVS enrichment
-├── tests/                    # Unit tests (405 collected, 42.5% coverage)
+├── tests/                    # Unit tests (611 collected, 578 pass)
 │   ├── test_extractors.py    # Mocked LLM extractor tests (58)
 │   ├── test_composers.py     # M11 composer tests (22)
 │   ├── test_pipeline_context.py # PipelineContext tests (48)
+│   ├── test_parallel_execution.py # Parallel sub-extractors (13)
+│   ├── test_async_llm.py     # Async LLM calls (16)
+│   ├── test_llm_streaming.py # LLM streaming (15)
+│   ├── test_cache_aware.py   # Cache key generation (19)
+│   ├── test_evs_chunked_cache.py # EVS chunked cache (17)
 │   ├── test_e2e_pipeline.py  # E2E integration tests (33)
 │   └── conftest.py           # Shared fixtures, --run-e2e marker
 ├── scripts/                  # Utility scripts
@@ -599,7 +603,7 @@ For detailed architecture, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 ## Testing
 
 ```bash
-# Run all unit tests (405 collected, 372 pass, ~2 min)
+# Run all unit tests (611 collected, 578 pass, ~1 min)
 python -m pytest tests/ -v
 
 # Run with coverage report
@@ -623,7 +627,7 @@ python -m pytest tests/test_m11_regression.py -v   # M11 renderer tests
 python testing/benchmark.py <golden.json> <extracted_dir/> [--verbose]
 ```
 
-### Test Coverage (v7.3)
+### Test Coverage (v7.4)
 
 | Module | Coverage |
 |--------|----------|
@@ -693,10 +697,15 @@ The following items are planned for upcoming releases:
 - [ ] **Biomedical Concepts**: Add extraction via a separate comprehensive canonical model for standardized concept mapping
 - [ ] **Multi-Protocol Comparison**: Compare USDM outputs across protocol versions
 - [ ] **Structured JSON Logging** (E12): Replace print-based logging with structured JSON
-- [ ] **Provenance Tracking for Expansion Phases** (E14): Track source pages/sections per entity
-- [ ] **Prompt Versioning** (E15): Hash prompts, store in output metadata
+- [x] **Async LLM Calls** (E23): Native async for all 3 providers *(completed v7.4)*
+- [x] **LLM Streaming** (E21): StreamChunk + StreamCallback *(completed v7.4)*
+- [x] **Parallel Execution Model** (E20): Two-wave ThreadPoolExecutor *(completed v7.4)*
+- [x] **Chunked EVS Cache** (E22): Per-code JSON files *(completed v7.4)*
+- [x] **Cache-Aware Execution** (E24): Model+prompt hash in keys *(completed v7.4)*
+- [x] **Provenance Tracking** (E14): PhaseProvenance for all phases *(completed v7.4)*
+- [x] **Prompt Versioning** (E15): SHA-256 hashes in run manifest *(completed v7.4)*
 - [x] **ICH M11 Document Rendering**: DOCX generation with 9 entity composers *(completed v7.3)*
-- [x] **Testing Infrastructure**: 405 tests (372 pass), 42.5% coverage, mocked LLM tests *(completed v7.3)*
+- [x] **Testing Infrastructure**: 611 tests, mocked LLM tests *(completed v7.3–v7.4)*
 - [x] **Pipeline Decomposition**: combiner/integrations/post_processing/promotion *(completed v7.3)*
 - [x] **Web UI Semantic Editing**: JSON Patch editing with draft/publish workflow *(completed v7.2.1)*
 - [x] **Execution Model Promotion**: Native USDM entities instead of extensions *(completed v7.2)*
