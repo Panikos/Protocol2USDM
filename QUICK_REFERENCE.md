@@ -1,8 +1,8 @@
 # Protocol2USDM Quick Reference
 
-**v7.4** | One-page command reference
+**v7.5** | One-page command reference
 
-> **Current:** Async LLM calls, LLM streaming, parallel execution model, chunked EVS cache, 611 tests (578 pass), M11 DOCX rendering, pipeline decomposition, LLM provider abstraction, phase registry architecture (`main_v3.py`), default `--complete` mode, `gemini-3-flash-preview` default model.
+> **Current:** NCI code audit (70+ fixes, EVS-verified), Code Registry + Verification Service, Unscheduled Visit tagging (UNS auto-detection + amber SoA columns), 726 tests collected, async LLM calls, LLM streaming, parallel execution model, chunked EVS cache, M11 DOCX rendering, phase registry architecture (`main_v3.py`), default `--complete` mode, `gemini-3-flash-preview` default model.
 
 ---
 
@@ -182,7 +182,7 @@ output/<protocol>/
 ## Testing
 
 ```bash
-# All unit tests (611 collected, ~1 min)
+# All unit tests (726 collected, ~1 min)
 python -m pytest tests/ -v
 
 # With coverage
@@ -244,6 +244,8 @@ CDISC_API_KEY=...            # For CORE (optional)
 | `extraction/pipeline.py` | SoA extraction pipeline |
 | `extraction/pipeline_context.py` | Context passing between extractors |
 | `extraction/execution/` | Execution model extractors (27 modules) |
+| `core/code_registry.py` | Centralized NCI code registry |
+| `core/code_verification.py` | EVS-backed code verification |
 | `enrichment/terminology.py` | NCI terminology enrichment |
 | `validation/cdisc_conformance.py` | CDISC CORE validation |
 | `web-ui/` | React/Next.js protocol viewer |
@@ -289,5 +291,5 @@ CDISC_API_KEY=...            # For CORE (optional)
 
 **Docs:** [README.md](README.md) | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
-**Last Updated:** 2026-02-10  
-**Version:** 7.4
+**Last Updated:** 2026-02-11  
+**Version:** 7.5

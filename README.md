@@ -64,24 +64,32 @@ GOOGLE_CLOUD_LOCATION=us-central1  # or your preferred region
 
 ---
 
-## What's New in v7.4
+## What's New in v7.5
 
-### ⚡ Performance & Scalability (E20–E24)
-- **Parallel execution model** — 12 independent sub-extractors run concurrently via `ThreadPoolExecutor`
-- **Async LLM calls** — `agenerate()` / `agenerate_stream()` on all 3 providers (OpenAI, Claude, Gemini) with native async SDKs
-- **LLM streaming** — `StreamChunk` + `StreamCallback` for real-time progress visibility
-- **Chunked EVS cache** — Per-code JSON files (O(1) writes), auto-migration from monolithic file
-- **Cache-aware execution model** — Model+prompt hash in cache keys for proper invalidation
+### 🔬 NCI Code Audit & Verification
+- **70+ fabricated NCI codes fixed** — systematic audit of all 141 C-codes against NCI EVS API
+- **Code Registry** — new `core/code_registry.py` centralized singleton loading from `USDM_CT.xlsx` + supplementary codelists
+- **Code Verification Service** — new `core/code_verification.py` with EVS-backed validation and `EVS_VERIFIED_CODES` map
+- **Generation pipeline** — `scripts/generate_code_registry.py` produces `usdm_ct.json` + `codelist.generated.json` for UI
 
-### 🛡️ Code Quality (E14–E19)
-- **Provenance tracking** for all expansion phases via `PhaseProvenance` dataclass
-- **Prompt versioning** — SHA-256 hashes stored in `run_manifest.json`
-- **M11 mapping validation** — YAML schema validation at load time
-- **SoA table rendering** quality overhaul in M11 DOCX
+### 🏥 Unscheduled Visit (UNS) Tagging
+- **Auto-detection** — encounters named UNS, Unscheduled, Ad Hoc, PRN, etc. tagged with `x-encounterUnscheduled` extension
+- **Visual distinction** — dashed amber borders, italic headers, ⚡ suffix in SoA grid; `(UNS)` in CSV/print exports
+- **Scheduling** — `TransitionType.UNSCHEDULED_VISIT` for future `ScheduledDecisionInstance` promotion
 
 ### 🧪 Testing
-- **611 tests** (all pass, including 33 e2e integration tests)
-- 7 new test files covering parallel execution, async, streaming, caching, EVS cache
+- **726 tests** collected (up from 611)
+- New: `test_code_verification.py` (19), `test_code_registry.py`, `test_unscheduled_encounters.py` (28)
+
+<details>
+<summary><b>v7.4 — Performance & Scalability</b></summary>
+
+- **Parallel execution model** — 12 independent sub-extractors run concurrently via `ThreadPoolExecutor`
+- **Async LLM calls** — `agenerate()` / `agenerate_stream()` on all 3 providers with native async SDKs
+- **LLM streaming** — `StreamChunk` + `StreamCallback` for real-time progress visibility
+- **Chunked EVS cache** — Per-code JSON files (O(1) writes), auto-migration from monolithic file
+- **Provenance tracking**, **prompt versioning**, **M11 mapping validation**, **SoA table rendering** overhaul
+</details>
 
 <details>
 <summary><b>v7.3 — ICH M11 Document Rendering</b></summary>

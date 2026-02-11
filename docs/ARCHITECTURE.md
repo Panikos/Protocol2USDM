@@ -666,7 +666,7 @@ Entities extracted from different sources may have:
 |------------|--------|--------------|
 | **EpochReconciler** | StudyEpoch | Main/sub categorization, traversal sequence, CDISC type inference |
 | **ActivityReconciler** | Activity | Activity type inference, group merging, conditional logic from footnotes |
-| **EncounterReconciler** | Encounter | Visit windows, study day extraction, timing labels |
+| **EncounterReconciler** | Encounter | Visit windows, study day extraction, timing labels, unscheduled visit detection (`x-encounterUnscheduled`) |
 
 ### Common Features
 
@@ -733,6 +733,85 @@ All reconciled entities include extension attributes for metadata:
 | Execution Model | 25 | Visit windows, repetitions |
 | Footnotes | 30 | Conditional logic |
 | SAP | 30 | Analysis-specific entities |
+
+---
+
+## NCI Code Registry & Verification (v7.5+)
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                   USDM_CT.xlsx (CDISC official)                  │
+│              core/reference_data/USDM_CT.xlsx                    │
+└─────────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────────┐
+│              scripts/generate_code_registry.py                   │
+│  1. Parse XLSX → core/reference_data/usdm_ct.json               │
+│  2. Generate web-ui/lib/codelist.generated.json                  │
+│  3. Verify supplementary codes against EVS (--skip-verify)       │
+└─────────────────────────────────────────────────────────────────┘
+                            │
+        ┌───────────────────┼───────────────────┐
+        ▼                   ▼                   ▼
+┌───────────────┐   ┌───────────────┐   ┌───────────────┐
+│ CodeRegistry  │   │ codelist.     │   │ CodeVerifi-   │
+│ (singleton)   │   │ generated.json│   │ cationService │
+│               │   │               │   │               │
+│ USDM CT +    │   │ UI-ready      │   │ EVS_VERIFIED_ │
+│ supplementary │   │ dropdowns     │   │ CODES map     │
+└───────────────┘   └───────────────┘   └───────────────┘
+```
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `core/code_registry.py` | `CodeRegistry` singleton — loads USDM CT + supplementary codelists |
+| `core/code_verification.py` | `CodeVerificationService` — EVS-backed validation, `EVS_VERIFIED_CODES` |
+| `scripts/generate_code_registry.py` | Generation pipeline: XLSX → JSON → UI JSON → verify |
+| `web-ui/lib/codelist.generated.json` | UI-ready codelists consumed by `EditableCodedValue` |
+
+### Supplementary Codelists
+
+Codelists not in `USDM_CT.xlsx` but needed by the pipeline (e.g., `StudyIntervention.type` uses ICH M11 intervention types). These are manually curated in `CodeRegistry` and verified against `EVS_VERIFIED_CODES`.
+
+---
+
+## Unscheduled Visit (UNS) Handling (v7.5+)
+
+Encounters whose names match unscheduled patterns (UNS, Unscheduled, Ad Hoc, PRN, etc.) are tagged with `x-encounterUnscheduled: true`.
+
+### Data Flow
+
+```
+PDF → SoA Extraction → EncounterReconciler
+                              │
+                    is_unscheduled_encounter()
+                              │
+                              ▼
+                    ReconciledEncounter.is_unscheduled = true
+                              │
+                              ▼
+                    to_usdm_dict() → x-encounterUnscheduled ext
+                              │
+                    tag_unscheduled_encounters() (safety net)
+                              │
+                              ▼
+                    protocol_usdm.json
+                              │
+                              ▼
+                    toSoATableModel.ts → SoAColumn.isUnscheduled
+                              │
+                              ▼
+                    SoAGrid.tsx → amber dashed borders, ⚡ suffix
+```
+
+### Medium-Term
+
+Promote UNS encounters to `ScheduledDecisionInstance` with reentrant branch semantics (returns to main timeline after event-driven visit).
 
 ---
 

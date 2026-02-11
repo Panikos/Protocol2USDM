@@ -4,6 +4,57 @@ All notable changes documented here. Dates in ISO-8601.
 
 ---
 
+## [7.5.0] – 2026-02-11
+
+### NCI Code Audit & Verification System
+
+Systematic audit of all 141 NCI C-codes against the NCI EVS API. Fixed 70+ fabricated/wrong codes across 20+ files.
+
+| Area | Details |
+|------|---------|
+| **Code Registry** | New `core/code_registry.py` — centralized CodeRegistry singleton loading from `USDM_CT.xlsx` + supplementary codelists |
+| **Code Verification** | New `core/code_verification.py` — `CodeVerificationService` with `EVS_VERIFIED_CODES` map for EVS-backed validation |
+| **UI Codelists** | New `web-ui/lib/codelist.generated.json` — generated UI-ready codelists with correct NCI codes |
+| **Generation Pipeline** | New `scripts/generate_code_registry.py` — generates `usdm_ct.json` + UI JSON + optional `--skip-verify` flag |
+| **Intervention Types** | Fixed `StudyIntervention.type` codes: C307 (Biological), C16830 (Device), C1505 (Dietary Supplement), C15313 (Radiation), C17649 (Other) |
+
+### Unscheduled Visit (UNS) Tagging
+
+End-to-end support for identifying and visually distinguishing unscheduled/event-driven visits in the SoA table.
+
+| Component | Details |
+|-----------|---------|
+| **Detection** | `is_unscheduled_encounter()` regex in `core/reconciliation/encounter_reconciler.py` — matches UNS, Unscheduled, Unplanned, Ad Hoc, PRN, As Needed, Event-Driven |
+| **Extension** | `x-encounterUnscheduled` (`valueBoolean: true`) on Encounter entities |
+| **Post-processing** | `tag_unscheduled_encounters()` safety net in `pipeline/post_processing.py` |
+| **Scheduling** | `TransitionType.UNSCHEDULED_VISIT` enum in `extraction/scheduling/schema.py` |
+| **UI** | Dashed amber borders, italic headers, ⚡ suffix, amber-tinted cells in SoA grid; `(UNS)` suffix in CSV/print exports |
+
+### UI Fixes
+
+- **CodeLink.tsx** — Defensive `String()` coercion for numeric code values (fixes `code.trim is not a function` TypeError on amendments)
+- **EditableCodedValue.tsx** — Simplified component, removed inline type definitions
+- **InterventionsView.tsx** — Updated to use corrected intervention type codes
+- **StudyMetadataView.tsx** — Layout improvements
+
+#### New Files
+
+| File | Purpose |
+|------|---------|
+| `core/code_registry.py` | Centralized NCI code registry (USDM CT + supplementary) |
+| `core/code_verification.py` | EVS-backed code verification service |
+| `scripts/generate_code_registry.py` | Code registry generation pipeline |
+| `web-ui/lib/codelist.generated.json` | UI-ready codelists |
+| `tests/test_code_verification.py` | Code verification tests (19) |
+| `tests/test_code_registry.py` | Code registry tests |
+| `tests/test_unscheduled_encounters.py` | UNS encounter detection tests (28) |
+| `docs/EXTRACTOR_GAP_AUDIT.md` | Extractor gap audit report |
+
+**Test suite**: 726 collected  
+**Total new tests**: ~87 (code verification + code registry + UNS encounters)
+
+---
+
 ## [7.4.0] – 2026-02-10
 
 ### Performance & Scalability (E20–E24)

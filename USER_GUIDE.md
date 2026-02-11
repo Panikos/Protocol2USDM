@@ -1,13 +1,13 @@
 # Protocol2USDM User Guide
 
-**Version:** 7.4  
-**Last Updated:** 2026-02-10
+**Version:** 7.5  
+**Last Updated:** 2026-02-11
 
-> **📢 What's New in v7.4:** **Async LLM calls** (native async for OpenAI/Claude/Gemini), **LLM streaming** (StreamChunk + StreamCallback), **parallel execution model** (12 concurrent sub-extractors), **chunked EVS cache** (per-code files), **cache-aware execution** (model+prompt hash). 611 tests (578 pass).
+> **📢 What's New in v7.5:** **NCI code audit** (70+ fabricated codes fixed, EVS-verified), **Code Registry** (`core/code_registry.py` + `code_verification.py`), **Unscheduled Visit tagging** (auto-detection + amber visual distinction in SoA grid), **726 tests** collected.
 
+> **v7.4:** Async LLM calls, LLM streaming, parallel execution model, chunked EVS cache, cache-aware execution.
 > **v7.3:** ICH M11 DOCX rendering, testing infrastructure, pipeline decomposition, LLM provider abstraction.
 > **v7.2:** Execution model promotion to native USDM entities, semantic editing in web UI.
-> **v7.1:** Phase registry architecture (`main_v3.py`), default `--complete` mode, parallel execution.
 
 ---
 
@@ -684,5 +684,5 @@ A: Check logs in `output/<protocol>/`, capture error messages, report to maintai
 
 ---
 
-**Last Updated:** 2026-02-10  
-**Version:** 7.4
+**Last Updated:** 2026-02-11  
+**Version:** 7.5

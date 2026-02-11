@@ -57,9 +57,28 @@
 - [ARS Documentation](https://cdisc-org.github.io/analysis-results-standard/)
 - [ARS Wiki](https://wiki.cdisc.org/display/ARSP/ARS-UG+Sections)
 
+### Unscheduled Visit (UNS) — Full State Machine Modeling (In Progress)
+
+**Status:** Phase 1 complete, Phase 2 pending  
+**Priority:** Medium  
+**Added:** 2026-02-11
+
+1. **Phase 1 (Complete)** — Tag UNS encounters with `x-encounterUnscheduled` extension, visual distinction in SoA grid (amber dashed borders, ⚡ suffix)
+2. **Phase 2 (Pending)** — Promote UNS to `ScheduledDecisionInstance` with reentrant branch semantics (returns to main timeline after event-driven visit)
+3. **Phase 3 (Future)** — Timeline graph visualization of UNS branches in Cytoscape.js
+
 ---
 
 ## Completed Features
+
+### v7.5.0 - NCI Code Audit & Verification (2026-02-11)
+- ✅ Systematic audit of 141 NCI C-codes against EVS API
+- ✅ Fixed 70+ fabricated/wrong codes across 20+ files
+- ✅ `core/code_registry.py` — centralized CodeRegistry singleton
+- ✅ `core/code_verification.py` — EVS-backed verification service
+- ✅ `scripts/generate_code_registry.py` — generation pipeline with `--skip-verify`
+- ✅ `web-ui/lib/codelist.generated.json` — UI-ready codelists
+- ✅ UNS encounter tagging (Phase 1)
 
 ### v6.11.0 - CDISC ARS Deep Integration (2026-01-31)
 - ✅ Full ARS model generation (`ars_generator.py`)
