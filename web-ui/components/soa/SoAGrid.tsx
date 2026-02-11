@@ -225,7 +225,9 @@ export function SoAGrid({ model, onCellClick, editable = false, availableFootnot
       const children: ColDef[] = model.columns
         .filter((col) => col.epochId === group.id)
         .map((col) => ({
-          headerName: col.timing || col.name,
+          headerName: col.isUnscheduled
+            ? `${col.timing || col.name} ⚡`
+            : (col.timing || col.name),
           field: `col_${col.id}`,
           minWidth: 80,
           flex: 1,
@@ -235,8 +237,13 @@ export function SoAGrid({ model, onCellClick, editable = false, availableFootnot
             cellMap: model.cells,
             pendingEditsRef: committedEditsRef,
           },
-          headerClass: 'text-center ag-header-cell-wrap',
-          cellClass: 'text-center p-0',
+          headerClass: col.isUnscheduled
+            ? 'text-center ag-header-cell-wrap ag-header-unscheduled'
+            : 'text-center ag-header-cell-wrap',
+          cellClass: col.isUnscheduled
+            ? 'text-center p-0 bg-amber-50/50'
+            : 'text-center p-0',
+          headerTooltip: col.isUnscheduled ? 'Unscheduled / event-driven visit' : undefined,
           suppressMenu: true,
           wrapHeaderText: true,
           autoHeaderHeight: true,
@@ -255,7 +262,9 @@ export function SoAGrid({ model, onCellClick, editable = false, availableFootnot
     if (model.columnGroups.length === 0) {
       for (const col of model.columns) {
         defs.push({
-          headerName: col.timing || col.name,
+          headerName: col.isUnscheduled
+            ? `${col.timing || col.name} ⚡`
+            : (col.timing || col.name),
           field: `col_${col.id}`,
           minWidth: 80,
           flex: 1,
@@ -265,8 +274,13 @@ export function SoAGrid({ model, onCellClick, editable = false, availableFootnot
             cellMap: model.cells,
             pendingEditsRef: committedEditsRef,
           },
-          headerClass: 'text-center ag-header-cell-wrap',
-          cellClass: 'text-center p-0',
+          headerClass: col.isUnscheduled
+            ? 'text-center ag-header-cell-wrap ag-header-unscheduled'
+            : 'text-center ag-header-cell-wrap',
+          cellClass: col.isUnscheduled
+            ? 'text-center p-0 bg-amber-50/50'
+            : 'text-center p-0',
+          headerTooltip: col.isUnscheduled ? 'Unscheduled / event-driven visit' : undefined,
           wrapHeaderText: true,
           autoHeaderHeight: true,
         });

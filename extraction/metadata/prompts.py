@@ -54,6 +54,30 @@ Look for organizations on the title page, in the synopsis, and in the "Sponsor I
 ### 5. Indication/Disease
 - Primary disease or condition being studied
 
+### 6. Study Rationale / Background
+- Extract the study rationale or scientific background (usually from Section 2 "Introduction" or "Background")
+- This is the justification for conducting the study (1-3 sentences)
+
+### 7. Sponsor Address
+- If the sponsor's address is visible on the title page or contact section, extract it
+- Include city, state/province, country, postal code if available
+
+### 8. Key Dates
+- Protocol date (date on title page or approval date)
+- Sponsor approval date (if mentioned)
+- Original protocol date vs amendment date
+
+### 9. Key Personnel
+- Principal Investigator name (if on title page or synopsis)
+- Medical Monitor name (if mentioned)
+- Statistician name (if mentioned)
+- For each person, note which organization role they belong to
+
+### 10. Cross-Reference Identifiers
+- Any references to related protocols, sub-studies, or companion documents
+- IB (Investigator's Brochure) reference numbers
+- Related study protocol numbers
+
 ## USDM v4.0 Output Format (MUST follow exactly)
 
 Every entity MUST have `id` and `instanceType` fields.
@@ -159,7 +183,32 @@ Code fields MUST use the {"code": "...", "codeSystem": "...", "decode": "..."} s
     "name": "Type 2 Diabetes Mellitus",
     "description": "Patients with inadequately controlled T2DM",
     "instanceType": "Indication"
-  }
+  },
+  "studyRationale": "This study is designed to evaluate the efficacy and safety of Drug X in patients with T2DM who have inadequate glycemic control on metformin monotherapy.",
+  "sponsorAddress": {
+    "city": "New York",
+    "state": "NY",
+    "country": "United States",
+    "postalCode": "10001"
+  },
+  "protocolVersion": {
+    "version": "3.0",
+    "date": "2024-03-15",
+    "amendment": "Amendment 2"
+  },
+  "governanceDates": {
+    "protocolDate": "2024-03-15",
+    "sponsorApprovalDate": "2024-03-20",
+    "originalProtocolDate": "2023-01-10"
+  },
+  "keyPersonnel": [
+    {"name": "Dr. Jane Smith", "role": "Principal Investigator"},
+    {"name": "Dr. John Doe", "role": "Medical Monitor"}
+  ],
+  "referenceIdentifiers": [
+    {"text": "IB-2024-001", "type": "Investigator Brochure"},
+    {"text": "SPONSOR-2020-002", "type": "Related Protocol"}
+  ]
 }
 ```
 

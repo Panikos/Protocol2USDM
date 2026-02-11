@@ -3,6 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { EditableField } from '@/components/semantic';
+import { EditableCodedValue, CDISC_TERMINOLOGIES } from '@/components/semantic/EditableCodedValue';
 import { FileEdit, Calendar, ArrowRight } from 'lucide-react';
 
 interface AmendmentHistoryViewProps {
@@ -111,8 +112,14 @@ export function AmendmentHistoryView({ usdm }: AmendmentHistoryViewProps) {
                           )}
                         </div>
                         <div className="flex gap-2">
-                          {amendment.scope?.decode && (
-                            <Badge variant="outline">{amendment.scope.decode}</Badge>
+                          {amendment.scope && (
+                            <EditableCodedValue
+                              path={amendment.id ? `/study/versions/0/amendments/@id:${amendment.id}/scope` : `/study/versions/0/amendments/${i}/scope`}
+                              value={amendment.scope}
+                              options={CDISC_TERMINOLOGIES.geographicScopeType ?? []}
+                              showCode
+                              placeholder="Scope"
+                            />
                           )}
                           {amendment.number && (
                             <Badge>#{amendment.number}</Badge>
@@ -129,10 +136,16 @@ export function AmendmentHistoryView({ usdm }: AmendmentHistoryViewProps) {
                         placeholder="No summary"
                       />
                       
-                      {amendment.primaryReason?.decode && (
-                        <div className="mb-2">
-                          <span className="text-sm font-medium">Primary Reason: </span>
-                          <Badge variant="secondary">{amendment.primaryReason.decode}</Badge>
+                      {amendment.primaryReason && (
+                        <div className="mb-2 flex items-center gap-2">
+                          <span className="text-sm font-medium">Primary Reason:</span>
+                          <EditableCodedValue
+                            path={amendment.id ? `/study/versions/0/amendments/@id:${amendment.id}/primaryReason` : `/study/versions/0/amendments/${i}/primaryReason`}
+                            value={amendment.primaryReason}
+                            options={CDISC_TERMINOLOGIES.amendmentReason ?? []}
+                            showCode
+                            placeholder="Reason"
+                          />
                         </div>
                       )}
                       

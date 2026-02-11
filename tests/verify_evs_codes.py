@@ -94,6 +94,14 @@ CODES_TO_VERIFY = {
     # Randomization
     "C25196": "Randomization",
     
+    # StudyIntervention Type (ICH M11) - EVS-verified 2026-02-11
+    "C1909": "Pharmacologic Substance",  # Drug
+    "C307": "Biological Agent",          # Biological
+    "C16830": "Medical Device",          # Device
+    "C1505": "Dietary Supplement",       # Dietary Supplement
+    "C15313": "Radiation Therapy",       # Radiation
+    "C17649": "Other",                   # Other
+    
     # Procedure Type Codes - EVS-verified
     "C18020": "Diagnostic Procedure",
     "C49236": "Therapeutic Procedure",

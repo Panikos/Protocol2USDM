@@ -8,6 +8,7 @@ import {
   HoverCardTrigger,
 } from '@/components/ui/hover-card';
 import { EditableField } from '@/components/semantic';
+import { EditableCodedValue, CDISC_TERMINOLOGIES } from '@/components/semantic/EditableCodedValue';
 import { designPath, versionPath } from '@/lib/semantic/schema';
 import { 
   MapPin, 
@@ -368,11 +369,13 @@ export function StudySitesView({ usdm }: StudySitesViewProps) {
                       className="font-medium"
                       placeholder="Organization name"
                     />
-                    {org.type && (
-                      <Badge variant="outline">
-                        {typeof org.type === 'string' ? org.type : (org.type.decode || org.type.code || 'Unknown')}
-                      </Badge>
-                    )}
+                    <EditableCodedValue
+                      path={org.id ? versionPath('organizations', org.id, 'type') : `/study/versions/0/organizations/${i}/type`}
+                      value={typeof org.type === 'string' ? { decode: org.type } : org.type}
+                      options={CDISC_TERMINOLOGIES.organizationType ?? []}
+                      showCode
+                      placeholder="Type"
+                    />
                   </div>
                   {org.identifier && (
                     <p className="text-xs text-muted-foreground mt-1">

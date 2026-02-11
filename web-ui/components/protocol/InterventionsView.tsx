@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { EditableField, EditableCodedValue, CDISC_TERMINOLOGIES } from '@/components/semantic';
+import { EditableField, EditableCodedValue, CDISC_TERMINOLOGIES, CodeLink } from '@/components/semantic';
 import { versionPath, entityPath } from '@/lib/semantic/schema';
 import { useSemanticStore } from '@/stores/semanticStore';
 import { useEditModeStore } from '@/stores/editModeStore';
@@ -31,10 +31,13 @@ interface AdministrableProduct {
   name?: string;
   label?: string;
   description?: string;
-  formulation?: string;
-  route?: { decode?: string };
-  dosage?: string;
+  administrableDoseForm?: { code?: string; decode?: string; standardCode?: { code?: string; decode?: string } };
+  routeOfAdministration?: { code?: string; decode?: string };
+  productDesignation?: { code?: string; decode?: string };
+  sourcing?: { code?: string; decode?: string };
+  pharmacologicClass?: { code?: string; decode?: string };
   strength?: string;
+  manufacturer?: string;
 }
 
 interface Administration {
@@ -182,12 +185,14 @@ export function InterventionsView({ usdm }: InterventionsViewProps) {
                         path={versionPath('studyInterventions', intervention.id, 'role')}
                         value={intervention.role}
                         options={CDISC_TERMINOLOGIES.interventionRole}
+                        showCode
                         placeholder="Role"
                       />
                       <EditableCodedValue
                         path={versionPath('studyInterventions', intervention.id, 'type')}
                         value={intervention.type}
                         options={CDISC_TERMINOLOGIES.interventionType}
+                        showCode
                         placeholder="Type"
                       />
                       {isEditMode && (
@@ -205,10 +210,8 @@ export function InterventionsView({ usdm }: InterventionsViewProps) {
                   
                   {intervention.codes && intervention.codes.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-1">
-                      {intervention.codes.map((code, ci) => (
-                        <Badge key={ci} variant="secondary" className="text-xs">
-                          {code.decode}
-                        </Badge>
+                      {intervention.codes.map((code: { code?: string; decode?: string }, ci: number) => (
+                        <CodeLink key={ci} code={code.code} decode={code.decode} variant="secondary" className="text-xs" />
                       ))}
                     </div>
                   )}
@@ -254,28 +257,53 @@ export function InterventionsView({ usdm }: InterventionsViewProps) {
                   
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3 text-sm">
                     <EditableField
-                      path={versionPath('administrableProducts', product.id, 'formulation')}
-                      value={product.formulation || ''}
-                      label="Formulation"
+                      path={versionPath('administrableProducts', product.id, 'administrableDoseForm/decode')}
+                      value={product.administrableDoseForm?.decode || product.administrableDoseForm?.standardCode?.decode || ''}
+                      label="Dose Form"
                       placeholder="Not specified"
                     />
                     <EditableCodedValue
-                      path={versionPath('administrableProducts', product.id, 'route')}
-                      value={product.route}
+                      path={versionPath('administrableProducts', product.id, 'routeOfAdministration')}
+                      value={product.routeOfAdministration}
                       label="Route"
                       options={CDISC_TERMINOLOGIES.routeOfAdministration}
-                      placeholder="Not specified"
-                    />
-                    <EditableField
-                      path={versionPath('administrableProducts', product.id, 'dosage')}
-                      value={product.dosage || ''}
-                      label="Dosage"
+                      showCode
                       placeholder="Not specified"
                     />
                     <EditableField
                       path={versionPath('administrableProducts', product.id, 'strength')}
                       value={product.strength || ''}
                       label="Strength"
+                      placeholder="Not specified"
+                    />
+                    <EditableCodedValue
+                      path={versionPath('administrableProducts', product.id, 'productDesignation')}
+                      value={product.productDesignation}
+                      label="Designation"
+                      options={CDISC_TERMINOLOGIES.productDesignation ?? []}
+                      showCode
+                      placeholder="Not specified"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-2 text-sm">
+                    <EditableCodedValue
+                      path={versionPath('administrableProducts', product.id, 'sourcing')}
+                      value={product.sourcing}
+                      label="Sourcing"
+                      options={CDISC_TERMINOLOGIES.productSourcing ?? []}
+                      showCode
+                      placeholder="Not specified"
+                    />
+                    <EditableField
+                      path={versionPath('administrableProducts', product.id, 'pharmacologicClass/decode')}
+                      value={product.pharmacologicClass?.decode || ''}
+                      label="Pharmacologic Class"
+                      placeholder="Not specified"
+                    />
+                    <EditableField
+                      path={versionPath('administrableProducts', product.id, 'manufacturer')}
+                      value={product.manufacturer || ''}
+                      label="Manufacturer"
                       placeholder="Not specified"
                     />
                   </div>
@@ -322,6 +350,7 @@ export function InterventionsView({ usdm }: InterventionsViewProps) {
                       value={admin.route}
                       label="Route"
                       options={CDISC_TERMINOLOGIES.routeOfAdministration}
+                      showCode
                       placeholder="Route"
                     />
                     {admin.frequency?.decode && (
@@ -426,16 +455,15 @@ export function InterventionsView({ usdm }: InterventionsViewProps) {
                       path={entityPath('/substances', substance.id, 'substanceType')}
                       value={substance.substanceType}
                       options={CDISC_TERMINOLOGIES.substanceType}
+                      showCode
                       placeholder="Type"
                       className="shrink-0"
                     />
                   </div>
                   {substance.codes && substance.codes.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-2">
-                      {substance.codes.map((code, ci) => (
-                        <Badge key={ci} variant="secondary" className="text-xs font-mono">
-                          {code.code}: {code.decode || 'N/A'}
-                        </Badge>
+                      {substance.codes.map((code: { code?: string; decode?: string }, ci: number) => (
+                        <CodeLink key={ci} code={code.code} decode={`${code.code}: ${code.decode || 'N/A'}`} variant="secondary" className="text-xs font-mono" />
                       ))}
                     </div>
                   )}
@@ -471,6 +499,7 @@ export function InterventionsView({ usdm }: InterventionsViewProps) {
                         path={entityPath('/ingredients', ingredient.id, 'role')}
                         value={ingredient.role}
                         options={CDISC_TERMINOLOGIES.ingredientRole}
+                        showCode
                         placeholder="Role"
                         className="shrink-0"
                       />

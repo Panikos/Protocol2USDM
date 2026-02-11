@@ -92,7 +92,14 @@ export function ObjectivesEndpointsView({ usdm }: ObjectivesEndpointsViewProps) 
       purpose: { code: '', decode: '' },
       instanceType: 'Endpoint',
     };
-    addPatchOp({ op: 'add', path: `${designPath('objectives', objectiveId)}/endpoints/-`, value: newEp });
+    // If the objective has no endpoints array yet, create it with the new item;
+    // otherwise append to the existing array.
+    const obj = objectives.find(o => o.id === objectiveId);
+    if (!obj?.endpoints || obj.endpoints.length === 0) {
+      addPatchOp({ op: 'add', path: `${designPath('objectives', objectiveId)}/endpoints`, value: [newEp] });
+    } else {
+      addPatchOp({ op: 'add', path: `${designPath('objectives', objectiveId)}/endpoints/-`, value: newEp });
+    }
   };
 
   const handleRemoveEndpoint = (objectiveId: string, endpointId: string) => {
@@ -159,6 +166,7 @@ export function ObjectivesEndpointsView({ usdm }: ObjectivesEndpointsViewProps) 
                         })}
                         value={ep.purpose}
                         options={CDISC_TERMINOLOGIES.endpointPurpose}
+                        showCode
                         placeholder="Purpose"
                         className="shrink-0"
                       />

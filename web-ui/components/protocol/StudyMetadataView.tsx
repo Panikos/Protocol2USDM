@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { EditableField } from '@/components/semantic';
+import { EditableField, EditableList, CodeLink } from '@/components/semantic';
+import { EditableCodedValue, CDISC_TERMINOLOGIES } from '@/components/semantic/EditableCodedValue';
 import { versionPath } from '@/lib/semantic/schema';
 import { Building2, Calendar, FlaskConical, Users, FileText, BookOpen, ChevronDown, ChevronRight, Globe, Tag } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -104,14 +105,12 @@ export function StudyMetadataView({ usdm }: StudyMetadataViewProps) {
   const conditions = (version.conditions as { id?: string; name?: string; description?: string; codes?: { decode?: string }[] }[]) ?? [];
 
   // State for collapsible sections
-  const [showAllAbbreviations, setShowAllAbbreviations] = useState(false);
   const [showAllOrgs, setShowAllOrgs] = useState(false);
 
   // Sort abbreviations alphabetically
   const sortedAbbreviations = [...abbreviations].sort((a, b) => 
     (a.abbreviatedText || '').localeCompare(b.abbreviatedText || '')
   );
-  const displayedAbbreviations = showAllAbbreviations ? sortedAbbreviations : sortedAbbreviations.slice(0, 10);
 
   // Categorize organizations
   const sponsors = organizations.filter(o => o.type?.decode?.toLowerCase().includes('sponsor'));
@@ -217,41 +216,38 @@ export function StudyMetadataView({ usdm }: StudyMetadataViewProps) {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {studyPhase && (
-              <div>
-                <span className="text-sm text-muted-foreground">Phase</span>
-                <EditableField
-                  path="/study/versions/0/studyDesigns/0/studyPhase/standardCode/decode"
-                  value={studyPhase}
-                  className="font-medium"
-                  placeholder="Not specified"
-                />
-              </div>
-            )}
+            <div>
+              <EditableCodedValue
+                path="/study/versions/0/studyDesigns/0/studyPhase/standardCode"
+                value={(design?.studyPhase as Record<string, unknown>)?.standardCode as { code?: string; decode?: string } | undefined}
+                label="Phase"
+                options={CDISC_TERMINOLOGIES.studyPhase ?? []}
+                showCode
+                placeholder="Not specified"
+              />
+            </div>
             
-            {studyType && (
-              <div>
-                <span className="text-sm text-muted-foreground">Type</span>
-                <EditableField
-                  path="/study/versions/0/studyDesigns/0/studyType/decode"
-                  value={studyType}
-                  className="font-medium"
-                  placeholder="Not specified"
-                />
-              </div>
-            )}
+            <div>
+              <EditableCodedValue
+                path="/study/versions/0/studyDesigns/0/studyType"
+                value={design?.studyType as { code?: string; decode?: string } | undefined}
+                label="Type"
+                options={CDISC_TERMINOLOGIES.studyType ?? []}
+                showCode
+                placeholder="Not specified"
+              />
+            </div>
             
-            {blindingSchema && (
-              <div>
-                <span className="text-sm text-muted-foreground">Blinding</span>
-                <EditableField
-                  path="/study/versions/0/studyDesigns/0/blindingSchema/standardCode/decode"
-                  value={blindingSchema}
-                  className="font-medium"
-                  placeholder="Not specified"
-                />
-              </div>
-            )}
+            <div>
+              <EditableCodedValue
+                path="/study/versions/0/studyDesigns/0/blindingSchema/standardCode"
+                value={(design?.blindingSchema as Record<string, unknown>)?.standardCode as { code?: string; decode?: string } | undefined}
+                label="Blinding"
+                options={CDISC_TERMINOLOGIES.blindingSchema ?? []}
+                showCode
+                placeholder="Not specified"
+              />
+            </div>
 
             {therapeuticAreas.length > 0 && (
               <div>
@@ -303,12 +299,13 @@ export function StudyMetadataView({ usdm }: StudyMetadataViewProps) {
                         />
                       )}
                     </div>
-                    <Badge 
-                      variant={isSponsor ? 'default' : isCRO ? 'outline' : 'secondary'}
-                      className={isSponsor ? 'bg-green-600' : ''}
-                    >
-                      {orgType}
-                    </Badge>
+                    <EditableCodedValue
+                      path={org.id ? versionPath('organizations', org.id, 'type') : `/study/versions/0/organizations/${orgIndex}/type`}
+                      value={org.type}
+                      options={CDISC_TERMINOLOGIES.organizationType ?? []}
+                      showCode
+                      placeholder="Type"
+                    />
                   </div>
                 );
               })}
@@ -365,83 +362,151 @@ export function StudyMetadataView({ usdm }: StudyMetadataViewProps) {
       )}
 
       {/* Population Summary */}
-      {!!design?.population && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Population
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <EditableField
-                path="/study/versions/0/studyDesigns/0/population/description"
-                value={String((design.population as Record<string, unknown>)?.description ?? '')}
-                label="Description"
-                type="textarea"
-                placeholder="No population description"
-              />
-              <div className="flex gap-4 text-sm">
-                {!!(design.population as Record<string, unknown>)?.plannedEnrollmentNumber && (
+      {!!design?.population && (() => {
+        const pop = design.population as Record<string, unknown>;
+        const enrollment = pop.plannedEnrollmentNumber as Record<string, unknown> | undefined;
+        const completion = pop.plannedCompletionNumber as Record<string, unknown> | undefined;
+        const plannedAge = pop.plannedAge as Record<string, unknown> | undefined;
+        const ageMin = plannedAge?.minValue as Record<string, unknown> | undefined;
+        const ageMax = plannedAge?.maxValue as Record<string, unknown> | undefined;
+        const plannedSex = pop.plannedSex as { code?: string; decode?: string }[] | undefined;
+        const healthySubjects = pop.includesHealthySubjects;
+        const popPath = '/study/versions/0/studyDesigns/0/population';
+
+        return (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Population
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <EditableField
+                  path={`${popPath}/name`}
+                  value={String(pop.name ?? '')}
+                  label="Name"
+                  placeholder="e.g. Study Population"
+                />
+                <EditableField
+                  path={`${popPath}/description`}
+                  value={String(pop.description ?? '')}
+                  label="Description"
+                  type="textarea"
+                  placeholder="No population description"
+                />
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                   <EditableField
-                    path="/study/versions/0/studyDesigns/0/population/plannedEnrollmentNumber/value"
-                    value={String(((design.population as Record<string, unknown>).plannedEnrollmentNumber as Record<string, unknown>)?.value ?? '')}
+                    path={`${popPath}/plannedEnrollmentNumber/maxValue`}
+                    value={String(enrollment?.maxValue ?? enrollment?.value ?? '')}
                     label="Planned Enrollment"
                     type="number"
                     placeholder="N/A"
                   />
-                )}
+                  <EditableField
+                    path={`${popPath}/plannedCompletionNumber/maxValue`}
+                    value={String(completion?.maxValue ?? completion?.value ?? '')}
+                    label="Planned Completers"
+                    type="number"
+                    placeholder="N/A"
+                  />
+                  <EditableField
+                    path={`${popPath}/plannedAge/minValue/value`}
+                    value={String(ageMin?.value ?? '')}
+                    label="Minimum Age"
+                    type="number"
+                    placeholder="N/A"
+                  />
+                  <EditableField
+                    path={`${popPath}/plannedAge/maxValue/value`}
+                    value={String(ageMax?.value ?? '')}
+                    label="Maximum Age"
+                    type="number"
+                    placeholder="N/A"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  {plannedSex && plannedSex.length > 0 ? (
+                    <div>
+                      <span className="text-sm text-muted-foreground">Planned Sex</span>
+                      <div className="flex gap-1 mt-1">
+                        {plannedSex.map((s, si) => (
+                          <CodeLink key={si} code={s.code} decode={s.decode || s.code} />
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <EditableField
+                      path={`${popPath}/plannedSex`}
+                      value=""
+                      label="Planned Sex"
+                      placeholder="Not specified"
+                    />
+                  )}
+                  <div>
+                    <span className="text-sm text-muted-foreground">Healthy Subjects</span>
+                    <div className="mt-1">
+                      <Badge variant={healthySubjects ? 'default' : 'outline'}>
+                        {healthySubjects === true ? 'Yes' : healthySubjects === false ? 'No' : 'Not specified'}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       {/* Medical Conditions */}
-      {conditions.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Tag className="h-5 w-5" />
-              Medical Conditions
-              <Badge variant="secondary">{conditions.length}</Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {conditions.map((cond, i) => (
-                <div key={cond.id || i} className="p-3 bg-muted rounded-lg">
-                  <EditableField
-                    path={cond.id ? versionPath('conditions', cond.id, 'name') : `/study/versions/0/conditions/${i}/name`}
-                    value={cond.name || `Condition ${i + 1}`}
-                    label=""
-                    className="font-medium"
-                    placeholder="Condition name"
-                  />
-                  <EditableField
-                    path={cond.id ? versionPath('conditions', cond.id, 'description') : `/study/versions/0/conditions/${i}/description`}
-                    value={cond.description || ''}
-                    label=""
-                    type="textarea"
-                    className="text-sm text-muted-foreground mt-1"
-                    placeholder="No description"
-                  />
-                  {cond.codes && cond.codes.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {cond.codes.map((code, j) => (
-                        <Badge key={j} variant="outline" className="text-xs">
-                          {code.decode}
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      <EditableList
+        basePath="/study/versions/0/conditions"
+        items={conditions}
+        title="Medical Conditions"
+        icon={<Tag className="h-5 w-5" />}
+        addLabel="Add Condition"
+        newItemTemplate={{
+          name: '',
+          description: '',
+          instanceType: 'Condition',
+        }}
+        itemDescriptor={{
+          labelKey: 'name',
+          subtitleKey: 'description',
+          render: (item, index, itemPath) => {
+            const cond = (item ?? {}) as { id?: string; name?: string; description?: string; codes?: { decode?: string }[] };
+            return (
+              <div className="flex-1 min-w-0">
+                <EditableField
+                  path={`${itemPath}/name`}
+                  value={cond.name || `Condition ${index + 1}`}
+                  label=""
+                  className="font-medium"
+                  placeholder="Condition name"
+                />
+                <EditableField
+                  path={`${itemPath}/description`}
+                  value={cond.description || ''}
+                  label=""
+                  type="textarea"
+                  className="text-sm text-muted-foreground mt-1"
+                  placeholder="No description"
+                />
+                {cond.codes && cond.codes.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {cond.codes.map((code: { code?: string; decode?: string }, j: number) => (
+                      <CodeLink key={j} code={code.code} decode={code.decode} className="text-xs" />
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          },
+        }}
+      />
 
       {/* Study Characteristics */}
       {characteristics.length > 0 && (
@@ -468,60 +533,45 @@ export function StudyMetadataView({ usdm }: StudyMetadataViewProps) {
         </Card>
       )}
 
-      {/* Abbreviations - Collapsible */}
-      {abbreviations.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BookOpen className="h-5 w-5" />
-              Abbreviations Glossary
-              <Badge variant="secondary">{abbreviations.length}</Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-              {displayedAbbreviations.map((abbr, i) => {
-                return (
-                  <div key={abbr.id || i} className="flex items-start gap-2 p-2 rounded hover:bg-muted">
-                    <EditableField
-                      path={abbr.id ? versionPath('abbreviations', abbr.id, 'abbreviatedText') : `/study/versions/0/abbreviations/${i}/abbreviatedText`}
-                      value={abbr.abbreviatedText}
-                      label=""
-                      className="shrink-0 font-mono text-xs border rounded px-1"
-                      placeholder="ABBR"
-                    />
-                    <EditableField
-                      path={abbr.id ? versionPath('abbreviations', abbr.id, 'expandedText') : `/study/versions/0/abbreviations/${i}/expandedText`}
-                      value={abbr.expandedText}
-                      label=""
-                      className="text-sm text-muted-foreground flex-1"
-                      placeholder="Expansion"
-                    />
-                  </div>
-                );
-              })}
-            </div>
-            {abbreviations.length > 10 && (
-              <button
-                onClick={() => setShowAllAbbreviations(!showAllAbbreviations)}
-                className="mt-4 flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400"
-              >
-                {showAllAbbreviations ? (
-                  <>
-                    <ChevronDown className="h-4 w-4" />
-                    Show less
-                  </>
-                ) : (
-                  <>
-                    <ChevronRight className="h-4 w-4" />
-                    Show all {abbreviations.length} abbreviations
-                  </>
-                )}
-              </button>
-            )}
-          </CardContent>
-        </Card>
-      )}
+      {/* Abbreviations */}
+      <EditableList
+        basePath="/study/versions/0/abbreviations"
+        items={sortedAbbreviations}
+        title="Abbreviations Glossary"
+        icon={<BookOpen className="h-5 w-5" />}
+        collapsible={sortedAbbreviations.length > 10}
+        addLabel="Add Abbreviation"
+        newItemTemplate={{
+          abbreviatedText: '',
+          expandedText: '',
+          instanceType: 'Abbreviation',
+        }}
+        itemDescriptor={{
+          labelKey: 'abbreviatedText',
+          subtitleKey: 'expandedText',
+          render: (item, index, itemPath) => {
+            const abbr = (item ?? {}) as Abbreviation;
+            return (
+              <div className="flex items-start gap-2 flex-1 min-w-0">
+                <EditableField
+                  path={`${itemPath}/abbreviatedText`}
+                  value={abbr.abbreviatedText}
+                  label=""
+                  className="shrink-0 font-mono text-xs border rounded px-1"
+                  placeholder="ABBR"
+                />
+                <EditableField
+                  path={`${itemPath}/expandedText`}
+                  value={abbr.expandedText}
+                  label=""
+                  className="text-sm text-muted-foreground flex-1"
+                  placeholder="Expansion"
+                />
+              </div>
+            );
+          },
+        }}
+      />
     </div>
   );
 }

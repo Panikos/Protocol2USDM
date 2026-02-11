@@ -8,4 +8,6 @@ export { EditableList } from './EditableList';
 export type { ListItemDescriptor, EditableListProps } from './EditableList';
 export { EditableCodedValue, CDISC_TERMINOLOGIES } from './EditableCodedValue';
 export type { CodeOption, EditableCodedValueProps } from './EditableCodedValue';
+export { CodeLink, evsUrl } from './CodeLink';
+export type { CodeLinkProps } from './CodeLink';
 export { DiffView } from './DiffView';

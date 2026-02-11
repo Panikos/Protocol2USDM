@@ -348,6 +348,14 @@ def _parse_design_response(raw: Dict[str, Any]) -> Optional[StudyDesignData]:
             if not isinstance(intent_types, list):
                 intent_types = [intent_types] if intent_types else []
             
+            # C3: Design rationale
+            design_rationale = design_data.get('designRationale') or design_data.get('rationale')
+            
+            # H4: Design characteristics
+            characteristics = design_data.get('characteristics', [])
+            if not isinstance(characteristics, list):
+                characteristics = [characteristics] if characteristics else []
+            
             study_design = InterventionalStudyDesign(
                 id="sd_1",
                 name="Study Design",
@@ -363,6 +371,8 @@ def _parse_design_response(raw: Dict[str, Any]) -> Optional[StudyDesignData]:
                 arm_ids=[a.id for a in arms],
                 cohort_ids=[c.id for c in cohorts],
                 therapeutic_areas=design_data.get('therapeuticAreas', []),
+                rationale=design_rationale,
+                characteristics=characteristics,
             )
         
         # Generate cells and elements from arms × epochs if epochs provided

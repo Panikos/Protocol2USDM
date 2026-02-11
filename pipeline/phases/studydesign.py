@@ -82,6 +82,14 @@ class StudyDesignPhase(BasePhase):
                     study_design["blindingSchema"] = {"code": sd.study_design.blinding_schema.value}
                 if sd.study_design.randomization_type:
                     study_design["randomizationType"] = {"code": sd.study_design.randomization_type.value}
+                # C3: Design rationale
+                if sd.study_design.rationale:
+                    study_design["rationale"] = sd.study_design.rationale
+                # H4: Design characteristics
+                if sd.study_design.characteristics:
+                    sd_dict = sd.study_design.to_dict()
+                    if sd_dict.get("characteristics"):
+                        study_design["characteristics"] = sd_dict["characteristics"]
             study_design["arms"] = [a.to_dict() for a in sd.arms]
             study_design["studyCohorts"] = [c.to_dict() for c in sd.cohorts]
             study_design["studyCells"] = [c.to_dict() for c in sd.cells]
@@ -105,6 +113,12 @@ class StudyDesignPhase(BasePhase):
                     study_design["blindingSchema"] = sd['blindingSchema']
                 if sd.get('randomizationType'):
                     study_design["randomizationType"] = sd['randomizationType']
+                # C3: Design rationale (fallback path)
+                if sd.get('rationale'):
+                    study_design["rationale"] = sd['rationale']
+                # H4: Design characteristics (fallback path)
+                if sd.get('characteristics'):
+                    study_design["characteristics"] = sd['characteristics']
                 if sd.get('arms'):
                     study_design["arms"] = sd['arms']
                 if sd.get('cohorts'):

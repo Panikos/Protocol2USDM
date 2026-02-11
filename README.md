@@ -64,22 +64,27 @@ GOOGLE_CLOUD_LOCATION=us-central1  # or your preferred region
 
 ---
 
-## What's New in v7.5
+## What's New in v7.8
+
+### ✅ USDM v4.0 Field Coverage — All 28 Gaps Fixed
+Systematic audit of all 9 extraction phases against `dataStructure.yml`. Identified and fixed **28 missing USDM fields** across 3 sprints:
+- **3 CRITICAL** — `versionIdentifier`, `StudyVersion.rationale`, `InterventionalStudyDesign.rationale`
+- **10 HIGH** — address, dates, phase, characteristics, dose/frequency, product linkage, ingredients
+- **9 MEDIUM** — therapeutic areas, assigned persons, cohort linking, duration, identifiers, amendment details
+- **6 LOW** — reference IDs, arm/intervention notes, product properties, procedure orderability
 
 ### 🔬 NCI Code Audit & Verification
 - **70+ fabricated NCI codes fixed** — systematic audit of all 141 C-codes against NCI EVS API
-- **Code Registry** — new `core/code_registry.py` centralized singleton loading from `USDM_CT.xlsx` + supplementary codelists
-- **Code Verification Service** — new `core/code_verification.py` with EVS-backed validation and `EVS_VERIFIED_CODES` map
-- **Generation pipeline** — `scripts/generate_code_registry.py` produces `usdm_ct.json` + `codelist.generated.json` for UI
+- **Code Registry** — `core/code_registry.py` centralized singleton loading from `USDM_CT.xlsx` + supplementary codelists
+- **Code Verification Service** — `core/code_verification.py` with EVS-backed validation
 
 ### 🏥 Unscheduled Visit (UNS) Tagging
 - **Auto-detection** — encounters named UNS, Unscheduled, Ad Hoc, PRN, etc. tagged with `x-encounterUnscheduled` extension
 - **Visual distinction** — dashed amber borders, italic headers, ⚡ suffix in SoA grid; `(UNS)` in CSV/print exports
-- **Scheduling** — `TransitionType.UNSCHEDULED_VISIT` for future `ScheduledDecisionInstance` promotion
 
 ### 🧪 Testing
-- **726 tests** collected (up from 611)
-- New: `test_code_verification.py` (19), `test_code_registry.py`, `test_unscheduled_encounters.py` (28)
+- **808 tests** passing (up from 611)
+- New: gap fix regression tests (115), code verification (19), UNS encounters (28)
 
 <details>
 <summary><b>v7.4 — Performance & Scalability</b></summary>

@@ -4,6 +4,59 @@ All notable changes documented here. Dates in ISO-8601.
 
 ---
 
+## [7.8.0] – 2026-02-11
+
+### USDM v4.0 Extractor Gap Audit — All 28 Gaps Fixed
+
+Systematic audit of all 9 extraction phases against `dataStructure.yml` (USDM v4.0). Identified 28 missing fields across 4 severity levels and fixed all of them in 3 sprints.
+
+#### Sprint 1 — Quick Wins (v7.6)
+| Gap | Fix |
+|-----|-----|
+| **C1** `StudyVersion.versionIdentifier` | Map `protocolVersion` in metadata combiner |
+| **H3** `StudyDesign.studyPhase` | Copy from metadata → studyDesign |
+| **H5** `Endpoint.purpose` | Default based on endpoint level |
+| **H8** `Administration.administrableProductId` | Name-matching post-processor |
+| **H9** `AdministrableProduct.ingredients` | Nest substances by ID/name |
+| **H10** `Ingredient.strengthId` | Link from product strength string |
+
+#### Sprint 2 — Prompt Expansions (v7.7)
+| Gap | Fix |
+|-----|-----|
+| **C2** `StudyVersion.rationale` | Extract from §2 Introduction |
+| **C3** `InterventionalStudyDesign.rationale` | Extract from §4 |
+| **H1** `Organization.legalAddress` | Sponsor address from title page |
+| **H2** `StudyVersion.dateValues` | GovernanceDate entities |
+| **H4** `StudyDesign.characteristics` | Characteristics codes |
+| **H6** `Administration.dose` | USDM Quantity object |
+| **H7** `Administration.frequency` | USDM Code object |
+
+#### Sprint 3+4 — MEDIUM + LOW Enrichment (v7.8)
+| Gap | Fix |
+|-----|-----|
+| **M1** `StudyVersion.businessTherapeuticAreas` | Map from indications |
+| **M2** `StudyRole.assignedPersons` | Extract PI/personnel from prompt |
+| **M3/M9** `StudyDesignPopulation.cohorts` | Link cohort IDs in post-processing |
+| **M4** `StudyIntervention.minimumResponseDuration` | Duration entity |
+| **M5** `AdministrableProduct.identifiers` | Product identifier codes |
+| **M6/M7/M8** `StudyAmendment` secondary fields | secondaryReasons, impacts, changes |
+| **L1** `StudyVersion.referenceIdentifiers` | Cross-reference IDs from prompt |
+| **L3** `StudyArm.notes` | CommentAnnotation objects |
+| **L4** `StudyIntervention.notes` | CommentAnnotation objects |
+| **L5** `AdministrableProduct.properties` | AdministrableProductProperty |
+| **L6** `Procedure.isOrderable` | Boolean field |
+
+#### New Test Files
+| File | Tests |
+|------|-------|
+| `tests/test_sprint1_gap_fixes.py` | 29 |
+| `tests/test_sprint2_gap_fixes.py` | 45 |
+| `tests/test_sprint34_gap_fixes.py` | 41 |
+
+**Test suite**: 808 passed, 33 skipped, 0 failures
+
+---
+
 ## [7.5.0] – 2026-02-11
 
 ### NCI Code Audit & Verification System
@@ -48,7 +101,7 @@ End-to-end support for identifying and visually distinguishing unscheduled/event
 | `tests/test_code_verification.py` | Code verification tests (19) |
 | `tests/test_code_registry.py` | Code registry tests |
 | `tests/test_unscheduled_encounters.py` | UNS encounter detection tests (28) |
-| `docs/EXTRACTOR_GAP_AUDIT.md` | Extractor gap audit report |
+| ~~`docs/EXTRACTOR_GAP_AUDIT.md`~~ | Extractor gap audit report (deleted after all 28 gaps fixed) |
 
 **Test suite**: 726 collected  
 **Total new tests**: ~87 (code verification + code registry + UNS encounters)

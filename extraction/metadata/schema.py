@@ -13,6 +13,7 @@ from typing import List, Optional, Dict, Any
 from enum import Enum
 
 from core.usdm_types import generate_uuid, Code
+from core.code_registry import registry as _cr
 
 
 class TitleType(Enum):
@@ -64,29 +65,14 @@ class StudyTitle:
     type: TitleType
     instance_type: str = "StudyTitle"
     
-    # USDM CT codelist C207419 for StudyTitle.type
-    _TITLE_TYPE_CODES = {
-        "Brief Study Title": ("C207615", "Brief Study Title"),
-        "Official Study Title": ("C207616", "Official Study Title"),
-        "Public Study Title": ("C207617", "Public Study Title"),
-        "Scientific Study Title": ("C207618", "Scientific Study Title"),
-        "Study Acronym": ("C94108", "Study Acronym"),
-    }
-
     def to_dict(self) -> Dict[str, Any]:
-        code, decode = self._TITLE_TYPE_CODES.get(
-            self.type.value, ("C207616", "Official Study Title")
-        )
+        # USDM CT codelist C207419 via CodeRegistry
+        term = _cr.match("titleType", self.type.value) if self.type.value else None
+        type_code = _cr.make_code("titleType", term.code) if term else _cr.make_code("titleType", "C207616")
         return {
             "id": self.id,
             "text": self.text,
-            "type": {
-                "code": code,
-                "codeSystem": "http://www.cdisc.org",
-                "codeSystemVersion": "2024-09-27",
-                "decode": decode,
-                "instanceType": "Code",
-            },
+            "type": type_code,
             "instanceType": self.instance_type,
         }
 
@@ -154,40 +140,55 @@ class Organization:
     identifier: Optional[str] = None
     identifier_scheme: Optional[str] = None
     label: Optional[str] = None
+    # H1: Sponsor legal address
+    address_city: Optional[str] = None
+    address_state: Optional[str] = None
+    address_country: Optional[str] = None
+    address_postal_code: Optional[str] = None
     instance_type: str = "Organization"
     
     def to_dict(self) -> Dict[str, Any]:
-        # Map organization types to NCI codes
-        org_type_codes = {
-            OrganizationType.REGULATORY_AGENCY: ("C188863", "Regulatory Agency"),
-            OrganizationType.PHARMACEUTICAL_COMPANY: ("C54149", "Pharmaceutical Company"),
-            OrganizationType.CRO: ("C54148", "Contract Research Organization"),
-            OrganizationType.ACADEMIC: ("C18240", "Academic Institution"),
-            OrganizationType.HEALTHCARE: ("C21541", "Healthcare Facility"),
-            OrganizationType.GOVERNMENT: ("C199144", "Government Institute"),
-            OrganizationType.LABORATORY: ("C37984", "Laboratory"),
-            OrganizationType.REGISTRY: ("C93453", "Clinical Study Registry"),
-            OrganizationType.MEDICAL_DEVICE: ("C215661", "Medical Device Company"),
-        }
-        code, decode = org_type_codes.get(self.type, ("C54149", "Pharmaceutical Company"))
+        # USDM CT codelist C188724 via CodeRegistry
+        term = _cr.match("organizationType", self.type.value) if self.type.value else None
+        type_code = _cr.make_code("organizationType", term.code) if term else _cr.make_code("organizationType", "C54149")
+        type_code["id"] = generate_uuid()
         
         result = {
             "id": self.id,
             "name": self.name,
-            "type": {
-                "id": generate_uuid(),
-                "code": code,
-                "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
-                "codeSystemVersion": "25.01d",
-                "decode": decode,
-                "instanceType": "Code",
-            },
+            "type": type_code,
             "identifier": self.identifier or self.name,  # Required field
             "identifierScheme": self.identifier_scheme or "DUNS",  # Required field
             "instanceType": self.instance_type,
         }
         if self.label:
             result["label"] = self.label
+        # H1: Emit legalAddress if any address component is present
+        if any([self.address_city, self.address_state, self.address_country, self.address_postal_code]):
+            addr_lines = []
+            if self.address_city:
+                addr_lines.append(self.address_city)
+            if self.address_state:
+                addr_lines.append(self.address_state)
+            if self.address_country:
+                addr_lines.append(self.address_country)
+            if self.address_postal_code:
+                addr_lines.append(self.address_postal_code)
+            result["legalAddress"] = {
+                "id": generate_uuid(),
+                "text": ", ".join(addr_lines),
+                "city": self.address_city or "",
+                "district": self.address_state or "",
+                "country": {
+                    "id": generate_uuid(),
+                    "code": "",
+                    "codeSystem": "http://www.iso.org",
+                    "decode": self.address_country or "",
+                    "instanceType": "Code",
+                },
+                "postalCode": self.address_postal_code or "",
+                "instanceType": "Address",
+            }
         return result
 
 
@@ -199,6 +200,8 @@ class StudyRole:
     code: StudyRoleCode
     organization_ids: List[str] = field(default_factory=list)
     description: Optional[str] = None
+    # M2: Assigned persons (e.g., PI name, medical monitor)
+    assigned_persons: List[str] = field(default_factory=list)
     instance_type: str = "StudyRole"
     
     def to_dict(self) -> Dict[str, Any]:
@@ -211,6 +214,12 @@ class StudyRole:
         }
         if self.description:
             result["description"] = self.description
+        # M2: Emit assignedPersons
+        if self.assigned_persons:
+            result["assignedPersons"] = [
+                {"id": generate_uuid(), "name": name, "instanceType": "AssignedPerson"}
+                for name in self.assigned_persons
+            ]
         return result
 
 
@@ -286,6 +295,16 @@ class StudyMetadata:
     protocol_date: Optional[str] = None
     amendment_number: Optional[str] = None
     
+    # C2: Study rationale (USDM StudyVersion.rationale — required)
+    study_rationale: Optional[str] = None
+    
+    # H2: Governance dates
+    sponsor_approval_date: Optional[str] = None
+    original_protocol_date: Optional[str] = None
+    
+    # L1: Cross-reference identifiers
+    reference_identifiers: List[Dict[str, str]] = field(default_factory=list)
+    
     def to_dict(self) -> Dict[str, Any]:
         """Convert to USDM-compatible dictionary structure."""
         result = {
@@ -309,5 +328,14 @@ class StudyMetadata:
             result["protocolDate"] = self.protocol_date
         if self.amendment_number:
             result["amendmentNumber"] = self.amendment_number
+        if self.study_rationale:
+            result["studyRationale"] = self.study_rationale
+        if self.sponsor_approval_date:
+            result["sponsorApprovalDate"] = self.sponsor_approval_date
+        if self.original_protocol_date:
+            result["originalProtocolDate"] = self.original_protocol_date
+        # L1: Reference identifiers
+        if self.reference_identifiers:
+            result["referenceIdentifiers"] = self.reference_identifiers
             
         return result

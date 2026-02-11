@@ -24,8 +24,13 @@ from .integrations import (
 from .post_processing import (
     run_reconciliation,
     filter_enrichment_epochs,
+    tag_unscheduled_encounters,
     mark_activity_sources,
     link_procedures_to_activities,
+    link_administrations_to_products,
+    nest_ingredients_in_products,
+    link_ingredient_strengths,
+    link_cohorts_to_population,
     add_soa_footnotes,
 )
 from .promotion import promote_extensions_to_usdm
@@ -221,6 +226,9 @@ def combine_to_full_usdm(
     # Run reconciliation
     combined = run_reconciliation(combined, expansion_results, soa_data)
     
+    # Tag unscheduled encounters (safety net for UNS visits)
+    combined = tag_unscheduled_encounters(combined)
+    
     # Resolve cross-references (targetId + pageNumber)
     resolve_content_references(combined)
     
@@ -232,6 +240,14 @@ def combine_to_full_usdm(
     
     # Add SoA footnotes from header
     add_soa_footnotes(study_design, output_dir)
+    
+    # Link interventions entities (H8, H9, H10)
+    combined = link_administrations_to_products(combined)
+    combined = nest_ingredients_in_products(combined)
+    combined = link_ingredient_strengths(combined)
+    
+    # Link cohorts to population (M3/M9)
+    combined = link_cohorts_to_population(combined)
     
     # Promote extension data back into core USDM entities
     promote_extensions_to_usdm(combined)

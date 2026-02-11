@@ -199,10 +199,26 @@ def _parse_metadata_response(raw: Dict[str, Any]) -> Optional[StudyMetadata]:
             if isinstance(org_data, dict) and org_data.get('name'):
                 org_id = f"org_{i+1}"
                 org_type = _map_org_type(org_data.get('type', 'Pharmaceutical Company'))
+                # H1: Parse sponsor address if present
+                addr = raw.get('sponsorAddress', {})
+                addr_city = None
+                addr_state = None
+                addr_country = None
+                addr_postal = None
+                if isinstance(addr, dict) and org_data.get('role', '').lower().startswith('sponsor'):
+                    addr_city = addr.get('city')
+                    addr_state = addr.get('state')
+                    addr_country = addr.get('country')
+                    addr_postal = addr.get('postalCode')
+                
                 organizations.append(Organization(
                     id=org_id,
                     name=org_data['name'],
                     type=org_type,
+                    address_city=addr_city,
+                    address_state=addr_state,
+                    address_country=addr_country,
+                    address_postal_code=addr_postal,
                 ))
                 org_id_map[org_data['name']] = org_id
         
@@ -232,17 +248,43 @@ def _parse_metadata_response(raw: Dict[str, Any]) -> Optional[StudyMetadata]:
                         issuing_organization=registry,
                     ))
         
+        # M2: Build personnel lookup from keyPersonnel
+        personnel_by_role = {}  # role string -> list of names
+        for person in raw.get('keyPersonnel', []):
+            if isinstance(person, dict) and person.get('name'):
+                p_role = (person.get('role') or '').lower()
+                personnel_by_role.setdefault(p_role, []).append(person['name'])
+        
         # Extract roles from organizations
         roles = []
         for i, org_data in enumerate(raw.get('organizations', [])):
             if isinstance(org_data, dict) and org_data.get('role'):
                 role_code = _map_role_code(org_data['role'])
                 org_id = org_id_map.get(org_data.get('name', ''), f"org_{i+1}")
+                # M2: Match personnel to this role
+                role_lower = org_data['role'].lower()
+                assigned = []
+                for p_role, names in personnel_by_role.items():
+                    if p_role in role_lower or role_lower in p_role:
+                        assigned.extend(names)
                 roles.append(StudyRole(
                     id=f"role_{i+1}",
                     name=org_data['role'],
                     code=role_code,
                     organization_ids=[org_id],
+                    assigned_persons=assigned,
+                ))
+        # M2: Create standalone roles for personnel not matched to organizations
+        matched_roles = {org_data.get('role', '').lower() for org_data in raw.get('organizations', []) if isinstance(org_data, dict)}
+        for p_role, names in personnel_by_role.items():
+            if not any(p_role in mr or mr in p_role for mr in matched_roles):
+                role_code = _map_role_code(p_role)
+                roles.append(StudyRole(
+                    id=f"role_{len(roles)+1}",
+                    name=p_role.title(),
+                    code=role_code,
+                    organization_ids=[],
+                    assigned_persons=names,
                 ))
         
         # Extract indication - handle both singular 'indication' and plural 'indications'
@@ -281,6 +323,23 @@ def _parse_metadata_response(raw: Dict[str, Any]) -> Optional[StudyMetadata]:
         protocol_date = version_data.get('date') if isinstance(version_data, dict) else None
         amendment = version_data.get('amendment') if isinstance(version_data, dict) else None
         
+        # C2: Extract study rationale
+        study_rationale = raw.get('studyRationale')
+        
+        # H2: Extract governance dates
+        gov_dates = raw.get('governanceDates', {})
+        sponsor_approval_date = gov_dates.get('sponsorApprovalDate') if isinstance(gov_dates, dict) else None
+        original_protocol_date = gov_dates.get('originalProtocolDate') if isinstance(gov_dates, dict) else None
+        
+        # L1: Extract reference identifiers
+        ref_ids = []
+        for ref in raw.get('referenceIdentifiers', []):
+            if isinstance(ref, dict) and ref.get('text'):
+                ref_ids.append({
+                    "text": ref['text'],
+                    "type": ref.get('type', 'Other'),
+                })
+        
         # Build study name from official title
         study_name = "Unknown Study"
         for title in titles:
@@ -302,6 +361,10 @@ def _parse_metadata_response(raw: Dict[str, Any]) -> Optional[StudyMetadata]:
             protocol_version=protocol_version,
             protocol_date=protocol_date,
             amendment_number=amendment,
+            study_rationale=study_rationale,
+            sponsor_approval_date=sponsor_approval_date,
+            original_protocol_date=original_protocol_date,
+            reference_identifiers=ref_ids,
         )
         
     except Exception as e:

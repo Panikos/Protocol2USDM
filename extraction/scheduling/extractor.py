@@ -135,6 +135,8 @@ def parse_transition_type(type_str: str) -> Optional[TransitionType]:
         'early termination': TransitionType.EARLY_TERMINATION,
         'rescue therapy': TransitionType.RESCUE_THERAPY,
         'dose modification': TransitionType.DOSE_MODIFICATION,
+        'unscheduled visit': TransitionType.UNSCHEDULED_VISIT,
+        'unscheduled': TransitionType.UNSCHEDULED_VISIT,
     }
     return type_map.get(type_str.lower())
 

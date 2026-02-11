@@ -13,6 +13,7 @@ from typing import List, Optional, Dict, Any
 from enum import Enum
 
 from core.usdm_types import generate_uuid, Code
+from core.code_registry import registry as _cr
 
 
 class ProcedureType(Enum):
@@ -51,24 +52,15 @@ class Procedure:
     description: Optional[str] = None
     procedure_type: Optional[ProcedureType] = None
     code: Optional[Dict[str, str]] = None  # CPT, SNOMED, etc.
+    # L6: Whether the procedure can be ordered (e.g., lab test vs observation)
+    is_orderable: Optional[bool] = None
     instance_type: str = "Procedure"
     
     def to_dict(self) -> Dict[str, Any]:
-        # Map procedure types to NCI codes where available
-        procedure_type_codes = {
-            ProcedureType.DIAGNOSTIC: ("C18020", "Diagnostic Procedure"),
-            ProcedureType.THERAPEUTIC: ("C49236", "Therapeutic Procedure"),
-            ProcedureType.SURGICAL: ("C15329", "Surgical Procedure"),
-            ProcedureType.SAMPLING: ("C70945", "Biospecimen Collection"),
-            ProcedureType.IMAGING: ("C16502", "Diagnostic Imaging Testing"),
-            ProcedureType.MONITORING: ("C25218", "Clinical Intervention or Procedure"),
-            ProcedureType.ASSESSMENT: ("C25218", "Clinical Intervention or Procedure"),
-        }
-        
-        # Build procedureType as proper Code object (required as string per schema)
+        # Resolve procedure type via CodeRegistry
         if self.procedure_type:
-            code, decode = procedure_type_codes.get(self.procedure_type, (self.procedure_type.value, self.procedure_type.value))
-            proc_type_str = decode  # USDM expects string, not Code object
+            term = _cr.match("procedureType", self.procedure_type.value)
+            proc_type_str = term.decode if term else self.procedure_type.value
         else:
             proc_type_str = "Clinical Procedure"
         
@@ -91,18 +83,11 @@ class Procedure:
                 "instanceType": "Code",
             }
         else:
-            # Default code based on procedure type
-            default_code, default_decode = procedure_type_codes.get(
-                self.procedure_type, ("C25218", "Clinical Procedure")
-            )
-            code_obj = {
-                "id": generate_uuid(),
-                "code": default_code,
-                "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
-                "codeSystemVersion": "25.01d",
-                "decode": default_decode,
-                "instanceType": "Code",
-            }
+            # Default code based on procedure type via CodeRegistry
+            term = _cr.match("procedureType", self.procedure_type.value) if self.procedure_type else None
+            c_code = term.code if term else "C25218"
+            code_obj = _cr.make_code("procedureType", c_code)
+            code_obj["id"] = generate_uuid()
         
         result = {
             "id": self.id,
@@ -115,6 +100,9 @@ class Procedure:
             result["label"] = self.label
         if self.description:
             result["description"] = self.description
+        # L6: isOrderable
+        if self.is_orderable is not None:
+            result["isOrderable"] = self.is_orderable
         return result
 
 

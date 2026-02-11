@@ -104,6 +104,8 @@ class StudyArm:
     # Titration support
     is_titration: bool = False  # True if within-subject dose escalation
     dose_epochs: List[DoseEpoch] = field(default_factory=list)  # Sequential dose levels
+    # L3: Arm notes/comments
+    notes: List[str] = field(default_factory=list)
     instance_type: str = "StudyArm"
     
     def to_dict(self) -> Dict[str, Any]:
@@ -123,6 +125,12 @@ class StudyArm:
             result["label"] = self.label
         if self.population_ids:
             result["populationIds"] = self.population_ids
+        # L3: Arm notes
+        if self.notes:
+            result["notes"] = [
+                {"id": generate_uuid(), "text": n, "instanceType": "CommentAnnotation"}
+                for n in self.notes
+            ]
         # Titration extension
         if self.is_titration:
             result["extensionAttributes"] = [{
@@ -253,6 +261,12 @@ class InterventionalStudyDesign:
     # Additional design info
     therapeutic_areas: List[str] = field(default_factory=list)
     
+    # C3: Design rationale (USDM InterventionalStudyDesign.rationale — required)
+    rationale: Optional[str] = None
+    
+    # H4: Study design characteristics (e.g., "Parallel", "Crossover", "Adaptive")
+    characteristics: List[str] = field(default_factory=list)
+    
     instance_type: str = "InterventionalStudyDesign"
     
     def to_dict(self) -> Dict[str, Any]:
@@ -308,6 +322,20 @@ class InterventionalStudyDesign:
             result["cohortIds"] = self.cohort_ids
         if self.therapeutic_areas:
             result["therapeuticAreas"] = self.therapeutic_areas
+        # C3: Design rationale
+        if self.rationale:
+            result["rationale"] = self.rationale
+        # H4: Characteristics as coded values
+        if self.characteristics:
+            result["characteristics"] = [
+                {
+                    "id": generate_uuid(),
+                    "code": c,
+                    "codeSystem": "http://www.cdisc.org",
+                    "decode": c,
+                    "instanceType": "Code",
+                } for c in self.characteristics
+            ]
             
         return result
 

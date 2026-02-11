@@ -58,6 +58,12 @@ class StudyAmendment:
     reason_ids: List[str] = field(default_factory=list)
     previous_version: Optional[str] = None
     new_version: Optional[str] = None
+    # M6: Secondary reasons for the amendment
+    secondary_reasons: List[str] = field(default_factory=list)
+    # M7: Impacts (affected sections/entities)
+    impacts: List[Dict[str, Any]] = field(default_factory=list)
+    # M8: Specific changes (before/after)
+    changes: List[Dict[str, Any]] = field(default_factory=list)
     instance_type: str = "StudyAmendment"
     
     def to_dict(self) -> Dict[str, Any]:
@@ -111,6 +117,22 @@ class StudyAmendment:
             result["previousVersion"] = self.previous_version
         if self.new_version:
             result["newVersion"] = self.new_version
+        # M6: Secondary reasons
+        if self.secondary_reasons:
+            result["secondaryReasons"] = [
+                {
+                    "id": generate_uuid(),
+                    "code": {"id": generate_uuid(), "code": "C132347", "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl", "decode": r, "instanceType": "Code"},
+                    "otherReason": r,
+                    "instanceType": "StudyAmendmentReason",
+                } for r in self.secondary_reasons
+            ]
+        # M7: Impacts
+        if self.impacts:
+            result["impacts"] = self.impacts
+        # M8: Changes
+        if self.changes:
+            result["changes"] = self.changes
         return result
 
 

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { EditableField } from '@/components/semantic';
+import { EditableCodedValue, CDISC_TERMINOLOGIES } from '@/components/semantic/EditableCodedValue';
 import { designPath } from '@/lib/semantic/schema';
 import { EpochTimelineChart } from './EpochTimelineChart';
 import { 
@@ -258,9 +259,18 @@ export function ScheduleTimelineView({ usdm }: ScheduleTimelineViewProps) {
                             placeholder="Timing name"
                           />
                           <div className="text-xs text-muted-foreground mt-1 space-y-1">
-                            {timing.type?.decode && (
-                              <div>Type: <Badge variant="outline" className="text-xs">{timing.type.decode}</Badge></div>
-                            )}
+                            <div className="flex items-center gap-1">
+                              <span>Type:</span>
+                              <EditableCodedValue
+                                path={timing.id && timeline.id
+                                  ? `/study/versions/0/studyDesigns/0/scheduleTimelines/@id:${timeline.id}/timings/@id:${timing.id}/type`
+                                  : `/study/versions/0/studyDesigns/0/scheduleTimelines/${i}/timings/${ti}/type`}
+                                value={timing.type}
+                                options={CDISC_TERMINOLOGIES.timingType ?? []}
+                                showCode
+                                placeholder="Type"
+                              />
+                            </div>
                             {(timing.value || timing.valueLabel) && (
                               <div>Value: {timing.valueLabel || (typeof timing.value === 'object' ? `${timing.value.value || ''} ${timing.value.unit || ''}`.trim() : timing.value)}</div>
                             )}
@@ -272,7 +282,16 @@ export function ScheduleTimelineView({ usdm }: ScheduleTimelineViewProps) {
                             {timing.relativeToFrom && (
                               <div className="flex items-center gap-1">
                                 <ArrowRight className="h-3 w-3" />
-                                Relative to: {typeof timing.relativeToFrom === 'object' ? timing.relativeToFrom.decode : timing.relativeToFrom}
+                                <span>Relative to:</span>
+                                <EditableCodedValue
+                                  path={timing.id && timeline.id
+                                    ? `/study/versions/0/studyDesigns/0/scheduleTimelines/@id:${timeline.id}/timings/@id:${timing.id}/relativeToFrom`
+                                    : `/study/versions/0/studyDesigns/0/scheduleTimelines/${i}/timings/${ti}/relativeToFrom`}
+                                  value={typeof timing.relativeToFrom === 'string' ? { decode: timing.relativeToFrom } : timing.relativeToFrom}
+                                  options={CDISC_TERMINOLOGIES.timingRelativeToFrom ?? []}
+                                  showCode
+                                  placeholder="Relation"
+                                />
                               </div>
                             )}
                           </div>

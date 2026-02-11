@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { EditableField, EditableList, EditableCodedValue, CDISC_TERMINOLOGIES } from '@/components/semantic';
+import { EditableField, EditableList, EditableCodedValue, CDISC_TERMINOLOGIES, CodeLink } from '@/components/semantic';
 import { GitBranch, Layers, Grid3X3, Shield, AlertTriangle, Info, CheckCircle2, Shuffle } from 'lucide-react';
 
 interface StudyDesignViewProps {
@@ -181,6 +181,7 @@ export function StudyDesignView({ usdm }: StudyDesignViewProps) {
                 value={design.studyType as { code?: string; decode?: string } | undefined}
                 label="Study Type"
                 options={CDISC_TERMINOLOGIES.studyType}
+                showCode
                 placeholder="Not specified"
               />
             </div>
@@ -195,9 +196,7 @@ export function StudyDesignView({ usdm }: StudyDesignViewProps) {
                     placeholder="Not specified"
                   />
                   {modelCode && (
-                    <Badge variant="outline" className="text-xs font-mono">
-                      {modelCode}
-                    </Badge>
+                    <CodeLink code={modelCode} codeOnly className="text-xs font-mono" />
                   )}
                 </div>
               </div>
@@ -208,6 +207,7 @@ export function StudyDesignView({ usdm }: StudyDesignViewProps) {
                 value={(design.blindingSchema as { standardCode?: { code?: string; decode?: string } })?.standardCode}
                 label="Blinding"
                 options={CDISC_TERMINOLOGIES.blindingSchema}
+                showCode
                 placeholder="Not specified"
               />
             </div>
@@ -407,6 +407,7 @@ export function StudyDesignView({ usdm }: StudyDesignViewProps) {
                     path={`${itemPath}/type`}
                     value={epoch.type}
                     options={CDISC_TERMINOLOGIES.epochType}
+                    showCode
                     placeholder="Type"
                   />
                 </div>

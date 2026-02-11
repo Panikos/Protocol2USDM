@@ -42,6 +42,17 @@ ENCOUNTER_TYPE_CODES = {
     "unscheduled": ("C25716", "Visit"),
 }
 
+# Patterns that identify an encounter as unscheduled (event-driven, not calendar-driven)
+_UNSCHEDULED_PATTERNS = re.compile(
+    r'\b(?:uns(?:cheduled)?|unplanned|ad\s*hoc|prn|as\s+needed|event[- ]?driven)\b',
+    re.IGNORECASE,
+)
+
+
+def is_unscheduled_encounter(name: str) -> bool:
+    """Return True if the encounter name indicates an unscheduled visit."""
+    return bool(_UNSCHEDULED_PATTERNS.search(name))
+
 
 def infer_encounter_type(name: str) -> tuple:
     """Infer CDISC encounter type code from encounter name."""
@@ -101,6 +112,7 @@ class EncounterContribution(EntityContribution):
     window_lower: Optional[int] = None  # Visit window in days
     window_upper: Optional[int] = None
     is_required: bool = True
+    is_unscheduled: bool = False        # True for UNS / event-driven visits
     timing_label: Optional[str] = None  # Original timing string
 
 
@@ -114,6 +126,7 @@ class ReconciledEncounter(ReconciledEntity):
     window_lower: Optional[int] = None
     window_upper: Optional[int] = None
     is_required: bool = True
+    is_unscheduled: bool = False
     timing_label: Optional[str] = None
     cdisc_code: Optional[str] = None
     cdisc_decode: Optional[str] = None
@@ -195,6 +208,15 @@ class ReconciledEncounter(ReconciledEntity):
                 "valueString": self.timing_label
             })
         
+        # Unscheduled visit flag
+        if self.is_unscheduled:
+            extra_extensions.append({
+                "id": str(uuid.uuid4()),
+                "url": "https://protocol2usdm.io/extensions/x-encounterUnscheduled",
+                "instanceType": "ExtensionAttribute",
+                "valueBoolean": True
+            })
+        
         self._add_extension_attributes(result, extra_extensions=extra_extensions)
         
         return result
@@ -241,6 +263,9 @@ class EncounterReconciler(BaseReconciler[EncounterContribution, ReconciledEncoun
             elif 'remote' in name_lower or 'telehealth' in name_lower:
                 enc_type = 'remote'
         
+        # Detect unscheduled visits from name or explicit flag
+        unscheduled = entity.get('isUnscheduled', False) or is_unscheduled_encounter(canonical)
+        
         return EncounterContribution(
             source=source,
             entity_id=entity.get('id', f'{source}_encounter_{index+1}'),
@@ -260,6 +285,7 @@ class EncounterReconciler(BaseReconciler[EncounterContribution, ReconciledEncoun
             window_lower=entity.get('windowLower'),
             window_upper=entity.get('windowUpper'),
             is_required=entity.get('isRequired', True),
+            is_unscheduled=unscheduled,
             timing_label=entity.get('timing', entity.get('timingLabel')),
         )
     
@@ -305,6 +331,9 @@ class EncounterReconciler(BaseReconciler[EncounterContribution, ReconciledEncoun
         # Is required (if any source says optional, mark as not required)
         is_required = all(c.is_required for c in contributions)
         
+        # Unscheduled (if any source says unscheduled, mark as unscheduled)
+        is_unscheduled = any(c.is_unscheduled for c in contributions)
+        
         # Get timing label
         timing_label = None
         for c in contributions:
@@ -328,6 +357,7 @@ class EncounterReconciler(BaseReconciler[EncounterContribution, ReconciledEncoun
             window_lower=window_lower,
             window_upper=window_upper,
             is_required=is_required,
+            is_unscheduled=is_unscheduled,
             timing_label=timing_label,
             cdisc_code=cdisc_code,
             cdisc_decode=cdisc_decode,

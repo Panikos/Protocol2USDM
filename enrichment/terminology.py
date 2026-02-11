@@ -23,28 +23,9 @@ from core.evs_client import (
     ensure_usdm_codes_cached,
     USDM_CODES,
 )
-from core.terminology_codes import (
-    OBJECTIVE_LEVEL_CODES,
-    ENDPOINT_LEVEL_CODES,
-    STUDY_PHASE_CODES,
-    BLINDING_CODES,
-    ELIGIBILITY_CODES,
-    ARM_TYPE_CODES,
-    STUDY_MODEL_CODES,
-    find_code_by_text,
-)
+from core.code_registry import registry as _cr
 
 logger = logging.getLogger(__name__)
-
-# Legacy mappings - now derived from single source of truth
-# These extract just the NCI code from the full code objects
-STUDY_PHASE_MAPPINGS = {k: v["code"] for k, v in STUDY_PHASE_CODES.items()}
-BLINDING_MAPPINGS = {k: v["code"] for k, v in BLINDING_CODES.items()}
-OBJECTIVE_LEVEL_MAPPINGS = {k: v["code"] for k, v in OBJECTIVE_LEVEL_CODES.items()}
-ENDPOINT_LEVEL_MAPPINGS = {k: v["code"] for k, v in ENDPOINT_LEVEL_CODES.items()}
-ELIGIBILITY_MAPPINGS = {k: v["code"] for k, v in ELIGIBILITY_CODES.items()}
-ARM_TYPE_MAPPINGS = {k: v["code"] for k, v in ARM_TYPE_CODES.items()}
-STUDY_MODEL_MAPPINGS = {k: v["code"] for k, v in STUDY_MODEL_CODES.items()}
 
 
 def _get_code_object(nci_code: str, client: EVSClient) -> Optional[Dict[str, Any]]:
@@ -66,22 +47,12 @@ def _get_code_object(nci_code: str, client: EVSClient) -> Optional[Dict[str, Any
     return None
 
 
-def _find_mapping(text: str, mappings: Dict[str, str]) -> Optional[str]:
-    """Find NCI code for text in mappings."""
+def _find_code(text: str, codelist_key: str) -> Optional[str]:
+    """Find NCI code for text via CodeRegistry match."""
     if not text:
         return None
-    text_lower = text.lower().strip()
-    
-    # Exact match
-    if text_lower in mappings:
-        return mappings[text_lower]
-    
-    # Partial match
-    for key, code in mappings.items():
-        if key in text_lower or text_lower in key:
-            return code
-    
-    return None
+    term = _cr.match(codelist_key, text)
+    return term.code if term else None
 
 
 def enrich_terminology(json_path: str, output_dir: str = None) -> Dict[str, Any]:
@@ -129,7 +100,7 @@ def enrich_terminology(json_path: str, output_dir: str = None) -> Dict[str, Any]
                         phase_obj.get('standardCode', {}).get('decode') or
                         phase_obj.get('decode', '')
                     )
-                    nci_code = _find_mapping(phase_text, STUDY_PHASE_MAPPINGS)
+                    nci_code = _find_code(phase_text, "studyPhase")
                     if nci_code:
                         code_obj = _get_code_object(nci_code, client)
                         if code_obj:
@@ -147,7 +118,7 @@ def enrich_terminology(json_path: str, output_dir: str = None) -> Dict[str, Any]
                 elif isinstance(blinding, str):
                     blinding_text = blinding
                 
-                nci_code = _find_mapping(blinding_text, BLINDING_MAPPINGS)
+                nci_code = _find_code(blinding_text, "blindingSchema")
                 if nci_code:
                     code_obj = _get_code_object(nci_code, client)
                     if code_obj:
@@ -165,7 +136,7 @@ def enrich_terminology(json_path: str, output_dir: str = None) -> Dict[str, Any]
                 elif isinstance(level, str):
                     level_text = level
                 
-                nci_code = _find_mapping(level_text, OBJECTIVE_LEVEL_MAPPINGS)
+                nci_code = _find_code(level_text, "objectiveLevel")
                 if nci_code:
                     code_obj = _get_code_object(nci_code, client)
                     if code_obj:
@@ -184,7 +155,7 @@ def enrich_terminology(json_path: str, output_dir: str = None) -> Dict[str, Any]
                 elif isinstance(level, str):
                     level_text = level
                 
-                nci_code = _find_mapping(level_text, ENDPOINT_LEVEL_MAPPINGS)
+                nci_code = _find_code(level_text, "endpointLevel")
                 if nci_code:
                     code_obj = _get_code_object(nci_code, client)
                     if code_obj:
@@ -203,7 +174,7 @@ def enrich_terminology(json_path: str, output_dir: str = None) -> Dict[str, Any]
                 elif isinstance(category, str):
                     cat_text = category
                 
-                nci_code = _find_mapping(cat_text, ELIGIBILITY_MAPPINGS)
+                nci_code = _find_code(cat_text, "eligibilityCategory")
                 if nci_code:
                     code_obj = _get_code_object(nci_code, client)
                     if code_obj:
@@ -222,7 +193,7 @@ def enrich_terminology(json_path: str, output_dir: str = None) -> Dict[str, Any]
                 elif isinstance(arm_type, str):
                     type_text = arm_type
                 
-                nci_code = _find_mapping(type_text, ARM_TYPE_MAPPINGS)
+                nci_code = _find_code(type_text, "armType")
                 if nci_code:
                     code_obj = _get_code_object(nci_code, client)
                     if code_obj:

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { EditableField, EditableCodedValue, CDISC_TERMINOLOGIES } from '@/components/semantic';
+import { EditableField, EditableCodedValue, CDISC_TERMINOLOGIES, CodeLink } from '@/components/semantic';
 import { designPath, versionPath } from '@/lib/semantic/schema';
 import { 
   Microscope, 
@@ -236,10 +236,8 @@ export function AdvancedEntitiesView({ usdm }: AdvancedEntitiesViewProps) {
                   )}
                   {indication.codes && indication.codes.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-2">
-                      {indication.codes.map((code, j) => (
-                        <Badge key={j} variant="outline" className="text-xs">
-                          {code.code}: {code.decode || 'N/A'}
-                        </Badge>
+                      {indication.codes.map((code: { code?: string; decode?: string }, j: number) => (
+                        <CodeLink key={j} code={code.code} decode={`${code.code}: ${code.decode || 'N/A'}`} className="text-xs" />
                       ))}
                     </div>
                   )}

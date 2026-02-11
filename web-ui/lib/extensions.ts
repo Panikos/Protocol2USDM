@@ -131,4 +131,5 @@ export const EXT_URLS = {
   ACTIVITY_GROUP: `${EXT_BASE_URL}/x-activityGroup`,
   INSTANCE_SOURCE: `${EXT_BASE_URL}/x-instanceSource`,
   EPOCH_CATEGORY: `${EXT_BASE_URL}/x-epochCategory`,
+  ENCOUNTER_UNSCHEDULED: `${EXT_BASE_URL}/x-encounterUnscheduled`,
 } as const;

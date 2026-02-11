@@ -6,6 +6,32 @@ from ..phase_registry import register_phase
 from extraction.pipeline_context import PipelineContext
 
 
+# H5: Level-to-purpose defaults for endpoints missing a purpose value
+_LEVEL_PURPOSE_DEFAULTS = {
+    "primary": "Efficacy",
+    "secondary": "Efficacy",
+    "exploratory": "Exploratory",
+}
+
+
+def _default_endpoint_purpose(endpoints: list) -> None:
+    """Fill empty Endpoint.purpose based on level decode (H5 gap fix)."""
+    for ep in endpoints:
+        if ep.get("purpose"):
+            continue
+        level = ep.get("level")
+        if isinstance(level, dict):
+            decode = (level.get("decode") or "").strip().lower()
+        elif isinstance(level, str):
+            decode = level.strip().lower()
+        else:
+            continue
+        for key, default in _LEVEL_PURPOSE_DEFAULTS.items():
+            if key in decode:
+                ep["purpose"] = default
+                break
+
+
 class ObjectivesPhase(BasePhase):
     """Extract objectives, endpoints, and estimands."""
     
@@ -77,7 +103,10 @@ class ObjectivesPhase(BasePhase):
         if result.success and result.data:
             data = result.data
             study_design["objectives"] = [o.to_dict() for o in data.objectives]
-            study_design["endpoints"] = [e.to_dict() for e in data.endpoints]
+            endpoints = [e.to_dict() for e in data.endpoints]
+            # H5: Default Endpoint.purpose based on level if empty
+            _default_endpoint_purpose(endpoints)
+            study_design["endpoints"] = endpoints
             if data.estimands:
                 # Filter out incomplete estimands (ICH E9(R1) requires these fields)
                 valid_estimands = []
@@ -107,7 +136,9 @@ class ObjectivesPhase(BasePhase):
                 if obj.get('objectives'):
                     study_design["objectives"] = obj['objectives']
                 if obj.get('endpoints'):
-                    study_design["endpoints"] = obj['endpoints']
+                    eps = obj['endpoints']
+                    _default_endpoint_purpose(eps)
+                    study_design["endpoints"] = eps
                 if obj.get('estimands'):
                     study_design["estimands"] = obj['estimands']
 

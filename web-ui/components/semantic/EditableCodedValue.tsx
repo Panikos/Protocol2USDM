@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { useSemanticStore } from '@/stores/semanticStore';
 import { useEditModeStore } from '@/stores/editModeStore';
 import { cn } from '@/lib/utils';
+import { CodeLink, evsUrl } from './CodeLink';
 
 /**
  * A coded value option — mirrors CDISC Code structure.
@@ -22,104 +23,17 @@ export interface CodeOption {
 
 /**
  * Pre-built terminology lists for common CDISC coded values.
- * These can be extended or overridden per-field.
+ *
+ * Loaded from the generated JSON (scripts/generate_code_registry.py)
+ * which is the single source of truth derived from USDM_CT.xlsx and
+ * supplementary NCI EVS codes.
+ *
+ * To regenerate: `python scripts/generate_code_registry.py`
  */
-export const CDISC_TERMINOLOGIES: Record<string, CodeOption[]> = {
-  studyPhase: [
-    { code: 'C15600', decode: 'Phase I Trial' },
-    { code: 'C15693', decode: 'Phase I/II Trial' },
-    { code: 'C15601', decode: 'Phase II Trial' },
-    { code: 'C15694', decode: 'Phase II/III Trial' },
-    { code: 'C15602', decode: 'Phase III Trial' },
-    { code: 'C15603', decode: 'Phase IV Trial' },
-    { code: 'C48660', decode: 'Not Applicable' },
-  ],
-  studyType: [
-    { code: 'C98388', decode: 'Interventional Study' },
-    { code: 'C142615', decode: 'Non-Interventional Study' },
-    { code: 'C48660', decode: 'Not Applicable' },
-  ],
-  encounterType: [
-    { code: 'C25716', decode: 'Visit' },
-  ],
-  blindingSchema: [
-    { code: 'C49659', decode: 'Open Label Study' },
-    { code: 'C28233', decode: 'Single Blind Study' },
-    { code: 'C15228', decode: 'Double Blind Study' },
-    { code: 'C66959', decode: 'Triple Blind Study' },
-  ],
-  epochType: [
-    { code: 'C48262', decode: 'Trial Screening' },
-    { code: 'C98779', decode: 'Run-in Period' },
-    { code: 'C101526', decode: 'Treatment Epoch' },
-    { code: 'C99158', decode: 'Clinical Study Follow-up' },
-    { code: 'C48660', decode: 'Not Applicable' },
-  ],
-  armType: [
-    { code: 'C174266', decode: 'Experimental Arm' },
-    { code: 'C174267', decode: 'Active Comparator Arm' },
-    { code: 'C174268', decode: 'Placebo Comparator Arm' },
-    { code: 'C174269', decode: 'Sham Comparator Arm' },
-    { code: 'C174270', decode: 'No Intervention Arm' },
-    { code: 'C48660', decode: 'Not Applicable' },
-  ],
-  sex: [
-    { code: 'C16576', decode: 'Female' },
-    { code: 'C20197', decode: 'Male' },
-    { code: 'C49636', decode: 'Both' },
-  ],
-  interventionRole: [
-    { code: 'C41161', decode: 'Experimental Intervention' },
-    { code: 'C68609', decode: 'Active Comparator' },
-    { code: 'C753', decode: 'Placebo' },
-    { code: 'C165835', decode: 'Rescue Medicine' },
-    { code: 'C207614', decode: 'Additional Required Treatment' },
-    { code: 'C165822', decode: 'Background Treatment' },
-    { code: 'C158128', decode: 'Challenge Agent' },
-    { code: 'C18020', decode: 'Diagnostic' },
-  ],
-  interventionType: [
-    { code: 'C1909', decode: 'Drug' },
-    { code: 'C1261', decode: 'Biological' },
-    { code: 'C16203', decode: 'Device' },
-    { code: 'C15329', decode: 'Dietary Supplement' },
-    { code: 'C64858', decode: 'Procedure' },
-    { code: 'C15692', decode: 'Radiation' },
-    { code: 'C17998', decode: 'Other' },
-  ],
-  substanceType: [
-    { code: 'C45305', decode: 'Active Ingredient' },
-    { code: 'C42637', decode: 'Inactive Ingredient' },
-    { code: 'C48660', decode: 'Not Applicable' },
-  ],
-  ingredientRole: [
-    { code: 'C82499', decode: 'Active' },
-    { code: 'C82500', decode: 'Inactive' },
-    { code: 'C82501', decode: 'Adjuvant' },
-    { code: 'C48660', decode: 'Not Applicable' },
-  ],
-  endpointPurpose: [
-    { code: 'C94496', decode: 'Primary Endpoint' },
-    { code: 'C139173', decode: 'Secondary Endpoint' },
-    { code: 'C170559', decode: 'Exploratory Endpoint' },
-  ],
-  routeOfAdministration: [
-    { code: 'C38288', decode: 'Oral' },
-    { code: 'C38276', decode: 'Intravenous' },
-    { code: 'C38299', decode: 'Subcutaneous' },
-    { code: 'C38274', decode: 'Intramuscular' },
-    { code: 'C38305', decode: 'Topical' },
-    { code: 'C38284', decode: 'Nasal' },
-    { code: 'C38246', decode: 'Inhalation' },
-    { code: 'C17998', decode: 'Other' },
-  ],
-  populationLevel: [
-    { code: 'C174264', decode: 'Intent-to-Treat' },
-    { code: 'C174265', decode: 'Per-Protocol' },
-    { code: 'C174263', decode: 'Safety' },
-    { code: 'C17998', decode: 'Other' },
-  ],
-};
+import _generatedCodelists from '@/lib/codelist.generated.json';
+
+export const CDISC_TERMINOLOGIES: Record<string, CodeOption[]> =
+  _generatedCodelists as Record<string, CodeOption[]>;
 
 export interface EditableCodedValueProps {
   /** JSON Patch path to the coded value object (containing code + decode) */
@@ -232,9 +146,7 @@ export function EditableCodedValue({
           {currentDecode || placeholder}
         </span>
         {showCode && currentCode && (
-          <Badge variant="outline" className="text-[10px] px-1 py-0 h-4">
-            {currentCode}
-          </Badge>
+          <CodeLink code={currentCode} codeOnly className="text-[10px] px-1 py-0 h-4" />
         )}
         {canEdit && (
           <ChevronDown className={cn(
@@ -288,7 +200,7 @@ export function EditableCodedValue({
                   >
                     <span className="flex-1">{option.decode}</span>
                     {showCode && (
-                      <span className="text-[10px] text-muted-foreground">{option.code}</span>
+                      <CodeLink code={option.code} codeOnly className="text-[10px] px-1 py-0 h-4" />
                     )}
                     {isSelected && <Check className="h-3.5 w-3.5 text-primary" />}
                   </button>

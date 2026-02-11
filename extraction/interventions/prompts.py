@@ -21,9 +21,14 @@ Analyze the provided protocol section and extract ALL study interventions, produ
 
 ### 2. Products (AdministrableProduct)
 For each product extract:
-- Product name (generic and/or trade name)
+- Product name (generic name)
+- Label / trade name (if different from generic name)
 - Dose form (tablet, capsule, injection, etc.)
 - Strength (e.g., "15 mg", "100 mg/mL")
+- Route of administration (oral, IV, SC, etc.)
+- Product designation: "IMP" (investigational) or "NIMP" (non-investigational/auxiliary)
+- Sourcing: "Centrally Sourced" or "Locally Sourced" (if mentioned)
+- Pharmacologic class (e.g., "Copper Chelator", "Monoclonal Antibody", "PDE4 Inhibitor")
 - Manufacturer (if mentioned)
 
 ### 3. Active Substances
@@ -50,25 +55,33 @@ Return a JSON object with this exact structure:
   "interventions": [
     {
       "name": "ABC-1234",
-      "role": "Investigational Product",
-      "description": "Investigational product under evaluation"
+      "role": "Experimental Intervention",
+      "type": "Drug",
+      "description": "Investigational drug under evaluation"
     },
     {
       "name": "Placebo",
       "role": "Placebo",
+      "type": "Drug",
       "description": "Matching placebo tablets"
     },
     {
       "name": "Paracetamol/acetaminophen",
-      "role": "Concomitant Medication",
+      "role": "Additional Required Treatment",
+      "type": "Drug",
       "description": "Permitted for mild pain relief"
     }
   ],
   "products": [
     {
       "name": "ABC-1234 tablets",
+      "label": "Xyzomab",
       "doseForm": "Tablet",
       "strength": "100 mg",
+      "route": "Oral",
+      "productDesignation": "IMP",
+      "sourcing": "Centrally Sourced",
+      "pharmacologicClass": "Kinase Inhibitor",
       "manufacturer": "Sponsor Pharmaceuticals"
     }
   ],
@@ -103,8 +116,9 @@ Return a JSON object with this exact structure:
 1. **Extract from IP section** - Usually Section 5 or 6 (Investigational Product)
 2. **Include all dosing regimens** - Different doses, titration steps, dose escalation
 3. **Extract concomitant medications** - Look in "Concomitant Medications" or "Prior and Concomitant Therapy" sections for permitted/prohibited medications
-4. **Use standard terminology**:
-   - Roles: "Investigational Product", "Comparator", "Placebo", "Rescue Medication", "Concomitant Medication", "Background Therapy"
+4. **Use CDISC USDM controlled terminology** (exact values required):
+   - Roles (USDM CT C207417): "Experimental Intervention", "Active Comparator", "Placebo", "Rescue Medicine", "Additional Required Treatment", "Background Treatment", "Challenge Agent", "Diagnostic"
+   - Types (ICH M11): "Drug", "Biological", "Device", "Dietary Supplement", "Procedure", "Radiation", "Other"
    - Routes: "Oral", "Intravenous", "Subcutaneous", "Intramuscular", "Topical", "Inhalation"
    - Forms: "Tablet", "Capsule", "Solution", "Injection", "Cream", "Patch"
 5. **Be precise with doses** - Include units (mg, mg/kg, mg/m2, etc.)

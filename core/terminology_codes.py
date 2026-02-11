@@ -1,20 +1,21 @@
 """
-CDISC/NCI Terminology Codes - Single Source of Truth
+CDISC/NCI Terminology Codes — backward-compatible façade over CodeRegistry.
 
-All NCI codes used in Protocol2USDM should be defined here.
-This prevents duplication and ensures consistency across:
-- extraction/objectives/schema.py
-- enrichment/terminology.py  
-- core/usdm_types.py
+All NCI codes used in Protocol2USDM are now managed centrally in
+``core.code_registry`` (loaded from ``core/reference_data/usdm_ct.json``).
+
+This module re-exports the legacy dict constants and helper functions so
+that existing consumers (extraction, enrichment, usdm_types) continue to
+work without changes.  **New code should import from ``core.code_registry``
+directly.**
 
 Sources:
-- CDISC Protocol Controlled Terminology: https://evs.nci.nih.gov/ftp1/CDISC/Protocol/
+- USDM CT (official): core/reference_data/USDM_CT.xlsx
 - NCI Thesaurus: https://ncithesaurus.nci.nih.gov/
 - EVS REST API: https://api-evsrest.nci.nih.gov/
 
-IMPORTANT: All codes in this file have been verified against the NIH EVS API.
-Run `python tests/verify_evs_codes.py` to re-verify codes after any changes.
-Last verified: 2024-11-30
+IMPORTANT: All codes verified against the NIH EVS API.
+Run `python tests/verify_evs_codes.py` to re-verify after changes.
 """
 
 from typing import Dict, Any
@@ -360,21 +361,14 @@ def get_study_identifier_type(identifier_text: str) -> Dict[str, Any]:
 
 # =============================================================================
 # UNIFIED REGISTRY — single flat {nci_code: decode} for EVS cache seeding
-# Derived from all dicts above. Import this instead of maintaining a copy.
+# Now delegated to the centralized CodeRegistry which includes both USDM CT
+# codes and supplementary NCI EVS codes.
 # =============================================================================
 
 def _build_registry() -> Dict[str, str]:
-    """Build a flat {code: decode} dict from all terminology dicts."""
-    registry: Dict[str, str] = {}
-    for codes_dict in [
-        OBJECTIVE_LEVEL_CODES, ENDPOINT_LEVEL_CODES, STUDY_PHASE_CODES,
-        BLINDING_CODES, ELIGIBILITY_CODES, STUDY_MODEL_CODES,
-        ARM_TYPE_CODES, STUDY_TYPE_CODES, RANDOMIZATION_CODES,
-        ENCOUNTER_TYPE_CODES, STUDY_IDENTIFIER_TYPE_CODES,
-    ]:
-        for info in codes_dict.values():
-            registry[info["code"]] = info["decode"]
-    return registry
+    """Build a flat {code: decode} dict from the centralized CodeRegistry."""
+    from core.code_registry import registry as _cr
+    return _cr.all_codes_flat()
 
 
 USDM_CODES_REGISTRY: Dict[str, str] = _build_registry()

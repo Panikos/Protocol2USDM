@@ -23,6 +23,9 @@ from .schema import (
     RouteOfAdministration,
     DoseForm,
     InterventionRole,
+    InterventionType,
+    ProductDesignation,
+    ProductSourcing,
 )
 from .prompts import build_interventions_extraction_prompt
 
@@ -239,12 +242,15 @@ def _parse_interventions_response(raw: Dict[str, Any]) -> Optional[Interventions
             
             role_str = int_data.get('role')
             role = _map_intervention_role(role_str) if role_str else None
+            type_str = int_data.get('type') or int_data.get('interventionType')
+            int_type = _map_intervention_type(type_str) if type_str else InterventionType.DRUG
             
             interventions.append(StudyIntervention(
                 id=int_data.get('id', f"int_{i+1}"),
                 name=int_data.get('name', f'Intervention {i+1}'),
                 description=int_data.get('description'),
                 role=role,
+                intervention_type=int_type,
             ))
         
         # Process products - accept both 'products' and 'administrableProducts' keys
@@ -254,13 +260,21 @@ def _parse_interventions_response(raw: Dict[str, Any]) -> Optional[Interventions
                 continue
             
             dose_form = _map_dose_form(prod_data.get('doseForm', ''))
+            route = _map_route(prod_data.get('route', ''))
+            designation = _map_product_designation(prod_data.get('productDesignation', ''))
+            sourcing = _map_product_sourcing(prod_data.get('sourcing', ''))
             
             products.append(AdministrableProduct(
                 id=prod_data.get('id', f"prod_{i+1}"),
                 name=prod_data.get('name', f'Product {i+1}'),
+                label=prod_data.get('label') or prod_data.get('tradeName'),
                 description=prod_data.get('description'),
                 dose_form=dose_form,
                 strength=prod_data.get('strength'),
+                route=route,
+                product_designation=designation,
+                sourcing=sourcing,
+                pharmacologic_class=prod_data.get('pharmacologicClass') or prod_data.get('drugClass'),
                 manufacturer=prod_data.get('manufacturer'),
             ))
         
@@ -355,6 +369,48 @@ def _map_intervention_role(role_str: str) -> InterventionRole:
     elif 'investigational' in role_lower or 'experimental' in role_lower or 'study drug' in role_lower:
         return InterventionRole.INVESTIGATIONAL
     return InterventionRole.UNKNOWN  # Return UNKNOWN for unrecognized
+
+
+def _map_intervention_type(type_str: str) -> InterventionType:
+    """Map string to InterventionType enum (ICH M11 intervention types)."""
+    if not type_str:
+        return InterventionType.DRUG
+    type_lower = type_str.lower()
+    if 'biologic' in type_lower or 'antibod' in type_lower or 'vaccine' in type_lower:
+        return InterventionType.BIOLOGICAL
+    elif 'device' in type_lower:
+        return InterventionType.DEVICE
+    elif 'supplement' in type_lower or 'dietary' in type_lower or 'nutraceutical' in type_lower:
+        return InterventionType.DIETARY_SUPPLEMENT
+    elif 'procedure' in type_lower or 'surgery' in type_lower or 'surgical' in type_lower:
+        return InterventionType.PROCEDURE
+    elif 'radiat' in type_lower or 'radiotherapy' in type_lower:
+        return InterventionType.RADIATION
+    elif 'drug' in type_lower or 'pharmaceutical' in type_lower or 'medication' in type_lower:
+        return InterventionType.DRUG
+    return InterventionType.OTHER
+
+
+def _map_product_designation(desig_str: str) -> ProductDesignation:
+    """Map string to ProductDesignation enum (USDM CT C207418)."""
+    if not desig_str:
+        return ProductDesignation.IMP
+    desig_lower = desig_str.lower()
+    if 'nimp' in desig_lower or 'non-investigational' in desig_lower or 'auxiliary' in desig_lower:
+        return ProductDesignation.NIMP
+    return ProductDesignation.IMP
+
+
+def _map_product_sourcing(src_str: str) -> Optional[ProductSourcing]:
+    """Map string to ProductSourcing enum (USDM CT C215483)."""
+    if not src_str:
+        return None
+    src_lower = src_str.lower()
+    if 'central' in src_lower:
+        return ProductSourcing.CENTRALLY_SOURCED
+    elif 'local' in src_lower:
+        return ProductSourcing.LOCALLY_SOURCED
+    return None
 
 
 def _map_dose_form(form_str: str) -> Optional[DoseForm]:

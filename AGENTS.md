@@ -92,7 +92,9 @@ NCI C-codes used throughout. Key codelists:
 - **Sex**: C16576 (Female), C20197 (Male)
 - **Eligibility Category**: C25532 (Inclusion), C25370 (Exclusion)
 
-Codes are managed in `core/terminology_codes.py` (EVS-verified) and enriched via `core/evs_client.py` (NCI EVS REST API with 30-day cache).
+- **Intervention Type** (ICH M11): C1909 (Drug), C307 (Biological), C16830 (Device), C1505 (Dietary Supplement), C15329 (Procedure), C15313 (Radiation), C17649 (Other)
+
+Codes are managed in `core/code_registry.py` (centralized CodeRegistry singleton), verified via `core/code_verification.py` (CodeVerificationService with EVS_VERIFIED_CODES), and enriched via `core/evs_client.py` (NCI EVS REST API with 30-day cache). The `scripts/generate_code_registry.py` pipeline auto-verifies supplementary codes at generation time.
 
 ### 1.5 CDISC ARS (Analysis Results Standard)
 SAP extraction includes CDISC ARS linkage via `extraction/conditional/ars_generator.py`:
@@ -216,7 +218,9 @@ Normalization pipeline: Type inference → UUID conversion → Provenance conver
 | `core/usdm_schema_loader.py` | Schema downloader/parser, `EntityDefinition` objects, pinned to v4.0 |
 | `core/usdm_types_generated.py` | 86+ Python dataclasses with idempotent UUID generation |
 | `core/usdm_types.py` | Unified interface: official USDM types + internal extraction types |
-| `core/terminology_codes.py` | Single source of truth for NCI codes (EVS-verified) |
+| `core/code_registry.py` | Centralized CodeRegistry singleton — USDM CT + supplementary codelists |
+| `core/code_verification.py` | CodeVerificationService with EVS_VERIFIED_CODES for offline validation |
+| `core/terminology_codes.py` | Legacy NCI code constants (being migrated to CodeRegistry) |
 | `core/evs_client.py` | NCI EVS REST API client with 30-day cache |
 | `core/schema_prompt_generator.py` | LLM prompt generator from schema YAML |
 | `core/constants.py` | Pipeline constants: USDM_VERSION, DEFAULT_MODEL, OUTPUT_FILES, REASONING_MODELS |
@@ -331,6 +335,15 @@ Key extensions:
 | `x-sap-sample-size-calculations` | StudyDesign | Power/sample size assumptions |
 | `soaFootnoteRef` | Activity | Links to SoA footnote letters |
 | `epochId` | Encounter | Links encounter to its epoch |
+| `x-encounterUnscheduled` | Encounter | `valueBoolean: true` for event-driven / UNS visits |
+| `x-encounterTimingLabel` | Encounter | Original timing string from SoA header |
+
+#### Unscheduled Visit (UNS) Handling
+Encounters whose names match `UNS`, `Unscheduled`, `Unplanned`, `Ad Hoc`, `PRN`, `As Needed`, or `Event-Driven` are automatically tagged with `x-encounterUnscheduled: true` via:
+1. **Extraction** — `EncounterReconciler._create_contribution()` calls `is_unscheduled_encounter()` (regex in `core/reconciliation/encounter_reconciler.py`)
+2. **Post-processing** — `tag_unscheduled_encounters()` in `pipeline/post_processing.py` catches any encounters missed during reconciliation (safety net)
+3. **UI** — `toSoATableModel.ts` reads the extension into `SoAColumn.isUnscheduled`; `SoAGrid.tsx` renders unscheduled columns with dashed amber borders, italic headers, ⚡ suffix, and amber-tinted cells
+4. **Scheduling** — `TransitionType.UNSCHEDULED_VISIT` in `extraction/scheduling/schema.py` models UNS as a reentrant branch (medium-term: promote to `ScheduledDecisionInstance`)
 
 ### 4.4 Internal Extraction Types (not official USDM)
 | Type | Purpose | Converts To |
@@ -356,7 +369,7 @@ Key extensions:
 3. **No inline type definitions in stores**: Use generated types from `@/lib/types`
 4. **No duplicate data sources**: `protocol_usdm.json` is the single source of truth; provenance is separate
 5. **No entity placement violations**: Follow `dataStructure.yml` hierarchy — e.g., `studyInterventions` on `StudyVersion` not `StudyDesign`
-6. **No hardcoded NCI codes in extractors**: Use `core/terminology_codes.py`
+6. **No hardcoded NCI codes in extractors**: Use `core/code_registry.py` (or `core/terminology_codes.py` for legacy constants)
 7. **No validation-by-deletion**: Never remove entities to make validation pass. Fix at the source or add explicit exceptions with documented rationale.
 8. **No silent data loss**: Prefer failing with actionable errors over silently dropping data. Partial outputs must be clearly marked as partial.
 

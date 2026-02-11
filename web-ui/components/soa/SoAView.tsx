@@ -128,7 +128,11 @@ export function SoAView({ provenance }: SoAViewProps) {
     const headers = [
       'Category',
       'Activity',
-      ...tableModel.columns.map((col) => `${col.epochName} - ${col.name}`),
+      ...tableModel.columns.map((col) =>
+        col.isUnscheduled
+          ? `${col.epochName} - ${col.name} (UNS)`
+          : `${col.epochName} - ${col.name}`
+      ),
     ];
 
     const rows = tableModel.rows.map((row) => {
@@ -201,7 +205,12 @@ export function SoAView({ provenance }: SoAViewProps) {
       .join('');
 
     const visitHeaderCells = tableModel.columns
-      .map(col => `<th style="background:#e2efda;text-align:center;font-size:7px;padding:2px 3px;border:1px solid #999;white-space:nowrap">${col.timing || col.name}</th>`)
+      .map(col => {
+        const bg = col.isUnscheduled ? '#fffbeb' : '#e2efda';
+        const border = col.isUnscheduled ? '2px dashed #d97706' : '1px solid #999';
+        const style = col.isUnscheduled ? 'font-style:italic;' : '';
+        return `<th style="background:${bg};text-align:center;font-size:7px;padding:2px 3px;border:${border};white-space:nowrap;${style}">${col.timing || col.name}${col.isUnscheduled ? ' \u26a1' : ''}</th>`;
+      })
       .join('');
 
     const dataRows = entries.map(entry => {

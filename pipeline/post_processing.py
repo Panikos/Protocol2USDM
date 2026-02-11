@@ -221,6 +221,52 @@ def update_activity_references(study_design: dict, soa_activities: list, reconci
         logger.info(f"  ✓ Fixed {fixed_dangling} dangling activityIds")
 
 
+def tag_unscheduled_encounters(combined: dict) -> dict:
+    """Tag encounters as unscheduled based on name heuristics.
+    
+    This is a safety net for encounters that weren't tagged during
+    reconciliation (e.g. loaded from existing USDM JSON).
+    """
+    from core.reconciliation.encounter_reconciler import is_unscheduled_encounter
+    
+    try:
+        study_design = combined.get("study", {}).get("versions", [{}])[0].get("studyDesigns", [{}])[0]
+        encounters = study_design.get("encounters", [])
+        tagged = 0
+        
+        for enc in encounters:
+            name = enc.get("name", "")
+            if not name:
+                continue
+            
+            # Skip if already tagged
+            exts = enc.get("extensionAttributes", [])
+            already_tagged = any(
+                e.get("url", "").endswith("x-encounterUnscheduled")
+                for e in exts
+            )
+            if already_tagged:
+                continue
+            
+            if is_unscheduled_encounter(name):
+                if "extensionAttributes" not in enc:
+                    enc["extensionAttributes"] = []
+                enc["extensionAttributes"].append({
+                    "id": str(uuid.uuid4()),
+                    "url": "https://protocol2usdm.io/extensions/x-encounterUnscheduled",
+                    "instanceType": "ExtensionAttribute",
+                    "valueBoolean": True,
+                })
+                tagged += 1
+        
+        if tagged:
+            logger.info(f"  ✓ Tagged {tagged} unscheduled encounter(s)")
+    except Exception as e:
+        logger.warning(f"  ⚠ Unscheduled encounter tagging skipped: {e}")
+    
+    return combined
+
+
 def filter_enrichment_epochs(combined: dict, soa_data: Optional[dict]) -> dict:
     """Filter out epochs added by enrichment that weren't in original SoA."""
     if not soa_data:
@@ -400,6 +446,189 @@ def link_procedures_to_activities(study_design: dict) -> None:
     
     except Exception as e:
         logger.warning(f"  ⚠ Procedure-Activity linking skipped: {e}")
+
+
+def link_administrations_to_products(combined: dict) -> dict:
+    """H8: Link Administration.administrableProductId by name matching.
+    
+    Matches administrations to products by comparing names (exact then substring).
+    """
+    try:
+        sv = combined.get("study", {}).get("versions", [{}])[0]
+        products = sv.get("administrableProducts", [])
+        administrations = combined.get("administrations", [])
+        
+        if not products or not administrations:
+            return combined
+        
+        # Build product name lookup (lowercase → id)
+        prod_by_name = {}
+        for p in products:
+            name = (p.get("name") or "").lower().strip()
+            if name:
+                prod_by_name[name] = p.get("id")
+        
+        linked = 0
+        for admin in administrations:
+            if admin.get("administrableProductId"):
+                continue  # already linked
+            admin_name = (admin.get("name") or "").lower().strip()
+            if not admin_name:
+                continue
+            
+            # Exact match
+            prod_id = prod_by_name.get(admin_name)
+            if not prod_id:
+                # Substring match (admin name contains product name or vice versa)
+                for pname, pid in prod_by_name.items():
+                    if pname in admin_name or admin_name in pname:
+                        prod_id = pid
+                        break
+            
+            if prod_id:
+                admin["administrableProductId"] = prod_id
+                linked += 1
+        
+        if linked:
+            logger.info(f"  ✓ Linked {linked} administration(s) to products (H8)")
+    except Exception as e:
+        logger.warning(f"  ⚠ Administration→Product linking skipped: {e}")
+    
+    return combined
+
+
+def nest_ingredients_in_products(combined: dict) -> dict:
+    """H9: Nest Ingredient entities inside AdministrableProduct.ingredients.
+    
+    Matches ingredients to products by substance name overlap.
+    """
+    try:
+        sv = combined.get("study", {}).get("versions", [{}])[0]
+        products = sv.get("administrableProducts", [])
+        substances = combined.get("substances", [])
+        
+        if not products or not substances:
+            return combined
+        
+        # Build substance id → name lookup
+        substance_names = {s.get("id"): (s.get("name") or "").lower().strip() for s in substances}
+        
+        # Build ingredient list from substances (each substance becomes an ingredient)
+        # Ingredients are typically stored flat in combined["substances"]
+        # We need to nest them inside the matching product
+        nested = 0
+        for product in products:
+            if product.get("ingredients"):
+                continue  # already has ingredients
+            
+            prod_name = (product.get("name") or "").lower().strip()
+            prod_substance_ids = product.get("substanceIds", [])
+            
+            matched_substances = []
+            for sub in substances:
+                sub_name = (sub.get("name") or "").lower().strip()
+                sub_id = sub.get("id")
+                
+                # Match by explicit substanceIds link
+                if sub_id in prod_substance_ids:
+                    matched_substances.append(sub)
+                    continue
+                
+                # Match by name overlap
+                if sub_name and (sub_name in prod_name or prod_name in sub_name):
+                    matched_substances.append(sub)
+            
+            if matched_substances:
+                product["ingredients"] = []
+                for sub in matched_substances:
+                    ingredient = {
+                        "id": f"ing_{sub.get('id', 'unknown')[:8]}",
+                        "instanceType": "Ingredient",
+                        "role": {
+                            "code": "C82510",
+                            "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+                            "codeSystemVersion": "25.01d",
+                            "decode": "Active Moiety",
+                            "instanceType": "Code",
+                        },
+                        "substanceId": sub.get("id"),
+                    }
+                    product["ingredients"].append(ingredient)
+                nested += len(matched_substances)
+        
+        if nested:
+            logger.info(f"  ✓ Nested {nested} ingredient(s) in products (H9)")
+    except Exception as e:
+        logger.warning(f"  ⚠ Ingredient nesting skipped: {e}")
+    
+    return combined
+
+
+def link_ingredient_strengths(combined: dict) -> dict:
+    """H10: Link Ingredient.strengthId to matching Strength entity.
+    
+    If a product has a 'strength' string (e.g. '15 mg'), create a Strength
+    entity and link it from the ingredient.
+    """
+    try:
+        sv = combined.get("study", {}).get("versions", [{}])[0]
+        products = sv.get("administrableProducts", [])
+        
+        if not products:
+            return combined
+        
+        linked = 0
+        for product in products:
+            strength_str = product.get("strength")
+            ingredients = product.get("ingredients", [])
+            
+            if not strength_str or not ingredients:
+                continue
+            
+            # Create a Strength entity for this product
+            strength_id = f"str_{product.get('id', 'unknown')[:8]}"
+            strength_entity = {
+                "id": strength_id,
+                "instanceType": "Quantity",
+                "value": strength_str,
+            }
+            
+            # Store strength entities on the product (USDM doesn't have a top-level strengths array)
+            # Link each ingredient to this strength
+            for ing in ingredients:
+                if not ing.get("strengthId"):
+                    ing["strengthId"] = strength_id
+                    linked += 1
+            
+            # Store the strength as an extension on the product for reference
+            if "strengths" not in product:
+                product["strengths"] = []
+            product["strengths"].append(strength_entity)
+        
+        if linked:
+            logger.info(f"  ✓ Linked {linked} ingredient strength(s) (H10)")
+    except Exception as e:
+        logger.warning(f"  ⚠ Ingredient strength linking skipped: {e}")
+    
+    return combined
+
+
+def link_cohorts_to_population(combined: dict) -> dict:
+    """M3/M9: Link studyCohorts to StudyDesignPopulation.cohortIds."""
+    try:
+        study_design = combined.get("study", {}).get("versions", [{}])[0].get("studyDesigns", [{}])[0]
+        cohorts = study_design.get("studyCohorts", [])
+        population = study_design.get("population")
+        
+        if cohorts and population:
+            cohort_ids = [c.get("id") for c in cohorts if c.get("id")]
+            if cohort_ids and not population.get("cohortIds"):
+                population["cohortIds"] = cohort_ids
+                logger.info(f"  ✓ Linked {len(cohort_ids)} cohort(s) to population (M3/M9)")
+    except Exception as e:
+        logger.warning(f"  ⚠ Cohort-population linking skipped: {e}")
+    
+    return combined
 
 
 def add_soa_footnotes(study_design: dict, output_dir: str) -> None:

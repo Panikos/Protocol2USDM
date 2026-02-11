@@ -8,7 +8,7 @@ import type {
 } from '@/stores/protocolStore';
 import type { OverlayPayload } from '@/lib/overlay/schema';
 import type { ProvenanceData, CellSource } from '@/lib/provenance/types';
-import { getExtString, getExtBoolean, hasExt, EXT_URLS } from '@/lib/extensions';
+import { getExtString, getExtBoolean, hasExt, findExt, EXT_URLS } from '@/lib/extensions';
 
 // SoA Table Model types
 export interface SoARow {
@@ -29,6 +29,7 @@ export interface SoAColumn {
   epochName?: string;
   timing?: string;
   order: number;
+  isUnscheduled?: boolean;
 }
 
 export interface SoACell {
@@ -297,6 +298,10 @@ export function toSoATableModel(
     });
 
     for (const enc of encs) {
+      const isUnscheduled = getExtBoolean(
+        (enc as Record<string, unknown>).extensionAttributes as unknown[],
+        'encounterUnscheduled'
+      ) === true;
       model.columns.push({
         id: enc.id,
         name: enc.name,
@@ -304,6 +309,7 @@ export function toSoATableModel(
         epochName,
         timing: enc.timing?.windowLabel,
         order: colIndex++,
+        isUnscheduled,
       });
     }
   }

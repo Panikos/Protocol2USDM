@@ -13,6 +13,7 @@ from typing import List, Optional, Dict, Any
 from enum import Enum
 
 from core.usdm_types import generate_uuid, Code
+from core.code_registry import registry as _cr
 
 
 class TimingType(Enum):
@@ -58,6 +59,7 @@ class TransitionType(Enum):
     EARLY_TERMINATION = "Early Termination"
     RESCUE_THERAPY = "Rescue Therapy"
     DOSE_MODIFICATION = "Dose Modification"
+    UNSCHEDULED_VISIT = "Unscheduled Visit"  # Reentrant branch (returns to main timeline)
 
 
 @dataclass
@@ -96,52 +98,43 @@ class Timing:
         else:
             return f"{sign}P{int(abs_val)}D"  # Default to days
     
+    # Map internal TimingType enum values to USDM CT Timing.type codes
+    _TIMING_TYPE_MAP = {
+        TimingType.BEFORE: "C201357",
+        TimingType.AFTER: "C201356",
+        TimingType.WITHIN: "C201358",
+        TimingType.AT: "C201358",
+        TimingType.BETWEEN: "C201358",
+    }
+
     def _timing_type_to_code(self) -> Dict[str, Any]:
-        """Convert timing type to USDM Code object."""
-        type_codes = {
-            TimingType.BEFORE: ("C201357", "Before"),
-            TimingType.AFTER: ("C201356", "After"),
-            TimingType.WITHIN: ("C201358", "Fixed Reference"),
-            TimingType.AT: ("C201358", "Fixed Reference"),
-            TimingType.BETWEEN: ("C201358", "Fixed Reference"),
-        }
-        code, decode = type_codes.get(self.timing_type, ("C201358", "Fixed Reference"))
-        return {
-            "id": generate_uuid(),
-            "code": code,
-            "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
-            "codeSystemVersion": "25.01d",
-            "decode": decode,
-            "instanceType": "Code"
-        }
+        """Convert timing type to USDM Code object via CodeRegistry."""
+        c_code = self._TIMING_TYPE_MAP.get(self.timing_type, "C201358")
+        code_obj = _cr.make_code("timingType", c_code)
+        code_obj["id"] = generate_uuid()
+        return code_obj
     
+    # Map internal TimingRelativeToFrom enum to USDM CT Timing.relativeToFrom codes
+    _REL_TO_FROM_MAP = {
+        TimingRelativeToFrom.STUDY_START: "C201355",
+        TimingRelativeToFrom.RANDOMIZATION: "C201355",
+        TimingRelativeToFrom.FIRST_DOSE: "C201355",
+        TimingRelativeToFrom.LAST_DOSE: "C201353",
+        TimingRelativeToFrom.PREVIOUS_VISIT: "C201353",
+        TimingRelativeToFrom.SCREENING: "C201355",
+        TimingRelativeToFrom.BASELINE: "C201355",
+        TimingRelativeToFrom.END_OF_TREATMENT: "C201352",
+    }
+
     def _relative_to_from_code(self) -> Dict[str, Any]:
-        """Convert relative reference to USDM Code object."""
+        """Convert relative reference to USDM Code object via CodeRegistry."""
         # USDM CT C201265 defines relativeToFrom as temporal relationship between instances
         # (Start to Start, End to Start, etc.), not reference points like 'Study Start'.
         # The reference point is conveyed via relativeFromScheduledInstanceId.
-        ref_codes = {
-            TimingRelativeToFrom.STUDY_START: ("C201355", "Start to Start"),
-            TimingRelativeToFrom.RANDOMIZATION: ("C201355", "Start to Start"),
-            TimingRelativeToFrom.FIRST_DOSE: ("C201355", "Start to Start"),
-            TimingRelativeToFrom.LAST_DOSE: ("C201353", "End to Start"),
-            TimingRelativeToFrom.PREVIOUS_VISIT: ("C201353", "End to Start"),
-            TimingRelativeToFrom.SCREENING: ("C201355", "Start to Start"),
-            TimingRelativeToFrom.BASELINE: ("C201355", "Start to Start"),
-            TimingRelativeToFrom.END_OF_TREATMENT: ("C201352", "End to End"),
-        }
-        if self.relative_to:
-            code, decode = ref_codes.get(self.relative_to, ("C201355", "Start to Start"))
-        else:
-            code, decode = "C201355", "Start to Start"
-        return {
-            "id": generate_uuid(),
-            "code": code,
-            "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
-            "codeSystemVersion": "25.01d",
-            "decode": decode,
-            "instanceType": "Code"
-        }
+        c_code = self._REL_TO_FROM_MAP.get(self.relative_to, "C201355") if self.relative_to else "C201355"
+        code_obj = _cr.make_code("timingRelativeToFrom", c_code)
+        code_obj["id"] = generate_uuid()
+        return code_obj
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert to USDM-compliant dictionary."""

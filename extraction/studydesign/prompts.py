@@ -15,6 +15,14 @@ Analyze the provided protocol section and extract the study design structure.
 - Is this Interventional or Observational?
 - If Interventional: Treatment, Prevention, Diagnostic, Supportive Care, Screening, Health Services Research, Basic Science?
 
+### 1a. Design Rationale
+- Extract the scientific rationale for the chosen study design (usually 1-3 sentences from §4 or Synopsis)
+- Why was this particular design chosen? (e.g., "A randomized, double-blind design was chosen to minimize bias...")
+
+### 1b. Design Characteristics
+- Extract study design characteristics: Parallel, Crossover, Factorial, Single Group, Adaptive, Basket, Umbrella, Platform, Sequential, etc.
+- Multiple characteristics may apply (e.g., ["Parallel", "Adaptive"])
+
 ### 2. Blinding
 - Open Label, Single Blind, Double Blind, Triple Blind, or Quadruple Blind?
 - Who is blinded? (Subject, Investigator, Outcome Assessor, Caregiver, Data Analyst)
@@ -72,7 +80,9 @@ Return a JSON object with this exact structure:
       "stratificationFactors": []
     },
     "controlType": null,
-    "therapeuticAreas": ["Cardiology"]
+    "therapeuticAreas": ["Cardiology"],
+    "designRationale": "An open-label, single-arm design was chosen because the primary objective is to evaluate the pharmacokinetics and safety profile of ABC-1234 in this population.",
+    "characteristics": ["Single Group"]
   },
   "arms": [
     {

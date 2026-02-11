@@ -2,7 +2,8 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { EditableField } from '@/components/semantic';
+import { EditableField, CodeLink } from '@/components/semantic';
+import { EditableCodedValue, CDISC_TERMINOLOGIES } from '@/components/semantic/EditableCodedValue';
 import { designPath, versionPath } from '@/lib/semantic/schema';
 import { 
   Stethoscope, 
@@ -154,13 +155,13 @@ export function ProceduresDevicesView({ usdm }: ProceduresDevicesViewProps) {
                       className="font-medium"
                       placeholder="Procedure name"
                     />
-                    {procedure.procedureType && (
-                      <Badge variant="outline">
-                        {typeof procedure.procedureType === 'string' 
-                          ? procedure.procedureType 
-                          : procedure.procedureType.decode || procedure.procedureType.code}
-                      </Badge>
-                    )}
+                    <EditableCodedValue
+                      path={designPath('procedures', procedure.id, 'procedureType')}
+                      value={typeof procedure.procedureType === 'string' ? { decode: procedure.procedureType } : procedure.procedureType}
+                      options={CDISC_TERMINOLOGIES.procedureType ?? []}
+                      showCode
+                      placeholder="Type"
+                    />
                   </div>
                   <EditableField
                     path={designPath('procedures', procedure.id, 'description')}
@@ -171,9 +172,7 @@ export function ProceduresDevicesView({ usdm }: ProceduresDevicesViewProps) {
                     placeholder="No description"
                   />
                   {procedure.code && (
-                    <Badge variant="secondary" className="mt-2 text-xs">
-                      {procedure.code.code}: {procedure.code.decode || 'N/A'}
-                    </Badge>
+                    <CodeLink code={procedure.code.code} decode={`${procedure.code.code}: ${procedure.code.decode || 'N/A'}`} variant="secondary" className="mt-2 text-xs" />
                   )}
                 </div>
               ))}
