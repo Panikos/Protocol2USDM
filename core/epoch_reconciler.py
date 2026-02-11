@@ -264,7 +264,7 @@ def infer_cdisc_epoch_type(name: str) -> tuple:
             return code, decode
     
     # Default to Treatment Epoch
-    return "C98780", "Treatment Epoch"
+    return "C101526", "Treatment Epoch"
 
 
 def enrich_epoch_names_with_clinical_type(

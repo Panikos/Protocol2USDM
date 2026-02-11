@@ -71,13 +71,13 @@ class StudyRole:
     def to_dict(self) -> Dict[str, Any]:
         # Map role codes to USDM-compliant name and code
         role_names = {
-            "PI": ("Principal Investigator", "C71086"),
-            "Sub-I": ("Sub-Investigator", "C54625"),
-            "Coordinator": ("Study Coordinator", "C51826"),
-            "CRA": ("Clinical Research Associate", "C25461"),
+            "PI": ("Principal Investigator", "C19924"),
+            "Sub-I": ("Sub-Investigator", "C25936"),
+            "Coordinator": ("Study Coordinator", "C25936"),
+            "CRA": ("Clinical Research Associate", "C25936"),
             "Sponsor": ("Sponsor", "C70793"),
         }
-        name, code = role_names.get(self.role_code, (self.role_code, "C25461"))
+        name, code = role_names.get(self.role_code, (self.role_code, "C25936"))
         
         result = {
             "id": self.id,
