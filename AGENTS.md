@@ -111,7 +111,7 @@ The extraction pipeline (`pipeline/orchestrator.py`) uses a registry-driven phas
 - **`pipeline/orchestrator.py`** (332 lines) — `PipelineOrchestrator` class, dependency graph, parallel wave execution
 - **`pipeline/combiner.py`** (420 lines) — `combine_to_full_usdm()`, USDM defaults, SoA data integration
 - **`pipeline/integrations.py`** (289 lines) — SAP/sites integration, content reference resolution, estimand→population reconciliation
-- **`pipeline/post_processing.py`** (436 lines) — Entity reconciliation (epochs, encounters, activities), activity source marking, procedure linking, SoA footnotes
+- **`pipeline/post_processing.py`** (~660 lines) — Entity reconciliation (epochs, encounters, activities), activity source marking, procedure linking, SoA footnotes, cohort→population linking, UNS tagging
 - **`pipeline/promotion.py`** (260 lines) — Extension→USDM promotion rules (4 rules: sample size, completers, sex, age)
 
 | Phase | Module | M11 §§ | Key USDM Entities | Dependencies |
@@ -444,11 +444,13 @@ Encounters whose names match `UNS`, `Unscheduled`, `Unplanned`, `Ad Hoc`, `PRN`,
 ## 6. Known Gaps & Implementation Status
 
 ### 6.1 Extractor Gaps (from `docs/M11_USDM_ALIGNMENT.md`)
+All 28 extractor gaps (3 CRITICAL, 10 HIGH, 9 MEDIUM, 6 LOW) identified in the USDM v4.0 field audit have been fixed across Sprints 1–4 (v7.6–v7.8). See `CHANGELOG.md` for full details.
+
 | Priority | Gap | M11 Section | Status |
 |----------|-----|-------------|--------|
 | ~~P12~~ | Population demographics (age, sex, enrollment) | §1, §5 | ✅ Fixed |
-| P13 | GovernanceDate + sponsor Address | §1 title page | ❌ Pending |
-| P14 | blindingSchema, randomizationType, characteristics | §1 synopsis, §4 | ❌ Pending |
+| ~~P13~~ | GovernanceDate + sponsor Address | §1 title page | ✅ Fixed (v7.7) |
+| ~~P14~~ | blindingSchema, randomizationType, characteristics | §1 synopsis, §4 | ✅ Fixed (v7.7) |
 | P15 | M11-aware narrative sectionType tagging | §7, §9, §11 | ❌ Pending |
 | ~~P16~~ | Configurable M11↔USDM mapping YAML | All | ✅ Fixed |
 | ~~P17~~ | Generic code (protocol-specific refs removed) | All | ✅ Fixed |
@@ -522,5 +524,6 @@ Encounters whose names match `UNS`, `Unscheduled`, `Unplanned`, `Ad Hoc`, `PRN`,
 | `docs/FULL_PROJECT_REVIEW.md` | Full codebase review: module-by-module analysis, 40+ weakness IDs, 24-item enhancement roadmap, architectural critique |
 | `docs/ROADMAP.md` | Future: ARS output display, analysis-to-data traceability |
 | `docs/SEMANTIC_EDITING_SPEC.md` | JSON Patch editing spec: storage layout, API endpoints, validation pipeline |
+| ~~`docs/EXTRACTOR_GAP_AUDIT.md`~~ | *(Deleted)* All 28 gaps fixed — see `CHANGELOG.md` v7.8 |
 | `docs/TIMELINE_REVIEW_GUIDE.md` | Timeline tab reviewer guide: execution model view, graph view |
 | `docs/WEB_UI_REVIEW.md` | Web UI deep dive: architecture, data flow, editing, audit trail, strengths/weaknesses, enhancement roadmap |

@@ -414,9 +414,16 @@ def _add_title_page(doc: Document, usdm: Dict) -> None:
             sponsor_name = org.get('name', '')
             sponsor_address = org.get('legalAddress', org.get('address', ''))
             if isinstance(sponsor_address, dict):
-                parts = [sponsor_address.get(k, '') for k in
-                         ['line', 'city', 'state', 'postalCode', 'country'] if sponsor_address.get(k)]
-                sponsor_address = ', '.join(parts)
+                parts = []
+                for k in ['line', 'city', 'district', 'state', 'postalCode', 'country']:
+                    val = sponsor_address.get(k, '')
+                    if not val:
+                        continue
+                    if isinstance(val, dict):
+                        val = val.get('decode', val.get('code', ''))
+                    if val:
+                        parts.append(str(val))
+                sponsor_address = ', '.join(parts) if parts else sponsor_address.get('text', '')
             break
 
     # ---- Trial Phase ----
