@@ -126,24 +126,19 @@ STUDY_MODEL_CODES: Dict[str, Dict[str, str]] = {
         "description": "A study in which groups of participants receive different interventions simultaneously.",
     },
     "crossover": {
-        "code": "C49649",
+        "code": "C82637",
         "decode": "Crossover Study",
         "description": "A study in which each subject receives each treatment in sequence.",
     },
     "single group": {
-        "code": "C82638",
+        "code": "C82640",
         "decode": "Single Group Study",
         "description": "A study in which all subjects receive the same intervention.",
     },
     "factorial": {
-        "code": "C82640",
+        "code": "C82638",
         "decode": "Factorial Study",
         "description": "A study in which two or more interventions, each with two or more levels, are evaluated in combination.",
-    },
-    "sequential": {
-        "code": "C139287",
-        "decode": "Sequential Study",
-        "description": "A study in which groups of participants receive different interventions in sequence.",
     },
 }
 
@@ -173,8 +168,8 @@ ARM_TYPE_CODES: Dict[str, Dict[str, str]] = {
 
 STUDY_TYPE_CODES: Dict[str, Dict[str, str]] = {
     "interventional": {"code": "C98388", "decode": "Interventional Study"},
-    "observational": {"code": "C15208", "decode": "Observational Study"},
-    "clinical trial": {"code": "C15273", "decode": "Clinical Trial"},
+    "observational": {"code": "C142615", "decode": "Non-Interventional Study"},
+    "non-interventional": {"code": "C142615", "decode": "Non-Interventional Study"},
     "not applicable": {"code": "C48660", "decode": "Not Applicable"},
 }
 
@@ -185,8 +180,8 @@ STUDY_TYPE_CODES: Dict[str, Dict[str, str]] = {
 
 RANDOMIZATION_CODES: Dict[str, Dict[str, str]] = {
     "randomized": {"code": "C25196", "decode": "Randomized"},
-    "non-randomized": {"code": "C127779", "decode": "Non-Randomized"},
-    "not randomized": {"code": "C127779", "decode": "Non-Randomized"},
+    "non-randomized": {"code": "C48660", "decode": "Not Applicable"},
+    "not randomized": {"code": "C48660", "decode": "Not Applicable"},
 }
 
 
@@ -195,13 +190,14 @@ RANDOMIZATION_CODES: Dict[str, Dict[str, str]] = {
 # =============================================================================
 
 ENCOUNTER_TYPE_CODES: Dict[str, Dict[str, str]] = {
-    "initial visit": {"code": "C16741", "decode": "Initial Visit"},
-    "screening": {"code": "C25188", "decode": "Screening"},
-    "baseline": {"code": "C25582", "decode": "Baseline"},
-    "follow-up": {"code": "C18080", "decode": "Follow-up"},
-    "follow up": {"code": "C18080", "decode": "Follow-up"},
-    "end of study": {"code": "C41379", "decode": "End of Study"},
-    "end of treatment": {"code": "C41379", "decode": "End of Study"},
+    "visit": {"code": "C25716", "decode": "Visit"},
+    "initial visit": {"code": "C25716", "decode": "Visit"},
+    "screening": {"code": "C25716", "decode": "Visit"},
+    "baseline": {"code": "C25716", "decode": "Visit"},
+    "follow-up": {"code": "C25716", "decode": "Visit"},
+    "follow up": {"code": "C25716", "decode": "Visit"},
+    "end of study": {"code": "C25716", "decode": "Visit"},
+    "end of treatment": {"code": "C25716", "decode": "Visit"},
 }
 
 

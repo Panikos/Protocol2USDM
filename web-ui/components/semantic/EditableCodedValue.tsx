@@ -36,7 +36,7 @@ export const CDISC_TERMINOLOGIES: Record<string, CodeOption[]> = {
   ],
   studyType: [
     { code: 'C98388', decode: 'Interventional Study' },
-    { code: 'C142615', decode: 'Observational Study' },
+    { code: 'C142615', decode: 'Non-Interventional Study' },
     { code: 'C48660', decode: 'Not Applicable' },
   ],
   encounterType: [

@@ -79,7 +79,36 @@ CODES_TO_VERIFY = {
     "C132351": "Sponsor Protocol Identifier",
     "C172240": "Clinicaltrials.gov Identifier",
     "C98714": "Clinical Trial Registry Identifier",
-    "C218685": "US FDA Investigational New Drug Application Number"
+    "C218685": "US FDA Investigational New Drug Application Number",
+    
+    # Study Model Codes - EVS-verified
+    "C82639": "Parallel Study",
+    "C82637": "Crossover Study",
+    "C82640": "Single Group Study",
+    "C82638": "Factorial Study",
+    
+    # Study Type Codes
+    "C98388": "Interventional Study",
+    "C142615": "Non-Interventional Study",
+    
+    # Randomization
+    "C25196": "Randomization",
+    
+    # Procedure Type Codes - EVS-verified
+    "C18020": "Diagnostic Procedure",
+    "C49236": "Therapeutic Procedure",
+    "C15329": "Surgical Procedure",
+    "C70945": "Biospecimen Collection",
+    "C16502": "Diagnostic Imaging Testing",
+    
+    # Organization Type (USDM CT C188724)
+    "C54149": "Pharmaceutical Company",
+    "C21541": "Healthcare Facility",
+    "C93453": "Clinical Study Registry",
+    "C54148": "Contract Research Organization",
+    
+    # DataOriginType (USDM CT C188727)
+    "C188866": "Data Generated Within Study",
 }
 
 

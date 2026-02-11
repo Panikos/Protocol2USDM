@@ -156,7 +156,7 @@ def combine_to_full_usdm(
             study_design["instanceType"] = "ObservationalStudyDesign"
             study_design["studyType"] = {
                 "code": "C142615", "codeSystem": "http://www.cdisc.org",
-                "codeSystemVersion": "2024-09-27", "decode": "Observational",
+                "codeSystemVersion": "2024-09-27", "decode": "Non-Interventional Study",
                 "instanceType": "Code",
             }
             logger.info(f"  Study design type derived from metadata: ObservationalStudyDesign")
@@ -164,7 +164,7 @@ def combine_to_full_usdm(
             study_design["instanceType"] = "InterventionalStudyDesign"
             study_design["studyType"] = {
                 "code": "C98388", "codeSystem": "http://www.cdisc.org",
-                "codeSystemVersion": "2024-09-27", "decode": "Interventional",
+                "codeSystemVersion": "2024-09-27", "decode": "Interventional Study",
                 "instanceType": "Code",
             }
             logger.info(f"  Study design type derived from metadata: InterventionalStudyDesign")
@@ -172,7 +172,7 @@ def combine_to_full_usdm(
         # Default to Interventional
         study_design["studyType"] = {
             "code": "C98388", "codeSystem": "http://www.cdisc.org",
-            "codeSystemVersion": "2024-09-27", "decode": "Interventional",
+            "codeSystemVersion": "2024-09-27", "decode": "Interventional Study",
             "instanceType": "Code",
         }
         logger.info("  Study design type: defaulting to InterventionalStudyDesign (no metadata)")
