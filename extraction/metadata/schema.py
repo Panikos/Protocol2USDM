@@ -64,11 +64,29 @@ class StudyTitle:
     type: TitleType
     instance_type: str = "StudyTitle"
     
+    # USDM CT codelist C207419 for StudyTitle.type
+    _TITLE_TYPE_CODES = {
+        "Brief Study Title": ("C207615", "Brief Study Title"),
+        "Official Study Title": ("C207616", "Official Study Title"),
+        "Public Study Title": ("C207617", "Public Study Title"),
+        "Scientific Study Title": ("C207618", "Scientific Study Title"),
+        "Study Acronym": ("C94108", "Study Acronym"),
+    }
+
     def to_dict(self) -> Dict[str, Any]:
+        code, decode = self._TITLE_TYPE_CODES.get(
+            self.type.value, ("C207616", "Official Study Title")
+        )
         return {
             "id": self.id,
             "text": self.text,
-            "type": {"code": self.type.value, "codeSystem": "USDM", "decode": self.type.value},
+            "type": {
+                "code": code,
+                "codeSystem": "http://www.cdisc.org",
+                "codeSystemVersion": "2024-09-27",
+                "decode": decode,
+                "instanceType": "Code",
+            },
             "instanceType": self.instance_type,
         }
 

@@ -56,13 +56,13 @@ class Procedure:
     def to_dict(self) -> Dict[str, Any]:
         # Map procedure types to NCI codes where available
         procedure_type_codes = {
-            ProcedureType.DIAGNOSTIC: ("C25391", "Diagnostic Procedure"),
+            ProcedureType.DIAGNOSTIC: ("C18020", "Diagnostic Procedure"),
             ProcedureType.THERAPEUTIC: ("C49236", "Therapeutic Procedure"),
-            ProcedureType.SURGICAL: ("C17173", "Surgical Procedure"),
-            ProcedureType.SAMPLING: ("C70793", "Biospecimen Collection"),
-            ProcedureType.IMAGING: ("C17369", "Imaging Technique"),
-            ProcedureType.MONITORING: ("C25548", "Monitoring"),
-            ProcedureType.ASSESSMENT: ("C25218", "Assessment"),
+            ProcedureType.SURGICAL: ("C15329", "Surgical Procedure"),
+            ProcedureType.SAMPLING: ("C70945", "Biospecimen Collection"),
+            ProcedureType.IMAGING: ("C16502", "Diagnostic Imaging Testing"),
+            ProcedureType.MONITORING: ("C25218", "Clinical Intervention or Procedure"),
+            ProcedureType.ASSESSMENT: ("C25218", "Clinical Intervention or Procedure"),
         }
         
         # Build procedureType as proper Code object (required as string per schema)

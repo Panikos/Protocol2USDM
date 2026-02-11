@@ -355,13 +355,12 @@ def link_procedures_to_activities(study_design: dict) -> None:
             if code and isinstance(code, dict) and not code.get('code'):
                 proc_type = proc.get('procedureType', 'Clinical Procedure')
                 type_codes = {
-                    'Diagnostic Procedure': ('C25391', 'Diagnostic Procedure'),
+                    'Diagnostic Procedure': ('C18020', 'Diagnostic Procedure'),
                     'Therapeutic Procedure': ('C49236', 'Therapeutic Procedure'),
-                    'Surgical Procedure': ('C17173', 'Surgical Procedure'),
-                    'Biospecimen Collection': ('C70793', 'Biospecimen Collection'),
-                    'Imaging Technique': ('C17369', 'Imaging Technique'),
-                    'Monitoring': ('C25548', 'Monitoring'),
-                    'Assessment': ('C25218', 'Assessment'),
+                    'Surgical Procedure': ('C15329', 'Surgical Procedure'),
+                    'Biospecimen Collection': ('C70945', 'Biospecimen Collection'),
+                    'Diagnostic Imaging Testing': ('C16502', 'Diagnostic Imaging Testing'),
+                    'Clinical Intervention or Procedure': ('C25218', 'Clinical Intervention or Procedure'),
                 }
                 default_code, default_decode = type_codes.get(proc_type, ('C25218', 'Clinical Procedure'))
                 proc['code'] = {

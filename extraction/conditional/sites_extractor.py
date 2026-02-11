@@ -102,7 +102,7 @@ class Organization:
     """USDM Organization entity - required for StudyRole references."""
     id: str
     name: str
-    type_code: str = "C70793"  # Clinical Study Site
+    type_code: str = "C21541"  # Healthcare Facility (USDM CT C188724)
     identifier: str = ""  # Will be set from site_number
     instance_type: str = "Organization"
     
@@ -117,7 +117,7 @@ class Organization:
                 "code": self.type_code,
                 "codeSystem": "http://www.cdisc.org",
                 "codeSystemVersion": "2024-03-29",
-                "decode": "Clinical Study Site",
+                "decode": "Healthcare Facility",
                 "instanceType": "Code"
             },
             "instanceType": self.instance_type,

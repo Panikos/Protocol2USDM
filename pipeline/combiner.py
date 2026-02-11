@@ -272,7 +272,7 @@ def _apply_defaults(study_version: dict, study_design: dict, combined: dict, pdf
             "name": "Sponsor",
             "identifier": "SPONSOR",
             "identifierScheme": "DUNS",
-            "type": {"code": "C70793", "codeSystem": "http://www.cdisc.org", "decode": "Clinical Study Sponsor"}
+            "type": {"code": "C54149", "codeSystem": "http://www.cdisc.org", "codeSystemVersion": "2024-09-27", "decode": "Pharmaceutical Company", "instanceType": "Code"}
         })
         study_version["studyIdentifiers"] = [{
             "id": str(uuid.uuid4()),

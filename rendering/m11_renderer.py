@@ -409,8 +409,8 @@ def _add_title_page(doc: Document, usdm: Dict) -> None:
         org_type = org.get('type', {})
         org_decode = org_type.get('decode', '') if isinstance(org_type, dict) else ''
         org_code = org_type.get('code', '') if isinstance(org_type, dict) else ''
-        # C70793 = Clinical Study Site, C54086 = Pharmaceutical Company
-        if org_code == 'C54086' or 'sponsor' in org_decode.lower() or 'pharma' in org_decode.lower():
+        # C54149 = Pharmaceutical Company (USDM CT C188724), C70793 = Clinical Study Sponsor (legacy)
+        if org_code in ('C54149', 'C70793') or 'sponsor' in org_decode.lower() or 'pharma' in org_decode.lower():
             sponsor_name = org.get('name', '')
             sponsor_address = org.get('legalAddress', org.get('address', ''))
             if isinstance(sponsor_address, dict):

@@ -114,10 +114,10 @@ class AliasCode(USDMEntity):
     def make_blinding(cls, blind_type: str = "open") -> 'AliasCode':
         """Factory method for blinding schema."""
         codes = {
-            "open": ("C49656", "Open Label"),
-            "single": ("C15228", "Single Blind"),
-            "double": ("C15227", "Double Blind"),
-            "triple": ("C156593", "Triple Blind"),
+            "open": ("C49659", "Open Label Study"),
+            "single": ("C28233", "Single Blind Study"),
+            "double": ("C15228", "Double Blind Study"),
+            "triple": ("C66959", "Triple Blind Study"),
         }
         code, decode = codes.get(blind_type.lower(), codes["open"])
         return cls(standardCode=Code.make(code, decode))
@@ -497,7 +497,7 @@ class StudyArm(USDMEntity):
         if self.dataOriginType:
             result["dataOriginType"] = self.dataOriginType.to_dict()
         else:
-            result["dataOriginType"] = Code.make("C70793", "Collected").to_dict()
+            result["dataOriginType"] = Code.make("C188866", "Data Generated Within Study").to_dict()
         
         return result
 
@@ -554,15 +554,15 @@ class StudyEpoch(USDMEntity):
         else:
             name_lower = self.name.lower()
             if "screen" in name_lower:
-                result["type"] = Code.make("C98779", "Screening Epoch").to_dict()
+                result["type"] = Code.make("C48262", "Trial Screening").to_dict()
             elif "treatment" in name_lower or "intervention" in name_lower:
-                result["type"] = Code.make("C98780", "Treatment Epoch").to_dict()
+                result["type"] = Code.make("C101526", "Treatment Epoch").to_dict()
             elif "follow" in name_lower:
-                result["type"] = Code.make("C98781", "Follow-up Epoch").to_dict()
+                result["type"] = Code.make("C99158", "Clinical Study Follow-up").to_dict()
             elif "run-in" in name_lower or "runin" in name_lower or "washout" in name_lower:
-                result["type"] = Code.make("C98782", "Run-in Epoch").to_dict()
+                result["type"] = Code.make("C98779", "Run-in Period").to_dict()
             else:
-                result["type"] = Code.make("C98780", "Treatment Epoch").to_dict()
+                result["type"] = Code.make("C101526", "Treatment Epoch").to_dict()
         
         if self.previousId:
             result["previousId"] = self.previousId

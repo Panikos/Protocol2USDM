@@ -76,7 +76,7 @@ SAMPLE_OBJECTIVES = [
         "objectiveText": "Evaluate efficacy of WTX101",
         "objectiveLevel": {"code": "C85826", "decode": "Primary"},
         "objectiveEndpoints": [
-            {"endpointText": "Change from baseline in NCC at Week 48", "endpointLevel": {"code": "C98772", "decode": "Primary"}},
+            {"endpointText": "Change from baseline in NCC at Week 48", "endpointLevel": {"code": "C94496", "decode": "Primary Endpoint"}},
         ],
     },
     {
@@ -84,14 +84,14 @@ SAMPLE_OBJECTIVES = [
         "objectiveText": "Assess safety and tolerability",
         "objectiveLevel": {"code": "C85827", "decode": "Secondary"},
         "objectiveEndpoints": [
-            {"endpointText": "Incidence of TEAEs", "endpointLevel": {"code": "C98781", "decode": "Secondary"}},
+            {"endpointText": "Incidence of TEAEs", "endpointLevel": {"code": "C139173", "decode": "Secondary Endpoint"}},
         ],
     },
 ]
 
 SAMPLE_ENDPOINTS = [
-    {"id": "ep_1", "endpointText": "Change from baseline in NCC at Week 48", "endpointLevel": {"code": "C98772", "decode": "Primary"}, "objectiveId": "obj_1"},
-    {"id": "ep_2", "endpointText": "Incidence of TEAEs", "endpointLevel": {"code": "C98781", "decode": "Secondary"}, "objectiveId": "obj_2"},
+    {"id": "ep_1", "endpointText": "Change from baseline in NCC at Week 48", "endpointLevel": {"code": "C94496", "decode": "Primary Endpoint"}, "objectiveId": "obj_1"},
+    {"id": "ep_2", "endpointText": "Incidence of TEAEs", "endpointLevel": {"code": "C139173", "decode": "Secondary Endpoint"}, "objectiveId": "obj_2"},
 ]
 
 SAMPLE_ELIGIBILITY = [

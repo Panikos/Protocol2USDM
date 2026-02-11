@@ -11,15 +11,15 @@ from core.evs_client import EVSClient
 
 # All codes we need to verify - Updated with EVS-verified codes
 CODES_TO_VERIFY = {
-    # Objective Level Codes
-    "C85826": "Trial Primary Objective",
-    "C85827": "Trial Secondary Objective",
-    "C163559": "Trial Exploratory Objective",
+    # Objective Level Codes (USDM CT C188725)
+    "C85826": "Primary Objective",
+    "C85827": "Secondary Objective",
+    "C163559": "Exploratory Objective",
     
-    # Endpoint Level Codes
-    "C98772": "Primary Outcome Measure",
-    "C98781": "Secondary Outcome Measure",
-    "C98724": "Exploratory Outcome Measure",
+    # Endpoint Level Codes (USDM CT C188726)
+    "C94496": "Primary Endpoint",
+    "C139173": "Secondary Endpoint",
+    "C170559": "Exploratory Endpoint",
     
     # Study Phase Codes
     "C15600": "Phase I Trial",
@@ -29,11 +29,39 @@ CODES_TO_VERIFY = {
     "C15693": "Phase I/II Trial",
     "C15694": "Phase II/III Trial",
     
-    # Blinding Codes - Verified 2024-11-30
+    # Blinding Codes - EVS-verified
     "C49659": "Open Label Study",
     "C28233": "Single Blind Study",
     "C15228": "Double Blind Study",
     "C66959": "Triple Blind Study",
+    
+    # Epoch Type Codes - EVS-verified
+    "C48262": "Trial Screening",
+    "C98779": "Run-in Period",
+    "C101526": "Treatment Epoch",
+    "C99158": "Clinical Study Follow-up",
+    
+    # Encounter Type (USDM CT C188728)
+    "C25716": "Visit",
+    
+    # StudyTitle Type (USDM CT C207419)
+    "C207615": "Brief Study Title",
+    "C207616": "Official Study Title",
+    "C207617": "Public Study Title",
+    "C207618": "Scientific Study Title",
+    "C94108": "Study Acronym",
+    
+    # StudyIntervention Role (USDM CT C207417)
+    "C41161": "Experimental Intervention",
+    "C68609": "Active Comparator",
+    "C753": "Placebo",
+    "C165835": "Rescue Medicine",
+    "C207614": "Additional Required Treatment",
+    "C165822": "Background Treatment",
+    
+    # AdministrableProduct Designation (USDM CT C207418)
+    "C202579": "IMP",
+    "C156473": "NIMP",
     
     # Eligibility Codes
     "C25532": "Inclusion Criteria",

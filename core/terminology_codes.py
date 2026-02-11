@@ -28,17 +28,17 @@ from typing import Dict, Any
 OBJECTIVE_LEVEL_CODES: Dict[str, Dict[str, str]] = {
     "primary": {
         "code": "C85826",
-        "decode": "Trial Primary Objective",
+        "decode": "Primary Objective",
         "definition": "The main purpose of the trial.",
     },
     "secondary": {
         "code": "C85827", 
-        "decode": "Trial Secondary Objective",
+        "decode": "Secondary Objective",
         "definition": "The secondary purpose of the trial.",
     },
     "exploratory": {
         "code": "C163559",
-        "decode": "Trial Exploratory Objective",
+        "decode": "Exploratory Objective",
         "definition": "The exploratory purpose of the trial.",
     },
 }
@@ -51,18 +51,18 @@ OBJECTIVE_LEVEL_CODES: Dict[str, Dict[str, str]] = {
 
 ENDPOINT_LEVEL_CODES: Dict[str, Dict[str, str]] = {
     "primary": {
-        "code": "C98772",
-        "decode": "Primary Outcome Measure",
+        "code": "C94496",
+        "decode": "Primary Endpoint",
         "definition": "The outcome measure(s) of greatest importance specified in the protocol.",
     },
     "secondary": {
-        "code": "C98781",
-        "decode": "Secondary Outcome Measure", 
+        "code": "C139173",
+        "decode": "Secondary Endpoint", 
         "definition": "The outcome measure(s) that is part of a pre-specified analysis plan used to evaluate the secondary endpoint(s).",
     },
     "exploratory": {
-        "code": "C98724",
-        "decode": "Exploratory Outcome Measure",
+        "code": "C170559",
+        "decode": "Exploratory Endpoint",
         "definition": "The outcome measure(s) that is part of a pre-specified analysis plan used to evaluate the exploratory endpoint(s).",
     },
 }

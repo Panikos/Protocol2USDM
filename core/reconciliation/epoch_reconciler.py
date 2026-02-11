@@ -26,14 +26,14 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 
 EPOCH_TYPE_CODES = {
-    "screening": ("C98779", "Screening Epoch"),
-    "treatment": ("C98780", "Treatment Epoch"),
-    "follow-up": ("C98777", "Follow-up Epoch"),
-    "followup": ("C98777", "Follow-up Epoch"),
-    "washout": ("C98781", "Washout Epoch"),
-    "wash-out": ("C98781", "Washout Epoch"),
-    "run-in": ("C98778", "Run-in Epoch"),
-    "runin": ("C98778", "Run-in Epoch"),
+    "screening": ("C48262", "Trial Screening"),
+    "treatment": ("C101526", "Treatment Epoch"),
+    "follow-up": ("C99158", "Clinical Study Follow-up"),
+    "followup": ("C99158", "Clinical Study Follow-up"),
+    "washout": ("C48262", "Trial Screening"),  # No dedicated NCI code; closest match
+    "wash-out": ("C48262", "Trial Screening"),
+    "run-in": ("C98779", "Run-in Period"),
+    "runin": ("C98779", "Run-in Period"),
 }
 
 

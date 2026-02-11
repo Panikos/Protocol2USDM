@@ -26,13 +26,12 @@ export interface CodeOption {
  */
 export const CDISC_TERMINOLOGIES: Record<string, CodeOption[]> = {
   studyPhase: [
-    { code: 'C54721', decode: 'Phase I Trial' },
-    { code: 'C49686', decode: 'Phase I/Phase II Trial' },
-    { code: 'C49688', decode: 'Phase II Trial' },
-    { code: 'C49689', decode: 'Phase II/Phase III Trial' },
-    { code: 'C49690', decode: 'Phase III Trial' },
-    { code: 'C49691', decode: 'Phase III/Phase IV Trial' },
-    { code: 'C49692', decode: 'Phase IV Trial' },
+    { code: 'C15600', decode: 'Phase I Trial' },
+    { code: 'C15693', decode: 'Phase I/II Trial' },
+    { code: 'C15601', decode: 'Phase II Trial' },
+    { code: 'C15694', decode: 'Phase II/III Trial' },
+    { code: 'C15602', decode: 'Phase III Trial' },
+    { code: 'C15603', decode: 'Phase IV Trial' },
     { code: 'C48660', decode: 'Not Applicable' },
   ],
   studyType: [
@@ -41,21 +40,19 @@ export const CDISC_TERMINOLOGIES: Record<string, CodeOption[]> = {
     { code: 'C48660', decode: 'Not Applicable' },
   ],
   encounterType: [
-    { code: 'C82507', decode: 'Scheduled Visit' },
-    { code: 'C175902', decode: 'Unscheduled Visit' },
-    { code: 'C48660', decode: 'Not Applicable' },
+    { code: 'C25716', decode: 'Visit' },
   ],
   blindingSchema: [
-    { code: 'C15228', decode: 'Single Blind' },
-    { code: 'C15616', decode: 'Double Blind' },
-    { code: 'C49659', decode: 'Open Label' },
-    { code: 'C156591', decode: 'Triple Blind' },
+    { code: 'C49659', decode: 'Open Label Study' },
+    { code: 'C28233', decode: 'Single Blind Study' },
+    { code: 'C15228', decode: 'Double Blind Study' },
+    { code: 'C66959', decode: 'Triple Blind Study' },
   ],
   epochType: [
-    { code: 'C98779', decode: 'Screening' },
-    { code: 'C101526', decode: 'Run-in' },
-    { code: 'C98780', decode: 'Treatment' },
-    { code: 'C99158', decode: 'Follow-up' },
+    { code: 'C48262', decode: 'Trial Screening' },
+    { code: 'C98779', decode: 'Run-in Period' },
+    { code: 'C101526', decode: 'Treatment Epoch' },
+    { code: 'C99158', decode: 'Clinical Study Follow-up' },
     { code: 'C48660', decode: 'Not Applicable' },
   ],
   armType: [
@@ -102,9 +99,9 @@ export const CDISC_TERMINOLOGIES: Record<string, CodeOption[]> = {
     { code: 'C48660', decode: 'Not Applicable' },
   ],
   endpointPurpose: [
-    { code: 'C98772', decode: 'Primary' },
-    { code: 'C98773', decode: 'Secondary' },
-    { code: 'C98774', decode: 'Exploratory' },
+    { code: 'C94496', decode: 'Primary Endpoint' },
+    { code: 'C139173', decode: 'Secondary Endpoint' },
+    { code: 'C170559', decode: 'Exploratory Endpoint' },
   ],
   routeOfAdministration: [
     { code: 'C38288', decode: 'Oral' },
