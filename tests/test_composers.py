@@ -172,7 +172,7 @@ class TestComposeSynopsis:
             population=SAMPLE_POPULATION,
             indications=SAMPLE_INDICATIONS,
             epochs=SAMPLE_EPOCHS,
-            blinding={"standardCode": {"code": "C15327", "decode": "Double Blind"}},
+            blinding={"standardCode": {"code": "C15228", "decode": "Double Blind Study"}},
             randomization={"code": "C25196", "decode": "Randomized"},
         )
         text = _compose_synopsis(usdm)
