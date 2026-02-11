@@ -18,15 +18,15 @@ This file contains the official CDISC controlled terminology (CT) for the Unifie
 ## How to Read
 ```python
 import openpyxl
-wb = openpyxl.load_workbook('core/reference_data/USDM_CT.xlsx')
-ws = wb['DDF valid value sets']
+wb = openpyxl.load_workbook("core/reference_data/USDM_CT.xlsx")
+ws = wb["DDF valid value sets"]
 for row in ws.iter_rows(min_row=2, values_only=True):
     entity, attr, codelist, extensible, code, decode = row[1], row[2], row[3], row[4], row[5], row[6]
 ```
 
 ---
 
-## Complete Codelist Reference
+## Complete Codelist Reference (25 codelists)
 
 ### AdministrableProduct.productDesignation — Codelist C207418 (Extensible: No)
 | Code | Decode |
@@ -40,60 +40,57 @@ for row in ws.iter_rows(min_row=2, values_only=True):
 | C215659 | Centrally Sourced |
 | C215660 | Locally Sourced |
 
-### AdministrableProductProperty.code — Codelist C215482 (Extensible: Yes)
+### AdministrableProductProperty.type — Codelist C215479 (Extensible: Yes)
 | Code | Decode |
 |------|--------|
-| C215663 | Appearance |
-| C215664 | Packaging |
+| C45997 | pH |
 
-### Encounter.type — Codelist C201266 (Extensible: No)
+### Encounter.type — Codelist C188728 (Extensible: Yes)
 | Code | Decode |
 |------|--------|
-| C201359 | Scheduled Visit |
-| C201360 | Unscheduled Visit |
+| C25716 | Visit |
 
-### Endpoint.level — Codelist C207420 (Extensible: No)
+### Endpoint.level — Codelist C188726 (Extensible: No)
 | Code | Decode |
 |------|--------|
-| C98772 | Primary |
-| C98781 | Secondary |
-| C98724 | Exploratory |
+| C170559 | Exploratory Endpoint |
+| C94496 | Primary Endpoint |
+| C139173 | Secondary Endpoint |
 
-### Entity.instanceType — Codelist C207414 (Extensible: No)
-| Code | Decode |
-|------|--------|
-| C215651 | InterventionalStudyDesign |
-| C215652 | ObservationalStudyDesign |
-
-### GeographicScope.type — Codelist C188725 (Extensible: Yes)
+### GeographicScope.type — Codelist C207412 (Extensible: No)
 | Code | Decode |
 |------|--------|
 | C25464 | Country |
-| C25632 | Region |
+| C68846 | Global |
+| C41129 | Region |
 
-### GovernanceDate.type — Codelist C188726 (Extensible: Yes)
+### GovernanceDate.type — Codelist C207413 (Extensible: Yes)
 | Code | Decode |
 |------|--------|
-| C132352 | Informed Consent Date |
-| C188865 | Study Approval Date |
+| C71476 | Approval Date |
+| C215663 | Effective Date |
+| C215664 | Issued Date |
 
-### MedicalDevice.productDesignation — Codelist C215479 (Extensible: No)
+### MedicalDevice.sourcing — Codelist C215482 (Extensible: Yes)
 | Code | Decode |
 |------|--------|
-| C202579 | IMP |
-| C156473 | NIMP |
+| C215659 | Centrally Sourced |
+| C215660 | Locally Sourced |
 
 ### MedicalDeviceIdentifier.type — Codelist C215484 (Extensible: Yes)
 | Code | Decode |
 |------|--------|
+| C104504 | Batch Number |
 | C112279 | FDA Unique Device Identification |
+| C70848 | Lot Number |
+| C99285 | Model Number |
 
-### Objective.level — Codelist C207421 (Extensible: No)
+### Objective.level — Codelist C188725 (Extensible: No)
 | Code | Decode |
 |------|--------|
-| C85826 | Primary |
-| C85827 | Secondary |
-| C163559 | Exploratory |
+| C163559 | Exploratory Objective |
+| C85826 | Primary Objective |
+| C85827 | Secondary Objective |
 
 ### ObservationalStudyDesign.subTypes — Codelist C215486 (Extensible: Yes)
 | Code | Decode |
@@ -197,14 +194,14 @@ for row in ws.iter_rows(min_row=2, values_only=True):
 ### StudyIntervention.role — Codelist C207417 (Extensible: No)
 | Code | Decode |
 |------|--------|
-| C41161 | Experimental Intervention |
-| C68609 | Active Comparator |
-| C753 | Placebo |
-| C165835 | Rescue Medicine |
 | C207614 | Additional Required Treatment |
 | C165822 | Background Treatment |
 | C158128 | Challenge Agent |
 | C18020 | Diagnostic |
+| C41161 | Experimental Intervention |
+| C753 | Placebo |
+| C165835 | Rescue Medicine |
+| C68609 | Active Comparator |
 
 ### StudyRole.code — Codelist C215480 (Extensible: Yes)
 | Code | Decode |
@@ -218,7 +215,7 @@ for row in ws.iter_rows(min_row=2, values_only=True):
 | C215669 | Co-Sponsor |
 | C25392 | Manufacturer |
 | C215670 | Local Sponsor |
-| C188863 | Regulatory Agency |
+| C188863 | Regulatory Agency  |
 | C51876 | Medical Expert |
 | C142578 | Independent Data Monitoring Committee |
 | C215671 | Dose Escalation Committee |
@@ -265,11 +262,12 @@ The following coded fields have no USDM CT codelist and use NCI Thesaurus codes 
 | Entity.Attribute | Source | Example Codes |
 |-----------------|--------|---------------|
 | StudyIntervention.type | ICH M11 | C1909 (Drug), C1261 (Biological), C16203 (Device) |
-| StudyDesign.studyType | NCI Thesaurus | C98388 (Interventional), C15208 (Observational) |
-| StudyArm.type | NCI Thesaurus | C174266 (Investigational Arm), C174267 (Active Comparator Arm), C174268 (Placebo Control Arm) |
+| StudyDesign.studyType | NCI Thesaurus | C98388 (Interventional), C142615 (Observational) |
+| StudyArm.type | NCI Thesaurus | C174266 (Experimental Arm), C174267 (Active Comparator Arm), C174268 (Placebo Comparator Arm) |
 | EligibilityCriterion.category | NCI Thesaurus | C25532 (Inclusion), C25370 (Exclusion) |
-| StudyDesign.trialPhase | NCI Thesaurus | C15600–C15603 (Phase I–IV), C49686 (Phase I/II) |
-| Masking.blindingSchema | NCI Thesaurus | C49659 (Open Label), C15479 (Single Blind), C15327 (Double Blind) |
+| StudyDesign.trialPhase | NCI Thesaurus | C15600–C15603 (Phase I–IV), C15693 (Phase I/II) |
+| Masking.blindingSchema | NCI Thesaurus | C49659 (Open Label Study), C28233 (Single Blind Study), C15228 (Double Blind Study), C66959 (Triple Blind Study) |
+| StudyEpoch.type | NCI Thesaurus | C48262 (Trial Screening), C98779 (Run-in Period), C101526 (Treatment Epoch), C99158 (Clinical Study Follow-up) |
 
 ## Usage in Pipeline
 
@@ -277,7 +275,11 @@ The pipeline uses these codes in:
 - `extraction/interventions/schema.py` — `StudyIntervention.to_dict()`, `AdministrableProduct.to_dict()`
 - `extraction/eligibility/schema.py` — `StudyDesignPopulation.to_dict()`
 - `extraction/metadata/schema.py` — title types, organization types
-- `pipeline/combiner.py` — studyType derivation
+- `extraction/procedures/schema.py` — procedure type codes
+- `pipeline/combiner.py` — studyType derivation, organization defaults
 - `pipeline/promotion.py` — plannedSex, plannedAge inference
-- `core/terminology_codes.py` — arm types, study phases, design types
+- `pipeline/post_processing.py` — procedure code sanitization
+- `core/terminology_codes.py` — objective/endpoint levels, arm types, study phases, blinding
+- `core/usdm_types_generated.py` — epoch types, blinding, dataOriginType defaults
+- `core/reconciliation/epoch_reconciler.py` — epoch type inference
 - `web-ui/components/semantic/EditableCodedValue.tsx` — UI dropdown options
