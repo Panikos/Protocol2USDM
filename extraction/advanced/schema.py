@@ -78,7 +78,7 @@ class StudyAmendment:
                 "id": generate_uuid(),
                 "code": {  # Nested Code object
                     "id": generate_uuid(),
-                    "code": "C98782",
+                    "code": "C132347",
                     "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
                     "codeSystemVersion": "25.01d",
                     "decode": "Protocol Amendment",

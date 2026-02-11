@@ -679,7 +679,7 @@ def _create_terminal_epoch(epoch_id: str, epoch_name: str) -> Dict[str, Any]:
         "sequenceNumber": 999,  # Terminal epochs are at the end
         "epochType": {
             "id": str(uuid.uuid4()),
-            "code": "C99079" if "termination" in epoch_id else "C99078",
+            "code": "C71738",  # Clinical Trial Epoch (generic)
             "codeSystem": "http://www.cdisc.org",
             "decode": epoch_name,
             "instanceType": "Code"
@@ -900,7 +900,7 @@ def _add_execution_extensions(
     if execution_data.crossover_design and execution_data.crossover_design.is_crossover:
         design['model'] = {
             "id": "code_model_1",
-            "code": "C49649",  # CDISC code for Crossover Study
+            "code": "C82637",  # Crossover Study (EVS-verified)
             "codeSystem": "http://www.cdisc.org",
             "codeSystemVersion": "2024-09-27",
             "decode": "Crossover Study",
@@ -993,7 +993,7 @@ def _add_execution_extensions(
                             "sequenceNumber": 100 + i + 0.5,
                             "epochType": {
                                 "id": str(uuid.uuid4()),
-                                "code": "C48271",  # Washout
+                                "code": "C71738",  # Clinical Trial Epoch (no specific washout code in NCI)
                                 "codeSystem": "http://www.cdisc.org",
                                 "decode": "Washout",
                                 "instanceType": "Code"

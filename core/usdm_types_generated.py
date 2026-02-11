@@ -264,7 +264,7 @@ class StudyTitle(USDMEntity):
         if self.type:
             result["type"] = self.type.to_dict()
         else:
-            result["type"] = Code.make("C99905", "Official Study Title").to_dict()
+            result["type"] = Code.make("C207616", "Official Study Title").to_dict()
         return result
 
 
@@ -415,7 +415,7 @@ class StudyDesign(USDMEntity):
             if len(self.arms) >= 2:
                 result["model"] = Code.make("C82639", "Parallel Study").to_dict()
             else:
-                result["model"] = Code.make("C82638", "Single Group Study").to_dict()
+                result["model"] = Code.make("C82640", "Single Group Study").to_dict()
         
         # Arrays
         if self.arms:
@@ -485,13 +485,13 @@ class StudyArm(USDMEntity):
         else:
             name_lower = self.name.lower()
             if "placebo" in name_lower:
-                result["type"] = Code.make("C49648", "Placebo Comparator Arm").to_dict()
+                result["type"] = Code.make("C174268", "Placebo Control Arm").to_dict()
             elif "active" in name_lower or "comparator" in name_lower:
-                result["type"] = Code.make("C49647", "Active Comparator Arm").to_dict()
+                result["type"] = Code.make("C174267", "Active Comparator Arm").to_dict()
             elif "control" in name_lower:
-                result["type"] = Code.make("C174266", "No Intervention Arm").to_dict()
+                result["type"] = Code.make("C174270", "No Intervention Arm").to_dict()
             else:
-                result["type"] = Code.make("C174267", "Experimental Arm").to_dict()
+                result["type"] = Code.make("C174266", "Investigational Arm").to_dict()
         
         # dataOriginType is required
         if self.dataOriginType:
@@ -668,21 +668,8 @@ class Encounter(USDMEntity):
         if self.type:
             result["type"] = self.type.to_dict()
         else:
-            name_lower = self.name.lower()
-            if "screen" in name_lower:
-                result["type"] = Code.make("C48262", "Screening").to_dict()
-            elif "baseline" in name_lower or "day 1" in name_lower or "day1" in name_lower:
-                result["type"] = Code.make("C82517", "Baseline").to_dict()
-            elif "follow" in name_lower:
-                result["type"] = Code.make("C99158", "Follow-up").to_dict()
-            elif "end" in name_lower or "eos" in name_lower or "completion" in name_lower:
-                result["type"] = Code.make("C126070", "End of Study").to_dict()
-            elif "early" in name_lower or "discontin" in name_lower or "termination" in name_lower:
-                result["type"] = Code.make("C49631", "Early Termination").to_dict()
-            elif "unscheduled" in name_lower:
-                result["type"] = Code.make("C99157", "Unscheduled").to_dict()
-            else:
-                result["type"] = Code.make("C99156", "Scheduled Visit").to_dict()
+            # USDM CT C188728 only defines C25716 "Visit" as encounter type
+            result["type"] = Code.make("C25716", "Visit").to_dict()
         
         if self.epochId:
             result["epochId"] = self.epochId
@@ -930,7 +917,7 @@ class Timing(USDMEntity):
         else:
             result["type"] = {
                 "id": generate_uuid(),
-                "code": "C71148",
+                "code": "C201358",
                 "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
                 "codeSystemVersion": "25.01d",
                 "decode": "Fixed Reference",
@@ -943,10 +930,10 @@ class Timing(USDMEntity):
         else:
             result["relativeToFrom"] = {
                 "id": generate_uuid(),
-                "code": "C71153",
+                "code": "C201355",
                 "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
                 "codeSystemVersion": "25.01d",
-                "decode": "Study Start",
+                "decode": "Start to Start",
                 "instanceType": "Code"
             }
         
@@ -1464,7 +1451,7 @@ class AdministrableProduct(USDMEntity):
         if self.productDesignation:
             result["productDesignation"] = self.productDesignation.to_dict()
         else:
-            result["productDesignation"] = Code.make("C68846", "Investigational Product").to_dict()
+            result["productDesignation"] = Code.make("C202579", "IMP").to_dict()
         return result
 
 
@@ -1530,7 +1517,7 @@ class StudyAmendment(USDMEntity):
         if self.geographicScopes:
             result["geographicScopes"] = [g.to_dict() for g in self.geographicScopes]
         else:
-            result["geographicScopes"] = [Code.make("C17998", "Global").to_dict()]
+            result["geographicScopes"] = [Code.make("C68846", "Global").to_dict()]
         if self.changes:
             result["changes"] = self.changes
         else:
@@ -1538,7 +1525,7 @@ class StudyAmendment(USDMEntity):
         if self.primaryReason:
             result["primaryReason"] = self.primaryReason.to_dict()
         else:
-            result["primaryReason"] = Code.make("C49663", "Safety").to_dict()
+            result["primaryReason"] = Code.make("C207609", "New Safety Information Available").to_dict()
         return result
 
 
