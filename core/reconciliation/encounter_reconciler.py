@@ -28,17 +28,18 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 
 ENCOUNTER_TYPE_CODES = {
-    "screening": ("C98779", "Screening Visit"),
-    "baseline": ("C142615", "Baseline Visit"),
-    "randomization": ("C71738", "Randomization Visit"),
-    "treatment": ("C98780", "Treatment Visit"),
-    "follow-up": ("C98777", "Follow-up Visit"),
-    "followup": ("C98777", "Follow-up Visit"),
-    "end of study": ("C98780", "End of Study Visit"),
-    "eos": ("C98780", "End of Study Visit"),
-    "early termination": ("C98780", "Early Termination Visit"),
-    "et": ("C98780", "Early Termination Visit"),
-    "unscheduled": ("C98780", "Unscheduled Visit"),
+    # USDM CT C188728 only defines C25716 "Visit" as encounter type
+    "screening": ("C25716", "Visit"),
+    "baseline": ("C25716", "Visit"),
+    "randomization": ("C25716", "Visit"),
+    "treatment": ("C25716", "Visit"),
+    "follow-up": ("C25716", "Visit"),
+    "followup": ("C25716", "Visit"),
+    "end of study": ("C25716", "Visit"),
+    "eos": ("C25716", "Visit"),
+    "early termination": ("C25716", "Visit"),
+    "et": ("C25716", "Visit"),
+    "unscheduled": ("C25716", "Visit"),
 }
 
 
@@ -52,13 +53,13 @@ def infer_encounter_type(name: str) -> tuple:
     
     # Check for day patterns
     if re.search(r'day\s*[-]?\d+', name_lower):
-        return "C98780", "Study Visit"
+        return "C25716", "Visit"
     if re.search(r'week\s*\d+', name_lower):
-        return "C98780", "Study Visit"
+        return "C25716", "Visit"
     if re.search(r'visit\s*\d+', name_lower):
-        return "C98780", "Study Visit"
+        return "C25716", "Visit"
     
-    return "C98780", "Study Visit"
+    return "C25716", "Visit"
 
 
 def extract_timing_from_name(name: str) -> Dict[str, Any]:

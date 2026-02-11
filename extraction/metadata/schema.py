@@ -159,17 +159,17 @@ class Organization:
     def to_dict(self) -> Dict[str, Any]:
         # Map organization types to NCI codes
         org_type_codes = {
-            OrganizationType.REGULATORY_AGENCY: ("C25461", "Regulatory Agency"),
-            OrganizationType.PHARMACEUTICAL_COMPANY: ("C54086", "Pharmaceutical Company"),
-            OrganizationType.CRO: ("C70816", "Contract Research Organization"),
-            OrganizationType.ACADEMIC: ("C25516", "Academic Institution"),
-            OrganizationType.HEALTHCARE: ("C19326", "Healthcare Facility"),
-            OrganizationType.GOVERNMENT: ("C25402", "Government Institute"),
-            OrganizationType.LABORATORY: ("C25489", "Laboratory"),
-            OrganizationType.REGISTRY: ("C71104", "Clinical Study Registry"),
-            OrganizationType.MEDICAL_DEVICE: ("C54087", "Medical Device Company"),
+            OrganizationType.REGULATORY_AGENCY: ("C188863", "Regulatory Agency"),
+            OrganizationType.PHARMACEUTICAL_COMPANY: ("C54149", "Pharmaceutical Company"),
+            OrganizationType.CRO: ("C54148", "Contract Research Organization"),
+            OrganizationType.ACADEMIC: ("C18240", "Academic Institution"),
+            OrganizationType.HEALTHCARE: ("C21541", "Healthcare Facility"),
+            OrganizationType.GOVERNMENT: ("C199144", "Government Institute"),
+            OrganizationType.LABORATORY: ("C37984", "Laboratory"),
+            OrganizationType.REGISTRY: ("C93453", "Clinical Study Registry"),
+            OrganizationType.MEDICAL_DEVICE: ("C215661", "Medical Device Company"),
         }
-        code, decode = org_type_codes.get(self.type, ("C17998", "Unknown"))
+        code, decode = org_type_codes.get(self.type, ("C54149", "Pharmaceutical Company"))
         
         result = {
             "id": self.id,

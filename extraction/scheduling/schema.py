@@ -99,13 +99,13 @@ class Timing:
     def _timing_type_to_code(self) -> Dict[str, Any]:
         """Convert timing type to USDM Code object."""
         type_codes = {
-            TimingType.BEFORE: ("C71149", "Before"),
-            TimingType.AFTER: ("C71150", "After"),
-            TimingType.WITHIN: ("C71151", "Within"),
-            TimingType.AT: ("C71148", "Fixed Reference"),
-            TimingType.BETWEEN: ("C71152", "Between"),
+            TimingType.BEFORE: ("C201357", "Before"),
+            TimingType.AFTER: ("C201356", "After"),
+            TimingType.WITHIN: ("C201358", "Fixed Reference"),
+            TimingType.AT: ("C201358", "Fixed Reference"),
+            TimingType.BETWEEN: ("C201358", "Fixed Reference"),
         }
-        code, decode = type_codes.get(self.timing_type, ("C71148", "Fixed Reference"))
+        code, decode = type_codes.get(self.timing_type, ("C201358", "Fixed Reference"))
         return {
             "id": generate_uuid(),
             "code": code,
@@ -117,20 +117,23 @@ class Timing:
     
     def _relative_to_from_code(self) -> Dict[str, Any]:
         """Convert relative reference to USDM Code object."""
+        # USDM CT C201265 defines relativeToFrom as temporal relationship between instances
+        # (Start to Start, End to Start, etc.), not reference points like 'Study Start'.
+        # The reference point is conveyed via relativeFromScheduledInstanceId.
         ref_codes = {
-            TimingRelativeToFrom.STUDY_START: ("C71153", "Study Start"),
-            TimingRelativeToFrom.RANDOMIZATION: ("C71154", "Randomization"),
-            TimingRelativeToFrom.FIRST_DOSE: ("C71155", "First Dose"),
-            TimingRelativeToFrom.LAST_DOSE: ("C71156", "Last Dose"),
-            TimingRelativeToFrom.PREVIOUS_VISIT: ("C71157", "Previous Visit"),
-            TimingRelativeToFrom.SCREENING: ("C71158", "Screening"),
-            TimingRelativeToFrom.BASELINE: ("C71159", "Baseline"),
-            TimingRelativeToFrom.END_OF_TREATMENT: ("C71160", "End of Treatment"),
+            TimingRelativeToFrom.STUDY_START: ("C201355", "Start to Start"),
+            TimingRelativeToFrom.RANDOMIZATION: ("C201355", "Start to Start"),
+            TimingRelativeToFrom.FIRST_DOSE: ("C201355", "Start to Start"),
+            TimingRelativeToFrom.LAST_DOSE: ("C201353", "End to Start"),
+            TimingRelativeToFrom.PREVIOUS_VISIT: ("C201353", "End to Start"),
+            TimingRelativeToFrom.SCREENING: ("C201355", "Start to Start"),
+            TimingRelativeToFrom.BASELINE: ("C201355", "Start to Start"),
+            TimingRelativeToFrom.END_OF_TREATMENT: ("C201352", "End to End"),
         }
         if self.relative_to:
-            code, decode = ref_codes.get(self.relative_to, ("C71153", "Study Start"))
+            code, decode = ref_codes.get(self.relative_to, ("C201355", "Start to Start"))
         else:
-            code, decode = "C71153", "Study Start"
+            code, decode = "C201355", "Start to Start"
         return {
             "id": generate_uuid(),
             "code": code,
