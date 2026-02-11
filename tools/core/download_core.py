@@ -2,17 +2,27 @@
 """
 CDISC CORE Engine Installer & Updater.
 
-Downloads the pre-built CORE executable from the official CDISC GitHub releases.
-Auto-detects OS and architecture. Tracks installed version for update checks.
+Downloads ALL platform executables from the official CDISC GitHub releases
+into platform-specific subdirectories. Auto-detects the correct one at
+runtime. Use --core to override auto-detection.
+
+Directory layout after install:
+    tools/core/bin/
+        windows/core.exe   (+ DLLs, resources)
+        linux/core          (+ shared libs, resources)
+        mac/core            (+ dylibs, resources)
+        .version.json       (tracks installed version)
 
 Usage:
-    python tools/core/download_core.py            # Install (first time) or show status
-    python tools/core/download_core.py --update    # Check for updates and re-download if newer
-    python tools/core/download_core.py --force     # Force re-download even if up to date
+    python tools/core/download_core.py              # Install all platforms
+    python tools/core/download_core.py --update     # Check for newer version
+    python tools/core/download_core.py --force      # Force re-download
+    python tools/core/download_core.py --status     # Show install info
 
 Pipeline integration:
     from tools.core.download_core import ensure_core_engine
-    exe_path = ensure_core_engine()  # Returns Path to executable or None
+    exe_path = ensure_core_engine()                 # Auto-detect OS
+    exe_path = ensure_core_engine(core="windows")   # Force platform
 """
 
 import json
@@ -21,7 +31,6 @@ import os
 import platform
 import shutil
 import stat
-import struct
 import sys
 import tarfile
 import urllib.error
@@ -29,7 +38,7 @@ import urllib.request
 import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -41,61 +50,58 @@ GITHUB_REPO = "cdisc-org/cdisc-rules-engine"
 GITHUB_API_LATEST = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 GITHUB_RELEASES = f"https://github.com/{GITHUB_REPO}/releases"
 
-# Install location: tools/core/bin/<extracted contents>
+# Root install location
 INSTALL_DIR = Path(__file__).parent / "bin"
 VERSION_FILE = INSTALL_DIR / ".version.json"
 
-# Platform → asset name mapping
-# Keys: (system, machine_hint)
-_ASSET_MAP = {
-    ("Windows", "any"):         "core-windows.zip",
-    ("Linux", "any"):           "core-ubuntu-latest.zip",
-    ("Darwin", "arm64"):        "core-mac-apple-silicon.zip",
-    ("Darwin", "x86_64"):       "core-mac-intel.zip",
+# Platform definitions: label → (asset_name, executable_name)
+PLATFORMS: Dict[str, Tuple[str, str]] = {
+    "windows": ("core-windows.zip", "core.exe"),
+    "linux":   ("core-ubuntu-latest.zip", "core"),
+    "mac":     ("core-mac-apple-silicon.zip", "core"),
 }
+
+# Valid --core flag values
+VALID_CORE_FLAGS = list(PLATFORMS.keys())
 
 
 # ---------------------------------------------------------------------------
 # Platform detection
 # ---------------------------------------------------------------------------
 
-def _detect_platform() -> Tuple[str, str]:
+def detect_platform() -> str:
     """
-    Detect current OS and architecture.
+    Auto-detect the current platform label.
 
     Returns:
-        (asset_name, executable_name) for the current platform.
+        One of 'windows', 'linux', 'mac'.
 
     Raises:
-        RuntimeError: If the platform is not supported.
+        RuntimeError if platform is unsupported.
     """
-    system = platform.system()  # Windows, Linux, Darwin
-    machine = platform.machine().lower()  # x86_64, amd64, arm64, aarch64
-
-    # Normalize architecture
-    if machine in ("arm64", "aarch64"):
-        arch_hint = "arm64"
+    system = platform.system()
+    if system == "Windows":
+        return "windows"
+    elif system == "Linux":
+        return "linux"
+    elif system == "Darwin":
+        return "mac"
     else:
-        arch_hint = "x86_64"
-
-    # Determine executable name
-    exe_name = "core.exe" if system == "Windows" else "core"
-
-    # Lookup asset
-    asset = _ASSET_MAP.get((system, arch_hint)) or _ASSET_MAP.get((system, "any"))
-    if not asset:
         raise RuntimeError(
-            f"Unsupported platform: {system}/{machine}. "
-            f"Download manually from {GITHUB_RELEASES}"
+            f"Unsupported OS: {system}. Use --core windows|linux|mac to override."
         )
 
-    return asset, exe_name
 
+def get_exe_path(core: Optional[str] = None) -> Path:
+    """
+    Return the path to the CORE executable for the given (or detected) platform.
 
-def _get_exe_path() -> Path:
-    """Return the expected path to the CORE executable for this platform."""
-    _, exe_name = _detect_platform()
-    return INSTALL_DIR / exe_name
+    Args:
+        core: Platform override ('windows', 'linux', 'mac'). Auto-detects if None.
+    """
+    plat = core or detect_platform()
+    _, exe_name = PLATFORMS[plat]
+    return INSTALL_DIR / plat / exe_name
 
 
 # ---------------------------------------------------------------------------
@@ -118,20 +124,14 @@ def _fetch_latest_release() -> dict:
 
 
 def _find_asset_url(release: dict, asset_name: str) -> Tuple[str, str]:
-    """
-    Find the download URL for the named asset in a release.
-
-    Returns:
-        (download_url, tag_name)
-    """
+    """Find the download URL for an asset. Returns (url, tag)."""
     tag = release.get("tag_name", "unknown")
     for asset in release.get("assets", []):
         if asset["name"] == asset_name:
             return asset["browser_download_url"], tag
     available = [a["name"] for a in release.get("assets", [])]
     raise RuntimeError(
-        f"Asset '{asset_name}' not found in release {tag}. "
-        f"Available: {available}"
+        f"Asset '{asset_name}' not found in release {tag}. Available: {available}"
     )
 
 
@@ -148,32 +148,27 @@ def _progress_hook(block_num: int, block_size: int, total_size: int) -> None:
     bar = "=" * (percent // 2) + "-" * (50 - percent // 2)
     mb_done = downloaded / (1024 * 1024)
     mb_total = total_size / (1024 * 1024)
-    sys.stdout.write(f"\r  [{bar}] {percent}%  ({mb_done:.1f}/{mb_total:.1f} MB)")
+    sys.stdout.write(f"\r    [{bar}] {percent}%  ({mb_done:.1f}/{mb_total:.1f} MB)")
     sys.stdout.flush()
 
 
-def _download_and_extract(url: str, asset_name: str) -> None:
-    """Download an archive from URL and extract to INSTALL_DIR."""
-    INSTALL_DIR.mkdir(parents=True, exist_ok=True)
-    tmp_path = INSTALL_DIR / asset_name
+def _download_and_extract(url: str, asset_name: str, target_dir: Path) -> None:
+    """Download an archive and extract (flattened) into target_dir."""
+    target_dir.mkdir(parents=True, exist_ok=True)
+    tmp_path = target_dir / asset_name
 
-    print(f"  Downloading: {asset_name}")
-    print(f"  URL: {url}")
+    print(f"    Downloading: {asset_name}")
     try:
         urllib.request.urlretrieve(url, str(tmp_path), _progress_hook)
         print()  # newline after progress bar
     except Exception as e:
         tmp_path.unlink(missing_ok=True)
-        raise RuntimeError(
-            f"Download failed: {e}\n"
-            f"Manual download: {GITHUB_RELEASES}"
-        ) from e
+        raise RuntimeError(f"Download failed: {e}") from e
 
-    # Extract to a temporary subdirectory, then flatten
-    tmp_extract = INSTALL_DIR / "_extract_tmp"
+    # Extract to temp, then flatten nested directory if present
+    tmp_extract = target_dir / "_extract_tmp"
     tmp_extract.mkdir(parents=True, exist_ok=True)
 
-    print(f"  Extracting to: {INSTALL_DIR}")
     try:
         if asset_name.endswith(".tar.gz"):
             with tarfile.open(str(tmp_path), "r:gz") as tf:
@@ -186,45 +181,27 @@ def _download_and_extract(url: str, asset_name: str) -> None:
     finally:
         tmp_path.unlink(missing_ok=True)
 
-    # Flatten: if extraction produced a single subdirectory, move its
-    # contents up to INSTALL_DIR (e.g., bin/_extract_tmp/core/* → bin/*)
+    # Flatten: if extraction produced a single subdirectory, move contents up
     children = list(tmp_extract.iterdir())
-    if len(children) == 1 and children[0].is_dir():
-        nested = children[0]
-        for item in nested.iterdir():
-            dest = INSTALL_DIR / item.name
-            if dest.exists():
-                if dest.is_dir():
-                    shutil.rmtree(dest)
-                else:
-                    dest.unlink()
-            shutil.move(str(item), str(dest))
-        shutil.rmtree(tmp_extract, ignore_errors=True)
-    else:
-        # No nesting — move everything up
-        for item in tmp_extract.iterdir():
-            dest = INSTALL_DIR / item.name
-            if dest.exists():
-                if dest.is_dir():
-                    shutil.rmtree(dest)
-                else:
-                    dest.unlink()
-            shutil.move(str(item), str(dest))
-        shutil.rmtree(tmp_extract, ignore_errors=True)
+    source = children[0] if len(children) == 1 and children[0].is_dir() else tmp_extract
+    for item in source.iterdir():
+        dest = target_dir / item.name
+        if dest.exists():
+            if dest.is_dir():
+                shutil.rmtree(dest)
+            else:
+                dest.unlink()
+        shutil.move(str(item), str(dest))
+    shutil.rmtree(tmp_extract, ignore_errors=True)
 
 
-def _post_install(exe_path: Path) -> None:
-    """Platform-specific post-install steps (chmod, xattr)."""
-    system = platform.system()
-
-    if system == "Darwin":
-        # Remove quarantine attribute on macOS
-        os.system(f'xattr -rd com.apple.quarantine "{exe_path.parent}"')
+def _post_install_platform(plat: str, exe_path: Path) -> None:
+    """Platform-specific post-install steps."""
+    if plat == "mac":
+        os.system(f'xattr -rd com.apple.quarantine "{exe_path.parent}" 2>/dev/null')
         exe_path.chmod(exe_path.stat().st_mode | stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH)
-        print("  Applied macOS quarantine removal + chmod +x")
-    elif system == "Linux":
+    elif plat == "linux":
         exe_path.chmod(exe_path.stat().st_mode | stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH)
-        print("  Applied chmod +x")
 
 
 # ---------------------------------------------------------------------------
@@ -241,16 +218,17 @@ def _read_version_info() -> Optional[dict]:
     return None
 
 
-def _write_version_info(tag: str, asset_name: str) -> None:
+def _write_version_info(tag: str, platforms_installed: List[str]) -> None:
     """Write version metadata after successful install."""
     info = {
         "version": tag.lstrip("v"),
         "tag": tag,
-        "asset": asset_name,
-        "platform": platform.system(),
-        "machine": platform.machine(),
+        "platforms": platforms_installed,
         "installed_at": datetime.now(timezone.utc).isoformat(),
+        "host_os": platform.system(),
+        "host_machine": platform.machine(),
     }
+    INSTALL_DIR.mkdir(parents=True, exist_ok=True)
     VERSION_FILE.write_text(json.dumps(info, indent=2), encoding="utf-8")
 
 
@@ -258,70 +236,76 @@ def _write_version_info(tag: str, asset_name: str) -> None:
 # Public API
 # ---------------------------------------------------------------------------
 
-def install_core(force: bool = False) -> Optional[Path]:
+def install_core(force: bool = False) -> bool:
     """
-    Install CDISC CORE engine executable.
+    Download ALL platform executables from the latest GitHub release.
 
-    Downloads the appropriate pre-built executable from the latest GitHub
-    release. Skips download if already installed (unless force=True).
+    Creates: tools/core/bin/{windows,linux,mac}/ with flattened contents.
 
     Args:
         force: Re-download even if already installed.
 
     Returns:
-        Path to the executable, or None on failure.
+        True if all platforms installed successfully.
     """
-    try:
-        asset_name, exe_name = _detect_platform()
-    except RuntimeError as e:
-        print(f"✗ {e}")
-        return None
-
-    exe_path = INSTALL_DIR / exe_name
-
     # Already installed?
-    if exe_path.exists() and not force:
-        info = _read_version_info()
-        ver = info.get("version", "unknown") if info else "unknown"
-        print(f"✓ CORE engine v{ver} already installed at: {exe_path}")
-        return exe_path
+    info = _read_version_info()
+    if info and not force:
+        installed_plats = info.get("platforms", [])
+        all_present = all(
+            (INSTALL_DIR / plat / PLATFORMS[plat][1]).exists()
+            for plat in PLATFORMS
+        )
+        if all_present:
+            ver = info.get("version", "unknown")
+            print(f"✓ CORE engine v{ver} already installed for: {', '.join(installed_plats)}")
+            return True
 
     # Clean previous install if forcing
     if force and INSTALL_DIR.exists():
         print("  Removing previous installation...")
         shutil.rmtree(INSTALL_DIR, ignore_errors=True)
 
-    # Fetch latest release info
+    # Fetch latest release
     print("Fetching latest CDISC CORE release...")
     try:
         release = _fetch_latest_release()
-        url, tag = _find_asset_url(release, asset_name)
     except RuntimeError as e:
         print(f"✗ {e}")
-        return None
+        return False
 
-    print(f"Installing CDISC CORE Engine {tag} ({asset_name})...")
+    tag = release.get("tag_name", "unknown")
+    print(f"Installing CDISC CORE Engine {tag} (all platforms)...\n")
 
-    # Download and extract
-    try:
-        _download_and_extract(url, asset_name)
-    except RuntimeError as e:
-        print(f"✗ {e}")
-        return None
+    installed_plats = []
+    for plat, (asset_name, exe_name) in PLATFORMS.items():
+        plat_dir = INSTALL_DIR / plat
+        exe_path = plat_dir / exe_name
 
-    # Post-install
-    if not exe_path.exists():
-        print(f"✗ Expected executable not found at: {exe_path}")
-        print(f"  Contents of {INSTALL_DIR}:")
-        for item in sorted(INSTALL_DIR.iterdir()):
-            print(f"    {item.name}")
-        return None
+        print(f"  [{plat}]")
+        try:
+            url, _ = _find_asset_url(release, asset_name)
+            _download_and_extract(url, asset_name, plat_dir)
 
-    _post_install(exe_path)
-    _write_version_info(tag, asset_name)
+            if not exe_path.exists():
+                print(f"    ✗ Executable not found at: {exe_path}")
+                continue
 
-    print(f"✓ CORE engine {tag} installed at: {exe_path}")
-    return exe_path
+            _post_install_platform(plat, exe_path)
+            installed_plats.append(plat)
+            print(f"    ✓ {plat} ready\n")
+
+        except RuntimeError as e:
+            print(f"    ✗ {e}\n")
+            continue
+
+    if installed_plats:
+        _write_version_info(tag, installed_plats)
+        print(f"✓ CORE engine {tag} installed: {', '.join(installed_plats)}")
+        return True
+    else:
+        print("✗ No platforms installed successfully")
+        return False
 
 
 def check_for_update() -> Tuple[bool, str, str]:
@@ -340,46 +324,54 @@ def check_for_update() -> Tuple[bool, str, str]:
     return (latest != installed), installed, latest
 
 
-def update_core() -> Optional[Path]:
-    """
-    Check for updates and re-download if a newer version is available.
-
-    Returns:
-        Path to the executable, or None on failure.
-    """
+def update_core() -> bool:
+    """Check for updates and re-download if a newer version is available."""
     print("Checking for CDISC CORE updates...")
     try:
         needs_update, installed, latest = check_for_update()
     except RuntimeError as e:
         print(f"✗ Update check failed: {e}")
-        return _get_exe_path() if _get_exe_path().exists() else None
+        return False
 
     if not needs_update:
         print(f"✓ CORE engine v{installed} is up to date (latest: v{latest})")
-        return _get_exe_path()
+        return True
 
     print(f"  Update available: v{installed} → v{latest}")
     return install_core(force=True)
 
 
-def ensure_core_engine(auto_install: bool = True) -> Optional[Path]:
+def ensure_core_engine(
+    core: Optional[str] = None,
+    auto_install: bool = True,
+) -> Optional[Path]:
     """
     Ensure the CORE engine executable is available.
 
-    Called by the pipeline at runtime. If the executable is not found and
-    auto_install is True, downloads it automatically.
+    Called by the pipeline at runtime. Auto-detects platform unless
+    overridden via ``core`` parameter.
 
     Args:
-        auto_install: If True, download on first run. If False, return None.
+        core: Platform override ('windows', 'linux', 'mac'). Auto-detects if None.
+        auto_install: If True, download all platforms on first run.
 
     Returns:
         Path to the executable, or None if unavailable.
     """
-    try:
-        exe_path = _get_exe_path()
-    except RuntimeError:
-        logger.warning("CDISC CORE: unsupported platform")
-        return None
+    # Resolve platform
+    if core:
+        if core not in PLATFORMS:
+            logger.error(f"Invalid --core value: {core}. Use: {VALID_CORE_FLAGS}")
+            return None
+        plat = core
+    else:
+        try:
+            plat = detect_platform()
+        except RuntimeError:
+            logger.warning("CDISC CORE: unsupported platform — use --core to specify")
+            return None
+
+    exe_path = get_exe_path(plat)
 
     if exe_path.exists():
         return exe_path
@@ -387,25 +379,33 @@ def ensure_core_engine(auto_install: bool = True) -> Optional[Path]:
     if not auto_install:
         return None
 
-    logger.info("CDISC CORE engine not found — downloading automatically...")
+    logger.info("CDISC CORE engine not found — downloading all platforms...")
     print("\n--- CDISC CORE Engine Auto-Install ---")
-    result = install_core()
-    if result:
+    success = install_core()
+    if success:
         print("--- Auto-Install Complete ---\n")
+        # Re-check — the exe should now exist
+        if exe_path.exists():
+            return exe_path
     else:
         print("--- Auto-Install Failed (pipeline will skip CORE validation) ---\n")
-    return result
+    return None
 
 
-def get_core_engine_path() -> Optional[Path]:
+def get_core_engine_path(core: Optional[str] = None) -> Optional[Path]:
     """
     Return the path to the CORE executable without triggering install.
-    Returns None if not installed.
+
+    Args:
+        core: Platform override. Auto-detects if None.
+
+    Returns:
+        Path if installed, None otherwise.
     """
     try:
-        exe_path = _get_exe_path()
+        exe_path = get_exe_path(core)
         return exe_path if exe_path.exists() else None
-    except RuntimeError:
+    except (RuntimeError, KeyError):
         return None
 
 
@@ -418,7 +418,7 @@ def main() -> None:
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="CDISC CORE Engine Installer",
+        description="CDISC CORE Engine Installer — downloads all platform executables",
         epilog=f"Downloads from: {GITHUB_RELEASES}",
     )
     parser.add_argument(
@@ -433,33 +433,43 @@ def main() -> None:
         "--status", action="store_true",
         help="Show installation status and exit",
     )
+    parser.add_argument(
+        "--core", choices=VALID_CORE_FLAGS,
+        help="Override platform auto-detection (for --status only)",
+    )
     args = parser.parse_args()
 
     if args.status:
         info = _read_version_info()
         if info:
-            print(f"CDISC CORE Engine Status:")
+            print("CDISC CORE Engine Status:")
             print(f"  Version:    v{info.get('version', '?')}")
             print(f"  Tag:        {info.get('tag', '?')}")
-            print(f"  Asset:      {info.get('asset', '?')}")
-            print(f"  Platform:   {info.get('platform', '?')}/{info.get('machine', '?')}")
+            print(f"  Platforms:  {', '.join(info.get('platforms', []))}")
+            print(f"  Host:       {info.get('host_os', '?')}/{info.get('host_machine', '?')}")
             print(f"  Installed:  {info.get('installed_at', '?')}")
             try:
-                exe = _get_exe_path()
-                print(f"  Executable: {exe} ({'exists' if exe.exists() else 'MISSING'})")
+                detected = detect_platform()
+                print(f"  Detected:   {detected}")
             except RuntimeError:
-                print(f"  Executable: unknown platform")
+                print("  Detected:   unknown")
+            print()
+            for plat, (_, exe_name) in PLATFORMS.items():
+                exe = INSTALL_DIR / plat / exe_name
+                status = "✓ exists" if exe.exists() else "✗ missing"
+                active = " (active)" if plat == (args.core or detect_platform()) else ""
+                print(f"  {plat:10s}  {status}{active}")
         else:
             print("CDISC CORE Engine: not installed")
             print(f"  Run: python {__file__}")
         return
 
     if args.update:
-        result = update_core()
+        success = update_core()
     else:
-        result = install_core(force=args.force)
+        success = install_core(force=args.force)
 
-    sys.exit(0 if result else 1)
+    sys.exit(0 if success else 1)
 
 
 if __name__ == "__main__":

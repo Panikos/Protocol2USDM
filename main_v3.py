@@ -107,6 +107,11 @@ Examples:
     conditional_group.add_argument("--sap", type=str, metavar="PATH", help="Path to SAP PDF")
     conditional_group.add_argument("--sites", type=str, metavar="PATH", help="Path to site list (CSV/Excel)")
     
+    # CDISC CORE engine
+    core_group = parser.add_argument_group('CDISC CORE Engine')
+    core_group.add_argument("--core", choices=["windows", "linux", "mac"],
+                            help="Override CORE engine platform auto-detection")
+    
     args = parser.parse_args()
     
     # Configure logging (must happen before any log output)
@@ -118,7 +123,7 @@ Examples:
     
     # Handle --update-cache
     if args.update_cache:
-        _handle_cache_update()
+        _handle_cache_update(core=getattr(args, 'core', None))
         if not args.pdf_path:
             sys.exit(0)
     
@@ -374,14 +379,14 @@ Examples:
         sys.exit(1)
 
 
-def _handle_cache_update():
+def _handle_cache_update(core: str = None):
     """Handle CDISC CORE cache update."""
     logger.info("Updating CDISC CORE rules cache...")
     import subprocess
     
     # Resolve CORE engine path (auto-install if needed)
     from tools.core.download_core import ensure_core_engine
-    core_exe = ensure_core_engine(auto_install=True)
+    core_exe = ensure_core_engine(core=core, auto_install=True)
     if not core_exe:
         logger.error("CDISC CORE engine not available. Run: python tools/core/download_core.py")
         sys.exit(1)
@@ -688,7 +693,7 @@ def _run_post_processing(args, validation_target, output_dir, config,
     if run_conform:
         logger.info("\n--- Step 9: CDISC Conformance ---")
         from validation.cdisc_conformance import run_cdisc_conformance as conform_fn
-        conform_result = conform_fn(validation_target, output_dir)
+        conform_result = conform_fn(validation_target, output_dir, core=getattr(args, 'core', None))
         if conform_result.get('success'):
             issues = conform_result.get('issues', 0)
             warnings = conform_result.get('warnings', 0)

@@ -15,27 +15,34 @@ from typing import Dict, Any, Optional, List
 logger = logging.getLogger(__name__)
 
 
-def _resolve_core_engine_path(auto_install: bool = True) -> Optional[Path]:
+def _resolve_core_engine_path(
+    auto_install: bool = True,
+    core: Optional[str] = None,
+) -> Optional[Path]:
     """
     Resolve the CORE engine executable path.
 
     Priority:
-    1. New installer location (tools/core/bin/core[.exe])
+    1. New installer location (tools/core/bin/{platform}/core[.exe])
     2. Legacy location (tools/core/core/core.exe) — backward compat
     3. Auto-download via ensure_core_engine() if auto_install=True
+
+    Args:
+        auto_install: Download all platforms if not found.
+        core: Platform override ('windows', 'linux', 'mac'). Auto-detects if None.
     """
     # Try new installer path first
     try:
         from tools.core.download_core import get_core_engine_path, ensure_core_engine
-        path = get_core_engine_path()
+        path = get_core_engine_path(core=core)
         if path:
             return path
         if auto_install:
-            return ensure_core_engine(auto_install=True)
+            return ensure_core_engine(core=core, auto_install=True)
     except ImportError:
         pass
 
-    # Legacy fallback
+    # Legacy fallback (Windows only)
     legacy = Path(__file__).parent.parent / "tools" / "core" / "core" / "core.exe"
     if legacy.exists():
         return legacy
@@ -51,6 +58,7 @@ def run_cdisc_conformance(
     json_path: str,
     output_dir: str,
     api_key: Optional[str] = None,
+    core: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Run CDISC CORE conformance validation.
@@ -65,6 +73,7 @@ def run_cdisc_conformance(
         json_path: Path to USDM JSON file
         output_dir: Directory for output report
         api_key: Optional CDISC API key (from env if not provided)
+        core: Platform override ('windows', 'linux', 'mac'). Auto-detects if None.
         
     Returns:
         Dict with conformance results (including errors if engine failed)
@@ -72,7 +81,7 @@ def run_cdisc_conformance(
     output_path = os.path.join(output_dir, "conformance_report.json")
     
     # Resolve CORE engine path (auto-download on first run)
-    core_path = _resolve_core_engine_path(auto_install=True)
+    core_path = _resolve_core_engine_path(auto_install=True, core=core)
     if core_path and core_path.exists():
         result = _run_local_core_engine(json_path, output_dir, core_path)
         # Save result to file (success or error)
