@@ -14,8 +14,37 @@ from typing import Dict, Any, Optional, List
 
 logger = logging.getLogger(__name__)
 
-# Path to local CDISC CORE engine
-CORE_ENGINE_PATH = Path(__file__).parent.parent / "tools" / "core" / "core" / "core.exe"
+
+def _resolve_core_engine_path(auto_install: bool = True) -> Optional[Path]:
+    """
+    Resolve the CORE engine executable path.
+
+    Priority:
+    1. New installer location (tools/core/bin/core[.exe])
+    2. Legacy location (tools/core/core/core.exe) — backward compat
+    3. Auto-download via ensure_core_engine() if auto_install=True
+    """
+    # Try new installer path first
+    try:
+        from tools.core.download_core import get_core_engine_path, ensure_core_engine
+        path = get_core_engine_path()
+        if path:
+            return path
+        if auto_install:
+            return ensure_core_engine(auto_install=True)
+    except ImportError:
+        pass
+
+    # Legacy fallback
+    legacy = Path(__file__).parent.parent / "tools" / "core" / "core" / "core.exe"
+    if legacy.exists():
+        return legacy
+
+    return None
+
+
+# Resolved at import time (no auto-install); auto-install happens in run_cdisc_conformance()
+CORE_ENGINE_PATH = _resolve_core_engine_path(auto_install=False) or Path("__core_not_installed__")
 
 
 def run_cdisc_conformance(
@@ -42,9 +71,10 @@ def run_cdisc_conformance(
     """
     output_path = os.path.join(output_dir, "conformance_report.json")
     
-    # Try local CORE engine first
-    if CORE_ENGINE_PATH.exists():
-        result = _run_local_core_engine(json_path, output_dir)
+    # Resolve CORE engine path (auto-download on first run)
+    core_path = _resolve_core_engine_path(auto_install=True)
+    if core_path and core_path.exists():
+        result = _run_local_core_engine(json_path, output_dir, core_path)
         # Save result to file (success or error)
         _save_conformance_report(result, output_path)
         return result
@@ -63,7 +93,7 @@ def run_cdisc_conformance(
         'success': False,
         'engine': 'none',
         'inputFile': json_path,
-        'error': 'CDISC CORE engine not available. Download with: python tools/core/download_core.py',
+        'error': 'CDISC CORE engine not available. Install with: python tools/core/download_core.py',
         'error_summary': None,
         'error_details': None,
         'issues': 0,
@@ -81,7 +111,7 @@ def _save_conformance_report(result: Dict[str, Any], output_path: str) -> None:
         json.dump(result, f, indent=2)
 
 
-def _ensure_core_cache(core_dir: Path) -> bool:
+def _ensure_core_cache(core_dir: Path, core_exe: Path) -> bool:
     """
     Ensure CORE engine cache is up to date.
     Runs update-cache if rules_dictionary.pkl is missing.
@@ -102,7 +132,7 @@ def _ensure_core_cache(core_dir: Path) -> bool:
     logger.info("Updating CDISC CORE cache (first run, may take a few minutes)...")
     try:
         result = subprocess.run(
-            [str(CORE_ENGINE_PATH), "update-cache", "--apikey", api_key],
+            [str(core_exe), "update-cache", "--apikey", api_key],
             capture_output=True,
             text=True,
             timeout=300,  # Cache update can take a while
@@ -119,21 +149,41 @@ def _ensure_core_cache(core_dir: Path) -> bool:
         return False
 
 
-def _run_local_core_engine(json_path: str, output_dir: str) -> Dict[str, Any]:
+def _run_local_core_engine(
+    json_path: str,
+    output_dir: str,
+    core_exe: Optional[Path] = None,
+) -> Dict[str, Any]:
     """
     Run local CDISC CORE engine executable.
     
     Returns result dict with success/error status (never raises).
     """
-    core_dir = CORE_ENGINE_PATH.parent
-    
-    # Ensure cache is available
-    if not _ensure_core_cache(core_dir):
+    if core_exe is None:
+        core_exe = _resolve_core_engine_path(auto_install=False)
+    if not core_exe or not core_exe.exists():
         return {
             'success': False,
             'engine': 'local_core',
             'inputFile': json_path,
-            'error': 'CORE cache not available. Set CDISC_API_KEY and run: python main_v2.py --update-cache',
+            'error': 'CORE engine executable not found',
+            'error_summary': None,
+            'error_details': None,
+            'issues': 0,
+            'warnings': 0,
+            'issues_list': [],
+            'timestamp': _get_timestamp(),
+        }
+
+    core_dir = core_exe.parent
+    
+    # Ensure cache is available
+    if not _ensure_core_cache(core_dir, core_exe):
+        return {
+            'success': False,
+            'engine': 'local_core',
+            'inputFile': json_path,
+            'error': 'CORE cache not available. Set CDISC_API_KEY and run: python main_v3.py --update-cache',
             'error_summary': None,
             'error_details': None,
             'issues': 0,
@@ -154,7 +204,7 @@ def _run_local_core_engine(json_path: str, output_dir: str) -> Dict[str, Any]:
         # when processing certain USDM data structures (causes NoneType errors)
         result = subprocess.run(
             [
-                str(CORE_ENGINE_PATH),
+                str(core_exe),
                 "validate",
                 "-s", "usdm",  # Standard: USDM
                 "-v", "4-0",  # USDM version (format: X-Y not X.Y)

@@ -377,10 +377,16 @@ Examples:
 def _handle_cache_update():
     """Handle CDISC CORE cache update."""
     logger.info("Updating CDISC CORE rules cache...")
-    from validation.cdisc_conformance import CORE_ENGINE_PATH
     import subprocess
     
-    core_dir = CORE_ENGINE_PATH.parent
+    # Resolve CORE engine path (auto-install if needed)
+    from tools.core.download_core import ensure_core_engine
+    core_exe = ensure_core_engine(auto_install=True)
+    if not core_exe:
+        logger.error("CDISC CORE engine not available. Run: python tools/core/download_core.py")
+        sys.exit(1)
+    
+    core_dir = core_exe.parent
     api_key = os.environ.get('CDISC_LIBRARY_API_KEY') or os.environ.get('CDISC_API_KEY')
     
     if not api_key:
@@ -389,7 +395,7 @@ def _handle_cache_update():
     
     try:
         result = subprocess.run(
-            [str(CORE_ENGINE_PATH), "update-cache", "--apikey", api_key],
+            [str(core_exe), "update-cache", "--apikey", api_key],
             capture_output=True, text=True, timeout=300, cwd=str(core_dir),
         )
         if result.returncode == 0:
