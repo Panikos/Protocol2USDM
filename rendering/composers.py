@@ -275,8 +275,9 @@ def _compose_interventions(usdm: Dict) -> str:
         role = si.get('role', si.get('type', {}))
         role_decode = role.get('decode', '') if isinstance(role, dict) else ''
 
-        # Classify IMP vs NIMP
-        imp_class = 'IMP' if 'investigational' in role_decode.lower() else 'NIMP'
+        # Classify IMP vs NIMP (C41161 = Experimental Intervention per USDM CT)
+        role_lower = role_decode.lower()
+        imp_class = 'IMP' if ('investigational' in role_lower or 'experimental' in role_lower) else 'NIMP'
 
         # Get administration details (route, frequency)
         admin_ids = si.get('administrationIds', [])

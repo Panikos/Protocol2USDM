@@ -331,21 +331,28 @@ def _parse_interventions_response(raw: Dict[str, Any]) -> Optional[Interventions
 
 
 def _map_intervention_role(role_str: str) -> InterventionRole:
-    """Map string to InterventionRole enum. Returns UNKNOWN if input is empty."""
+    """Map string to InterventionRole enum per USDM CT codelist C207417.
+    
+    Returns UNKNOWN if input is empty or unrecognized.
+    """
     if not role_str:
         return InterventionRole.UNKNOWN
     role_lower = role_str.lower()
     if 'placebo' in role_lower:
         return InterventionRole.PLACEBO
-    elif 'comparator' in role_lower:
+    elif 'comparator' in role_lower or 'standard of care' in role_lower:
         return InterventionRole.COMPARATOR
     elif 'rescue' in role_lower:
         return InterventionRole.RESCUE
-    elif 'concomitant' in role_lower:
+    elif 'concomitant' in role_lower or 'additional required' in role_lower:
         return InterventionRole.CONCOMITANT
     elif 'background' in role_lower:
         return InterventionRole.BACKGROUND
-    elif 'investigational' in role_lower or 'study drug' in role_lower:
+    elif 'challenge' in role_lower:
+        return InterventionRole.CHALLENGE_AGENT
+    elif 'diagnostic' in role_lower:
+        return InterventionRole.DIAGNOSTIC
+    elif 'investigational' in role_lower or 'experimental' in role_lower or 'study drug' in role_lower:
         return InterventionRole.INVESTIGATIONAL
     return InterventionRole.UNKNOWN  # Return UNKNOWN for unrecognized
 

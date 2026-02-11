@@ -49,14 +49,16 @@ class DoseForm(Enum):
 
 
 class InterventionRole(Enum):
-    """USDM intervention role codes."""
+    """USDM intervention role codes per USDM CT codelist C207417."""
     UNKNOWN = ""  # Not extracted from source
-    INVESTIGATIONAL = "Investigational Product"
-    COMPARATOR = "Comparator"
+    INVESTIGATIONAL = "Experimental Intervention"
+    COMPARATOR = "Active Comparator"
     PLACEBO = "Placebo"
-    RESCUE = "Rescue Medication"
-    CONCOMITANT = "Concomitant Medication"
-    BACKGROUND = "Background Therapy"
+    RESCUE = "Rescue Medicine"
+    CONCOMITANT = "Additional Required Treatment"
+    BACKGROUND = "Background Treatment"
+    CHALLENGE_AGENT = "Challenge Agent"
+    DIAGNOSTIC = "Diagnostic"
 
 
 @dataclass
@@ -182,12 +184,12 @@ class AdministrableProduct:
                 },
                 "instanceType": "Code",
             },
-            "productDesignation": {  # Required field
+            "productDesignation": {  # USDM CT codelist C207418
                 "id": generate_uuid(),
-                "code": "C54121",
-                "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
-                "codeSystemVersion": "25.01d",
-                "decode": "Investigational Product",
+                "code": "C202579",
+                "codeSystem": "http://www.cdisc.org",
+                "codeSystemVersion": "2024-09-27",
+                "decode": "IMP",
                 "instanceType": "Code",
             },
             "instanceType": self.instance_type,
@@ -250,34 +252,39 @@ class StudyIntervention:
     instance_type: str = "StudyIntervention"
     
     def to_dict(self) -> Dict[str, Any]:
-        # Map intervention roles to NCI codes
+        # Map intervention roles to USDM CT codelist C207417
         role_codes = {
-            InterventionRole.INVESTIGATIONAL: ("C54121", "Investigational Product"),
-            InterventionRole.COMPARATOR: ("C54129", "Comparator"),
-            InterventionRole.PLACEBO: ("C41132", "Placebo"),
-            InterventionRole.RESCUE: ("C54125", "Rescue Medication"),
-            InterventionRole.CONCOMITANT: ("C54126", "Concomitant Medication"),
-            InterventionRole.BACKGROUND: ("C54127", "Background Therapy"),
+            InterventionRole.INVESTIGATIONAL: ("C41161", "Experimental Intervention"),
+            InterventionRole.COMPARATOR: ("C68609", "Active Comparator"),
+            InterventionRole.PLACEBO: ("C753", "Placebo"),
+            InterventionRole.RESCUE: ("C165835", "Rescue Medicine"),
+            InterventionRole.CONCOMITANT: ("C207614", "Additional Required Treatment"),
+            InterventionRole.BACKGROUND: ("C165822", "Background Treatment"),
+            InterventionRole.CHALLENGE_AGENT: ("C158128", "Challenge Agent"),
+            InterventionRole.DIAGNOSTIC: ("C18020", "Diagnostic"),
         }
-        code, decode = role_codes.get(self.role, ("C54121", "Investigational Product"))
+        role_code, role_decode = role_codes.get(self.role, ("C41161", "Experimental Intervention"))
+        
+        # type uses ICH M11 intervention type (Drug by default; no USDM CT codelist)
+        type_code, type_decode = "C1909", "Drug"
         
         result = {
             "id": self.id,
             "name": self.name,
-            "type": {  # Required field
+            "type": {
                 "id": generate_uuid(),
-                "code": code,
+                "code": type_code,
                 "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
                 "codeSystemVersion": "25.01d",
-                "decode": decode,
+                "decode": type_decode,
                 "instanceType": "Code",
             },
             "role": {
                 "id": generate_uuid(),
-                "code": code,
-                "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
-                "codeSystemVersion": "25.01d",
-                "decode": decode,
+                "code": role_code,
+                "codeSystem": "http://www.cdisc.org",
+                "codeSystemVersion": "2024-09-27",
+                "decode": role_decode,
                 "instanceType": "Code",
             },
             "instanceType": self.instance_type,

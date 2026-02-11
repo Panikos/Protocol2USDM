@@ -72,10 +72,14 @@ export const CDISC_TERMINOLOGIES: Record<string, CodeOption[]> = {
     { code: 'C49636', decode: 'Both' },
   ],
   interventionRole: [
-    { code: 'C98767', decode: 'Investigational' },
-    { code: 'C98768', decode: 'Comparator' },
-    { code: 'C49648', decode: 'Placebo' },
-    { code: 'C48660', decode: 'Not Applicable' },
+    { code: 'C41161', decode: 'Experimental Intervention' },
+    { code: 'C68609', decode: 'Active Comparator' },
+    { code: 'C753', decode: 'Placebo' },
+    { code: 'C165835', decode: 'Rescue Medicine' },
+    { code: 'C207614', decode: 'Additional Required Treatment' },
+    { code: 'C165822', decode: 'Background Treatment' },
+    { code: 'C158128', decode: 'Challenge Agent' },
+    { code: 'C18020', decode: 'Diagnostic' },
   ],
   interventionType: [
     { code: 'C1909', decode: 'Drug' },
