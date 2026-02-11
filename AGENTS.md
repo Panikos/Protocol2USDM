@@ -199,7 +199,7 @@ Three-tier validation runs after extraction:
 | **M11 Conformance** | `validation/m11_conformance.py` | Title page (12 fields), synopsis (18 fields), section coverage (14 sections) |
 | **CDISC CORE** | `validation/cdisc_conformance.py` | CDISC conformance rules via local CORE engine or API |
 
-**CDISC CORE auto-install**: On first pipeline run, `ensure_core_engine()` downloads the appropriate pre-built executable from GitHub releases (`cdisc-org/cdisc-rules-engine`). Supports Windows, Linux (Ubuntu), macOS (Intel + Apple Silicon). Version tracked in `tools/core/bin/.version.json`. Update via `python tools/core/download_core.py --update`.
+**CDISC CORE auto-install**: On first pipeline run, `ensure_core_engine()` downloads ALL platform executables from GitHub releases (`cdisc-org/cdisc-rules-engine`) into `tools/core/bin/{windows,linux,mac}/`. Auto-detects correct executable at runtime. Use `--core windows|linux|mac` to override auto-detection. Version tracked in `tools/core/bin/.version.json`. Update via `python tools/core/download_core.py --update`.
 
 Normalization pipeline: Type inference → UUID conversion → Provenance conversion → NCI enrichment → Validation → CDISC CORE.
 
