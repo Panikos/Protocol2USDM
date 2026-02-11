@@ -306,15 +306,15 @@ def _apply_defaults(study_version: dict, study_design: dict, combined: dict, pdf
                 "code": "C174266",
                 "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
                 "codeSystemVersion": "25.01d",
-                "decode": "Experimental Arm",
+                "decode": "Investigational Arm",
                 "instanceType": "Code"
             },
             "dataOriginType": {
                 "id": "code_data_origin_1",
-                "code": "C142493",
+                "code": "C188866",
                 "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
                 "codeSystemVersion": "25.01d",
-                "decode": "Collected",
+                "decode": "Data Generated Within Study",
                 "instanceType": "Code"
             },
             "dataOriginDescription": "Data collected during study conduct",
@@ -381,7 +381,7 @@ def _apply_defaults(study_version: dict, study_design: dict, combined: dict, pdf
         else:
             study_design["model"] = {
                 "id": "code_model_1",
-                "code": "C82638",
+                "code": "C82640",
                 "codeSystem": "http://www.cdisc.org",
                 "codeSystemVersion": "2024-09-27",
                 "decode": "Single Group Study",
