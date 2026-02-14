@@ -181,12 +181,14 @@ export function TimelineLegend({ className }: { className?: string }) {
     { color: 'bg-white border-green-500', label: 'Activity' },
     { color: 'bg-white border-[#003366] border-2', label: 'Timing', shape: 'rounded-full' },
     { color: 'bg-amber-100 border-amber-600 border-2', label: 'Anchor ⚓', shape: 'rounded-full' },
+    { color: 'bg-amber-50 border-amber-600 border-dashed', label: 'UNS Decision', shape: 'rotate-45' },
   ];
 
   const edgeItems = [
     { color: 'bg-gray-500', label: 'Sequence', style: 'solid' },
     { color: 'bg-green-500', label: 'Activity Link', style: 'dashed' },
     { color: 'bg-slate-500', label: 'Epoch Transition', style: 'solid' },
+    { color: 'bg-amber-400', label: 'UNS Branch', style: 'dashed' },
   ];
 
   return (

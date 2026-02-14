@@ -79,6 +79,7 @@ def extract_execution_model(
     output_dir: Optional[str] = None,
     parallel: bool = True,
     max_workers: Optional[int] = None,
+    pipeline_context: Optional[Any] = None,
 ) -> ExecutionModelResult:
     """
     Extract complete execution model from a protocol PDF.
@@ -136,6 +137,7 @@ def extract_execution_model(
             pdf_path=pdf_path, model=model, use_llm=enable_llm,
             existing_encounters=soa_context.encounters if soa_context.has_encounters() else None,
             existing_epochs=soa_context.epochs if soa_context.has_epochs() else None,
+            pipeline_context=pipeline_context,
         )),
         ("repetitions", extract_repetitions, dict(
             pdf_path=pdf_path, model=model, use_llm=enable_llm,
@@ -570,90 +572,173 @@ def _resolve_to_epoch_id(
 def _resolve_to_encounter_id(
     visit_name: str,
     encounter_ids: set,
-    encounters: List[Dict[str, Any]]
+    encounters: List[Dict[str, Any]],
+    epochs: Optional[List[Dict[str, Any]]] = None,
 ) -> Optional[str]:
     """
     Resolve a visit name to an encounter ID.
-    Uses fuzzy matching on name. Returns None if unresolvable.
+
+    Resolution strategy (in order):
+      1. Direct ID match
+      2. Exact name match
+      3. Substring containment
+      4. Name-based pattern matching (keyword aliases)
+      5. Numeric extraction (Week N, Visit N, Day N)
+      6. **Epoch-based semantic matching** — cross-reference the epoch
+         each encounter belongs to and match conceptual visit keywords
+         (screening, end-of-study, follow-up, withdrawal, etc.) against
+         epoch names.  This avoids blind positional guessing.
+      7. Positional fallback (first/last encounter) only when no epochs
+         are available or epoch matching fails.
+      8. Silently skip out-of-SoA visits (very high visit numbers,
+         safety follow-up, unscheduled, etc.)
+
+    Returns None if unresolvable.
     """
+    import re
+
     visit_lower = visit_name.lower().strip()
-    
-    # Already a valid ID
+
+    # ---- Phase 0: Direct ID ----
     if visit_name in encounter_ids:
         return visit_name
-    
-    # Exact name match
+
+    # ---- Phase 1: Exact name match ----
     for enc in encounters:
         if enc.get('name', '').lower() == visit_lower:
             return enc['id']
-    
-    # Fuzzy match - Phase 1: substring containment
+
+    # ---- Phase 2: Substring containment ----
     for enc in encounters:
         enc_name = enc.get('name', '').lower()
-        # Check if key terms match
         if visit_lower in enc_name or enc_name in visit_lower:
             return enc['id']
-    
-    # Fuzzy match - Phase 2: common patterns and aliases
+
+    # ---- Phase 3: Name-based keyword aliases ----
     for enc in encounters:
         enc_name = enc.get('name', '').lower()
-        
+
         # End of Study / EOS / Final Visit
         if any(x in visit_lower for x in ['end of study', 'eos', 'final visit', 'study completion', 'termination']):
             if any(x in enc_name for x in ['end', 'eos', 'final', 'termination', 'completion', 'last']):
                 return enc['id']
-        
+
         # Screening
         if 'screening' in visit_lower or 'screen' in visit_lower:
-            if 'screen' in enc_name:
+            if 'screen' in enc_name or 'day -' in enc_name or 'day-' in enc_name:
                 return enc['id']
-        
+
         # Day 1 / Baseline / Randomization
         if any(x in visit_lower for x in ['day 1', 'day1', 'baseline', 'randomization', 'randomisation']):
             if any(x in enc_name for x in ['day 1', 'day1', 'baseline', 'random', 'week 0', 'visit 1']):
                 return enc['id']
-        
+
         # Follow-up / Safety follow-up
         if 'follow' in visit_lower or 'safety' in visit_lower:
             if 'follow' in enc_name or 'safety' in enc_name:
                 return enc['id']
-        
+
         # End of Treatment / EOT
         if any(x in visit_lower for x in ['end of treatment', 'eot', 'treatment end']):
             if any(x in enc_name for x in ['end of treatment', 'eot', 'treatment end', 'last dose']):
                 return enc['id']
-    
-    # Fuzzy match - Phase 3: Week/Visit number extraction
-    import re
+
+    # ---- Phase 4: Numeric extraction (Week N / Visit N / Day N) ----
     visit_week_match = re.search(r'week\s*[i-]?\s*(\d+)', visit_lower)
     visit_num_match = re.search(r'visit\s*(\d+)', visit_lower)
     visit_day_match = re.search(r'day\s*(\d+)', visit_lower)
-    
+
     if visit_week_match:
         week_num = visit_week_match.group(1)
         for enc in encounters:
             enc_name = enc.get('name', '').lower()
-            # Match "Week 4", "Induction Week 4", "Week I-4", etc.
             if re.search(rf'week\s*[i-]?\s*{week_num}\b', enc_name):
                 return enc['id']
-            # Match "(I-4)" pattern
             if f'({week_num})' in enc_name or f'i-{week_num}' in enc_name or f'-{week_num}' in enc_name:
                 return enc['id']
-    
+
     if visit_num_match:
         visit_num = visit_num_match.group(1)
         for enc in encounters:
             enc_name = enc.get('name', '').lower()
             if re.search(rf'visit\s*{visit_num}\b', enc_name):
                 return enc['id']
-    
+
     if visit_day_match:
         day_num = visit_day_match.group(1)
         for enc in encounters:
             enc_name = enc.get('name', '').lower()
             if re.search(rf'day\s*{day_num}\b', enc_name):
                 return enc['id']
-    
+
+    # ---- Phase 5: Epoch-based semantic matching ----
+    # Cross-reference the epoch that each encounter belongs to.
+    # Map conceptual visit keywords → epoch name patterns, then return
+    # the first/last encounter in the matching epoch.
+    #
+    # Concept → epoch-name patterns (any substring match):
+    _VISIT_EPOCH_MAP = [
+        # (visit keywords, epoch patterns, pick)
+        # pick: 'first' = first encounter in epoch, 'last' = last encounter
+        (['screen', 'enrol'],
+         ['screen', 'enrol', 'eligib'],
+         'first'),
+        (['baseline', 'randomiz', 'randomi', 'day 1', 'day1'],
+         ['random', 'baseline', 'treatment', 'allocat'],
+         'first'),
+        (['end of treatment', 'eot', 'treatment end', 'last dose'],
+         ['treatment', 'dosing', 'intervention'],
+         'last'),
+        (['end of study', 'eos', 'study completion', 'closure', 'final'],
+         ['end of study', 'eos', 'closure', 'study closure', 'completion', 'scv'],
+         'last'),
+        (['follow', 'safety'],
+         ['follow', 'safety', 'observ', 'post'],
+         'first'),
+        (['withdraw', 'discontinu', 'early termin', 'premature'],
+         ['discontinu', 'withdraw', 'terminat', 'ptdv', 'premature'],
+         'first'),
+    ]
+
+    if epochs:
+        # Build epoch-id → epoch-name lookup
+        epoch_name_map = {ep['id']: ep.get('name', '').lower() for ep in epochs}
+        # Build epoch-id → sorted encounters (preserve SoA order)
+        epoch_encounters: Dict[str, List[Dict[str, Any]]] = {}
+        for enc in encounters:
+            eid = enc.get('epochId')
+            if eid:
+                epoch_encounters.setdefault(eid, []).append(enc)
+
+        for visit_keywords, epoch_patterns, pick in _VISIT_EPOCH_MAP:
+            # Does the visit name match this concept?
+            if not any(kw in visit_lower for kw in visit_keywords):
+                continue
+            # Find epochs whose name matches any epoch pattern
+            for ep_id, ep_name in epoch_name_map.items():
+                if any(pat in ep_name for pat in epoch_patterns):
+                    enc_list = epoch_encounters.get(ep_id, [])
+                    if enc_list:
+                        chosen = enc_list[0] if pick == 'first' else enc_list[-1]
+                        return chosen['id']
+
+    # ---- Phase 6: Positional fallback (only when epochs unavailable) ----
+    if encounters and not epochs:
+        # Screening → first encounter (most protocols begin with screening)
+        if 'screening' in visit_lower or 'screen' in visit_lower:
+            return encounters[0]['id']
+        # End of Study / Final → last encounter
+        if any(x in visit_lower for x in ['end of study', 'eos', 'final', 'completion', 'termination', 'closure']):
+            return encounters[-1]['id']
+
+    # ---- Phase 7: Silently skip out-of-SoA visits ----
+    high_visit = re.search(r'visit\s*(\d+)', visit_lower)
+    if high_visit and int(high_visit.group(1)) > 100:
+        return None
+    _SKIP_PATTERNS = ['safety follow', 'primary endpoint', 'unscheduled', 'ad hoc', 'rescue']
+    if any(p in visit_lower for p in _SKIP_PATTERNS):
+        return None
+
     logger.warning(f"Could not resolve visit '{visit_name}' to encounter ID")
     _add_processing_warning(
         category="visit_resolution_failed",
@@ -1085,7 +1170,8 @@ def _add_execution_extensions(
             resolved_visits = []
             for visit in tc.mandatory_visits or []:
                 resolved_id = _resolve_to_encounter_id(
-                    visit, encounter_ids, design.get('encounters', [])
+                    visit, encounter_ids, design.get('encounters', []),
+                    epochs=design.get('epochs', design.get('studyEpochs', [])),
                 )
                 if resolved_id:
                     resolved_visits.append(resolved_id)
@@ -1182,7 +1268,8 @@ def _add_execution_extensions(
                 resolved_encounter_ids = []
                 for tp in fc.applies_to_timepoint_ids:
                     resolved_id = _resolve_to_encounter_id(
-                        tp, encounter_ids, design.get('encounters', [])
+                        tp, encounter_ids, design.get('encounters', []),
+                        epochs=design.get('epochs', design.get('studyEpochs', [])),
                     )
                     if resolved_id:
                         resolved_encounter_ids.append(resolved_id)

@@ -140,7 +140,9 @@ class TestH3StudyPhase:
         result = _make_metadata_result(study_phase="Phase 3")
         phase.combine(result, sv, sd, combined, {})
         assert "studyPhase" in sd
-        assert sd["studyPhase"]["decode"] == "Phase 3"
+        assert sd["studyPhase"]["instanceType"] == "AliasCode"
+        assert sd["studyPhase"]["standardCode"]["code"] == "C15602"
+        assert sd["studyPhase"]["standardCode"]["decode"] == "Phase III Trial"
 
     def test_study_phase_not_copied_when_absent(self):
         from pipeline.phases.metadata import MetadataPhase
@@ -158,10 +160,10 @@ class TestH3StudyPhase:
         sv = {"id": "sv_1", "versionIdentifier": "1.0"}
         sd = {"id": "sd_1"}
         combined = {}
-        prev = {"metadata": {"metadata": {"studyPhase": {"code": "Phase 2", "codeSystem": "USDM", "decode": "Phase 2"}}}}
+        prev = {"metadata": {"metadata": {"studyPhase": {"id": "x", "standardCode": {"code": "C15601", "decode": "Phase II Trial", "instanceType": "Code"}, "instanceType": "AliasCode"}}}}
         result = PhaseResult(success=False)
         phase.combine(result, sv, sd, combined, prev)
-        assert sd["studyPhase"]["decode"] == "Phase 2"
+        assert sd["studyPhase"]["standardCode"]["decode"] == "Phase II Trial"
 
 
 # ===================================================================
@@ -336,7 +338,7 @@ class TestH9IngredientNesting:
         nest_ingredients_in_products(combined)
         prod = combined["study"]["versions"][0]["administrableProducts"][0]
         assert len(prod["ingredients"]) == 1
-        assert prod["ingredients"][0]["substanceId"] == "sub_1"
+        assert prod["ingredients"][0]["substance"]["id"] == "sub_1"
         assert prod["ingredients"][0]["instanceType"] == "Ingredient"
 
     def test_substance_nested_by_name(self):

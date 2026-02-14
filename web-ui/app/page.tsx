@@ -2,32 +2,20 @@ import Link from 'next/link';
 import { FileText, Activity, GitBranch, Clock } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { AppShell } from '@/components/ui/app-shell';
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100">
-      {/* Header */}
-      <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center">
-              <FileText className="h-6 w-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold">Protocol2USDM</h1>
-              <p className="text-xs text-muted-foreground">USDM v4.0 Viewer & Editor</p>
-            </div>
-          </div>
-          <nav className="flex items-center gap-4">
-            <Link href="/protocols">
-              <Button variant="ghost">Protocols</Button>
-            </Link>
-            <Link href="/docs">
-              <Button variant="ghost">Documentation</Button>
-            </Link>
-          </nav>
-        </div>
-      </header>
+    <AppShell
+      gradient
+      headerRight={
+        <nav className="flex items-center gap-4">
+          <Link href="/protocols">
+            <Button variant="ghost">Protocols</Button>
+          </Link>
+        </nav>
+      }
+    >
 
       {/* Hero section */}
       <section className="container mx-auto px-4 py-16 text-center">
@@ -116,10 +104,10 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="border-t bg-white mt-12">
         <div className="container mx-auto px-4 py-6 text-center text-sm text-muted-foreground">
-          Protocol2USDM v7.2.0 | USDM v4.0 Format
+          Protocol2USDM | USDM v4.0 Format
         </div>
       </footer>
-    </div>
+    </AppShell>
   );
 }
 

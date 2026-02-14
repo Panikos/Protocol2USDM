@@ -1,9 +1,26 @@
 """Metadata extraction phase."""
 
 from typing import Optional
+from core.usdm_types import generate_uuid
 from ..base_phase import BasePhase, PhaseConfig, PhaseResult
 from ..phase_registry import register_phase
 from extraction.pipeline_context import PipelineContext
+
+
+def _default_geographic_scope() -> dict:
+    """Return a default Global geographic scope for GovernanceDate."""
+    return {
+        "id": generate_uuid(),
+        "type": {
+            "id": generate_uuid(),
+            "code": "C68846",
+            "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+            "codeSystemVersion": "25.01d",
+            "decode": "Global",
+            "instanceType": "Code",
+        },
+        "instanceType": "GeographicScope",
+    }
 
 
 class MetadataPhase(BasePhase):
@@ -78,44 +95,50 @@ class MetadataPhase(BasePhase):
             date_values = []
             if md.protocol_date:
                 date_values.append({
-                    "id": f"gov_date_protocol",
+                    "id": generate_uuid(),
                     "name": "Protocol Date",
                     "dateValue": md.protocol_date,
                     "type": {
-                        "id": f"gov_date_protocol_type",
+                        "id": generate_uuid(),
                         "code": "C99905x1",
                         "codeSystem": "http://www.cdisc.org",
+                        "codeSystemVersion": "2024-09-27",
                         "decode": "Protocol Date",
                         "instanceType": "Code",
                     },
+                    "geographicScopes": [_default_geographic_scope()],
                     "instanceType": "GovernanceDate",
                 })
             if md.sponsor_approval_date:
                 date_values.append({
-                    "id": f"gov_date_approval",
+                    "id": generate_uuid(),
                     "name": "Sponsor Approval Date",
                     "dateValue": md.sponsor_approval_date,
                     "type": {
-                        "id": f"gov_date_approval_type",
+                        "id": generate_uuid(),
                         "code": "C99905x2",
                         "codeSystem": "http://www.cdisc.org",
+                        "codeSystemVersion": "2024-09-27",
                         "decode": "Sponsor Approval Date",
                         "instanceType": "Code",
                     },
+                    "geographicScopes": [_default_geographic_scope()],
                     "instanceType": "GovernanceDate",
                 })
             if md.original_protocol_date:
                 date_values.append({
-                    "id": f"gov_date_original",
+                    "id": generate_uuid(),
                     "name": "Original Protocol Date",
                     "dateValue": md.original_protocol_date,
                     "type": {
-                        "id": f"gov_date_original_type",
+                        "id": generate_uuid(),
                         "code": "C99905x3",
                         "codeSystem": "http://www.cdisc.org",
+                        "codeSystemVersion": "2024-09-27",
                         "decode": "Original Protocol Date",
                         "instanceType": "Code",
                     },
+                    "geographicScopes": [_default_geographic_scope()],
                     "instanceType": "GovernanceDate",
                 })
             if date_values:
@@ -136,14 +159,33 @@ class MetadataPhase(BasePhase):
                     study_version["businessTherapeuticAreas"] = bta
             # L1: Map reference identifiers → StudyVersion.referenceIdentifiers
             if md.reference_identifiers:
+                # Resolve sponsor org ID for scopeId
+                sponsor_org_id = None
+                for org in md.organizations:
+                    if org.type and org.type.value == "Sponsor":
+                        sponsor_org_id = org.id
+                        break
+                if not sponsor_org_id and md.organizations:
+                    sponsor_org_id = md.organizations[0].id
                 ref_ids = []
                 for i, ref in enumerate(md.reference_identifiers):
-                    ref_ids.append({
-                        "id": f"ref_id_{i+1}",
+                    raw_type = ref.get("type", "Other")
+                    ref_entry = {
+                        "id": generate_uuid(),
                         "text": ref.get("text", ""),
-                        "type": ref.get("type", "Other"),
+                        "type": {
+                            "id": generate_uuid(),
+                            "code": "C99904",
+                            "codeSystem": "http://www.cdisc.org",
+                            "codeSystemVersion": "2024-09-27",
+                            "decode": raw_type,
+                            "instanceType": "Code",
+                        },
                         "instanceType": "StudyIdentifier",
-                    })
+                    }
+                    if sponsor_org_id:
+                        ref_entry["scopeId"] = sponsor_org_id
+                    ref_ids.append(ref_entry)
                 if ref_ids:
                     study_version["referenceIdentifiers"] = ref_ids
             if md.study_type:

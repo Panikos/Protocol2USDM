@@ -265,6 +265,8 @@ Examples:
                     phases_to_run=phases_to_run,
                     soa_data=soa_data,
                     max_workers=args.max_workers,
+                    sap_path=getattr(args, 'sap', None),
+                    sites_path=getattr(args, 'sites', None),
                 )
             else:
                 expansion_results = orchestrator.run_phases(
@@ -273,6 +275,8 @@ Examples:
                     model=config.model_name,
                     phases_to_run=phases_to_run,
                     soa_data=soa_data,
+                    sap_path=getattr(args, 'sap', None),
+                    sites_path=getattr(args, 'sites', None),
                 )
             
             # Print expansion summary
@@ -582,8 +586,17 @@ def _print_soa_results(result):
 
 
 def _run_conditional_sources(args, expansion_results, config, output_dir):
-    """Run conditional source extraction (SAP, sites)."""
-    if args.sap:
+    """Run conditional source extraction (SAP, sites).
+    
+    Skips extraction if the orchestrator already ran the phase successfully
+    (i.e. sap_path/sites_path was forwarded via kwargs).
+    """
+    sap_done = (
+        expansion_results.get('sap')
+        and hasattr(expansion_results['sap'], 'success')
+        and expansion_results['sap'].success
+    )
+    if args.sap and not sap_done:
         logger.info("\n--- Conditional: SAP Analysis Populations ---")
         try:
             from extraction.conditional import extract_from_sap
@@ -596,7 +609,12 @@ def _run_conditional_sources(args, expansion_results, config, output_dir):
         except Exception as e:
             logger.warning(f"  ✗ SAP extraction error: {e}")
     
-    if args.sites:
+    sites_done = (
+        expansion_results.get('sites')
+        and hasattr(expansion_results['sites'], 'success')
+        and expansion_results['sites'].success
+    )
+    if args.sites and not sites_done:
         logger.info("\n--- Conditional: Study Sites ---")
         try:
             from extraction.conditional import extract_from_sites

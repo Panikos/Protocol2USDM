@@ -42,6 +42,8 @@ function getPhaseFromFilename(filename: string): string {
     'run_manifest': 'meta',
     'terminology_enrichment': 'terminology',
     'id_mapping': 'meta',
+    'extraction_provenance': 'provenance',
+    'entity_provenance': 'provenance',
   };
   
   for (const [pattern, phase] of Object.entries(phaseMap)) {

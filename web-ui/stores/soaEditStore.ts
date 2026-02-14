@@ -235,9 +235,11 @@ export const useSoAEditStore = create<SoAEditStore>((set, get) => ({
     }
 
     const semanticStore = useSemanticStore.getState();
+    semanticStore.beginGroup();
     for (const patch of result.patches) {
       semanticStore.addPatchOp(patch);
     }
+    semanticStore.endGroup();
 
     set(state => {
       const newEdits = new Map(state.pendingActivityNameEdits);
@@ -298,9 +300,11 @@ export const useSoAEditStore = create<SoAEditStore>((set, get) => ({
     }
 
     const semanticStore = useSemanticStore.getState();
+    semanticStore.beginGroup();
     for (const patch of result.patches) {
       semanticStore.addPatchOp(patch);
     }
+    semanticStore.endGroup();
 
     set(state => {
       const newEdits = new Map(state.pendingEncounterNameEdits);

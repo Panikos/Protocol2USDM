@@ -39,9 +39,128 @@ PHASE_FIELD_OWNERSHIP: Dict[str, List[str]] = {
     'interventions': ['interventions', 'products'],
     'procedures': ['procedures', 'devices'],
     'scheduling': ['timings', 'scheduling_rules'],
+    'narrative': ['narrative_contents'],
     'execution': ['time_anchors', 'repetitions', 'traversal_constraints', 'footnote_conditions'],
 }
 
+
+# ---------------------------------------------------------------------------
+# Sub-context dataclasses (W-HIGH-2 decomposition)
+# ---------------------------------------------------------------------------
+
+@dataclass
+class SoAContext:
+    """Core Schedule of Activities entities from initial extraction."""
+    epochs: List[Dict[str, Any]] = field(default_factory=list)
+    encounters: List[Dict[str, Any]] = field(default_factory=list)
+    activities: List[Dict[str, Any]] = field(default_factory=list)
+    timepoints: List[Dict[str, Any]] = field(default_factory=list)
+    study_cells: List[Dict[str, Any]] = field(default_factory=list)
+
+    # Lookup maps (rebuilt on demand)
+    _epoch_by_id: Dict[str, Dict[str, Any]] = field(default_factory=dict)
+    _epoch_by_name: Dict[str, Dict[str, Any]] = field(default_factory=dict)
+    _encounter_by_id: Dict[str, Dict[str, Any]] = field(default_factory=dict)
+    _activity_by_id: Dict[str, Dict[str, Any]] = field(default_factory=dict)
+    _activity_by_name: Dict[str, Dict[str, Any]] = field(default_factory=dict)
+
+    def rebuild_maps(self):
+        """Rebuild all SoA lookup maps from current data."""
+        self._epoch_by_id.clear()
+        self._epoch_by_name.clear()
+        for epoch in self.epochs:
+            eid = epoch.get('id', '')
+            ename = epoch.get('name', '')
+            if eid:
+                self._epoch_by_id[eid] = epoch
+            if ename:
+                self._epoch_by_name[ename.lower()] = epoch
+
+        self._encounter_by_id.clear()
+        for enc in self.encounters:
+            eid = enc.get('id', '')
+            if eid:
+                self._encounter_by_id[eid] = enc
+
+        self._activity_by_id.clear()
+        self._activity_by_name.clear()
+        for act in self.activities:
+            aid = act.get('id', '')
+            aname = act.get('name', '')
+            if aid:
+                self._activity_by_id[aid] = act
+            if aname:
+                self._activity_by_name[aname.lower()] = act
+
+
+@dataclass
+class MetadataContext:
+    """Study-level metadata from the metadata extraction phase."""
+    study_title: str = ""
+    study_id: str = ""
+    sponsor: str = ""
+    indication: str = ""
+    phase: str = ""
+    study_type: str = ""  # "Interventional" or "Observational"
+
+
+@dataclass
+class DesignContext:
+    """Study design entities: arms, cohorts, objectives, endpoints, eligibility."""
+    arms: List[Dict[str, Any]] = field(default_factory=list)
+    cohorts: List[Dict[str, Any]] = field(default_factory=list)
+    objectives: List[Dict[str, Any]] = field(default_factory=list)
+    endpoints: List[Dict[str, Any]] = field(default_factory=list)
+    inclusion_criteria: List[Dict[str, Any]] = field(default_factory=list)
+    exclusion_criteria: List[Dict[str, Any]] = field(default_factory=list)
+
+    # Lookup maps
+    _arm_by_id: Dict[str, Dict[str, Any]] = field(default_factory=dict)
+
+    def rebuild_maps(self):
+        """Rebuild design lookup maps."""
+        self._arm_by_id.clear()
+        for arm in self.arms:
+            aid = arm.get('id', '')
+            if aid:
+                self._arm_by_id[aid] = arm
+
+
+@dataclass
+class InterventionContext:
+    """Interventions, products, procedures, and devices."""
+    interventions: List[Dict[str, Any]] = field(default_factory=list)
+    products: List[Dict[str, Any]] = field(default_factory=list)
+    procedures: List[Dict[str, Any]] = field(default_factory=list)
+    devices: List[Dict[str, Any]] = field(default_factory=list)
+
+    # Lookup maps
+    _intervention_by_id: Dict[str, Dict[str, Any]] = field(default_factory=dict)
+
+    def rebuild_maps(self):
+        """Rebuild intervention lookup maps."""
+        self._intervention_by_id.clear()
+        for intv in self.interventions:
+            iid = intv.get('id', '')
+            if iid:
+                self._intervention_by_id[iid] = intv
+
+
+@dataclass
+class SchedulingContext:
+    """Scheduling, execution model, and narrative data."""
+    timings: List[Dict[str, Any]] = field(default_factory=list)
+    scheduling_rules: List[Dict[str, Any]] = field(default_factory=list)
+    narrative_contents: List[Dict[str, Any]] = field(default_factory=list)
+    time_anchors: List[Dict[str, Any]] = field(default_factory=list)
+    repetitions: List[Dict[str, Any]] = field(default_factory=list)
+    traversal_constraints: List[Dict[str, Any]] = field(default_factory=list)
+    footnote_conditions: List[Dict[str, Any]] = field(default_factory=list)
+
+
+# ---------------------------------------------------------------------------
+# PipelineContext — composed from sub-contexts with backward-compatible API
+# ---------------------------------------------------------------------------
 
 @dataclass
 class PipelineContext:
@@ -53,64 +172,160 @@ class PipelineContext:
     - Consistent ID references across extractions
     - No arbitrary labels that need resolution
     - Rich context for better extraction accuracy
+    
+    Internally composed of focused sub-contexts (SoAContext, MetadataContext,
+    DesignContext, InterventionContext, SchedulingContext). All fields are
+    accessible directly on PipelineContext for backward compatibility.
     """
     
-    # Core SoA entities (from initial extraction)
-    epochs: List[Dict[str, Any]] = field(default_factory=list)
-    encounters: List[Dict[str, Any]] = field(default_factory=list)
-    activities: List[Dict[str, Any]] = field(default_factory=list)
-    timepoints: List[Dict[str, Any]] = field(default_factory=list)
-    
-    # Study metadata
-    study_title: str = ""
-    study_id: str = ""
-    sponsor: str = ""
-    indication: str = ""
-    phase: str = ""
-    study_type: str = ""  # "Interventional" or "Observational"
-    
-    # Arms and design
-    arms: List[Dict[str, Any]] = field(default_factory=list)
-    cohorts: List[Dict[str, Any]] = field(default_factory=list)
-    study_cells: List[Dict[str, Any]] = field(default_factory=list)
-    
-    # Eligibility
-    inclusion_criteria: List[Dict[str, Any]] = field(default_factory=list)
-    exclusion_criteria: List[Dict[str, Any]] = field(default_factory=list)
-    
-    # Objectives & Endpoints
-    objectives: List[Dict[str, Any]] = field(default_factory=list)
-    endpoints: List[Dict[str, Any]] = field(default_factory=list)
-    
-    # Interventions
-    interventions: List[Dict[str, Any]] = field(default_factory=list)
-    products: List[Dict[str, Any]] = field(default_factory=list)
-    
-    # Procedures & Devices
-    procedures: List[Dict[str, Any]] = field(default_factory=list)
-    devices: List[Dict[str, Any]] = field(default_factory=list)
-    
-    # Scheduling
-    timings: List[Dict[str, Any]] = field(default_factory=list)
-    scheduling_rules: List[Dict[str, Any]] = field(default_factory=list)
-    
-    # Execution model (added later in pipeline)
-    time_anchors: List[Dict[str, Any]] = field(default_factory=list)
-    repetitions: List[Dict[str, Any]] = field(default_factory=list)
-    traversal_constraints: List[Dict[str, Any]] = field(default_factory=list)
-    footnote_conditions: List[Dict[str, Any]] = field(default_factory=list)
-    
-    # Lookup maps (built lazily)
-    _epoch_by_id: Dict[str, Dict[str, Any]] = field(default_factory=dict)
-    _epoch_by_name: Dict[str, Dict[str, Any]] = field(default_factory=dict)
-    _encounter_by_id: Dict[str, Dict[str, Any]] = field(default_factory=dict)
-    _activity_by_id: Dict[str, Dict[str, Any]] = field(default_factory=dict)
-    _activity_by_name: Dict[str, Dict[str, Any]] = field(default_factory=dict)
-    _arm_by_id: Dict[str, Dict[str, Any]] = field(default_factory=dict)
-    _intervention_by_id: Dict[str, Dict[str, Any]] = field(default_factory=dict)
+    # --- Sub-contexts (W-HIGH-2 decomposition) ---
+    soa: SoAContext = field(default_factory=SoAContext)
+    metadata: MetadataContext = field(default_factory=MetadataContext)
+    design: DesignContext = field(default_factory=DesignContext)
+    intervention: InterventionContext = field(default_factory=InterventionContext)
+    scheduling: SchedulingContext = field(default_factory=SchedulingContext)
     
     # Thread lock for safe concurrent merges
     _lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
+    
+    # --- Backward-compatible property delegates ---
+    # SoAContext
+    @property
+    def epochs(self): return self.soa.epochs
+    @epochs.setter
+    def epochs(self, v): self.soa.epochs = v
+    @property
+    def encounters(self): return self.soa.encounters
+    @encounters.setter
+    def encounters(self, v): self.soa.encounters = v
+    @property
+    def activities(self): return self.soa.activities
+    @activities.setter
+    def activities(self, v): self.soa.activities = v
+    @property
+    def timepoints(self): return self.soa.timepoints
+    @timepoints.setter
+    def timepoints(self, v): self.soa.timepoints = v
+    @property
+    def study_cells(self): return self.soa.study_cells
+    @study_cells.setter
+    def study_cells(self, v): self.soa.study_cells = v
+
+    # MetadataContext
+    @property
+    def study_title(self): return self.metadata.study_title
+    @study_title.setter
+    def study_title(self, v): self.metadata.study_title = v
+    @property
+    def study_id(self): return self.metadata.study_id
+    @study_id.setter
+    def study_id(self, v): self.metadata.study_id = v
+    @property
+    def sponsor(self): return self.metadata.sponsor
+    @sponsor.setter
+    def sponsor(self, v): self.metadata.sponsor = v
+    @property
+    def indication(self): return self.metadata.indication
+    @indication.setter
+    def indication(self, v): self.metadata.indication = v
+    @property
+    def phase(self): return self.metadata.phase
+    @phase.setter
+    def phase(self, v): self.metadata.phase = v
+    @property
+    def study_type(self): return self.metadata.study_type
+    @study_type.setter
+    def study_type(self, v): self.metadata.study_type = v
+
+    # DesignContext
+    @property
+    def arms(self): return self.design.arms
+    @arms.setter
+    def arms(self, v): self.design.arms = v
+    @property
+    def cohorts(self): return self.design.cohorts
+    @cohorts.setter
+    def cohorts(self, v): self.design.cohorts = v
+    @property
+    def objectives(self): return self.design.objectives
+    @objectives.setter
+    def objectives(self, v): self.design.objectives = v
+    @property
+    def endpoints(self): return self.design.endpoints
+    @endpoints.setter
+    def endpoints(self, v): self.design.endpoints = v
+    @property
+    def inclusion_criteria(self): return self.design.inclusion_criteria
+    @inclusion_criteria.setter
+    def inclusion_criteria(self, v): self.design.inclusion_criteria = v
+    @property
+    def exclusion_criteria(self): return self.design.exclusion_criteria
+    @exclusion_criteria.setter
+    def exclusion_criteria(self, v): self.design.exclusion_criteria = v
+
+    # InterventionContext
+    @property
+    def interventions(self): return self.intervention.interventions
+    @interventions.setter
+    def interventions(self, v): self.intervention.interventions = v
+    @property
+    def products(self): return self.intervention.products
+    @products.setter
+    def products(self, v): self.intervention.products = v
+    @property
+    def procedures(self): return self.intervention.procedures
+    @procedures.setter
+    def procedures(self, v): self.intervention.procedures = v
+    @property
+    def devices(self): return self.intervention.devices
+    @devices.setter
+    def devices(self, v): self.intervention.devices = v
+
+    # SchedulingContext
+    @property
+    def timings(self): return self.scheduling.timings
+    @timings.setter
+    def timings(self, v): self.scheduling.timings = v
+    @property
+    def scheduling_rules(self): return self.scheduling.scheduling_rules
+    @scheduling_rules.setter
+    def scheduling_rules(self, v): self.scheduling.scheduling_rules = v
+    @property
+    def narrative_contents(self): return self.scheduling.narrative_contents
+    @narrative_contents.setter
+    def narrative_contents(self, v): self.scheduling.narrative_contents = v
+    @property
+    def time_anchors(self): return self.scheduling.time_anchors
+    @time_anchors.setter
+    def time_anchors(self, v): self.scheduling.time_anchors = v
+    @property
+    def repetitions(self): return self.scheduling.repetitions
+    @repetitions.setter
+    def repetitions(self, v): self.scheduling.repetitions = v
+    @property
+    def traversal_constraints(self): return self.scheduling.traversal_constraints
+    @traversal_constraints.setter
+    def traversal_constraints(self, v): self.scheduling.traversal_constraints = v
+    @property
+    def footnote_conditions(self): return self.scheduling.footnote_conditions
+    @footnote_conditions.setter
+    def footnote_conditions(self, v): self.scheduling.footnote_conditions = v
+
+    # Lookup map delegates (read-only)
+    @property
+    def _epoch_by_id(self): return self.soa._epoch_by_id
+    @property
+    def _epoch_by_name(self): return self.soa._epoch_by_name
+    @property
+    def _encounter_by_id(self): return self.soa._encounter_by_id
+    @property
+    def _activity_by_id(self): return self.soa._activity_by_id
+    @property
+    def _activity_by_name(self): return self.soa._activity_by_name
+    @property
+    def _arm_by_id(self): return self.design._arm_by_id
+    @property
+    def _intervention_by_id(self): return self.intervention._intervention_by_id
     
     def __post_init__(self):
         """Build lookup maps after initialization."""
@@ -125,33 +340,44 @@ class PipelineContext:
         """
         with self._lock:
             ctx = PipelineContext(
-                epochs=copy.deepcopy(self.epochs),
-                encounters=copy.deepcopy(self.encounters),
-                activities=copy.deepcopy(self.activities),
-                timepoints=copy.deepcopy(self.timepoints),
-                study_title=self.study_title,
-                study_id=self.study_id,
-                sponsor=self.sponsor,
-                indication=self.indication,
-                phase=self.phase,
-                study_type=self.study_type,
-                arms=copy.deepcopy(self.arms),
-                cohorts=copy.deepcopy(self.cohorts),
-                study_cells=copy.deepcopy(self.study_cells),
-                inclusion_criteria=copy.deepcopy(self.inclusion_criteria),
-                exclusion_criteria=copy.deepcopy(self.exclusion_criteria),
-                objectives=copy.deepcopy(self.objectives),
-                endpoints=copy.deepcopy(self.endpoints),
-                interventions=copy.deepcopy(self.interventions),
-                products=copy.deepcopy(self.products),
-                procedures=copy.deepcopy(self.procedures),
-                devices=copy.deepcopy(self.devices),
-                timings=copy.deepcopy(self.timings),
-                scheduling_rules=copy.deepcopy(self.scheduling_rules),
-                time_anchors=copy.deepcopy(self.time_anchors),
-                repetitions=copy.deepcopy(self.repetitions),
-                traversal_constraints=copy.deepcopy(self.traversal_constraints),
-                footnote_conditions=copy.deepcopy(self.footnote_conditions),
+                soa=SoAContext(
+                    epochs=copy.deepcopy(self.soa.epochs),
+                    encounters=copy.deepcopy(self.soa.encounters),
+                    activities=copy.deepcopy(self.soa.activities),
+                    timepoints=copy.deepcopy(self.soa.timepoints),
+                    study_cells=copy.deepcopy(self.soa.study_cells),
+                ),
+                metadata=MetadataContext(
+                    study_title=self.metadata.study_title,
+                    study_id=self.metadata.study_id,
+                    sponsor=self.metadata.sponsor,
+                    indication=self.metadata.indication,
+                    phase=self.metadata.phase,
+                    study_type=self.metadata.study_type,
+                ),
+                design=DesignContext(
+                    arms=copy.deepcopy(self.design.arms),
+                    cohorts=copy.deepcopy(self.design.cohorts),
+                    objectives=copy.deepcopy(self.design.objectives),
+                    endpoints=copy.deepcopy(self.design.endpoints),
+                    inclusion_criteria=copy.deepcopy(self.design.inclusion_criteria),
+                    exclusion_criteria=copy.deepcopy(self.design.exclusion_criteria),
+                ),
+                intervention=InterventionContext(
+                    interventions=copy.deepcopy(self.intervention.interventions),
+                    products=copy.deepcopy(self.intervention.products),
+                    procedures=copy.deepcopy(self.intervention.procedures),
+                    devices=copy.deepcopy(self.intervention.devices),
+                ),
+                scheduling=SchedulingContext(
+                    timings=copy.deepcopy(self.scheduling.timings),
+                    scheduling_rules=copy.deepcopy(self.scheduling.scheduling_rules),
+                    narrative_contents=copy.deepcopy(self.scheduling.narrative_contents),
+                    time_anchors=copy.deepcopy(self.scheduling.time_anchors),
+                    repetitions=copy.deepcopy(self.scheduling.repetitions),
+                    traversal_constraints=copy.deepcopy(self.scheduling.traversal_constraints),
+                    footnote_conditions=copy.deepcopy(self.scheduling.footnote_conditions),
+                ),
             )
         return ctx
     
@@ -182,43 +408,9 @@ class PipelineContext:
     
     def _rebuild_lookup_maps(self):
         """Rebuild all lookup maps from current data."""
-        self._epoch_by_id.clear()
-        self._epoch_by_name.clear()
-        for epoch in self.epochs:
-            epoch_id = epoch.get('id', '')
-            epoch_name = epoch.get('name', '')
-            if epoch_id:
-                self._epoch_by_id[epoch_id] = epoch
-            if epoch_name:
-                self._epoch_by_name[epoch_name.lower()] = epoch
-        
-        self._encounter_by_id.clear()
-        for enc in self.encounters:
-            enc_id = enc.get('id', '')
-            if enc_id:
-                self._encounter_by_id[enc_id] = enc
-        
-        self._activity_by_id.clear()
-        self._activity_by_name.clear()
-        for act in self.activities:
-            act_id = act.get('id', '')
-            act_name = act.get('name', '')
-            if act_id:
-                self._activity_by_id[act_id] = act
-            if act_name:
-                self._activity_by_name[act_name.lower()] = act
-        
-        self._arm_by_id.clear()
-        for arm in self.arms:
-            arm_id = arm.get('id', '')
-            if arm_id:
-                self._arm_by_id[arm_id] = arm
-        
-        self._intervention_by_id.clear()
-        for intv in self.interventions:
-            intv_id = intv.get('id', '')
-            if intv_id:
-                self._intervention_by_id[intv_id] = intv
+        self.soa.rebuild_maps()
+        self.design.rebuild_maps()
+        self.intervention.rebuild_maps()
     
     # === Update methods (used in sequential mode) ===
     

@@ -35,9 +35,11 @@ class AnalysisPopulation:
     def to_dict(self) -> Dict[str, Any]:
         # Use definition as description if available, otherwise use description
         desc = self.definition or self.description or self.name
+        # USDM requires name to have at least 1 character
+        name = self.name or self.label or self.definition or f"Population {self.id}"
         result = {
             "id": self.id,
-            "name": self.name,
+            "name": name,
             "text": desc,  # Required field per USDM schema
             "populationType": self.population_type,
             "instanceType": self.instance_type,
@@ -624,7 +626,7 @@ def extract_from_sap(
         populations = [
             AnalysisPopulation(
                 id=p.get('id', f"pop_{i+1}") if isinstance(p, dict) else f"pop_{i+1}",
-                name=p.get('name', '') if isinstance(p, dict) else str(p),
+                name=(p.get('name') or p.get('label') or f'Population {i+1}') if isinstance(p, dict) else str(p),
                 label=p.get('label') if isinstance(p, dict) else None,
                 description=p.get('description') if isinstance(p, dict) else None,
                 definition=p.get('definition') if isinstance(p, dict) else None,

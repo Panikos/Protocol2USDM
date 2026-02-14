@@ -118,6 +118,107 @@ def render_page_to_image(
         return None
 
 
+def render_page_region_to_image(
+    pdf_path: str,
+    page_num: int,
+    output_path: str,
+    clip_rect: tuple,
+    dpi: int = 200,
+) -> Optional[str]:
+    """
+    Render a clipped region of a PDF page to an image file.
+    
+    Args:
+        pdf_path: Path to the PDF file
+        page_num: 0-indexed page number
+        output_path: Path for the output image
+        clip_rect: (x0, y0, x1, y1) rectangle in PDF points to clip
+        dpi: Resolution in dots per inch
+        
+    Returns:
+        Path to the created image, or None on failure
+    """
+    try:
+        import fitz
+        
+        doc = fitz.open(pdf_path)
+        if page_num < 0 or page_num >= len(doc):
+            doc.close()
+            return None
+            
+        page = doc[page_num]
+        rect = fitz.Rect(clip_rect)
+        
+        zoom = dpi / 72
+        matrix = fitz.Matrix(zoom, zoom)
+        
+        pix = page.get_pixmap(matrix=matrix, clip=rect)
+        if pix.width < 10 or pix.height < 10:
+            doc.close()
+            return None
+        pix.save(output_path)
+        
+        doc.close()
+        return output_path
+        
+    except Exception as e:
+        logger.error(f"Failed to render page region: {e}")
+        return None
+
+
+def extract_embedded_image(
+    pdf_path: str,
+    page_num: int,
+    xref: int,
+    output_path: str,
+) -> Optional[str]:
+    """
+    Extract an embedded image from a PDF by its xref number.
+    
+    Args:
+        pdf_path: Path to the PDF file
+        page_num: Page number (for logging)
+        xref: PDF object reference number for the image
+        output_path: Path for the output image
+        
+    Returns:
+        Path to the created image, or None on failure
+    """
+    try:
+        import fitz
+        
+        doc = fitz.open(pdf_path)
+        img_data = doc.extract_image(xref)
+        doc.close()
+        
+        if not img_data or not img_data.get("image"):
+            return None
+        
+        # Get extension from image format
+        ext = img_data.get("ext", "png")
+        raw_bytes = img_data["image"]
+        
+        # If it's already PNG or JPEG, write directly
+        if ext in ("png", "jpeg", "jpg"):
+            # Ensure output has right extension
+            if not output_path.endswith(f".{ext}"):
+                output_path = output_path.rsplit('.', 1)[0] + f".{ext}"
+            with open(output_path, "wb") as f:
+                f.write(raw_bytes)
+            return output_path
+        
+        # For other formats, convert via pixmap
+        pix = fitz.Pixmap(raw_bytes)
+        if pix.alpha:
+            pix = fitz.Pixmap(fitz.csRGB, pix)
+        pix.save(output_path)
+        return output_path
+        
+    except Exception as e:
+        logger.error(f"Failed to extract embedded image (xref={xref}): {e}")
+        return None
+
+
 def render_pages_to_images(
     pdf_path: str,
     pages: List[int],

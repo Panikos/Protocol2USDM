@@ -11,6 +11,7 @@ import { X, Maximize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { NodeDetailsPanel } from './NodeDetailsPanel';
+import type { EntityNameMap } from './NodeDetailsPanel';
 
 interface TimelineViewProps {
   onNodeSelect?: (nodeId: string, data: Record<string, unknown>) => void;
@@ -29,6 +30,40 @@ export function TimelineView({ onNodeSelect, executionModel }: TimelineViewProps
   const graphModel = useMemo(() => {
     return toGraphModel(studyDesign, overlayPayload, executionModel);
   }, [studyDesign, overlayPayload, executionModel]);
+
+  // Build entity name map: USDM UUID → {name, type, graphNodeId}
+  const entityNames: EntityNameMap = useMemo(() => {
+    const map: EntityNameMap = new Map();
+    if (!studyDesign) return map;
+    const sd = studyDesign as Record<string, unknown>;
+
+    // Epochs
+    for (const e of (sd.epochs as any[] ?? [])) {
+      map.set(e.id, { name: e.name || 'Unnamed Epoch', type: 'Epoch', graphNodeId: `epoch_${e.id}` });
+    }
+    // Encounters
+    for (const e of (sd.encounters as any[] ?? [])) {
+      map.set(e.id, { name: e.name || 'Unnamed Encounter', type: 'Encounter', graphNodeId: `enc_${e.id}` });
+    }
+    // Activities
+    for (const a of (sd.activities as any[] ?? [])) {
+      map.set(a.id, { name: a.name || 'Unnamed Activity', type: 'Activity', graphNodeId: `act_${a.id}` });
+    }
+    // Arms
+    for (const a of (sd.arms as any[] ?? [])) {
+      map.set(a.id, { name: a.name || 'Unnamed Arm', type: 'Arm' });
+    }
+    // Timings (from schedule timelines)
+    for (const tl of (sd.scheduleTimelines as any[] ?? [])) {
+      for (const t of (tl.timings ?? [])) {
+        map.set(t.id, { name: t.name || t.label || 'Timing', type: 'Timing', graphNodeId: `timing_${t.id}` });
+      }
+      for (const inst of (tl.instances ?? [])) {
+        map.set(inst.id, { name: inst.name || inst.instanceType || 'Instance', type: inst.instanceType || 'Instance' });
+      }
+    }
+    return map;
+  }, [studyDesign]);
 
   // Stats
   const stats = useMemo(() => ({
@@ -69,6 +104,11 @@ export function TimelineView({ onNodeSelect, executionModel }: TimelineViewProps
 
   const handleCloseDetails = useCallback(() => {
     setSelectedNode(null);
+  }, []);
+
+  // Navigate to a different graph node (from cross-reference click)
+  const handleNavigateToNode = useCallback((graphNodeId: string) => {
+    canvasRef.current?.selectNode(graphNodeId);
   }, []);
 
   if (!studyDesign) {
@@ -139,6 +179,8 @@ export function TimelineView({ onNodeSelect, executionModel }: TimelineViewProps
                 nodeId={selectedNode.id}
                 nodeData={selectedNode.data as any}
                 onClose={handleCloseDetails}
+                onNavigateToNode={handleNavigateToNode}
+                entityNames={entityNames}
               />
             </div>
           )}

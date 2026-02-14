@@ -9,11 +9,27 @@ export async function GET(
   { params }: { params: Promise<{ id: string; filename: string }> }
 ) {
   const { id, filename } = await params;
-  const imagePath = path.join(OUTPUT_DIR, id, '3_soa_images', filename);
+
+  // Try multiple image directories: SoA images, then protocol figures
+  const candidates = [
+    path.join(OUTPUT_DIR, id, '3_soa_images', filename),
+    path.join(OUTPUT_DIR, id, 'figures', filename),
+  ];
+
+  let imageBuffer: Buffer | null = null;
+  for (const candidate of candidates) {
+    try {
+      imageBuffer = await fs.readFile(candidate);
+      break;
+    } catch {
+      // Try next candidate
+    }
+  }
 
   try {
-    const imageBuffer = await fs.readFile(imagePath);
-    
+    if (!imageBuffer) throw new Error('Not found');
+    const body = new Uint8Array(imageBuffer);
+
     // Determine content type
     const ext = path.extname(filename).toLowerCase();
     const contentTypes: Record<string, string> = {
@@ -25,7 +41,7 @@ export async function GET(
     };
     const contentType = contentTypes[ext] || 'application/octet-stream';
 
-    return new NextResponse(imageBuffer, {
+    return new NextResponse(body, {
       headers: {
         'Content-Type': contentType,
         'Cache-Control': 'public, max-age=31536000, immutable',

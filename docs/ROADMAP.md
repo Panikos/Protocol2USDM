@@ -18,16 +18,17 @@
    - Signature meaning (authored, reviewed, approved)
    - Full GxP compliance with audit trail integration
 
-### Web UI Editing Improvements (In Progress)
+### Web UI Editing Improvements (Complete)
 
-**Status:** In progress  
+**Status:** Complete  
 **Priority:** High  
-**Added:** 2026-02-10
+**Added:** 2026-02-10  
+**Completed:** 2026-02-13
 
-1. **ID-Based Patch Paths** — Replace fragile array-index JSON Patches with entity ID-based paths (`@id:` syntax)
-2. **Live Validation on Publish** — Run schema/USDM/CORE validators on candidate USDM before writing to disk
-3. **Audit Trail** — Reason-for-change on publish, SHA-256 hash chain, change log
-4. **Extended Editing Coverage** — Add/remove/reorder for objectives, endpoints, eligibility, interventions, narrative
+1. ~~**ID-Based Patch Paths**~~ — ✅ `@id:` syntax in `SoAProcessor`, resolved by `resolveIdPath()` in `patcher.ts`
+2. ~~**Live Validation on Publish**~~ — ✅ Schema/USDM/CORE validators on candidate USDM before writing to disk
+3. ~~**Audit Trail**~~ — ✅ SHA-256 hash chain, reason-for-change, `publishedBy` user identity
+4. ~~**Extended Editing Coverage**~~ — ✅ Objectives, endpoints, estimands (all 5 ICH E9(R1) attributes), interventions, narrative, timing, analysis populations
 
 ### ARS Output Display Generation (Future)
 
@@ -57,19 +58,56 @@
 - [ARS Documentation](https://cdisc-org.github.io/analysis-results-standard/)
 - [ARS Wiki](https://wiki.cdisc.org/display/ARSP/ARS-UG+Sections)
 
-### Unscheduled Visit (UNS) — Full State Machine Modeling (In Progress)
+### Unscheduled Visit (UNS) — Full State Machine Modeling (Complete)
 
-**Status:** Phase 1 complete, Phase 2 pending  
+**Status:** Complete (all 3 phases)  
 **Priority:** Medium  
-**Added:** 2026-02-11
+**Added:** 2026-02-11  
+**Completed:** 2026-02-13
 
-1. **Phase 1 (Complete)** — Tag UNS encounters with `x-encounterUnscheduled` extension, visual distinction in SoA grid (amber dashed borders, ⚡ suffix)
-2. **Phase 2 (Pending)** — Promote UNS to `ScheduledDecisionInstance` with reentrant branch semantics (returns to main timeline after event-driven visit)
-3. **Phase 3 (Future)** — Timeline graph visualization of UNS branches in Cytoscape.js
+1. ~~**Phase 1 (Complete)**~~ — ✅ Tag UNS encounters with `x-encounterUnscheduled` extension, visual distinction in SoA grid (amber dashed borders, ⚡ suffix)
+2. ~~**Phase 2 (Complete)**~~ — ✅ Promote UNS to `ScheduledDecisionInstance` (C201351) with `Condition` + `ConditionAssignment` branches (event → UNS visit, default → next scheduled encounter)
+3. ~~**Phase 3 (Complete)**~~ — ✅ Timeline graph visualization: diamond decision nodes, dashed amber branch edges, legend updated
 
 ---
 
 ## Completed Features
+
+### v7.11.0 - SoA Page Finder & Dangling Reference Fix (2026-02-14)
+- ✅ SoA page finder: header-fingerprint expansion for multi-page tables (Jaccard ≥ 0.75)
+- ✅ SoA page finder: wide-table heuristic (isolated integers + epoch keywords)
+- ✅ Dangling SAI `encounterId` fix: post-reconciliation cleanup remaps to surviving encounters
+- ✅ UI: MeSH code links to NLM Browser in StudyMetadataView + AdvancedEntitiesView
+- ✅ UI: Characteristics display fixed (USDM Code.decode as badges)
+- ✅ Renderer sectionType tagging confirmed end-to-end; keyword fallbacks deprecated
+- ✅ SURPASS-4 re-run: 0→32 timepoints, 0→32 encounters, schema+semantic PASSED
+- ✅ 2 new regression tests (dangling SAI encounterId)
+
+### v7.10.0 - Bug Fixes, Integrity Checker & UI Hardening (2026-02-13)
+- ✅ SAP extraction: 3 bugs fixed (wrong key, duplicate extensions, missing sap_path forwarding)
+- ✅ Sites extraction: same key mismatch bug fixed (`sitesData`)
+- ✅ Timeline visualization: all time anchors rendered with type-specific colors
+- ✅ Figure extraction: three-strategy approach (embedded → cropped → full page)
+- ✅ Cross-references: TOC dedup, figure title linking, context enrichment
+- ✅ Referential integrity checker: 3-layer validation (`pipeline/integrity.py`)
+- ✅ Cross-phase context enrichment: scheduling←studydesign, advanced←objectives+eligibility+interventions
+- ✅ AdministrableProduct: 5 new USDM v4.0 fields
+- ✅ UI/UX: app shell, error boundary, keyboard shortcuts, theme toggle, auto-save, provenance badges
+- ✅ 84 new tests (SAP combine: 11, integrity: 28, reference scanner: 45)
+
+### v7.9.0 - Editing, Tagging, Refactor & USDM Conformance (2026-02-13)
+- ✅ Estimands fully editable (5 ICH E9(R1) attributes + intercurrent events)
+- ✅ Analysis population descriptions editable
+- ✅ M11-aware `sectionType` tagging on `NarrativeContentItem` (P15)
+- ✅ `m11_renderer.py` split: `document_setup.py` + `text_formatting.py` (1199L→465L)
+- ✅ `NarrativeContent` USDM v4.0 conformance: `displaySectionTitle`, `displaySectionNumber`, `previousId`/`nextId` linked list, `contentItemId`
+- ✅ W-HIGH-2: PipelineContext decomposed into 5 sub-contexts (SoA, Metadata, Design, Intervention, Scheduling)
+- ✅ W-HIGH-3: Entity-level provenance — `pages_used`, `entity_ids` on PhaseProvenance, `entity_provenance.json` output
+- ✅ W-HIGH-4: Singletons → DI — `phase_registry`, EVS client, usage tracker all injectable for test isolation
+
+### v7.8.0 - USDM v4.0 Extractor Gap Audit (2026-02-11)
+- ✅ All 28 extractor gaps fixed across 4 severity levels (3 CRITICAL, 10 HIGH, 9 MEDIUM, 6 LOW)
+- ✅ 115 new tests across 3 sprint test files
 
 ### v7.5.0 - NCI Code Audit & Verification (2026-02-11)
 - ✅ Systematic audit of 141 NCI C-codes against EVS API

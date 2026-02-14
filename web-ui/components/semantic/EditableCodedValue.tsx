@@ -76,13 +76,29 @@ export function EditableCodedValue({
 
   const canEdit = editable && isEditMode;
 
-  // Normalize current value
+  // Normalize current value — defensively coerce to string since USDM data
+  // may contain nested objects in code/decode fields (e.g. amendments)
   const currentDecode = typeof value === 'string'
     ? value
-    : value?.decode ?? '';
-  const currentCode = typeof value === 'string'
+    : (typeof value?.decode === 'string' ? value.decode : String(value?.decode ?? ''));
+  const rawCode = typeof value === 'string'
     ? options.find(o => o.decode === value)?.code ?? ''
-    : value?.code ?? '';
+    : (typeof value?.code === 'string' ? value.code : String(value?.code ?? ''));
+  // If the stored code is not a valid C-code (e.g. decode was stored in the code field),
+  // look up the real C-code from the options list using the decode value.
+  // Uses tolerant matching: exact → case-insensitive startsWith → includes.
+  const currentCode = /^C\d{3,}$/i.test(rawCode)
+    ? rawCode
+    : (() => {
+        const needle = String(currentDecode || rawCode).toLowerCase().trim();
+        if (!needle) return rawCode;
+        return (
+          options.find(o => o.decode.toLowerCase() === needle)?.code ??
+          options.find(o => o.decode.toLowerCase().startsWith(needle))?.code ??
+          options.find(o => o.decode.toLowerCase().includes(needle))?.code ??
+          rawCode
+        );
+      })();
 
   // Filter options by search
   const filtered = search

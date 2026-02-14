@@ -2,16 +2,44 @@ import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import type { SemanticDraft, JsonPatchOp, PublishResponse } from '@/lib/semantic/schema';
 import { useProtocolStore } from '@/stores/protocolStore';
+import { getCurrentUsername } from '@/hooks/useUserIdentity';
 
-// Import soaEditStore reset function - we can't import the hook directly to avoid circular deps
-// but we can call getState() on it after the store is created
-let resetSoAEditStore: (() => void) | null = null;
-import('@/stores/soaEditStore').then(({ useSoAEditStore }) => {
-  resetSoAEditStore = () => useSoAEditStore.getState().reset();
-});
+// Lazy getter to avoid circular dependency — resolves synchronously after first call
+function getResetSoAEditStore(): () => void {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { useSoAEditStore } = require('@/stores/soaEditStore');
+  return () => useSoAEditStore.getState().reset();
+}
 
 // Max undo history entries to avoid unbounded memory growth
 const MAX_UNDO_HISTORY = 100;
+
+// SessionStorage persistence for undo/redo stacks
+const UNDO_STORAGE_KEY = 'protocol2usdm_undo_state';
+
+interface PersistedUndoState {
+  protocolId: string;
+  undoStack: JsonPatchOp[][];
+  redoStack: JsonPatchOp[][];
+}
+
+function persistUndoState(protocolId: string | null, undoStack: JsonPatchOp[][], redoStack: JsonPatchOp[][]) {
+  if (!protocolId) return;
+  try {
+    const data: PersistedUndoState = { protocolId, undoStack, redoStack };
+    sessionStorage.setItem(UNDO_STORAGE_KEY, JSON.stringify(data));
+  } catch { /* sessionStorage unavailable or quota exceeded */ }
+}
+
+function restoreUndoState(protocolId: string): { undoStack: JsonPatchOp[][]; redoStack: JsonPatchOp[][] } | null {
+  try {
+    const raw = sessionStorage.getItem(UNDO_STORAGE_KEY);
+    if (!raw) return null;
+    const data: PersistedUndoState = JSON.parse(raw);
+    if (data.protocolId !== protocolId) return null;
+    return { undoStack: data.undoStack, redoStack: data.redoStack };
+  } catch { return null; }
+}
 
 interface SemanticState {
   // Data
@@ -116,7 +144,7 @@ export const useSemanticStore = create<SemanticState>()(
             status: 'draft',
             createdAt: now,
             updatedAt: now,
-            updatedBy: 'ui-user',
+            updatedBy: getCurrentUsername(),
             patch: [op],
           };
           // If this is the first op and not in a group, snapshot empty state for undo
@@ -162,7 +190,7 @@ export const useSemanticStore = create<SemanticState>()(
         state.isDirty = true;
       });
       // Also clear SoA visual tracking synchronously
-      if (resetSoAEditStore) resetSoAEditStore();
+      try { getResetSoAEditStore()(); } catch (_) { /* store not yet loaded */ }
     },
 
     undo: () => {
@@ -177,7 +205,7 @@ export const useSemanticStore = create<SemanticState>()(
         state.isDirty = true;
       });
       // Reset SoA visual tracking so it re-derives from the restored patch state
-      if (resetSoAEditStore) resetSoAEditStore();
+      try { getResetSoAEditStore()(); } catch (_) { /* store not yet loaded */ }
     },
 
     redo: () => {
@@ -192,7 +220,7 @@ export const useSemanticStore = create<SemanticState>()(
         state.isDirty = true;
       });
       // Reset SoA visual tracking so it re-derives from the restored patch state
-      if (resetSoAEditStore) resetSoAEditStore();
+      try { getResetSoAEditStore()(); } catch (_) { /* store not yet loaded */ }
     },
 
     beginGroup: () => {
@@ -244,6 +272,17 @@ export const useSemanticStore = create<SemanticState>()(
     },
   }))
 );
+
+// Persist undo/redo stacks to sessionStorage on change (debounced)
+let _persistTimer: ReturnType<typeof setTimeout> | null = null;
+useSemanticStore.subscribe((state, prevState) => {
+  if (state.undoStack !== prevState.undoStack || state.redoStack !== prevState.redoStack) {
+    if (_persistTimer) clearTimeout(_persistTimer);
+    _persistTimer = setTimeout(() => {
+      persistUndoState(state.protocolId, state.undoStack, state.redoStack);
+    }, 500);
+  }
+});
 
 // Selectors
 export const selectSemanticIsDirty = (state: SemanticState) => state.isDirty;

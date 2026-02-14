@@ -113,7 +113,7 @@ def validate_m11_conformance(
     _validate_title_page(report, version, study, design)
 
     # ---- 2. Synopsis §1.1.2 Validation ----
-    _validate_synopsis(report, version, design)
+    _validate_synopsis(report, version, design, usdm)
 
     # ---- 3. Section Coverage Validation ----
     _validate_section_coverage(report, usdm, version, design, m11_mapping)
@@ -153,7 +153,13 @@ def _validate_title_page(
             for i in identifiers
         ),
         "amendments": True,  # Original Protocol Indicator can be derived
-        "phase": bool(isinstance(phase, dict) and phase.get('decode', phase.get('code'))),
+        "phase": bool(
+            isinstance(phase, dict) and (
+                phase.get('decode') or phase.get('code') or
+                (isinstance(phase.get('standardCode'), dict) and
+                 phase['standardCode'].get('decode'))
+            )
+        ),
         "sponsor": any(
             isinstance(o, dict) and
             (o.get('type', {}).get('code', '') == 'C54086' or
@@ -165,7 +171,15 @@ def _validate_title_page(
             isinstance(i, dict) and i.get('text')
             for i in identifiers
         ),
-        "approval": bool(version.get('effectiveDate')),
+        "approval": bool(
+            version.get('effectiveDate') or
+            any(
+                isinstance(dv, dict) and dv.get('dateValue') and
+                ('approval' in (dv.get('name', '') or '').lower() or
+                 'approval' in str((dv.get('type', {}) or {}).get('decode', '')).lower())
+                for dv in version.get('dateValues', [])
+            )
+        ),
         "acronym": any(
             isinstance(t, dict) and 'acronym' in str(t.get('type', {}).get('decode', '')).lower()
             for t in titles
@@ -216,6 +230,7 @@ def _validate_synopsis(
     report: M11ConformanceReport,
     version: Dict,
     design: Dict,
+    usdm: Optional[Dict] = None,
 ) -> None:
     """Check Synopsis §1.1.2 Overall Design structured fields."""
     pop = design.get('population', design.get('populations', {}))
@@ -224,6 +239,20 @@ def _validate_synopsis(
 
     arms = design.get('arms', design.get('studyArms', []))
     sites = design.get('studySites', [])
+
+    # Check participants: first from USDM population, then narrative fallback
+    has_participants = bool(
+        isinstance(pop, dict) and
+        (pop.get('plannedEnrollmentNumber') or
+         pop.get('plannedNumberOfSubjects') or
+         pop.get('plannedMaximumNumberOfSubjects'))
+    )
+    if not has_participants and usdm:
+        try:
+            from rendering.composers import _extract_participant_count_from_narrative
+            has_participants = bool(_extract_participant_count_from_narrative(usdm))
+        except ImportError:
+            pass
 
     checks = {
         "model": bool(isinstance(design.get('model', {}), dict) and
@@ -236,12 +265,7 @@ def _validate_synopsis(
         "arms": bool(arms),
         "blinding": bool(isinstance(design.get('blindingSchema', {}), dict) and
                           design.get('blindingSchema', {})),
-        "participants": bool(
-            isinstance(pop, dict) and
-            (pop.get('plannedEnrollmentNumber') or
-             pop.get('plannedNumberOfSubjects') or
-             pop.get('plannedMaximumNumberOfSubjects'))
-        ),
+        "participants": has_participants,
         "sites": bool(sites),
         "age": bool(
             isinstance(pop, dict) and
@@ -321,13 +345,24 @@ def _validate_section_coverage(
     if version.get('amendments'):
         entity_sections.add('12')
 
-    # Narrative content items
+    # Narrative content items — scan section numbers to detect which M11 sections
+    # have narrative content (covers §7, §8, §9, §11 which are narrative-only)
     nc = version.get('narrativeContents', [])
     nci = version.get('narrativeContentItems', [])
     has_narrative = bool(nc or nci)
     if has_narrative:
         entity_sections.add('1')  # Likely has synopsis narrative
         entity_sections.add('2')  # Likely has introduction
+    for item in nc + nci:
+        if not isinstance(item, dict):
+            continue
+        sec_num = item.get('sectionNumber', '')
+        text = item.get('text', '')
+        if sec_num and text and len(text.strip()) > 20:
+            # Map section number to top-level M11 section (e.g. '7.1' → '7')
+            top_section = sec_num.split('.')[0]
+            if top_section.isdigit():
+                entity_sections.add(top_section)
 
     covered = mapped_sections | entity_sections
 

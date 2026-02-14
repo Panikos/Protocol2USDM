@@ -6,189 +6,51 @@ Identifies canonical time anchors for study timelines from protocol PDFs.
 Per USDM workshop manual: "Every main timeline requires an anchor point - 
 the fundamental reference from which all other timing is measured."
 
-Common anchor patterns:
-- Cycle 1, Day 1 with screening relative to it
-- Week 0 of treatment as baseline  
-- Days from randomization where Day 0 is reference
-- First dose administration
+Uses LLM-primary extraction to produce 1-3 protocol-specific anchors
+with actual protocol quotes as definitions, not canned boilerplate.
 """
 
 import re
 import json
 import logging
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Any, Optional
 
 from .schema import TimeAnchor, AnchorType, ExecutionModelResult, ExecutionModelData
 
 logger = logging.getLogger(__name__)
 
 
-# Anchor detection patterns with associated types
-# Organized by therapeutic area for comprehensive coverage
-ANCHOR_PATTERNS: List[Tuple[str, AnchorType, float]] = [
-    # ==========================================================================
-    # GENERAL / CROSS-THERAPEUTIC PATTERNS (highest priority)
-    # ==========================================================================
-    # First dose patterns
-    (r'first\s+(?:dose|administration)\s+of\s+(?:study\s+)?(?:drug|medication|treatment|investigational\s+product)',
-     AnchorType.FIRST_DOSE, 0.95),
-    (r'day\s+1\s+(?:of\s+)?(?:cycle\s+1|treatment|dosing)',
-     AnchorType.FIRST_DOSE, 0.90),
-    (r'initiation\s+of\s+(?:study\s+)?treatment',
-     AnchorType.FIRST_DOSE, 0.85),
-    (r'start\s+of\s+(?:study\s+)?(?:treatment|therapy|intervention)',
-     AnchorType.FIRST_DOSE, 0.85),
-    (r'treatment\s+(?:start|initiation|commencement)',
-     AnchorType.FIRST_DOSE, 0.80),
-    
-    # Randomization patterns
-    (r'day\s+(?:of\s+)?randomization',
-     AnchorType.RANDOMIZATION, 0.90),
-    (r'randomization\s+(?:visit|day|date)',
-     AnchorType.RANDOMIZATION, 0.90),
-    (r'days?\s+(?:from|after|since)\s+randomization',
-     AnchorType.RANDOMIZATION, 0.85),
-    (r'post[\-\s]?randomization',
-     AnchorType.RANDOMIZATION, 0.80),
-    
-    # Day 1/Baseline patterns
-    (r'day\s+1\s*[=:]\s*(?:baseline|first\s+visit)',
-     AnchorType.DAY_1, 0.85),
-    (r'baseline\s+(?:visit|day|assessment)',
-     AnchorType.BASELINE, 0.80),
-    (r'week\s+0\s+(?:of\s+)?treatment',
-     AnchorType.BASELINE, 0.80),
-    (r'pre[\-\s]?treatment\s+(?:baseline|assessment)',
-     AnchorType.BASELINE, 0.80),
-    
-    # Screening/Enrollment
-    (r'screening\s+(?:visit|period|day)',
-     AnchorType.SCREENING, 0.70),
-    (r'informed\s+consent',
-     AnchorType.INFORMED_CONSENT, 0.75),
-    (r'enrollment\s+(?:visit|day)',
-     AnchorType.ENROLLMENT, 0.75),
-    
-    # ==========================================================================
-    # ONCOLOGY PATTERNS
-    # ==========================================================================
-    (r'cycle\s+1[,\s]+day\s+1',
-     AnchorType.CYCLE_START, 0.85),
-    (r'c1d1',
-     AnchorType.CYCLE_START, 0.80),
-    (r'first\s+(?:infusion|injection)\s+(?:of\s+)?(?:study\s+)?(?:drug|treatment)',
-     AnchorType.FIRST_DOSE, 0.90),
-    (r'start\s+of\s+(?:chemotherapy|immunotherapy|targeted\s+therapy)',
-     AnchorType.FIRST_DOSE, 0.85),
-    (r'day\s+1\s+of\s+(?:induction|consolidation|maintenance)',
-     AnchorType.FIRST_DOSE, 0.85),
-    (r'first\s+(?:cycle|course)\s+of\s+(?:treatment|therapy)',
-     AnchorType.CYCLE_START, 0.85),
-    
-    # ==========================================================================
-    # VACCINES / IMMUNOLOGY PATTERNS
-    # ==========================================================================
-    (r'(?:first|prime)\s+(?:vaccination|immunization|dose)',
-     AnchorType.FIRST_DOSE, 0.90),
-    (r'day\s+(?:of\s+)?(?:prime|first)\s+vaccination',
-     AnchorType.FIRST_DOSE, 0.90),
-    (r'vaccination\s+day\s+(?:1|one)',
-     AnchorType.FIRST_DOSE, 0.85),
-    (r'post[\-\s]?vaccination\s+day\s+\d+',
-     AnchorType.FIRST_DOSE, 0.80),
-    (r'challenge\s+(?:day|date)',
-     AnchorType.CUSTOM, 0.80),
-    
-    # ==========================================================================
-    # CARDIOLOGY PATTERNS
-    # ==========================================================================
-    (r'(?:index|qualifying)\s+(?:event|mi|stroke|hospitalization)',
-     AnchorType.CUSTOM, 0.85),
-    (r'days?\s+(?:from|after|since)\s+(?:index|qualifying)\s+event',
-     AnchorType.CUSTOM, 0.85),
-    (r'post[\-\s]?(?:mi|stroke|pci|cabg)',
-     AnchorType.CUSTOM, 0.80),
-    (r'hospital\s+discharge',
-     AnchorType.CUSTOM, 0.75),
-    (r'days?\s+(?:from|after)\s+discharge',
-     AnchorType.CUSTOM, 0.80),
-    
-    # ==========================================================================
-    # NEUROLOGY / CNS PATTERNS
-    # ==========================================================================
-    (r'(?:first|initial)\s+(?:seizure|episode|attack)',
-     AnchorType.CUSTOM, 0.80),
-    (r'symptom\s+onset',
-     AnchorType.CUSTOM, 0.80),
-    (r'days?\s+(?:from|after|since)\s+(?:diagnosis|onset)',
-     AnchorType.CUSTOM, 0.80),
-    (r'titration\s+(?:start|initiation|period)',
-     AnchorType.FIRST_DOSE, 0.75),
-    
-    # ==========================================================================
-    # SURGERY / PROCEDURES / DEVICES PATTERNS
-    # ==========================================================================
-    (r'(?:day\s+of\s+)?(?:surgery|procedure|implantation|transplant)',
-     AnchorType.CUSTOM, 0.85),
-    (r'post[\-\s]?(?:operative|surgical|procedure)',
-     AnchorType.CUSTOM, 0.80),
-    (r'days?\s+(?:from|after|since)\s+(?:surgery|procedure|implant)',
-     AnchorType.CUSTOM, 0.85),
-    (r'device\s+(?:implantation|activation)',
-     AnchorType.CUSTOM, 0.80),
-    (r'transplant(?:ation)?\s+(?:day|date)',
-     AnchorType.CUSTOM, 0.85),
-    
-    # ==========================================================================
-    # RARE DISEASE / GENETIC PATTERNS
-    # ==========================================================================
-    (r'first\s+(?:infusion|injection)\s+of\s+(?:enzyme|gene\s+therapy|replacement)',
-     AnchorType.FIRST_DOSE, 0.90),
-    (r'start\s+of\s+(?:enzyme|gene)\s+(?:replacement\s+)?therapy',
-     AnchorType.FIRST_DOSE, 0.85),
-    (r'loading\s+dose',
-     AnchorType.FIRST_DOSE, 0.80),
-    
-    # ==========================================================================
-    # DIABETES / METABOLIC PATTERNS
-    # ==========================================================================
-    (r'(?:first|initial)\s+(?:injection|dose)\s+of\s+(?:insulin|glp[\-\s]?1|sglt)',
-     AnchorType.FIRST_DOSE, 0.90),
-    (r'start\s+of\s+(?:insulin|basal|bolus)\s+(?:therapy|treatment)',
-     AnchorType.FIRST_DOSE, 0.85),
-    (r'clamp\s+(?:procedure|study)\s+(?:day|start)',
-     AnchorType.CUSTOM, 0.80),
-    (r'glucose\s+(?:challenge|tolerance\s+test)',
-     AnchorType.CUSTOM, 0.75),
-    
-    # ==========================================================================
-    # INFECTIOUS DISEASE PATTERNS
-    # ==========================================================================
-    (r'first\s+dose\s+of\s+(?:antibiotic|antiviral|antifungal)',
-     AnchorType.FIRST_DOSE, 0.90),
-    (r'start\s+of\s+(?:antimicrobial|antiretroviral)\s+therapy',
-     AnchorType.FIRST_DOSE, 0.85),
-    (r'(?:infection|symptom)\s+(?:onset|diagnosis)',
-     AnchorType.CUSTOM, 0.80),
-    
-    # ==========================================================================
-    # OPHTHALMOLOGY PATTERNS
-    # ==========================================================================
-    (r'(?:first|initial)\s+(?:intravitreal\s+)?injection',
-     AnchorType.FIRST_DOSE, 0.90),
-    (r'day\s+of\s+(?:injection|treatment)\s+(?:in\s+)?(?:study|treated)\s+eye',
-     AnchorType.FIRST_DOSE, 0.85),
-    
-    # ==========================================================================
-    # DERMATOLOGY PATTERNS
-    # ==========================================================================
-    (r'first\s+(?:application|dose)\s+of\s+(?:topical|study)\s+(?:drug|treatment)',
-     AnchorType.FIRST_DOSE, 0.85),
-    (r'start\s+of\s+(?:topical|phototherapy)\s+treatment',
-     AnchorType.FIRST_DOSE, 0.80),
-]
+# ── Anchor-type mapping ──────────────────────────────────────────────────────
+_ANCHOR_TYPE_MAP: Dict[str, AnchorType] = {
+    "firstdose": AnchorType.FIRST_DOSE,
+    "treatmentstart": AnchorType.TREATMENT_START,
+    "randomization": AnchorType.RANDOMIZATION,
+    "screening": AnchorType.SCREENING,
+    "day1": AnchorType.DAY_1,
+    "baseline": AnchorType.BASELINE,
+    "enrollment": AnchorType.ENROLLMENT,
+    "informedconsent": AnchorType.INFORMED_CONSENT,
+    "cyclestart": AnchorType.CYCLE_START,
+    "collectionday": AnchorType.COLLECTION_DAY,
+    "custom": AnchorType.CUSTOM,
+}
 
-# Keywords to find anchor-relevant pages
+
+def _resolve_anchor_type(raw: str) -> AnchorType:
+    """Fuzzy-match an LLM-returned anchor type string to AnchorType enum."""
+    if not raw:
+        return AnchorType.CUSTOM
+    # Try exact enum value first
+    try:
+        return AnchorType(raw)
+    except ValueError:
+        pass
+    # Normalize and look up
+    key = re.sub(r'[\s_\-]', '', raw).lower()
+    return _ANCHOR_TYPE_MAP.get(key, AnchorType.CUSTOM)
+
+
+# ── Page-finding heuristics ──────────────────────────────────────────────────
 ANCHOR_KEYWORDS = [
     r'day\s+1',
     r'baseline',
@@ -249,75 +111,124 @@ def find_anchor_pages(
     return anchor_pages
 
 
-def _detect_anchors_heuristic(text: str) -> List[TimeAnchor]:
-    """
-    Detect time anchors using regex patterns.
-    
-    Args:
-        text: Protocol text to analyze
-        
-    Returns:
-        List of detected TimeAnchor objects
-    """
-    anchors = []
-    seen_types = set()
-    
-    for pattern, anchor_type, confidence in ANCHOR_PATTERNS:
-        matches = re.finditer(pattern, text, re.IGNORECASE)
-        
-        for match in matches:
-            if anchor_type in seen_types:
-                continue
-                
-            # Extract surrounding context (up to 100 chars each side)
-            start = max(0, match.start() - 100)
-            end = min(len(text), match.end() + 100)
-            context = text[start:end].strip()
-            
-            anchor = TimeAnchor(
-                id=f"anchor_{len(anchors)+1}",
-                definition=_build_anchor_definition(anchor_type, match.group()),
-                anchor_type=anchor_type,
-                day_value=_extract_day_value(match.group(), context),
-                source_text=match.group(),
-            )
-            
-            anchors.append(anchor)
-            seen_types.add(anchor_type)
-    
-    return anchors
+# ── LLM prompt ───────────────────────────────────────────────────────────────
+
+_TIME_ANCHOR_PROMPT = """You are a clinical protocol analyst. Identify the **time anchors** — the reference points from which all study timing is measured.
+
+A time anchor is a specific event or day that other visits, assessments, and endpoints are timed relative to. Examples:
+- "Day 1 is defined as the day of first dose of ALXN1840"
+- "Day 0 = date of randomisation. All subsequent visits are relative to Day 0."
+- "Cycle 1 Day 1 (C1D1) — first infusion of pembrolizumab"
+
+## Instructions
+1. Read the protocol text carefully.
+2. Identify **1 to 3** time anchors that the protocol actually defines or uses as reference points.
+3. For each anchor, provide:
+   - `definition`: A protocol-specific definition using the actual drug name, visit, or event (NOT generic text).
+   - `anchorType`: One of: FirstDose, TreatmentStart, Randomization, Screening, Day1, Baseline, Enrollment, CycleStart, Custom
+   - `dayValue`: The numeric day value (e.g., 1 for Day 1, 0 for Day 0)
+   - `sourceText`: An **exact quote** from the protocol (1-2 sentences) that defines or references this anchor.
+4. The FIRST anchor in the list must be the **primary** anchor — the one that most other timing references are relative to.
+
+## Important
+- DO NOT include generic anchors like "informed consent" or "screening visit" unless the protocol explicitly uses them as the primary timing reference.
+- DO NOT invent definitions. Use the protocol's own language.
+- Keep `sourceText` as a verbatim quote, not a paraphrase.
+
+{context_block}
+
+## Protocol Text
+{text}
+
+Return ONLY valid JSON:
+```json
+{{
+  "timeAnchors": [
+    {{
+      "definition": "...",
+      "anchorType": "...",
+      "dayValue": 1,
+      "sourceText": "exact quote..."
+    }}
+  ]
+}}
+```"""
 
 
-def _build_anchor_definition(anchor_type: AnchorType, matched_text: str) -> str:
-    """Build human-readable definition for an anchor type."""
-    definitions = {
-        AnchorType.FIRST_DOSE: "First administration of investigational product",
-        AnchorType.RANDOMIZATION: "Date of subject randomization",
-        AnchorType.DAY_1: "Study Day 1 (baseline)",
-        AnchorType.BASELINE: "Baseline visit/assessment",
-        AnchorType.SCREENING: "Screening visit",
-        AnchorType.ENROLLMENT: "Subject enrollment date",
-        AnchorType.INFORMED_CONSENT: "Informed consent obtained",
-        AnchorType.CYCLE_START: "Day 1 of Cycle 1",
-        AnchorType.CUSTOM: matched_text.strip(),
-    }
-    return definitions.get(anchor_type, matched_text.strip())
-
-
-def _extract_day_value(matched_text: str, context: str) -> int:
-    """Extract numeric day value from anchor text."""
-    # Look for "Day X" pattern
-    day_match = re.search(r'day\s*(\d+)', matched_text + " " + context, re.IGNORECASE)
-    if day_match:
-        return int(day_match.group(1))
+def _build_context_block(
+    existing_encounters: Optional[List[Dict[str, Any]]],
+    existing_epochs: Optional[List[Dict[str, Any]]],
+    pipeline_context: Optional[Any] = None,
+) -> str:
+    """Build rich context section from all available upstream data."""
+    parts = []
     
-    # Week 0 = Day 1
-    if re.search(r'week\s*0', matched_text, re.IGNORECASE):
-        return 1
+    # Study metadata
+    if pipeline_context:
+        meta_parts = []
+        if getattr(pipeline_context, 'study_title', ''):
+            meta_parts.append(f"Study: {pipeline_context.study_title}")
+        if getattr(pipeline_context, 'indication', ''):
+            meta_parts.append(f"Indication: {pipeline_context.indication}")
+        if getattr(pipeline_context, 'phase', ''):
+            meta_parts.append(f"Phase: {pipeline_context.phase}")
+        if getattr(pipeline_context, 'study_type', ''):
+            meta_parts.append(f"Type: {pipeline_context.study_type}")
+        if meta_parts:
+            parts.append("Study metadata: " + "; ".join(meta_parts))
     
-    # Default to Day 1
-    return 1
+    # Study arms
+    if pipeline_context and getattr(pipeline_context, 'arms', []):
+        arm_names = [a.get('name', '?') for a in pipeline_context.arms[:6]]
+        parts.append(f"Study arms: {', '.join(arm_names)}")
+    
+    # Interventions (drug names, doses — critical for anchor definitions)
+    if pipeline_context and getattr(pipeline_context, 'interventions', []):
+        intv_descs = []
+        for intv in pipeline_context.interventions[:6]:
+            name = intv.get('name') or intv.get('description') or '?'
+            intv_descs.append(name)
+        parts.append(f"Interventions: {'; '.join(intv_descs)}")
+    
+    # Administrable products (drug formulations)
+    if pipeline_context and getattr(pipeline_context, 'products', []):
+        prod_names = [p.get('name', '?') for p in pipeline_context.products[:6]]
+        parts.append(f"Products: {', '.join(prod_names)}")
+    
+    # Epochs
+    if existing_epochs:
+        names = [e.get("name", "?") for e in existing_epochs[:10]]
+        parts.append(f"Study epochs: {', '.join(names)}")
+    
+    # Encounters/visits
+    if existing_encounters:
+        visit_names = [e.get("name", "?") for e in existing_encounters[:20]]
+        parts.append(f"Study visits: {', '.join(visit_names)}")
+    
+    # Activities (assessment/procedure names)
+    if pipeline_context and getattr(pipeline_context, 'activities', []):
+        act_names = list(dict.fromkeys(  # dedupe preserving order
+            a.get('name', '') for a in pipeline_context.activities if a.get('name')
+        ))[:15]
+        if act_names:
+            parts.append(f"Activities: {', '.join(act_names)}")
+    
+    # Timings / scheduling rules
+    if pipeline_context and getattr(pipeline_context, 'timings', []):
+        timing_descs = []
+        for t in pipeline_context.timings[:8]:
+            desc = t.get('description') or t.get('label') or t.get('name') or ''
+            if desc:
+                timing_descs.append(desc)
+        if timing_descs:
+            parts.append(f"Timing rules: {'; '.join(timing_descs)}")
+    
+    if parts:
+        return "## Available Context (from prior extraction phases)\n" + "\n".join(parts)
+    return ""
 
+
+# ── Main extractor ───────────────────────────────────────────────────────────
 
 def extract_time_anchors(
     pdf_path: str,
@@ -326,27 +237,26 @@ def extract_time_anchors(
     use_llm: bool = True,
     existing_encounters: Optional[List[Dict[str, Any]]] = None,
     existing_epochs: Optional[List[Dict[str, Any]]] = None,
+    pipeline_context: Optional[Any] = None,
 ) -> ExecutionModelResult:
     """
-    Extract time anchors from protocol PDF.
-    
-    Uses a combination of heuristic pattern matching and optional LLM
-    extraction for higher accuracy.
+    Extract time anchors from protocol PDF using LLM-primary approach.
     
     Args:
         pdf_path: Path to protocol PDF
-        model: LLM model to use (if use_llm=True)
+        model: LLM model to use
         pages: Specific pages to analyze (auto-detected if None)
-        use_llm: Whether to use LLM for enhanced extraction
-        existing_encounters: SoA encounters for context (improves anchor resolution)
-        existing_epochs: SoA epochs for context (improves anchor resolution)
+        use_llm: Whether to use LLM (strongly recommended; fallback is minimal)
+        existing_encounters: SoA encounters for context
+        existing_epochs: SoA epochs for context
+        pipeline_context: Full pipeline context with upstream extraction results
         
     Returns:
         ExecutionModelResult with extracted TimeAnchors
     """
     from core.pdf_utils import extract_text_from_pages, get_page_count
     
-    logger.info("Starting time anchor extraction...")
+    logger.info("Starting time anchor extraction (LLM-primary)...")
     
     # Find relevant pages
     if pages is None:
@@ -366,20 +276,23 @@ def extract_time_anchors(
             model_used=model,
         )
     
-    # Heuristic extraction
-    anchors = _detect_anchors_heuristic(text)
+    anchors: List[TimeAnchor] = []
     
-    # LLM enhancement if requested and heuristics found something
-    if use_llm and anchors:
+    if use_llm:
         try:
-            llm_anchors = _extract_anchors_llm(text, model)
-            if llm_anchors:
-                # Merge LLM results (prefer higher confidence)
-                anchors = _merge_anchors(anchors, llm_anchors)
+            anchors = _extract_anchors_llm(
+                text, model, existing_encounters, existing_epochs,
+                pipeline_context=pipeline_context,
+            )
         except Exception as e:
-            logger.warning(f"LLM anchor extraction failed, using heuristics only: {e}")
+            logger.warning(f"LLM anchor extraction failed: {e}")
     
-    # Select primary anchor (highest confidence, prefer FIRST_DOSE > RANDOMIZATION > DAY_1)
+    # Minimal fallback: if LLM failed or was disabled, try a simple heuristic
+    if not anchors:
+        logger.info("Using minimal heuristic fallback for time anchors")
+        anchors = _detect_anchors_fallback(text)
+    
+    # Ensure primary anchor is first
     if anchors:
         anchors = _prioritize_anchors(anchors)
     
@@ -389,111 +302,177 @@ def extract_time_anchors(
         success=len(anchors) > 0,
         data=data,
         pages_used=pages,
-        model_used=model if use_llm else "heuristic",
+        model_used=model if use_llm else "heuristic_fallback",
     )
     
     logger.info(f"Extracted {len(anchors)} time anchors")
+    for a in anchors:
+        logger.info(f"  [{a.anchor_type.value}] {a.definition}")
     
     return result
 
 
-def _extract_anchors_llm(text: str, model: str) -> List[TimeAnchor]:
-    """Extract time anchors using LLM."""
+def _extract_anchors_llm(
+    text: str,
+    model: str,
+    existing_encounters: Optional[List[Dict[str, Any]]] = None,
+    existing_epochs: Optional[List[Dict[str, Any]]] = None,
+    pipeline_context: Optional[Any] = None,
+) -> List[TimeAnchor]:
+    """Extract time anchors using LLM with protocol-specific prompt."""
     from core.llm_client import call_llm
     
-    prompt = f"""Analyze this clinical protocol text and identify the TIME ANCHOR - the reference point from which all study timing is measured.
-
-Look for patterns like:
-- "Day 1" definitions (e.g., "Day 1 is defined as first dose of study drug")
-- Randomization as anchor (e.g., "Days from randomization")
-- Cycle 1, Day 1 (C1D1) in oncology protocols
-- Week 0 or Baseline definitions
-
-Return JSON with the PRIMARY time anchor:
-
-```json
-{{
-  "timeAnchor": {{
-    "definition": "First administration of investigational product",
-    "anchorType": "FirstDose|Randomization|Day1|Baseline|CycleStart|Screening|Enrollment",
-    "dayValue": 1,
-    "sourceText": "exact quote from protocol defining the anchor"
-  }}
-}}
-```
-
-Protocol text:
-{text[:8000]}
-
-Return ONLY the JSON, no explanation."""
-
-    try:
-        result = call_llm(
-            prompt=prompt,
-            model_name=model,
-            json_mode=True,
-            extractor_name="time_anchor",
-            temperature=0.1,
-        )
-        response = result.get('response', '')
+    context_block = _build_context_block(existing_encounters, existing_epochs, pipeline_context)
+    
+    # Trim text to a reasonable size for the prompt (keep most relevant pages)
+    max_chars = 12000
+    trimmed_text = text[:max_chars] if len(text) > max_chars else text
+    
+    prompt = _TIME_ANCHOR_PROMPT.format(
+        context_block=context_block,
+        text=trimmed_text,
+    )
+    
+    result = call_llm(
+        prompt=prompt,
+        model_name=model,
+        json_mode=True,
+        extractor_name="time_anchor",
+        temperature=0.1,
+    )
+    response = result.get('response', '')
+    
+    # Parse JSON (handle optional ```json``` wrapper)
+    json_match = re.search(r'```json\s*(.*?)\s*```', response, re.DOTALL)
+    json_str = json_match.group(1) if json_match else response
+    
+    data = json.loads(json_str)
+    
+    # Handle various response shapes: dict with key, bare list, or single object
+    if isinstance(data, list):
+        raw_anchors = data
+    elif isinstance(data, dict):
+        raw_anchors = data.get('timeAnchors', [])
+        if not raw_anchors:
+            single = data.get('timeAnchor')
+            if single:
+                raw_anchors = [single]
+            elif 'definition' in data:
+                # Single anchor returned as top-level dict
+                raw_anchors = [data]
+    else:
+        raw_anchors = []
+    
+    anchors: List[TimeAnchor] = []
+    seen_types: set = set()
+    
+    for i, item in enumerate(raw_anchors[:5]):  # cap at 5
+        anchor_type = _resolve_anchor_type(item.get('anchorType', ''))
         
-        # Parse JSON
-        json_match = re.search(r'```json\s*(.*?)\s*```', response, re.DOTALL)
-        if json_match:
-            json_str = json_match.group(1)
-        else:
-            json_str = response
+        # Skip duplicates by type
+        if anchor_type in seen_types and anchor_type != AnchorType.CUSTOM:
+            continue
+        seen_types.add(anchor_type)
         
-        data = json.loads(json_str)
+        definition = (item.get('definition') or '').strip()
+        source_text = (item.get('sourceText') or '').strip()
         
-        anchor_data = data.get('timeAnchor', {})
-        if anchor_data:
-            anchor_type_str = anchor_data.get('anchorType')
-            anchor_type = AnchorType.CUSTOM  # Default to CUSTOM if not extracted
-            if anchor_type_str:
-                try:
-                    anchor_type = AnchorType(anchor_type_str)
-                except ValueError:
-                    anchor_type = AnchorType.CUSTOM
+        # Skip empty or clearly generic entries
+        if not definition or definition.lower() in (
+            'informed consent obtained',
+            'informed consent',
+            'screening visit',
+            'procedure',
+        ):
+            continue
+        
+        anchors.append(TimeAnchor(
+            id=f"anchor_{i+1}",
+            definition=definition,
+            anchor_type=anchor_type,
+            day_value=item.get('dayValue', 1),
+            source_text=source_text or None,
+        ))
+    
+    logger.info(f"LLM extracted {len(anchors)} time anchors")
+    return anchors
+
+
+# ── Minimal fallback (no LLM) ───────────────────────────────────────────────
+
+# Only the most meaningful anchor patterns — no junk like "informed consent"
+_FALLBACK_PATTERNS = [
+    (r'day\s+1\s+(?:is\s+)?(?:defined\s+as\s+)?.*?(?:first\s+dose|treatment|administration)',
+     AnchorType.FIRST_DOSE),
+    (r'first\s+(?:dose|administration)\s+of\s+\S+',
+     AnchorType.FIRST_DOSE),
+    (r'day\s+(?:of\s+)?randomiz?ation',
+     AnchorType.RANDOMIZATION),
+    (r'days?\s+(?:from|after|since)\s+randomiz?ation',
+     AnchorType.RANDOMIZATION),
+    (r'cycle\s+1[,\s]+day\s+1',
+     AnchorType.CYCLE_START),
+    (r'c1d1',
+     AnchorType.CYCLE_START),
+]
+
+
+def _detect_anchors_fallback(text: str) -> List[TimeAnchor]:
+    """
+    Minimal heuristic fallback — only high-value anchor patterns.
+    Used when LLM is disabled or fails.
+    """
+    anchors = []
+    seen_types: set = set()
+    
+    for pattern, anchor_type in _FALLBACK_PATTERNS:
+        match = re.search(pattern, text, re.IGNORECASE)
+        if match and anchor_type not in seen_types:
+            # Extract surrounding sentence for a meaningful sourceText
+            start = max(0, match.start() - 80)
+            end = min(len(text), match.end() + 80)
+            context = text[start:end].strip()
+            # Try to trim to sentence boundaries
+            sent_start = context.rfind('.', 0, 80)
+            if sent_start > 0:
+                context = context[sent_start + 1:].strip()
+            sent_end = context.find('.', len(context) // 2)
+            if sent_end > 0:
+                context = context[:sent_end + 1].strip()
             
-            return [TimeAnchor(
-                id="anchor_llm_1",
-                definition=anchor_data.get('definition', ''),
+            anchors.append(TimeAnchor(
+                id=f"anchor_{len(anchors)+1}",
+                definition=context[:120],  # Use actual context, not canned text
                 anchor_type=anchor_type,
-                day_value=anchor_data.get('dayValue', 1),
-                source_text=anchor_data.get('sourceText'),
-            )]
-        
-    except Exception as e:
-        logger.error(f"LLM anchor extraction failed: {e}")
+                day_value=_extract_day_value(match.group(), context),
+                source_text=context[:200],
+            ))
+            seen_types.add(anchor_type)
     
-    return []
+    return anchors
 
 
-def _merge_anchors(heuristic: List[TimeAnchor], llm: List[TimeAnchor]) -> List[TimeAnchor]:
-    """Merge heuristic and LLM-extracted anchors, preferring higher confidence."""
-    merged = {}
-    
-    for anchor in heuristic + llm:
-        key = anchor.anchor_type
-        if key not in merged:
-            merged[key] = anchor
-    
-    return list(merged.values())
+def _extract_day_value(matched_text: str, context: str) -> int:
+    """Extract numeric day value from anchor text."""
+    day_match = re.search(r'day\s*(\d+)', matched_text + " " + context, re.IGNORECASE)
+    if day_match:
+        return int(day_match.group(1))
+    if re.search(r'week\s*0', matched_text, re.IGNORECASE):
+        return 1
+    return 1
 
 
 def _prioritize_anchors(anchors: List[TimeAnchor]) -> List[TimeAnchor]:
     """Sort anchors by priority (FIRST_DOSE > RANDOMIZATION > DAY_1 > others)."""
     priority = {
         AnchorType.FIRST_DOSE: 1,
-        AnchorType.RANDOMIZATION: 2,
-        AnchorType.DAY_1: 3,
-        AnchorType.BASELINE: 4,
-        AnchorType.CYCLE_START: 5,
-        AnchorType.ENROLLMENT: 6,
-        AnchorType.SCREENING: 7,
-        AnchorType.INFORMED_CONSENT: 8,
+        AnchorType.TREATMENT_START: 2,
+        AnchorType.RANDOMIZATION: 3,
+        AnchorType.DAY_1: 4,
+        AnchorType.BASELINE: 5,
+        AnchorType.CYCLE_START: 6,
+        AnchorType.ENROLLMENT: 7,
+        AnchorType.SCREENING: 8,
         AnchorType.CUSTOM: 9,
     }
-    
     return sorted(anchors, key=lambda a: priority.get(a.anchor_type, 10))

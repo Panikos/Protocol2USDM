@@ -5,6 +5,7 @@ import { X, Clock, RotateCcw, FileText, ChevronDown, ChevronRight, AlertCircle, 
 import type { ChangeLogEntry } from '@/lib/semantic/schema';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { humanizePath } from '@/lib/semantic/humanizePath';
 
 interface HistoryEntry {
   id: string;
@@ -39,6 +40,16 @@ export function VersionHistoryPanel({ protocolId, isOpen, onClose }: VersionHist
   const [changeLogIntegrity, setChangeLogIntegrity] = useState<{ valid: boolean; message?: string } | null>(null);
   const [isLoadingLog, setIsLoadingLog] = useState(false);
   const [logError, setLogError] = useState<string | null>(null);
+
+  // Close on Escape key
+  useEffect(() => {
+    if (!isOpen) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [isOpen, onClose]);
 
   // Load data when panel opens or tab changes
   useEffect(() => {
@@ -512,10 +523,13 @@ function ChangeLogView({
               {/* Changed paths */}
               {entry.changedPaths.length > 0 && (
                 <div className="space-y-1">
-                  <div className="text-xs font-medium text-muted-foreground">Changed Paths</div>
-                  <div className="text-xs font-mono bg-slate-900 text-slate-300 rounded p-2 max-h-32 overflow-auto">
+                  <div className="text-xs font-medium text-muted-foreground">Changes</div>
+                  <div className="text-xs rounded p-2 max-h-40 overflow-auto space-y-1 bg-slate-50 dark:bg-slate-900 border">
                     {entry.changedPaths.map((p, i) => (
-                      <div key={i}>{p}</div>
+                      <div key={i} className="flex items-baseline gap-2">
+                        <span className="text-foreground">{humanizePath(p)}</span>
+                        <span className="text-muted-foreground font-mono text-[10px] truncate">{p}</span>
+                      </div>
                     ))}
                   </div>
                 </div>

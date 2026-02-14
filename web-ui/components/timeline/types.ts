@@ -4,9 +4,12 @@ export interface TimeAnchor {
   id: string;
   definition: string;
   anchorType: string;
+  classification?: string;
   timelineId?: string | null;
   dayValue?: number;
   sourceText?: string;
+  encounterId?: string | null;
+  activityId?: string | null;
 }
 
 export interface VisitWindow {

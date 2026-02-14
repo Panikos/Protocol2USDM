@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { FileText, Calendar, Tag, ArrowRight, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { AppShell } from '@/components/ui/app-shell';
 
 interface ProtocolSummary {
   id: string;
@@ -37,26 +38,8 @@ export default function ProtocolsPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* Header */}
-      <header className="border-b bg-white sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link href="/" className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center">
-                <FileText className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold">Protocol2USDM</h1>
-                <p className="text-xs text-muted-foreground">Protocol Browser</p>
-              </div>
-            </Link>
-          </div>
-        </div>
-      </header>
-
-      {/* Content */}
-      <main className="container mx-auto px-4 py-8">
+    <AppShell subtitle="Protocol Browser">
+      <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h2 className="text-2xl font-bold mb-2">Available Protocols</h2>
           <p className="text-muted-foreground">
@@ -107,8 +90,8 @@ export default function ProtocolsPage() {
             ))}
           </div>
         )}
-      </main>
-    </div>
+      </div>
+    </AppShell>
   );
 }
 

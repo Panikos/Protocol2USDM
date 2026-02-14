@@ -15,6 +15,155 @@ from enum import Enum
 from core.usdm_types import generate_uuid, Code
 
 
+# ---------------------------------------------------------------------------
+# Therapeutic Area controlled vocabulary (MeSH-backed)
+# Keys = canonical TA labels; values = MeSH Descriptor Unique IDs.
+# Used by LLM prompt (constrained list) and deterministic fallback.
+# ---------------------------------------------------------------------------
+THERAPEUTIC_AREA_CODES: Dict[str, str] = {
+    "Oncology": "D009369",
+    "Cardiovascular": "D002318",
+    "Endocrinology & Metabolism": "D008659",
+    "Neurology": "D009422",
+    "Psychiatry": "D001523",
+    "Infectious Disease": "D003141",
+    "Immunology & Inflammation": "D007154",
+    "Respiratory": "D012140",
+    "Gastroenterology": "D004066",
+    "Nephrology": "D007674",
+    "Dermatology": "D012871",
+    "Hematology": "D006425",
+    "Ophthalmology": "D005128",
+    "Musculoskeletal": "D009140",
+    "Hepatology": "D008107",
+    "Urology": "D014570",
+    "Rheumatology": "D012216",
+    "Rare Diseases": "D035583",
+    "Vaccines": "D014612",
+    "Pain": "D010146",
+    "Gynecology & Obstetrics": "D005261",
+}
+
+# Keyword → canonical TA name for deterministic indication-based fallback
+_INDICATION_TA_KEYWORDS: Dict[str, str] = {
+    # Oncology
+    "cancer": "Oncology", "tumor": "Oncology", "tumour": "Oncology",
+    "carcinoma": "Oncology", "lymphoma": "Oncology", "leukemia": "Oncology",
+    "leukaemia": "Oncology", "melanoma": "Oncology", "sarcoma": "Oncology",
+    "myeloma": "Oncology", "glioblastoma": "Oncology", "neoplasm": "Oncology",
+    "nsclc": "Oncology", "sclc": "Oncology", "malignant": "Oncology",
+    # Cardiovascular
+    "heart failure": "Cardiovascular", "cardiac": "Cardiovascular",
+    "cardiovascular": "Cardiovascular", "hypertension": "Cardiovascular",
+    "atherosclerosis": "Cardiovascular", "atrial fibrillation": "Cardiovascular",
+    "myocardial": "Cardiovascular", "coronary": "Cardiovascular",
+    "cardiomyopathy": "Cardiovascular", "stroke": "Cardiovascular",
+    # Endocrinology & Metabolism
+    "diabetes": "Endocrinology & Metabolism", "diabetic": "Endocrinology & Metabolism",
+    "glycemic": "Endocrinology & Metabolism", "insulin": "Endocrinology & Metabolism",
+    "obesity": "Endocrinology & Metabolism", "metabolic": "Endocrinology & Metabolism",
+    "thyroid": "Endocrinology & Metabolism", "hba1c": "Endocrinology & Metabolism",
+    # Neurology
+    "alzheimer": "Neurology", "parkinson": "Neurology", "multiple sclerosis": "Neurology",
+    "epilepsy": "Neurology", "migraine": "Neurology", "neuropathy": "Neurology",
+    "neurodegenerat": "Neurology", "amyotrophic": "Neurology", "huntington": "Neurology",
+    # Psychiatry
+    "depression": "Psychiatry", "schizophrenia": "Psychiatry", "bipolar": "Psychiatry",
+    "anxiety": "Psychiatry", "adhd": "Psychiatry", "psychosis": "Psychiatry",
+    # Infectious Disease
+    "hiv": "Infectious Disease", "hepatitis": "Infectious Disease",
+    "covid": "Infectious Disease", "sars": "Infectious Disease",
+    "tuberculosis": "Infectious Disease", "malaria": "Infectious Disease",
+    "influenza": "Infectious Disease", "infection": "Infectious Disease",
+    "pneumonia": "Infectious Disease", "sepsis": "Infectious Disease",
+    # Immunology & Inflammation
+    "autoimmune": "Immunology & Inflammation", "lupus": "Immunology & Inflammation",
+    "crohn": "Immunology & Inflammation", "colitis": "Immunology & Inflammation",
+    "inflammatory bowel": "Immunology & Inflammation", "ibd": "Immunology & Inflammation",
+    # Respiratory
+    "asthma": "Respiratory", "copd": "Respiratory", "pulmonary": "Respiratory",
+    "respiratory": "Respiratory", "lung": "Respiratory", "cystic fibrosis": "Respiratory",
+    # Gastroenterology
+    "gastric": "Gastroenterology", "gastrointestinal": "Gastroenterology",
+    "celiac": "Gastroenterology", "gerd": "Gastroenterology",
+    # Nephrology
+    "kidney": "Nephrology", "renal": "Nephrology", "nephritis": "Nephrology",
+    "dialysis": "Nephrology", "ckd": "Nephrology",
+    # Dermatology
+    "psoriasis": "Dermatology", "dermatitis": "Dermatology", "eczema": "Dermatology",
+    "atopic": "Dermatology", "skin": "Dermatology", "acne": "Dermatology",
+    # Hematology
+    "anemia": "Hematology", "anaemia": "Hematology", "hemophilia": "Hematology",
+    "thrombocytopenia": "Hematology", "sickle cell": "Hematology",
+    "thalassemia": "Hematology", "wilson disease": "Hematology",
+    "wilson's disease": "Hematology", "copper": "Hematology",
+    # Ophthalmology
+    "macular": "Ophthalmology", "retinal": "Ophthalmology", "glaucoma": "Ophthalmology",
+    "optic": "Ophthalmology", "ocular": "Ophthalmology",
+    # Musculoskeletal
+    "osteoporosis": "Musculoskeletal", "arthritis": "Musculoskeletal",
+    "osteoarthritis": "Musculoskeletal", "fracture": "Musculoskeletal",
+    # Hepatology
+    "liver": "Hepatology", "hepatic": "Hepatology", "cirrhosis": "Hepatology",
+    "nash": "Hepatology", "nafld": "Hepatology",
+    # Rheumatology
+    "rheumatoid": "Rheumatology", "ankylosing": "Rheumatology",
+    "psoriatic arthritis": "Rheumatology", "gout": "Rheumatology",
+    # Rare Diseases
+    "rare": "Rare Diseases", "orphan": "Rare Diseases",
+    # Vaccines
+    "vaccine": "Vaccines", "immunization": "Vaccines",
+    # Pain
+    "pain": "Pain", "fibromyalgia": "Pain", "analges": "Pain",
+    # Urology
+    "bladder": "Urology", "prostate": "Urology", "urinary": "Urology",
+    # Gynecology & Obstetrics
+    "endometriosis": "Gynecology & Obstetrics", "ovarian": "Gynecology & Obstetrics",
+    "uterine": "Gynecology & Obstetrics", "pregnancy": "Gynecology & Obstetrics",
+}
+
+
+def _build_therapeutic_area_code(ta_name: str) -> Dict[str, Any]:
+    """Build a USDM Code object for a therapeutic area, using MeSH descriptors."""
+    mesh_id = THERAPEUTIC_AREA_CODES.get(ta_name, "")
+    return {
+        "id": generate_uuid(),
+        "code": mesh_id,
+        "codeSystem": "http://www.nlm.nih.gov/mesh",
+        "codeSystemVersion": "2024",
+        "decode": ta_name,
+        "instanceType": "Code",
+    }
+
+
+def _match_therapeutic_area(raw: str) -> Optional[str]:
+    """Fuzzy-match a raw TA string from the LLM to a canonical TA name."""
+    raw_lower = raw.lower().strip()
+    # Exact match (case-insensitive)
+    for canonical in THERAPEUTIC_AREA_CODES:
+        if canonical.lower() == raw_lower:
+            return canonical
+    # Substring / prefix match
+    for canonical in THERAPEUTIC_AREA_CODES:
+        if raw_lower in canonical.lower() or canonical.lower() in raw_lower:
+            return canonical
+    return None
+
+
+def infer_therapeutic_areas_from_indications(indication_names: List[str]) -> List[str]:
+    """
+    Deterministic fallback: infer therapeutic areas from indication names
+    using keyword matching.  Returns deduplicated canonical TA names.
+    """
+    matched: Dict[str, bool] = {}
+    for name in indication_names:
+        name_lower = name.lower()
+        for keyword, ta in _INDICATION_TA_KEYWORDS.items():
+            if keyword in name_lower and ta not in matched:
+                matched[ta] = True
+    return list(matched.keys())
+
+
 class ArmType(Enum):
     """USDM StudyArm type codes."""
     UNKNOWN = ""  # Not extracted from source
@@ -258,7 +407,7 @@ class InterventionalStudyDesign:
     cell_ids: List[str] = field(default_factory=list)
     cohort_ids: List[str] = field(default_factory=list)
     
-    # Additional design info
+    # Additional design info — values should be keys from THERAPEUTIC_AREA_CODES
     therapeutic_areas: List[str] = field(default_factory=list)
     
     # C3: Design rationale (USDM InterventionalStudyDesign.rationale — required)
@@ -321,7 +470,9 @@ class InterventionalStudyDesign:
         if self.cohort_ids:
             result["cohortIds"] = self.cohort_ids
         if self.therapeutic_areas:
-            result["therapeuticAreas"] = self.therapeutic_areas
+            result["therapeuticAreas"] = [
+                _build_therapeutic_area_code(ta) for ta in self.therapeutic_areas
+            ]
         # C3: Design rationale
         if self.rationale:
             result["rationale"] = self.rationale

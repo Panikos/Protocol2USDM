@@ -1,15 +1,17 @@
 ---
 description: Run the full extraction pipeline on a protocol PDF and verify output
+auto_execution_mode: 3
 ---
 
 ## Steps
 
 1. Confirm the input PDF path exists. Default location: `input/trial/NCT<id>/` or `input/`.
 
-2. Run the pipeline:
+2. Run the pipeline (do NOT pass --model unless the user explicitly requests it):
 ```
-python main_v3.py --input <path_to_pdf> --output output/<protocol_id>/ --model gpt-4o
+python main_v3.py <path_to_pdf> --complete --parallel --output-dir output/<protocol_id>
 ```
+   Add `--sap <sap_pdf>` and/or `--sites <sites_csv>` if available.
 
 3. Check the output directory for:
    - `protocol_usdm.json` — the USDM v4.0 JSON

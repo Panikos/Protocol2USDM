@@ -134,6 +134,7 @@ export function EditableField({
               value={editValue}
               onChange={(e) => setEditValue(e.target.value)}
               onKeyDown={handleKeyDown}
+              aria-label={label || 'Edit value'}
               className="flex-1 min-w-0 min-h-[80px] px-2 py-1 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               rows={3}
             />
@@ -141,6 +142,7 @@ export function EditableField({
             <select
               value={editValue}
               onChange={(e) => setEditValue(e.target.value)}
+              aria-label={label || 'Edit value'}
               className="flex-1 min-w-0 px-2 py-1 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             >
               <option value="true">Yes</option>
@@ -153,6 +155,7 @@ export function EditableField({
               value={editValue}
               onChange={(e) => setEditValue(e.target.value)}
               onKeyDown={handleKeyDown}
+              aria-label={label || 'Edit value'}
               className="flex-1 min-w-0 px-2 py-1 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
           )}
@@ -263,6 +266,7 @@ export function EditableListItem({
             if (e.key === 'Enter') handleSave();
             if (e.key === 'Escape') setIsEditing(false);
           }}
+          aria-label="Edit list item"
           className="flex-1 min-w-0 px-2 py-1 border rounded-md text-sm"
         />
         <div className="flex items-center shrink-0 gap-0.5 ml-1">

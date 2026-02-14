@@ -504,7 +504,7 @@ def _discover_sections_from_pdf(
     merged.extend(discovered.values())
     merged.sort(key=lambda s: [
         int(x) if x.isdigit() else 0
-        for x in s.get('number', '0').split('.')
+        for x in (s.get('number') or '0').split('.')
     ])
     return merged
 
@@ -1161,6 +1161,9 @@ def _build_narrative_data(
         subsections = sec.get('subsections', [])
         sub_texts = _split_subsection_texts(parent_text, subsections) if parent_text else {}
         
+        sec_num = sec.get('number', '')
+        section_type = _map_section_type(sec.get('type', 'Other'), sec_num)
+        
         # Process subsections
         child_ids = []
         for j, sub in enumerate(subsections):
@@ -1169,29 +1172,37 @@ def _build_narrative_data(
                 child_ids.append(item_id)
                 sub_num = sub.get('number', '')
                 sub_text = sub_texts.get(sub_num, '')
+                # Subsections inherit type from M11 top-level override via sub_num
+                sub_type = _map_section_type(sec.get('type', 'Other'), sub_num)
                 items.append(NarrativeContentItem(
                     id=item_id,
-                    name=sub.get('title', f'Section {sub_num}'),
+                    name=sub.get('title') or f'Section {sub_num}',
                     text=sub_text,
                     section_number=sub_num,
-                    section_title=sub.get('title'),
+                    section_title=sub.get('title') or '',
+                    section_type=sub_type,
                     order=j,
                 ))
         
-        section_type = _map_section_type(sec.get('type', 'Other'))
-        
-        sec_num = sec.get('number', '')
         sec_text = section_texts.get(sec_num, '')
+        
+        # USDM v4.0: contentItemId references the first child item (if any)
+        first_child_id = child_ids[0] if len(child_ids) == 1 else None
+        # display booleans: True for numbered sections, False otherwise
+        has_number = bool(sec_num and sec_num.strip())
         
         sections.append(NarrativeContent(
             id=section_id,
-            name=sec.get('title', f'Section {sec_num}'),
+            name=sec.get('title') or f'Section {sec_num}',
             section_number=sec_num,
-            section_title=sec.get('title'),
+            section_title=sec.get('title') or '',
             section_type=section_type,
             text=sec_text if sec_text else None,
             child_ids=child_ids,
             order=i,
+            display_section_title=has_number,
+            display_section_number=has_number,
+            content_item_id=first_child_id,
         ))
     
     # Process document
@@ -1213,8 +1224,40 @@ def _build_narrative_data(
     )
 
 
-def _map_section_type(type_str: str) -> SectionType:
-    """Map string to SectionType enum."""
+# M11 top-level section number → canonical SectionType (authoritative override)
+_M11_SECTION_TYPE_MAP: Dict[str, SectionType] = {
+    '1': SectionType.SYNOPSIS,
+    '2': SectionType.INTRODUCTION,
+    '3': SectionType.OBJECTIVES,
+    '4': SectionType.STUDY_DESIGN,
+    '5': SectionType.POPULATION,
+    '6': SectionType.TREATMENT,
+    '7': SectionType.DISCONTINUATION,
+    '8': SectionType.ASSESSMENTS,
+    '9': SectionType.SAFETY,
+    '10': SectionType.STATISTICS,
+    '11': SectionType.ETHICS,
+    '12': SectionType.APPENDIX,
+    '13': SectionType.ABBREVIATIONS,
+    '14': SectionType.REFERENCES,
+}
+
+
+def _map_section_type(type_str: str, section_number: str = '') -> SectionType:
+    """Map string to SectionType enum.
+    
+    If *section_number* corresponds to an M11 canonical section (1-14),
+    the M11 mapping takes precedence over the LLM-provided type string.
+    This prevents misclassifications like §7 being tagged 'Treatment'
+    instead of 'Discontinuation'.
+    """
+    # M11 section number override — derive top-level number
+    if section_number:
+        top_level = section_number.split('.')[0]
+        m11_type = _M11_SECTION_TYPE_MAP.get(top_level)
+        if m11_type is not None:
+            return m11_type
+
     type_lower = type_str.lower()
     
     mappings = {

@@ -65,6 +65,62 @@ export const ProvenanceDataSchema = z.object({
 
 export type ProvenanceData = z.infer<typeof ProvenanceDataSchema>;
 
+// --- Extraction Provenance (W-HIGH-3) ---
+
+export interface PhaseProvenanceRecord {
+  phase: string;
+  model: string;
+  startedAt?: string;
+  durationSeconds: number;
+  entityCounts?: Record<string, number>;
+  confidence?: number;
+  error?: string;
+  pagesUsed?: number[];
+  entityIds?: string[];
+}
+
+export interface ExtractionProvenanceData {
+  pipelineVersion: string;
+  totalPhases: number;
+  succeededPhases: number;
+  totalDurationSeconds: number;
+  phases: PhaseProvenanceRecord[];
+}
+
+export interface EntityProvenanceRecord {
+  phase: string;
+  model: string;
+  pagesUsed?: number[];
+  confidence?: number;
+}
+
+export interface EntityProvenanceData {
+  totalEntities: number;
+  byPhase: Record<string, number>;
+  entities: Record<string, EntityProvenanceRecord>;
+}
+
+// --- Referential Integrity Report ---
+
+export interface IntegrityFinding {
+  rule: string;
+  severity: 'error' | 'warning' | 'info';
+  message: string;
+  entityType?: string;
+  entityIds?: string[];
+  details?: Record<string, unknown>;
+}
+
+export interface IntegrityReport {
+  summary: {
+    totalFindings: number;
+    errors: number;
+    warnings: number;
+    info: number;
+  };
+  findings: IntegrityFinding[];
+}
+
 // Provenance statistics
 export interface ProvenanceStats {
   confirmed: number;

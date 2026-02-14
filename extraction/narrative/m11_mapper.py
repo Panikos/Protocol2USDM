@@ -107,7 +107,7 @@ def map_sections_to_m11(
         best_matches = []
         for sec in sections:
             sec_num = sec.get('number', '')
-            sec_title = sec.get('title', '').lower().strip()
+            sec_title = (sec.get('title') or '').lower().strip()
             if not sec_title or sec_num in assigned:
                 continue
             
@@ -158,7 +158,7 @@ def map_sections_to_m11(
     
     for sec in sections:
         sec_num = sec.get('number', '')
-        sec_type = sec.get('type', '').lower()
+        sec_type = (sec.get('type') or '').lower()
         if sec_num in assigned or not sec_type:
             continue
         
@@ -315,8 +315,8 @@ def _fuzzy_title_match(title: str, alias: str) -> bool:
 
 def _keyword_score(section: Dict, m11: M11Section) -> float:
     """Score how well a protocol section matches an M11 section by keyword overlap."""
-    sec_title = section.get('title', '').lower()
-    sec_type = section.get('type', '').lower()
+    sec_title = (section.get('title') or '').lower()
+    sec_type = (section.get('type') or '').lower()
     combined = f"{sec_title} {sec_type}"
     
     if not combined.strip():

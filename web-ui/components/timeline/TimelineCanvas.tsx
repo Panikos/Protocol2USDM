@@ -21,6 +21,8 @@ export interface TimelineCanvasHandle {
   fit: () => void;
   exportPNG: () => void;
   center: () => void;
+  /** Programmatically select a node by its Cytoscape ID, center it, and fire onNodeSelect */
+  selectNode: (nodeId: string) => void;
 }
 
 export const TimelineCanvas = forwardRef<TimelineCanvasHandle, TimelineCanvasProps>(
@@ -217,7 +219,28 @@ export const TimelineCanvas = forwardRef<TimelineCanvasHandle, TimelineCanvasPro
         cyRef.current.center();
       }
     },
-  }), []);
+    selectNode: (nodeId: string) => {
+      if (!cyRef.current) return;
+      const cy = cyRef.current;
+      const node = cy.getElementById(nodeId);
+      if (node.length === 0) return;
+
+      // Deselect all, select target
+      cy.elements().unselect();
+      node.select();
+
+      // Center on node with animation
+      cy.animate({ center: { eles: node }, zoom: Math.max(cy.zoom(), 1) }, { duration: 300 });
+
+      // Flash highlight
+      node.addClass('highlighted');
+      setTimeout(() => node.removeClass('highlighted'), 1500);
+
+      // Fire selection callback
+      setSelectedNode(nodeId);
+      onNodeSelect?.(nodeId, node.data());
+    },
+  }), [onNodeSelect]);
 
   // Pan handlers for scroll buttons
   const handlePan = useCallback((direction: 'up' | 'down' | 'left' | 'right') => {

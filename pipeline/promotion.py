@@ -17,7 +17,29 @@ import logging
 import re
 import uuid
 
+from core.usdm_types import generate_uuid
+
 logger = logging.getLogger(__name__)
+
+
+def _build_participant_quantity(value: int) -> dict:
+    """Build a USDM-compliant Quantity object for participant counts."""
+    return {
+        "id": generate_uuid(),
+        "value": float(value),
+        "unit": {
+            "id": generate_uuid(),
+            "standardCode": {
+                "code": "C25463",
+                "codeSystem": "http://www.cdisc.org",
+                "decode": "Count",
+                "instanceType": "Code",
+            },
+            "standardCodeAliases": [],
+            "instanceType": "AliasCode",
+        },
+        "instanceType": "Quantity",
+    }
 
 
 def promote_extensions_to_usdm(combined: dict) -> None:
@@ -35,8 +57,8 @@ def promote_extensions_to_usdm(combined: dict) -> None:
     2. SAP sampleSizeCalculations → StudyDesignPopulation.plannedCompletionNumber
        (if SAP specifies completers separately)
     
-    3. Future: narrative safety sections → NarrativeContent with sectionType=Safety
-    4. Future: narrative discontinuation → NarrativeContent with sectionType=Discontinuation
+    3. narrative safety sections → NarrativeContent/NarrativeContentItem with sectionType=Safety (set at extraction time)
+    4. narrative discontinuation → NarrativeContent/NarrativeContentItem with sectionType=Discontinuation (set at extraction time)
     """
     try:
         study = combined.get('study', {})
@@ -55,11 +77,7 @@ def promote_extensions_to_usdm(combined: dict) -> None:
         if not population.get('plannedEnrollmentNumber'):
             sample_size = _extract_sample_size_from_extensions(design)
             if sample_size is not None:
-                population['plannedEnrollmentNumber'] = {
-                    'maxValue': sample_size,
-                    'unit': 'participants',
-                    'instanceType': 'QuantityRange',
-                }
+                population['plannedEnrollmentNumber'] = _build_participant_quantity(sample_size)
                 logger.info(f"  ✓ Promoted SAP sample size ({sample_size}) → population.plannedEnrollmentNumber")
                 promotions += 1
         
@@ -67,11 +85,7 @@ def promote_extensions_to_usdm(combined: dict) -> None:
         if not population.get('plannedCompletionNumber'):
             completion_n = _extract_completion_number_from_extensions(design)
             if completion_n is not None:
-                population['plannedCompletionNumber'] = {
-                    'maxValue': completion_n,
-                    'unit': 'participants',
-                    'instanceType': 'QuantityRange',
-                }
+                population['plannedCompletionNumber'] = _build_participant_quantity(completion_n)
                 logger.info(f"  ✓ Promoted SAP completers ({completion_n}) → population.plannedCompletionNumber")
                 promotions += 1
         

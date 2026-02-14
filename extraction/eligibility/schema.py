@@ -100,6 +100,30 @@ class EligibilityCriterion:
         return result
 
 
+def _build_participant_quantity(value: int) -> Dict[str, Any]:
+    """Build a USDM-compliant Quantity object for participant counts.
+    
+    USDM v4.0 Quantity requires: id (string), value (float), 
+    unit (AliasCode, optional), instanceType = "Quantity".
+    """
+    return {
+        "id": generate_uuid(),
+        "value": float(value),
+        "unit": {
+            "id": generate_uuid(),
+            "standardCode": {
+                "code": "C25463",
+                "codeSystem": "http://www.cdisc.org",
+                "decode": "Count",
+                "instanceType": "Code",
+            },
+            "standardCodeAliases": [],
+            "instanceType": "AliasCode",
+        },
+        "instanceType": "Quantity",
+    }
+
+
 @dataclass
 class StudyDesignPopulation:
     """
@@ -141,21 +165,14 @@ class StudyDesignPopulation:
             result["description"] = self.description
         if self.label:
             result["label"] = self.label
-        # USDM v4.0: plannedEnrollmentNumber is a QuantityRange
+        # USDM v4.0: plannedEnrollmentNumber is a Quantity (subclass of QuantityRange)
         if self.planned_enrollment_number:
-            result["plannedEnrollmentNumber"] = {
-                "maxValue": self.planned_enrollment_number,
-                "unit": "participants",
-                "instanceType": "QuantityRange",
-            }
-        # USDM v4.0: plannedCompletionNumber is a QuantityRange
+            result["plannedEnrollmentNumber"] = _build_participant_quantity(self.planned_enrollment_number)
+        # USDM v4.0: plannedCompletionNumber is a Quantity (subclass of QuantityRange)
         if self.planned_completion_number:
-            result["plannedCompletionNumber"] = {
-                "maxValue": self.planned_completion_number,
-                "unit": "participants",
-                "instanceType": "QuantityRange",
-            }
+            result["plannedCompletionNumber"] = _build_participant_quantity(self.planned_completion_number)
         # USDM v4.0: plannedAge is a Range with minValue/maxValue as Quantity objects
+        # Both minValue and maxValue are required on Range — default to 0/99 if missing
         if self.planned_age_min is not None or self.planned_age_max is not None:
             unit_code = {
                 "id": generate_uuid(),
@@ -163,21 +180,21 @@ class StudyDesignPopulation:
                 "standardCodeAliases": [],
                 "instanceType": "AliasCode",
             }
+            effective_min = self.planned_age_min if self.planned_age_min is not None else 0
+            effective_max = self.planned_age_max if self.planned_age_max is not None else 99
             age_range: Dict[str, Any] = {"id": generate_uuid(), "instanceType": "Range", "isApproximate": False}
-            if self.planned_age_min is not None:
-                age_range["minValue"] = {
-                    "id": generate_uuid(),
-                    "value": self.planned_age_min,
-                    "unit": unit_code,
-                    "instanceType": "Quantity",
-                }
-            if self.planned_age_max is not None:
-                age_range["maxValue"] = {
-                    "id": generate_uuid(),
-                    "value": self.planned_age_max,
-                    "unit": unit_code,
-                    "instanceType": "Quantity",
-                }
+            age_range["minValue"] = {
+                "id": generate_uuid(),
+                "value": effective_min,
+                "unit": unit_code,
+                "instanceType": "Quantity",
+            }
+            age_range["maxValue"] = {
+                "id": generate_uuid(),
+                "value": effective_max,
+                "unit": unit_code,
+                "instanceType": "Quantity",
+            }
             result["plannedAge"] = age_range
         # USDM v4.0: plannedSex is Code[] (up to 2)
         if self.planned_sex:

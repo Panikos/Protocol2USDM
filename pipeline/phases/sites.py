@@ -65,7 +65,7 @@ class SitesPhase(BasePhase):
             sites_dict = result.data.to_dict() if hasattr(result.data, 'to_dict') else result.data
         elif previous_extractions.get('sites'):
             prev = previous_extractions['sites']
-            sites_dict = prev.get('sites', prev)
+            sites_dict = prev.get('sitesData', prev)
         
         if not sites_dict:
             return

@@ -123,6 +123,27 @@ export function SoAView({ provenance }: SoAViewProps) {
     return { footnotes: provenance?.footnotes || [], footnoteExtIndex: -1 };
   }, [studyDesign, provenance]);
 
+  // Build the list of available footnote labels for the cell editor
+  // Extracts actual letter prefixes from footnote strings (e.g., "y. Some text" → "y")
+  // and includes any refs already used by cells (in case footnote text was removed)
+  const availableFootnoteLabels = useMemo(() => {
+    const labels = new Set<string>();
+    for (const fn of footnotes) {
+      const match = fn.match(/^([a-z]+)\./i);
+      if (match) {
+        labels.add(match[1].toLowerCase());
+      }
+    }
+    for (const cell of tableModel.cells.values()) {
+      if (cell.footnoteRefs) {
+        for (const ref of cell.footnoteRefs) {
+          labels.add(ref.toLowerCase());
+        }
+      }
+    }
+    return [...labels].sort((a, b) => a.length - b.length || a.localeCompare(b));
+  }, [footnotes, tableModel.cells]);
+
   // Export to CSV — includes footnote refs and footnote list
   const handleExportCSV = useCallback(() => {
     const headers = [
@@ -325,7 +346,7 @@ export function SoAView({ provenance }: SoAViewProps) {
               model={filteredModel}
               onCellClick={handleCellClick}
               editable={true}
-              availableFootnotes={footnotes.map((_, i) => String.fromCharCode(97 + i))}
+              availableFootnotes={availableFootnoteLabels}
             />
           </div>
         </CardContent>

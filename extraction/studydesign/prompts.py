@@ -61,6 +61,17 @@ Sub-populations within the study (NOT dose levels):
 - Screening, Treatment, Follow-up, etc.
 - For titration studies, include dose-level epochs (e.g., "15mg Treatment", "30mg Treatment")
 
+### 8. Therapeutic Areas
+Classify the study into one or more therapeutic areas based on the disease/condition, study drug, and medical specialty.
+Pick ONLY from this list (use exact spelling):
+- Oncology, Cardiovascular, Endocrinology & Metabolism, Neurology, Psychiatry
+- Infectious Disease, Immunology & Inflammation, Respiratory, Gastroenterology
+- Nephrology, Dermatology, Hematology, Ophthalmology, Musculoskeletal
+- Hepatology, Urology, Rheumatology, Rare Diseases, Vaccines, Pain
+- Gynecology & Obstetrics
+
+Multiple areas may apply (e.g., a rare hematologic disease → ["Hematology", "Rare Diseases"]).
+
 ## Output Format
 
 Return a JSON object with this exact structure:
@@ -80,7 +91,7 @@ Return a JSON object with this exact structure:
       "stratificationFactors": []
     },
     "controlType": null,
-    "therapeuticAreas": ["Cardiology"],
+    "therapeuticAreas": ["Cardiovascular"],
     "designRationale": "An open-label, single-arm design was chosen because the primary objective is to evaluate the pharmacokinetics and safety profile of ABC-1234 in this population.",
     "characteristics": ["Single Group"]
   },

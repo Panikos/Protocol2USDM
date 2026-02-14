@@ -29,6 +29,8 @@ class PhaseProvenance:
     entity_counts: Dict[str, int] = field(default_factory=dict)
     confidence: Optional[float] = None
     error: Optional[str] = None
+    pages_used: List[int] = field(default_factory=list)
+    entity_ids: List[str] = field(default_factory=list)
     
     def to_dict(self) -> dict:
         d: dict = {
@@ -43,6 +45,10 @@ class PhaseProvenance:
             d['confidence'] = round(self.confidence, 4)
         if self.error:
             d['error'] = self.error
+        if self.pages_used:
+            d['pagesUsed'] = self.pages_used
+        if self.entity_ids:
+            d['entityIds'] = self.entity_ids
         return d
 
 
@@ -272,6 +278,8 @@ class BasePhase(ABC):
             prov.error = result.error
             if result.success and result.data:
                 prov.entity_counts = self._count_entities(result.data)
+                prov.pages_used = self._extract_pages_used(result.data)
+                prov.entity_ids = self._extract_entity_ids(result.data)
             result.provenance = prov
             
             # Save result
@@ -301,6 +309,51 @@ class BasePhase(ABC):
             logger.error(f"  \u2717 {config.display_name} extraction error: {e}")
             return PhaseResult(success=False, error=str(e), provenance=prov)
     
+    @staticmethod
+    def _extract_pages_used(data: Any) -> List[int]:
+        """Extract pages_used from result data if available."""
+        if data is None:
+            return []
+        if hasattr(data, 'pages_used'):
+            return list(data.pages_used or [])
+        if isinstance(data, dict):
+            return list(data.get('pages_used', data.get('pagesUsed', [])))
+        return []
+
+    @staticmethod
+    def _extract_entity_ids(data: Any) -> List[str]:
+        """Extract all entity IDs from result data for provenance tracking."""
+        ids: List[str] = []
+        if data is None:
+            return ids
+
+        def _collect_ids(obj: Any) -> None:
+            if isinstance(obj, dict):
+                eid = obj.get('id')
+                if eid and isinstance(eid, str):
+                    ids.append(eid)
+                for v in obj.values():
+                    _collect_ids(v)
+            elif isinstance(obj, list):
+                for item in obj:
+                    _collect_ids(item)
+
+        # Convert to dict if needed
+        if hasattr(data, 'to_dict'):
+            _collect_ids(data.to_dict())
+        elif isinstance(data, dict):
+            _collect_ids(data)
+        elif hasattr(data, '__dict__'):
+            for attr_val in vars(data).values():
+                if isinstance(attr_val, list):
+                    for item in attr_val:
+                        if hasattr(item, 'to_dict'):
+                            _collect_ids(item.to_dict())
+                        elif isinstance(item, dict):
+                            _collect_ids(item)
+
+        return ids
+
     @staticmethod
     def _count_entities(data: Any) -> Dict[str, int]:
         """Count entities in extraction result data for provenance."""

@@ -9,6 +9,7 @@ import { designPath } from '@/lib/semantic/schema';
 import { useSemanticStore } from '@/stores/semanticStore';
 import { useEditModeStore } from '@/stores/editModeStore';
 import { CheckCircle2, XCircle, Users, AlertTriangle, Plus, Trash2 } from 'lucide-react';
+import { ProvenanceBadge } from '@/components/provenance';
 
 interface EligibilityCriteriaViewProps {
   usdm: Record<string, unknown> | null;
@@ -162,6 +163,7 @@ export function EligibilityCriteriaView({ usdm }: EligibilityCriteriaViewProps) 
         <Badge variant="outline" className="h-6 min-w-[2rem] justify-center">
           {typeIndex + 1}
         </Badge>
+        <ProvenanceBadge entityId={criterion.id} />
         <EditableField
           path={designPath('eligibilityCriteria', criterion.id, 'text')}
           value={text}

@@ -19,7 +19,7 @@ from typing import Dict, List, Optional, Any, Set
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import logging
 
-from .phase_registry import phase_registry
+from .phase_registry import phase_registry, PhaseRegistry
 from .base_phase import BasePhase, PhaseResult, PhaseProvenance
 from extraction.pipeline_context import PipelineContext, create_pipeline_context
 
@@ -34,12 +34,12 @@ PHASE_DEPENDENCIES = {
     'studydesign': set(),  # Uses SoA data (passed separately)
     'interventions': {'metadata', 'studydesign'},  # Uses arms + indication
     'narrative': set(),  # Independent
-    'advanced': set(),  # Independent
-    'procedures': set(),  # Independent
-    'scheduling': set(),  # Independent
-    'docstructure': set(),  # Independent
+    'advanced': {'objectives', 'eligibility', 'interventions'},  # Estimands need obj/ep/intv context
+    'procedures': set(),  # Post-hoc linking in combine()
+    'scheduling': {'studydesign'},  # Needs encounters/epochs for timing references
+    'docstructure': {'narrative'},  # Needs narrative for cross-ref scanning
     'amendmentdetails': set(),  # Independent
-    'execution': {'metadata', 'studydesign'},  # Needs study context for enrichment
+    'execution': {'metadata', 'studydesign', 'interventions', 'scheduling'},  # Needs full study context for time anchor extraction
 }
 
 
@@ -54,14 +54,16 @@ class PipelineOrchestrator:
     - Clean separation of extraction and combination
     """
     
-    def __init__(self, usage_tracker: Any = None):
+    def __init__(self, usage_tracker: Any = None, registry: Optional[PhaseRegistry] = None):
         """
         Initialize orchestrator.
         
         Args:
             usage_tracker: Optional token usage tracker
+            registry: Optional PhaseRegistry instance (defaults to global phase_registry)
         """
         self.usage_tracker = usage_tracker
+        self._registry = registry if registry is not None else phase_registry
         self._results: Dict[str, PhaseResult] = {}
         self._pipeline_context: Optional[PipelineContext] = None
     
@@ -73,6 +75,7 @@ class PipelineOrchestrator:
         phases_to_run: Dict[str, bool],
         soa_data: Optional[dict] = None,
         pipeline_context: Optional[PipelineContext] = None,
+        **kwargs,
     ) -> Dict[str, PhaseResult]:
         """
         Run requested extraction phases.
@@ -84,6 +87,7 @@ class PipelineOrchestrator:
             phases_to_run: Dict of phase_name -> bool indicating which to run
             soa_data: Optional SoA extraction data
             pipeline_context: Optional existing pipeline context
+            **kwargs: Extra kwargs forwarded to phase.run() (e.g. sap_path, sites_path)
             
         Returns:
             Dict of phase_name -> PhaseResult
@@ -101,7 +105,7 @@ class PipelineOrchestrator:
         phases_to_run = self._enforce_dependencies(phases_to_run)
         
         # Run each requested phase in registry order
-        for phase in phase_registry.get_all():
+        for phase in self._registry.get_all():
             phase_name = phase.config.name.lower()
             
             # Check if this phase should run
@@ -116,6 +120,7 @@ class PipelineOrchestrator:
                 context=pipeline_context,
                 usage_tracker=self.usage_tracker,
                 soa_data=soa_data,
+                **kwargs,
             )
             
             results[phase_name] = result
@@ -135,6 +140,7 @@ class PipelineOrchestrator:
         soa_data: Optional[dict] = None,
         pipeline_context: Optional[PipelineContext] = None,
         max_workers: int = 4,
+        **kwargs,
     ) -> Dict[str, PhaseResult]:
         """
         Run extraction phases with parallel execution where possible.
@@ -149,6 +155,7 @@ class PipelineOrchestrator:
             soa_data: Optional SoA extraction data
             pipeline_context: Optional existing pipeline context
             max_workers: Maximum parallel workers (default: 4)
+            **kwargs: Extra kwargs forwarded to phase.run() (e.g. sap_path, sites_path)
             
         Returns:
             Dict of phase_name -> PhaseResult
@@ -163,7 +170,7 @@ class PipelineOrchestrator:
         # Filter to only requested phases
         requested_phases = {
             name for name, should_run in phases_to_run.items() 
-            if should_run and phase_registry.has(name)
+            if should_run and self._registry.has(name)
         }
         
         if not requested_phases:
@@ -172,7 +179,7 @@ class PipelineOrchestrator:
         
         # Enforce dependencies: auto-enable required phases
         enforced = self._enforce_dependencies({p: True for p in requested_phases})
-        requested_phases = {name for name, enabled in enforced.items() if enabled and phase_registry.has(name)}
+        requested_phases = {name for name, enabled in enforced.items() if enabled and self._registry.has(name)}
         
         results = {}
         completed: Set[str] = set()
@@ -185,7 +192,7 @@ class PipelineOrchestrator:
             if len(wave_phases) == 1:
                 # Single phase - run directly
                 phase_name = list(wave_phases)[0]
-                phase = phase_registry.get(phase_name)
+                phase = self._registry.get(phase_name)
                 if phase:
                     result = phase.run(
                         pdf_path=pdf_path,
@@ -194,6 +201,7 @@ class PipelineOrchestrator:
                         context=pipeline_context,
                         usage_tracker=self.usage_tracker,
                         soa_data=soa_data,
+                        **kwargs,
                     )
                     results[phase_name] = result
                     completed.add(phase_name)
@@ -206,7 +214,7 @@ class PipelineOrchestrator:
                 with ThreadPoolExecutor(max_workers=min(max_workers, len(wave_phases))) as executor:
                     futures = {}
                     for phase_name in wave_phases:
-                        phase = phase_registry.get(phase_name)
+                        phase = self._registry.get(phase_name)
                         if phase:
                             ctx_snapshot = pipeline_context.snapshot()
                             phase_snapshots[phase_name] = ctx_snapshot
@@ -218,6 +226,7 @@ class PipelineOrchestrator:
                                 context=ctx_snapshot,
                                 usage_tracker=self.usage_tracker,
                                 soa_data=soa_data,
+                                **kwargs,
                             )
                             futures[future] = phase_name
                     
@@ -299,7 +308,7 @@ class PipelineOrchestrator:
                     continue
                 deps = PHASE_DEPENDENCIES.get(phase_name, set())
                 for dep in deps:
-                    if not result.get(dep, False) and phase_registry.has(dep):
+                    if not result.get(dep, False) and self._registry.has(dep):
                         result[dep] = True
                         added.append(f"{dep} (required by {phase_name})")
                         changed = True
@@ -353,6 +362,62 @@ class PipelineOrchestrator:
         with open(path, 'w', encoding='utf-8') as f:
             json.dump(prov, f, indent=2, ensure_ascii=False)
         logger.info(f"Extraction provenance: {path}")
+        return path
+    
+    def aggregate_entity_provenance(self) -> dict:
+        """Build entity-level provenance registry from all completed phases.
+        
+        Maps each entity ID to its source phase, pages used, and confidence.
+        Returns a dict suitable for saving as entity_provenance.json.
+        """
+        registry: dict = {}
+        for name, result in self._results.items():
+            if name.startswith('_'):
+                continue
+            if not isinstance(result, PhaseResult) or not result.provenance:
+                continue
+            prov = result.provenance
+            if not prov.entity_ids:
+                continue
+            record = {
+                'phase': prov.phase,
+                'model': prov.model,
+            }
+            if prov.pages_used:
+                record['pagesUsed'] = prov.pages_used
+            if prov.confidence is not None:
+                record['confidence'] = round(prov.confidence, 4)
+            for eid in prov.entity_ids:
+                registry[eid] = record
+        
+        return {
+            'totalEntities': len(registry),
+            'byPhase': self._group_entity_counts_by_phase(registry),
+            'entities': registry,
+        }
+    
+    @staticmethod
+    def _group_entity_counts_by_phase(registry: dict) -> dict:
+        """Group entity counts by phase for summary."""
+        counts: dict = {}
+        for rec in registry.values():
+            phase = rec.get('phase', 'unknown')
+            counts[phase] = counts.get(phase, 0) + 1
+        return counts
+    
+    def save_entity_provenance(self, output_dir: str) -> str:
+        """Save entity-level provenance to entity_provenance.json.
+        
+        Returns the path to the saved file.
+        """
+        import json
+        import os
+        
+        prov = self.aggregate_entity_provenance()
+        path = os.path.join(output_dir, 'entity_provenance.json')
+        with open(path, 'w', encoding='utf-8') as f:
+            json.dump(prov, f, indent=2, ensure_ascii=False)
+        logger.info(f"Entity provenance: {len(prov['entities'])} entities tracked → {path}")
         return path
 
 

@@ -145,6 +145,7 @@ def extract_scheduling(
     pdf_path: str,
     model: str = "gemini-2.5-pro",
     output_dir: Optional[str] = None,
+    upstream_context: Optional[str] = None,
 ) -> SchedulingResult:
     """
     Extract scheduling logic from protocol PDF.
@@ -165,7 +166,7 @@ def extract_scheduling(
             model_used=model,
         )
     
-    prompt = get_scheduling_prompt(text)
+    prompt = get_scheduling_prompt(text, upstream_context=upstream_context)
     system_prompt = get_system_prompt()
     
     try:

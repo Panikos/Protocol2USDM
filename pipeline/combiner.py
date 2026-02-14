@@ -25,6 +25,7 @@ from .post_processing import (
     run_reconciliation,
     filter_enrichment_epochs,
     tag_unscheduled_encounters,
+    promote_unscheduled_to_decisions,
     mark_activity_sources,
     link_procedures_to_activities,
     link_administrations_to_products,
@@ -32,6 +33,7 @@ from .post_processing import (
     link_ingredient_strengths,
     link_cohorts_to_population,
     add_soa_footnotes,
+    validate_anchor_consistency,
 )
 from .promotion import promote_extensions_to_usdm
 from core.constants import SYSTEM_NAME, SYSTEM_VERSION
@@ -186,14 +188,28 @@ def combine_to_full_usdm(
     if combined.get("_temp_indications"):
         study_design["indications"] = combined.pop("_temp_indications")
     
+    # Deterministic fallback: infer therapeuticAreas from indications if LLM left it empty
+    if not study_design.get("therapeuticAreas"):
+        indication_names = [
+            ind.get("name", "") for ind in study_design.get("indications", [])
+            if isinstance(ind, dict) and ind.get("name")
+        ]
+        if indication_names:
+            from extraction.studydesign.schema import (
+                infer_therapeutic_areas_from_indications,
+                _build_therapeutic_area_code,
+            )
+            inferred = infer_therapeutic_areas_from_indications(indication_names)
+            if inferred:
+                study_design["therapeuticAreas"] = [
+                    _build_therapeutic_area_code(ta) for ta in inferred
+                ]
+                logger.info(f"  Therapeutic areas inferred from indications: {inferred}")
+    
     # NOTE: SAP and Sites are now registered phases (SAPPhase, SitesPhase)
     # and handled by the phase.combine() loop above. The integrate_sap()
-    # and integrate_sites() helpers are retained for backward compatibility
-    # with callers that pass SAP/sites results directly in expansion_results
-    # without going through the phase registry.
-    if expansion_results and (expansion_results.get('sap') or expansion_results.get('sites')):
-        integrate_sites(study_version, study_design, expansion_results)
-        integrate_sap(study_version, study_design, expansion_results, output_dir)
+    # and integrate_sites() helpers are no longer called here to avoid
+    # duplicate extension creation.
     
     # Reconcile estimand.analysisPopulationId → analysisPopulations references
     reconcile_estimand_population_refs(study_design)
@@ -229,6 +245,9 @@ def combine_to_full_usdm(
     # Tag unscheduled encounters (safety net for UNS visits)
     combined = tag_unscheduled_encounters(combined)
     
+    # Promote UNS encounters to ScheduledDecisionInstance (Phase 2)
+    combined = promote_unscheduled_to_decisions(combined)
+    
     # Resolve cross-references (targetId + pageNumber)
     resolve_content_references(combined)
     
@@ -249,6 +268,9 @@ def combine_to_full_usdm(
     # Link cohorts to population (M3/M9)
     combined = link_cohorts_to_population(combined)
     
+    # Validate anchor consistency against SoA encounters
+    combined = validate_anchor_consistency(combined, expansion_results)
+    
     # Promote extension data back into core USDM entities
     promote_extensions_to_usdm(combined)
     
@@ -261,6 +283,20 @@ def combine_to_full_usdm(
         json.dump(combined, f, indent=2, ensure_ascii=False)
     
     logger.info(f"\n✓ Combined USDM saved to: {output_path}")
+    
+    # Run referential integrity checks
+    try:
+        from pipeline.integrity import check_integrity, save_integrity_report
+        integrity_report = check_integrity(combined)
+        save_integrity_report(integrity_report, output_dir)
+        if integrity_report.error_count > 0:
+            logger.warning(
+                f"⚠ Integrity: {integrity_report.error_count} errors, "
+                f"{integrity_report.warning_count} warnings"
+            )
+    except Exception as e:
+        logger.warning(f"Integrity check failed: {e}")
+    
     return combined, output_path
 
 

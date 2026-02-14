@@ -101,19 +101,30 @@ def run_reconciliation(combined: dict, expansion_results: dict, soa_data: dict) 
                 study_design["encounters"] = reconciled_encounters
                 logger.info(f"  ✓ Reconciled {len(reconciled_encounters)} encounters")
                 
-                # Populate epochId on schedule instances
+                # Fix dangling SAI encounterId references + populate epochId
+                valid_enc_ids = {enc.get('id') for enc in reconciled_encounters}
                 enc_to_epoch = {enc.get('id'): enc.get('epochId') for enc in reconciled_encounters}
+                fallback_enc_id = reconciled_encounters[0].get('id') if reconciled_encounters else None
                 epochs = study_design.get('epochs', [])
                 fallback_epoch_id = epochs[0].get('id') if epochs else None
+                dangling_fixed = 0
                 
                 for timeline in study_design.get('scheduleTimelines', []):
                     for inst in timeline.get('instances', []):
+                        enc_id = inst.get('encounterId')
+                        # Remap dangling encounterId to nearest surviving encounter
+                        if enc_id and enc_id not in valid_enc_ids:
+                            inst['encounterId'] = fallback_enc_id or ''
+                            dangling_fixed += 1
+                        # Populate epochId from encounter mapping
                         if not inst.get('epochId'):
-                            enc_id = inst.get('encounterId')
-                            if enc_id and enc_id in enc_to_epoch:
-                                inst['epochId'] = enc_to_epoch[enc_id]
+                            resolved_enc = inst.get('encounterId')
+                            if resolved_enc and resolved_enc in enc_to_epoch:
+                                inst['epochId'] = enc_to_epoch[resolved_enc]
                             elif fallback_epoch_id:
                                 inst['epochId'] = fallback_epoch_id
+                if dangling_fixed:
+                    logger.info(f"  ✓ Fixed {dangling_fixed} dangling SAI encounterId references")
         
         # Activity reconciliation
         soa_activities = study_design.get("activities", [])
@@ -267,6 +278,167 @@ def tag_unscheduled_encounters(combined: dict) -> dict:
     return combined
 
 
+def promote_unscheduled_to_decisions(combined: dict) -> dict:
+    """Promote unscheduled encounters to ScheduledDecisionInstance entities.
+
+    For each encounter tagged with x-encounterUnscheduled, creates:
+      1. A ScheduledDecisionInstance (C201351) representing the branch point
+      2. A Condition (C25457) describing the trigger event
+      3. Two ConditionAssignment (C201335) entries:
+         - "Event occurs" → branch to UNS encounter activities
+         - Default → continue on main timeline (next scheduled encounter)
+      4. Wires the SDI into the first schedule timeline's instances[]
+
+    The encounter itself remains in the encounters list (it still holds
+    activities); the SDI is a decision gate that *precedes* it.
+
+    USDM placement:
+      - ScheduledDecisionInstance → scheduleTimeline.instances[]
+      - Condition → studyVersion.conditions[]
+    """
+    try:
+        version = combined.get("study", {}).get("versions", [{}])[0]
+        study_design = (version.get("studyDesigns", [{}]) or [{}])[0]
+        encounters = study_design.get("encounters", [])
+        timelines = study_design.get("scheduleTimelines", [])
+
+        if not encounters or not timelines:
+            return combined
+
+        # Build ordered encounter list (for "next encounter" resolution)
+        enc_order = [e.get("id") for e in encounters if e.get("id")]
+        enc_by_id = {e.get("id"): e for e in encounters if e.get("id")}
+
+        # Find the first timeline to add SDIs to
+        timeline = timelines[0]
+        if "instances" not in timeline:
+            timeline["instances"] = []
+
+        # Ensure conditions list exists on version
+        if "conditions" not in version:
+            version["conditions"] = []
+
+        promoted = 0
+        for enc in encounters:
+            enc_id = enc.get("id", "")
+            name = enc.get("name", "")
+            exts = enc.get("extensionAttributes", [])
+
+            # Check if tagged as unscheduled
+            is_uns = any(
+                e.get("url", "").endswith("x-encounterUnscheduled")
+                and e.get("valueBoolean") is True
+                for e in exts
+            )
+            if not is_uns:
+                continue
+
+            # Skip if already promoted (check for existing SDI referencing this encounter)
+            already_promoted = any(
+                inst.get("instanceType") == "ScheduledDecisionInstance"
+                and any(
+                    ca.get("conditionTargetId") == enc_id
+                    for ca in inst.get("conditionAssignments", [])
+                )
+                for inst in timeline.get("instances", [])
+            )
+            if already_promoted:
+                continue
+
+            # Resolve "next scheduled encounter" for the default branch
+            enc_idx = enc_order.index(enc_id) if enc_id in enc_order else -1
+            next_enc_id = None
+            if enc_idx >= 0:
+                # Walk forward to find the next non-UNS encounter
+                for j in range(enc_idx + 1, len(enc_order)):
+                    candidate = enc_by_id.get(enc_order[j], {})
+                    cand_exts = candidate.get("extensionAttributes", [])
+                    cand_uns = any(
+                        e.get("url", "").endswith("x-encounterUnscheduled")
+                        and e.get("valueBoolean") is True
+                        for e in cand_exts
+                    )
+                    if not cand_uns:
+                        next_enc_id = enc_order[j]
+                        break
+                # If UNS is last in list, walk backward to find preceding encounter
+                if next_enc_id is None:
+                    for j in range(enc_idx - 1, -1, -1):
+                        candidate = enc_by_id.get(enc_order[j], {})
+                        cand_exts = candidate.get("extensionAttributes", [])
+                        cand_uns = any(
+                            e.get("url", "").endswith("x-encounterUnscheduled")
+                            and e.get("valueBoolean") is True
+                            for e in cand_exts
+                        )
+                        if not cand_uns:
+                            next_enc_id = enc_order[j]
+                            break
+
+            # --- Create Condition entity ---
+            condition_id = f"cond-uns-{enc_id}"
+            condition = {
+                "id": condition_id,
+                "name": f"Unscheduled event trigger for {name}",
+                "label": f"UNS trigger: {name}",
+                "text": f"An event requiring an unscheduled {name} visit occurs",
+                "instanceType": "Condition",
+            }
+            version["conditions"].append(condition)
+
+            # --- Create ConditionAssignments ---
+            # Branch 1: event occurs → go to UNS encounter
+            ca_event = {
+                "id": str(uuid.uuid4()),
+                "condition": f"Event requiring {name} occurs",
+                "conditionTargetId": enc_id,
+                "instanceType": "ConditionAssignment",
+            }
+
+            # Branch 2 (default): event does not occur → next scheduled encounter
+            ca_default = {
+                "id": str(uuid.uuid4()),
+                "condition": "No unscheduled event",
+                "conditionTargetId": next_enc_id or enc_id,
+                "instanceType": "ConditionAssignment",
+            }
+
+            # --- Create ScheduledDecisionInstance ---
+            sdi_id = f"sdi-uns-{enc_id}"
+            sdi = {
+                "id": sdi_id,
+                "name": f"Decision: {name}",
+                "label": f"UNS Decision: {name}",
+                "description": (
+                    f"Branch point for unscheduled visit '{name}'. "
+                    f"If the triggering event occurs, the subject proceeds to the "
+                    f"unscheduled visit; otherwise continues on the main timeline."
+                ),
+                "epochId": enc.get("epochId"),
+                "defaultConditionId": next_enc_id,
+                "conditionAssignments": [ca_event, ca_default],
+                "instanceType": "ScheduledDecisionInstance",
+            }
+
+            # Add UNS extension to the SDI for frontend identification
+            sdi["extensionAttributes"] = [{
+                "id": str(uuid.uuid4()),
+                "url": "https://protocol2usdm.io/extensions/x-unsDecisionInstance",
+                "instanceType": "ExtensionAttribute",
+                "valueString": enc_id,
+            }]
+
+            timeline["instances"].append(sdi)
+            promoted += 1
+
+        if promoted:
+            logger.info(f"  ✓ Promoted {promoted} UNS encounter(s) to ScheduledDecisionInstance")
+    except Exception as e:
+        logger.warning(f"  ⚠ UNS → SDI promotion skipped: {e}")
+
+    return combined
+
+
 def filter_enrichment_epochs(combined: dict, soa_data: Optional[dict]) -> dict:
     """Filter out epochs added by enrichment that weren't in original SoA."""
     if not soa_data:
@@ -395,6 +567,19 @@ def link_procedures_to_activities(study_design: dict) -> None:
         if not procedures or not activities:
             return
         
+        # Enrich procedure codes with multi-system terminology
+        try:
+            from core.procedure_codes import enrich_procedure_codes
+            enriched = 0
+            for proc in procedures:
+                enrich_procedure_codes(proc)
+                if any(e.get("url", "").endswith("x-procedureCodes") for e in proc.get("extensionAttributes", [])):
+                    enriched += 1
+            if enriched:
+                logger.info(f"  ✓ Enriched {enriched}/{len(procedures)} procedures with multi-system codes")
+        except Exception as e:
+            logger.debug(f"  ⚠ Procedure code enrichment skipped: {e}")
+
         # Sanitize procedure codes
         for proc in procedures:
             code = proc.get('code')
@@ -551,7 +736,7 @@ def nest_ingredients_in_products(combined: dict) -> dict:
                             "decode": "Active Moiety",
                             "instanceType": "Code",
                         },
-                        "substanceId": sub.get("id"),
+                        "substance": sub,
                     }
                     product["ingredients"].append(ingredient)
                 nested += len(matched_substances)
@@ -662,3 +847,93 @@ def add_soa_footnotes(study_design: dict, output_dir: str) -> None:
     
     except Exception as e:
         logger.warning(f"  ⚠ SoA footnotes addition skipped: {e}")
+
+
+def validate_anchor_consistency(combined: dict, expansion_results: dict) -> dict:
+    """Validate time anchor dayValues against SoA encounters.
+    
+    Checks that each extracted time anchor has a corresponding encounter
+    in the SoA at the expected day value. Logs warnings for mismatches
+    and stores validation results as an extension attribute.
+    """
+    import re as _re
+    
+    try:
+        study_design = combined.get("study", {}).get("versions", [{}])[0].get("studyDesigns", [{}])[0]
+        encounters = study_design.get("encounters", [])
+        
+        # Get time anchors from execution data
+        execution_data = None
+        if expansion_results and expansion_results.get('execution'):
+            exec_result = expansion_results['execution']
+            if exec_result.success and exec_result.data:
+                execution_data = exec_result.data
+        
+        if not execution_data or not hasattr(execution_data, 'time_anchors'):
+            return combined
+        
+        time_anchors = execution_data.time_anchors or []
+        if not time_anchors:
+            return combined
+        
+        # Build set of day values present in SoA encounters
+        encounter_days = set()
+        encounter_names_lower = set()
+        for enc in encounters:
+            name = enc.get('name', '')
+            encounter_names_lower.add(name.lower().strip())
+            day_match = _re.search(r'day\s*[-]?\s*(\d+)', name.lower())
+            if day_match:
+                encounter_days.add(int(day_match.group(1)))
+        
+        # Validate each anchor
+        validation_results = []
+        warnings_count = 0
+        
+        for anchor in time_anchors:
+            anchor_type = getattr(anchor, 'anchor_type', None)
+            type_str = anchor_type.value if hasattr(anchor_type, 'value') else str(anchor_type or 'Unknown')
+            day_value = getattr(anchor, 'day_value', None)
+            definition = getattr(anchor, 'definition', '')
+            
+            result = {
+                "anchorType": type_str,
+                "dayValue": day_value,
+                "definition": definition,
+                "status": "ok",
+                "message": "",
+            }
+            
+            if day_value is not None:
+                abs_day = abs(day_value)
+                if abs_day in encounter_days or day_value in encounter_days:
+                    result["status"] = "ok"
+                    result["message"] = f"Day {day_value} has matching SoA encounter"
+                else:
+                    result["status"] = "warning"
+                    result["message"] = f"Day {day_value} has no matching SoA encounter (available: {sorted(encounter_days)[:10]})"
+                    warnings_count += 1
+                    logger.warning(f"  ⚠ Anchor '{type_str}' (Day {day_value}): no matching SoA encounter")
+            else:
+                result["status"] = "info"
+                result["message"] = "No day value specified"
+            
+            validation_results.append(result)
+        
+        # Store validation results as extension
+        if validation_results:
+            study_design.setdefault('extensionAttributes', []).append({
+                'id': f"ext_anchor_validation_{study_design.get('id', 'sd')[:8]}",
+                'url': 'https://protocol2usdm.io/extensions/x-anchorValidation',
+                'valueString': json.dumps(validation_results),
+                'instanceType': 'ExtensionAttribute'
+            })
+        
+        ok_count = sum(1 for r in validation_results if r['status'] == 'ok')
+        logger.info(f"  ✓ Anchor validation: {ok_count}/{len(validation_results)} anchors match SoA encounters"
+                    + (f" ({warnings_count} warnings)" if warnings_count else ""))
+    
+    except Exception as e:
+        logger.warning(f"  ⚠ Anchor consistency validation skipped: {e}")
+    
+    return combined

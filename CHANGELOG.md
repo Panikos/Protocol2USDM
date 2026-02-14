@@ -4,6 +4,294 @@ All notable changes documented here. Dates in ISO-8601.
 
 ---
 
+## [7.12.0] – 2026-02-14
+
+### Procedure Code Enrichment — Multi-System Terminology
+
+Added automatic multi-system terminology mapping for extracted procedures. Each procedure is now enriched with codes from NCI, SNOMED CT, ICD-10, CPT, and LOINC via an embedded 60+ procedure database with EVS API fallback.
+
+| Component | Change |
+|-----------|--------|
+| **`core/procedure_codes.py`** | `ProcedureCodeService` singleton: embedded DB → fuzzy match → EVS API cross-terminology resolution |
+| **`pipeline/post_processing.py`** | `enrich_procedure_codes()` called during `link_procedures_to_activities()` |
+| **`web-ui/.../ProceduresDevicesView.tsx`** | Reads `x-procedureCodes` extension, renders all codes as clickable `CodeLink` badges |
+| **Extension format** | `x-procedureCodes` stores `[{code, codeSystem, decode, url}]` per procedure |
+
+### Graph Viewer — Editing & Cross-References
+
+Complete rewrite of the graph node details panel and editing integration:
+
+| Feature | Details |
+|---------|---------|
+| **Human-readable cross-references** | All UUID references (epochId, encounterId, activityId, etc.) resolved to entity names with type badges |
+| **Clickable navigation** | Click any cross-reference → graph animates to that node with highlight flash |
+| **Inline editing** | Name and description editable directly in the details panel (encounters, activities, epochs) |
+| **Semantic store wired** | Edits generate JSON Patch ops via `addPatchOp()` with proper `designPath()` paths |
+| **Undo/Redo** | Panel-level undo/redo buttons wired to `semanticStore.undo()/redo()` |
+| **Edit mode aware** | Editing UI only appears when global edit mode is toggled on |
+| **`selectNode()` API** | New `TimelineCanvasHandle.selectNode()` for programmatic cross-node navigation |
+
+### Graph View — Dedicated Anchor Nodes
+
+Time anchors from the execution model now render as dedicated diamond-shaped nodes in the graph view instead of unreliable fuzzy-matching on timing nodes.
+
+| Change | Details |
+|--------|---------|
+| **Anchor nodes created** | Each `timeAnchor` → amber diamond node at `anchorY=50` with ⚓ label |
+| **Smart alignment** | Anchors aligned to matching encounters via keyword lookup (Baseline→"baseline"/"day 1", etc.) |
+| **Dashed edges** | Amber dashed edge from each anchor to its aligned encounter |
+| **Cytoscape styles** | `node.execution-anchor` (diamond) + `edge.anchor-edge` (dashed amber) |
+
+### Timeline Popout Fix — Position-Aware Alignment
+
+Fixed timeline anchor labels and visit labels being clipped/obstructed at screen edges:
+
+| Element | Fix |
+|---------|-----|
+| **Anchor labels** | `leftPct < 10` → left-align, `> 90` → right-align, else center |
+| **Anchor tooltips** | Same position-aware logic |
+| **Visit labels** | `leftPercent < 8` → left-align, `> 92` → right-align |
+| **Visit tooltips** | Same position-aware logic |
+
+### New/Updated Tests
+
+| File | Tests |
+|------|-------|
+| `tests/test_procedure_codes.py` | 39 (embedded DB, service resolution, enrichment, EVS mock, dedup) |
+
+**Test suite**: 981 passed, 36 skipped, 0 failures, 0 TS errors
+
+---
+
+## [7.11.0] – 2026-02-14
+
+### SoA Page Finder — Multi-Page Table Detection
+
+Fixed critical SoA extraction failure on SURPASS-4 where the header analyzer found 0 timepoints/encounters/epochs due to missing table pages.
+
+| Problem | Root Cause | Fix |
+|---------|-----------|-----|
+| **Heuristic scoring missed wide tables** | Visit numbers on separate lines (`Visit\n1\n2\n...`) — `visit\s*\d+` regex only matched once | Added wide-table heuristic: count isolated integers + epoch keywords + X-tick density |
+| **Adjacent expansion too conservative** | Only ±1 page from detected range; SURPASS-4 SoA starts 3 pages before detected page | New header-fingerprint expansion: `_extract_header_fingerprint()` builds frozenset of header tokens, walks ±8 pages with Jaccard similarity ≥ 0.75 |
+| **Interior gaps unfilled** | Gap-fill only covered ≤3 page gaps | Interior scan fills all gaps between known SoA pages using fingerprint matching |
+
+**Before**: 4 images → 0 timepoints, 0 encounters, 0 activities, 12 dangling xrefs
+**After**: 9 images → 32 timepoints, 32 encounters, 23 activities, 0 validation errors
+
+### Dangling SAI `encounterId` Fix
+
+Fixed 12 dangling cross-reference warnings in SURPASS-4 semantic validation.
+
+| Problem | Root Cause | Fix |
+|---------|-----------|-----|
+| **SAIs reference removed encounters** | Execution model promoter creates encounters + SAIs; reconciliation filters encounters without `epochId`; SAIs keep old references | Post-reconciliation cleanup in `pipeline/post_processing.py` remaps dangling `encounterId` to nearest surviving encounter |
+
+### UI: MeSH Code Links & Characteristics Display
+
+| Component | Change |
+|-----------|--------|
+| **`StudyMetadataView.tsx`** | Therapeutic area MeSH code displayed as clickable link to NLM MeSH Browser |
+| **`AdvancedEntitiesView.tsx`** | Same MeSH link in therapeutic areas badges |
+| **`StudyMetadataView.tsx`** | `Characteristic` interface fixed to match USDM `Code` objects; displays `decode` values as badges |
+
+### Renderer sectionType Confirmation
+
+Verified extraction-time `sectionType` tagging works end-to-end (SURPASS-4: 13 Safety, 11 Discontinuation sections tagged). Keyword fallbacks in `_compose_safety`/`_compose_discontinuation` retained for backwards compatibility with deprecation warnings.
+
+### New/Updated Tests
+
+| File | Tests |
+|------|-------|
+| `tests/test_sap_combine.py` | +2 (dangling SAI encounterId regression: remapped + valid cases) |
+
+**Test suite**: 941 passed, 36 skipped, 0 failures
+
+---
+
+## [7.10.0] – 2026-02-13
+
+### SAP Extraction Fixes — 3 Bugs Fixed
+
+Fixed three interconnected bugs preventing SAP data (especially multiplicity adjustments) from appearing in the UI:
+
+| Bug | Root Cause | Fix |
+|-----|-----------|-----|
+| **Wrong key in `SAPPhase.combine()`** | `prev.get('sap', prev)` missed nested `sapData` key in `11_sap_populations.json` | Changed to `prev.get('sapData', prev)` in `pipeline/phases/sap.py` |
+| **Duplicate SAP extensions** | Both `SAPPhase.combine()` and `integrate_sap()` added extensions (16 instead of 8) | Removed redundant `integrate_sap()`/`integrate_sites()` calls in `pipeline/combiner.py` |
+| **`sap_path` not forwarded** | Orchestrator didn't pass `sap_path`/`sites_path` kwargs to `phase.run()` | Added `**kwargs` to `run_phases()`/`run_phases_parallel()` in `pipeline/orchestrator.py`; passed from `main_v3.py` |
+| **Same key bug in Sites** | `prev.get('sites', prev)` should be `prev.get('sitesData', prev)` | Fixed in `pipeline/phases/sites.py` |
+
+### Timeline Anchor Visualization — All Anchors Rendered
+
+Previously only a single "Day 1" anchor was shown; all other anchors were invisible.
+
+| Change | Details |
+|--------|---------|
+| **All anchors rendered** | Grouped by `dayValue`, each unique day gets a colored marker at its correct timeline position |
+| **Type-specific colors** | FirstDose (blue), Baseline (purple), Randomization (green), Screening (amber), InformedConsent (cyan), CollectionDay (pink), Custom (gray) |
+| **Grouped anchors** | Multiple anchors at same day show count badge + hover tooltip listing all anchor types/definitions |
+| **Day range expanded** | Anchor `dayValue`s now included in min/max calculations so anchors outside visit range are visible |
+| **Null targetDay safety** | Visits with `targetDay: null` (e.g., "Early Termination") filtered from position calculations |
+
+### Figure Extraction — Three-Strategy Approach
+
+Replaced full-page rendering with a three-strategy image extraction pipeline:
+
+| Strategy | Method | Quality |
+|----------|--------|---------|
+| 1. Embedded images | `extract_embedded_image()` via PyMuPDF `get_page_images()` | Highest — native resolution |
+| 2. Cropped region | `render_page_region_to_image()` around figure label | Good — tight crop |
+| 3. Full page fallback | Render entire page at 150 DPI | Acceptable — last resort |
+
+### Cross-References & Figures UI
+
+| Component | Change |
+|-----------|--------|
+| **`reference_scanner.py`** | Two-pass figure scanning: prefer non-TOC pages, clean dotted-leader artifacts, 200-char context window |
+| **`CrossReferencesView.tsx`** | Figure/table titles from `protocolFigures[]`, linked page numbers, short context hidden |
+| **`FiguresGalleryView.tsx`** | List/grid toggle, `cleanTitle()` safety net, improved title display |
+
+### Referential Integrity Checker
+
+New `pipeline/integrity.py` — three-layer USDM validation:
+
+| Layer | Checks |
+|-------|--------|
+| **ID references** | 16 rules validating cross-entity ID references (StudyCell→arm/epoch, SAI→encounter, Estimand→population) |
+| **Orphan detection** | 7 entity collections scanned for unreferenced entities |
+| **Semantic rules** | 8 rules (arm not in cell, unnamed activities, uncategorized criteria, duplicate IDs, etc.) |
+
+Output: `integrity_report.json` with severity-filtered findings. UI: `IntegrityReportView.tsx` with summary bar and expandable rows.
+
+### Cross-Phase Context Enrichment
+
+| Phase | New Dependency | Context Injected |
+|-------|---------------|-----------------|
+| `scheduling` | `studydesign` | Encounter/epoch/arm names for timing references |
+| `advanced` | `objectives`, `eligibility`, `interventions` | Estimands need objective/endpoint/intervention context |
+
+### AdministrableProduct Expansion (USDM v4.0 C215492)
+
+5 new fields extracted: `label`, `routeOfAdministration`, `productDesignation` (IMP/NIMP), `sourcing`, `pharmacologicClass`.
+
+### UI/UX Improvements
+
+| New Component | Purpose |
+|---------------|---------|
+| **`app-shell.tsx`** | Consistent app layout shell |
+| **`error-boundary.tsx`** | React error boundary with fallback UI |
+| **`keyboard-shortcuts.tsx`** | Keyboard shortcut handler |
+| **`theme-toggle.tsx`** | Dark/light theme toggle |
+| **`useAutoSave.ts`** | Auto-save hook for draft changes |
+| **`useEntityProvenance.ts`** | Entity-level provenance lookup hook |
+| **`useUserIdentity.ts`** | User identity hook for audit trail |
+| **`ExtractionProvenanceView.tsx`** | Extraction pipeline provenance display |
+| **`ProvenanceBadge.tsx`** | Inline provenance indicator badge |
+
+### New Test Files
+
+| File | Tests |
+|------|-------|
+| `tests/test_sap_combine.py` | 11 (SAP/Sites combine, no duplicates, orchestrator kwargs) |
+| `tests/test_integrity.py` | 28 (ID refs, orphans, semantics, integration) |
+| `tests/test_reference_scanner.py` | 45 (figure scanning, TOC detection, title cleaning) |
+
+**Test suite**: 939 passed, 36 skipped, 0 failures, 0 TS errors
+
+---
+
+## [7.9.0] – 2026-02-13
+
+### Web UI Editing — Estimands & Analysis Populations (P4)
+
+Estimands are now fully editable in the web UI with all 5 ICH E9(R1) attributes + intercurrent events.
+
+| Component | Change |
+|-----------|--------|
+| **AdvancedEntitiesView.tsx** | `EditableField` for treatment, population, variable, summary measure, intercurrent events; add/remove buttons for estimands and intercurrent events |
+| **AdvancedEntitiesView.tsx** | Analysis population descriptions now editable |
+
+### M11-Aware Narrative sectionType Tagging (P15)
+
+`NarrativeContentItem` now carries `sectionType` from its parent `NarrativeContent`, set at extraction time. M11 renderer prefers type-based filtering over keyword fallback for §7/§9/§11.
+
+| File | Change |
+|------|--------|
+| **extraction/narrative/schema.py** | Added `section_type` field to `NarrativeContentItem` + Code serialization in `to_dict()` |
+| **extraction/narrative/extractor.py** | Propagate parent `section_type` to child items; fixed ordering bug |
+
+### M11 Renderer Monolith Split (W-HIGH-1)
+
+Split `m11_renderer.py` from 1199 → 465 lines by extracting two focused modules:
+
+| New Module | Contents | Lines |
+|------------|----------|-------|
+| **rendering/document_setup.py** | `_setup_styles`, `_add_toc_field`, `_add_headers_footers`, `_add_title_page` | ~380 |
+| **rendering/text_formatting.py** | `_add_narrative_text`, `_add_formatted_run`, `_distribute_to_subsections` | ~170 |
+
+### NarrativeContent USDM v4.0 Conformance
+
+Added all missing USDM v4.0 fields to `NarrativeContent` (C207592):
+
+| Field | USDM Spec | Implementation |
+|-------|-----------|----------------|
+| `displaySectionTitle` | C215534, boolean, cardinality 1 | Default `True` for numbered sections |
+| `displaySectionNumber` | C215535, boolean, cardinality 1 | Default `True` for numbered sections |
+| `previousId` | Ref to NarrativeContent, 0..1 | Linked list built at serialization in `NarrativeData.to_dict()` |
+| `nextId` | Ref to NarrativeContent, 0..1 | Linked list built at serialization in `NarrativeData.to_dict()` |
+| `contentItemId` | Ref to NarrativeContentItem, 0..1 | Set when section has exactly one child item |
+
+### Unscheduled Visit (UNS) — Phase 2 & 3
+
+**Phase 2 (Backend):** Promote UNS-tagged encounters to native USDM `ScheduledDecisionInstance` (C201351) entities with proper branching semantics.
+
+| Entity | Description |
+|--------|-------------|
+| `ScheduledDecisionInstance` | Branch point preceding UNS encounter; placed on `scheduleTimeline.instances[]` |
+| `Condition` (C25457) | Trigger event description; placed on `studyVersion.conditions[]` |
+| `ConditionAssignment` (C201335) | Two branches: "event occurs" → UNS encounter, default → next scheduled encounter |
+
+**Phase 3 (Frontend):** Timeline graph visualization of UNS decision branches in Cytoscape.js.
+
+| File | Change |
+|------|--------|
+| **toGraphModel.ts** | Detect `ScheduledDecisionInstance` in timeline instances, render as diamond `decision` nodes with branch/default edges |
+| **cytoscape-theme.ts** | Amber dashed diamond for decision nodes, amber dashed edges for branches, grey solid for defaults |
+| **TimelineToolbar.tsx** | Legend updated with UNS Decision diamond + UNS Branch edge |
+| **types/index.ts** | Added `conditionAssignments` to `USDMScheduledInstance` interface |
+
+### Structural Debt — W-HIGH-2/3/4
+
+**W-HIGH-2: PipelineContext Decomposition** — Broke the 28-field god object into 5 focused sub-context dataclasses with backward-compatible property delegation.
+
+| Sub-Context | Fields | Lookup Maps |
+|-------------|--------|-------------|
+| `SoAContext` | epochs, encounters, activities, timepoints, study_cells | epoch, encounter, activity by id/name |
+| `MetadataContext` | study_title, study_id, sponsor, indication, phase, study_type | — |
+| `DesignContext` | arms, cohorts, objectives, endpoints, inclusion/exclusion_criteria | arm by id |
+| `InterventionContext` | interventions, products, procedures, devices | intervention by id |
+| `SchedulingContext` | timings, scheduling_rules, narrative_contents, time_anchors, repetitions, traversal_constraints, footnote_conditions | — |
+
+**W-HIGH-3: Entity-Level Provenance** — Individual entities now tracked to their source phase with page numbers and confidence.
+
+| Component | Change |
+|-----------|--------|
+| `PhaseProvenance` | Added `pages_used` and `entity_ids` fields |
+| `BasePhase.run()` | Auto-captures `_extract_pages_used()` and `_extract_entity_ids()` from result data |
+| `PipelineOrchestrator` | `aggregate_entity_provenance()` builds entity→phase registry; `save_entity_provenance()` writes `entity_provenance.json` |
+
+**W-HIGH-4: Singletons → Dependency Injection** — All three mutable global singletons now injectable for test isolation.
+
+| Singleton | DI Functions |
+|-----------|-------------|
+| `phase_registry` | `create_registry()`, `PhaseRegistry.reset()`, `PipelineOrchestrator(registry=...)` |
+| `_client` (EVS) | `set_client()`, `reset_client()` |
+| `usage_tracker` | `create_tracker()`, `set_usage_tracker()`, `reset_usage_tracker()` |
+
+**Test suite**: 897 passed, 0 failures, 0 TS errors
+
+---
+
 ## [7.8.0] – 2026-02-11
 
 ### USDM v4.0 Extractor Gap Audit — All 28 Gaps Fixed

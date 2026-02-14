@@ -4,13 +4,14 @@ description: Generate M11 DOCX from a USDM JSON file and verify formatting
 
 ## Steps
 
-1. Identify the USDM JSON to render. Default test file:
-   `semantic/NCT04573309_Wilsons_Protocol_20260207_110101/history/protocol_usdm_2026-02-07T2152Z.json`
+1. Identify the USDM JSON to render. Typical locations:
+   - Pipeline output: `output/<protocol_id>/protocol_usdm.json`
+   - Published via web UI: `semantic/<protocol_id>/history/*.json`
 
 2. Generate the DOCX:
 // turbo
 ```
-python -c "import json; from pathlib import Path; from rendering.m11_renderer import render_m11_docx; usdm = json.loads(Path(r'semantic/NCT04573309_Wilsons_Protocol_20260207_110101/history/protocol_usdm_2026-02-07T2152Z.json').read_text(encoding='utf-8')); Path('output').mkdir(exist_ok=True); r = render_m11_docx(usdm, 'output/test_m11.docx'); print(f'Success: {r.success}'); print(f'Error: {r.error}'); print(f'Sections: {r.sections_rendered}'); print(f'With content: {r.sections_with_content}'); print(f'Words: {r.total_words}')"
+python -c "import json; from pathlib import Path; from rendering.m11_renderer import render_m11_docx; usdm = json.loads(Path(r'<path_to_usdm_json>').read_text(encoding='utf-8')); Path('output').mkdir(exist_ok=True); r = render_m11_docx(usdm, 'output/test_m11.docx'); print(f'Success: {r.success}'); print(f'Error: {r.error}'); print(f'Sections: {r.sections_rendered}'); print(f'With content: {r.sections_with_content}'); print(f'Words: {r.total_words}')"
 ```
 
 3. Open `output/test_m11.docx` in Word and verify:

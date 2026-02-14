@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { EditableField, EditableList, CodeLink } from '@/components/semantic';
 import { EditableCodedValue, CDISC_TERMINOLOGIES } from '@/components/semantic/EditableCodedValue';
 import { versionPath } from '@/lib/semantic/schema';
-import { Building2, Calendar, FlaskConical, Users, FileText, BookOpen, ChevronDown, ChevronRight, Globe, Tag } from 'lucide-react';
+import { Building2, Calendar, FlaskConical, Users, FileText, BookOpen, ChevronDown, ChevronRight, Globe, Tag, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface StudyMetadataViewProps {
@@ -42,6 +42,9 @@ interface Characteristic {
   name?: string;
   text?: string;
   value?: string;
+  code?: string;
+  codeSystem?: string;
+  decode?: string;
 }
 
 export function StudyMetadataView({ usdm }: StudyMetadataViewProps) {
@@ -85,7 +88,7 @@ export function StudyMetadataView({ usdm }: StudyMetadataViewProps) {
   
   const studyPhase = (design?.studyPhase as { standardCode?: { decode?: string } })?.standardCode?.decode;
   const studyType = (design?.studyType as { decode?: string })?.decode;
-  const therapeuticAreas = (design?.therapeuticAreas as { decode?: string }[]) ?? [];
+  const therapeuticAreas = (design?.therapeuticAreas as { code?: string; codeSystem?: string; decode?: string }[]) ?? [];
   const blindingSchema = (design?.blindingSchema as { standardCode?: { decode?: string } })?.standardCode?.decode;
   
   // Extract organizations
@@ -252,12 +255,26 @@ export function StudyMetadataView({ usdm }: StudyMetadataViewProps) {
             {therapeuticAreas.length > 0 && (
               <div>
                 <span className="text-sm text-muted-foreground">Therapeutic Area</span>
-                <EditableField
-                  path="/study/versions/0/studyDesigns/0/therapeuticAreas/0/decode"
-                  value={therapeuticAreas[0]?.decode ?? ''}
-                  className="font-medium"
-                  placeholder="Not specified"
-                />
+                <div className="flex items-center gap-2">
+                  <EditableField
+                    path="/study/versions/0/studyDesigns/0/therapeuticAreas/0/decode"
+                    value={therapeuticAreas[0]?.decode ?? ''}
+                    className="font-medium"
+                    placeholder="Not specified"
+                  />
+                  {therapeuticAreas[0]?.code && (
+                    <a
+                      href={`https://meshb.nlm.nih.gov/record/ui?ui=${therapeuticAreas[0].code}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 hover:underline font-mono shrink-0"
+                      title="View in NLM MeSH Browser"
+                    >
+                      {therapeuticAreas[0].code}
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -497,8 +514,8 @@ export function StudyMetadataView({ usdm }: StudyMetadataViewProps) {
                 />
                 {cond.codes && cond.codes.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-2">
-                    {cond.codes.map((code: { code?: string; decode?: string }, j: number) => (
-                      <CodeLink key={j} code={code.code} decode={code.decode} className="text-xs" />
+                    {cond.codes.map((code: { code?: string; decode?: string; codeSystem?: string }, j: number) => (
+                      <CodeLink key={j} code={code.code} decode={code.decode} codeSystem={code.codeSystem} className="text-xs" />
                     ))}
                   </div>
                 )}
@@ -519,14 +536,11 @@ export function StudyMetadataView({ usdm }: StudyMetadataViewProps) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="flex flex-wrap gap-2">
               {characteristics.map((char, i) => (
-                <div key={i} className="p-3 bg-muted rounded-lg">
-                  <div className="font-medium text-sm text-muted-foreground">
-                    {char.name || `Characteristic ${i + 1}`}
-                  </div>
-                  <div className="mt-1">{char.text || char.value || 'N/A'}</div>
-                </div>
+                <Badge key={i} variant="outline" className="text-sm py-1.5 px-3">
+                  {char.decode || char.name || char.code || char.text || char.value || `Characteristic ${i + 1}`}
+                </Badge>
               ))}
             </div>
           </CardContent>

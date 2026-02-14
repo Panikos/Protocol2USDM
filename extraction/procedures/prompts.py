@@ -49,9 +49,21 @@ Return JSON in this exact format:
       "description": "Collection of blood samples for laboratory analysis",
       "procedureType": "Sampling",
       "code": {{
-        "code": "36415",
-        "codeSystem": "CPT",
-        "decode": "Collection of venous blood by venipuncture"
+        "code": "C28221",
+        "codeSystem": "NCI",
+        "decode": "Venipuncture"
+      }}
+    }},
+    {{
+      "id": "proc_2",
+      "name": "Electrocardiogram",
+      "label": "12-lead ECG",
+      "description": "Standard 12-lead electrocardiogram",
+      "procedureType": "Diagnostic",
+      "code": {{
+        "code": "C168186",
+        "codeSystem": "NCI",
+        "decode": "Electrocardiogram"
       }}
     }}
   ],
@@ -102,7 +114,15 @@ Valid ingredient role values: Active, Inactive, Adjuvant
 PROTOCOL TEXT:
 {protocol_text}
 
-Extract all procedures, devices, and ingredients mentioned. Include standard medical codes if identifiable."""
+Extract all procedures, devices, and ingredients mentioned.
+
+**Code priority** (use the FIRST system where you know the code):
+1. **NCI C-codes** (preferred) — e.g. C28221 (Venipuncture), C168186 (ECG), C17610 (Biopsy), C38299 (Injection), C16809 (MRI), C17204 (Physical Examination), C62103 (Vital Signs), C49672 (Urinalysis)
+2. **ICD-10-PCS / ICD-10-CM** — e.g. R94.31 (Abnormal ECG), Z01.818 (Other preprocedural exam)
+3. **SNOMED CT** — e.g. 82078001 (Collection of blood specimen)
+4. **CPT** (fallback) — e.g. 36415 (Venipuncture), 93000 (ECG)
+
+Set codeSystem to "NCI", "ICD-10", "SNOMED", or "CPT" accordingly."""
 
 
 def get_procedures_prompt(protocol_text: str) -> str:

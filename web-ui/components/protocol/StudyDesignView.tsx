@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { EditableField, EditableList, EditableCodedValue, CDISC_TERMINOLOGIES, CodeLink } from '@/components/semantic';
 import { GitBranch, Layers, Grid3X3, Shield, AlertTriangle, Info, CheckCircle2, Shuffle } from 'lucide-react';
+import { ProvenanceBadge } from '@/components/provenance';
 
 interface StudyDesignViewProps {
   usdm: Record<string, unknown> | null;
@@ -359,6 +360,7 @@ export function StudyDesignView({ usdm }: StudyDesignViewProps) {
                     className="font-medium"
                     placeholder="Arm name"
                   />
+                  <ProvenanceBadge entityId={arm.id} />
                   <EditableCodedValue
                     path={`${itemPath}/type`}
                     value={arm.type}

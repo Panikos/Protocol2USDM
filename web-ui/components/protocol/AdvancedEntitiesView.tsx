@@ -3,8 +3,11 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { EditableField, EditableCodedValue, CDISC_TERMINOLOGIES, CodeLink } from '@/components/semantic';
-import { designPath, versionPath } from '@/lib/semantic/schema';
+import { designPath, versionPath, idPath } from '@/lib/semantic/schema';
+import { useSemanticStore } from '@/stores/semanticStore';
+import { useEditModeStore } from '@/stores/editModeStore';
 import { 
   Microscope, 
   Pill,
@@ -14,6 +17,9 @@ import {
   Users,
   ChevronDown,
   ChevronRight,
+  Plus,
+  Trash2,
+  ExternalLink,
 } from 'lucide-react';
 
 interface AdvancedEntitiesViewProps {
@@ -24,7 +30,7 @@ interface Indication {
   id: string;
   name?: string;
   description?: string;
-  codes?: { code: string; decode?: string }[];
+  codes?: { code: string; decode?: string; codeSystem?: string }[];
   instanceType?: string;
 }
 
@@ -100,11 +106,57 @@ export function AdvancedEntitiesView({ usdm }: AdvancedEntitiesViewProps) {
   const biomedicalConcepts = (version?.biomedicalConcepts as BiomedicalConcept[]) ?? 
     (studyDesign.biomedicalConcepts as BiomedicalConcept[]) ?? [];
   const estimands = (studyDesign.estimands as Estimand[]) ?? [];
-  const therapeuticAreas = (studyDesign.therapeuticAreas as { term?: string; decode?: string }[]) ?? [];
+  const therapeuticAreas = (studyDesign.therapeuticAreas as { code?: string; codeSystem?: string; term?: string; decode?: string }[]) ?? [];
   const analysisPopulations = (studyDesign.analysisPopulations as AnalysisPopulation[]) ?? [];
+
+  const { addPatchOp } = useSemanticStore();
+  const isEditMode = useEditModeStore((s) => s.isEditMode);
 
   // State for collapsible sections
   const [showAllEstimands, setShowAllEstimands] = useState(false);
+
+  const handleAddEstimand = () => {
+    const newEstimand = {
+      id: `est_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      name: '',
+      treatment: '',
+      population: '',
+      variableOfInterest: '',
+      summaryMeasure: '',
+      intercurrentEvents: [],
+      instanceType: 'Estimand',
+    };
+    addPatchOp({ op: 'add', path: '/study/versions/0/studyDesigns/0/estimands/-', value: newEstimand });
+  };
+
+  const handleRemoveEstimand = (estimandId: string) => {
+    addPatchOp({ op: 'remove', path: designPath('estimands', estimandId) });
+  };
+
+  const handleAddIntercurrentEvent = (estimandId: string) => {
+    const newIce = {
+      id: `ice_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      name: '',
+      text: '',
+      strategy: '',
+      instanceType: 'IntercurrentEvent',
+    };
+    const est = estimands.find(e => e.id === estimandId);
+    if (!est?.intercurrentEvents || est.intercurrentEvents.length === 0) {
+      addPatchOp({ op: 'add', path: `${designPath('estimands', estimandId)}/intercurrentEvents`, value: [newIce] });
+    } else {
+      addPatchOp({ op: 'add', path: `${designPath('estimands', estimandId)}/intercurrentEvents/-`, value: newIce });
+    }
+  };
+
+  const handleRemoveIntercurrentEvent = (estimandId: string, eventId: string) => {
+    addPatchOp({
+      op: 'remove',
+      path: idPath('estimands', estimandId, undefined, {
+        nested: { collection: 'intercurrentEvents', entityId: eventId },
+      }),
+    });
+  };
 
   const hasData = indications.length > 0 || biomedicalConcepts.length > 0 || 
     estimands.length > 0 || therapeuticAreas.length > 0 || analysisPopulations.length > 0;
@@ -196,8 +248,21 @@ export function AdvancedEntitiesView({ usdm }: AdvancedEntitiesViewProps) {
           <CardContent>
             <div className="flex flex-wrap gap-2">
               {therapeuticAreas.map((area, i) => (
-                <Badge key={i} variant="secondary" className="text-sm">
+                <Badge key={i} variant="secondary" className="text-sm flex items-center gap-1.5">
                   {area.decode || area.term || 'Unknown'}
+                  {area.code && (
+                    <a
+                      href={`https://meshb.nlm.nih.gov/record/ui?ui=${area.code}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-0.5 text-xs text-blue-600 hover:text-blue-800 hover:underline font-mono"
+                      title="View in NLM MeSH Browser"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {area.code}
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  )}
                 </Badge>
               ))}
             </div>
@@ -236,8 +301,8 @@ export function AdvancedEntitiesView({ usdm }: AdvancedEntitiesViewProps) {
                   )}
                   {indication.codes && indication.codes.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-2">
-                      {indication.codes.map((code: { code?: string; decode?: string }, j: number) => (
-                        <CodeLink key={j} code={code.code} decode={`${code.code}: ${code.decode || 'N/A'}`} className="text-xs" />
+                      {indication.codes.map((code: { code?: string; decode?: string; codeSystem?: string }, j: number) => (
+                        <CodeLink key={j} code={code.code} decode={`${code.code}: ${code.decode || 'N/A'}`} codeSystem={code.codeSystem} className="text-xs" />
                       ))}
                     </div>
                   )}
@@ -314,29 +379,54 @@ export function AdvancedEntitiesView({ usdm }: AdvancedEntitiesViewProps) {
                 };
                 
                 return (
-                  <div key={i} className="p-4 border rounded-lg bg-gradient-to-r from-green-50/50 to-transparent dark:from-green-950/20">
+                  <div key={estimand.id || i} className="p-4 border rounded-lg bg-gradient-to-r from-green-50/50 to-transparent dark:from-green-950/20 group/est">
                     {/* Header */}
                     <div className="flex items-start justify-between mb-4">
-                      <div>
-                        <div className="font-semibold text-lg">
-                          {estimand.name || `Estimand ${i + 1}`}
-                        </div>
+                      <div className="flex-1">
+                        <EditableField
+                          path={designPath('estimands', estimand.id, 'name')}
+                          value={estimand.name || `Estimand ${i + 1}`}
+                          label=""
+                          className="font-semibold text-lg"
+                          placeholder="Estimand name"
+                        />
                         {estimand.label && (
-                          <div className="text-sm text-muted-foreground">{estimand.label}</div>
+                          <EditableField
+                            path={designPath('estimands', estimand.id, 'label')}
+                            value={estimand.label}
+                            label=""
+                            className="text-sm text-muted-foreground"
+                            placeholder="Label"
+                          />
                         )}
                       </div>
-                      {estimand.endpointId && (
-                        <Badge variant="outline" className="text-xs">
-                          → {estimand.endpointId}
-                        </Badge>
-                      )}
+                      <div className="flex items-center gap-2 shrink-0">
+                        {estimand.endpointId && (
+                          <Badge variant="outline" className="text-xs">
+                            → {estimand.endpointId}
+                          </Badge>
+                        )}
+                        {isEditMode && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 opacity-0 group-hover/est:opacity-100 transition-opacity text-destructive hover:text-destructive"
+                            onClick={() => handleRemoveEstimand(estimand.id)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
                     
-                    {estimand.description && (
-                      <p className="text-sm text-muted-foreground mb-4 italic">
-                        {estimand.description}
-                      </p>
-                    )}
+                    <EditableField
+                      path={designPath('estimands', estimand.id, 'description')}
+                      value={estimand.description || ''}
+                      label=""
+                      type="textarea"
+                      className="text-sm text-muted-foreground mb-4 italic"
+                      placeholder="Description"
+                    />
                     
                     {/* ICH E9(R1) Five Attributes Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
@@ -346,7 +436,11 @@ export function AdvancedEntitiesView({ usdm }: AdvancedEntitiesViewProps) {
                           <span className="text-xs bg-blue-100 dark:bg-blue-900 px-1.5 py-0.5 rounded">1</span>
                           Treatment
                         </div>
-                        <div>{estimand.treatment || 'Not specified'}</div>
+                        <EditableField
+                          path={designPath('estimands', estimand.id, 'treatment')}
+                          value={estimand.treatment || ''}
+                          placeholder="Not specified"
+                        />
                       </div>
                       
                       {/* 2. Population */}
@@ -355,7 +449,11 @@ export function AdvancedEntitiesView({ usdm }: AdvancedEntitiesViewProps) {
                           <span className="text-xs bg-purple-100 dark:bg-purple-900 px-1.5 py-0.5 rounded">2</span>
                           Population
                         </div>
-                        <div>{population || 'Not specified'}</div>
+                        <EditableField
+                          path={designPath('estimands', estimand.id, 'population')}
+                          value={population || ''}
+                          placeholder="Not specified"
+                        />
                       </div>
                       
                       {/* 3. Variable (Endpoint) */}
@@ -364,7 +462,11 @@ export function AdvancedEntitiesView({ usdm }: AdvancedEntitiesViewProps) {
                           <span className="text-xs bg-green-100 dark:bg-green-900 px-1.5 py-0.5 rounded">3</span>
                           Variable (Endpoint)
                         </div>
-                        <div>{estimand.variableOfInterest || 'Not specified'}</div>
+                        <EditableField
+                          path={designPath('estimands', estimand.id, 'variableOfInterest')}
+                          value={estimand.variableOfInterest || ''}
+                          placeholder="Not specified"
+                        />
                       </div>
                       
                       {/* 5. Population-Level Summary */}
@@ -373,7 +475,11 @@ export function AdvancedEntitiesView({ usdm }: AdvancedEntitiesViewProps) {
                           <span className="text-xs bg-orange-100 dark:bg-orange-900 px-1.5 py-0.5 rounded">5</span>
                           Summary Measure
                         </div>
-                        <div>{estimand.summaryMeasure || 'Not specified'}</div>
+                        <EditableField
+                          path={designPath('estimands', estimand.id, 'summaryMeasure')}
+                          value={estimand.summaryMeasure || ''}
+                          placeholder="Not specified"
+                        />
                       </div>
                     </div>
                     
@@ -386,30 +492,81 @@ export function AdvancedEntitiesView({ usdm }: AdvancedEntitiesViewProps) {
                       {estimand.intercurrentEvents && estimand.intercurrentEvents.length > 0 ? (
                         <div className="space-y-2">
                           {estimand.intercurrentEvents.map((event, j) => (
-                            <div key={j} className="flex items-start justify-between p-2 bg-background rounded border">
+                            <div key={event.id || j} className="flex items-start justify-between p-2 bg-background rounded border group/ice">
                               <div className="flex-1 min-w-0">
-                                <div className="font-medium text-sm">{event.name}</div>
-                                {/* USDM 4.0: text is the primary field, description is optional */}
-                                {(event.text || event.description) && (
-                                  <div className="text-xs text-muted-foreground mt-0.5">
-                                    {event.text || event.description}
-                                  </div>
+                                <EditableField
+                                  path={idPath('estimands', estimand.id, undefined, {
+                                    nested: { collection: 'intercurrentEvents', entityId: event.id, property: 'name' }
+                                  })}
+                                  value={event.name}
+                                  label=""
+                                  className="font-medium text-sm"
+                                  placeholder="Event name"
+                                />
+                                <EditableField
+                                  path={idPath('estimands', estimand.id, undefined, {
+                                    nested: { collection: 'intercurrentEvents', entityId: event.id, property: 'text' }
+                                  })}
+                                  value={event.text || event.description || ''}
+                                  label=""
+                                  className="text-xs text-muted-foreground"
+                                  placeholder="Description"
+                                />
+                              </div>
+                              <div className="flex items-center gap-1 shrink-0 ml-2">
+                                <EditableField
+                                  path={idPath('estimands', estimand.id, undefined, {
+                                    nested: { collection: 'intercurrentEvents', entityId: event.id, property: 'strategy' }
+                                  })}
+                                  value={getStrategyText(event.strategy)}
+                                  label=""
+                                  className="text-xs"
+                                  placeholder="Strategy"
+                                />
+                                {isEditMode && (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6 opacity-0 group-hover/ice:opacity-100 transition-opacity text-destructive hover:text-destructive"
+                                    onClick={() => handleRemoveIntercurrentEvent(estimand.id, event.id)}
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
                                 )}
                               </div>
-                              <Badge variant="secondary" className="text-xs shrink-0 ml-2">
-                                {getStrategyText(event.strategy)}
-                              </Badge>
                             </div>
                           ))}
                         </div>
                       ) : (
                         <div className="text-muted-foreground text-sm">No intercurrent events specified</div>
                       )}
+                      {isEditMode && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleAddIntercurrentEvent(estimand.id)}
+                          className="mt-2 border-dashed text-xs"
+                        >
+                          <Plus className="h-3 w-3 mr-1" />
+                          Add Intercurrent Event
+                        </Button>
+                      )}
                     </div>
                   </div>
                 );
               })}
             </div>
+            {isEditMode && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleAddEstimand}
+                className="mt-3 w-full border-dashed"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Estimand
+              </Button>
+            )}
           </CardContent>
         </Card>
       )}
@@ -446,11 +603,14 @@ export function AdvancedEntitiesView({ usdm }: AdvancedEntitiesViewProps) {
                       </Badge>
                     )}
                   </div>
-                  {(pop.description || pop.text) && (
-                    <p className="text-sm text-muted-foreground mt-2">
-                      {pop.description || pop.text}
-                    </p>
-                  )}
+                  <EditableField
+                    path={designPath('analysisPopulations', pop.id, 'description')}
+                    value={pop.description || pop.text || ''}
+                    label=""
+                    type="textarea"
+                    className="text-sm text-muted-foreground mt-2"
+                    placeholder="No description"
+                  />
                 </div>
               ))}
             </div>

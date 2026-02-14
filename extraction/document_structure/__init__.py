@@ -5,6 +5,8 @@ Extracts USDM entities:
 - DocumentContentReference
 - CommentAnnotation
 - StudyDefinitionDocumentVersion
+- InlineCrossReference (cross-references in narrative text)
+- ProtocolFigure (figures, tables, diagrams from PDF)
 """
 
 from .schema import (
@@ -14,8 +16,19 @@ from .schema import (
     DocumentStructureData,
     DocumentStructureResult,
     AnnotationType,
+    ReferenceType,
+    FigureContentType,
+    InlineCrossReference,
+    ProtocolFigure,
 )
 from .extractor import extract_document_structure
+from .reference_scanner import (
+    scan_inline_references,
+    scan_pdf_for_figures,
+    render_figure_images,
+    link_references_to_narratives,
+    assign_figures_to_sections,
+)
 
 __all__ = [
     'DocumentContentReference',
@@ -24,5 +37,14 @@ __all__ = [
     'DocumentStructureData',
     'DocumentStructureResult',
     'AnnotationType',
+    'ReferenceType',
+    'FigureContentType',
+    'InlineCrossReference',
+    'ProtocolFigure',
     'extract_document_structure',
+    'scan_inline_references',
+    'scan_pdf_for_figures',
+    'render_figure_images',
+    'link_references_to_narratives',
+    'assign_figures_to_sections',
 ]

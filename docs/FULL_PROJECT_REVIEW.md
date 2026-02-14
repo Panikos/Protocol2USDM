@@ -625,7 +625,7 @@ When prompts change, existing extraction results become unreproducible. Storing 
 | E1 | Decompose `combine_to_full_usdm()` into 10+ focused functions | ✅ FIXED | 3d |
 | E2 | Split `llm_providers.py` into `providers/` package | ✅ FIXED | 1d |
 | E3 | Split `m11_renderer.py` — extract composers to `rendering/composers/` | ✅ FIXED | 2d |
-| E4 | Register SAP/sites as proper pipeline phases | HIGH | 2d |
+| E4 | Register SAP/sites as proper pipeline phases | ✅ FIXED | 2d |
 | E5 | Move version string to `core.constants.VERSION` | LOW | 1h |
 | E6 | Move `epoch_reconciler.py` into `core/reconciliation/` | LOW | 1h |
 | E25 | Unify extension namespace backend↔frontend (⚠️ EXT) | ✅ FIXED (already consistent) | 2h |

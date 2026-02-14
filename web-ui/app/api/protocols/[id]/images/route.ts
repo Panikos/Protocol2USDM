@@ -10,39 +10,49 @@ export async function GET(
 ) {
   const { id } = await params;
   const protocolDir = path.join(OUTPUT_DIR, id);
-  const imagesDir = path.join(protocolDir, '3_soa_images');
 
-  try {
-    // Check if images directory exists
-    await fs.access(imagesDir);
+  // Scan multiple image directories
+  const imageDirs = [
+    { dir: path.join(protocolDir, '3_soa_images'), category: 'soa' as const },
+    { dir: path.join(protocolDir, 'figures'), category: 'figure' as const },
+  ];
 
-    // List all image files
-    const files = await fs.readdir(imagesDir);
-    const imageFiles = files
-      .filter(f => /\.(png|jpg|jpeg|gif|webp)$/i.test(f))
-      .sort((a, b) => {
-        // Sort by page number if present
-        const numA = parseInt(a.match(/(\d+)/)?.[1] || '0');
-        const numB = parseInt(b.match(/(\d+)/)?.[1] || '0');
-        return numA - numB;
-      });
+  const allImages: Array<{
+    filename: string;
+    url: string;
+    page?: number;
+    name: string;
+    category: 'soa' | 'figure';
+  }> = [];
 
-    const images = imageFiles.map(filename => {
-      // Extract page number from filename like "soa_page_011.png"
-      const pageMatch = filename.match(/page[_-]?(\d+)/i);
-      const page = pageMatch ? parseInt(pageMatch[1]) : undefined;
+  for (const { dir, category } of imageDirs) {
+    try {
+      await fs.access(dir);
+      const files = await fs.readdir(dir);
+      const imageFiles = files
+        .filter(f => /\.(png|jpg|jpeg|gif|webp)$/i.test(f))
+        .sort((a, b) => {
+          const numA = parseInt(a.match(/(\d+)/)?.[1] || '0');
+          const numB = parseInt(b.match(/(\d+)/)?.[1] || '0');
+          return numA - numB;
+        });
 
-      return {
-        filename,
-        url: `/api/protocols/${id}/images/${filename}`,
-        page,
-        name: filename.replace(/\.[^.]+$/, ''),
-      };
-    });
+      for (const filename of imageFiles) {
+        const pageMatch = filename.match(/p(\d{3})/i) || filename.match(/page[_-]?(\d+)/i);
+        const page = pageMatch ? parseInt(pageMatch[1]) : undefined;
 
-    return NextResponse.json({ images });
-  } catch {
-    // No images directory
-    return NextResponse.json({ images: [] });
+        allImages.push({
+          filename,
+          url: `/api/protocols/${id}/images/${filename}`,
+          page,
+          name: filename.replace(/\.[^.]+$/, ''),
+          category,
+        });
+      }
+    } catch {
+      // Directory doesn't exist — skip
+    }
   }
+
+  return NextResponse.json({ images: allImages });
 }

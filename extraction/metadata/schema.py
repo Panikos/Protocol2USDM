@@ -252,11 +252,46 @@ class StudyPhase:
     """Study phase information."""
     phase: str  # "Phase 1", "Phase 2", "Phase 3", "Phase 4", "Phase 1/2", etc.
     
+    # Phase string → NCI C-code mapping
+    _PHASE_CODES: Dict[str, tuple] = field(default=None, init=False, repr=False)
+    
+    @staticmethod
+    def _resolve_phase_code(phase_str: str) -> tuple:
+        """Resolve a phase string to (C-code, decode)."""
+        _map = {
+            "phase 1": ("C15600", "Phase I Trial"),
+            "phase i": ("C15600", "Phase I Trial"),
+            "phase1": ("C15600", "Phase I Trial"),
+            "phase 1/2": ("C15693", "Phase I/II Trial"),
+            "phase i/ii": ("C15693", "Phase I/II Trial"),
+            "phase 2": ("C15601", "Phase II Trial"),
+            "phase ii": ("C15601", "Phase II Trial"),
+            "phase2": ("C15601", "Phase II Trial"),
+            "phase 2/3": ("C15694", "Phase II/III Trial"),
+            "phase ii/iii": ("C15694", "Phase II/III Trial"),
+            "phase 3": ("C15602", "Phase III Trial"),
+            "phase iii": ("C15602", "Phase III Trial"),
+            "phase3": ("C15602", "Phase III Trial"),
+            "phase 4": ("C15603", "Phase IV Trial"),
+            "phase iv": ("C15603", "Phase IV Trial"),
+            "phase4": ("C15603", "Phase IV Trial"),
+        }
+        return _map.get(phase_str.lower().strip(), ("C48660", "Not Applicable"))
+    
     def to_dict(self) -> Dict[str, Any]:
+        c_code, decode = self._resolve_phase_code(self.phase)
         return {
-            "code": self.phase,
-            "codeSystem": "USDM",
-            "decode": self.phase,
+            "id": generate_uuid(),
+            "standardCode": {
+                "id": generate_uuid(),
+                "code": c_code,
+                "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+                "codeSystemVersion": "25.01d",
+                "decode": decode,
+                "instanceType": "Code",
+            },
+            "standardCodeAliases": [],
+            "instanceType": "AliasCode",
         }
 
 

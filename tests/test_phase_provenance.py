@@ -281,3 +281,197 @@ class TestAggregateProvenance:
             data = json.load(f)
         assert data['totalPhases'] == 1
         assert data['phases'][0]['phase'] == 'test'
+
+
+# ── W-HIGH-3: Entity-level provenance ────────────────────────────────
+
+class TestPhaseProvenancePagesAndEntities:
+    """PhaseProvenance with pages_used and entity_ids (W-HIGH-3)."""
+
+    def test_pages_used_default_empty(self):
+        p = PhaseProvenance()
+        assert p.pages_used == []
+
+    def test_entity_ids_default_empty(self):
+        p = PhaseProvenance()
+        assert p.entity_ids == []
+
+    def test_to_dict_includes_pages_when_present(self):
+        p = PhaseProvenance(phase='meta', model='m', pages_used=[0, 1, 2])
+        d = p.to_dict()
+        assert d['pagesUsed'] == [0, 1, 2]
+
+    def test_to_dict_excludes_pages_when_empty(self):
+        p = PhaseProvenance(phase='meta', model='m')
+        d = p.to_dict()
+        assert 'pagesUsed' not in d
+
+    def test_to_dict_includes_entity_ids_when_present(self):
+        p = PhaseProvenance(phase='meta', model='m', entity_ids=['id_1', 'id_2'])
+        d = p.to_dict()
+        assert d['entityIds'] == ['id_1', 'id_2']
+
+    def test_to_dict_excludes_entity_ids_when_empty(self):
+        p = PhaseProvenance(phase='meta', model='m')
+        d = p.to_dict()
+        assert 'entityIds' not in d
+
+
+class TestExtractPagesUsed:
+    """BasePhase._extract_pages_used static method."""
+
+    def test_none_returns_empty(self):
+        assert BasePhase._extract_pages_used(None) == []
+
+    def test_from_object_with_pages_used(self):
+        @dataclass
+        class FakeData:
+            pages_used: List[int] = field(default_factory=list)
+        data = FakeData(pages_used=[3, 4, 5])
+        assert BasePhase._extract_pages_used(data) == [3, 4, 5]
+
+    def test_from_dict_pages_used(self):
+        assert BasePhase._extract_pages_used({'pages_used': [1, 2]}) == [1, 2]
+
+    def test_from_dict_pagesUsed(self):
+        assert BasePhase._extract_pages_used({'pagesUsed': [10]}) == [10]
+
+    def test_from_object_without_pages(self):
+        assert BasePhase._extract_pages_used({'other': 'data'}) == []
+
+
+class TestExtractEntityIds:
+    """BasePhase._extract_entity_ids static method."""
+
+    def test_none_returns_empty(self):
+        assert BasePhase._extract_entity_ids(None) == []
+
+    def test_from_dict_with_ids(self):
+        data = {
+            'objectives': [{'id': 'obj_1', 'text': 'Primary'}],
+            'endpoints': [{'id': 'ep_1'}, {'id': 'ep_2'}],
+        }
+        ids = BasePhase._extract_entity_ids(data)
+        assert 'obj_1' in ids
+        assert 'ep_1' in ids
+        assert 'ep_2' in ids
+
+    def test_from_nested_dict(self):
+        data = {
+            'id': 'parent',
+            'children': [{'id': 'child_1'}, {'id': 'child_2'}],
+        }
+        ids = BasePhase._extract_entity_ids(data)
+        assert 'parent' in ids
+        assert 'child_1' in ids
+        assert 'child_2' in ids
+
+    def test_from_object_with_to_dict(self):
+        class FakeData:
+            def to_dict(self):
+                return {'id': 'fake_1', 'items': [{'id': 'item_1'}]}
+        ids = BasePhase._extract_entity_ids(FakeData())
+        assert 'fake_1' in ids
+        assert 'item_1' in ids
+
+    def test_from_object_with_list_attrs(self):
+        @dataclass
+        class FakeItem:
+            id: str = ''
+            name: str = ''
+            def to_dict(self):
+                return {'id': self.id, 'name': self.name}
+
+        @dataclass
+        class FakeData:
+            items: list = field(default_factory=list)
+
+        data = FakeData(items=[FakeItem(id='a'), FakeItem(id='b')])
+        ids = BasePhase._extract_entity_ids(data)
+        assert 'a' in ids
+        assert 'b' in ids
+
+    def test_empty_dict(self):
+        assert BasePhase._extract_entity_ids({}) == []
+
+
+class TestEntityProvenanceAggregation:
+    """PipelineOrchestrator.aggregate_entity_provenance (W-HIGH-3)."""
+
+    def test_empty_results(self):
+        from pipeline.orchestrator import PipelineOrchestrator
+        orch = PipelineOrchestrator()
+        prov = orch.aggregate_entity_provenance()
+        assert prov['totalEntities'] == 0
+        assert prov['entities'] == {}
+
+    def test_entities_mapped_to_phase(self):
+        from pipeline.orchestrator import PipelineOrchestrator
+        orch = PipelineOrchestrator()
+        orch._results = {
+            'metadata': PhaseResult(
+                success=True,
+                provenance=PhaseProvenance(
+                    phase='Metadata', model='m',
+                    pages_used=[0, 1],
+                    entity_ids=['title_1', 'org_1'],
+                    confidence=0.95,
+                ),
+            ),
+            'eligibility': PhaseResult(
+                success=True,
+                provenance=PhaseProvenance(
+                    phase='Eligibility', model='m',
+                    pages_used=[10, 11, 12],
+                    entity_ids=['inc_1', 'exc_1'],
+                ),
+            ),
+        }
+        prov = orch.aggregate_entity_provenance()
+        assert prov['totalEntities'] == 4
+        assert prov['byPhase'] == {'Metadata': 2, 'Eligibility': 2}
+        assert prov['entities']['title_1']['phase'] == 'Metadata'
+        assert prov['entities']['title_1']['pagesUsed'] == [0, 1]
+        assert prov['entities']['title_1']['confidence'] == 0.95
+        assert prov['entities']['inc_1']['phase'] == 'Eligibility'
+        assert 'confidence' not in prov['entities']['inc_1']
+
+    def test_save_entity_provenance(self, tmp_path):
+        from pipeline.orchestrator import PipelineOrchestrator
+        import json
+
+        orch = PipelineOrchestrator()
+        orch._results = {
+            'test': PhaseResult(
+                success=True,
+                provenance=PhaseProvenance(
+                    phase='test', model='m',
+                    entity_ids=['e1', 'e2'],
+                ),
+            ),
+        }
+        path = orch.save_entity_provenance(str(tmp_path))
+        assert path.endswith('entity_provenance.json')
+
+        with open(path, 'r') as f:
+            data = json.load(f)
+        assert data['totalEntities'] == 2
+        assert 'e1' in data['entities']
+
+    def test_skips_phases_without_entity_ids(self):
+        from pipeline.orchestrator import PipelineOrchestrator
+        orch = PipelineOrchestrator()
+        orch._results = {
+            'ok': PhaseResult(
+                success=True,
+                provenance=PhaseProvenance(phase='ok', model='m', entity_ids=['e1']),
+            ),
+            'empty': PhaseResult(
+                success=True,
+                provenance=PhaseProvenance(phase='empty', model='m'),
+            ),
+            '_internal': MagicMock(),
+        }
+        prov = orch.aggregate_entity_provenance()
+        assert prov['totalEntities'] == 1
+        assert prov['byPhase'] == {'ok': 1}

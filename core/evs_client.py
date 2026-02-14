@@ -383,6 +383,18 @@ def get_client() -> EVSClient:
     return _client
 
 
+def set_client(client: EVSClient) -> None:
+    """Inject a custom EVS client (useful in tests to swap with a mock)."""
+    global _client
+    _client = client
+
+
+def reset_client() -> None:
+    """Reset the singleton EVS client to None (useful in test teardown)."""
+    global _client
+    _client = None
+
+
 def fetch_code(code: str) -> Optional[Dict[str, Any]]:
     """Convenience function to fetch a code using the singleton client."""
     return get_client().fetch_ncit_code(code)

@@ -8,6 +8,7 @@ import { designPath, idPath } from '@/lib/semantic/schema';
 import { useSemanticStore } from '@/stores/semanticStore';
 import { useEditModeStore } from '@/stores/editModeStore';
 import { Target, TrendingUp, Beaker, Plus, Trash2 } from 'lucide-react';
+import { ProvenanceBadge } from '@/components/provenance';
 
 interface ObjectivesEndpointsViewProps {
   usdm: Record<string, unknown> | null;
@@ -136,6 +137,7 @@ export function ObjectivesEndpointsView({ usdm }: ObjectivesEndpointsViewProps) 
       <div key={objective.id || index} className="py-3 border-b last:border-b-0 group/obj">
         <div className="flex items-start gap-3">
           <Badge variant="outline" className="mt-0.5">{index + 1}</Badge>
+          <ProvenanceBadge entityId={objective.id} className="mt-0.5" />
           <div className="flex-1">
             <EditableField
               path={designPath('objectives', objective.id, 'text')}

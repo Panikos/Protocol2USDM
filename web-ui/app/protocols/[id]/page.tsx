@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { 
   FileText, 
   Table, 
@@ -27,6 +27,10 @@ import {
   FileOutput,
   Pencil,
   Lock,
+  Link2,
+  Image,
+  BookOpen,
+  Cpu,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { TabGroup, TabButton } from '@/components/ui/tab-group';
@@ -35,7 +39,7 @@ import { exportToCSV, exportToJSON, exportToPDF, formatUSDMForExport } from '@/l
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { SoAView } from '@/components/soa';
 import { TimelineView, ExecutionModelView, SAPDataView, ARSDataView } from '@/components/timeline';
-import { ProvenanceView } from '@/components/provenance';
+import { ProvenanceView, ExtractionProvenanceView, IntegrityReportView } from '@/components/provenance';
 import {
   StudyMetadataView,
   EligibilityCriteriaView,
@@ -49,6 +53,9 @@ import {
   StudySitesView,
   FootnotesView,
   ScheduleTimelineView,
+  CrossReferencesView,
+  FiguresGalleryView,
+  NarrativeView,
 } from '@/components/protocol';
 import { QualityMetricsDashboard, ValidationResultsView } from '@/components/quality';
 import { DocumentStructureView } from '@/components/intermediate';
@@ -59,21 +66,51 @@ import { useProtocolStore } from '@/stores/protocolStore';
 import { useOverlayStore } from '@/stores/overlayStore';
 import { useUndoRedoShortcuts } from '@/hooks/useUndoRedoShortcuts';
 import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
+import { useAutoSave } from '@/hooks/useAutoSave';
 import { usePatchedUsdm } from '@/hooks/usePatchedUsdm';
 import { useEditModeStore } from '@/stores/editModeStore';
+import { toast } from '@/stores/toastStore';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
+import { KeyboardShortcutsPanel } from '@/components/ui/keyboard-shortcuts';
 import { cn } from '@/lib/utils';
-import type { ProvenanceData } from '@/lib/provenance/types';
+import { EntityProvenanceContext } from '@/hooks/useEntityProvenance';
+import type { ProvenanceData, ExtractionProvenanceData, EntityProvenanceData, IntegrityReport } from '@/lib/provenance/types';
 
-type TabId = 'overview' | 'eligibility' | 'objectives' | 'design' | 'interventions' | 'amendments' | 'extensions' | 'entities' | 'procedures' | 'sites' | 'footnotes' | 'quality' | 'validation' | 'document' | 'documents' | 'intermediate' | 'soa' | 'timeline' | 'provenance' | 'schedule';
+type TabId = 'overview' | 'eligibility' | 'objectives' | 'design' | 'interventions' | 'amendments' | 'narrative' | 'extensions' | 'entities' | 'procedures' | 'sites' | 'footnotes' | 'references' | 'figures' | 'quality' | 'validation' | 'document' | 'documents' | 'intermediate' | 'soa' | 'timeline' | 'provenance' | 'schedule';
+
+const VALID_TABS: Set<string> = new Set([
+  'overview','eligibility','objectives','design','interventions','amendments','narrative',
+  'extensions','entities','procedures','sites','footnotes','references','figures',
+  'quality','validation','document','documents','intermediate','soa','timeline',
+  'provenance','schedule',
+]);
 
 export default function ProtocolDetailPage() {
   const params = useParams();
   const protocolId = params.id as string;
-  
-  const [activeTab, setActiveTab] = useState<TabId>('overview');
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  // Read initial tab from URL ?tab= param
+  const urlTab = searchParams.get('tab') ?? 'overview';
+  const initialTab: TabId = VALID_TABS.has(urlTab) ? (urlTab as TabId) : 'overview';
+  const [activeTab, setActiveTabState] = useState<TabId>(initialTab);
+
+  // Wrapper that also updates the URL
+  const setActiveTab = (tab: TabId) => {
+    setActiveTabState(tab);
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', tab);
+    router.replace(url.pathname + url.search, { scroll: false });
+  };
+  const [targetSectionNumber, setTargetSectionNumber] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [provenance, setProvenance] = useState<ProvenanceData | null>(null);
+  const [extractionProvenance, setExtractionProvenance] = useState<ExtractionProvenanceData | null>(null);
+  const [entityProvenance, setEntityProvenance] = useState<EntityProvenanceData | null>(null);
+  const [integrityReport, setIntegrityReport] = useState<IntegrityReport | null>(null);
   const [intermediateFiles, setIntermediateFiles] = useState<Record<string, unknown> | null>(null);
   const [showHistory, setShowHistory] = useState(false);
 
@@ -88,6 +125,8 @@ export default function ProtocolDetailPage() {
   useUndoRedoShortcuts();
   // Warn on tab close if unsaved changes
   useUnsavedChangesGuard();
+  // Auto-save drafts every 30s and on tab blur
+  useAutoSave(protocolId);
 
   // Load protocol data
   useEffect(() => {
@@ -99,10 +138,13 @@ export default function ProtocolDetailPage() {
         // Load USDM
         const usdmRes = await fetch(`/api/protocols/${protocolId}/usdm`);
         if (!usdmRes.ok) throw new Error('Failed to load protocol');
-        const { usdm, revision, provenance: provData, intermediateFiles: intFiles } = await usdmRes.json();
+        const { usdm, revision, provenance: provData, extractionProvenance: extProv, entityProvenance: entProv, integrityReport: intReport, intermediateFiles: intFiles } = await usdmRes.json();
         
         setProtocol(protocolId, usdm, revision);
         setProvenance(provData);
+        setExtractionProvenance(extProv ?? null);
+        setEntityProvenance(entProv ?? null);
+        setIntegrityReport(intReport ?? null);
         setIntermediateFiles(intFiles);
 
         // Load overlays
@@ -144,10 +186,13 @@ export default function ProtocolDetailPage() {
         cache: 'no-store',
       });
       if (!usdmRes.ok) throw new Error('Failed to reload protocol');
-      const { usdm: newUsdm, revision: newRevision, provenance: provData } = await usdmRes.json();
+      const { usdm: newUsdm, revision: newRevision, provenance: provData, extractionProvenance: extProv, entityProvenance: entProv, integrityReport: intReport } = await usdmRes.json();
       
       setProtocol(protocolId, newUsdm, newRevision);
       setProvenance(provData);
+      setExtractionProvenance(extProv ?? null);
+      setEntityProvenance(entProv ?? null);
+      setIntegrityReport(intReport ?? null);
       
       // Update semantic store with new revision (no draft after publish)
       useSemanticStore.getState().loadDraft(protocolId, newRevision, null);
@@ -157,6 +202,7 @@ export default function ProtocolDetailPage() {
       useSoAEditStore.getState().reset();
     } catch (err) {
       console.error('Failed to reload USDM after publish:', err);
+      toast.error('Failed to reload protocol after publish. Please refresh the page.');
     }
   };
 
@@ -175,10 +221,13 @@ export default function ProtocolDetailPage() {
       if (response.ok) {
         useOverlayStore.getState().markClean();
       } else {
-        console.error('Failed to save draft:', await response.text());
+        const errText = await response.text();
+        console.error('Failed to save draft:', errText);
+        toast.error('Failed to save draft');
       }
     } catch (err) {
       console.error('Error saving draft:', err);
+      toast.error('Failed to save draft');
     }
   };
 
@@ -203,10 +252,13 @@ export default function ProtocolDetailPage() {
       if (response.ok) {
         useOverlayStore.getState().promoteDraftToPublished();
       } else {
-        console.error('Failed to publish:', await response.text());
+        const errText = await response.text();
+        console.error('Failed to publish:', errText);
+        toast.error('Failed to publish changes');
       }
     } catch (err) {
       console.error('Error publishing:', err);
+      toast.error('Failed to publish changes');
     }
   };
 
@@ -239,6 +291,13 @@ export default function ProtocolDetailPage() {
     }
   };
 
+  // Tabs that support semantic editing
+  const EDITABLE_TABS: Set<TabId> = new Set([
+    'overview', 'eligibility', 'objectives', 'design', 'interventions',
+    'amendments', 'narrative', 'soa', 'document',
+  ]);
+  const isTabEditable = EDITABLE_TABS.has(activeTab);
+
   // Tab group definitions
   const protocolTabs = [
     { id: 'overview', label: 'Overview', icon: <FileText className="h-4 w-4" /> },
@@ -247,6 +306,7 @@ export default function ProtocolDetailPage() {
     { id: 'design', label: 'Design', icon: <Layers className="h-4 w-4" /> },
     { id: 'interventions', label: 'Interventions', icon: <Pill className="h-4 w-4" /> },
     { id: 'amendments', label: 'Amendments', icon: <FileEdit className="h-4 w-4" /> },
+    { id: 'narrative', label: 'Narrative', icon: <BookOpen className="h-4 w-4" /> },
   ];
 
   const advancedTabs = [
@@ -255,6 +315,8 @@ export default function ProtocolDetailPage() {
     { id: 'procedures', label: 'Procedures', icon: <Stethoscope className="h-4 w-4" /> },
     { id: 'sites', label: 'Sites', icon: <MapPin className="h-4 w-4" /> },
     { id: 'footnotes', label: 'Footnotes', icon: <FileText className="h-4 w-4" /> },
+    { id: 'references', label: 'References', icon: <Link2 className="h-4 w-4" /> },
+    { id: 'figures', label: 'Figures', icon: <Image className="h-4 w-4" /> },
     { id: 'schedule', label: 'Schedule', icon: <Activity className="h-4 w-4" /> },
   ];
 
@@ -300,7 +362,14 @@ export default function ProtocolDetailPage() {
   const studyDesign = usdm?.study?.versions?.[0]?.studyDesigns?.[0];
 
   return (
-    <div className="h-screen flex flex-col bg-slate-50">
+    <div className="h-screen flex flex-col bg-slate-50 dark:bg-slate-950">
+      {/* Skip navigation link — F14 */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:z-[100] focus:top-2 focus:left-2 focus:bg-primary focus:text-primary-foreground focus:px-4 focus:py-2 focus:rounded-md"
+      >
+        Skip to main content
+      </a>
       {/* Header */}
       <header data-protocol-sticky-header className="border-b bg-white shrink-0 z-50 overflow-visible">
         <div className="container mx-auto px-4 py-3 overflow-visible">
@@ -325,18 +394,25 @@ export default function ProtocolDetailPage() {
             </div>
             <div className="flex items-center gap-2">
               {/* Edit Mode Toggle */}
-              <Button
-                variant={isEditMode ? 'default' : 'outline'}
-                size="sm"
-                onClick={toggleEditMode}
-                className={isEditMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : ''}
-              >
-                {isEditMode ? (
-                  <><Pencil className="h-4 w-4 mr-2" />Editing</>
-                ) : (
-                  <><Lock className="h-4 w-4 mr-2" />View Only</>
+              <div className="flex items-center gap-1.5">
+                <Button
+                  variant={isEditMode ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={toggleEditMode}
+                  className={isEditMode ? 'bg-primary hover:bg-primary/90 text-primary-foreground' : ''}
+                >
+                  {isEditMode ? (
+                    <><Pencil className="h-4 w-4 mr-2" />Editing</>
+                  ) : (
+                    <><Lock className="h-4 w-4 mr-2" />View Only</>
+                  )}
+                </Button>
+                {isEditMode && !isTabEditable && (
+                  <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                    Read-only tab
+                  </span>
                 )}
-              </Button>
+              </div>
 
               {/* Draft controls (only visible in edit mode) */}
               {isEditMode && (
@@ -348,13 +424,14 @@ export default function ProtocolDetailPage() {
                   onShowHistory={() => setShowHistory(true)}
                 />
               )}
+              <ThemeToggle />
             </div>
           </div>
         </div>
 
         {/* Tab navigation */}
         <div className="container mx-auto px-4 overflow-visible">
-          <nav className="flex items-center gap-1 -mb-px min-w-max pb-2 overflow-visible">
+          <nav className="flex items-center gap-1 -mb-px pb-2 overflow-x-auto scrollbar-hide">
             <TabGroup
               label="Protocol"
               icon={<FolderOpen className="h-4 w-4" />}
@@ -393,12 +470,14 @@ export default function ProtocolDetailPage() {
       </header>
 
       {/* Content */}
-      <main id="export-content" className="flex-1 overflow-auto"><div className="container mx-auto px-4 py-6 relative z-0">
+      <main id="main-content" className="flex-1 overflow-auto"><div className="container mx-auto px-4 py-6 relative z-0">
+        <EntityProvenanceContext.Provider value={entityProvenance}>
         <div className={cn(
           'flex gap-6',
           isEditMode && hasSemanticDraft ? 'flex-col lg:flex-row' : ''
         )}>
         <div className={cn('flex-1 min-w-0')}>
+        <ErrorBoundary key={activeTab} section={activeTab}>
         {activeTab === 'overview' && (
           <StudyMetadataView usdm={usdm} />
         )}
@@ -416,6 +495,9 @@ export default function ProtocolDetailPage() {
         )}
         {activeTab === 'amendments' && (
           <AmendmentHistoryView usdm={usdm} />
+        )}
+        {activeTab === 'narrative' && (
+          <NarrativeView usdm={usdm} onNavigateToTab={(tab) => setActiveTab(tab as TabId)} targetSectionNumber={targetSectionNumber} onTargetSectionHandled={() => setTargetSectionNumber(null)} />
         )}
         {activeTab === 'extensions' && (
           <ExtensionsView usdm={usdm} />
@@ -454,11 +536,24 @@ export default function ProtocolDetailPage() {
           <TimelineTab intermediateFiles={intermediateFiles} protocolId={protocolId} />
         )}
         {activeTab === 'provenance' && (
-          <ProvenanceTab provenance={provenance} />
+          <ProvenanceTab provenance={provenance} extractionProvenance={extractionProvenance} entityProvenance={entityProvenance} integrityReport={integrityReport} />
+        )}
+        {activeTab === 'references' && (
+          <CrossReferencesView
+            usdm={usdm}
+            onNavigateToSection={(sectionNumber) => {
+              setTargetSectionNumber(sectionNumber);
+              setActiveTab('narrative');
+            }}
+          />
+        )}
+        {activeTab === 'figures' && (
+          <FiguresGalleryView usdm={usdm} protocolId={protocolId} />
         )}
         {activeTab === 'schedule' && (
           <ScheduleTimelineView usdm={usdm} />
         )}
+        </ErrorBoundary>
         </div>
 
         {/* DiffView sidebar — visible in edit mode when changes exist */}
@@ -468,6 +563,7 @@ export default function ProtocolDetailPage() {
           </div>
         )}
         </div>
+        </EntityProvenanceContext.Provider>
       </div></main>
 
       {/* Version History Panel */}
@@ -476,86 +572,9 @@ export default function ProtocolDetailPage() {
         isOpen={showHistory}
         onClose={() => setShowHistory(false)}
       />
-    </div>
-  );
-}
 
-function OverviewTab({ 
-  studyDesign, 
-  metadata 
-}: { 
-  studyDesign: any; 
-  metadata: any;
-}) {
-  const stats = [
-    { label: 'Activities', value: studyDesign?.activities?.length ?? 0 },
-    { label: 'Encounters', value: studyDesign?.encounters?.length ?? 0 },
-    { label: 'Epochs', value: studyDesign?.epochs?.length ?? 0 },
-    { label: 'Arms', value: studyDesign?.arms?.length ?? 0 },
-  ];
-
-  return (
-    <div className="space-y-6">
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {stats.map(stat => (
-          <Card key={stat.label}>
-            <CardContent className="pt-6">
-              <p className="text-3xl font-bold">{stat.value}</p>
-              <p className="text-sm text-muted-foreground">{stat.label}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Study Design Info */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Study Design</CardTitle>
-          <CardDescription>
-            {studyDesign?.name ?? 'Unnamed study design'}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <dl className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <dt className="font-medium text-muted-foreground">Type</dt>
-              <dd>{studyDesign?.instanceType ?? 'N/A'}</dd>
-            </div>
-            <div>
-              <dt className="font-medium text-muted-foreground">Blinding</dt>
-              <dd>{studyDesign?.blindingSchema?.standardCode?.decode ?? 'N/A'}</dd>
-            </div>
-            <div>
-              <dt className="font-medium text-muted-foreground">Randomization</dt>
-              <dd>{studyDesign?.randomizationType?.code ?? 'N/A'}</dd>
-            </div>
-            <div>
-              <dt className="font-medium text-muted-foreground">USDM Version</dt>
-              <dd>{metadata?.usdmVersion ?? 'N/A'}</dd>
-            </div>
-          </dl>
-        </CardContent>
-      </Card>
-
-      {/* Arms */}
-      {studyDesign?.arms?.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Study Arms ({studyDesign.arms.length})</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {studyDesign.arms.map((arm: any) => (
-                <div key={arm.id} className="p-3 bg-muted rounded-lg">
-                  <h4 className="font-medium">{arm.name}</h4>
-                  <p className="text-sm text-muted-foreground">{arm.description}</p>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* Keyboard shortcuts help (press ?) */}
+      <KeyboardShortcutsPanel />
     </div>
   );
 }
@@ -624,6 +643,71 @@ function TimelineTab({ intermediateFiles, protocolId }: { intermediateFiles: Rec
   );
 }
 
-function ProvenanceTab({ provenance }: { provenance: ProvenanceData | null }) {
-  return <ProvenanceView provenance={provenance} />;
+function ProvenanceTab({
+  provenance,
+  extractionProvenance,
+  entityProvenance,
+  integrityReport,
+}: {
+  provenance: ProvenanceData | null;
+  extractionProvenance: ExtractionProvenanceData | null;
+  entityProvenance: EntityProvenanceData | null;
+  integrityReport: IntegrityReport | null;
+}) {
+  const [viewMode, setViewMode] = useState<'soa' | 'extraction' | 'integrity'>(
+    extractionProvenance ? 'extraction' : 'soa'
+  );
+
+  return (
+    <div className="space-y-4">
+      {/* View toggle */}
+      <div className="flex items-center gap-2 p-1 bg-muted rounded-lg w-fit">
+        <Button
+          variant={viewMode === 'extraction' ? 'default' : 'ghost'}
+          size="sm"
+          onClick={() => setViewMode('extraction')}
+          className="flex items-center gap-2"
+        >
+          <Cpu className="h-4 w-4" />
+          Extraction Pipeline
+        </Button>
+        <Button
+          variant={viewMode === 'integrity' ? 'default' : 'ghost'}
+          size="sm"
+          onClick={() => setViewMode('integrity')}
+          className="flex items-center gap-2"
+        >
+          <AlertCircle className="h-4 w-4" />
+          Integrity
+          {integrityReport && integrityReport.summary.errors > 0 && (
+            <span className="ml-1 inline-flex items-center justify-center h-4 min-w-[1rem] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold">
+              {integrityReport.summary.errors}
+            </span>
+          )}
+        </Button>
+        <Button
+          variant={viewMode === 'soa' ? 'default' : 'ghost'}
+          size="sm"
+          onClick={() => setViewMode('soa')}
+          className="flex items-center gap-2"
+        >
+          <Eye className="h-4 w-4" />
+          SoA Cell Provenance
+        </Button>
+      </div>
+
+      {viewMode === 'extraction' && (
+        <ExtractionProvenanceView
+          extractionProvenance={extractionProvenance}
+          entityProvenance={entityProvenance}
+        />
+      )}
+      {viewMode === 'integrity' && (
+        <IntegrityReportView report={integrityReport} />
+      )}
+      {viewMode === 'soa' && (
+        <ProvenanceView provenance={provenance} />
+      )}
+    </div>
+  );
 }

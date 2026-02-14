@@ -116,6 +116,7 @@ def extract_advanced_entities(
     model_name: str = "gemini-2.5-pro",
     pages: Optional[List[int]] = None,
     protocol_text: Optional[str] = None,
+    upstream_context: Optional[str] = None,
 ) -> AdvancedExtractionResult:
     """
     Extract advanced entities from a protocol PDF.
@@ -141,6 +142,13 @@ def extract_advanced_entities(
         # Call LLM for extraction
         logger.info("Extracting advanced entities with LLM...")
         prompt = build_advanced_extraction_prompt(protocol_text)
+        if upstream_context:
+            prompt = (
+                "## Already-Extracted Study Context\n"
+                "The following entities have already been extracted from this protocol. "
+                "Use this context to ensure consistency with previously extracted data.\n\n"
+                f"{upstream_context}\n\n{prompt}"
+            )
         
         response = call_llm(prompt=prompt, model_name=model_name, json_mode=True, extractor_name="advanced")
         

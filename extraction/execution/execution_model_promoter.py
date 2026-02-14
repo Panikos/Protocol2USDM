@@ -143,6 +143,18 @@ class ExecutionModelPromoter:
             logger.error(f"Step 4 (_fix_timing_references) failed: {e}")
             self.result.issues.append({"step": 4, "severity": "error", "message": str(e)})
         
+        # Step 4b [best-effort]: Normalize timings to primary anchor
+        # Set relativeToScheduledInstanceId on timings that lack one,
+        # pointing to the primary time anchor's promoted instance
+        if execution_data.time_anchors and self._anchor_instance_map:
+            try:
+                usdm_design = self._normalize_timings_to_primary_anchor(
+                    usdm_design, execution_data.time_anchors
+                )
+            except Exception as e:
+                logger.warning(f"Step 4b (_normalize_timings_to_primary_anchor) failed: {e}")
+                self.result.issues.append({"step": "4b", "severity": "warning", "message": str(e)})
+        
         # Step 5 [best-effort]: Promote visit windows → Timing.windowLower/windowUpper
         if hasattr(execution_data, 'visit_windows') and execution_data.visit_windows:
             try:
@@ -247,8 +259,15 @@ class ExecutionModelPromoter:
                any(kw in name for kw in ['first dose', 'randomization', 'baseline', 'screening']):
                 existing_anchor_names.add(name)
         
-        # Find or create anchor encounter
-        anchor_encounter_id = self._find_or_create_anchor_encounter(design)
+        # Build day→encounter map for per-anchor linking
+        encounter_day_map = self._build_encounter_by_day_map(design.get('encounters', []))
+        # Also build name→encounter map for name-based matching
+        encounter_name_map = {}
+        for enc in design.get('encounters', []):
+            enc_name = enc.get('name', '').lower().strip()
+            if enc_name:
+                encounter_name_map[enc_name] = enc.get('id')
+        fallback_encounter_id = self._find_or_create_anchor_encounter(design)
         
         # Sort anchors by intra-day order for consistent processing
         sorted_anchors = sorted(
@@ -299,6 +318,17 @@ class ExecutionModelPromoter:
                 if not activity_id:
                     activity_id = self._find_activity_by_anchor_type(design, anchor_name)
                 
+                # EVENT anchors: also try to link to encounter by day value
+                event_encounter_id = None
+                if day_value is not None and abs(day_value) in encounter_day_map:
+                    event_encounter_id = encounter_day_map[abs(day_value)]
+                if not event_encounter_id:
+                    anchor_lower = anchor_name.lower()
+                    for enc_name, enc_id in encounter_name_map.items():
+                        if anchor_lower in enc_name or enc_name in anchor_lower:
+                            event_encounter_id = enc_id
+                            break
+                
                 anchor_instance = {
                     "id": instance_id,
                     "name": anchor_name,
@@ -312,16 +342,39 @@ class ExecutionModelPromoter:
                         "valueString": "Event"
                     }]
                 }
-                # EVENT anchors get epoch but no encounter (they're not visits)
+                if event_encounter_id:
+                    anchor_instance["encounterId"] = event_encounter_id
+                # EVENT anchors get epoch
                 anchor_instance["epochId"] = self._find_first_treatment_epoch_id(design)
                 
             else:  # VISIT classification
-                # VISIT anchors represent real encounters
+                # VISIT anchors: match to specific encounter by day value, then name
+                matched_encounter_id = None
+                if day_value is not None and abs(day_value) in encounter_day_map:
+                    matched_encounter_id = encounter_day_map[abs(day_value)]
+                elif day_value is not None and day_value in encounter_day_map:
+                    matched_encounter_id = encounter_day_map[day_value]
+                if not matched_encounter_id:
+                    # Try name-based matching (e.g., "screening" anchor → "Screening" encounter)
+                    anchor_lower = anchor_name.lower()
+                    for enc_name, enc_id in encounter_name_map.items():
+                        if anchor_lower in enc_name or enc_name in anchor_lower:
+                            matched_encounter_id = enc_id
+                            break
+                        # Also try anchor type keywords
+                        anchor_type_val = getattr(anchor, 'anchor_type', None)
+                        type_str = (anchor_type_val.value if hasattr(anchor_type_val, 'value') else str(anchor_type_val or '')).lower()
+                        if type_str and (type_str in enc_name or enc_name in type_str):
+                            matched_encounter_id = enc_id
+                            break
+                if not matched_encounter_id:
+                    matched_encounter_id = fallback_encounter_id
+                
                 anchor_instance = {
                     "id": instance_id,
                     "name": anchor_name,
                     "description": f"Visit anchor: {anchor_name}",
-                    "encounterId": anchor_encounter_id,
+                    "encounterId": matched_encounter_id,
                     "epochId": self._find_first_treatment_epoch_id(design),
                     "activityIds": [],
                     "instanceType": "ScheduledActivityInstance",
@@ -700,6 +753,49 @@ class ExecutionModelPromoter:
                             "message": f"CONCEPTUAL anchor '{timing_name}' stored as timing reference (no visit)",
                             "affectedPath": f"$.extensionAttributes[?(@.url contains 'conceptualAnchors')]"
                         })
+        
+        return design
+    
+    def _normalize_timings_to_primary_anchor(
+        self,
+        design: Dict[str, Any],
+        time_anchors: List[Any]
+    ) -> Dict[str, Any]:
+        """
+        Normalize timings to reference the primary time anchor.
+        
+        For timings that have relativeFromScheduledInstanceId but no
+        relativeToScheduledInstanceId, set the latter to the primary
+        anchor's promoted instance. This makes the core USDM graph
+        express what all timings are relative to.
+        """
+        # Find primary anchor instance ID (first anchor is primary by convention)
+        primary_anchor_id = None
+        for anchor in time_anchors:
+            anchor_id = getattr(anchor, 'id', '')
+            if anchor_id in self._anchor_instance_map:
+                primary_anchor_id = self._anchor_instance_map[anchor_id]
+                break
+        
+        if not primary_anchor_id or primary_anchor_id.startswith('timing_ref_'):
+            return design
+        
+        timelines = design.get('scheduleTimelines', [])
+        if not timelines:
+            return design
+        
+        normalized_count = 0
+        for timeline in timelines:
+            for timing in timeline.get('timings', []):
+                has_from = timing.get('relativeFromScheduledInstanceId')
+                has_to = timing.get('relativeToScheduledInstanceId')
+                
+                if has_from and not has_to:
+                    timing['relativeToScheduledInstanceId'] = primary_anchor_id
+                    normalized_count += 1
+        
+        if normalized_count > 0:
+            logger.info(f"  Normalized {normalized_count} timings to primary anchor: {primary_anchor_id}")
         
         return design
     

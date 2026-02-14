@@ -183,7 +183,7 @@ def _parse_metadata_response(raw: Dict[str, Any]) -> Optional[StudyMetadata]:
     try:
         # Extract titles
         titles = []
-        for i, title_data in enumerate(raw.get('titles', [])):
+        for i, title_data in enumerate(raw.get('titles') or []):
             if isinstance(title_data, dict) and title_data.get('text'):
                 title_type = _map_title_type(title_data.get('type', 'Official Study Title'))
                 titles.append(StudyTitle(
@@ -195,7 +195,7 @@ def _parse_metadata_response(raw: Dict[str, Any]) -> Optional[StudyMetadata]:
         # Extract organizations
         organizations = []
         org_id_map = {}  # Map org name to ID for reference
-        for i, org_data in enumerate(raw.get('organizations', [])):
+        for i, org_data in enumerate(raw.get('organizations') or []):
             if isinstance(org_data, dict) and org_data.get('name'):
                 org_id = f"org_{i+1}"
                 org_type = _map_org_type(org_data.get('type', 'Pharmaceutical Company'))
@@ -224,7 +224,7 @@ def _parse_metadata_response(raw: Dict[str, Any]) -> Optional[StudyMetadata]:
         
         # Extract identifiers
         identifiers = []
-        for i, id_data in enumerate(raw.get('identifiers', [])):
+        for i, id_data in enumerate(raw.get('identifiers') or []):
             if isinstance(id_data, dict):
                 # Accept both 'text' (USDM format) and 'value' (legacy format)
                 id_text = id_data.get('text') or id_data.get('value')
@@ -250,14 +250,14 @@ def _parse_metadata_response(raw: Dict[str, Any]) -> Optional[StudyMetadata]:
         
         # M2: Build personnel lookup from keyPersonnel
         personnel_by_role = {}  # role string -> list of names
-        for person in raw.get('keyPersonnel', []):
+        for person in (raw.get('keyPersonnel') or []):
             if isinstance(person, dict) and person.get('name'):
                 p_role = (person.get('role') or '').lower()
                 personnel_by_role.setdefault(p_role, []).append(person['name'])
         
         # Extract roles from organizations
         roles = []
-        for i, org_data in enumerate(raw.get('organizations', [])):
+        for i, org_data in enumerate(raw.get('organizations') or []):
             if isinstance(org_data, dict) and org_data.get('role'):
                 role_code = _map_role_code(org_data['role'])
                 org_id = org_id_map.get(org_data.get('name', ''), f"org_{i+1}")
@@ -275,7 +275,7 @@ def _parse_metadata_response(raw: Dict[str, Any]) -> Optional[StudyMetadata]:
                     assigned_persons=assigned,
                 ))
         # M2: Create standalone roles for personnel not matched to organizations
-        matched_roles = {org_data.get('role', '').lower() for org_data in raw.get('organizations', []) if isinstance(org_data, dict)}
+        matched_roles = {org_data.get('role', '').lower() for org_data in (raw.get('organizations') or []) if isinstance(org_data, dict)}
         for p_role, names in personnel_by_role.items():
             if not any(p_role in mr or mr in p_role for mr in matched_roles):
                 role_code = _map_role_code(p_role)
@@ -289,7 +289,7 @@ def _parse_metadata_response(raw: Dict[str, Any]) -> Optional[StudyMetadata]:
         
         # Extract indication - handle both singular 'indication' and plural 'indications'
         indications = []
-        indication_list = raw.get('indications', [])
+        indication_list = raw.get('indications') or []
         if not indication_list:
             # Try singular form
             indication_data = raw.get('indication')
@@ -333,7 +333,7 @@ def _parse_metadata_response(raw: Dict[str, Any]) -> Optional[StudyMetadata]:
         
         # L1: Extract reference identifiers
         ref_ids = []
-        for ref in raw.get('referenceIdentifiers', []):
+        for ref in (raw.get('referenceIdentifiers') or []):
             if isinstance(ref, dict) and ref.get('text'):
                 ref_ids.append({
                     "text": ref['text'],

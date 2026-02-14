@@ -93,6 +93,7 @@ export function SoAToolbar({
               placeholder="Search activities..."
               value={searchText}
               onChange={handleSearchChange}
+              aria-label="Search activities"
               className="pl-8 pr-3 py-1.5 text-sm border rounded-md w-48 focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>

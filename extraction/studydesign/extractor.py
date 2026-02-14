@@ -26,10 +26,29 @@ from .schema import (
     RandomizationType,
     ControlType,
     AllocationRatio,
+    _match_therapeutic_area,
 )
 from .prompts import build_study_design_extraction_prompt
 
 logger = logging.getLogger(__name__)
+
+
+def _normalize_therapeutic_areas(raw_list: list) -> List[str]:
+    """Validate and normalize LLM-returned therapeutic area strings against the canonical list."""
+    if not raw_list or not isinstance(raw_list, list):
+        return []
+    result = []
+    seen = set()
+    for item in raw_list:
+        if not isinstance(item, str):
+            continue
+        canonical = _match_therapeutic_area(item)
+        if canonical and canonical not in seen:
+            result.append(canonical)
+            seen.add(canonical)
+        elif not canonical:
+            logger.debug(f"Ignoring unrecognized therapeutic area from LLM: '{item}'")
+    return result
 
 
 @dataclass
@@ -370,7 +389,9 @@ def _parse_design_response(raw: Dict[str, Any]) -> Optional[StudyDesignData]:
                 control_type=control,
                 arm_ids=[a.id for a in arms],
                 cohort_ids=[c.id for c in cohorts],
-                therapeutic_areas=design_data.get('therapeuticAreas', []),
+                therapeutic_areas=_normalize_therapeutic_areas(
+                    design_data.get('therapeuticAreas', [])
+                ),
                 rationale=design_rationale,
                 characteristics=characteristics,
             )

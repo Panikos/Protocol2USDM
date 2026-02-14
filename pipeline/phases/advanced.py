@@ -4,6 +4,54 @@ from typing import Optional
 from ..base_phase import BasePhase, PhaseConfig, PhaseResult
 from ..phase_registry import register_phase
 from extraction.pipeline_context import PipelineContext
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+def _build_advanced_context(
+    objectives: list = None,
+    endpoints: list = None,
+    criteria: list = None,
+    interventions: list = None,
+) -> str:
+    """Build a compact upstream context summary for LLM grounding."""
+    parts = []
+    if objectives:
+        names = []
+        for o in objectives:
+            text = o.get('text', '') or o.get('description', '') or o.get('name', '')
+            level = ''
+            if isinstance(o.get('level'), dict):
+                level = o['level'].get('decode', '')
+            if text:
+                names.append(f"  - [{level}] {text[:120]}" if level else f"  - {text[:120]}")
+        if names:
+            parts.append(f"Objectives:\n" + '\n'.join(names[:10]))
+    if endpoints:
+        names = []
+        for e in endpoints:
+            text = e.get('text', '') or e.get('description', '') or e.get('name', '')
+            if text:
+                names.append(f"  - {text[:100]}")
+        if names:
+            parts.append(f"Endpoints:\n" + '\n'.join(names[:10]))
+    if criteria:
+        inc = [c for c in criteria if c.get('category', {}).get('decode', '').lower() == 'inclusion']
+        exc = [c for c in criteria if c.get('category', {}).get('decode', '').lower() == 'exclusion']
+        if inc:
+            parts.append(f"Inclusion Criteria: {len(inc)} criteria extracted")
+        if exc:
+            parts.append(f"Exclusion Criteria: {len(exc)} criteria extracted")
+    if interventions:
+        names = []
+        for i in interventions:
+            name = i.get('name', '') or i.get('label', '')
+            if name:
+                names.append(f"  - {name}")
+        if names:
+            parts.append(f"Interventions:\n" + '\n'.join(names[:10]))
+    return '\n'.join(parts) if parts else ''
 
 
 class AdvancedPhase(BasePhase):
@@ -18,6 +66,20 @@ class AdvancedPhase(BasePhase):
             output_filename="8_advanced_entities.json",
         )
     
+    def get_context_params(self, context: PipelineContext) -> dict:
+        params = {}
+        if context.objectives:
+            params['existing_objectives'] = context.objectives
+        if context.endpoints:
+            params['existing_endpoints'] = context.endpoints
+        if context.inclusion_criteria or context.exclusion_criteria:
+            params['existing_criteria'] = (
+                context.inclusion_criteria + context.exclusion_criteria
+            )
+        if context.interventions:
+            params['existing_interventions'] = context.interventions
+        return params
+    
     def extract(
         self,
         pdf_path: str,
@@ -25,11 +87,23 @@ class AdvancedPhase(BasePhase):
         output_dir: str,
         context: PipelineContext,
         soa_data: Optional[dict] = None,
+        existing_objectives: Optional[list] = None,
+        existing_endpoints: Optional[list] = None,
+        existing_criteria: Optional[list] = None,
+        existing_interventions: Optional[list] = None,
         **kwargs
     ) -> PhaseResult:
         from extraction.advanced import extract_advanced_entities
         
-        result = extract_advanced_entities(pdf_path, model_name=model)
+        upstream_context = _build_advanced_context(
+            existing_objectives, existing_endpoints,
+            existing_criteria, existing_interventions,
+        )
+        
+        result = extract_advanced_entities(
+            pdf_path, model_name=model,
+            upstream_context=upstream_context,
+        )
         
         return PhaseResult(
             success=result.success,

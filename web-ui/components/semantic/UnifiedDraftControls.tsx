@@ -8,6 +8,8 @@ import { useOverlayStore } from '@/stores/overlayStore';
 import { cn } from '@/lib/utils';
 import { toast } from '@/stores/toastStore';
 import type { PublishResponse } from '@/lib/semantic/schema';
+import { useUserIdentity } from '@/hooks/useUserIdentity';
+import { UserIdentityBadge } from '@/components/semantic/UserIdentityPrompt';
 
 interface UnifiedDraftControlsProps {
   protocolId: string;
@@ -58,6 +60,9 @@ export function UnifiedDraftControls({
   const [pendingForcePublish, setPendingForcePublish] = useState(false);
   const [publishReason, setPublishReason] = useState('');
 
+  // User identity
+  const { username } = useUserIdentity();
+
   // Combined state
   const hasAnyChanges = hasSemanticDraft || semanticIsDirty || overlayIsDirty;
   const semanticChangeCount = semanticDraft?.patch?.length ?? 0;
@@ -81,7 +86,7 @@ export function UnifiedDraftControls({
         const requestBody = {
           protocolId,
           usdmRevision: currentRevision ?? currentDraft.usdmRevision,
-          updatedBy: currentDraft.updatedBy || 'ui-user',
+          updatedBy: username,
           patch: currentDraft.patch,
         };
         const response = await fetch(`/api/protocols/${protocolId}/semantic/draft`, {
@@ -92,7 +97,12 @@ export function UnifiedDraftControls({
         
         if (response.ok) {
           useSemanticStore.getState().markClean();
-          toast.success('Draft saved');
+          const saveResult = await response.json();
+          if (saveResult.dryRunWarning) {
+            toast.warning(`Draft saved (patch warning: ${saveResult.dryRunWarning})`);
+          } else {
+            toast.success('Draft saved');
+          }
         } else {
           const responseText = await response.text();
           console.error('Save draft error - status:', response.status, 'body:', responseText);
@@ -140,7 +150,7 @@ export function UnifiedDraftControls({
         const response = await fetch(`/api/protocols/${protocolId}/semantic/publish`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ reason: publishReason }),
+          body: JSON.stringify({ reason: publishReason, publishedBy: username }),
         });
         
         const result = await response.json();
@@ -232,6 +242,9 @@ export function UnifiedDraftControls({
 
   return (
     <div className={cn('flex items-center gap-3', className)}>
+      {/* User identity badge */}
+      <UserIdentityBadge />
+
       {/* Draft badge */}
       <div className="flex items-center gap-2 px-2 py-1 bg-blue-50 border border-blue-200 rounded-md">
         <FileEdit className="h-4 w-4 text-blue-600" />
@@ -376,7 +389,7 @@ export function UnifiedDraftControls({
               const forceResponse = await fetch(`/api/protocols/${protocolId}/semantic/publish`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ forcePublish: true, reason: publishReason || '(force-published)' }),
+                body: JSON.stringify({ forcePublish: true, reason: publishReason || '(force-published)', publishedBy: username }),
               });
               const forceResult = await forceResponse.json();
               setPublishResult(forceResult as PublishResponse);

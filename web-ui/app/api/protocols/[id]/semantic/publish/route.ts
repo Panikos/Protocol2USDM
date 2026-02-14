@@ -15,6 +15,7 @@ import {
 } from '@/lib/semantic/storage';
 import { applySemanticPatch } from '@/lib/semantic/patcher';
 import { validateProtocolId } from '@/lib/sanitize';
+import { validateSoAStructure } from '@/lib/soa/processor';
 
 /** Validation result shape */
 interface ValidationResult {
@@ -238,10 +239,24 @@ export async function POST(
       );
     }
     
-    // 5. Serialize candidate once (reused for validation + disk write)
+    // 5. Referential integrity check (orphaned references)
+    const soaValidation = validateSoAStructure(patchResult.result as Record<string, unknown>);
+    if (!soaValidation.valid && !forcePublish) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'referential_integrity',
+          message: `Candidate USDM has ${soaValidation.issues.length} referential integrity issue(s). Use forcePublish to override.`,
+          issues: soaValidation.issues,
+        },
+        { status: 422 }
+      );
+    }
+    
+    // 6. Serialize candidate once (reused for validation + disk write)
     const candidateJson = JSON.stringify(patchResult.result, null, 2);
     
-    // 6. Validate candidate USDM BEFORE writing to disk (live Python validation)
+    // 7. Validate candidate USDM BEFORE writing to disk (live Python validation)
     const validation = await runLiveValidation(candidateJson, protocolId);
     const hasErrors = !validation.schema.valid || !validation.usdm.valid;
     

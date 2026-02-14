@@ -57,7 +57,7 @@ export interface ExecutionModelData {
 }
 
 // Cytoscape node types
-export type NodeType = 'instance' | 'timing' | 'activity' | 'condition' | 'halo' | 'epoch' | 'anchor' | 'window' | 'repetition' | 'swimlane';
+export type NodeType = 'instance' | 'timing' | 'activity' | 'condition' | 'decision' | 'halo' | 'epoch' | 'anchor' | 'window' | 'repetition' | 'swimlane';
 
 // Timing type codes from CDISC
 const TIMING_TYPE = {
@@ -85,6 +85,8 @@ export interface CytoscapeNode {
     // Visit window data
     hasWindow?: boolean;
     parentEncounter?: string;
+    // Entity description (for inline editing)
+    description?: string;
   };
   position: { x: number; y: number };
   locked?: boolean;
@@ -96,7 +98,7 @@ export interface CytoscapeEdge {
     id: string;
     source: string;
     target: string;
-    type: 'timing' | 'activity' | 'condition' | 'sequence' | 'transition' | 'window';
+    type: 'timing' | 'activity' | 'condition' | 'sequence' | 'transition' | 'window' | 'decision-branch' | 'decision-default';
     label?: string;
   };
   classes?: string;
@@ -190,6 +192,7 @@ export function toGraphModel(
         label: epoch.name,
         type: 'epoch',
         usdmRef: epoch.id,
+        description: epoch.description,
       },
       position,
       locked: overlay?.diagram.nodes[nodeId]?.locked,
@@ -231,6 +234,7 @@ export function toGraphModel(
           encounterId: enc.id,
           windowLabel: enc.timing?.windowLabel,
           hasWindow,
+          description: enc.description,
         },
         position,
         locked: overlay?.diagram.nodes[nodeId]?.locked,
@@ -341,6 +345,7 @@ export function toGraphModel(
             usdmRef: actId,
             encounterId,
             activityId: actId,
+            description: activity.description,
           },
           position,
           locked: overlay?.diagram.nodes[nodeId]?.locked,
@@ -439,25 +444,183 @@ export function toGraphModel(
     nodeIds.add(nodeId);
   }
 
-  // Mark timing nodes as anchors based on execution model
-  // Instead of creating separate anchor nodes, we mark existing encounters as anchors
+  // Create dedicated anchor nodes from execution model timeAnchors
   if (executionModel?.timeAnchors?.length) {
-    const anchorTypes = new Set(executionModel.timeAnchors.map(a => a.anchorType?.toLowerCase()));
-    const anchorDays = new Map(executionModel.timeAnchors.map(a => [a.dayValue, a]));
-    
-    // Update existing timing nodes with anchor info
+    // Build name→position lookup for encounter matching
+    const encNodesByLabel = new Map<string, { x: number; y: number; id: string }>();
     for (const node of model.nodes) {
-      if (node.data.type === 'timing') {
-        // Check if this encounter matches an anchor (by name pattern or day value)
-        const label = node.data.label?.toLowerCase() || '';
-        const isBaselineAnchor = anchorTypes.has('baseline') && 
-          (label.includes('baseline') || label.includes('day 1') || label.includes('screening'));
-        const isFirstDoseAnchor = anchorTypes.has('firstdose') && 
-          (label.includes('first dose') || label.includes('day 1') || label.includes('treatment'));
-        
-        if (isBaselineAnchor || isFirstDoseAnchor) {
-          node.data.isAnchor = true;
-          node.classes = cn(node.classes, 'anchor-timing');
+      if (node.data.type === 'timing' && node.position) {
+        encNodesByLabel.set((node.data.label || '').toLowerCase(), { ...node.position, id: node.data.id });
+      }
+    }
+    // All encounter x-positions for fallback spreading
+    const allEncX = Array.from(encounterPositions.values()).map(p => p.x).sort((a, b) => a - b);
+    const graphMinX = allEncX[0] ?? DEFAULT_SPACING.startX;
+    const graphMaxX = allEncX[allEncX.length - 1] ?? graphMinX + 400;
+
+    // Anchor-type keywords → encounter name hints
+    const anchorKeywords: Record<string, string[]> = {
+      baseline:        ['baseline', 'day 1', 'day1'],
+      firstdose:       ['first dose', 'day 1', 'day1', 'treatment'],
+      day1:            ['day 1', 'day1', 'visit 1'],
+      randomization:   ['randomization', 'randomisation', 'random'],
+      screening:       ['screening', 'screen'],
+      informedconsent: ['informed consent', 'consent', 'ic'],
+    };
+
+    executionModel.timeAnchors.forEach((anchor, idx) => {
+      const anchorNodeId = `anchor_${anchor.id}`;
+      if (nodeIds.has(anchorNodeId)) return;
+
+      // Try to find best encounter to align with
+      let bestEncId: string | undefined;
+      let bestX = graphMinX + ((graphMaxX - graphMinX) * (idx + 1)) / (executionModel.timeAnchors!.length + 1);
+
+      // 1) Match by anchor type keywords
+      const keywords = anchorKeywords[anchor.anchorType?.toLowerCase()] ?? [];
+      for (const kw of keywords) {
+        for (const [label, pos] of encNodesByLabel) {
+          if (label.includes(kw)) {
+            bestX = pos.x;
+            bestEncId = pos.id;
+            break;
+          }
+        }
+        if (bestEncId) break;
+      }
+
+      // 2) Also try matching anchor definition text against encounter names
+      if (!bestEncId && anchor.definition) {
+        const defLower = anchor.definition.toLowerCase();
+        for (const [label, pos] of encNodesByLabel) {
+          if (defLower.includes(label) || label.includes(defLower.split(' ')[0])) {
+            bestX = pos.x;
+            bestEncId = pos.id;
+            break;
+          }
+        }
+      }
+
+      const position = getNodePosition(anchorNodeId, overlay, {
+        x: bestX,
+        y: DEFAULT_SPACING.anchorY,
+      });
+
+      const label = `⚓ ${anchor.anchorType}${anchor.dayValue != null ? `\nDay ${anchor.dayValue}` : ''}`;
+
+      model.nodes.push({
+        data: {
+          id: anchorNodeId,
+          label,
+          type: 'anchor' as NodeType,
+          usdmRef: anchor.id,
+          isAnchor: true,
+        },
+        position,
+        locked: overlay?.diagram.nodes[anchorNodeId]?.locked,
+        classes: 'execution-anchor',
+      });
+      nodeIds.add(anchorNodeId);
+
+      // Draw a dashed edge from anchor to its aligned encounter
+      if (bestEncId) {
+        model.edges.push({
+          data: {
+            id: `anchor_edge_${anchor.id}`,
+            source: anchorNodeId,
+            target: bestEncId,
+            type: 'window',
+            label: '',
+          },
+          classes: 'anchor-edge',
+        });
+      }
+    });
+  }
+
+  // ---------------------------------------------------------------
+  // Generate ScheduledDecisionInstance (UNS branch) nodes
+  // ---------------------------------------------------------------
+  for (const timeline of scheduleTimelines) {
+    for (const instance of timeline.instances ?? []) {
+      if (instance.instanceType !== 'ScheduledDecisionInstance') continue;
+
+      // Find the UNS encounter this SDI controls (from x-unsDecisionInstance extension)
+      const unsExt = (instance.extensionAttributes ?? []).find(
+        (e) => (e.url ?? '').includes('unsDecisionInstance')
+      );
+      let unsEncounterId = unsExt?.valueString as string | undefined;
+
+      // The extension may store an alias (e.g. "enc_23") instead of a UUID.
+      // Fall back to the first conditionTargetId which is always remapped.
+      let unsEncPos = unsEncounterId ? encounterPositions.get(unsEncounterId) : null;
+      if (!unsEncPos && instance.conditionAssignments?.length) {
+        const firstTarget = instance.conditionAssignments[0].conditionTargetId;
+        if (firstTarget) {
+          unsEncPos = encounterPositions.get(firstTarget);
+          unsEncounterId = firstTarget;
+        }
+      }
+      const defaultX = unsEncPos ? unsEncPos.x : DEFAULT_SPACING.startX;
+      const defaultY = unsEncPos ? unsEncPos.y + 80 : DEFAULT_SPACING.encounterY + 80;
+
+      const nodeId = `decision_${instance.id}`;
+      const position = getNodePosition(nodeId, overlay, { x: defaultX, y: defaultY });
+
+      model.nodes.push({
+        data: {
+          id: nodeId,
+          label: instance.label ?? instance.name ?? 'UNS Decision',
+          type: 'decision',
+          usdmRef: instance.id,
+          epochId: instance.epochId,
+        },
+        position,
+        locked: overlay?.diagram.nodes[nodeId]?.locked,
+        classes: 'decision-node',
+      });
+      nodeIds.add(nodeId);
+
+      // Edges from decision to branch targets
+      for (const ca of instance.conditionAssignments ?? []) {
+        const targetId = ca.conditionTargetId;
+        if (!targetId) continue;
+
+        const targetNodeId = `enc_${targetId}`;
+        if (!nodeIds.has(targetNodeId)) continue;
+
+        const isDefault = targetId === instance.defaultConditionId;
+        const edgeId = `decision_edge_${instance.id}_${ca.id ?? targetId}`;
+
+        model.edges.push({
+          data: {
+            id: edgeId,
+            source: nodeId,
+            target: targetNodeId,
+            type: isDefault ? 'decision-default' : 'decision-branch',
+            label: isDefault ? 'default' : ca.condition?.substring(0, 25) || 'event',
+          },
+          classes: isDefault ? 'decision-default-edge' : 'decision-branch-edge',
+        });
+      }
+
+      // Edge from the preceding encounter to this decision node
+      if (unsEncounterId) {
+        const encIdx = encounters.findIndex(e => e.id === unsEncounterId);
+        if (encIdx > 0) {
+          const prevEnc = encounters[encIdx - 1];
+          const prevNodeId = `enc_${prevEnc.id}`;
+          if (nodeIds.has(prevNodeId)) {
+            model.edges.push({
+              data: {
+                id: `seq_to_decision_${instance.id}`,
+                source: prevNodeId,
+                target: nodeId,
+                type: 'sequence',
+              },
+              classes: 'decision-entry-edge',
+            });
+          }
         }
       }
     }

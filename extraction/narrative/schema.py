@@ -71,14 +71,16 @@ class NarrativeContentItem:
     text: str
     section_number: Optional[str] = None  # e.g., "5.1.2"
     section_title: Optional[str] = None
+    section_type: Optional['SectionType'] = None
     order: int = 0
     instance_type: str = "NarrativeContentItem"
     
     def to_dict(self) -> Dict[str, Any]:
+        effective_name = self.name if self.name else f"Item {self.order + 1}"
         result = {
             "id": self.id,
-            "name": self.name,
-            "text": self.text,
+            "name": effective_name,
+            "text": self.text if self.text else effective_name,
             "order": self.order,
             "instanceType": self.instance_type,
         }
@@ -86,15 +88,32 @@ class NarrativeContentItem:
             result["sectionNumber"] = self.section_number
         if self.section_title:
             result["sectionTitle"] = self.section_title
+        if self.section_type:
+            result["sectionType"] = {
+                "id": generate_uuid(),
+                "code": self.section_type.value,
+                "codeSystem": "USDM",
+                "codeSystemVersion": "2024-09-27",
+                "decode": self.section_type.value,
+                "instanceType": "Code",
+            }
         return result
 
 
 @dataclass
 class NarrativeContent:
     """
-    USDM NarrativeContent entity.
+    USDM NarrativeContent entity (C207592).
     
     Represents a major section of the protocol document.
+    
+    USDM v4.0 fields:
+      - displaySectionTitle (C215534): boolean, cardinality 1
+      - displaySectionNumber (C215535): boolean, cardinality 1
+      - previousId: ref to NarrativeContent (linked list), 0..1
+      - nextId: ref to NarrativeContent (linked list), 0..1
+      - contentItemId: ref to NarrativeContentItem, 0..1
+      - childIds: ref to NarrativeContent, 0..*
     """
     id: str
     name: str
@@ -104,6 +123,11 @@ class NarrativeContent:
     text: Optional[str] = None            # Full section text if available
     child_ids: List[str] = field(default_factory=list)  # NarrativeContentItem IDs
     order: int = 0
+    display_section_title: bool = True     # USDM C215534 — cardinality 1
+    display_section_number: bool = True    # USDM C215535 — cardinality 1
+    previous_id: Optional[str] = None      # USDM linked list — set at serialization
+    next_id: Optional[str] = None          # USDM linked list — set at serialization
+    content_item_id: Optional[str] = None  # USDM ref to NarrativeContentItem
     instance_type: str = "NarrativeContent"
     
     def to_dict(self) -> Dict[str, Any]:
@@ -116,6 +140,8 @@ class NarrativeContent:
             "name": effective_name,
             "text": effective_text,  # Required field
             "order": self.order,
+            "displaySectionTitle": self.display_section_title,
+            "displaySectionNumber": self.display_section_number,
             "instanceType": self.instance_type,
         }
         if self.section_number:
@@ -133,6 +159,12 @@ class NarrativeContent:
             }
         if self.child_ids:
             result["childIds"] = self.child_ids
+        if self.previous_id:
+            result["previousId"] = self.previous_id
+        if self.next_id:
+            result["nextId"] = self.next_id
+        if self.content_item_id:
+            result["contentItemId"] = self.content_item_id
         return result
 
 
@@ -182,7 +214,17 @@ class NarrativeData:
     abbreviations: List[Abbreviation] = field(default_factory=list)
     
     def to_dict(self) -> Dict[str, Any]:
-        """Convert to USDM-compatible dictionary structure."""
+        """Convert to USDM-compatible dictionary structure.
+        
+        Builds the NarrativeContent linked list (previousId/nextId) from
+        section order before serialization, per USDM v4.0 spec.
+        """
+        # Build linked list: previousId / nextId based on order
+        sorted_sections = sorted(self.sections, key=lambda s: s.order)
+        for i, sec in enumerate(sorted_sections):
+            sec.previous_id = sorted_sections[i - 1].id if i > 0 else None
+            sec.next_id = sorted_sections[i + 1].id if i < len(sorted_sections) - 1 else None
+        
         result = {
             "narrativeContents": [s.to_dict() for s in self.sections],
             "narrativeContentItems": [i.to_dict() for i in self.items],

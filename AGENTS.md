@@ -111,7 +111,7 @@ The extraction pipeline (`pipeline/orchestrator.py`) uses a registry-driven phas
 - **`pipeline/orchestrator.py`** (332 lines) — `PipelineOrchestrator` class, dependency graph, parallel wave execution
 - **`pipeline/combiner.py`** (420 lines) — `combine_to_full_usdm()`, USDM defaults, SoA data integration
 - **`pipeline/integrations.py`** (289 lines) — SAP/sites integration, content reference resolution, estimand→population reconciliation
-- **`pipeline/post_processing.py`** (~660 lines) — Entity reconciliation (epochs, encounters, activities), activity source marking, procedure linking, SoA footnotes, cohort→population linking, UNS tagging
+- **`pipeline/post_processing.py`** (~810 lines) — Entity reconciliation (epochs, encounters, activities), activity source marking, procedure linking, SoA footnotes, cohort→population linking, UNS tagging + UNS→SDI promotion
 - **`pipeline/promotion.py`** (260 lines) — Extension→USDM promotion rules (4 rules: sample size, completers, sex, age)
 
 | Phase | Module | M11 §§ | Key USDM Entities | Dependencies |
@@ -132,6 +132,15 @@ The extraction pipeline (`pipeline/orchestrator.py`) uses a registry-driven phas
 | doc_structure | `extraction/document_structure/` | — | DocumentContentReference | None |
 
 **Parallel execution**: Independent phases run concurrently in waves. `PipelineContext` uses `snapshot()` and `merge_from()` for thread isolation. Dependencies are auto-enforced transitively via `_enforce_dependencies()`.
+
+**PipelineContext decomposition (W-HIGH-2)**: `PipelineContext` is composed of 5 focused sub-contexts (`SoAContext`, `MetadataContext`, `DesignContext`, `InterventionContext`, `SchedulingContext`). All 28 fields accessible via `@property` delegates for full backward compatibility. Sub-contexts defined in `extraction/pipeline_context.py`.
+
+**Entity-level provenance (W-HIGH-3)**: `PhaseProvenance` tracks `pages_used` and `entity_ids` per phase. `BasePhase.run()` auto-captures via `_extract_pages_used()` and `_extract_entity_ids()`. `PipelineOrchestrator.aggregate_entity_provenance()` builds entity→phase registry; `save_entity_provenance()` writes `entity_provenance.json`.
+
+**Dependency injection (W-HIGH-4)**: Three singletons made injectable for test isolation:
+- `phase_registry` → `create_registry()`, `PhaseRegistry.reset()`, `PipelineOrchestrator(registry=...)`
+- EVS `_client` → `set_client()`, `reset_client()` in `core/evs_client.py`
+- `usage_tracker` → `create_tracker()`, `set_usage_tracker()`, `reset_usage_tracker()` in `providers/tracker.py`
 
 **Phase anatomy**: Each phase has `schema.py` (Pydantic), `extractor.py` (LLM calls), `prompts.py`, and optionally `combiner.py`. All registered via `BasePhase` subclass in `pipeline/phases/`.
 
@@ -339,14 +348,14 @@ Key extensions:
 | `soaFootnoteRef` | Activity | Links to SoA footnote letters |
 | `epochId` | Encounter | Links encounter to its epoch |
 | `x-encounterUnscheduled` | Encounter | `valueBoolean: true` for event-driven / UNS visits |
+| `x-unsDecisionInstance` | ScheduledDecisionInstance | `valueString`: source encounter ID — links SDI to UNS encounter |
 | `x-encounterTimingLabel` | Encounter | Original timing string from SoA header |
 
-#### Unscheduled Visit (UNS) Handling
+#### Unscheduled Visit (UNS) Handling — All 3 Phases Complete
 Encounters whose names match `UNS`, `Unscheduled`, `Unplanned`, `Ad Hoc`, `PRN`, `As Needed`, or `Event-Driven` are automatically tagged with `x-encounterUnscheduled: true` via:
-1. **Extraction** — `EncounterReconciler._create_contribution()` calls `is_unscheduled_encounter()` (regex in `core/reconciliation/encounter_reconciler.py`)
-2. **Post-processing** — `tag_unscheduled_encounters()` in `pipeline/post_processing.py` catches any encounters missed during reconciliation (safety net)
-3. **UI** — `toSoATableModel.ts` reads the extension into `SoAColumn.isUnscheduled`; `SoAGrid.tsx` renders unscheduled columns with dashed amber borders, italic headers, ⚡ suffix, and amber-tinted cells
-4. **Scheduling** — `TransitionType.UNSCHEDULED_VISIT` in `extraction/scheduling/schema.py` models UNS as a reentrant branch (medium-term: promote to `ScheduledDecisionInstance`)
+1. **Phase 1 — Extraction & Tagging** — `EncounterReconciler._create_contribution()` calls `is_unscheduled_encounter()` (regex in `core/reconciliation/encounter_reconciler.py`). Safety net: `tag_unscheduled_encounters()` in `pipeline/post_processing.py`. UI: dashed amber borders, italic headers, ⚡ suffix in SoA grid.
+2. **Phase 2 — SDI Promotion** — `promote_unscheduled_to_decisions()` in `pipeline/post_processing.py` creates `ScheduledDecisionInstance` (C201351) with `Condition` (C25457) + `ConditionAssignment` (C201335) branches. Event branch → UNS encounter, default branch → next scheduled encounter. SDIs placed on `scheduleTimeline.instances[]`, conditions on `studyVersion.conditions[]`. Extension `x-unsDecisionInstance` links SDI to source encounter.
+3. **Phase 3 — Timeline Graph** — `toGraphModel.ts` detects SDIs and renders diamond `decision` nodes. `cytoscape-theme.ts` styles: amber dashed diamond, amber dashed branch edges, grey solid default edges. `TimelineToolbar.tsx` legend updated.
 
 ### 4.4 Internal Extraction Types (not official USDM)
 | Type | Purpose | Converts To |
@@ -436,11 +445,16 @@ Encounters whose names match `UNS`, `Unscheduled`, `Unplanned`, `Ad Hoc`, `PRN`,
 **Editing capabilities**: Scalar fields (EditableField), CDISC coded values (EditableCodedValue, 14 codelists), lists with add/remove/reorder (EditableList), SoA cell marks (X/O/−/Del via keyboard), activity/encounter names, **add new activities and encounters** (via SoA toolbar "Add Row"/"Add Visit" buttons in edit mode). Revision conflict detection via SHA256 hash. Immutable paths protected (study ID, version ID).
 
 **Known web UI gaps** (see `docs/WEB_UI_REVIEW.md` for full analysis):
-1. **Index-based patch paths** — patches use array indices not entity IDs; fragile across re-extraction
-2. **No GxP audit trail** — no authenticated user, no reason-for-change, no hash chain
-3. **No live validation on publish** — reads pre-existing validation files, does not run validators on patched USDM
-4. **Partial editing coverage** — objectives, estimands, interventions, timing, narrative, transition rules are read-only
+1. ~~**Index-based patch paths**~~ — ✅ Fixed: `SoAProcessor` now uses `@id:`-based paths for all entity references (timelines, instances, encounters, activities, groups). Resolved at patch-application time by `resolveIdPath()` in `patcher.ts`.
+2. ~~**No GxP audit trail**~~ — ✅ Fixed: `useUserIdentity` hook persists username in localStorage; `getCurrentUsername()` for stores. SHA-256 hash-chain changelog with `publishedBy`, `reason`, validation summary. Revert handler also writes `[REVERT]` audit entries.
+3. ~~**No live validation on publish**~~ — ✅ Fixed: publish handler runs `validateSoAStructure()` referential integrity check + live Python schema/USDM/CDISC CORE validation on candidate USDM *before* writing to disk. `forcePublish` override available.
+4. ~~**Partial editing coverage**~~ — ✅ Largely fixed: objectives/endpoints (add/remove/edit text+level), estimands (all 5 ICH E9(R1) attributes + intercurrent events), interventions (name/description/role/type/products), narrative (sections + content items), timing (name/type/relativeToFrom) are all editable. Remaining read-only: transition rules, condition assignments.
 5. ~~**Not all views use `usePatchedUsdm()`**~~ — ✅ Fixed: protocol page now uses `usePatchedUsdm()`, all 15 child views receive patched USDM
+
+**Additional capabilities added:**
+- **Auto-save**: `useAutoSave` hook saves drafts every 30s, on tab blur, and via `sendBeacon` on page close
+- **Cascade deletes**: `SoAProcessor.deleteEncounter()` / `deleteActivity()` remove orphaned `ScheduledActivityInstance` references
+- **Undo grouping**: `setActivityName` / `setEncounterName` wrapped in `beginGroup()`/`endGroup()` for atomic undo
 
 ---
 
@@ -454,7 +468,7 @@ All 28 extractor gaps (3 CRITICAL, 10 HIGH, 9 MEDIUM, 6 LOW) identified in the U
 | ~~P12~~ | Population demographics (age, sex, enrollment) | §1, §5 | ✅ Fixed |
 | ~~P13~~ | GovernanceDate + sponsor Address | §1 title page | ✅ Fixed (v7.7) |
 | ~~P14~~ | blindingSchema, randomizationType, characteristics | §1 synopsis, §4 | ✅ Fixed (v7.7) |
-| P15 | M11-aware narrative sectionType tagging | §7, §9, §11 | ❌ Pending |
+| ~~P15~~ | ~~M11-aware narrative sectionType tagging~~ | §7, §9, §11 | ✅ Fixed: `sectionType` now set on both `NarrativeContent` and `NarrativeContentItem` at extraction time. Renderer prefers sectionType-based filtering, keyword fallback for backward compat. |
 | ~~P16~~ | Configurable M11↔USDM mapping YAML | All | ✅ Fixed |
 | ~~P17~~ | Generic code (protocol-specific refs removed) | All | ✅ Fixed |
 
@@ -474,16 +488,16 @@ All 28 extractor gaps (3 CRITICAL, 10 HIGH, 9 MEDIUM, 6 LOW) identified in the U
 
 ### 6.3 Architectural Anti-Patterns
 - ~~`_compose_safety` (§9) and `_compose_discontinuation` (§7) perform keyword scanning at render time~~ — ✅ Fixed: now prefer `sectionType`-based filtering (extraction-time tagging), keyword fallback for backward compat. Added `DISCONTINUATION` to `SectionType` enum.
-- `NarrativeContentItem` has extra fields (`sectionNumber`, `sectionTitle`, `order`) not in USDM v4.0 spec
-- `NarrativeContent` missing `previousId`/`nextId` for linked list, `displaySectionTitle`/`displaySectionNumber` booleans
+- `NarrativeContentItem` has extra fields (`sectionNumber`, `sectionTitle`, `order`, `sectionType`) not in USDM v4.0 spec — kept for M11 renderer/web UI consumption, documented deviation
+- ~~`NarrativeContent` missing `previousId`/`nextId` for linked list, `displaySectionTitle`/`displaySectionNumber` booleans~~ — ✅ Fixed: all USDM v4.0 fields added (`displaySectionTitle`, `displaySectionNumber`, `previousId`, `nextId`, `contentItemId`). Linked list built at serialization time in `NarrativeData.to_dict()`.
 
 ### 6.4 Structural Debt (from `docs/FULL_PROJECT_REVIEW.md`)
 | ID | Issue | Severity | File(s) |
 |----|-------|----------|--------|
 | ~~W-CRIT-1~~ | ~~`combine_to_full_usdm()` god function~~ | ~~CRITICAL~~ | ✅ Extracted `_integrate_sites()`, `_integrate_sap()`, data-driven `_SAP_EXTENSION_TYPES` |
-| W-CRIT-2 | No automated end-to-end integration test with golden PDF | CRITICAL | `testing/` |
+| ~~W-CRIT-2~~ | ~~No automated end-to-end integration test with golden PDF~~ | ~~CRITICAL~~ | ✅ `tests/test_e2e_pipeline.py` — 36 tests: artifacts, USDM structure, entity counts/quality, M11 DOCX, cross-entity integrity, schema+USDM validation |
 | ~~W-CRIT-3~~ | ~~SAP/sites bypass phase registry~~ | ~~HIGH~~ | ✅ `SAPPhase` + `SitesPhase` registered (14 phases total) |
-| W-HIGH-1 | Monolithic files: `llm_providers.py` (1,274L), `m11_renderer.py` (2,227L), `orchestrator.py` (1,692L) | HIGH | Multiple |
+| ~~W-HIGH-1~~ | ~~Monolithic files~~ | ~~HIGH~~ | ✅ Fixed: `m11_renderer.py` split into `document_setup.py` + `text_formatting.py` (1199L→465L). `orchestrator.py` already decomposed (357L). |
 | W-HIGH-2 | `PipelineContext` growing into god object (28 fields + 7 lookup maps) | HIGH | `extraction/pipeline_context.py` |
 | W-HIGH-3 | No provenance tracking for expansion phase entities (objectives, eligibility, etc.) | HIGH | `core/provenance.py` |
 | W-HIGH-4 | Mutable global singletons (`phase_registry`, `usage_tracker`, EVS `_client`) hinder testing | MEDIUM | Multiple |

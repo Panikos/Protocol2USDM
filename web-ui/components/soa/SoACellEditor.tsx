@@ -84,6 +84,7 @@ export function SoACellEditor({
       ref={containerRef}
       tabIndex={0}
       onKeyDown={handleKeyDown}
+      aria-label="Cell mark editor"
       className="bg-white border-2 border-blue-500 rounded-lg shadow-xl p-3 min-w-[280px] focus:outline-none"
     >
       {/* Header */}
@@ -173,6 +174,7 @@ export function SoACellEditor({
               value={customFootnote}
               onChange={e => setCustomFootnote(e.target.value)}
               placeholder="Add custom (e.g., 'a')"
+              aria-label="Custom footnote text"
               className="flex-1 px-2 py-1 text-xs border rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
               onKeyDown={e => e.key === 'Enter' && addCustomFootnote()}
             />

@@ -67,7 +67,7 @@ class SAPPhase(BasePhase):
             sap_dict = result.data.to_dict() if hasattr(result.data, 'to_dict') else result.data
         elif previous_extractions.get('sap'):
             prev = previous_extractions['sap']
-            sap_dict = prev.get('sap', prev)
+            sap_dict = prev.get('sapData', prev)
         
         if not sap_dict:
             return

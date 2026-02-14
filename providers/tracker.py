@@ -140,3 +140,20 @@ class TokenUsageTracker:
 
 # Global tracker instance
 usage_tracker = TokenUsageTracker()
+
+
+def create_tracker() -> TokenUsageTracker:
+    """Create a fresh TokenUsageTracker instance (useful in tests for isolation)."""
+    return TokenUsageTracker()
+
+
+def set_usage_tracker(tracker: TokenUsageTracker) -> None:
+    """Inject a custom usage tracker globally (useful in tests)."""
+    global usage_tracker
+    usage_tracker = tracker
+
+
+def reset_usage_tracker() -> None:
+    """Reset the global usage tracker to a fresh instance."""
+    global usage_tracker
+    usage_tracker = TokenUsageTracker()

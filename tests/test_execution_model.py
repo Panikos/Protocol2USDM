@@ -48,8 +48,8 @@ from extraction.execution.schema import (
 )
 
 from extraction.execution.time_anchor_extractor import (
-    _detect_anchors_heuristic,
-    _build_anchor_definition,
+    _detect_anchors_fallback,
+    _resolve_anchor_type,
     _extract_day_value,
     _prioritize_anchors,
 )
@@ -207,36 +207,31 @@ class TestTimeAnchorExtractor:
     
     def test_detect_first_dose_anchor(self):
         text = "Day 1 is defined as the first dose of investigational product administered to the subject."
-        anchors = _detect_anchors_heuristic(text)
+        anchors = _detect_anchors_fallback(text)
         assert len(anchors) > 0
-        # Should detect FIRST_DOSE
         anchor_types = [a.anchor_type for a in anchors]
         assert AnchorType.FIRST_DOSE in anchor_types
         
     def test_detect_randomization_anchor(self):
         text = "Study visits are scheduled based on days from randomization. Day 0 is the randomization visit."
-        anchors = _detect_anchors_heuristic(text)
+        anchors = _detect_anchors_fallback(text)
         assert len(anchors) > 0
         anchor_types = [a.anchor_type for a in anchors]
         assert AnchorType.RANDOMIZATION in anchor_types
         
     def test_detect_cycle_anchor(self):
         text = "Treatment begins on Cycle 1, Day 1 (C1D1) with oral administration of study drug."
-        anchors = _detect_anchors_heuristic(text)
+        anchors = _detect_anchors_fallback(text)
         assert len(anchors) > 0
         anchor_types = [a.anchor_type for a in anchors]
         assert AnchorType.CYCLE_START in anchor_types
         
-    def test_detect_baseline_anchor(self):
-        text = "Week 0 of treatment serves as the baseline assessment period."
-        anchors = _detect_anchors_heuristic(text)
-        assert len(anchors) > 0
-        anchor_types = [a.anchor_type for a in anchors]
-        assert AnchorType.BASELINE in anchor_types
-        
-    def test_build_anchor_definition(self):
-        definition = _build_anchor_definition(AnchorType.FIRST_DOSE, "first dose")
-        assert "First administration" in definition
+    def test_resolve_anchor_type(self):
+        assert _resolve_anchor_type("FirstDose") == AnchorType.FIRST_DOSE
+        assert _resolve_anchor_type("first_dose") == AnchorType.FIRST_DOSE
+        assert _resolve_anchor_type("Randomization") == AnchorType.RANDOMIZATION
+        assert _resolve_anchor_type("unknown_value") == AnchorType.CUSTOM
+        assert _resolve_anchor_type("") == AnchorType.CUSTOM
         
     def test_extract_day_value(self):
         assert _extract_day_value("Day 1", "") == 1

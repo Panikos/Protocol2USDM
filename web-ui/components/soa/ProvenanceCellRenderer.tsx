@@ -1,6 +1,7 @@
 'use client';
 
 import { ICellRendererParams } from 'ag-grid-community';
+import { CheckCircle2, FileText, Eye, AlertTriangle, Pencil, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { CellSource } from '@/lib/provenance/types';
 
@@ -58,10 +59,13 @@ export function ProvenanceCellRenderer(params: ProvenanceCellRendererParams) {
     ? `${instanceName}\n\n${provenanceText}`
     : provenanceText;
 
+  // Secondary indicator icon for provenance (F13 — WCAG 1.4.1)
+  const ProvenanceIcon = getProvenanceIcon(hasPendingEdit ? 'pending' : userEdited ? 'userEdited' : source);
+
   return (
     <div
       className={cn(
-        'flex items-center justify-center h-full w-full font-medium text-sm',
+        'flex items-center justify-center h-full w-full font-medium text-sm relative',
         'transition-colors cursor-default',
         bgColor
       )}
@@ -73,8 +77,26 @@ export function ProvenanceCellRenderer(params: ProvenanceCellRendererParams) {
           {footnotes.join(',')}
         </sup>
       )}
+      {ProvenanceIcon && (
+        <span className="absolute bottom-0 right-0 opacity-60">
+          <ProvenanceIcon className="h-2.5 w-2.5" />
+        </span>
+      )}
     </div>
   );
+}
+
+function getProvenanceIcon(source: string): React.ComponentType<{ className?: string }> | null {
+  switch (source) {
+    case 'both': return CheckCircle2;
+    case 'text': return FileText;
+    case 'vision':
+    case 'needs_review': return Eye;
+    case 'none': return AlertTriangle;
+    case 'userEdited': return Pencil;
+    case 'pending': return Clock;
+    default: return null;
+  }
 }
 
 function getProvenanceBackgroundColor(source: CellSource): string {
@@ -112,12 +134,12 @@ function getProvenanceTooltip(source: CellSource, needsReview: boolean, userEdit
 // Legend component for provenance colors
 export function ProvenanceLegend({ className }: { className?: string }) {
   const items = [
-    { color: 'bg-green-400', label: 'Confirmed', desc: 'Text + Vision agree' },
-    { color: 'bg-blue-400', label: 'Text-only', desc: 'Not confirmed by vision' },
-    { color: 'bg-orange-400', label: 'Vision-only', desc: 'Needs review' },
-    { color: 'bg-red-400', label: 'Orphaned', desc: 'No provenance' },
-    { color: 'bg-purple-300', label: 'User Edited', desc: 'Manually modified' },
-    { color: 'bg-amber-200 border-l-2 border-amber-500', label: 'Pending', desc: 'Unsaved edit' },
+    { color: 'bg-green-400', icon: CheckCircle2, label: 'Confirmed', desc: 'Text + Vision agree' },
+    { color: 'bg-blue-400', icon: FileText, label: 'Text-only', desc: 'Not confirmed by vision' },
+    { color: 'bg-orange-400', icon: Eye, label: 'Vision-only', desc: 'Needs review' },
+    { color: 'bg-red-400', icon: AlertTriangle, label: 'Orphaned', desc: 'No provenance' },
+    { color: 'bg-purple-300', icon: Pencil, label: 'User Edited', desc: 'Manually modified' },
+    { color: 'bg-amber-200 border-l-2 border-amber-500', icon: Clock, label: 'Pending', desc: 'Unsaved edit' },
   ];
 
   return (
@@ -125,7 +147,9 @@ export function ProvenanceLegend({ className }: { className?: string }) {
       <span className="font-medium text-muted-foreground">Provenance:</span>
       {items.map((item) => (
         <div key={item.label} className="flex items-center gap-1.5">
-          <div className={cn('w-4 h-4 rounded', item.color)} />
+          <div className={cn('w-4 h-4 rounded flex items-center justify-center', item.color)}>
+            <item.icon className="h-2.5 w-2.5 text-white/80" />
+          </div>
           <span className="text-muted-foreground">
             <strong>{item.label}</strong>
             <span className="hidden sm:inline"> - {item.desc}</span>

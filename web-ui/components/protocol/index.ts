@@ -12,3 +12,5 @@ export { FootnotesView } from './FootnotesView';
 export { ScheduleTimelineView } from './ScheduleTimelineView';
 export { EpochTimelineChart } from './EpochTimelineChart';
 export { NarrativeView } from './NarrativeView';
+export { CrossReferencesView } from './CrossReferencesView';
+export { FiguresGalleryView } from './FiguresGalleryView';

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -16,10 +16,15 @@ import {
   Hash,
   Plus,
   Trash2,
+  Link2,
 } from 'lucide-react';
+import type { InlineCrossReference } from '@/lib/types';
 
 interface NarrativeViewProps {
   usdm: Record<string, unknown> | null;
+  onNavigateToTab?: (tab: string) => void;
+  targetSectionNumber?: string | null;
+  onTargetSectionHandled?: () => void;
 }
 
 interface NarrativeContent {
@@ -40,10 +45,65 @@ interface NarrativeContentItem {
   instanceType?: string;
 }
 
-export function NarrativeView({ usdm }: NarrativeViewProps) {
+// Regex matching the same patterns as the backend reference_scanner.py
+const CROSS_REF_PATTERN = /(?:see\s+|refer\s+to\s+|per\s+|as\s+(?:described|defined|specified|outlined|detailed)\s+in\s+)?(?:Section|Table|Figure|Appendix|Listing)\s+[\d]+(?:[\d.]*[a-zA-Z]?)?/gi;
+
+function highlightCrossRefs(
+  text: string,
+  refsForSection: InlineCrossReference[],
+): React.ReactNode[] {
+  if (!text || refsForSection.length === 0) return [text];
+
+  const parts: React.ReactNode[] = [];
+  let lastIdx = 0;
+  const matches = [...text.matchAll(CROSS_REF_PATTERN)];
+
+  for (const match of matches) {
+    const start = match.index!;
+    const end = start + match[0].length;
+    if (start > lastIdx) {
+      parts.push(text.slice(lastIdx, start));
+    }
+    parts.push(
+      <span
+        key={`xref-${start}`}
+        className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 text-xs font-medium cursor-default hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
+        title={`Cross-reference: ${match[0]}`}
+      >
+        <Link2 className="h-3 w-3 shrink-0" />
+        {match[0]}
+      </span>
+    );
+    lastIdx = end;
+  }
+  if (lastIdx < text.length) {
+    parts.push(text.slice(lastIdx));
+  }
+  return parts.length > 0 ? parts : [text];
+}
+
+export function NarrativeView({ usdm, onNavigateToTab, targetSectionNumber, onTargetSectionHandled }: NarrativeViewProps) {
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+  const [highlightedSectionId, setHighlightedSectionId] = useState<string | null>(null);
+  const sectionDomRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const { addPatchOp } = useSemanticStore();
   const isEditMode = useEditModeStore((s) => s.isEditMode);
+
+  // Build cross-reference lookup by source section
+  const crossRefs = useMemo(() => {
+    if (!usdm) return [] as InlineCrossReference[];
+    return (usdm.inlineCrossReferences as InlineCrossReference[] | undefined) ?? [];
+  }, [usdm]);
+
+  const refsBySection = useMemo(() => {
+    const map = new Map<string, InlineCrossReference[]>();
+    for (const ref of crossRefs) {
+      const key = ref.sourceSection;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(ref);
+    }
+    return map;
+  }, [crossRefs]);
 
   if (!usdm) {
     return (
@@ -135,6 +195,43 @@ export function NarrativeView({ usdm }: NarrativeViewProps) {
     addPatchOp({ op: 'remove', path: versionPath('narrativeContentItems', itemId) });
   };
 
+  // Auto-expand and scroll to target section when navigated from cross-references
+  useEffect(() => {
+    if (!targetSectionNumber || sortedSections.length === 0) return;
+
+    // Find the section that matches the target section number (exact or prefix match)
+    const target = sortedSections.find(
+      s => s.sectionNumber === targetSectionNumber
+    ) || sortedSections.find(
+      s => s.sectionNumber?.startsWith(targetSectionNumber + '.')
+    ) || sortedSections.find(
+      s => targetSectionNumber.startsWith(s.sectionNumber + '.')
+    );
+
+    if (target) {
+      // Expand the section
+      setExpandedSections(prev => {
+        const next = new Set(prev);
+        next.add(target.id);
+        return next;
+      });
+
+      // Highlight it briefly
+      setHighlightedSectionId(target.id);
+      setTimeout(() => setHighlightedSectionId(null), 2500);
+
+      // Scroll to it after a tick (so it's rendered expanded)
+      requestAnimationFrame(() => {
+        const el = sectionDomRefs.current.get(target.id);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    }
+
+    onTargetSectionHandled?.();
+  }, [targetSectionNumber]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const expandAll = () => {
     setExpandedSections(new Set(narrativeContents.map(nc => nc.id)));
   };
@@ -146,7 +243,7 @@ export function NarrativeView({ usdm }: NarrativeViewProps) {
   return (
     <div className="space-y-6">
       {/* Summary */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-2">
@@ -165,6 +262,17 @@ export function NarrativeView({ usdm }: NarrativeViewProps) {
               <div>
                 <div className="text-2xl font-bold">{narrativeContentItems.length}</div>
                 <div className="text-xs text-muted-foreground">Content Items</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-2">
+              <Link2 className="h-5 w-5 text-amber-600" />
+              <div>
+                <div className="text-2xl font-bold">{crossRefs.length}</div>
+                <div className="text-xs text-muted-foreground">Cross-References</div>
               </div>
             </div>
           </CardContent>
@@ -210,8 +318,18 @@ export function NarrativeView({ usdm }: NarrativeViewProps) {
               // Sort items by sequence
               items.sort((a, b) => (a.sequence || 0) - (b.sequence || 0));
 
+              const sectionRefs = refsBySection.get(section.sectionNumber || '') ?? [];
+
               return (
-                <div key={section.id || i} className="border rounded-lg overflow-hidden">
+                <div
+                  key={section.id || i}
+                  ref={(el) => { if (el) sectionDomRefs.current.set(section.id, el); }}
+                  className={`border rounded-lg overflow-hidden transition-all duration-500 ${
+                    highlightedSectionId === section.id
+                      ? 'ring-2 ring-blue-500 ring-offset-2 bg-blue-50/50 dark:bg-blue-950/30'
+                      : ''
+                  }`}
+                >
                   <div
                     onClick={() => toggleSection(section.id)}
                     className="w-full p-3 flex items-center gap-3 hover:bg-muted/50 transition-colors text-left cursor-pointer"
@@ -238,6 +356,12 @@ export function NarrativeView({ usdm }: NarrativeViewProps) {
                         placeholder="Section title"
                       />
                     </span>
+                    {sectionRefs.length > 0 && (
+                      <Badge variant="outline" className="shrink-0 text-blue-700 dark:text-blue-400 border-blue-300 dark:border-blue-800">
+                        <Link2 className="h-3 w-3 mr-0.5" />
+                        {sectionRefs.length}
+                      </Badge>
+                    )}
                     {items.length > 0 && (
                       <Badge variant="secondary" className="shrink-0">
                         {items.length} item{items.length !== 1 ? 's' : ''}
@@ -258,14 +382,22 @@ export function NarrativeView({ usdm }: NarrativeViewProps) {
                   {isExpanded && (
                     <div className="px-4 pb-4 pt-2 bg-muted/30 border-t">
                       <div className="prose prose-sm dark:prose-invert max-w-none mb-4">
-                        <EditableField
-                          path={section.id ? versionPath('narrativeContents', section.id, 'text') : `/study/versions/0/narrativeContents/${i}/text`}
-                          value={section.text || ''}
-                          label=""
-                          type="textarea"
-                          className="whitespace-pre-wrap"
-                          placeholder="No content"
-                        />
+                        {isEditMode ? (
+                          <EditableField
+                            path={section.id ? versionPath('narrativeContents', section.id, 'text') : `/study/versions/0/narrativeContents/${i}/text`}
+                            value={section.text || ''}
+                            label=""
+                            type="textarea"
+                            className="whitespace-pre-wrap"
+                            placeholder="No content"
+                          />
+                        ) : (
+                          <p className="whitespace-pre-wrap text-sm leading-relaxed">
+                            {sectionRefs.length > 0
+                              ? highlightCrossRefs(section.text || '', sectionRefs)
+                              : (section.text || <span className="text-muted-foreground italic">No content</span>)}
+                          </p>
+                        )}
                       </div>
                       
                       {items.length > 0 && (

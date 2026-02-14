@@ -9,6 +9,25 @@ from extraction.pipeline_context import PipelineContext
 logger = logging.getLogger(__name__)
 
 
+def _build_scheduling_context(
+    epochs: list = None,
+    encounters: list = None,
+    arms: list = None,
+) -> str:
+    """Build a compact upstream context summary for LLM grounding."""
+    parts = []
+    if epochs:
+        names = [e.get('name', '') if isinstance(e, dict) else str(e) for e in epochs]
+        parts.append(f"Study Epochs: {', '.join(n for n in names if n)}")
+    if encounters:
+        names = [e.get('name', '') if isinstance(e, dict) else str(e) for e in encounters]
+        parts.append(f"Encounters/Visits: {', '.join(n for n in names if n)}")
+    if arms:
+        names = [a.get('name', '') if isinstance(a, dict) else str(a) for a in arms]
+        parts.append(f"Study Arms: {', '.join(n for n in names if n)}")
+    return '\n'.join(parts) if parts else ''
+
+
 class SchedulingPhase(BasePhase):
     """Extract scheduling logic, timings, and conditions."""
     
@@ -22,6 +41,16 @@ class SchedulingPhase(BasePhase):
             optional=True,
         )
     
+    def get_context_params(self, context: PipelineContext) -> dict:
+        params = {}
+        if context.has_epochs():
+            params['existing_epochs'] = context.epochs
+        if context.has_encounters():
+            params['existing_encounters'] = context.encounters
+        if context.has_arms():
+            params['existing_arms'] = context.arms
+        return params
+    
     def extract(
         self,
         pdf_path: str,
@@ -29,11 +58,21 @@ class SchedulingPhase(BasePhase):
         output_dir: str,
         context: PipelineContext,
         soa_data: Optional[dict] = None,
+        existing_epochs: Optional[list] = None,
+        existing_encounters: Optional[list] = None,
+        existing_arms: Optional[list] = None,
         **kwargs
     ) -> PhaseResult:
         from extraction.scheduling import extract_scheduling
         
-        result = extract_scheduling(pdf_path, model=model, output_dir=output_dir)
+        upstream_context = _build_scheduling_context(
+            existing_epochs, existing_encounters, existing_arms
+        )
+        
+        result = extract_scheduling(
+            pdf_path, model=model, output_dir=output_dir,
+            upstream_context=upstream_context,
+        )
         
         return PhaseResult(
             success=result.success,

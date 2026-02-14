@@ -38,6 +38,7 @@ class ExecutionPhase(BasePhase):
             model=model,
             output_dir=output_dir,
             soa_data=soa_data,
+            pipeline_context=context,
         )
         
         return PhaseResult(

@@ -123,10 +123,20 @@ export async function GET(
       soaProvenance: await loadJsonFile(path.join(protocolDir, '9_final_soa_provenance.json')),
     };
     
+    // Load extraction & entity provenance (W-HIGH-3)
+    const extractionProvenance = await loadJsonFile(path.join(protocolDir, 'extraction_provenance.json'));
+    const entityProvenance = await loadJsonFile(path.join(protocolDir, 'entity_provenance.json'));
+    
+    // Load referential integrity report
+    const integrityReport = await loadJsonFile(path.join(protocolDir, 'integrity_report.json'));
+    
     return NextResponse.json({
       usdm,
       revision,
       provenance,
+      extractionProvenance,
+      entityProvenance,
+      integrityReport,
       intermediateFiles,
       generatedAt: usdm.generatedAt,
     }, {

@@ -33,7 +33,15 @@ class DocStructurePhase(BasePhase):
     ) -> PhaseResult:
         from extraction.document_structure import extract_document_structure
         
-        result = extract_document_structure(pdf_path, model=model, output_dir=output_dir)
+        # Read narrative contents from pipeline context (populated by narrative phase)
+        narrative_contents = context.narrative_contents if context.narrative_contents else None
+        
+        result = extract_document_structure(
+            pdf_path,
+            model=model,
+            output_dir=output_dir,
+            narrative_contents=narrative_contents,
+        )
         
         return PhaseResult(
             success=result.success,
@@ -48,7 +56,12 @@ class DocStructurePhase(BasePhase):
             summary = result.data.to_dict().get('summary', {})
             refs = summary.get('referenceCount', 0)
             annotations = summary.get('annotationCount', 0)
-            logger.info(f"    References: {refs}, Annotations: {annotations}")
+            xrefs = summary.get('inlineReferenceCount', 0)
+            figs = summary.get('figureCount', 0)
+            logger.info(
+                f"    References: {refs}, Annotations: {annotations}, "
+                f"Cross-refs: {xrefs}, Figures: {figs}"
+            )
         return result
     
     def combine(
@@ -71,6 +84,19 @@ class DocStructurePhase(BasePhase):
             combined["commentAnnotations"] = data_dict['commentAnnotations']
         if data_dict.get('studyDefinitionDocumentVersions'):
             combined["studyDefinitionDocumentVersions"] = data_dict['studyDefinitionDocumentVersions']
+        if data_dict.get('inlineCrossReferences'):
+            combined["inlineCrossReferences"] = data_dict['inlineCrossReferences']
+        if data_dict.get('protocolFigures'):
+            combined["protocolFigures"] = data_dict['protocolFigures']
+            # Also store as extension attribute on study version for USDM compatibility
+            import json
+            ext = {
+                "id": "ext-protocol-figures",
+                "url": "https://protocol2usdm.io/extensions/x-protocol-figures",
+                "valueString": json.dumps(data_dict['protocolFigures']),
+                "instanceType": "ExtensionAttribute",
+            }
+            study_version.setdefault('extensionAttributes', []).append(ext)
 
 
 # Register the phase

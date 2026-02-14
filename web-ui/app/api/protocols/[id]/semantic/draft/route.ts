@@ -12,8 +12,11 @@ import {
   archiveDraft,
   computeUsdmRevision,
   ensureSemanticFolders,
+  getUsdmPath,
 } from '@/lib/semantic/storage';
+import { dryRunPatch } from '@/lib/semantic/patcher';
 import { validateProtocolId } from '@/lib/sanitize';
+import fs from 'fs/promises';
 
 /**
  * GET /api/protocols/[id]/semantic/draft
@@ -137,10 +140,25 @@ export async function PUT(
     // Write draft
     await writeDraftLatest(protocolId, draftValidation.data);
     
+    // Dry-run patch validation (non-blocking — save always succeeds)
+    let dryRunWarning: string | undefined;
+    try {
+      const usdmPath = getUsdmPath(protocolId);
+      const usdmContent = await fs.readFile(usdmPath, 'utf-8');
+      const usdm = JSON.parse(usdmContent);
+      const dryResult = dryRunPatch(usdm, patch);
+      if (!dryResult.wouldSucceed) {
+        dryRunWarning = dryResult.error;
+      }
+    } catch {
+      // Dry-run failure is non-fatal — USDM may not exist yet
+    }
+    
     return NextResponse.json({ 
       success: true, 
       archivedPrevious: archivedFile,
       draft: draftValidation.data,
+      ...(dryRunWarning ? { dryRunWarning } : {}),
     });
   } catch (error) {
     console.error('Error saving semantic draft:', error);

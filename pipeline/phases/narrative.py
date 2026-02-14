@@ -31,6 +31,10 @@ class NarrativePhase(BasePhase):
         
         result = extract_narrative_structure(pdf_path, model_name=model)
         
+        # Store narrative contents in context for downstream phases (e.g. docstructure)
+        if result.success and result.data and result.data.sections:
+            context.narrative_contents = [s.to_dict() for s in result.data.sections]
+        
         return PhaseResult(
             success=result.success,
             data=result.data if result.success else None,

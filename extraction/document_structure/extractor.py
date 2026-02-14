@@ -1,7 +1,8 @@
 """
 Document Structure Extractor - Phase 12 of USDM Expansion
 
-Extracts DocumentContentReference, CommentAnnotation, StudyDefinitionDocumentVersion.
+Extracts DocumentContentReference, CommentAnnotation, StudyDefinitionDocumentVersion,
+InlineCrossReference (from narrative text), and ProtocolFigure (from PDF pages).
 """
 
 import json
@@ -20,8 +21,21 @@ from .schema import (
     CommentAnnotation,
     StudyDefinitionDocumentVersion,
     AnnotationType,
+    InlineCrossReference,
+    ProtocolFigure,
 )
-from .prompts import get_document_structure_prompt, get_system_prompt
+from .prompts import (
+    get_document_structure_prompt,
+    get_figure_enrichment_prompt,
+    get_system_prompt,
+)
+from .reference_scanner import (
+    scan_inline_references,
+    scan_pdf_for_figures,
+    render_figure_images,
+    link_references_to_narratives,
+    assign_figures_to_sections,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -100,9 +114,17 @@ def extract_document_structure(
     pdf_path: str,
     model: str = "gemini-2.5-pro",
     output_dir: Optional[str] = None,
+    narrative_contents: Optional[List[Dict]] = None,
 ) -> DocumentStructureResult:
     """
     Extract document structure from protocol PDF.
+
+    Args:
+        pdf_path: Path to the protocol PDF.
+        model: LLM model for enrichment.
+        output_dir: Directory for output files (figures saved here too).
+        narrative_contents: List of NarrativeContent dicts from prior phases,
+            used for cross-reference scanning and linking.
     """
     logger.info("Starting document structure extraction...")
     
@@ -196,13 +218,36 @@ def extract_document_structure(
             )
             document_versions.append(ver)
         
+        # --- Deterministic: Inline cross-reference scanning ---
+        inline_refs: List[InlineCrossReference] = []
+        if narrative_contents:
+            inline_refs = scan_inline_references(narrative_contents)
+            link_references_to_narratives(inline_refs, narrative_contents)
+
+        # --- Deterministic: Figure/table scanning from PDF ---
+        figures = scan_pdf_for_figures(pdf_path)
+        if figures and narrative_contents:
+            assign_figures_to_sections(figures, narrative_contents)
+
+        # --- Render figure page images ---
+        if figures and output_dir:
+            figures = render_figure_images(pdf_path, figures, output_dir)
+
+        # --- LLM enrichment: fill in missing figure titles ---
+        if figures:
+            figures = _enrich_figure_titles(figures, pdf_path, model)
+
         data = DocumentStructureData(
             content_references=content_references,
             annotations=annotations,
             document_versions=document_versions,
+            inline_references=inline_refs,
+            figures=figures,
         )
         
-        confidence = min(1.0, (len(content_references) + len(annotations) + len(document_versions)) / 10)
+        total_items = (len(content_references) + len(annotations) +
+                       len(document_versions) + len(inline_refs) + len(figures))
+        confidence = min(1.0, total_items / 15)
         
         result = DocumentStructureResult(
             success=True,
@@ -218,7 +263,11 @@ def extract_document_structure(
                 json.dump(result.to_dict(), f, indent=2, ensure_ascii=False)
             logger.info(f"Saved document structure to {output_path}")
         
-        logger.info(f"Extracted {len(content_references)} refs, {len(annotations)} annotations, {len(document_versions)} versions")
+        logger.info(
+            f"Extracted {len(content_references)} refs, {len(annotations)} annotations, "
+            f"{len(document_versions)} versions, {len(inline_refs)} inline xrefs, "
+            f"{len(figures)} figures/tables"
+        )
         
         return result
         
@@ -238,3 +287,79 @@ def extract_document_structure(
             pages_used=pages,
             model_used=model,
         )
+
+
+def _enrich_figure_titles(
+    figures: List[ProtocolFigure],
+    pdf_path: str,
+    model: str,
+) -> List[ProtocolFigure]:
+    """Use a lightweight LLM call to fill in missing titles for figures.
+
+    Only calls the LLM if at least one figure is missing a title.
+    Extracts text from each figure's page as context for the LLM.
+    """
+    needs_enrichment = [f for f in figures if not f.title]
+    if not needs_enrichment:
+        return figures
+
+    # Build catalog string and page contexts
+    catalog_lines = []
+    page_nums = set()
+    for fig in figures:
+        t = fig.title or "(unknown)"
+        s = fig.section_number or "?"
+        catalog_lines.append(f"- {fig.label}: title={t}, section={s}, page={fig.page_number}")
+        if fig.page_number is not None:
+            page_nums.add(fig.page_number)
+
+    catalog_str = "\n".join(catalog_lines)
+
+    # Extract text from figure pages for context
+    page_contexts = ""
+    if page_nums:
+        sorted_pages = sorted(page_nums)[:15]  # Limit to avoid huge prompts
+        from core.pdf_utils import extract_text_from_pages
+        page_contexts = extract_text_from_pages(pdf_path, sorted_pages) or ""
+
+    try:
+        prompt = get_figure_enrichment_prompt(catalog_str, page_contexts)
+        system = get_system_prompt()
+        result = call_llm(
+            prompt=f"{system}\n\n{prompt}",
+            model_name=model,
+            json_mode=True,
+            extractor_name="figure_enrichment",
+            temperature=0.1,
+        )
+        response = result.get('response', '')
+        if not response:
+            return figures
+
+        json_match = re.search(r'```json\s*(.*?)\s*```', response, re.DOTALL)
+        json_str = json_match.group(1) if json_match else response.strip()
+        raw = json.loads(json_str)
+
+        # Build lookup by label
+        enrichment_map: Dict[str, Dict] = {}
+        for item in raw.get('figures', []):
+            label = item.get('label', '')
+            if label:
+                enrichment_map[label] = item
+
+        enriched = 0
+        for fig in figures:
+            if fig.label in enrichment_map:
+                info = enrichment_map[fig.label]
+                if not fig.title and info.get('title'):
+                    fig.title = info['title']
+                    enriched += 1
+                if not fig.section_number and info.get('sectionNumber'):
+                    fig.section_number = info['sectionNumber']
+
+        logger.info(f"  ✓ LLM enriched {enriched} figure titles")
+
+    except Exception as e:
+        logger.warning(f"Figure title enrichment failed (non-fatal): {e}")
+
+    return figures

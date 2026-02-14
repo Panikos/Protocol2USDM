@@ -403,12 +403,40 @@ function OverviewPanel({ data }: { data: ExecutionModelData }) {
 // Timeline Visualization
 // ============================================================================
 
+// Anchor type → color scheme for timeline markers
+const ANCHOR_COLORS: Record<string, { bg: string; border: string; text: string }> = {
+  FirstDose:       { bg: 'bg-blue-600',   border: 'border-blue-300',  text: 'bg-blue-600' },
+  Day1:            { bg: 'bg-blue-600',   border: 'border-blue-300',  text: 'bg-blue-600' },
+  Baseline:        { bg: 'bg-purple-600', border: 'border-purple-300',text: 'bg-purple-600' },
+  Randomization:   { bg: 'bg-green-600',  border: 'border-green-300', text: 'bg-green-600' },
+  Screening:       { bg: 'bg-amber-500',  border: 'border-amber-300', text: 'bg-amber-500' },
+  InformedConsent: { bg: 'bg-cyan-600',   border: 'border-cyan-300',  text: 'bg-cyan-600' },
+  CollectionDay:   { bg: 'bg-pink-500',   border: 'border-pink-300',  text: 'bg-pink-500' },
+  Custom:          { bg: 'bg-gray-600',   border: 'border-gray-300',  text: 'bg-gray-600' },
+};
+const DEFAULT_ANCHOR_COLOR = { bg: 'bg-indigo-600', border: 'border-indigo-300', text: 'bg-indigo-600' };
+
 function TimelineVisualization({ visits, anchors }: { visits: VisitWindow[]; anchors: TimeAnchor[] }) {
   const [hoveredVisit, setHoveredVisit] = useState<string | null>(null);
+  const [hoveredAnchorDay, setHoveredAnchorDay] = useState<number | null>(null);
   
   const sortedVisits = useMemo(() => {
-    return [...visits].sort((a, b) => a.targetDay - b.targetDay);
+    return [...visits]
+      .filter(v => v.targetDay != null && !isNaN(v.targetDay))
+      .sort((a, b) => a.targetDay - b.targetDay);
   }, [visits]);
+
+  // Group anchors by dayValue for stacking at the same position
+  const anchorsByDay = useMemo(() => {
+    const map = new Map<number, TimeAnchor[]>();
+    for (const a of anchors) {
+      if (a.dayValue == null) continue;
+      const day = a.dayValue;
+      if (!map.has(day)) map.set(day, []);
+      map.get(day)!.push(a);
+    }
+    return map;
+  }, [anchors]);
 
   if (sortedVisits.length === 0) {
     return (
@@ -418,9 +446,12 @@ function TimelineVisualization({ visits, anchors }: { visits: VisitWindow[]; anc
     );
   }
 
-  // Calculate day range with padding
-  const minDay = Math.min(...sortedVisits.map(v => v.targetDay - v.windowBefore)) - 5;
-  const maxDay = Math.max(...sortedVisits.map(v => v.targetDay + v.windowAfter)) + 5;
+  // Calculate day range with padding — include anchor dayValues so they're visible
+  const anchorDays = anchors.filter(a => a.dayValue != null).map(a => a.dayValue!);
+  const allDayMins = [...sortedVisits.map(v => v.targetDay - v.windowBefore), ...anchorDays];
+  const allDayMaxs = [...sortedVisits.map(v => v.targetDay + v.windowAfter), ...anchorDays];
+  const minDay = Math.min(...allDayMins) - 5;
+  const maxDay = Math.max(...allDayMaxs) + 5;
   const range = maxDay - minDay || 1;
 
   // Calculate minimum width - ensure at least 120px per visit for readability
@@ -438,8 +469,6 @@ function TimelineVisualization({ visits, anchors }: { visits: VisitWindow[]; anc
   if (minDay <= 1 && maxDay >= 1 && !ticks.includes(1)) ticks.push(1);
   ticks.sort((a, b) => a - b);
 
-  // Find Day 1 anchor
-  const day1Anchor = anchors.find(a => a.dayValue === 1 || a.anchorType === 'Day1' || a.anchorType === 'FirstDose');
 
   // Calculate positions with minimum spacing enforcement
   // First pass: calculate raw positions based on days
@@ -480,20 +509,74 @@ function TimelineVisualization({ visits, anchors }: { visits: VisitWindow[]; anc
         {/* Axis baseline with gradient */}
         <div className="absolute top-1/2 left-0 right-0 h-1 bg-gradient-to-r from-gray-200 via-gray-400 to-gray-200 rounded-full" />
         
-        {/* Day 1 anchor marker */}
-        {day1Anchor && minDay <= 1 && maxDay >= 1 && (
-          <div 
-            className="absolute top-1/2 flex flex-col items-center z-20"
-            style={{ left: `${getPosition(1)}%` }}
-          >
-            <div className="w-5 h-5 rounded-full bg-blue-600 border-2 border-white shadow-lg -translate-x-1/2 -translate-y-1/2 flex items-center justify-center">
-              <Anchor className="w-3 h-3 text-white" />
+        {/* Time anchor markers — render ALL anchors grouped by day */}
+        {Array.from(anchorsByDay.entries()).map(([day, dayAnchors]) => {
+          if (day < minDay || day > maxDay) return null;
+          const leftPct = getPosition(day);
+          const primary = dayAnchors[0];
+          const colors = ANCHOR_COLORS[primary.anchorType] ?? DEFAULT_ANCHOR_COLOR;
+          const isHovered = hoveredAnchorDay === day;
+          const hasMultiple = dayAnchors.length > 1;
+
+          return (
+            <div
+              key={`anchor-day-${day}`}
+              className="absolute top-1/2 flex flex-col items-center z-20"
+              style={{ left: `${leftPct}%` }}
+              onMouseEnter={() => setHoveredAnchorDay(day)}
+              onMouseLeave={() => setHoveredAnchorDay(null)}
+            >
+              {/* Anchor dot */}
+              <div className={cn(
+                "w-5 h-5 rounded-full border-2 border-white shadow-lg -translate-x-1/2 -translate-y-1/2 flex items-center justify-center transition-transform",
+                colors.bg,
+                isHovered && "scale-125"
+              )}>
+                <Anchor className="w-3 h-3 text-white" />
+              </div>
+
+              {/* Badge showing count when multiple anchors share the same day */}
+              {hasMultiple && (
+                <div className="absolute -top-1 left-0 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center border border-white shadow">
+                  {dayAnchors.length}
+                </div>
+              )}
+
+              {/* Compact label (always visible) — position-aware alignment */}
+              <div className={cn(
+                "absolute -top-8 px-2 py-1 text-white text-xs font-medium rounded shadow whitespace-nowrap",
+                colors.text,
+                leftPct < 10 ? 'left-0' : leftPct > 90 ? 'right-0' : '-translate-x-1/2'
+              )}>
+                Day {day} – {hasMultiple ? `${dayAnchors.length} anchors` : primary.anchorType}
+              </div>
+
+              {/* Expanded tooltip on hover — position-aware alignment */}
+              {isHovered && (
+                <div className={cn(
+                  "absolute top-8 z-40 bg-white rounded-lg shadow-xl border p-3 min-w-56 text-sm",
+                  leftPct < 10 ? 'left-0' : leftPct > 90 ? 'right-0' : '-translate-x-1/2'
+                )}>
+                  <div className="font-semibold mb-2 text-xs text-muted-foreground">Day {day} Anchors</div>
+                  <div className="space-y-2">
+                    {dayAnchors.map(a => {
+                      const c = ANCHOR_COLORS[a.anchorType] ?? DEFAULT_ANCHOR_COLOR;
+                      return (
+                        <div key={a.id} className="flex items-start gap-2">
+                          <div className={cn("w-3 h-3 rounded-full mt-0.5 shrink-0", c.bg)} />
+                          <div>
+                            <div className="font-medium text-xs">{a.anchorType}</div>
+                            <div className="text-[10px] text-muted-foreground leading-tight">{a.definition}</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
-            <div className="absolute -top-8 -translate-x-1/2 px-2 py-1 bg-blue-600 text-white text-xs font-medium rounded shadow whitespace-nowrap">
-              Day 1 - {day1Anchor.anchorType}
-            </div>
-          </div>
-        )}
+          );
+        })}
 
         {/* Visit windows and markers */}
         {sortedVisits.map((visit, index) => {
@@ -541,9 +624,10 @@ function TimelineVisualization({ visits, anchors }: { visits: VisitWindow[]; anc
               {/* Visit label - positioned well above/below the window visual */}
               <div 
                 className={cn(
-                  "absolute -translate-x-1/2 flex flex-col items-center transition-opacity duration-200",
+                  "absolute flex flex-col items-center transition-opacity duration-200",
                   isTop ? "-top-24" : "top-12",
-                  isHovered ? "opacity-100" : "opacity-90"
+                  isHovered ? "opacity-100" : "opacity-90",
+                  leftPercent < 8 ? 'left-0' : leftPercent > 92 ? 'right-0' : '-translate-x-1/2'
                 )}
               >
                 <div className={cn(
@@ -573,7 +657,8 @@ function TimelineVisualization({ visits, anchors }: { visits: VisitWindow[]; anc
               {isHovered && (
                 <div className={cn(
                   "absolute z-30 bg-white rounded-lg shadow-xl border p-3 min-w-48 text-sm",
-                  isTop ? "top-10 -translate-x-1/2" : "-top-32 -translate-x-1/2"
+                  isTop ? "top-10" : "-top-32",
+                  leftPercent < 8 ? 'left-0' : leftPercent > 92 ? 'right-0' : '-translate-x-1/2'
                 )}>
                   <div className="font-semibold capitalize mb-2">{visit.visitName}</div>
                   <div className="space-y-1 text-xs">
@@ -641,6 +726,16 @@ function TimelineVisualization({ visits, anchors }: { visits: VisitWindow[]; anc
 
 function TimeAnchorsPanel({ anchors, studyDesign }: { anchors: TimeAnchor[]; studyDesign?: Record<string, unknown> }) {
   const [showFullSource, setShowFullSource] = useState<Set<string>>(new Set());
+
+  // Build encounter ID → name map for display
+  const encounterNameMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    const encounters = (studyDesign?.encounters ?? []) as Array<{ id?: string; name?: string }>;
+    for (const enc of encounters) {
+      if (enc.id && enc.name) map[enc.id] = enc.name;
+    }
+    return map;
+  }, [studyDesign]);
 
   // Map anchors to USDM entities for editing
   // Strategy: first try anchor ScheduledActivityInstances, then fall back to timings
@@ -755,8 +850,43 @@ function TimeAnchorsPanel({ anchors, studyDesign }: { anchors: TimeAnchor[]; stu
     );
   }
 
+  const primaryAnchor = anchors.length > 0 ? anchors[0] : null;
+  const primaryEncounterName = primaryAnchor?.encounterId ? encounterNameMap[primaryAnchor.encounterId] : null;
+
   return (
     <div className="space-y-4">
+      {/* Primary Anchor Banner */}
+      {primaryAnchor && (
+        <Card className="border-blue-300 bg-gradient-to-r from-blue-50 to-indigo-50">
+          <CardContent className="py-4">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-lg shrink-0">
+                {primaryAnchor.dayValue ?? '?'}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="font-semibold text-blue-900">Primary Reference Point</h3>
+                  <Badge className="bg-blue-600">{primaryAnchor.anchorType}</Badge>
+                  {primaryAnchor.classification && (
+                    <Badge variant="outline" className="text-blue-600 border-blue-300">{primaryAnchor.classification}</Badge>
+                  )}
+                </div>
+                <p className="text-sm text-blue-800 mt-1">{primaryAnchor.definition}</p>
+                {primaryEncounterName && (
+                  <p className="text-xs text-blue-600 mt-1 flex items-center gap-1">
+                    <Calendar className="h-3 w-3" />
+                    Linked to encounter: <span className="font-medium">{primaryEncounterName}</span>
+                  </p>
+                )}
+                {primaryAnchor.sourceText && (
+                  <p className="text-xs text-blue-500 mt-2 italic line-clamp-2">&ldquo;{primaryAnchor.sourceText}&rdquo;</p>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Duplicate Warning */}
       {hasDuplicates && (
         <Card className="border-amber-300 bg-amber-50">
@@ -836,6 +966,12 @@ function TimeAnchorsPanel({ anchors, studyDesign }: { anchors: TimeAnchor[]; stu
                                 label=""
                                 displayClassName="text-sm opacity-80"
                               />
+                              {anchor.encounterId && encounterNameMap[anchor.encounterId] && (
+                                <p className="text-xs opacity-60 mt-1 flex items-center gap-1">
+                                  <Calendar className="h-3 w-3" />
+                                  {encounterNameMap[anchor.encounterId]}
+                                </p>
+                              )}
                               {anchor.timelineId && (
                                 <p className="text-xs opacity-60 mt-1">Timeline: {anchor.timelineId}</p>
                               )}

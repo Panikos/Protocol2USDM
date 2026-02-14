@@ -61,10 +61,20 @@ class PhaseRegistry:
     
     def __len__(self) -> int:
         return len(self._phases)
+    
+    def reset(self) -> None:
+        """Clear all registered phases. Useful in tests."""
+        self._phases.clear()
+        self._order.clear()
 
 
 # Global registry instance
 phase_registry = PhaseRegistry()
+
+
+def create_registry() -> PhaseRegistry:
+    """Create a fresh PhaseRegistry instance (useful in tests for isolation)."""
+    return PhaseRegistry()
 
 
 def register_phase(phase: BasePhase) -> BasePhase:

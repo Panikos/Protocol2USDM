@@ -171,6 +171,8 @@ export class SoAProcessor {
   private findScheduledInstance(activityId: string, encounterId: string): {
     timelineIndex: number;
     instanceIndex: number;
+    timelineId: string;
+    instanceId: string;
   } | null {
     const timelines = this.getScheduleTimelines();
     for (let ti = 0; ti < timelines.length; ti++) {
@@ -179,7 +181,7 @@ export class SoAProcessor {
         const inst = instances[ii];
         if (inst.instanceType !== 'ScheduledActivityInstance') continue;
         if (inst.encounterId === encounterId && inst.activityIds?.includes(activityId)) {
-          return { timelineIndex: ti, instanceIndex: ii };
+          return { timelineIndex: ti, instanceIndex: ii, timelineId: timelines[ti].id, instanceId: inst.id };
         }
       }
     }
@@ -218,7 +220,7 @@ export class SoAProcessor {
       // Add or update mark
       if (existing) {
         // Update existing instance - always add extension attributes for mark and userEdited
-        this.addMarkExtension(existing.timelineIndex, existing.instanceIndex, mark, footnoteRefs);
+        this.addMarkExtension(existing.timelineId, existing.instanceId, existing.timelineIndex, existing.instanceIndex, mark, footnoteRefs);
       } else {
         // Create new ScheduledActivityInstance
         this.createScheduledInstance(activityId, encounterId, mark, footnoteRefs);
@@ -227,14 +229,14 @@ export class SoAProcessor {
     } else {
       // Remove mark
       if (existing) {
-        this.removeScheduledInstance(existing.timelineIndex, existing.instanceIndex);
+        this.removeScheduledInstance(existing.timelineId, existing.instanceId);
         this.userEditedCells.add(key); // Track removal as edit
       }
     }
   }
 
-  private addMarkExtension(timelineIdx: number, instanceIdx: number, mark: CellMark, footnoteRefs?: string[]): void {
-    const basePath = `/study/versions/0/studyDesigns/0/scheduleTimelines/${timelineIdx}/instances/${instanceIdx}`;
+  private addMarkExtension(timelineId: string, instanceId: string, timelineIdx: number, instanceIdx: number, mark: CellMark, footnoteRefs?: string[]): void {
+    const basePath = `/study/versions/0/studyDesigns/0/scheduleTimelines/@id:${timelineId}/instances/@id:${instanceId}`;
     
     const timelines = this.getScheduleTimelines();
     const instance = timelines[timelineIdx]?.instances?.[instanceIdx] as Record<string, unknown> | undefined;
@@ -282,8 +284,8 @@ export class SoAProcessor {
     }
   }
 
-  private updateCellFootnotes(timelineIdx: number, instanceIdx: number, footnoteRefs: string[]): void {
-    const basePath = `/study/versions/0/studyDesigns/0/scheduleTimelines/${timelineIdx}/instances/${instanceIdx}`;
+  private updateCellFootnotes(timelineId: string, instanceId: string, timelineIdx: number, instanceIdx: number, footnoteRefs: string[]): void {
+    const basePath = `/study/versions/0/studyDesigns/0/scheduleTimelines/@id:${timelineId}/instances/@id:${instanceId}`;
     
     // Check if extensionAttributes exists on the instance
     const timelines = this.getScheduleTimelines();
@@ -331,6 +333,7 @@ export class SoAProcessor {
     }
 
     const timelineIdx = 0; // Use first timeline
+    const timelineId = timelines[0]?.id ?? '';
     const instanceId = generateUUID();
     
     const newInstance: Record<string, unknown> = {
@@ -348,17 +351,20 @@ export class SoAProcessor {
       ],
     };
 
+    const tlPath = timelineId
+      ? `/study/versions/0/studyDesigns/0/scheduleTimelines/@id:${timelineId}/instances/-`
+      : `/study/versions/0/studyDesigns/0/scheduleTimelines/${timelineIdx}/instances/-`;
     this.patches.push({
       op: 'add',
-      path: `/study/versions/0/studyDesigns/0/scheduleTimelines/${timelineIdx}/instances/-`,
+      path: tlPath,
       value: newInstance,
     });
   }
 
-  private removeScheduledInstance(timelineIdx: number, instanceIdx: number): void {
+  private removeScheduledInstance(timelineId: string, instanceId: string): void {
     this.patches.push({
       op: 'remove',
-      path: `/study/versions/0/studyDesigns/0/scheduleTimelines/${timelineIdx}/instances/${instanceIdx}`,
+      path: `/study/versions/0/studyDesigns/0/scheduleTimelines/@id:${timelineId}/instances/@id:${instanceId}`,
     });
   }
 
@@ -456,7 +462,7 @@ export class SoAProcessor {
 
     this.patches.push({
       op: 'add',
-      path: `/study/versions/0/studyDesigns/0/activityGroups/${groupIdx}/activityIds/-`,
+      path: `/study/versions/0/studyDesigns/0/activityGroups/@id:${groupId}/activityIds/-`,
       value: activityId,
     });
   }
@@ -540,6 +546,80 @@ export class SoAProcessor {
     }
 
     return encounterId;
+  }
+
+  // ============================================================================
+  // Cascade Deletes
+  // ============================================================================
+
+  /**
+   * Delete an encounter and cascade-remove all ScheduledActivityInstances
+   * that reference it. Patches must be wrapped in beginGroup/endGroup by caller.
+   */
+  deleteEncounter(encounterId: string): void {
+    const encounterIdx = this.findEncounterIndex(encounterId);
+    if (encounterIdx === -1) {
+      this.errors.push(`Encounter ${encounterId} not found for deletion`);
+      return;
+    }
+
+    // First, remove all scheduled instances referencing this encounter
+    const timelines = this.getScheduleTimelines();
+    for (let ti = 0; ti < timelines.length; ti++) {
+      const timeline = timelines[ti];
+      const instances = timeline.instances ?? [];
+      const instancesToRemove = instances.filter(inst => inst.encounterId === encounterId);
+      for (const inst of instancesToRemove) {
+        this.patches.push({
+          op: 'remove',
+          path: `/study/versions/0/studyDesigns/0/scheduleTimelines/@id:${timeline.id}/instances/@id:${inst.id}`,
+        });
+      }
+      if (instancesToRemove.length > 0) {
+        this.warnings.push(`Cascade-removed ${instancesToRemove.length} scheduled instance(s) referencing encounter ${encounterId}`);
+      }
+    }
+
+    // Then remove the encounter itself
+    this.patches.push({
+      op: 'remove',
+      path: `/study/versions/0/studyDesigns/0/encounters/@id:${encounterId}`,
+    });
+  }
+
+  /**
+   * Delete an activity and cascade-remove all ScheduledActivityInstances
+   * that reference it. Patches must be wrapped in beginGroup/endGroup by caller.
+   */
+  deleteActivity(activityId: string): void {
+    const activityIdx = this.findActivityIndex(activityId);
+    if (activityIdx === -1) {
+      this.errors.push(`Activity ${activityId} not found for deletion`);
+      return;
+    }
+
+    // Remove all scheduled instances referencing this activity
+    const timelines = this.getScheduleTimelines();
+    for (let ti = 0; ti < timelines.length; ti++) {
+      const timeline = timelines[ti];
+      const instances = timeline.instances ?? [];
+      const instancesToRemove = instances.filter(inst => inst.activityIds?.includes(activityId));
+      for (const inst of instancesToRemove) {
+        this.patches.push({
+          op: 'remove',
+          path: `/study/versions/0/studyDesigns/0/scheduleTimelines/@id:${timeline.id}/instances/@id:${inst.id}`,
+        });
+      }
+      if (instancesToRemove.length > 0) {
+        this.warnings.push(`Cascade-removed ${instancesToRemove.length} scheduled instance(s) referencing activity ${activityId}`);
+      }
+    }
+
+    // Then remove the activity itself
+    this.patches.push({
+      op: 'remove',
+      path: `/study/versions/0/studyDesigns/0/activities/@id:${activityId}`,
+    });
   }
 
   // ============================================================================

@@ -338,12 +338,13 @@ export function SoAGrid({ model, onCellClick, editable = false, availableFootnot
   }, [updateDraftTableOrder]);
 
   // Cell click handler
-  const onCellClicked = useCallback((event: any) => {
+  const onCellClicked = useCallback((event: { colDef: { field?: string }; data: { id?: string } }) => {
     const field = event.colDef.field;
     if (!field?.startsWith('col_')) return;
 
     const visitId = field.replace('col_', '');
-    const activityId = event.data.id;
+    const activityId = event.data?.id;
+    if (!activityId) return;
     const cell = model.cells.get(`${activityId}|${visitId}`);
     
     if (onCellClick) {
@@ -352,7 +353,7 @@ export function SoAGrid({ model, onCellClick, editable = false, availableFootnot
   }, [model.cells, onCellClick]);
 
   return (
-    <div className="ag-theme-alpine w-full h-full relative">
+    <div className="ag-theme-alpine w-full h-full relative" role="region" aria-label="Schedule of Activities table">
       <AgGridReact
         ref={gridRef}
         rowData={rowData}
@@ -370,6 +371,7 @@ export function SoAGrid({ model, onCellClick, editable = false, availableFootnot
         onCellKeyDown={onCellKeyDown}
         rowHeight={36}
         suppressCellFocus={false}
+        ensureDomOrder={true}
         headerHeight={40}
         groupHeaderHeight={44}
         suppressRowClickSelection={true}
@@ -392,6 +394,7 @@ export function SoAGrid({ model, onCellClick, editable = false, availableFootnot
             availableFootnotes={availableFootnotes}
             onSave={handleCellSave}
             stopEditing={() => setEditingCell(null)}
+            aria-label="Edit cell mark"
           />
         </div>
       )}

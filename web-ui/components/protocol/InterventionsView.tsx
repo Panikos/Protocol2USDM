@@ -9,6 +9,7 @@ import { versionPath, entityPath } from '@/lib/semantic/schema';
 import { useSemanticStore } from '@/stores/semanticStore';
 import { useEditModeStore } from '@/stores/editModeStore';
 import { Pill, Syringe, Clock, Beaker, FlaskConical, ChevronDown, ChevronRight, Plus, Trash2 } from 'lucide-react';
+import { ProvenanceBadge } from '@/components/provenance';
 
 interface InterventionsViewProps {
   usdm: Record<string, unknown> | null;
@@ -164,13 +165,16 @@ export function InterventionsView({ usdm }: InterventionsViewProps) {
                 <div key={intervention.id || i} className="p-4 border rounded-lg group/int">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <EditableField
-                        path={versionPath('studyInterventions', intervention.id, 'name')}
-                        value={intervention.label || intervention.name || `Intervention ${i + 1}`}
-                        label=""
-                        className="font-medium"
-                        placeholder="Intervention name"
-                      />
+                      <div className="flex items-center gap-2">
+                        <EditableField
+                          path={versionPath('studyInterventions', intervention.id, 'name')}
+                          value={intervention.label || intervention.name || `Intervention ${i + 1}`}
+                          label=""
+                          className="font-medium"
+                          placeholder="Intervention name"
+                        />
+                        <ProvenanceBadge entityId={intervention.id} />
+                      </div>
                       <EditableField
                         path={versionPath('studyInterventions', intervention.id, 'description')}
                         value={intervention.description || ''}
@@ -210,8 +214,8 @@ export function InterventionsView({ usdm }: InterventionsViewProps) {
                   
                   {intervention.codes && intervention.codes.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-1">
-                      {intervention.codes.map((code: { code?: string; decode?: string }, ci: number) => (
-                        <CodeLink key={ci} code={code.code} decode={code.decode} variant="secondary" className="text-xs" />
+                      {intervention.codes.map((code: { code?: string; decode?: string; codeSystem?: string }, ci: number) => (
+                        <CodeLink key={ci} code={code.code} decode={code.decode} codeSystem={code.codeSystem} variant="secondary" className="text-xs" />
                       ))}
                     </div>
                   )}
@@ -462,8 +466,8 @@ export function InterventionsView({ usdm }: InterventionsViewProps) {
                   </div>
                   {substance.codes && substance.codes.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-2">
-                      {substance.codes.map((code: { code?: string; decode?: string }, ci: number) => (
-                        <CodeLink key={ci} code={code.code} decode={`${code.code}: ${code.decode || 'N/A'}`} variant="secondary" className="text-xs font-mono" />
+                      {substance.codes.map((code: { code?: string; decode?: string; codeSystem?: string }, ci: number) => (
+                        <CodeLink key={ci} code={code.code} decode={`${code.code}: ${code.decode || 'N/A'}`} codeSystem={code.codeSystem} variant="secondary" className="text-xs font-mono" />
                       ))}
                     </div>
                   )}

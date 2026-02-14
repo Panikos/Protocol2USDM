@@ -214,12 +214,85 @@ const EXTENSION_METADATA: Record<string, {
     icon: 'AlertCircle',
     description: 'Categorized extraction issues'
   },
+  'x-executionModel-conceptualAnchors': { 
+    name: 'Conceptual Anchors', 
+    category: 'Execution Model',
+    icon: 'Clock',
+    description: 'Conceptual time anchor definitions for scheduling'
+  },
+  'x-executionModel-samplingConstraints': { 
+    name: 'Sampling Constraints', 
+    category: 'Execution Model',
+    icon: 'Beaker',
+    description: 'Biospecimen and sampling constraints'
+  },
+  'x-executionModel-executionType': { 
+    name: 'Execution Type', 
+    category: 'Execution Model',
+    icon: 'Activity',
+    description: 'Activity execution type classification (e.g., continuous, periodic)'
+  },
+  'x-executionModel-activityBindings': { 
+    name: 'Activity Bindings', 
+    category: 'Execution Model',
+    icon: 'GitBranch',
+    description: 'Activity-to-encounter/epoch binding rules'
+  },
+  'x-executionModel-entityMaps': { 
+    name: 'Entity Maps', 
+    category: 'Debug/Provenance',
+    icon: 'Settings',
+    description: 'Entity resolution maps from LLM-based matching'
+  },
+  'x-executionModel': { 
+    name: 'Execution Model (Typed)', 
+    category: 'Execution Model',
+    icon: 'Activity',
+    description: 'Unified typed execution model with all sub-components'
+  },
+  'x-algorithm': { 
+    name: 'Algorithm', 
+    category: 'Execution Model',
+    icon: 'Calculator',
+    description: 'Endpoint algorithm or computation method'
+  },
+  'x-encounterUnscheduled': { 
+    name: 'Unscheduled Encounter', 
+    category: 'SoA Data',
+    icon: 'Calendar',
+    description: 'Marks encounter as unscheduled (event-driven)'
+  },
+  'x-unsDecisionInstance': { 
+    name: 'UNS Decision Instance', 
+    category: 'SoA Data',
+    icon: 'GitBranch',
+    description: 'Links ScheduledDecisionInstance to its source unscheduled encounter'
+  },
+  'x-anchorValidation': { 
+    name: 'Anchor Validation', 
+    category: 'Debug/Provenance',
+    icon: 'AlertCircle',
+    description: 'Anchor consistency validation results against SoA encounters'
+  },
+  'x-protocol-figures': { 
+    name: 'Protocol Figures', 
+    category: 'Document Structure',
+    icon: 'FileText',
+    description: 'Figures and tables extracted from the protocol PDF'
+  },
+  'x-executionModel-binding': { 
+    name: 'Activity Binding', 
+    category: 'Execution Model',
+    icon: 'GitBranch',
+    description: 'Per-activity encounter/epoch binding from execution model'
+  },
 };
 
 const CATEGORY_ICONS: Record<string, typeof Activity> = {
   'Execution Model': Activity,
   'SoA Data': FileText,
-  'SAP Data': FileText,
+  'SAP Data': Calculator,
+  'Document Structure': FileText,
   'Debug/Provenance': Settings,
   'Other': Puzzle,
 };
@@ -228,6 +301,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   'Execution Model': 'bg-blue-100 text-blue-800 border-blue-200',
   'SoA Data': 'bg-green-100 text-green-800 border-green-200',
   'SAP Data': 'bg-purple-100 text-purple-800 border-purple-200',
+  'Document Structure': 'bg-teal-100 text-teal-800 border-teal-200',
   'Debug/Provenance': 'bg-amber-100 text-amber-800 border-amber-200',
   'Other': 'bg-gray-100 text-gray-800 border-gray-200',
 };
@@ -385,16 +459,28 @@ const EXTENSION_NAV_TARGETS: Record<string, { tab: string; label: string }> = {
   'x-footnoteConditions': { tab: 'execution', label: 'View Conditions' },
   'x-soaFootnotes': { tab: 'soa', label: 'View in SoA' },
   'activitySource': { tab: 'soa', label: 'View in SoA' },
+  'x-executionModel-conceptualAnchors': { tab: 'timeline', label: 'View in Timeline' },
+  'x-executionModel-samplingConstraints': { tab: 'timeline', label: 'View in Timeline' },
+  'x-executionModel-activityBindings': { tab: 'timeline', label: 'View in Timeline' },
+  'x-executionModel': { tab: 'timeline', label: 'View Execution Model' },
+  'x-encounterUnscheduled': { tab: 'soa', label: 'View in SoA' },
+  'x-unsDecisionInstance': { tab: 'timeline', label: 'View in Timeline' },
+  'x-protocol-figures': { tab: 'figures', label: 'View Figures' },
 };
 
 // Entity type icons and colors
 const ENTITY_TYPE_META: Record<string, { icon: typeof Activity; color: string; label: string }> = {
   'StudyDesign': { icon: GitBranch, color: 'bg-purple-100 text-purple-800', label: 'Study Design' },
+  'InterventionalStudyDesign': { icon: GitBranch, color: 'bg-purple-100 text-purple-800', label: 'Study Design' },
+  'ObservationalStudyDesign': { icon: GitBranch, color: 'bg-purple-100 text-purple-800', label: 'Study Design' },
   'Activity': { icon: Activity, color: 'bg-blue-100 text-blue-800', label: 'Activities' },
   'Encounter': { icon: Calendar, color: 'bg-green-100 text-green-800', label: 'Encounters' },
   'StudyEpoch': { icon: Clock, color: 'bg-amber-100 text-amber-800', label: 'Epochs' },
   'StudyArm': { icon: Users, color: 'bg-pink-100 text-pink-800', label: 'Arms' },
   'ScheduledActivityInstance': { icon: CheckCircle, color: 'bg-cyan-100 text-cyan-800', label: 'Schedule Instances' },
+  'ScheduledDecisionInstance': { icon: GitBranch, color: 'bg-amber-100 text-amber-800', label: 'Decision Instances' },
+  'Estimand': { icon: Target, color: 'bg-rose-100 text-rose-800', label: 'Estimands' },
+  'StudyVersion': { icon: FileText, color: 'bg-gray-100 text-gray-800', label: 'Study Version' },
 };
 
 // Entities by Type view component
@@ -745,7 +831,7 @@ export function ExtensionsView({ usdm }: ExtensionsViewProps) {
     );
   }
 
-  const categoryOrder = ['Execution Model', 'SoA Data', 'Debug/Provenance', 'Other'];
+  const categoryOrder = ['Execution Model', 'SoA Data', 'SAP Data', 'Document Structure', 'Debug/Provenance', 'Other'];
 
   return (
     <div className="space-y-6">

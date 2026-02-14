@@ -73,9 +73,50 @@ PROTOCOL TEXT:
 Extract all cross-references, footnotes/annotations, and version information."""
 
 
+FIGURE_ENRICHMENT_PROMPT = """You are given a list of figures and tables detected in a clinical protocol PDF.
+For each item, provide the correct title and the protocol section number it belongs to.
+
+Detected items:
+{figure_catalog}
+
+Surrounding text from relevant pages:
+{page_contexts}
+
+Return JSON in this exact format:
+```json
+{{
+  "figures": [
+    {{
+      "label": "Figure 1",
+      "title": "Study Design Schema",
+      "sectionNumber": "4.1"
+    }}
+  ]
+}}
+```
+
+Rules:
+- Use the exact label from the detected items
+- Extract the full title as it appears in the protocol (e.g., "Study Design Schema" not just "Schema")
+- sectionNumber should be the M11/protocol section the figure belongs to (e.g., "1.2" for Trial Schema, "4" for Study Design)
+- If you cannot determine the title or section, use null
+"""
+
+
 def get_document_structure_prompt(protocol_text: str) -> str:
     """Generate the full prompt for document structure extraction."""
     return DOCUMENT_STRUCTURE_USER_PROMPT.format(protocol_text=protocol_text)
+
+
+def get_figure_enrichment_prompt(
+    figure_catalog: str,
+    page_contexts: str,
+) -> str:
+    """Generate prompt for enriching figure metadata with titles and sections."""
+    return FIGURE_ENRICHMENT_PROMPT.format(
+        figure_catalog=figure_catalog,
+        page_contexts=page_contexts,
+    )
 
 
 def get_system_prompt() -> str:

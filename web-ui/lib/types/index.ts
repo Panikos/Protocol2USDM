@@ -254,6 +254,13 @@ export interface USDMScheduledInstance {
   encounterId?: string;
   epochId?: string;
   defaultConditionId?: string;
+  conditionAssignments?: {
+    id: string;
+    condition: string;
+    conditionTargetId: string;
+    instanceType?: string;
+    [key: string]: unknown;
+  }[];
   timelineExitId?: string;
   timelineId?: string;
   scheduledAtTimingId?: string;
@@ -282,11 +289,42 @@ export interface USDMTiming {
   [key: string]: unknown;
 }
 
+// ==========================================================================
+// Cross-references & Figures (from document_structure extraction)
+// ==========================================================================
+
+export type ReferenceType = 'Section' | 'Table' | 'Figure' | 'Appendix' | 'Listing' | 'Other';
+export type FigureContentType = 'Figure' | 'Table' | 'Diagram' | 'Chart' | 'Flowchart' | 'Image';
+
+export interface InlineCrossReference {
+  id: string;
+  sourceSection: string;
+  targetLabel: string;
+  targetSection?: string;
+  targetId?: string;
+  referenceType: ReferenceType;
+  contextText?: string;
+  instanceType?: string;
+}
+
+export interface ProtocolFigure {
+  id: string;
+  label: string;
+  title?: string;
+  pageNumber?: number;
+  sectionNumber?: string;
+  contentType: FigureContentType;
+  imagePath?: string;
+  instanceType?: string;
+}
+
 /** Full USDM document wrapper */
 export interface USDMDocument {
   usdmVersion: string;
   generatedAt: string;
   generator: string;
   study: USDMStudy;
+  inlineCrossReferences?: InlineCrossReference[];
+  protocolFigures?: ProtocolFigure[];
   [key: string]: unknown;
 }

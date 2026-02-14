@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { ArrowRight, Plus, Minus, RefreshCw, Move, Copy, FlaskConical } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -127,6 +127,7 @@ export function DiffView({ className }: DiffViewProps) {
   const patch = useSemanticStore(selectPatchOperations);
   const { clearPatch, undo } = useSemanticStore();
   const canUndo = useSemanticStore(selectCanUndo);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   // Group ops by entity path for summary
   const summary = useMemo(() => {
@@ -164,9 +165,21 @@ export function DiffView({ className }: DiffViewProps) {
                 Undo Last
               </Button>
             )}
-            <Button variant="ghost" size="sm" onClick={clearPatch} className="text-destructive">
-              Clear All
-            </Button>
+            {showClearConfirm ? (
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-destructive">Clear all?</span>
+                <Button variant="ghost" size="sm" onClick={() => { clearPatch(); setShowClearConfirm(false); }} className="text-destructive font-semibold">
+                  Yes
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => setShowClearConfirm(false)}>
+                  No
+                </Button>
+              </div>
+            ) : (
+              <Button variant="ghost" size="sm" onClick={() => setShowClearConfirm(true)} className="text-destructive">
+                Clear All
+              </Button>
+            )}
           </div>
         </CardTitle>
 

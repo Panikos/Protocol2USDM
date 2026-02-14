@@ -11,7 +11,10 @@ import json
 import threading
 import pytest
 
-from extraction.pipeline_context import PipelineContext, create_pipeline_context, PHASE_FIELD_OWNERSHIP
+from extraction.pipeline_context import (
+    PipelineContext, create_pipeline_context, PHASE_FIELD_OWNERSHIP,
+    SoAContext, MetadataContext, DesignContext, InterventionContext, SchedulingContext,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -569,5 +572,93 @@ class TestMergeFieldMapping:
     def test_ownership_covers_expected_phases(self):
         """PHASE_FIELD_OWNERSHIP should cover all data-producing phases."""
         expected_phases = {'metadata', 'eligibility', 'objectives', 'studydesign',
-                          'interventions', 'procedures', 'scheduling', 'execution'}
+                          'interventions', 'procedures', 'scheduling', 'narrative',
+                          'execution'}
         assert set(PHASE_FIELD_OWNERSHIP.keys()) == expected_phases
+
+
+# ============================================================================
+# Sub-Context Decomposition (W-HIGH-2)
+# ============================================================================
+
+class TestSubContextDecomposition:
+    """Verify W-HIGH-2 sub-context structure and backward compatibility."""
+
+    def test_sub_contexts_exist(self):
+        ctx = PipelineContext()
+        assert isinstance(ctx.soa, SoAContext)
+        assert isinstance(ctx.metadata, MetadataContext)
+        assert isinstance(ctx.design, DesignContext)
+        assert isinstance(ctx.intervention, InterventionContext)
+        assert isinstance(ctx.scheduling, SchedulingContext)
+
+    def test_property_delegates_to_soa(self):
+        ctx = PipelineContext()
+        ctx.epochs = SAMPLE_EPOCHS
+        assert ctx.soa.epochs is SAMPLE_EPOCHS
+        ctx.encounters = SAMPLE_ENCOUNTERS
+        assert ctx.soa.encounters is SAMPLE_ENCOUNTERS
+        ctx.activities = SAMPLE_ACTIVITIES
+        assert ctx.soa.activities is SAMPLE_ACTIVITIES
+
+    def test_property_delegates_to_metadata(self):
+        ctx = PipelineContext()
+        ctx.study_title = "Test"
+        assert ctx.metadata.study_title == "Test"
+        ctx.sponsor = "Acme"
+        assert ctx.metadata.sponsor == "Acme"
+
+    def test_property_delegates_to_design(self):
+        ctx = PipelineContext()
+        ctx.arms = SAMPLE_ARMS
+        assert ctx.design.arms is SAMPLE_ARMS
+        ctx.inclusion_criteria = [{"text": "Age ≥18"}]
+        assert ctx.design.inclusion_criteria == [{"text": "Age ≥18"}]
+
+    def test_property_delegates_to_intervention(self):
+        ctx = PipelineContext()
+        ctx.interventions = [{"id": "i1"}]
+        assert ctx.intervention.interventions == [{"id": "i1"}]
+        ctx.procedures = [{"id": "p1"}]
+        assert ctx.intervention.procedures == [{"id": "p1"}]
+
+    def test_property_delegates_to_scheduling(self):
+        ctx = PipelineContext()
+        ctx.timings = [{"id": "t1"}]
+        assert ctx.scheduling.timings == [{"id": "t1"}]
+        ctx.time_anchors = [{"id": "ta1"}]
+        assert ctx.scheduling.time_anchors == [{"id": "ta1"}]
+
+    def test_lookup_maps_delegate(self):
+        ctx = create_pipeline_context(SAMPLE_SOA_DATA)
+        assert ctx._epoch_by_id is ctx.soa._epoch_by_id
+        assert ctx._arm_by_id is ctx.design._arm_by_id
+
+    def test_snapshot_preserves_sub_contexts(self):
+        ctx = create_pipeline_context(SAMPLE_SOA_DATA)
+        ctx.study_title = "Original"
+        snap = ctx.snapshot()
+        # Sub-contexts exist on snapshot
+        assert isinstance(snap.soa, SoAContext)
+        assert isinstance(snap.metadata, MetadataContext)
+        # Data is deep-copied
+        snap.soa.epochs.append({"id": "new"})
+        assert len(ctx.soa.epochs) == 3
+        snap.metadata.study_title = "Changed"
+        assert ctx.metadata.study_title == "Original"
+
+    def test_sub_context_rebuild_maps(self):
+        soa = SoAContext(epochs=[{"id": "e1", "name": "Screening"}])
+        soa.rebuild_maps()
+        assert soa._epoch_by_id["e1"]["name"] == "Screening"
+        assert soa._epoch_by_name["screening"]["id"] == "e1"
+
+    def test_design_context_rebuild_maps(self):
+        dc = DesignContext(arms=[{"id": "a1", "name": "Active"}])
+        dc.rebuild_maps()
+        assert dc._arm_by_id["a1"]["name"] == "Active"
+
+    def test_intervention_context_rebuild_maps(self):
+        ic = InterventionContext(interventions=[{"id": "i1", "name": "Drug A"}])
+        ic.rebuild_maps()
+        assert ic._intervention_by_id["i1"]["name"] == "Drug A"

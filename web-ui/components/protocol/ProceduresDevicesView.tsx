@@ -18,6 +18,14 @@ interface Code {
   code: string;
   decode?: string;
   codeSystem?: string;
+  url?: string;
+}
+
+interface ExtensionAttribute {
+  url: string;
+  value?: unknown;
+  valueString?: string;
+  valueBoolean?: boolean;
 }
 
 interface Procedure {
@@ -26,7 +34,17 @@ interface Procedure {
   description?: string;
   procedureType?: Code | string;
   code?: Code;
+  extensionAttributes?: ExtensionAttribute[];
   instanceType?: string;
+}
+
+/** Extract multi-system codes from x-procedureCodes extension. */
+function getProcedureCodes(proc: Procedure): Code[] {
+  const ext = proc.extensionAttributes?.find(
+    (e) => e.url?.endsWith('x-procedureCodes'),
+  );
+  if (!ext || !Array.isArray(ext.value)) return [];
+  return ext.value as Code[];
 }
 
 interface Device {
@@ -171,9 +189,32 @@ export function ProceduresDevicesView({ usdm }: ProceduresDevicesViewProps) {
                     className="text-sm text-muted-foreground mt-1"
                     placeholder="No description"
                   />
-                  {procedure.code && (
-                    <CodeLink code={procedure.code.code} decode={`${procedure.code.code}: ${procedure.code.decode || 'N/A'}`} variant="secondary" className="mt-2 text-xs" />
-                  )}
+                  {(() => {
+                    const allCodes = getProcedureCodes(procedure);
+                    if (allCodes.length > 0) {
+                      return (
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {allCodes.map((c, ci) => (
+                            <CodeLink
+                              key={`${c.codeSystem}-${c.code}-${ci}`}
+                              code={c.code}
+                              decode={c.code}
+                              codeSystem={c.codeSystem}
+                              codeOnly
+                              variant="secondary"
+                              className="text-xs"
+                            />
+                          ))}
+                        </div>
+                      );
+                    }
+                    if (procedure.code) {
+                      return (
+                        <CodeLink code={procedure.code.code} decode={`${procedure.code.code}: ${procedure.code.decode || 'N/A'}`} codeSystem={procedure.code.codeSystem} variant="secondary" className="mt-2 text-xs" />
+                      );
+                    }
+                    return null;
+                  })()}
                 </div>
               ))}
             </div>

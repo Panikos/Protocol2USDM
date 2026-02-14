@@ -17,15 +17,41 @@ interface Amendment {
   description?: string;
   summary?: string;
   number?: string | number;
-  scope?: { decode?: string };
+  scope?: Record<string, unknown>;
   effectiveDate?: string;
   date?: string;
   reason?: string;
-  changes?: string[];
-  primaryReason?: { decode?: string };
-  secondaryReasons?: { decode?: string }[];
+  changes?: unknown[];
+  primaryReason?: Record<string, unknown>;
+  secondaryReasons?: Record<string, unknown>[];
+  impacts?: unknown[];
   previousVersion?: string;
   newVersion?: string;
+}
+
+/** Safely extract a human-readable string from a value that might be a string, Code object, or nested structure. */
+function toDisplayString(val: unknown): string {
+  if (val == null) return '';
+  if (typeof val === 'string') return val;
+  if (typeof val === 'number' || typeof val === 'boolean') return String(val);
+  if (typeof val === 'object') {
+    const obj = val as Record<string, unknown>;
+    // StudyAmendmentReason → otherReason or code.decode
+    if (obj.otherReason && typeof obj.otherReason === 'string') return obj.otherReason;
+    // Code object → decode
+    if (obj.decode && typeof obj.decode === 'string') return obj.decode;
+    // Nested code.decode
+    if (obj.code && typeof obj.code === 'object') {
+      const code = obj.code as Record<string, unknown>;
+      if (code.decode && typeof code.decode === 'string') return code.decode;
+    }
+    // StudyChange → description or text
+    if (obj.description && typeof obj.description === 'string') return obj.description;
+    if (obj.text && typeof obj.text === 'string') return obj.text;
+    if (obj.name && typeof obj.name === 'string') return obj.name;
+    return JSON.stringify(val);
+  }
+  return String(val);
 }
 
 export function AmendmentHistoryView({ usdm }: AmendmentHistoryViewProps) {
@@ -155,7 +181,7 @@ export function AmendmentHistoryView({ usdm }: AmendmentHistoryViewProps) {
                           <div className="flex flex-wrap gap-1 mt-1">
                             {amendment.secondaryReasons.map((reason, ri) => (
                               <Badge key={ri} variant="outline" className="text-xs">
-                                {reason.decode}
+                                {toDisplayString(reason)}
                               </Badge>
                             ))}
                           </div>
@@ -169,7 +195,7 @@ export function AmendmentHistoryView({ usdm }: AmendmentHistoryViewProps) {
                             {amendment.changes.map((change, ci) => (
                               <li key={ci} className="flex items-start gap-2 text-sm">
                                 <ArrowRight className="h-3 w-3 mt-1 text-muted-foreground" />
-                                {change}
+                                {toDisplayString(change)}
                               </li>
                             ))}
                           </ul>

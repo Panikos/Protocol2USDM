@@ -388,6 +388,75 @@ export const cytoscapeStyles: any[] = [
       'target-arrow-shape': 'none',
     },
   },
+  
+  // Anchor-to-encounter edges
+  {
+    selector: 'edge.anchor-edge',
+    style: {
+      'line-color': '#d97706',
+      'line-style': 'dashed',
+      'width': 1.5,
+      'target-arrow-shape': 'diamond',
+      'target-arrow-color': '#d97706',
+      'arrow-scale': 0.6,
+      'curve-style': 'straight',
+    },
+  },
+  
+  // UNS Decision nodes (diamond shape, amber)
+  {
+    selector: 'node[type="decision"]',
+    style: {
+      'background-color': '#fffbeb',
+      'border-width': 2,
+      'border-color': '#d97706',
+      'border-style': 'dashed',
+      'shape': 'diamond',
+      'width': 60,
+      'height': 60,
+      'font-size': '9px',
+      'text-valign': 'bottom',
+      'text-margin-y': 8,
+      'text-wrap': 'wrap',
+      'text-max-width': '90px',
+      'color': '#92400e',
+      'font-weight': 'bold',
+    },
+  },
+  
+  // Decision branch edges (dashed amber — event triggers UNS visit)
+  {
+    selector: 'edge[type="decision-branch"]',
+    style: {
+      'line-color': '#f59e0b',
+      'target-arrow-color': '#f59e0b',
+      'line-style': 'dashed',
+      'width': 2,
+      'curve-style': 'unbundled-bezier',
+      'label': 'data(label)',
+      'font-size': '8px',
+      'color': '#b45309',
+      'text-rotation': 'autorotate',
+      'text-margin-y': -8,
+    },
+  },
+  
+  // Decision default edges (solid grey — continue on main timeline)
+  {
+    selector: 'edge[type="decision-default"]',
+    style: {
+      'line-color': '#9ca3af',
+      'target-arrow-color': '#9ca3af',
+      'line-style': 'solid',
+      'width': 2,
+      'curve-style': 'bezier',
+      'label': 'data(label)',
+      'font-size': '8px',
+      'color': '#6b7280',
+      'text-rotation': 'autorotate',
+      'text-margin-y': -8,
+    },
+  },
 ];
 
 export default cytoscapeStyles;

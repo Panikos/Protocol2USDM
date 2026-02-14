@@ -6,6 +6,7 @@ import {
   readSemanticFile,
   getSemanticPaths,
   getUsdmPath,
+  appendChangeLogEntry,
 } from '@/lib/semantic/storage';
 import fs from 'fs/promises';
 import { validateProtocolId, validateVersionId } from '@/lib/sanitize';
@@ -83,6 +84,29 @@ export async function POST(
         { error: result.error || 'Failed to restore snapshot' },
         { status: 500 }
       );
+    }
+    
+    // Write audit trail entry for the revert
+    try {
+      const revertedBy = typeof body?.revertedBy === 'string' ? body.revertedBy.trim() : 'ui-user';
+      const reason = typeof body?.reason === 'string' ? body.reason.trim() : `Reverted to ${snapshotFilename}`;
+      // Read the restored USDM for hashing
+      const restoredContent = await fs.readFile(getUsdmPath(protocolId), 'utf-8');
+      await appendChangeLogEntry(protocolId, {
+        publishedBy: revertedBy,
+        reason: `[REVERT] ${reason}`,
+        patch: [],
+        candidateJson: restoredContent,
+        validation: {
+          schemaValid: true,
+          usdmValid: true,
+          errorCount: 0,
+          warningCount: 0,
+          forcedPublish: false,
+        },
+      });
+    } catch (auditErr) {
+      console.error('Failed to write revert audit trail:', auditErr);
     }
     
     return NextResponse.json({

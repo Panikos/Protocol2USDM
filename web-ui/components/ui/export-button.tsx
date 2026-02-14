@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { Download, FileJson, FileSpreadsheet, FileText, ChevronDown } from 'lucide-react';
 import { Button } from './button';
 import { cn } from '@/lib/utils';
@@ -32,8 +32,6 @@ export function ExportButton({
   disabled = false,
   className,
 }: ExportButtonProps) {
-  const [isOpen, setIsOpen] = useState(false);
-
   if (formats.length === 1) {
     return (
       <Button
@@ -50,42 +48,39 @@ export function ExportButton({
   }
 
   return (
-    <div className={cn('relative', className)}>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => setIsOpen(!isOpen)}
-        disabled={disabled}
-      >
-        <Download className="h-4 w-4" />
-        <span className="ml-2">Export</span>
-        <ChevronDown className="h-3 w-3 ml-1" />
-      </Button>
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={disabled}
+          className={className}
+        >
+          <Download className="h-4 w-4" />
+          <span className="ml-2">Export</span>
+          <ChevronDown className="h-3 w-3 ml-1" />
+        </Button>
+      </DropdownMenu.Trigger>
 
-      {isOpen && (
-        <>
-          <div
-            className="fixed inset-0 z-40"
-            onClick={() => setIsOpen(false)}
-          />
-          <div className="absolute right-0 top-full mt-1 z-50 min-w-[140px] bg-background border rounded-lg shadow-lg py-1">
-            {formats.map((format) => (
-              <button
-                key={format}
-                onClick={() => {
-                  onExport(format);
-                  setIsOpen(false);
-                }}
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-              >
-                {formatIcons[format]}
-                <span>{formatLabels[format]}</span>
-              </button>
-            ))}
-          </div>
-        </>
-      )}
-    </div>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Content
+          align="end"
+          sideOffset={4}
+          className="z-50 min-w-[140px] bg-popover border border-border rounded-lg shadow-lg py-1 animate-in fade-in-0 zoom-in-95"
+        >
+          {formats.map((format) => (
+            <DropdownMenu.Item
+              key={format}
+              onSelect={() => onExport(format)}
+              className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent focus:bg-accent focus:text-foreground cursor-pointer outline-none transition-colors"
+            >
+              {formatIcons[format]}
+              <span>{formatLabels[format]}</span>
+            </DropdownMenu.Item>
+          ))}
+        </DropdownMenu.Content>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
   );
 }
 

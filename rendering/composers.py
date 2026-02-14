@@ -25,6 +25,51 @@ from typing import Any, Dict, List, Optional
 logger = logging.getLogger(__name__)
 
 
+def _extract_participant_count_from_narrative(usdm: Dict) -> Optional[str]:
+    """Extract participant count from narrative text as fallback.
+
+    Scans synopsis (§1) and population (§5) narrative sections for patterns
+    like 'approximately N participants', 'enroll N subjects', etc.
+    """
+    study = usdm.get('study', {})
+    versions = study.get('versions', [{}])
+    version = versions[0] if versions else {}
+
+    nc = version.get('narrativeContents', [])
+    nci = version.get('narrativeContentItems', [])
+
+    # Collect text from synopsis and population sections
+    texts = []
+    for item in nc + nci:
+        if not isinstance(item, dict):
+            continue
+        num = item.get('sectionNumber', '')
+        if num.startswith('1') or num.startswith('5'):
+            texts.append(item.get('text', ''))
+
+    combined = ' '.join(texts)
+    if not combined:
+        return None
+
+    # Pattern: "approximately N participants/subjects/patients"
+    m = re.search(
+        r'(?:approximately|up\s+to|total\s+of|enroll(?:ing)?|planned|target)\s+'
+        r'(\d+)\s*(?:participants?|subjects?|patients?)',
+        combined, re.IGNORECASE
+    )
+    if m:
+        return m.group(1)
+
+    # Pattern: "N participants/subjects" (simple)
+    m = re.search(r'\b(\d{1,4})\s+(?:participants?|subjects?|patients?)\b', combined, re.IGNORECASE)
+    if m:
+        n = int(m.group(1))
+        if 2 <= n <= 10000:  # Reasonable trial size
+            return str(n)
+
+    return None
+
+
 def _compose_synopsis(usdm: Dict) -> str:
     """Compose Section 1.1.2 Overall Design from USDM study design entities.
 
@@ -195,6 +240,9 @@ def _compose_synopsis(usdm: Dict) -> str:
         if not target_n:
             target_n = pop.get('plannedNumberOfSubjects', '')
         max_n = pop.get('plannedMaximumNumberOfSubjects', '')
+        # Fallback: scan narrative for participant count
+        if not target_n and not max_n:
+            target_n = _extract_participant_count_from_narrative(usdm)
         if target_n or max_n:
             parts = []
             if target_n:
@@ -427,27 +475,27 @@ def _compose_eligibility(usdm: Dict) -> str:
         other = [c for c in criteria if isinstance(c, dict) and c not in inc and c not in exc]
 
         if inc:
-            lines.append("Inclusion Criteria:")
-            for c in inc:
+            lines.append("**Inclusion Criteria**")
+            for i, c in enumerate(inc, 1):
                 text = c.get('text', c.get('criterionText', ''))
                 if text:
-                    lines.append(f"  - {text}")
+                    lines.append(f"{i}. {text}")
             lines.append('')
 
         if exc:
-            lines.append("Exclusion Criteria:")
-            for c in exc:
+            lines.append("**Exclusion Criteria**")
+            for i, c in enumerate(exc, 1):
                 text = c.get('text', c.get('criterionText', ''))
                 if text:
-                    lines.append(f"  - {text}")
+                    lines.append(f"{i}. {text}")
             lines.append('')
 
         if other:
-            lines.append("Other Criteria:")
-            for c in other:
+            lines.append("**Other Criteria**")
+            for i, c in enumerate(other, 1):
                 text = c.get('text', c.get('criterionText', ''))
                 if text:
-                    lines.append(f"  - {text}")
+                    lines.append(f"{i}. {text}")
 
     return '\n'.join(lines)
 
@@ -698,6 +746,8 @@ def _compose_safety(usdm: Dict) -> str:
         return '\n\n'.join(lines)
 
     # --- Pass 2: keyword fallback for untagged USDM ---
+    logger.warning("Safety composer: no sectionType='Safety' items found; "
+                   "falling back to keyword scanning (legacy USDM)")
     safety_categories = {
         'ae_definition': {
             'keywords': ['adverse event', 'definition of ae', 'ae is defined',
@@ -822,6 +872,8 @@ def _compose_discontinuation(usdm: Dict) -> str:
         return '\n\n'.join(fragments)
 
     # --- Pass 2: keyword fallback for untagged USDM ---
+    logger.warning("Discontinuation composer: no sectionType='Discontinuation' items found; "
+                   "falling back to keyword scanning (legacy USDM)")
     discontinuation_keywords = [
         'discontinu', 'withdraw', 'dropout', 'drop-out', 'drop out',
         'early termination', 'stopping rule', 'lost to follow',
@@ -844,3 +896,62 @@ def _compose_discontinuation(usdm: Dict) -> str:
         return ''
 
     return '\n\n'.join(fragments)
+
+
+def _compose_glossary(usdm: Dict) -> str:
+    """Compose Section 13 Glossary from USDM abbreviation entities.
+
+    M11 §13 requires a glossary of terms and abbreviations.
+    The narrative extractor populates `version.abbreviations[]` with
+    Abbreviation entities that have `abbreviatedText` and `expansionText`.
+    """
+    study = usdm.get('study', {})
+    versions = study.get('versions', [{}])
+    version = versions[0] if versions else {}
+
+    abbreviations = version.get('abbreviations', [])
+    if not abbreviations:
+        return ''
+
+    # Sort alphabetically by abbreviated text
+    sorted_abbrs = sorted(
+        [a for a in abbreviations if isinstance(a, dict)],
+        key=lambda a: (a.get('abbreviatedText', '') or a.get('name', '')).upper()
+    )
+
+    if not sorted_abbrs:
+        return ''
+
+    lines = ['**Abbreviations and Acronyms**', '']
+    for abbr in sorted_abbrs:
+        short = abbr.get('abbreviatedText', abbr.get('name', ''))
+        expanded = abbr.get('expansionText', abbr.get('text', ''))
+        if short and expanded:
+            lines.append(f'  **{short}**: {expanded}')
+
+    return '\n'.join(lines)
+
+
+def _compose_references(usdm: Dict) -> str:
+    """Compose Section 14 References from narrative content.
+
+    Scans narrative sections for reference-related content.
+    """
+    study = usdm.get('study', {})
+    versions = study.get('versions', [{}])
+    version = versions[0] if versions else {}
+
+    nc = version.get('narrativeContents', [])
+    nci = version.get('narrativeContentItems', [])
+
+    for item in nc + nci:
+        if not isinstance(item, dict):
+            continue
+        num = item.get('sectionNumber', '')
+        title = (item.get('sectionTitle', '') or item.get('name', '')).lower()
+        if num.startswith('14') or 'reference' in title:
+            text = item.get('text', '')
+            if text and text != item.get('sectionTitle', ''):
+                return text
+
+    return ''

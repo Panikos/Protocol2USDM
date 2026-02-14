@@ -39,6 +39,7 @@ function ToastItem({ toast: t, onDismiss }: { toast: Toast; onDismiss: () => voi
 
   return (
     <div
+      role="status"
       className={cn(
         'flex items-start gap-2 px-4 py-3 rounded-lg border shadow-lg max-w-sm',
         'transition-all duration-200',
@@ -66,7 +67,7 @@ export function ToastContainer() {
   if (toasts.length === 0) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 z-[100] flex flex-col gap-2">
+    <div className="fixed bottom-4 right-4 z-[100] flex flex-col gap-2" role="region" aria-live="polite" aria-label="Notifications">
       {toasts.map((t) => (
         <ToastItem key={t.id} toast={t} onDismiss={() => removeToast(t.id)} />
       ))}

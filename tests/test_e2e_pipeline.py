@@ -204,6 +204,23 @@ class TestPipelineArtifacts:
     def test_soa_output_exists(self, pipeline_output_dir):
         assert (pipeline_output_dir / "9_final_soa.json").exists()
 
+    def test_execution_model_exists(self, pipeline_output_dir):
+        assert (pipeline_output_dir / "11_execution_model.json").exists()
+
+    def test_schema_validation_passed(self, pipeline_output_dir):
+        path = pipeline_output_dir / "schema_validation.json"
+        if not path.exists():
+            pytest.skip("No schema validation file")
+        report = json.loads(path.read_text(encoding='utf-8'))
+        assert report.get('valid', False), f"Schema validation failed: {report.get('errors', [])[:3]}"
+
+    def test_usdm_validation_passed(self, pipeline_output_dir):
+        path = pipeline_output_dir / "usdm_validation.json"
+        if not path.exists():
+            pytest.skip("No USDM validation file")
+        report = json.loads(path.read_text(encoding='utf-8'))
+        assert report.get('valid', False), f"USDM validation failed: {report.get('errors', [])[:3]}"
+
 
 # ---------------------------------------------------------------------------
 # Tests: USDM Structure

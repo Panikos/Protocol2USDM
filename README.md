@@ -64,27 +64,68 @@ GOOGLE_CLOUD_LOCATION=us-central1  # or your preferred region
 
 ---
 
-## What's New in v7.8
+## What's New in v7.12
 
-### ✅ USDM v4.0 Field Coverage — All 28 Gaps Fixed
-Systematic audit of all 9 extraction phases against `dataStructure.yml`. Identified and fixed **28 missing USDM fields** across 3 sprints:
-- **3 CRITICAL** — `versionIdentifier`, `StudyVersion.rationale`, `InterventionalStudyDesign.rationale`
-- **10 HIGH** — address, dates, phase, characteristics, dose/frequency, product linkage, ingredients
-- **9 MEDIUM** — therapeutic areas, assigned persons, cohort linking, duration, identifiers, amendment details
-- **6 LOW** — reference IDs, arm/intervention notes, product properties, procedure orderability
+### 💊 Procedure Code Enrichment — Multi-System Terminology
+- Automatic cross-terminology mapping: NCI, SNOMED CT, ICD-10, CPT, LOINC
+- Embedded 60+ procedure database with EVS API fallback for unknown procedures
+- `x-procedureCodes` extension stores all resolved codes per procedure
+- UI renders all codes as clickable badges linking to external browsers
 
-### 🔬 NCI Code Audit & Verification
-- **70+ fabricated NCI codes fixed** — systematic audit of all 141 C-codes against NCI EVS API
-- **Code Registry** — `core/code_registry.py` centralized singleton loading from `USDM_CT.xlsx` + supplementary codelists
-- **Code Verification Service** — `core/code_verification.py` with EVS-backed validation
+### 📊 Graph Viewer — Editing & Cross-References
+- **Human-readable references**: All UUIDs resolved to entity names with type badges (Epoch, Encounter, Activity)
+- **Clickable navigation**: Click a cross-reference → graph animates to that node
+- **Inline editing**: Edit encounter/activity/epoch names and descriptions directly in the graph panel
+- **Semantic store integration**: Edits generate JSON Patch ops with full undo/redo and publish workflow
+- **Dedicated anchor nodes**: Time anchors rendered as amber diamond nodes with dashed edges to encounters
 
-### 🏥 Unscheduled Visit (UNS) Tagging
-- **Auto-detection** — encounters named UNS, Unscheduled, Ad Hoc, PRN, etc. tagged with `x-encounterUnscheduled` extension
-- **Visual distinction** — dashed amber borders, italic headers, ⚡ suffix in SoA grid; `(UNS)` in CSV/print exports
+### � Timeline Popout Fix
+- Position-aware alignment prevents anchor labels and visit tooltips from clipping at screen edges
 
 ### 🧪 Testing
-- **808 tests** passing (up from 611)
-- New: gap fix regression tests (115), code verification (19), UNS encounters (28)
+- **981 tests** passing, 36 skipped, 0 failures, 0 TS errors
+
+<details>
+<summary><b>v7.11 — SoA Page Finder, Dangling SAI Fix, MeSH Links</b></summary>
+
+- **SoA multi-page table detection** — header-fingerprint expansion ±8 pages, wide-table heuristic
+- **Dangling SAI fix** — post-reconciliation cleanup remaps `encounterId` to surviving encounters
+- **MeSH code links** — clickable links to NLM MeSH Browser for therapeutic areas
+- 941 tests passing
+</details>
+
+<details>
+<summary><b>v7.10 — SAP Fixes, Timeline Anchors, Integrity Checker</b></summary>
+
+- **3 SAP bugs fixed** — wrong key lookup, duplicate extensions, missing path forwarding
+- **All time anchors** rendered with type-specific colors and grouped hover tooltips
+- **Figure extraction** — three-strategy pipeline (embedded → cropped → full page)
+- **Referential integrity checker** — 3-layer USDM validation with UI
+- **Cross-phase context enrichment** — scheduling and advanced phases receive upstream context
+- **AdministrableProduct expansion** — 5 new USDM v4.0 fields
+- 939 tests passing
+</details>
+
+<details>
+<summary><b>v7.9 — Estimands Editing, sectionType Tagging, UNS State Machine</b></summary>
+
+- **Estimands Fully Editable (P4)** — All 5 ICH E9(R1) attributes editable + intercurrent events add/remove
+- **M11-Aware sectionType Tagging (P15)** — `NarrativeContentItem` carries `sectionType` from parent section
+- **Renderer Monolith Split (W-HIGH-1)** — `m11_renderer.py` 1199→465 lines
+- **NarrativeContent USDM v4.0 Conformance** — `displaySectionTitle`, `displaySectionNumber`, `previousId`/`nextId`, `contentItemId`
+- **UNS Phase 2 & 3** — `ScheduledDecisionInstance` + diamond decision nodes in timeline graph
+- 856 tests passing
+</details>
+
+<details>
+<summary><b>v7.8 — USDM v4.0 Gap Audit & NCI Codes</b></summary>
+
+- **28 missing USDM fields fixed** across 3 sprints (3 CRITICAL, 10 HIGH, 9 MEDIUM, 6 LOW)
+- **70+ fabricated NCI codes fixed** — systematic audit of 141 C-codes against NCI EVS API
+- **Code Registry** — `core/code_registry.py` centralized singleton
+- **UNS encounter tagging** — auto-detection + visual distinction in SoA grid
+- **808 tests** passing
+</details>
 
 <details>
 <summary><b>v7.4 — Performance & Scalability</b></summary>
@@ -560,6 +601,7 @@ Protocol2USDMv3/
 │   ├── integrations.py       # SAP/sites integration, content refs
 │   ├── post_processing.py    # Entity reconciliation, procedure linking
 │   ├── promotion.py          # Extension→USDM promotion rules
+│   ├── integrity.py          # 3-layer referential integrity checker
 │   └── phases/               # 14 individual phase implementations
 ├── core/                     # Core modules
 │   ├── usdm_schema_loader.py # Official CDISC schema parser
@@ -568,6 +610,7 @@ Protocol2USDMv3/
 │   ├── constants.py          # Centralized constants (DEFAULT_MODEL, etc.)
 │   ├── evs_client.py         # NCI EVS API client with 30-day cache
 │   ├── terminology_codes.py  # EVS-verified NCI C-codes
+│   ├── procedure_codes.py    # Multi-system procedure code enricher
 │   ├── m11_mapping_config.py # M11 section ↔ USDM entity mapping
 │   └── reconciliation/       # Entity reconciliation framework
 ├── extraction/               # Extraction modules
@@ -587,7 +630,7 @@ Protocol2USDMv3/
 │   └── m11_conformance.py    # M11 conformance scoring
 ├── enrichment/               # Terminology enrichment
 │   └── terminology.py        # NCI EVS enrichment
-├── tests/                    # 611 tests (unit + e2e)
+├── tests/                    # 1017 tests (unit + e2e)
 │   ├── test_extractors.py    # Mocked LLM extractor tests (58)
 │   ├── test_composers.py     # M11 composer tests (22)
 │   ├── test_pipeline_context.py # PipelineContext tests (48)
@@ -616,7 +659,7 @@ For detailed architecture, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 ## Testing
 
 ```bash
-# Run all unit tests (611 collected, ~1 min)
+# Run all unit tests (1017 collected, ~3 min)
 python -m pytest tests/ -v
 
 # Run with coverage report

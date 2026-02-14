@@ -94,6 +94,18 @@ def find_soa_pages_heuristic(pdf_path: str, top_n: int = 5) -> List[int]:
         if len(visit_matches) >= 3:
             table_score += 3.0
         
+        # Wide-table heuristic: pages with many isolated integers on separate
+        # lines (visit numbers/week numbers) AND epoch-like keywords are likely
+        # SoA continuation pages even without explicit "visit N" tokens.
+        lines = text.split('\n')
+        isolated_ints = sum(1 for ln in lines if re.fullmatch(r'\s*[-+±]?\d{1,3}\s*', ln))
+        has_epoch_kw = bool(re.search(r'treatment\s*period|study\s*period|screening|lead[- ]?in|follow[- ]?up|safety', text, re.IGNORECASE))
+        has_x_ticks = text.count('x') >= 5 or text.count('X') >= 5
+        if isolated_ints >= 15 and has_epoch_kw:
+            table_score += 4.0
+        if isolated_ints >= 15 and has_x_ticks:
+            table_score += 3.0
+        
         total_score = keyword_score + table_score
         
         if total_score > 0:
@@ -317,6 +329,31 @@ def _find_soa_title_pages(pdf_path: str) -> List[int]:
     return title_pages
 
 
+def _extract_header_fingerprint(text: str) -> Optional[frozenset]:
+    """
+    Extract a fingerprint from the column-header region of a SoA page.
+    
+    Multi-page SoA tables repeat identical column headers (epoch names,
+    visit numbers) on every page.  We normalise the first ~40 lines to
+    a compact string so two pages can be compared cheaply.
+    Returns None if the page doesn't look like a SoA table.
+    """
+    lines = text.split('\n')
+    # Take the first 40 lines (header region)
+    header_lines = [ln.strip().lower() for ln in lines[:40] if ln.strip()]
+    if len(header_lines) < 5:
+        return None
+    # Fingerprint = frozenset of normalised header tokens.
+    # Strip page numbers (e.g., "page 19") which differ across continuation pages.
+    tokens = set()
+    for ln in header_lines:
+        if len(ln) < 30 and not re.fullmatch(r'page\s*\d+', ln):
+            tokens.add(re.sub(r'\s+', ' ', ln))
+    if len(tokens) < 8:
+        return None
+    return frozenset(tokens)
+
+
 def _expand_adjacent_pages(pages: List[int], pdf_path: str) -> List[int]:
     """
     Expand page list to include adjacent pages and fill gaps.
@@ -324,6 +361,9 @@ def _expand_adjacent_pages(pages: List[int], pdf_path: str) -> List[int]:
     SoA tables often span multiple pages, so if we find page N,
     we should also check page N+1 (and potentially N-1) for table continuation.
     Also fills in any gaps between detected pages (e.g., if 13 and 15 are detected, include 14).
+    
+    Uses header-fingerprint matching to detect continuation pages that share
+    the same column structure (epoch names, visit numbers) as known SoA pages.
     """
     if not pages:
         return pages
@@ -334,29 +374,73 @@ def _expand_adjacent_pages(pages: List[int], pdf_path: str) -> List[int]:
     expanded = set(pages)
     
     # Step 1: Fill in gaps between detected pages
-    # If pages 13 and 15 are detected, page 14 is definitely part of the table
     if len(pages) >= 2:
         sorted_pages = sorted(pages)
         for i in range(len(sorted_pages) - 1):
             start, end = sorted_pages[i], sorted_pages[i + 1]
-            # Fill gaps of up to 2 pages (handles single-page gaps like 13->15)
             if end - start <= 3:
                 for gap_page in range(start + 1, end):
                     if gap_page not in expanded:
                         expanded.add(gap_page)
                         logger.info(f"Filled gap: added page {gap_page + 1} (1-indexed) between pages {start + 1} and {end + 1}")
     
-    # Step 2: Add ±1 page on each end (non-iterative, conservative)
-    # SoA tables typically span 2-4 pages, so ±1 is sufficient
+    # Step 2: Header-fingerprint walk — scan backward/forward from known
+    # SoA pages for continuation pages with matching column headers.
+    # Multi-page SoA tables repeat identical headers on every page.
+    ref_fps = []
+    for pg in sorted(expanded):
+        fp = _extract_header_fingerprint(doc[pg].get_text())
+        if fp:
+            ref_fps.append(fp)
+    
+    def _matches_any_ref(candidate_fp):
+        """Jaccard similarity >= 0.75 against any reference fingerprint."""
+        for ref in ref_fps:
+            intersection = len(candidate_fp & ref)
+            union = len(candidate_fp | ref)
+            if union > 0 and intersection / union >= 0.75:
+                return True
+        return False
+    
+    if ref_fps:
+        sorted_exp = sorted(expanded)
+        # Walk backward from earliest known page
+        for pg in range(sorted_exp[0] - 1, max(sorted_exp[0] - 8, -1), -1):
+            if pg < 0:
+                break
+            fp = _extract_header_fingerprint(doc[pg].get_text())
+            if fp and _matches_any_ref(fp):
+                expanded.add(pg)
+                logger.info(f"Header-match: added page {pg + 1} (1-indexed) before SoA")
+            else:
+                break  # Stop at first non-matching page
+        # Walk forward from latest known page
+        for pg in range(sorted_exp[-1] + 1, min(sorted_exp[-1] + 8, total_pages)):
+            fp = _extract_header_fingerprint(doc[pg].get_text())
+            if fp and _matches_any_ref(fp):
+                expanded.add(pg)
+                logger.info(f"Header-match: added page {pg + 1} (1-indexed) after SoA")
+            else:
+                break
+        # Interior scan: fill gaps between known pages using fingerprint matching
+        # (covers wide gaps > 3 that simple gap-fill misses)
+        sorted_after_walk = sorted(expanded)
+        if len(sorted_after_walk) >= 2:
+            lo, hi = sorted_after_walk[0], sorted_after_walk[-1]
+            for pg in range(lo + 1, hi):
+                if pg not in expanded:
+                    fp = _extract_header_fingerprint(doc[pg].get_text())
+                    if fp and _matches_any_ref(fp):
+                        expanded.add(pg)
+                        logger.info(f"Header-match: filled interior page {pg + 1} (1-indexed)")
+    
+    # Step 3: Fallback ±1 (covers cases where fingerprint doesn't match)
     sorted_pages = sorted(expanded)
     min_page, max_page = sorted_pages[0], sorted_pages[-1]
-    
-    if min_page - 1 >= 0:
+    if min_page - 1 >= 0 and min_page - 1 not in expanded:
         expanded.add(min_page - 1)
-        logger.debug(f"Added page {min_page} (1-indexed) before SoA")
-    if max_page + 1 < total_pages:
+    if max_page + 1 < total_pages and max_page + 1 not in expanded:
         expanded.add(max_page + 1)
-        logger.debug(f"Added page {max_page + 2} (1-indexed) after SoA")
     
     doc.close()
     return list(expanded)

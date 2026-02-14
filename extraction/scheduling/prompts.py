@@ -122,9 +122,25 @@ PROTOCOL TEXT:
 Extract all timing constraints, conditions, and transition rules. Focus on quantitative timing information."""
 
 
-def get_scheduling_prompt(protocol_text: str) -> str:
-    """Generate the full prompt for scheduling extraction."""
-    return SCHEDULING_USER_PROMPT.format(protocol_text=protocol_text)
+def get_scheduling_prompt(protocol_text: str, upstream_context: str = None) -> str:
+    """Generate the full prompt for scheduling extraction.
+    
+    Args:
+        protocol_text: Raw protocol text to extract from.
+        upstream_context: Optional context from upstream phases (epochs, encounters, arms)
+            to ground the LLM and prevent hallucinated entity names.
+    """
+    prompt = SCHEDULING_USER_PROMPT.format(protocol_text=protocol_text)
+    if upstream_context:
+        context_block = (
+            "\n\n## Already-Extracted Study Context (use these exact names)\n"
+            "The following entities have already been extracted from this protocol. "
+            "When referencing epochs, visits, or arms in your timings and transition rules, "
+            "use these exact names rather than inventing new ones.\n\n"
+            f"{upstream_context}\n"
+        )
+        prompt = context_block + prompt
+    return prompt
 
 
 def get_system_prompt() -> str:

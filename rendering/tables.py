@@ -503,3 +503,80 @@ def _add_synopsis_table(doc: Document, usdm: Dict) -> bool:
 
     logger.info(f"  ✓ Synopsis table: {len(fields)} fields")
     return True
+
+
+def _add_abbreviation_table(doc: Document, usdm: Dict) -> bool:
+    """Render abbreviations as a proper 2-column DOCX table for §13 Glossary.
+
+    Returns True if the table was added, False if no abbreviation data.
+    """
+    study = usdm.get('study', {})
+    versions = study.get('versions', [{}])
+    version = versions[0] if versions else {}
+
+    abbreviations = version.get('abbreviations', [])
+    if not abbreviations:
+        return False
+
+    # Filter and sort
+    valid = [a for a in abbreviations if isinstance(a, dict)]
+    valid = sorted(
+        valid,
+        key=lambda a: (a.get('abbreviatedText', '') or a.get('name', '')).upper()
+    )
+    if not valid:
+        return False
+
+    # Create table: header row + data rows
+    table = doc.add_table(rows=1 + len(valid), cols=2)
+    table.style = 'Table Grid'
+    table.alignment = WD_TABLE_ALIGNMENT.CENTER
+
+    # Header row
+    for ci, header_text in enumerate(['Abbreviation', 'Term']):
+        cell = table.rows[0].cells[ci]
+        cell.text = ''
+        p = cell.paragraphs[0]
+        run = p.add_run(header_text)
+        run.bold = True
+        run.font.size = Pt(10)
+        run.font.name = 'Times New Roman'
+        # Grey shading
+        tc_pr = cell._tc.get_or_add_tcPr()
+        shd = tc_pr.makeelement(qn('w:shd'), {
+            qn('w:val'): 'clear', qn('w:color'): 'auto', qn('w:fill'): 'F2F2F2',
+        })
+        tc_pr.append(shd)
+
+    # Mark header as repeating
+    tr_pr = table.rows[0]._tr.get_or_add_trPr()
+    hdr_el = tr_pr.makeelement(qn('w:tblHeader'), {})
+    tr_pr.append(hdr_el)
+
+    # Data rows
+    for ri, abbr in enumerate(valid, 1):
+        short = abbr.get('abbreviatedText', abbr.get('name', ''))
+        expanded = abbr.get('expansionText', abbr.get('text', ''))
+
+        cell_abbr = table.rows[ri].cells[0]
+        cell_abbr.text = ''
+        p = cell_abbr.paragraphs[0]
+        run = p.add_run(short or '')
+        run.bold = True
+        run.font.size = Pt(10)
+        run.font.name = 'Times New Roman'
+
+        cell_term = table.rows[ri].cells[1]
+        cell_term.text = ''
+        p = cell_term.paragraphs[0]
+        run = p.add_run(expanded or '')
+        run.font.size = Pt(10)
+        run.font.name = 'Times New Roman'
+
+    # Column widths
+    for row in table.rows:
+        row.cells[0].width = Inches(1.5)
+        row.cells[1].width = Inches(5.0)
+
+    logger.info(f"  ✓ Abbreviation table: {len(valid)} entries")
+    return True
