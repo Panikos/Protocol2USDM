@@ -457,6 +457,22 @@ export const cytoscapeStyles: any[] = [
       'text-margin-y': -8,
     },
   },
+
+  // Dimmed nodes (neighborhood focus: fade non-connected elements)
+  {
+    selector: 'node.dimmed',
+    style: {
+      'opacity': 0.15,
+    },
+  },
+
+  // Dimmed edges
+  {
+    selector: 'edge.dimmed',
+    style: {
+      'opacity': 0.08,
+    },
+  },
 ];
 
 export default cytoscapeStyles;

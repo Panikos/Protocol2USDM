@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useCallback, useRef, useState } from 'react';
-import { TimelineCanvas, TimelineCanvasHandle } from './TimelineCanvas';
+import { TimelineCanvas, TimelineCanvasHandle, LayoutName } from './TimelineCanvas';
 import { TimelineToolbar, TimelineLegend } from './TimelineToolbar';
 import { toGraphModel, ExecutionModelData } from '@/lib/adapters/toGraphModel';
 import { useOverlayStore, selectDraftPayload } from '@/stores/overlayStore';
@@ -25,6 +25,7 @@ export function TimelineView({ onNodeSelect, executionModel }: TimelineViewProps
   const canvasRef = useRef<TimelineCanvasHandle>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [selectedNode, setSelectedNode] = useState<{ id: string; data: Record<string, unknown> } | null>(null);
+  const [activeLayout, setActiveLayout] = useState<LayoutName>('preset');
 
   // Build graph model from USDM + overlay + execution model
   const graphModel = useMemo(() => {
@@ -93,6 +94,11 @@ export function TimelineView({ onNodeSelect, executionModel }: TimelineViewProps
     canvasRef.current?.exportPNG();
   }, []);
 
+  const handleLayoutChange = useCallback((layout: LayoutName) => {
+    setActiveLayout(layout);
+    canvasRef.current?.runLayout(layout);
+  }, []);
+
   const toggleFullscreen = useCallback(() => {
     setIsFullscreen(prev => !prev);
   }, []);
@@ -157,6 +163,8 @@ export function TimelineView({ onNodeSelect, executionModel }: TimelineViewProps
           onResetLayout={handleResetLayout}
           onExportPNG={handleExportPNG}
           onToggleFullscreen={toggleFullscreen}
+          onLayoutChange={handleLayoutChange}
+          activeLayout={activeLayout}
           isFullscreen={isFullscreen}
         />
       </div>

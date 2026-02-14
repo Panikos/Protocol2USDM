@@ -15,10 +15,39 @@ import {
   Anchor,
   Clock,
   Activity,
+  LayoutGrid,
+  Circle,
+  GitBranch,
+  Waypoints,
+  Orbit,
+  MapPin,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useOverlayStore, selectSnapGrid } from '@/stores/overlayStore';
 import { cn } from '@/lib/utils';
+
+import type { LayoutName } from './TimelineCanvas';
+
+const LAYOUT_OPTIONS: { value: LayoutName; label: string; description: string }[] = [
+  { value: 'preset',       label: 'Saved',        description: 'Saved node positions' },
+  { value: 'grid',         label: 'Grid',         description: 'Even grid arrangement' },
+  { value: 'circle',       label: 'Circle',       description: 'Nodes in a circle' },
+  { value: 'concentric',   label: 'Concentric',   description: 'Rings by connectivity' },
+  { value: 'breadthfirst', label: 'Hierarchy',    description: 'Top-down tree layout' },
+  { value: 'cose',         label: 'Force',        description: 'Physics simulation' },
+];
+
+function LayoutIcon({ name, className }: { name: LayoutName; className?: string }) {
+  switch (name) {
+    case 'preset':       return <MapPin className={className} />;
+    case 'grid':         return <LayoutGrid className={className} />;
+    case 'circle':       return <Circle className={className} />;
+    case 'concentric':   return <Orbit className={className} />;
+    case 'breadthfirst': return <GitBranch className={className} />;
+    case 'cose':         return <Waypoints className={className} />;
+    default:             return <LayoutGrid className={className} />;
+  }
+}
 
 interface TimelineToolbarProps {
   onZoomIn?: () => void;
@@ -27,7 +56,9 @@ interface TimelineToolbarProps {
   onResetLayout?: () => void;
   onExportPNG?: () => void;
   onToggleFullscreen?: () => void;
+  onLayoutChange?: (layout: LayoutName) => void;
   isFullscreen?: boolean;
+  activeLayout?: LayoutName;
   nodeCount: number;
   edgeCount: number;
   className?: string;
@@ -40,7 +71,9 @@ export function TimelineToolbar({
   onResetLayout,
   onExportPNG,
   onToggleFullscreen,
+  onLayoutChange,
   isFullscreen,
+  activeLayout = 'preset',
   nodeCount,
   edgeCount,
   className,
@@ -48,6 +81,8 @@ export function TimelineToolbar({
   const snapGrid = useOverlayStore(selectSnapGrid);
   const { setSnapGrid, resetToPublished } = useOverlayStore();
   const [showSnapOptions, setShowSnapOptions] = useState(false);
+  const [showLayoutOptions, setShowLayoutOptions] = useState(false);
+  const activeOpt = LAYOUT_OPTIONS.find(l => l.value === activeLayout) ?? LAYOUT_OPTIONS[0];
 
   const snapOptions = [5, 10, 20, 50];
 
@@ -64,7 +99,7 @@ export function TimelineToolbar({
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center flex-wrap gap-2">
         {/* Zoom controls */}
         <div className="flex items-center border rounded-md">
           <Button
@@ -93,12 +128,50 @@ export function TimelineToolbar({
           </Button>
         </div>
 
+        {/* Layout selector */}
+        <div className="relative">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => { setShowLayoutOptions(!showLayoutOptions); setShowSnapOptions(false); }}
+            className="gap-1.5"
+            title="Change graph layout"
+          >
+            <LayoutIcon name={activeLayout} className="h-4 w-4" />
+            <span>{activeOpt.label}</span>
+          </Button>
+
+          {showLayoutOptions && (
+            <div className="absolute top-full mt-1 right-0 bg-white dark:bg-gray-900 border rounded-md shadow-lg z-20 py-1 min-w-[180px]">
+              {LAYOUT_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => {
+                    onLayoutChange?.(opt.value);
+                    setShowLayoutOptions(false);
+                  }}
+                  className={cn(
+                    'w-full px-3 py-2 text-sm text-left hover:bg-muted flex items-center gap-2',
+                    activeLayout === opt.value && 'bg-muted font-medium'
+                  )}
+                >
+                  <LayoutIcon name={opt.value} className="h-4 w-4" />
+                  <div>
+                    <div className="font-medium">{opt.label}</div>
+                    <div className="text-xs text-muted-foreground">{opt.description}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* Snap grid selector */}
         <div className="relative">
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setShowSnapOptions(!showSnapOptions)}
+            onClick={() => { setShowSnapOptions(!showSnapOptions); setShowLayoutOptions(false); }}
             className="gap-1.5"
           >
             <Grid className="h-4 w-4" />

@@ -15,6 +15,8 @@ interface TimelineCanvasProps {
   className?: string;
 }
 
+export type LayoutName = 'preset' | 'grid' | 'circle' | 'concentric' | 'breadthfirst' | 'cose';
+
 export interface TimelineCanvasHandle {
   zoomIn: () => void;
   zoomOut: () => void;
@@ -23,6 +25,8 @@ export interface TimelineCanvasHandle {
   center: () => void;
   /** Programmatically select a node by its Cytoscape ID, center it, and fire onNodeSelect */
   selectNode: (nodeId: string) => void;
+  /** Run a named layout algorithm on the graph */
+  runLayout: (name: LayoutName) => void;
 }
 
 export const TimelineCanvas = forwardRef<TimelineCanvasHandle, TimelineCanvasProps>(
@@ -129,17 +133,23 @@ export const TimelineCanvas = forwardRef<TimelineCanvasHandle, TimelineCanvasPro
       lockNode(node.id(), !isLocked);
     });
 
-    // Single click to select
+    // Single click to select + neighborhood focus
     cy.on('tap', 'node', (evt) => {
       const node = evt.target as NodeSingular;
       setSelectedNode(node.id());
       onNodeSelect?.(node.id(), node.data());
+
+      // Neighborhood focus: dim everything except selected + neighbors
+      const neighborhood = node.closedNeighborhood();
+      cy.elements().addClass('dimmed');
+      neighborhood.removeClass('dimmed');
     });
 
-    // Click background to deselect
+    // Click background to deselect + clear dimming
     cy.on('tap', (evt) => {
       if (evt.target === cy) {
         setSelectedNode(null);
+        cy.elements().removeClass('dimmed');
       }
     });
 
@@ -236,9 +246,60 @@ export const TimelineCanvas = forwardRef<TimelineCanvasHandle, TimelineCanvasPro
       node.addClass('highlighted');
       setTimeout(() => node.removeClass('highlighted'), 1500);
 
+      // Neighborhood focus
+      const neighborhood = node.closedNeighborhood();
+      cy.elements().addClass('dimmed');
+      neighborhood.removeClass('dimmed');
+
       // Fire selection callback
       setSelectedNode(nodeId);
       onNodeSelect?.(nodeId, node.data());
+    },
+    runLayout: (name: LayoutName) => {
+      if (!cyRef.current) return;
+      const cy = cyRef.current;
+
+      // Clear dimming before re-layout
+      cy.elements().removeClass('dimmed');
+
+      const layoutOptions: Record<LayoutName, cytoscape.LayoutOptions> = {
+        preset: { name: 'preset' },
+        grid: { name: 'grid', avoidOverlap: true, padding: 30 } as cytoscape.LayoutOptions,
+        circle: { name: 'circle', avoidOverlap: true, padding: 30 } as cytoscape.LayoutOptions,
+        concentric: {
+          name: 'concentric',
+          avoidOverlap: true,
+          padding: 30,
+          concentric: (node: cytoscape.NodeSingular) => node.degree(false),
+          levelWidth: () => 2,
+        } as cytoscape.LayoutOptions,
+        breadthfirst: {
+          name: 'breadthfirst',
+          directed: true,
+          padding: 30,
+          spacingFactor: 1.25,
+        } as cytoscape.LayoutOptions,
+        cose: {
+          name: 'cose',
+          animate: true,
+          animationDuration: 500,
+          padding: 30,
+          nodeRepulsion: () => 8000,
+          idealEdgeLength: () => 80,
+          gravity: 0.25,
+        } as cytoscape.LayoutOptions,
+      };
+
+      const opts = layoutOptions[name];
+      const layout = cy.layout(opts);
+      layout.run();
+
+      // Fit after layout completes
+      if (name !== 'cose') {
+        setTimeout(() => cy.fit(undefined, 50), 100);
+      } else {
+        setTimeout(() => cy.fit(undefined, 50), 600);
+      }
     },
   }), [onNodeSelect]);
 

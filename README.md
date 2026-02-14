@@ -64,26 +64,25 @@ GOOGLE_CLOUD_LOCATION=us-central1  # or your preferred region
 
 ---
 
-## What's New in v7.12
+## What's New in v7.13
 
-### 💊 Procedure Code Enrichment — Multi-System Terminology
-- Automatic cross-terminology mapping: NCI, SNOMED CT, ICD-10, CPT, LOINC
-- Embedded 60+ procedure database with EVS API fallback for unknown procedures
-- `x-procedureCodes` extension stores all resolved codes per procedure
-- UI renders all codes as clickable badges linking to external browsers
-
-### 📊 Graph Viewer — Editing & Cross-References
-- **Human-readable references**: All UUIDs resolved to entity names with type badges (Epoch, Encounter, Activity)
-- **Clickable navigation**: Click a cross-reference → graph animates to that node
-- **Inline editing**: Edit encounter/activity/epoch names and descriptions directly in the graph panel
-- **Semantic store integration**: Edits generate JSON Patch ops with full undo/redo and publish workflow
-- **Dedicated anchor nodes**: Time anchors rendered as amber diamond nodes with dashed edges to encounters
-
-### � Timeline Popout Fix
-- Position-aware alignment prevents anchor labels and visit tooltips from clipping at screen edges
+### � Graph View — Neighborhood Focus & Layout Selector
+- **Neighborhood dimming**: Click a node to dim all non-connected elements; click background to clear
+- **Layout selector**: 6 Cytoscape layouts — Saved, Grid, Circle, Concentric, Hierarchy, Force
+- **Toolbar flex-wrap**: Actions bar wraps on narrow viewports
 
 ### 🧪 Testing
-- **981 tests** passing, 36 skipped, 0 failures, 0 TS errors
+- **1017 tests** passing, 36 skipped, 0 failures, 0 TS errors
+
+<details>
+<summary><b>v7.12 — Procedure Codes, Graph Editing, Anchor Nodes</b></summary>
+
+- **Procedure code enrichment** — automatic NCI/SNOMED/ICD-10/CPT/LOINC mapping via embedded DB + EVS API
+- **Graph viewer editing** — inline editing with semantic patches, clickable cross-references, undo/redo
+- **Dedicated anchor nodes** — amber diamond nodes with dashed edges to encounters
+- **Timeline popout fix** — position-aware alignment prevents label clipping
+- 981 tests passing
+</details>
 
 <details>
 <summary><b>v7.11 — SoA Page Finder, Dangling SAI Fix, MeSH Links</b></summary>

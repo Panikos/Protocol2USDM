@@ -4,6 +4,21 @@ All notable changes documented here. Dates in ISO-8601.
 
 ---
 
+## [7.13.0] – 2026-02-14
+
+### Graph View — Neighborhood Focus & Layout Selector
+
+| Feature | Details |
+|---------|---------|
+| **Neighborhood dimming** | Clicking a node dims all non-connected nodes/edges to 15%/8% opacity; click background to clear |
+| **Layout selector** | Toolbar dropdown with 6 Cytoscape layouts: Saved (preset), Grid, Circle, Concentric, Hierarchy (breadthfirst), Force (cose) |
+| **`LayoutIcon` component** | Proper React component replacing JSX member expressions that SWC/Turbopack compiled as invisible HTML elements |
+| **Toolbar flex-wrap** | Actions bar now wraps on narrow viewports instead of overflowing |
+
+**Files changed**: `TimelineCanvas.tsx` (runLayout + dimming logic), `TimelineToolbar.tsx` (LayoutIcon + dropdown), `TimelineView.tsx` (layout state), `cytoscape-theme.ts` (dimmed styles)
+
+---
+
 ## [7.12.0] – 2026-02-14
 
 ### Procedure Code Enrichment — Multi-System Terminology

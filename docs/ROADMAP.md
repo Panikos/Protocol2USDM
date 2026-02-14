@@ -2,6 +2,26 @@
 
 ## Future Enhancements
 
+### Navigation Restructure (Planned)
+
+**Status:** Approved — implementation branch pending  
+**Priority:** High  
+**Added:** 2026-02-14
+
+Restructure the web UI navigation from 4 groups (22 tabs) to 8 groups + 1 pinned view (25 views), aligned with ICH M11 sections and user personas (protocol author, biostatistician, data manager, regulatory reviewer, developer).
+
+| Group | Tabs |
+|-------|------|
+| **Protocol** | Overview, Eligibility, Objectives, Design, Interventions, Narrative (+Abbreviations, +Footnotes) |
+| **Assessments** | Procedures, Safety Entities |
+| **Schedule & SoA** | SoA Table, Execution Model, Schedule Timeline |
+| **Statistics** | SAP Data, CDISC ARS |
+| **Trial Conduct** | Sites, Amendments |
+| **Documents** | M11 Document, Figures, Cross-References |
+| **Provenance** | Extraction Pipeline, Integrity, Pipeline Artifacts |
+| **Developer** | Extensions, Quality Metrics, Validation |
+| **Graph View** | *(pinned top-level button)* |
+
 ### User Access Management & E-Signatures (Future)
 
 **Status:** Future enhancement  
@@ -72,6 +92,19 @@
 ---
 
 ## Completed Features
+
+### v7.13.0 - Graph View: Neighborhood Focus & Layout Selector (2026-02-14)
+- ✅ Neighborhood dimming: click node → non-connected elements fade to 15%/8% opacity
+- ✅ Layout selector: 6 Cytoscape layouts (preset, grid, circle, concentric, breadthfirst, cose)
+- ✅ `LayoutIcon` component fix: replaced JSX member expressions that SWC/Turbopack compiled as invisible HTML elements
+- ✅ Toolbar flex-wrap for narrow viewports
+
+### v7.12.0 - Procedure Codes, Graph Editing, Anchor Nodes (2026-02-14)
+- ✅ Procedure code enrichment: NCI/SNOMED/ICD-10/CPT/LOINC via embedded DB + EVS API
+- ✅ Graph viewer editing: inline editing, clickable cross-references, undo/redo
+- ✅ Dedicated anchor nodes: amber diamonds with dashed edges
+- ✅ Timeline popout: position-aware alignment prevents label clipping
+- ✅ 981 tests passing
 
 ### v7.11.0 - SoA Page Finder & Dangling Reference Fix (2026-02-14)
 - ✅ SoA page finder: header-fingerprint expansion for multi-page tables (Jaccard ≥ 0.75)
