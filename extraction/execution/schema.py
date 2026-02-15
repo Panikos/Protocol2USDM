@@ -1652,9 +1652,9 @@ class ExecutionModelExtension:
         timestamp: Optional[str] = None,
     ) -> 'ExecutionModelExtension':
         """Create from an extraction result."""
-        from datetime import datetime
+        from datetime import datetime, timezone
         return cls(
-            extractionTimestamp=timestamp or datetime.utcnow().isoformat(),
+            extractionTimestamp=timestamp or datetime.now(timezone.utc).isoformat(),
             data=result.data,
             metadata={
                 "success": result.success,

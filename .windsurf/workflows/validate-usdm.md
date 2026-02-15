@@ -22,13 +22,19 @@ python -c "import json; from validation.m11_conformance import validate_m11_conf
 
 4. Run CDISC CORE conformance (requires rules engine):
 ```
-python -c "from validation.cdisc_conformance import run_cdisc_conformance; r = run_cdisc_conformance(r'<path_to_usdm_json>'); print(f'Success: {r.get(\"success\")}'); print(f'Issues: {len(r.get(\"issues_list\", []))}'); [print(f'  - {i}') for i in r.get('issues_list', [])[:10]]"
+python -c "from pathlib import Path; from validation.cdisc_conformance import run_cdisc_conformance; usdm = Path(r'<path_to_usdm_json>'); out_dir = usdm.parent; r = run_cdisc_conformance(str(usdm), str(out_dir)); print(f'Success: {r.get(\"success\")}'); print(f'Errors: {r.get(\"issues\", 0)}'); print(f'Warnings: {r.get(\"warnings\", 0)}'); [print(f'  - {i.get(\"rule\") or i.get(\"core_id\")}: {i.get(\"message\")}') for i in r.get('issues_list', [])[:10]]"
+```
+
+   Optional timeout override for large protocols:
+```
+set CDISC_CORE_TIMEOUT_SECONDS=300
 ```
 
 5. Review results:
    - **Schema errors**: Fix entity structure in the relevant extraction combiner
    - **M11 conformance errors**: Check which M11 sections/fields are missing data
    - **CDISC CORE issues**: Check controlled terminology codes and entity relationships
+   - If CORE reports timeout, retry with a higher `CDISC_CORE_TIMEOUT_SECONDS` value
 
 6. Common fixes:
    - Missing `instanceType` → add in combiner

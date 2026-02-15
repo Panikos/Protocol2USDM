@@ -342,10 +342,12 @@ This is the **single most critical function** in the entire codebase.
 - Local-first execution (no API dependency after initial cache)
 - Standardized result dict with consistent keys across all paths
 - Cache management with auto-download on first run
+- Parses both legacy CORE JSON (`issues[]`) and CORE v0.14+ JSON (`Issue_Details`/`Issue_Summary`) into normalized `issues`/`warnings` counts
+- Configurable local timeout via `CDISC_CORE_TIMEOUT_SECONDS` (default 300s)
 
 **Weaknesses**:
-- **W-V3**: The CORE engine path is hardcoded to `tools/core/core/core.exe` — Windows-only. On Linux/macOS, this will silently fall through to the API path
-- **W-V4**: CORE engine output parsing is brittle — it assumes specific JSON structure from the engine output
+- **W-V3**: Large `issues_list` payloads from CORE can produce very large `conformance_report.json` files, which are harder to inspect in line-limited tooling and UI previews
+- **W-V4**: CORE runtimes are dataset-dependent; long protocols can still exceed timeout settings if not tuned for the environment
 
 #### 2.5.3 Schema Auto-Fix (`core/validation.py`)
 

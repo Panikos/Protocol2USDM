@@ -32,7 +32,7 @@ from core.usdm_types import (
     create_wrapper_input
 )
 from core.provenance import ProvenanceTracker, ProvenanceSource
-from core.constants import USDM_VERSION, SYSTEM_NAME, SYSTEM_VERSION
+from core.constants import USDM_VERSION, SYSTEM_NAME, VERSION
 
 logger = logging.getLogger(__name__)
 
@@ -475,7 +475,7 @@ def build_usdm_output(
         timeline=timeline,
         usdm_version=USDM_VERSION,
         system_name=SYSTEM_NAME,
-        system_version=SYSTEM_VERSION,
+        system_version=VERSION,
     )
 
 

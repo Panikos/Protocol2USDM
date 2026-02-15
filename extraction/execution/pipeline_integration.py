@@ -13,6 +13,7 @@ import logging
 import os
 import re
 import time
+from datetime import datetime, timezone
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Dict, Any, Optional, List, Tuple, Callable
@@ -492,9 +493,8 @@ def enrich_usdm_with_execution_model(
         # NEW (P2): Add unified typed ExecutionModelExtension
         # This outputs the full execution model as a typed structure (not JSON string)
         # alongside the existing x-executionModel-* extensions for backward compatibility
-        from datetime import datetime
         typed_extension = ExecutionModelExtension(
-            extractionTimestamp=datetime.utcnow().isoformat(),
+            extractionTimestamp=datetime.now(timezone.utc).isoformat(),
             data=execution_data,
             integrityIssues=[{"issue": i} for i in integrity_issues] if integrity_issues else [],
         )
@@ -633,6 +633,20 @@ def _resolve_to_encounter_id(
             if any(x in enc_name for x in ['day 1', 'day1', 'baseline', 'random', 'week 0', 'visit 1']):
                 return enc['id']
 
+        # Generic treatment-visit bucket from traversal constraints.
+        if any(x in visit_lower for x in [
+            'scheduled treatment visit',
+            'scheduled treatment visits',
+            'treatment visit',
+            'treatment visits',
+            'double-blind treatment visit',
+            'double-blind treatment visits',
+            'double blind treatment visit',
+            'double blind treatment visits',
+        ]):
+            if 'treatment' in enc_name and not any(x in enc_name for x in ['end', 'follow', 'safety']):
+                return enc['id']
+
         # Follow-up / Safety follow-up
         if 'follow' in visit_lower or 'safety' in visit_lower:
             if 'follow' in enc_name or 'safety' in enc_name:
@@ -685,6 +699,12 @@ def _resolve_to_encounter_id(
          'first'),
         (['baseline', 'randomiz', 'randomi', 'day 1', 'day1'],
          ['random', 'baseline', 'treatment', 'allocat'],
+         'first'),
+        (['scheduled treatment visit', 'scheduled treatment visits',
+          'treatment visit', 'treatment visits',
+          'double-blind treatment visit', 'double-blind treatment visits',
+          'double blind treatment visit', 'double blind treatment visits'],
+         ['treatment', 'double-blind', 'double blind', 'maintenance'],
          'first'),
         (['end of treatment', 'eot', 'treatment end', 'last dose'],
          ['treatment', 'dosing', 'intervention'],

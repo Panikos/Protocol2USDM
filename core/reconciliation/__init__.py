@@ -36,6 +36,7 @@ from .epoch_reconciler import (
     EpochContribution,
     ReconciledEpoch,
     reconcile_epochs_from_pipeline,
+    enrich_epoch_names_with_clinical_type,
 )
 from .activity_reconciler import (
     ActivityReconciler,
@@ -62,6 +63,7 @@ __all__ = [
     "EpochContribution",
     "ReconciledEpoch",
     "reconcile_epochs_from_pipeline",
+    "enrich_epoch_names_with_clinical_type",
     # Activities
     "ActivityReconciler",
     "ActivityContribution",

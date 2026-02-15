@@ -318,8 +318,8 @@ def convert_provenance_to_uuids(
                 act_name = act.get('name', '').lower().strip()
                 if act_id and act_name:
                     soa_act_id_to_name[act_id] = act_name
-        except Exception:
-            pass
+        except (AttributeError, IndexError, TypeError) as exc:
+            logger.debug("Could not map SoA activities for provenance conversion: %s", exc)
         
         # Get USDM activity UUIDs by name
         try:
@@ -329,8 +329,8 @@ def convert_provenance_to_uuids(
                 act_name = act.get('name', '').lower().strip()
                 if act_id and act_name:
                     act_name_to_uuid[act_name] = act_id
-        except Exception:
-            pass
+        except (AttributeError, IndexError, TypeError) as exc:
+            logger.debug("Could not map USDM activities for provenance conversion: %s", exc)
     
     # Build set of valid USDM activity UUIDs for validation
     usdm_activity_ids = set(act_name_to_uuid.values()) if act_name_to_uuid else set()
@@ -643,8 +643,8 @@ def validate_and_fix_schema(
                 # Note: We do NOT add provenance for enrichment-created instances.
                 # The SoA provenance should only track original PDF ticks.
                 # Enrichment instances are separate from SoA.
-            except Exception:
-                pass  # Keep original entities if extraction fails
+            except (AttributeError, IndexError, TypeError) as exc:
+                logger.debug("Could not populate provenance entity display names: %s", exc)
             
             # Save as protocol_usdm_provenance.json (paired with protocol_usdm.json)
             prov_output_path = os.path.join(output_dir, "protocol_usdm_provenance.json")

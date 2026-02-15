@@ -31,7 +31,7 @@ from core.logging_config import configure_logging
 logger = logging.getLogger(__name__)
 
 from extraction import run_from_files, PipelineConfig
-from core.constants import DEFAULT_MODEL, SYSTEM_NAME, SYSTEM_VERSION
+from core.constants import DEFAULT_MODEL, SYSTEM_NAME, VERSION
 from llm_providers import usage_tracker
 
 # Import pipeline module (triggers phase registration)
@@ -42,13 +42,12 @@ from pipeline.phases import *  # noqa - triggers registration
 # Import validation functions from core module
 from core.validation import (
     validate_and_fix_schema,
-    convert_ids_to_uuids,
-    convert_provenance_to_uuids,
 )
 from extraction.execution.pipeline_integration import get_processing_warnings
 
 
-def main():
+def _build_parser() -> argparse.ArgumentParser:
+    """Build CLI argument parser."""
     parser = argparse.ArgumentParser(
         description="Extract Schedule of Activities from clinical protocol PDF (v3 - Refactored)",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -61,7 +60,7 @@ Examples:
     python main_v3.py protocol.pdf --eligibility --objectives  # SoA + selected phases
         """
     )
-    
+
     parser.add_argument("pdf_path", nargs="?", help="Path to the clinical protocol PDF")
     parser.add_argument("--model", "-m", default=DEFAULT_MODEL, help=f"LLM model to use (default: {DEFAULT_MODEL})")
     parser.add_argument("--output-dir", "-o", help="Output directory (default: output/<protocol_name>_<timestamp>)")
@@ -76,7 +75,7 @@ Examples:
     parser.add_argument("--conformance", action="store_true", help="Run CDISC CORE conformance rules")
     parser.add_argument("--update-cache", action="store_true", help="Update CDISC CORE rules cache")
     parser.add_argument("--soa", action="store_true", help="Run full SoA pipeline including enrichment, validation, and conformance")
-    
+
     # USDM Expansion flags
     expansion_group = parser.add_argument_group('USDM Expansion')
     expansion_group.add_argument("--metadata", action="store_true", help="Extract study metadata")
@@ -96,22 +95,248 @@ Examples:
     expansion_group.add_argument("--complete", action="store_true", help="Run COMPLETE extraction")
     expansion_group.add_argument("--parallel", action="store_true", help="Run independent phases in parallel")
     expansion_group.add_argument("--max-workers", type=int, default=4, help="Max parallel workers (default: 4)")
-    
+
     # Logging options
     log_group = parser.add_argument_group('Logging')
     log_group.add_argument("--json-log", action="store_true", help="Emit structured JSON log lines to stderr")
     log_group.add_argument("--log-file", type=str, metavar="PATH", help="Write JSON logs to file")
-    
+
     # Conditional sources
     conditional_group = parser.add_argument_group('Conditional Sources')
     conditional_group.add_argument("--sap", type=str, metavar="PATH", help="Path to SAP PDF")
     conditional_group.add_argument("--sites", type=str, metavar="PATH", help="Path to site list (CSV/Excel)")
-    
+
     # CDISC CORE engine
     core_group = parser.add_argument_group('CDISC CORE Engine')
     core_group.add_argument("--core", choices=["windows", "linux", "mac"],
                             help="Override CORE engine platform auto-detection")
-    
+    return parser
+
+
+def _resolve_output_dir(pdf_path: str, output_dir_arg: str | None) -> str:
+    """Resolve output directory, defaulting to output/<protocol>_<timestamp>."""
+    if output_dir_arg:
+        return output_dir_arg
+    protocol_name = Path(pdf_path).stem
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    return os.path.join("output", f"{protocol_name}_{timestamp}")
+
+
+def _parse_soa_pages(pages_arg: str | None) -> list[int] | None:
+    """Parse 1-indexed pages string into 0-indexed page list."""
+    if not pages_arg:
+        return None
+    return [int(p.strip()) - 1 for p in pages_arg.split(",")]
+
+
+def _has_explicit_phase_selection(args: argparse.Namespace) -> bool:
+    """Check if any phase-selection CLI flags were explicitly provided."""
+    return any([
+        args.metadata, args.eligibility, args.objectives, args.studydesign,
+        args.interventions, args.narrative, args.advanced, args.procedures,
+        args.scheduling, args.docstructure, args.amendmentdetails, args.execution,
+        bool(getattr(args, 'sap', None)), bool(getattr(args, 'sites', None)),
+        args.full_protocol, args.complete,
+    ])
+
+
+def _enable_complete_mode(args: argparse.Namespace) -> None:
+    """Apply side-effects of --complete mode to dependent switches."""
+    args.full_protocol = True
+    args.soa = True
+    args.enrich = True
+    args.validate_schema = True
+    args.conformance = True
+
+
+def _build_phases_to_run(args: argparse.Namespace, phase_names: list[str]) -> dict[str, bool]:
+    """Build enabled/disabled map for registered expansion phases."""
+    conditional_sources_enabled = {
+        "sap": bool(getattr(args, 'sap', None)),
+        "sites": bool(getattr(args, 'sites', None)),
+    }
+
+    phases_to_run: dict[str, bool] = {}
+    for phase_name in phase_names:
+        phase_name_lower = phase_name.lower()
+        if phase_name_lower in conditional_sources_enabled:
+            phases_to_run[phase_name_lower] = conditional_sources_enabled[phase_name_lower]
+            continue
+
+        arg_name = phase_name_lower.replace('_', '')
+        phases_to_run[phase_name_lower] = bool(args.full_protocol or getattr(args, arg_name, False))
+    return phases_to_run
+
+
+def _log_run_configuration(args, output_dir, config, run_soa, phases_to_run, run_any_expansion):
+    """Log top-level execution configuration."""
+    logger.info("="*60)
+    logger.info(f"{SYSTEM_NAME} v{VERSION} - Refactored Pipeline (v3)")
+    logger.info("="*60)
+    logger.info(f"Input PDF: {args.pdf_path}")
+    logger.info(f"Output Directory: {output_dir}")
+    logger.info(f"Model: {config.model_name}")
+    logger.info(f"SoA Extraction: {'Enabled' if run_soa else 'Disabled'}")
+    if run_any_expansion:
+        enabled = [k for k, v in phases_to_run.items() if v]
+        logger.info(f"Expansion Phases: {', '.join(enabled)}")
+    logger.info("="*60)
+
+
+def _is_pipeline_success(result, expansion_results) -> bool:
+    """Determine overall success based on SoA + expansion stage outcomes."""
+    soa_success = result.success if result else True
+    expansion_success = all(
+        r.success for k, r in expansion_results.items()
+        if k != '_pipeline_context' and hasattr(r, 'success')
+    ) if expansion_results else True
+    return soa_success and expansion_success
+
+
+def _run_soa_stage(args, output_dir, soa_pages, config, run_soa):
+    """Run SoA extraction stage (or load existing SoA in expansion-only mode)."""
+    result = None
+    soa_data = None
+
+    if run_soa:
+        logger.info("\n" + "="*60)
+        logger.info("SCHEDULE OF ACTIVITIES EXTRACTION")
+        logger.info("="*60)
+        usage_tracker.set_phase("SoA_Extraction")
+        result = run_from_files(
+            pdf_path=args.pdf_path,
+            output_dir=output_dir,
+            soa_pages=soa_pages,
+            config=config,
+        )
+
+        if result.success and result.output_path:
+            with open(result.output_path, 'r', encoding='utf-8') as f:
+                soa_data = json.load(f)
+    else:
+        existing_soa = os.path.join(output_dir, "9_final_soa.json")
+        if os.path.exists(existing_soa):
+            logger.info(f"Loading existing SoA from {existing_soa}")
+            with open(existing_soa, 'r', encoding='utf-8') as f:
+                soa_data = json.load(f)
+
+    soa_data = _merge_header_footnotes(soa_data, output_dir, args.pdf_path)
+
+    if result:
+        _print_soa_results(result)
+
+    return result, soa_data
+
+
+def _run_expansion_stages(args, output_dir, config, soa_data, phases_to_run, run_any_expansion):
+    """Run expansion phases through orchestrator and conditional source hooks."""
+    expansion_results = {}
+
+    if run_any_expansion:
+        logger.info("\n" + "="*60)
+        logger.info("USDM EXPANSION PHASES")
+        logger.info("="*60)
+
+        orchestrator = PipelineOrchestrator(usage_tracker=usage_tracker)
+
+        if args.parallel:
+            logger.info(f"Parallel mode enabled (max {args.max_workers} workers)")
+            expansion_results = orchestrator.run_phases_parallel(
+                pdf_path=args.pdf_path,
+                output_dir=output_dir,
+                model=config.model_name,
+                phases_to_run=phases_to_run,
+                soa_data=soa_data,
+                max_workers=args.max_workers,
+                sap_path=getattr(args, 'sap', None),
+                sites_path=getattr(args, 'sites', None),
+            )
+        else:
+            expansion_results = orchestrator.run_phases(
+                pdf_path=args.pdf_path,
+                output_dir=output_dir,
+                model=config.model_name,
+                phases_to_run=phases_to_run,
+                soa_data=soa_data,
+                sap_path=getattr(args, 'sap', None),
+                sites_path=getattr(args, 'sites', None),
+            )
+
+        success_count = sum(
+            1 for k, r in expansion_results.items()
+            if k != '_pipeline_context' and hasattr(r, 'success') and r.success
+        )
+        total_count = sum(1 for k in expansion_results if k != '_pipeline_context')
+        logger.info(f"\n✓ Expansion phases: {success_count}/{total_count} successful")
+
+        try:
+            orchestrator.save_provenance(output_dir)
+        except Exception as e:
+            logger.warning(f"Failed to save extraction provenance: {e}")
+
+    return expansion_results
+
+
+def _combine_validate_and_render(args, output_dir, soa_data, expansion_results, config, run_any_expansion):
+    """Combine SoA + expansion outputs, then validate and render M11 DOCX."""
+    combined_usdm_path = None
+    schema_validation_result = None
+    schema_fixer_result = None
+    usdm_result = None
+
+    if args.full_protocol or run_any_expansion or soa_data:
+        logger.info("\n" + "="*60)
+        logger.info("COMBINING OUTPUTS")
+        logger.info("="*60)
+        combined_data, combined_usdm_path = combine_to_full_usdm(
+            output_dir, soa_data, expansion_results, args.pdf_path
+        )
+
+        logger.info("\n" + "="*60)
+        logger.info("SCHEMA VALIDATION & AUTO-FIX")
+        logger.info("="*60)
+
+        use_llm_for_fixes = not args.no_validate
+        fixed_data, schema_validation_result, schema_fixer_result, usdm_result, _id_map = validate_and_fix_schema(
+            combined_data,
+            output_dir,
+            model=config.model_name,
+            use_llm=use_llm_for_fixes,
+        )
+
+        with open(combined_usdm_path, 'w', encoding='utf-8') as f:
+            json.dump(fixed_data, f, indent=2, ensure_ascii=False)
+        logger.info(f"  ✓ USDM output saved to: {combined_usdm_path}")
+
+        prov_path = os.path.join(output_dir, "protocol_usdm_provenance.json")
+        if os.path.exists(prov_path):
+            logger.info("  ✓ Provenance file: protocol_usdm_provenance.json")
+
+        combined_data = fixed_data
+
+        try:
+            from rendering.m11_renderer import render_m11_docx
+            m11_docx_path = os.path.join(output_dir, "m11_protocol.docx")
+            m11_mapping = combined_data.get("m11Mapping")
+            m11_result = render_m11_docx(combined_data, m11_docx_path, m11_mapping)
+            if m11_result.success:
+                logger.info(
+                    f"  ✓ M11 DOCX rendered: m11_protocol.docx "
+                    f"({m11_result.sections_with_content}/{m11_result.sections_rendered} sections, "
+                    f"{m11_result.total_words} words)"
+                )
+            else:
+                logger.warning(f"  ⚠ M11 DOCX rendering failed: {m11_result.error}")
+        except Exception as e:
+            logger.warning(f"  ⚠ M11 DOCX rendering skipped: {e}")
+
+        _save_schema_validation(output_dir, schema_validation_result, schema_fixer_result, usdm_result)
+
+    return combined_usdm_path, schema_validation_result, schema_fixer_result, usdm_result
+
+
+def main():
+    parser = _build_parser()
     args = parser.parse_args()
     
     # Configure logging (must happen before any log output)
@@ -136,18 +361,13 @@ Examples:
         sys.exit(1)
     
     # Set up output directory
-    protocol_name = Path(args.pdf_path).stem
-    if args.output_dir:
-        output_dir = args.output_dir
-    else:
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        output_dir = os.path.join("output", f"{protocol_name}_{timestamp}")
+    output_dir = _resolve_output_dir(args.pdf_path, args.output_dir)
     
     # Parse page numbers
     soa_pages = None
     if args.pages:
         try:
-            soa_pages = [int(p.strip()) - 1 for p in args.pages.split(",")]
+            soa_pages = _parse_soa_pages(args.pages)
             logger.info(f"Using specified SoA pages: {[p+1 for p in soa_pages]}")
         except ValueError:
             logger.error(f"Invalid page numbers: {args.pages}")
@@ -163,12 +383,7 @@ Examples:
     )
     
     # Determine if any specific phases were requested
-    any_specific_phase = any([
-        args.metadata, args.eligibility, args.objectives, args.studydesign,
-        args.interventions, args.narrative, args.advanced, args.procedures,
-        args.scheduling, args.docstructure, args.amendmentdetails, args.execution,
-        args.full_protocol, args.complete,
-    ])
+    any_specific_phase = _has_explicit_phase_selection(args)
     
     # Default to --complete mode if no specific phases requested
     if not any_specific_phase and not args.expansion_only:
@@ -177,35 +392,17 @@ Examples:
     
     # Handle --complete flag
     if args.complete:
-        args.full_protocol = True
-        args.soa = True
-        args.enrich = True
-        args.validate_schema = True
-        args.conformance = True
+        _enable_complete_mode(args)
         logger.info("Complete mode: full protocol extraction + validation + conformance")
     
     # Build phases_to_run dict from registered phases
-    phases_to_run = {}
-    for phase_name in phase_registry.get_names():
-        phase_name_lower = phase_name.lower()
-        arg_name = phase_name_lower.replace('_', '')
-        phases_to_run[phase_name_lower] = args.full_protocol or getattr(args, arg_name, False)
+    phases_to_run = _build_phases_to_run(args, phase_registry.get_names())
     
     run_any_expansion = any(phases_to_run.values())
     run_soa = not args.expansion_only
     
     # Print configuration
-    logger.info("="*60)
-    logger.info(f"{SYSTEM_NAME} v{SYSTEM_VERSION} - Refactored Pipeline (v3)")
-    logger.info("="*60)
-    logger.info(f"Input PDF: {args.pdf_path}")
-    logger.info(f"Output Directory: {output_dir}")
-    logger.info(f"Model: {config.model_name}")
-    logger.info(f"SoA Extraction: {'Enabled' if run_soa else 'Disabled'}")
-    if run_any_expansion:
-        enabled = [k for k, v in phases_to_run.items() if v]
-        logger.info(f"Expansion Phases: {', '.join(enabled)}")
-    logger.info("="*60)
+    _log_run_configuration(args, output_dir, config, run_soa, phases_to_run, run_any_expansion)
     
     os.makedirs(output_dir, exist_ok=True)
     
@@ -214,145 +411,24 @@ Examples:
     
     # Run pipeline
     try:
-        result = None
-        soa_data = None
-        
-        # Run SoA extraction
-        if run_soa:
-            logger.info("\n" + "="*60)
-            logger.info("SCHEDULE OF ACTIVITIES EXTRACTION")
-            logger.info("="*60)
-            usage_tracker.set_phase("SoA_Extraction")
-            result = run_from_files(
-                pdf_path=args.pdf_path,
-                output_dir=output_dir,
-                soa_pages=soa_pages,
-                config=config,
-            )
-            
-            if result.success and result.output_path:
-                with open(result.output_path, 'r', encoding='utf-8') as f:
-                    soa_data = json.load(f)
-        else:
-            existing_soa = os.path.join(output_dir, "9_final_soa.json")
-            if os.path.exists(existing_soa):
-                logger.info(f"Loading existing SoA from {existing_soa}")
-                with open(existing_soa, 'r', encoding='utf-8') as f:
-                    soa_data = json.load(f)
-        
-        # Add footnotes from header to soa_data
-        soa_data = _merge_header_footnotes(soa_data, output_dir, args.pdf_path)
-        
-        # Print SoA results
-        if result:
-            _print_soa_results(result)
-        
-        # Run expansion phases using orchestrator
-        expansion_results = {}
-        if run_any_expansion:
-            logger.info("\n" + "="*60)
-            logger.info("USDM EXPANSION PHASES")
-            logger.info("="*60)
-            
-            orchestrator = PipelineOrchestrator(usage_tracker=usage_tracker)
-            
-            if args.parallel:
-                logger.info(f"Parallel mode enabled (max {args.max_workers} workers)")
-                expansion_results = orchestrator.run_phases_parallel(
-                    pdf_path=args.pdf_path,
-                    output_dir=output_dir,
-                    model=config.model_name,
-                    phases_to_run=phases_to_run,
-                    soa_data=soa_data,
-                    max_workers=args.max_workers,
-                    sap_path=getattr(args, 'sap', None),
-                    sites_path=getattr(args, 'sites', None),
-                )
-            else:
-                expansion_results = orchestrator.run_phases(
-                    pdf_path=args.pdf_path,
-                    output_dir=output_dir,
-                    model=config.model_name,
-                    phases_to_run=phases_to_run,
-                    soa_data=soa_data,
-                    sap_path=getattr(args, 'sap', None),
-                    sites_path=getattr(args, 'sites', None),
-                )
-            
-            # Print expansion summary
-            success_count = sum(1 for k, r in expansion_results.items() 
-                              if k != '_pipeline_context' and hasattr(r, 'success') and r.success)
-            total_count = sum(1 for k in expansion_results if k != '_pipeline_context')
-            logger.info(f"\n✓ Expansion phases: {success_count}/{total_count} successful")
-            
-            # Save extraction provenance
-            try:
-                orchestrator.save_provenance(output_dir)
-            except Exception as e:
-                logger.warning(f"Failed to save extraction provenance: {e}")
-        
-        # Run conditional source extraction
-        expansion_results = _run_conditional_sources(
-            args, expansion_results, config, output_dir
+        result, soa_data = _run_soa_stage(args, output_dir, soa_pages, config, run_soa)
+        expansion_results = _run_expansion_stages(
+            args,
+            output_dir,
+            config,
+            soa_data,
+            phases_to_run,
+            run_any_expansion,
         )
-        
-        # Combine outputs
-        combined_usdm_path = None
-        schema_validation_result = None
-        schema_fixer_result = None
-        usdm_result = None
-        
-        if args.full_protocol or run_any_expansion or soa_data:
-            logger.info("\n" + "="*60)
-            logger.info("COMBINING OUTPUTS")
-            logger.info("="*60)
-            combined_data, combined_usdm_path = combine_to_full_usdm(
-                output_dir, soa_data, expansion_results, args.pdf_path
-            )
-            
-            # Schema validation
-            logger.info("\n" + "="*60)
-            logger.info("SCHEMA VALIDATION & AUTO-FIX")
-            logger.info("="*60)
-            
-            use_llm_for_fixes = not args.no_validate
-            fixed_data, schema_validation_result, schema_fixer_result, usdm_result, id_map = validate_and_fix_schema(
-                combined_data,
-                output_dir,
-                model=config.model_name,
-                use_llm=use_llm_for_fixes,
-            )
-            
-            # Save fixed data
-            with open(combined_usdm_path, 'w', encoding='utf-8') as f:
-                json.dump(fixed_data, f, indent=2, ensure_ascii=False)
-            logger.info(f"  ✓ USDM output saved to: {combined_usdm_path}")
-            
-            prov_path = os.path.join(output_dir, "protocol_usdm_provenance.json")
-            if os.path.exists(prov_path):
-                logger.info(f"  ✓ Provenance file: protocol_usdm_provenance.json")
-            
-            combined_data = fixed_data
-            
-            # Render M11 DOCX
-            try:
-                from rendering.m11_renderer import render_m11_docx
-                m11_docx_path = os.path.join(output_dir, "m11_protocol.docx")
-                m11_mapping = combined_data.get("m11Mapping")
-                m11_result = render_m11_docx(combined_data, m11_docx_path, m11_mapping)
-                if m11_result.success:
-                    logger.info(
-                        f"  ✓ M11 DOCX rendered: m11_protocol.docx "
-                        f"({m11_result.sections_with_content}/{m11_result.sections_rendered} sections, "
-                        f"{m11_result.total_words} words)"
-                    )
-                else:
-                    logger.warning(f"  ⚠ M11 DOCX rendering failed: {m11_result.error}")
-            except Exception as e:
-                logger.warning(f"  ⚠ M11 DOCX rendering skipped: {e}")
-            
-            # Save schema validation results
-            _save_schema_validation(output_dir, schema_validation_result, schema_fixer_result, usdm_result)
+
+        combined_usdm_path, schema_validation_result, schema_fixer_result, usdm_result = _combine_validate_and_render(
+            args,
+            output_dir,
+            soa_data,
+            expansion_results,
+            config,
+            run_any_expansion,
+        )
         
         # Run post-processing
         validation_target = combined_usdm_path or (result.output_path if result else None)
@@ -370,10 +446,7 @@ Examples:
                            run_soa, run_any_expansion)
         
         # Determine success
-        soa_success = result.success if result else True
-        expansion_success = all(r.success for k, r in expansion_results.items() 
-                               if k != '_pipeline_context' and hasattr(r, 'success')) if expansion_results else True
-        sys.exit(0 if (soa_success and expansion_success) else 1)
+        sys.exit(0 if _is_pipeline_success(result, expansion_results) else 1)
         
     except Exception as e:
         logger.error(f"Pipeline failed: {e}")
@@ -428,8 +501,8 @@ def _merge_header_footnotes(soa_data, output_dir, pdf_path):
         try:
             with open(header_path, 'r', encoding='utf-8') as f:
                 header_data = json.load(f)
-        except Exception:
-            pass
+        except (OSError, json.JSONDecodeError) as exc:
+            logger.warning("Could not load header structure from %s: %s", header_path, exc)
     
     if soa_data and header_data and header_data.get('footnotes'):
         soa_data['footnotes'] = header_data['footnotes']
@@ -500,16 +573,16 @@ def _write_run_manifest(output_dir, args, config, phases_to_run):
         try:
             with open(args.pdf_path, 'rb') as f:
                 input_hash = hashlib.sha256(f.read()).hexdigest()
-        except Exception:
-            pass
+        except OSError as exc:
+            logger.debug("Could not hash input PDF %s: %s", args.pdf_path, exc)
     
     # Get schema version info if available
     schema_info = None
     try:
         from core.usdm_schema_loader import USDMSchemaLoader
         schema_info = USDMSchemaLoader.get_schema_version_info()
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.debug("Schema version metadata unavailable: %s", exc)
     
     # Get prompt version hashes for reproducibility
     prompt_versions = None
@@ -518,12 +591,12 @@ def _write_run_manifest(output_dir, args, config, phases_to_run):
         from core.prompt_registry import get_prompt_versions, get_prompt_fingerprint
         prompt_versions = get_prompt_versions()
         prompt_fingerprint = get_prompt_fingerprint()
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.debug("Prompt metadata unavailable: %s", exc)
     
     manifest = {
         "tool": SYSTEM_NAME,
-        "version": SYSTEM_VERSION,
+        "version": VERSION,
         "timestamp": datetime.now().isoformat(),
         "input": {
             "pdf_path": os.path.abspath(args.pdf_path) if args.pdf_path else None,
@@ -583,51 +656,6 @@ def _print_soa_results(result):
             logger.warning(f"  - {err}")
     
     logger.info("="*60)
-
-
-def _run_conditional_sources(args, expansion_results, config, output_dir):
-    """Run conditional source extraction (SAP, sites).
-    
-    Skips extraction if the orchestrator already ran the phase successfully
-    (i.e. sap_path/sites_path was forwarded via kwargs).
-    """
-    sap_done = (
-        expansion_results.get('sap')
-        and hasattr(expansion_results['sap'], 'success')
-        and expansion_results['sap'].success
-    )
-    if args.sap and not sap_done:
-        logger.info("\n--- Conditional: SAP Analysis Populations ---")
-        try:
-            from extraction.conditional import extract_from_sap
-            sap_result = extract_from_sap(args.sap, model=config.model_name, output_dir=output_dir)
-            if sap_result.success:
-                expansion_results['sap'] = sap_result
-                logger.info(f"  ✓ SAP extraction ({sap_result.data.to_dict()['summary']['populationCount']} populations)")
-            else:
-                logger.warning(f"  ✗ SAP extraction failed: {sap_result.error}")
-        except Exception as e:
-            logger.warning(f"  ✗ SAP extraction error: {e}")
-    
-    sites_done = (
-        expansion_results.get('sites')
-        and hasattr(expansion_results['sites'], 'success')
-        and expansion_results['sites'].success
-    )
-    if args.sites and not sites_done:
-        logger.info("\n--- Conditional: Study Sites ---")
-        try:
-            from extraction.conditional import extract_from_sites
-            sites_result = extract_from_sites(args.sites, output_dir=output_dir)
-            if sites_result.success:
-                expansion_results['sites'] = sites_result
-                logger.info(f"  ✓ Sites extraction ({sites_result.data.to_dict()['summary']['siteCount']} sites)")
-            else:
-                logger.warning(f"  ✗ Sites extraction failed: {sites_result.error}")
-        except Exception as e:
-            logger.warning(f"  ✗ Sites extraction error: {e}")
-    
-    return expansion_results
 
 
 def _save_schema_validation(output_dir, schema_validation_result, schema_fixer_result, usdm_result):

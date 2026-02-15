@@ -9,54 +9,9 @@ from typing import Dict, Optional, Any, List
 import json
 import logging
 import os
-import re
 import uuid
 
 logger = logging.getLogger(__name__)
-
-_LINK_NAME_NORMALIZE_RE = re.compile(r"[^a-z0-9]+")
-
-
-def _normalize_link_name(value: str) -> str:
-    """Normalize names for resilient, word-boundary-safe matching."""
-    return _LINK_NAME_NORMALIZE_RE.sub(" ", (value or "").lower()).strip()
-
-
-def _is_whole_phrase_match(phrase: str, text: str) -> bool:
-    if not phrase or not text:
-        return False
-    return bool(re.search(rf"\b{re.escape(phrase)}\b", text))
-
-
-def _find_best_name_match(target_name: str, candidates: Dict[str, Any]) -> Optional[Any]:
-    """Find best match by exact normalized name, then whole-phrase match.
-
-    If multiple fuzzy matches have the same score, return None to avoid
-    non-deterministic linking.
-    """
-    normalized_target = _normalize_link_name(target_name)
-    if not normalized_target:
-        return None
-
-    exact = candidates.get(normalized_target)
-    if exact is not None:
-        return exact
-
-    scored_matches = []
-    for candidate_name, candidate_value in candidates.items():
-        if not candidate_name:
-            continue
-        if _is_whole_phrase_match(candidate_name, normalized_target) or _is_whole_phrase_match(normalized_target, candidate_name):
-            scored_matches.append((len(candidate_name.split()), candidate_value))
-
-    if not scored_matches:
-        return None
-
-    scored_matches.sort(key=lambda m: m[0], reverse=True)
-    if len(scored_matches) > 1 and scored_matches[0][0] == scored_matches[1][0]:
-        return None
-
-    return scored_matches[0][1]
 
 
 def run_reconciliation(combined: dict, expansion_results: dict, soa_data: dict) -> dict:
@@ -65,8 +20,8 @@ def run_reconciliation(combined: dict, expansion_results: dict, soa_data: dict) 
         reconcile_epochs_from_pipeline,
         reconcile_encounters_from_pipeline,
         reconcile_activities_from_pipeline,
-        enrich_epoch_names_with_clinical_type,
     )
+    from core.epoch_reconciler import enrich_epoch_names_with_clinical_type
     
     try:
         study_design = combined.get("study", {}).get("versions", [{}])[0].get("studyDesigns", [{}])[0]
@@ -520,24 +475,6 @@ def filter_enrichment_epochs(combined: dict, soa_data: Optional[dict]) -> dict:
             if removed_epochs:
                 post_enrich_design["epochs"] = original_epochs
                 logger.info(f"  ✓ Filtered {len(removed_epochs)} non-SoA epochs: {removed_epochs}")
-
-                # Clean up StudyCells that still point at removed epochs.
-                cells = post_enrich_design.get("studyCells", [])
-                if isinstance(cells, list):
-                    filtered_cells = []
-                    removed_cells = 0
-                    for cell in cells:
-                        if not isinstance(cell, dict):
-                            filtered_cells.append(cell)
-                            continue
-                        if cell.get("epochId") in removed_epoch_ids:
-                            removed_cells += 1
-                            continue
-                        filtered_cells.append(cell)
-
-                    if removed_cells:
-                        post_enrich_design["studyCells"] = filtered_cells
-                        logger.info(f"  ✓ Removed {removed_cells} studyCell(s) tied to removed epochs")
                 
                 # Clean up timeline instances (preserve anchor instances)
                 if removed_epoch_ids:
@@ -563,29 +500,6 @@ def filter_enrichment_epochs(combined: dict, soa_data: Optional[dict]) -> dict:
                         if len(cleaned) < len(instances):
                             timeline["instances"] = cleaned
                             logger.info(f"  ✓ Cleaned {len(instances) - len(cleaned)} timeline instances")
-        # Final guard: drop any StudyCell that references a non-existent epoch.
-        valid_epoch_ids = {
-            epoch.get("id")
-            for epoch in post_enrich_design.get("epochs", [])
-            if isinstance(epoch, dict) and isinstance(epoch.get("id"), str)
-        }
-        cells = post_enrich_design.get("studyCells", [])
-        if valid_epoch_ids and isinstance(cells, list):
-            pruned_cells = []
-            invalid_cells = 0
-            for cell in cells:
-                if not isinstance(cell, dict):
-                    pruned_cells.append(cell)
-                    continue
-                epoch_id = cell.get("epochId")
-                if isinstance(epoch_id, str) and epoch_id and epoch_id not in valid_epoch_ids:
-                    invalid_cells += 1
-                    continue
-                pruned_cells.append(cell)
-
-            if invalid_cells:
-                post_enrich_design["studyCells"] = pruned_cells
-                logger.info(f"  ✓ Removed {invalid_cells} studyCell(s) with unresolved epochId")
     except Exception as e:
         logger.warning(f"  ⚠ Epoch filtering failed: {e}")
     
@@ -623,7 +537,7 @@ def mark_activity_sources(study_design: dict) -> None:
             source = 'soa' if has_ticks else 'procedure_enrichment'
             activity['extensionAttributes'].append({
                 'id': f"ext_source_{act_id[:8] if act_id else 'unknown'}",
-                'url': 'https://protocol2usdm.io/extensions/x-activitySource',
+                'url': 'http://example.org/usdm/activitySource',
                 'valueString': source,
                 'instanceType': 'ExtensionAttribute'
             })
@@ -689,31 +603,27 @@ def link_procedures_to_activities(study_design: dict) -> None:
                     'instanceType': 'Code',
                 }
         
-        # Build normalized name lookup
-        proc_by_name = {
-            _normalize_link_name(proc.get('name', '')): proc
-            for proc in procedures
-            if _normalize_link_name(proc.get('name', ''))
-        }
+        # Build name lookup
+        proc_by_name = {proc.get('name', '').lower().strip(): proc for proc in procedures if proc.get('name')}
         
         # Link procedures to activities
         linked_count = 0
         for activity in activities:
-            matched_proc = _find_best_name_match(activity.get('name', ''), proc_by_name)
+            act_name = activity.get('name', '').lower().strip()
+            
+            matched_proc = proc_by_name.get(act_name)
+            if not matched_proc:
+                for proc_name, proc in proc_by_name.items():
+                    if proc_name in act_name or act_name in proc_name:
+                        matched_proc = proc
+                        break
             
             if matched_proc:
                 if 'definedProcedures' not in activity:
                     activity['definedProcedures'] = []
-                existing_ids = {
-                    (p.get('procedureId') or p.get('id'))
-                    for p in activity['definedProcedures']
-                    if isinstance(p, dict)
-                }
-                proc_id = matched_proc.get('id')
-                if proc_id and proc_id not in existing_ids:
-                    proc_ref = dict(matched_proc)
-                    proc_ref.setdefault('procedureId', proc_id)
-                    activity['definedProcedures'].append(proc_ref)
+                existing_ids = {p.get('id') for p in activity['definedProcedures']}
+                if matched_proc.get('id') not in existing_ids:
+                    activity['definedProcedures'].append(matched_proc)
                     linked_count += 1
         
         if linked_count > 0:
@@ -726,8 +636,7 @@ def link_procedures_to_activities(study_design: dict) -> None:
 def link_administrations_to_products(combined: dict) -> dict:
     """H8: Link Administration.administrableProductId by name matching.
     
-    Matches administrations to products by comparing normalized names
-    (exact, then whole-phrase fuzzy matching).
+    Matches administrations to products by comparing names (exact then substring).
     """
     try:
         sv = combined.get("study", {}).get("versions", [{}])[0]
@@ -737,10 +646,10 @@ def link_administrations_to_products(combined: dict) -> dict:
         if not products or not administrations:
             return combined
         
-        # Build normalized product name lookup (normalized name → id)
+        # Build product name lookup (lowercase → id)
         prod_by_name = {}
         for p in products:
-            name = _normalize_link_name(p.get("name") or "")
+            name = (p.get("name") or "").lower().strip()
             if name:
                 prod_by_name[name] = p.get("id")
         
@@ -748,10 +657,18 @@ def link_administrations_to_products(combined: dict) -> dict:
         for admin in administrations:
             if admin.get("administrableProductId"):
                 continue  # already linked
-            if not _normalize_link_name(admin.get("name") or ""):
+            admin_name = (admin.get("name") or "").lower().strip()
+            if not admin_name:
                 continue
-
-            prod_id = _find_best_name_match(admin.get("name") or "", prod_by_name)
+            
+            # Exact match
+            prod_id = prod_by_name.get(admin_name)
+            if not prod_id:
+                # Substring match (admin name contains product name or vice versa)
+                for pname, pid in prod_by_name.items():
+                    if pname in admin_name or admin_name in pname:
+                        prod_id = pid
+                        break
             
             if prod_id:
                 admin["administrableProductId"] = prod_id
@@ -868,8 +785,7 @@ def link_ingredient_strengths(combined: dict) -> dict:
                     ing["strengthId"] = strength_id
                     linked += 1
             
-            # Store strength entities on the product for reference.
-            # (USDM v4.0 has no top-level strengths collection.)
+            # Store the strength as an extension on the product for reference
             if "strengths" not in product:
                 product["strengths"] = []
             product["strengths"].append(strength_entity)

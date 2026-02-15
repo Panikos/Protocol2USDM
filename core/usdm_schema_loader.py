@@ -165,8 +165,8 @@ class USDMSchemaLoader:
             try:
                 with open(VERSION_FILE, 'r', encoding='utf-8') as f:
                     return _json.load(f)
-            except Exception:
-                pass
+            except (OSError, _json.JSONDecodeError) as exc:
+                logger.debug("Could not read schema version metadata from %s: %s", VERSION_FILE, exc)
         return None
     
     def load(self) -> Dict[str, EntityDefinition]:

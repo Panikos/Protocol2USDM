@@ -112,9 +112,14 @@ export const useSemanticStore = create<SemanticState>()(
 
     loadDraft: (protocolId, usdmRevision, draft) => {
       set((state) => {
+        const restored = restoreUndoState(protocolId);
         state.protocolId = protocolId;
         state.usdmRevision = usdmRevision;
         state.draft = draft;
+        state.undoStack = restored?.undoStack ?? [];
+        state.redoStack = restored?.redoStack ?? [];
+        state._groupDepth = 0;
+        state._groupStartPatch = null;
         state.isDirty = false;
         state.isLoading = false;
         state.error = null;

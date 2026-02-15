@@ -29,7 +29,7 @@ interface ValidationResult {
  * 
  * Writes the candidate to a temp file, runs scripts/validate_usdm_json.py,
  * parses the JSON output, and cleans up the temp file.
- * Falls back to fail-open if the Python script is unavailable.
+ * Fails closed if validation is unavailable.
  */
 async function runLiveValidation(
   candidateJson: string,
@@ -44,7 +44,7 @@ async function runLiveValidation(
   const defaultResult: ValidationResult = {
     schema: { valid: false, errors: 1, warnings: 0 },
     usdm: { valid: false, errors: 1, warnings: 0 },
-    core: { success: true, issues: 0, warnings: 0 },
+    core: { success: false, issues: 1, warnings: 0 },
   };
 
   try {
@@ -90,58 +90,12 @@ async function runLiveValidation(
       core: { success: true, issues: 0, warnings: 0 },
     };
   } catch (error) {
-    console.error('Live validation failed, falling back to file-based:', error);
-    // Fallback: try reading existing validation files
-    return await readExistingValidation(protocolId, defaultResult);
+    console.error('Live validation failed (publish blocked unless forcePublish):', error);
+    return defaultResult;
   } finally {
     // Clean up temp file
     try { await fs.unlink(tmpValidationFile); } catch { /* ignore */ }
   }
-}
-
-/**
- * Fallback: read existing validation result files from a previous pipeline run.
- */
-async function readExistingValidation(
-  protocolId: string,
-  defaultResult: ValidationResult
-): Promise<ValidationResult> {
-  const outputDir = getOutputPath(protocolId);
-  let schemaResult = defaultResult.schema;
-  let usdmResult = defaultResult.usdm;
-  let coreResult = defaultResult.core;
-
-  try {
-    const schemaContent = await fs.readFile(path.join(outputDir, 'schema_validation.json'), 'utf-8');
-    const schema = JSON.parse(schemaContent);
-    schemaResult = {
-      valid: schema.valid ?? true,
-      errors: schema.errors?.length ?? schema.error_count ?? 0,
-      warnings: schema.warnings?.length ?? schema.warning_count ?? 0,
-    };
-  } catch { /* File doesn't exist */ }
-
-  try {
-    const usdmContent = await fs.readFile(path.join(outputDir, 'usdm_validation.json'), 'utf-8');
-    const usdm = JSON.parse(usdmContent);
-    usdmResult = {
-      valid: usdm.valid ?? true,
-      errors: usdm.errors?.length ?? usdm.error_count ?? 0,
-      warnings: usdm.warnings?.length ?? usdm.warning_count ?? 0,
-    };
-  } catch { /* File doesn't exist */ }
-
-  try {
-    const coreContent = await fs.readFile(path.join(outputDir, 'conformance_report.json'), 'utf-8');
-    const core = JSON.parse(coreContent);
-    coreResult = {
-      success: core.success ?? true,
-      issues: core.issues ?? 0,
-      warnings: core.warnings ?? 0,
-    };
-  } catch { /* File doesn't exist */ }
-
-  return { schema: schemaResult, usdm: usdmResult, core: coreResult };
 }
 
 /**

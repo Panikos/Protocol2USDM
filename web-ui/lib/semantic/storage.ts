@@ -89,8 +89,64 @@ async function atomicWriteJson(targetPath: string, data: unknown): Promise<void>
  */
 // eslint-disable-next-line no-useless-escape
 const TIMESTAMP_STRIP_RE = new RegExp('[\\-:.]', 'g');
+const TIMESTAMP_FILENAME_RE = /_(\d{8}T\d{6}(?:\d{3})?Z(?:-\d{3})?)\.json$/;
+const TIMESTAMP_TOKEN_RE = /^(\d{8}T\d{6}(?:\d{3})?Z)(?:-(\d{3}))?$/;
+
+let _lastTimestampBase = '';
+let _timestampSequence = 0;
+
 export function getTimestamp(): string {
-  return new Date().toISOString().replace(TIMESTAMP_STRIP_RE, '').slice(0, 15) + 'Z';
+  const base = new Date().toISOString().replace(TIMESTAMP_STRIP_RE, ''); // YYYYMMDDTHHMMSSmmmZ
+  if (base === _lastTimestampBase) {
+    _timestampSequence += 1;
+  } else {
+    _lastTimestampBase = base;
+    _timestampSequence = 0;
+  }
+
+  if (_timestampSequence === 0) {
+    return base;
+  }
+  return `${base}-${String(_timestampSequence).padStart(3, '0')}`;
+}
+
+function parseTimestampToken(token: string): string {
+  const core = token.split('-')[0];
+  const match = core.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})(\d{3})?Z$/);
+  if (!match) {
+    return token;
+  }
+
+  const [, year, month, day, hour, minute, second, millis] = match;
+  return `${year}-${month}-${day}T${hour}:${minute}:${second}${millis ? `.${millis}` : ''}Z`;
+}
+
+function parseTimestampOrder(token: string): { epochMs: number; sequence: number } | null {
+  const match = token.match(TIMESTAMP_TOKEN_RE);
+  if (!match) {
+    return null;
+  }
+
+  const iso = parseTimestampToken(match[1]);
+  const epochMs = Date.parse(iso);
+  if (Number.isNaN(epochMs)) {
+    return null;
+  }
+
+  return {
+    epochMs,
+    sequence: Number.parseInt(match[2] ?? '0', 10),
+  };
+}
+
+function compareTimestampOrder(
+  a: { epochMs: number; sequence: number },
+  b: { epochMs: number; sequence: number }
+): number {
+  if (a.epochMs !== b.epochMs) {
+    return a.epochMs - b.epochMs;
+  }
+  return a.sequence - b.sequence;
 }
 
 /**
@@ -165,12 +221,19 @@ export async function listSemanticFiles(
           const filePath = path.join(dirPath, filename);
           const stat = await fs.stat(filePath);
           // Extract timestamp from filename
-          const match = filename.match(/_(\d{8}T\d{6}Z)\.json$/);
-          const timestamp = match ? match[1] : stat.mtime.toISOString();
+          const match = filename.match(TIMESTAMP_FILENAME_RE);
+          const timestamp = match ? parseTimestampToken(match[1]) : stat.mtime.toISOString();
           return { filename, timestamp, size: stat.size };
         })
     );
-    return results.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+    return results.sort((a, b) => {
+      const aMs = Date.parse(a.timestamp);
+      const bMs = Date.parse(b.timestamp);
+      if (!Number.isNaN(aMs) && !Number.isNaN(bMs)) {
+        return bMs - aMs;
+      }
+      return b.timestamp.localeCompare(a.timestamp);
+    });
   } catch {
     return [];
   }
@@ -303,10 +366,8 @@ export async function getHistoryEntries(protocolId: string): Promise<HistoryEntr
       const data = JSON.parse(content) as Record<string, unknown>;
       
       // Extract timestamp from filename
-      const match = filename.match(/_(\d{8}T\d{6}Z)\.json$/);
-      const timestamp = match 
-        ? `${match[1].slice(0, 4)}-${match[1].slice(4, 6)}-${match[1].slice(6, 8)}T${match[1].slice(9, 11)}:${match[1].slice(11, 13)}:${match[1].slice(13, 15)}Z`
-        : stat.mtime.toISOString();
+      const match = filename.match(TIMESTAMP_FILENAME_RE);
+      const timestamp = match ? parseTimestampToken(match[1]) : stat.mtime.toISOString();
       
       entries.push({
         id: filename.replace('.json', ''),
@@ -323,7 +384,14 @@ export async function getHistoryEntries(protocolId: string): Promise<HistoryEntr
   }
   
   // Sort by timestamp descending
-  return entries.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+  return entries.sort((a, b) => {
+    const aMs = Date.parse(a.timestamp);
+    const bMs = Date.parse(b.timestamp);
+    if (!Number.isNaN(aMs) && !Number.isNaN(bMs)) {
+      return bMs - aMs;
+    }
+    return b.timestamp.localeCompare(a.timestamp);
+  });
 }
 
 /**
@@ -378,10 +446,14 @@ export async function findSnapshotForPublish(
   const paths = getSemanticPaths(protocolId);
   
   // Extract timestamp from published filename
-  const match = publishedFilename.match(/_(\d{8}T\d{6}Z)\.json$/);
+  const match = publishedFilename.match(TIMESTAMP_FILENAME_RE);
   if (!match) return null;
   
   const publishTimestamp = match[1];
+  const publishOrder = parseTimestampOrder(publishTimestamp);
+  if (!publishOrder) {
+    return null;
+  }
   
   // Find the closest USDM snapshot before this publish
   try {
@@ -389,11 +461,13 @@ export async function findSnapshotForPublish(
     const sortedSnapshots = snapshots
       .filter(f => f.startsWith('protocol_usdm_') && f.endsWith('.json'))
       .map(f => {
-        const m = f.match(/_(\d{8}T\d{6}Z)\.json$/);
-        return { filename: f, timestamp: m ? m[1] : '' };
+        const m = f.match(TIMESTAMP_FILENAME_RE);
+        const timestamp = m ? m[1] : '';
+        const order = timestamp ? parseTimestampOrder(timestamp) : null;
+        return { filename: f, order };
       })
-      .filter(s => s.timestamp && s.timestamp <= publishTimestamp)
-      .sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+      .filter(s => s.order && compareTimestampOrder(s.order, publishOrder) <= 0)
+      .sort((a, b) => compareTimestampOrder(b.order!, a.order!));
     
     return sortedSnapshots.length > 0 ? sortedSnapshots[0].filename : null;
   } catch {

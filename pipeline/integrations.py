@@ -1,16 +1,12 @@
 """
 Cross-phase integration helpers.
 
-Handles SAP/sites integration, content reference resolution,
+Provides shared SAP extension metadata, content reference resolution,
 and estimand→population reconciliation.
 """
 
-from typing import Dict, Optional, Any
-import json
+from typing import Dict
 import logging
-import os
-
-from extraction.conditional.ars_generator import generate_ars_from_sap
 
 logger = logging.getLogger(__name__)
 
@@ -26,82 +22,6 @@ SAP_EXTENSION_TYPES = [
     ("interimAnalyses",        "interim-analyses",        "interim analyses"),
     ("sampleSizeCalculations", "sample-size-calculations","sample size calculations"),
 ]
-
-
-def integrate_sites(study_version: dict, study_design: dict, expansion_results: Optional[dict]) -> None:
-    """Add sites data from conditional sources to study design and version."""
-    if not expansion_results or not expansion_results.get('sites'):
-        return
-    sites_result = expansion_results['sites']
-    if not (hasattr(sites_result, 'data') and sites_result.data):
-        return
-    
-    sites_dict = sites_result.data.to_dict()
-    sites_data = sites_dict.get('studySites', [])
-    if sites_data:
-        study_design['studySites'] = sites_data
-        logger.info(f"  Added {len(sites_data)} study sites to studyDesign")
-    
-    site_orgs = sites_dict.get('organizations', [])
-    if site_orgs:
-        existing_orgs = study_version.get('organizations', [])
-        existing_ids = {o.get('id') for o in existing_orgs}
-        new_orgs = [o for o in site_orgs if o.get('id') not in existing_ids]
-        study_version['organizations'] = existing_orgs + new_orgs
-        logger.info(f"  Added {len(new_orgs)} site organizations")
-
-
-def integrate_sap(study_version: dict, study_design: dict, expansion_results: Optional[dict], output_dir: str) -> None:
-    """Add SAP analysis populations, extensions, and CDISC ARS output."""
-    if not expansion_results or not expansion_results.get('sap'):
-        return
-    sap_result = expansion_results['sap']
-    if not (hasattr(sap_result, 'data') and sap_result.data):
-        return
-    
-    sap_dict = sap_result.data.to_dict()
-    
-    # Analysis populations → studyDesign
-    populations = sap_dict.get('analysisPopulations', [])
-    if populations:
-        study_design['analysisPopulations'] = populations
-        logger.info(f"  Added {len(populations)} analysis populations to studyDesign")
-    
-    # SAP elements → extension attributes (data-driven)
-    extensions = study_design.setdefault('extensionAttributes', [])
-    ext_counts = []
-    for dict_key, url_suffix, label in SAP_EXTENSION_TYPES:
-        items = sap_dict.get(dict_key, [])
-        if items:
-            ext_id = f"ext_sap_{dict_key}"
-            # Convert camelCase key to kebab-case for URL
-            extensions.append({
-                "id": ext_id,
-                "url": f"https://protocol2usdm.io/extensions/x-sap-{url_suffix}",
-                "valueString": json.dumps(items),
-                "instanceType": "ExtensionAttribute"
-            })
-            ext_counts.append(f"{len(items)} {label}")
-    
-    if ext_counts:
-        logger.info(f"  Added SAP extensions: {', '.join(ext_counts)}")
-    
-    # Generate CDISC ARS output
-    try:
-        study_name = study_version.get('titles', [{}])[0].get('text', 'Study')
-        ars_output_path = os.path.join(output_dir, "ars_reporting_event.json")
-        ars_data = generate_ars_from_sap(sap_dict, study_name, ars_output_path)
-        
-        re = ars_data.get('reportingEvent', {})
-        ars_counts = [
-            f"{len(re.get('analysisSets', []))} analysis sets",
-            f"{len(re.get('analysisMethods', []))} methods",
-            f"{len(re.get('analyses', []))} analyses",
-        ]
-        logger.info(f"  ✓ Generated CDISC ARS: {', '.join(ars_counts)}")
-        logger.info(f"    Saved to: {ars_output_path}")
-    except Exception as e:
-        logger.warning(f"  ⚠ ARS generation failed: {e}")
 
 
 def resolve_content_references(combined: dict) -> None:

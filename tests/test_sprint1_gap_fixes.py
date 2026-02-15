@@ -318,6 +318,133 @@ class TestH8AdminProductLink:
         result = link_administrations_to_products(combined)
         assert result is combined  # no crash
 
+    def test_partial_word_match_does_not_link(self):
+        from pipeline.post_processing import link_administrations_to_products
+        combined = _base_combined()
+        combined["study"]["versions"][0]["administrableProducts"] = [
+            {"id": "prod_1", "name": "Drug A"},
+        ]
+        combined["administrations"] = [
+            {"id": "admin_1", "name": "Drug AB Tablet"},
+        ]
+        link_administrations_to_products(combined)
+        assert "administrableProductId" not in combined["administrations"][0]
+
+    def test_ambiguous_fuzzy_match_does_not_link(self):
+        from pipeline.post_processing import link_administrations_to_products
+        combined = _base_combined()
+        combined["study"]["versions"][0]["administrableProducts"] = [
+            {"id": "prod_1", "name": "Drug A"},
+            {"id": "prod_2", "name": "Drug B"},
+        ]
+        combined["administrations"] = [
+            {"id": "admin_1", "name": "Drug"},
+        ]
+        link_administrations_to_products(combined)
+        assert "administrableProductId" not in combined["administrations"][0]
+
+    def test_prefers_more_specific_fuzzy_match(self):
+        from pipeline.post_processing import link_administrations_to_products
+        combined = _base_combined()
+        combined["study"]["versions"][0]["administrableProducts"] = [
+            {"id": "prod_1", "name": "Canagliflozin"},
+            {"id": "prod_2", "name": "Canagliflozin Tablet"},
+        ]
+        combined["administrations"] = [
+            {"id": "admin_1", "name": "Canagliflozin Tablet 100mg"},
+        ]
+        link_administrations_to_products(combined)
+        assert combined["administrations"][0]["administrableProductId"] == "prod_2"
+
+
+# ===================================================================
+# NX-4 — Procedure/Activity link hardening
+# ===================================================================
+
+class TestNX4ProcedureActivityLinking:
+    def test_links_by_whole_phrase_match(self):
+        from pipeline.post_processing import link_procedures_to_activities
+
+        study_design = {
+            "procedures": [{"id": "proc_1", "name": "Blood Pressure"}],
+            "activities": [{"id": "act_1", "name": "Blood Pressure Visit 1"}],
+        }
+
+        link_procedures_to_activities(study_design)
+
+        linked = study_design["activities"][0]["definedProcedures"][0]
+        assert linked["id"] == "proc_1"
+        assert linked["procedureId"] == "proc_1"
+
+    def test_existing_procedure_id_reference_not_duplicated(self):
+        from pipeline.post_processing import link_procedures_to_activities
+
+        study_design = {
+            "procedures": [{"id": "proc_1", "name": "Blood Pressure"}],
+            "activities": [{
+                "id": "act_1",
+                "name": "Blood Pressure Visit 1",
+                "definedProcedures": [{"id": "proc_1", "procedureId": "proc_1"}],
+            }],
+        }
+
+        link_procedures_to_activities(study_design)
+
+        assert len(study_design["activities"][0]["definedProcedures"]) == 1
+
+    def test_partial_word_match_does_not_link(self):
+        from pipeline.post_processing import link_procedures_to_activities
+
+        study_design = {
+            "procedures": [{"id": "proc_1", "name": "Drug A"}],
+            "activities": [{"id": "act_1", "name": "Drug AB Visit"}],
+        }
+
+        link_procedures_to_activities(study_design)
+
+        assert "definedProcedures" not in study_design["activities"][0]
+
+    def test_ambiguous_fuzzy_match_does_not_link(self):
+        from pipeline.post_processing import link_procedures_to_activities
+
+        study_design = {
+            "procedures": [
+                {"id": "proc_1", "name": "Screening Visit"},
+                {"id": "proc_2", "name": "Baseline Visit"},
+            ],
+            "activities": [{"id": "act_1", "name": "Visit"}],
+        }
+
+        link_procedures_to_activities(study_design)
+
+        assert "definedProcedures" not in study_design["activities"][0]
+
+
+# ===================================================================
+# NX-5 — StudyElement key normalization
+# ===================================================================
+
+class TestNX5StudyElementNormalization:
+    def test_merges_legacy_study_elements_into_elements(self):
+        from pipeline.combiner import _normalize_study_elements
+
+        study_design = {
+            "studyElements": [
+                {"id": "elem_1", "name": "Legacy 1"},
+                {"id": "elem_2", "name": "Legacy 2"},
+            ],
+            "elements": [
+                {"id": "elem_2", "name": "Already Canonical"},
+                {"id": "elem_exec_1", "name": "Execution Element"},
+            ],
+        }
+
+        _normalize_study_elements(study_design)
+
+        assert "studyElements" not in study_design
+        element_ids = {e["id"] for e in study_design["elements"]}
+        assert element_ids == {"elem_1", "elem_2", "elem_exec_1"}
+
 
 # ===================================================================
 # H9 — Ingredient nesting

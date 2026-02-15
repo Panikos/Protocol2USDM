@@ -20,6 +20,7 @@ import os
 import sys
 import tempfile
 from pathlib import Path
+import pytest
 
 # Ensure project root is on sys.path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -72,6 +73,14 @@ def discover_golden_protocols(max_count: int = 10) -> list:
 
     # Return up to max_count protocols
     protocols = list(protocol_groups.items())[-max_count:]
+    return protocols
+
+
+def _require_golden_protocols(max_count: int) -> list:
+    """Discover golden protocols or skip when local artifacts are unavailable."""
+    protocols = discover_golden_protocols(max_count=max_count)
+    if not protocols:
+        pytest.skip("No golden protocols found in output/ (run pipeline on golden protocol first)")
     return protocols
 
 
@@ -129,8 +138,7 @@ def run_m11_generation(usdm_path: str) -> dict:
 
 def test_m11_all_protocols():
     """Test M11 generation across all golden protocols."""
-    protocols = discover_golden_protocols(max_count=10)
-    assert len(protocols) > 0, "No golden protocols found in output/"
+    protocols = _require_golden_protocols(max_count=10)
 
     results = []
     failures = []
@@ -191,8 +199,7 @@ def test_m11_entity_composers():
         _compose_safety, _compose_statistics, _compose_estimands,
     )
 
-    protocols = discover_golden_protocols(max_count=3)
-    assert len(protocols) > 0
+    protocols = _require_golden_protocols(max_count=3)
 
     composers = {
         "synopsis": _compose_synopsis,
@@ -237,8 +244,7 @@ def test_m11_section_mapping_coverage():
     """Test that section mapping achieves good coverage."""
     from extraction.narrative.m11_mapper import map_sections_to_m11
 
-    protocols = discover_golden_protocols(max_count=5)
-    assert len(protocols) > 0
+    protocols = _require_golden_protocols(max_count=5)
 
     for prefix, usdm_path in protocols:
         with open(usdm_path, 'r') as f:

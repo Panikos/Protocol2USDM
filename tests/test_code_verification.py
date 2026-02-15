@@ -8,6 +8,7 @@ No network access required — uses the curated EVS_VERIFIED_CODES mapping.
 import pytest
 import sys
 import os
+import json
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -84,6 +85,15 @@ class TestEVSVerifiedCodesConsistency:
 
 class TestCodeVerificationService:
     """Test the verification service itself."""
+
+    def test_load_cache_ignores_malformed_json(self, tmp_path):
+        (tmp_path / "good.json").write_text(json.dumps({"name": "Good"}), encoding="utf-8")
+        (tmp_path / "bad.json").write_text("{not-json", encoding="utf-8")
+
+        svc = CodeVerificationService(cache_dir=tmp_path)
+
+        assert "good" in svc._concept_cache
+        assert "bad" not in svc._concept_cache
 
     def test_verify_ok(self):
         svc = CodeVerificationService()

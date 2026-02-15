@@ -185,8 +185,8 @@ class CodeVerificationService:
             try:
                 data = json.loads(p.read_text(encoding="utf-8"))
                 self._concept_cache[p.stem] = data
-            except Exception:
-                pass
+            except (OSError, json.JSONDecodeError) as exc:
+                logger.debug("Ignoring invalid EVS cache file %s: %s", p, exc)
 
     def _save_to_cache(self, code: str, data: dict) -> None:
         data["_cached_at"] = time.time()

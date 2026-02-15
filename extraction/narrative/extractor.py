@@ -1110,6 +1110,64 @@ def _split_subsection_texts(
     return texts
 
 
+# Keyword rules migrated from renderer fallback to extraction-time tagging.
+_DISCONTINUATION_TAG_KEYWORDS = (
+    'discontinu', 'withdraw', 'dropout', 'drop-out', 'drop out',
+    'early termination', 'stopping rule', 'lost to follow',
+    'premature', 'removal from study',
+)
+
+_SAFETY_TAG_KEYWORDS = (
+    'adverse event', 'serious adverse event', 'aesi',
+    'adverse event of special interest', 'pharmacovigilance',
+    'safety report', 'toxicity', 'tolerability',
+    'susar', 'medication error', 'pregnancy', 'postpartum',
+)
+
+
+def _refine_section_type_with_content(
+    base_type: SectionType,
+    title: str,
+    text: str,
+    section_number: str = '',
+    parent_type: Optional[SectionType] = None,
+) -> SectionType:
+    """Refine section type with content keywords for extraction-time tagging."""
+    title_lower = title.lower()
+    text_lower = text[:2000].lower()
+
+    is_m11_top_level = bool(
+        section_number.isdigit()
+        and 1 <= int(section_number) <= 14
+    )
+
+    has_discontinuation_title = any(
+        keyword in title_lower for keyword in _DISCONTINUATION_TAG_KEYWORDS
+    )
+    has_discontinuation_text = any(
+        keyword in text_lower for keyword in _DISCONTINUATION_TAG_KEYWORDS
+    )
+    if has_discontinuation_title or (has_discontinuation_text and not is_m11_top_level):
+        return SectionType.DISCONTINUATION
+
+    has_safety_title = any(
+        keyword in title_lower for keyword in _SAFETY_TAG_KEYWORDS
+    )
+    has_safety_text = any(
+        keyword in text_lower for keyword in _SAFETY_TAG_KEYWORDS
+    )
+    if has_safety_title or (has_safety_text and not is_m11_top_level):
+        return SectionType.SAFETY
+
+    if base_type == SectionType.OTHER and parent_type in {
+        SectionType.DISCONTINUATION,
+        SectionType.SAFETY,
+    }:
+        return parent_type
+
+    return base_type
+
+
 # ---------------------------------------------------------------------------
 # Data builders
 # ---------------------------------------------------------------------------
@@ -1162,7 +1220,14 @@ def _build_narrative_data(
         sub_texts = _split_subsection_texts(parent_text, subsections) if parent_text else {}
         
         sec_num = sec.get('number', '')
-        section_type = _map_section_type(sec.get('type', 'Other'), sec_num)
+        sec_title = sec.get('title') or ''
+        sec_text = section_texts.get(sec_num, '')
+        section_type = _refine_section_type_with_content(
+            _map_section_type(sec.get('type', 'Other'), sec_num),
+            sec_title,
+            sec_text,
+            section_number=sec_num,
+        )
         
         # Process subsections
         child_ids = []
@@ -1172,19 +1237,24 @@ def _build_narrative_data(
                 child_ids.append(item_id)
                 sub_num = sub.get('number', '')
                 sub_text = sub_texts.get(sub_num, '')
-                # Subsections inherit type from M11 top-level override via sub_num
-                sub_type = _map_section_type(sec.get('type', 'Other'), sub_num)
+                sub_title = sub.get('title') or ''
+                sub_declared_type = sub.get('type', sec.get('type', 'Other'))
+                sub_type = _refine_section_type_with_content(
+                    _map_section_type(sub_declared_type, sub_num),
+                    sub_title,
+                    sub_text or parent_text,
+                    section_number=sub_num,
+                    parent_type=section_type,
+                )
                 items.append(NarrativeContentItem(
                     id=item_id,
-                    name=sub.get('title') or f'Section {sub_num}',
+                    name=sub_title or f'Section {sub_num}',
                     text=sub_text,
                     section_number=sub_num,
-                    section_title=sub.get('title') or '',
+                    section_title=sub_title,
                     section_type=sub_type,
                     order=j,
                 ))
-        
-        sec_text = section_texts.get(sec_num, '')
         
         # USDM v4.0: contentItemId references the first child item (if any)
         first_child_id = child_ids[0] if len(child_ids) == 1 else None
@@ -1193,9 +1263,9 @@ def _build_narrative_data(
         
         sections.append(NarrativeContent(
             id=section_id,
-            name=sec.get('title') or f'Section {sec_num}',
+            name=sec_title or f'Section {sec_num}',
             section_number=sec_num,
-            section_title=sec.get('title') or '',
+            section_title=sec_title,
             section_type=section_type,
             text=sec_text if sec_text else None,
             child_ids=child_ids,

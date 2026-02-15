@@ -36,6 +36,7 @@ from .pdf_utils import (
 from .constants import (
     USDM_VERSION,
     SYSTEM_NAME,
+    VERSION,
     SYSTEM_VERSION,
     DEFAULT_MODEL,
     REASONING_MODELS,
@@ -94,6 +95,7 @@ __all__ = [
     # Constants
     "USDM_VERSION",
     "SYSTEM_NAME",
+    "VERSION",
     "SYSTEM_VERSION",
     "DEFAULT_MODEL",
     "REASONING_MODELS",

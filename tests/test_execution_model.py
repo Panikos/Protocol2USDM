@@ -11,7 +11,9 @@ Tests:
 
 import pytest
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
+from types import SimpleNamespace
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -27,6 +29,7 @@ from extraction.execution.schema import (
     ExecutionTypeAssignment,
     ExecutionModelData,
     ExecutionModelResult,
+    ExecutionModelExtension,
     CrossoverDesign,
     FootnoteCondition,
     # Phase 3
@@ -73,6 +76,7 @@ from extraction.execution.execution_type_classifier import (
 from extraction.execution.pipeline_integration import (
     enrich_usdm_with_execution_model,
     create_execution_model_summary,
+    _resolve_to_encounter_id,
 )
 
 from extraction.execution.crossover_extractor import (
@@ -200,6 +204,21 @@ class TestSchema:
         )
         d = result.to_dict()
         assert d["success"] == True
+
+    def test_execution_model_extension_from_result_uses_timezone_aware_timestamp(self):
+        result = ExecutionModelResult(
+            success=True,
+            data=ExecutionModelData(),
+            pages_used=[1],
+            model_used="heuristic",
+        )
+
+        ext = ExecutionModelExtension.from_extraction_result(result)
+        assert isinstance(ext.extractionTimestamp, str)
+
+        parsed = datetime.fromisoformat(ext.extractionTimestamp)
+        assert parsed.tzinfo is not None
+        assert parsed.utcoffset() == timezone.utc.utcoffset(parsed)
 
 
 class TestTimeAnchorExtractor:
@@ -380,6 +399,26 @@ class TestPipelineIntegration:
         enriched = enrich_usdm_with_execution_model(usdm, data)
         # Should have extensionAttributes
         assert "extensionAttributes" in enriched["studyDesigns"][0]
+
+    def test_typed_execution_extension_uses_timezone_aware_timestamp(self):
+        usdm = {"studyDesigns": [{"id": "sd_1", "activities": []}]}
+        data = ExecutionModelData(
+            time_anchors=[
+                TimeAnchor(id="a1", definition="First dose", anchor_type=AnchorType.FIRST_DOSE)
+            ]
+        )
+        enriched = enrich_usdm_with_execution_model(usdm, data)
+
+        ext_attrs = enriched["studyDesigns"][0].get("extensionAttributes", [])
+        typed_ext = next((e for e in ext_attrs if e.get("url", "").endswith("x-executionModel")), None)
+
+        assert typed_ext is not None
+        ts = typed_ext.get("valueObject", {}).get("extractionTimestamp")
+        assert isinstance(ts, str)
+
+        parsed = datetime.fromisoformat(ts)
+        assert parsed.tzinfo is not None
+        assert parsed.utcoffset() == timezone.utc.utcoffset(parsed)
         
     def test_enrich_usdm_with_execution_types(self):
         usdm = {
@@ -416,6 +455,24 @@ class TestPipelineIntegration:
         assert "Time Anchors" in summary
         assert "Repetitions" in summary
         assert "FirstDose" in summary
+
+    def test_resolve_scheduled_treatment_visits_to_treatment_encounter(self):
+        encounters = [
+            {"id": "enc_screen", "name": "Screening (Week -10 to -3)", "epochId": "ep_screen"},
+            {"id": "enc_runin", "name": "Run-In (Week -2)", "epochId": "ep_runin"},
+            {"id": "enc_treat", "name": "Treatment (Week 3)", "epochId": "ep_treat"},
+            {"id": "enc_follow", "name": "Follow-up", "epochId": "ep_follow"},
+        ]
+        encounter_ids = {enc["id"] for enc in encounters}
+
+        resolved = _resolve_to_encounter_id(
+            visit_name="Scheduled Treatment Visits",
+            encounter_ids=encounter_ids,
+            encounters=encounters,
+            epochs=None,
+        )
+
+        assert resolved == "enc_treat"
 
 
 class TestEnumValues:
@@ -1767,6 +1824,28 @@ class TestPromoterFaultIsolation:
         # and still promote footnote conditions
         result_design, result_version = promoter.promote(design, version, data)
         assert promoter.result.conditions_promoted >= 0  # Conditions step should still run
+
+    def test_promote_elements_sets_next_and_previous_links(self):
+        from extraction.execution.execution_model_promoter import ExecutionModelPromoter
+
+        promoter = ExecutionModelPromoter()
+        design = {"elements": []}
+
+        schedule = SimpleNamespace(
+            id="titration_1",
+            name="ALXN1840",
+            dose_levels=[
+                SimpleNamespace(dose="15 mg", duration="", criteria=""),
+                SimpleNamespace(dose="30 mg", duration="", criteria=""),
+            ],
+        )
+
+        result_design = promoter._promote_elements(design, [schedule])
+        elements = result_design["elements"]
+
+        assert len(elements) == 2
+        assert elements[0].get("nextElementId") == elements[1]["id"]
+        assert elements[1].get("previousElementId") == elements[0]["id"]
 
 
 class TestFromDictRoundTrip:

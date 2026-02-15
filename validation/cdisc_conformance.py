@@ -9,10 +9,13 @@ import json
 import logging
 import os
 import subprocess
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Tuple
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_CORE_TIMEOUT_SECONDS = 300
 
 
 def _resolve_core_engine_path(
@@ -120,6 +123,105 @@ def _save_conformance_report(result: Dict[str, Any], output_path: str) -> None:
         json.dump(result, f, indent=2)
 
 
+def _normalize_issue_severity(value: Any) -> str:
+    """Normalize severity labels across CORE schemas."""
+    text = str(value or '').strip().lower()
+    if 'warn' in text:
+        return 'Warning'
+    if 'error' in text or 'fail' in text or 'critical' in text:
+        return 'Error'
+    # CORE v0.14+ Issue_Details does not include severity; default to Error.
+    return 'Error'
+
+
+def _extract_core_issues(report: Dict[str, Any]) -> Tuple[List[Dict[str, Any]], int, int]:
+    """Extract normalized issues and counts from CORE output (legacy + v0.14+)."""
+    # Legacy schema: top-level 'issues' list with severity.
+    legacy_issues = report.get('issues')
+    if isinstance(legacy_issues, list):
+        normalized: List[Dict[str, Any]] = []
+        for issue in legacy_issues:
+            issue_dict = issue if isinstance(issue, dict) else {'message': str(issue)}
+            item = dict(issue_dict)
+            item['severity'] = _normalize_issue_severity(item.get('severity'))
+            normalized.append(item)
+
+        warning_count = sum(1 for i in normalized if i.get('severity') == 'Warning')
+        error_count = sum(1 for i in normalized if i.get('severity') == 'Error')
+        return normalized, error_count, warning_count
+
+    # CORE v0.14+ schema: detailed issue rows under Issue_Details.
+    issue_details = report.get('Issue_Details')
+    if isinstance(issue_details, list):
+        normalized = []
+        for issue in issue_details:
+            if not isinstance(issue, dict):
+                continue
+            item = dict(issue)
+            item.setdefault('rule', item.get('core_id') or item.get('cdisc_rule_id'))
+            item['severity'] = _normalize_issue_severity(item.get('severity'))
+            normalized.append(item)
+
+        warning_count = sum(1 for i in normalized if i.get('severity') == 'Warning')
+        error_count = sum(1 for i in normalized if i.get('severity') == 'Error')
+        return normalized, error_count, warning_count
+
+    # Aggregated fallback: Issue_Summary has counts per rule.
+    issue_summary = report.get('Issue_Summary')
+    if isinstance(issue_summary, list):
+        normalized = []
+        total_errors = 0
+        for summary in issue_summary:
+            if not isinstance(summary, dict):
+                continue
+            count_raw = summary.get('issues', 0)
+            try:
+                count = int(count_raw)
+            except (TypeError, ValueError):
+                count = 0
+            if count < 0:
+                count = 0
+            total_errors += count
+
+            normalized.append({
+                'rule': summary.get('core_id') or summary.get('cdisc_rule_id'),
+                'core_id': summary.get('core_id'),
+                'cdisc_rule_id': summary.get('cdisc_rule_id'),
+                'entity': summary.get('entity'),
+                'message': summary.get('message'),
+                'severity': 'Error',
+                'count': count,
+            })
+
+        return normalized, total_errors, 0
+
+    # Unknown format
+    return [], 0, 0
+
+
+def _get_core_timeout_seconds(timeout_seconds: Optional[int] = None) -> int:
+    """Resolve CORE timeout from explicit value or environment."""
+    if timeout_seconds is not None:
+        return max(1, int(timeout_seconds))
+
+    env_value = os.environ.get('CDISC_CORE_TIMEOUT_SECONDS', '').strip()
+    if not env_value:
+        return DEFAULT_CORE_TIMEOUT_SECONDS
+
+    try:
+        parsed = int(env_value)
+        if parsed > 0:
+            return parsed
+    except ValueError:
+        logger.warning(
+            "Invalid CDISC_CORE_TIMEOUT_SECONDS=%r; using default %ss",
+            env_value,
+            DEFAULT_CORE_TIMEOUT_SECONDS,
+        )
+
+    return DEFAULT_CORE_TIMEOUT_SECONDS
+
+
 def _ensure_core_cache(core_dir: Path, core_exe: Path) -> bool:
     """
     Ensure CORE engine cache is up to date.
@@ -162,6 +264,7 @@ def _run_local_core_engine(
     json_path: str,
     output_dir: str,
     core_exe: Optional[Path] = None,
+    timeout_seconds: Optional[int] = None,
 ) -> Dict[str, Any]:
     """
     Run local CDISC CORE engine executable.
@@ -185,6 +288,8 @@ def _run_local_core_engine(
         }
 
     core_dir = core_exe.parent
+
+    core_input_path = json_path
     
     # Ensure cache is available
     if not _ensure_core_cache(core_dir, core_exe):
@@ -201,56 +306,52 @@ def _run_local_core_engine(
             'timestamp': _get_timestamp(),
         }
     
-    logger.info(f"Running CDISC CORE engine (local)...")
+    effective_timeout_seconds = _get_core_timeout_seconds(timeout_seconds)
+    logger.info(f"Running CDISC CORE engine (local) with timeout={effective_timeout_seconds}s...")
     
     # CORE engine appends .json to output path, so use base name without extension
     output_base = os.path.join(output_dir, "conformance_report")
     output_path = output_base + ".json"  # The actual file CORE will create
     
     try:
-        # Run CORE engine
-        # Note: Exclude CORE-000955 and CORE-000956 due to JSONata bugs in CORE engine
-        # when processing certain USDM data structures (causes NoneType errors)
+        # Run CORE engine on the raw pipeline USDM output.
         result = subprocess.run(
             [
                 str(core_exe),
                 "validate",
                 "-s", "usdm",  # Standard: USDM
                 "-v", "4-0",  # USDM version (format: X-Y not X.Y)
-                "-dp", os.path.abspath(json_path),  # Dataset file path (absolute)
+                "-dp", os.path.abspath(core_input_path),  # Dataset file path (absolute)
                 "-o", os.path.abspath(output_base),  # Output base (CORE appends .json)
                 "-of", "JSON",  # Output format
-                "-er", "CORE-000955",  # Exclude buggy rule
-                "-er", "CORE-000956",  # Exclude buggy rule
                 "-p", "disabled",  # Disable progress bar for cleaner logs
             ],
             capture_output=True,
             text=True,
-            timeout=120,
+            timeout=effective_timeout_seconds,
             cwd=str(core_dir),
         )
         
         if result.returncode == 0 and os.path.exists(output_path):
             with open(output_path, 'r', encoding='utf-8') as f:
                 report = json.load(f)
-            
-            issues = report.get('issues', [])
-            warnings = [i for i in issues if i.get('severity') == 'Warning']
-            errors = [i for i in issues if i.get('severity') == 'Error']
-            
-            logger.info(f"Conformance check: {len(errors)} errors, {len(warnings)} warnings")
+
+            parsed_issues, error_count, warning_count = _extract_core_issues(report)
+
+            logger.info(f"Conformance check: {error_count} errors, {warning_count} warnings")
             
             return {
                 'success': True,
                 'engine': 'local_core',
                 'inputFile': json_path,
+                'coreInputFile': core_input_path,
                 'output': output_path,
                 'error': None,
                 'error_summary': None,
                 'error_details': None,
-                'issues': len(errors),
-                'warnings': len(warnings),
-                'issues_list': issues,
+                'issues': error_count,
+                'warnings': warning_count,
+                'issues_list': parsed_issues,
                 'timestamp': _get_timestamp(),
             }
         else:
@@ -287,7 +388,7 @@ def _run_local_core_engine(
             'success': False,
             'engine': 'local_core',
             'inputFile': json_path,
-            'error': 'CORE engine timed out (>120s)',
+            'error': f'CORE engine timed out (>{effective_timeout_seconds}s)',
             'error_summary': None,
             'error_details': None,
             'issues': 0,
@@ -575,5 +676,4 @@ def _check_controlled_terminology(data: Dict, warnings: List) -> None:
 
 def _get_timestamp() -> str:
     """Get current timestamp in ISO format."""
-    from datetime import datetime
-    return datetime.utcnow().isoformat() + "Z"
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")

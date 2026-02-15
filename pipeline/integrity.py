@@ -11,6 +11,7 @@ Produces an integrity_report.json with findings at ERROR/WARNING/INFO severity.
 import json
 import logging
 import os
+import re
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional, Set, Tuple
@@ -149,6 +150,42 @@ def _collect_ids(collection: Any) -> Set[str]:
     return ids
 
 
+def _is_terminal_epoch_name(name: str) -> bool:
+    """Return True for terminal epochs that do not require StudyCell assignment."""
+    if not name:
+        return False
+
+    normalized = name.lower().strip()
+    terminal_patterns = (
+        r'\beos\b',
+        r'\bet\b',
+        r'early\s*termination',
+        r'end\s+of\s+study',
+        r'end\s+of\s+treatment',
+        r'follow-up\s+only',
+    )
+    return any(re.search(pattern, normalized) for pattern in terminal_patterns)
+
+
+def _has_soa_activity_source(activity: Dict[str, Any]) -> bool:
+    """Return True when activity metadata explicitly marks it as SoA-derived."""
+    extension_attributes = activity.get('extensionAttributes', [])
+    if not isinstance(extension_attributes, list):
+        return False
+
+    for ext in extension_attributes:
+        if not isinstance(ext, dict):
+            continue
+        url = str(ext.get('url', ''))
+        if not (url.endswith('x-activitySource') or url.endswith('x-activitySources')):
+            continue
+        value = ext.get('valueString')
+        if isinstance(value, str) and 'soa' in value.lower():
+            return True
+
+    return False
+
+
 def check_id_references(usdm: dict) -> List[IntegrityFinding]:
     """Layer 1: Check all known ID reference fields resolve to existing entities."""
     findings = []
@@ -255,28 +292,64 @@ def check_orphans(usdm: dict) -> List[IntegrityFinding]:
 
     _scan_refs(version)
 
+    # Context-linked entities should not be treated as orphans even when they do not
+    # have inbound *Id references (e.g., titration element chains, SoA-derived activities).
+    contextual_ids_by_type: Dict[str, Set[str]] = {
+        'StudyElement': set(),
+        'Activity': set(),
+    }
+
+    for element in design.get('elements', []):
+        if not isinstance(element, dict):
+            continue
+        element_id = element.get('id')
+        if not element_id:
+            continue
+        if (
+            element.get('previousElementId')
+            or element.get('nextElementId')
+            or element.get('transitionStartRule')
+            or element.get('transitionEndRule')
+        ):
+            contextual_ids_by_type['StudyElement'].add(element_id)
+
+    for activity in design.get('activities', []):
+        if not isinstance(activity, dict):
+            continue
+        activity_id = activity.get('id')
+        if not activity_id:
+            continue
+        defined_procedures = activity.get('definedProcedures', [])
+        has_defined_procedures = isinstance(defined_procedures, list) and any(
+            isinstance(proc, dict) and (proc.get('procedureId') or proc.get('id'))
+            for proc in defined_procedures
+        )
+        if has_defined_procedures or _has_soa_activity_source(activity):
+            contextual_ids_by_type['Activity'].add(activity_id)
+
     # Check key collections for orphans
     orphan_checks = [
-        ('arms', design.get('arms', []), 'StudyArm'),
-        ('epochs', design.get('epochs', []), 'StudyEpoch'),
-        ('elements', design.get('elements', []), 'StudyElement'),
-        ('activities', design.get('activities', []), 'Activity'),
-        ('encounters', design.get('encounters', []), 'Encounter'),
-        ('procedures', design.get('procedures', []), 'Procedure'),
-        ('analysisPopulations', design.get('analysisPopulations', []), 'AnalysisPopulation'),
+        ('arms', design.get('arms', []), 'StudyArm', Severity.WARNING),
+        ('epochs', design.get('epochs', []), 'StudyEpoch', Severity.WARNING),
+        ('elements', design.get('elements', []), 'StudyElement', Severity.WARNING),
+        ('activities', design.get('activities', []), 'Activity', Severity.WARNING),
+        ('encounters', design.get('encounters', []), 'Encounter', Severity.WARNING),
+        ('procedures', design.get('procedures', []), 'Procedure', Severity.WARNING),
+        # Analysis populations often represent SAP context sets and are not consistently
+        # cross-linked by explicit IDs in source protocols, so skip orphan checks for them.
     ]
 
-    for collection_name, collection, entity_type in orphan_checks:
+    for collection_name, collection, entity_type, severity in orphan_checks:
         if not isinstance(collection, list):
             continue
         for entity in collection:
             if not isinstance(entity, dict):
                 continue
             eid = entity.get('id', '')
-            if eid and eid not in referenced_ids:
+            if eid and eid not in referenced_ids and eid not in contextual_ids_by_type.get(entity_type, set()):
                 findings.append(IntegrityFinding(
                     rule='orphan_entity',
-                    severity=Severity.WARNING,
+                    severity=severity,
                     message=f'{entity_type} "{entity.get("name", eid)}" is never referenced',
                     entity_type=entity_type,
                     entity_ids=[eid],
@@ -314,13 +387,19 @@ def check_semantic_rules(usdm: dict) -> List[IntegrityFinding]:
     epochs = design.get('epochs', [])
     cell_epoch_ids = {c.get('epochId') for c in cells if isinstance(c, dict)}
     for epoch in epochs:
-        if isinstance(epoch, dict) and epoch.get('id') not in cell_epoch_ids:
+        if not isinstance(epoch, dict):
+            continue
+        epoch_id = epoch.get('id')
+        epoch_name = epoch.get('name', '')
+        if _is_terminal_epoch_name(epoch_name):
+            continue
+        if epoch_id not in cell_epoch_ids:
             findings.append(IntegrityFinding(
                 rule='epoch_not_in_cell',
                 severity=Severity.WARNING,
-                message=f'Epoch "{epoch.get("name", epoch.get("id"))}" has no StudyCell assignment',
+                message=f'Epoch "{epoch_name or epoch_id}" has no StudyCell assignment',
                 entity_type='StudyEpoch',
-                entity_ids=[epoch.get('id', '')],
+                entity_ids=[epoch_id or ''],
             ))
 
     # Rule S3: Estimands should reference existing endpoints

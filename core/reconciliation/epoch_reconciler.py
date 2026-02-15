@@ -5,6 +5,7 @@ Reconciles epoch data from multiple extraction sources (SoA, Study Design,
 Traversal, SAP) into canonical epochs for protocol_usdm.json.
 """
 
+import re
 import uuid
 import logging
 from dataclasses import dataclass, field
@@ -47,6 +48,72 @@ def infer_cdisc_epoch_type(name: str) -> tuple:
     
     # Default to Treatment Epoch
     return "C101526", "Treatment Epoch"
+
+
+def enrich_epoch_names_with_clinical_type(
+    epochs: List[Dict[str, Any]],
+    encounters: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    """Append inferred clinical type labels to generic study-period epoch names.
+
+    Examples:
+      - "Study Period I" -> "Study Period I | Screening/Lead-in"
+      - "Study Period II" -> "Study Period II | Treatment Period"
+    """
+    if not epochs:
+        return epochs
+
+    study_period_pattern = re.compile(r"study\s*period", re.IGNORECASE)
+    has_study_periods = any(study_period_pattern.search(e.get("name", "")) for e in epochs)
+    if not has_study_periods:
+        return epochs
+
+    # Build epoch -> encounters mapping for inference
+    epoch_encounters: Dict[str, List[Dict[str, Any]]] = {}
+    for enc in encounters:
+        eid = enc.get("epochId")
+        if eid:
+            epoch_encounters.setdefault(eid, []).append(enc)
+
+    logger.info(f"Enriching {len(epochs)} study period names with clinical types")
+
+    for epoch in epochs:
+        epoch_id = epoch.get("id")
+        epoch_name = epoch.get("name", "")
+        epoch_name_lower = epoch_name.lower()
+
+        # Skip if already enriched.
+        if "|" in epoch_name:
+            continue
+
+        clinical_type: Optional[str] = None
+
+        if any(kw in epoch_name_lower for kw in ["safety", "f/u", "follow-up", "followup"]):
+            clinical_type = "Safety Follow-up"
+        elif any(kw in epoch_name_lower for kw in ["screen", "lead-in", "leadin", "run-in", "runin"]):
+            clinical_type = "Screening/Lead-in"
+        else:
+            clinical_type = _infer_clinical_type_from_encounters(epoch_encounters.get(epoch_id, []))
+
+        if clinical_type:
+            epoch["name"] = f"{epoch_name} | {clinical_type}"
+
+    return epochs
+
+
+def _infer_clinical_type_from_encounters(encounters: List[Dict[str, Any]]) -> str:
+    """Infer epoch clinical type from encounter names."""
+    if not encounters:
+        return "Treatment Period"
+
+    for enc in encounters:
+        name = enc.get("name", "").lower()
+        if any(kw in name for kw in ["screen", "eligibility", "consent", "lead-in", "lead in"]):
+            return "Screening/Lead-in"
+        if any(kw in name for kw in ["follow", "f/u", "safety", "termination", "et visit", "post end"]):
+            return "Safety Follow-up"
+
+    return "Treatment Period"
 
 
 # =============================================================================

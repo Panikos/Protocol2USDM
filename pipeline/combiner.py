@@ -16,8 +16,6 @@ import uuid
 from .phase_registry import phase_registry
 from .base_phase import PhaseResult
 from .integrations import (
-    integrate_sites,
-    integrate_sap,
     resolve_content_references,
     reconcile_estimand_population_refs,
 )
@@ -36,7 +34,7 @@ from .post_processing import (
     validate_anchor_consistency,
 )
 from .promotion import promote_extensions_to_usdm
-from core.constants import SYSTEM_NAME, SYSTEM_VERSION
+from core.constants import SYSTEM_NAME, VERSION
 
 logger = logging.getLogger(__name__)
 
@@ -54,30 +52,35 @@ def load_previous_extractions(output_dir: str) -> dict:
     
     # Define extraction files and their phase names
     extraction_files = {
-        'metadata': '2_study_metadata.json',
-        'eligibility': '3_eligibility_criteria.json',
-        'objectives': '4_objectives_endpoints.json',
-        'studydesign': '5_study_design.json',
-        'interventions': '6_interventions.json',
-        'narrative': '7_narrative_structure.json',
-        'advanced': '8_advanced_entities.json',
-        'procedures': '9_procedures_devices.json',
-        'scheduling': '10_scheduling_logic.json',
-        'docstructure': '13_document_structure.json',
-        'amendmentdetails': '14_amendment_details.json',
-        'execution': '11_execution_model.json',
-        'sap': '11_sap_populations.json',
+        'metadata': ['2_study_metadata.json'],
+        'eligibility': ['3_eligibility_criteria.json'],
+        'objectives': ['4_objectives_endpoints.json'],
+        'studydesign': ['5_study_design.json'],
+        'interventions': ['6_interventions.json'],
+        'narrative': ['7_narrative_structure.json'],
+        'advanced': ['8_advanced_entities.json'],
+        'procedures': ['9_procedures_devices.json'],
+        'scheduling': ['10_scheduling_logic.json'],
+        'docstructure': ['13_document_structure.json'],
+        'amendmentdetails': ['14_amendment_details.json'],
+        'execution': ['11_execution_model.json'],
+        # Support current phase output + legacy extractor output for compatibility.
+        'sap': ['14_sap_extraction.json', '11_sap_populations.json'],
+        'sites': ['15_sites_extraction.json', '12_study_sites.json'],
     }
-    
-    for phase, filename in extraction_files.items():
-        filepath = os.path.join(output_dir, filename)
-        if os.path.exists(filepath):
+
+    for phase, candidate_filenames in extraction_files.items():
+        for filename in candidate_filenames:
+            filepath = os.path.join(output_dir, filename)
+            if not os.path.exists(filepath):
+                continue
             try:
                 with open(filepath, 'r', encoding='utf-8') as f:
                     data = json.load(f)
                     if data.get('success', True):
                         loaded[phase] = data
-                        logger.debug(f"Loaded previous extraction: {phase}")
+                        logger.debug(f"Loaded previous extraction: {phase} from {filename}")
+                        break
             except (json.JSONDecodeError, IOError) as e:
                 logger.debug(f"Could not load {filename}: {e}")
     
@@ -110,7 +113,7 @@ def combine_to_full_usdm(
     combined = {
         "usdmVersion": "4.0",
         "generatedAt": datetime.now().isoformat(),
-        "generator": f"{SYSTEM_NAME} v{SYSTEM_VERSION}",
+        "generator": f"{SYSTEM_NAME} v{VERSION}",
         "_output_dir": output_dir,  # Temp: used by SAP phase for ARS generation, stripped before save
         "study": {
             "id": "study_1",
@@ -154,6 +157,9 @@ def combine_to_full_usdm(
     
     # Add SoA data
     _add_soa_data(study_design, soa_data)
+
+    # Normalize legacy StudyElement keying before downstream reconciliation/integrity
+    _normalize_study_elements(study_design)
     
     # Derive study design instanceType and studyType from metadata
     study_type = combined.pop("_temp_study_type", None)
@@ -206,10 +212,9 @@ def combine_to_full_usdm(
                 ]
                 logger.info(f"  Therapeutic areas inferred from indications: {inferred}")
     
-    # NOTE: SAP and Sites are now registered phases (SAPPhase, SitesPhase)
-    # and handled by the phase.combine() loop above. The integrate_sap()
-    # and integrate_sites() helpers are no longer called here to avoid
-    # duplicate extension creation.
+    # NOTE: SAP and Sites are registered phases (SAPPhase, SitesPhase)
+    # and are handled exclusively via the phase.combine() loop above,
+    # preventing duplicate extension creation from legacy side paths.
     
     # Reconcile estimand.analysisPopulationId → analysisPopulations references
     reconcile_estimand_population_refs(study_design)
@@ -439,6 +444,41 @@ def _apply_defaults(study_version: dict, study_design: dict, combined: dict, pdf
                 "decode": "Single Group Study",
                 "instanceType": "Code"
             }
+
+
+def _normalize_study_elements(study_design: dict) -> None:
+    """Normalize legacy `studyElements` alias into canonical `elements` list."""
+    legacy_elements = study_design.pop("studyElements", None)
+
+    canonical_elements = study_design.get("elements", [])
+    if not isinstance(canonical_elements, list):
+        canonical_elements = [canonical_elements] if canonical_elements else []
+
+    merged_elements = list(canonical_elements)
+    seen_ids = {
+        elem.get("id")
+        for elem in merged_elements
+        if isinstance(elem, dict) and elem.get("id")
+    }
+
+    added = 0
+    if isinstance(legacy_elements, list):
+        for elem in legacy_elements:
+            if not isinstance(elem, dict):
+                continue
+            elem_id = elem.get("id")
+            if elem_id and elem_id in seen_ids:
+                continue
+            merged_elements.append(elem)
+            if elem_id:
+                seen_ids.add(elem_id)
+            added += 1
+
+    if merged_elements or isinstance(legacy_elements, list):
+        study_design["elements"] = merged_elements
+
+    if added:
+        logger.info(f"  ✓ Normalized {added} legacy studyElements into elements")
 
 
 def _add_soa_data(study_design: dict, soa_data: Optional[dict]) -> None:

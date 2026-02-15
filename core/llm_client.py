@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Optional, List, Dict, Any
 from dataclasses import dataclass
 from dotenv import load_dotenv
+from core.constants import DEFAULT_MODEL
 
 # Load environment variables once at module level
 _env_loaded = False
@@ -102,10 +103,10 @@ def get_default_model() -> str:
     
     Checks in order:
     1. OPENAI_MODEL environment variable
-    2. Default to 'gemini-2.5-pro' (user preference)
+    2. Default to core.constants.DEFAULT_MODEL
     """
     _ensure_env_loaded()
-    return os.environ.get("OPENAI_MODEL", "gemini-2.5-pro")
+    return os.environ.get("OPENAI_MODEL", DEFAULT_MODEL)
 
 
 def is_reasoning_model(model_name: str) -> bool:

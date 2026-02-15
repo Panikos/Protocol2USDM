@@ -289,6 +289,51 @@ class TestSitesCombinePreviousExtractions:
 
 
 # ---------------------------------------------------------------------------
+# load_previous_extractions() compatibility
+# ---------------------------------------------------------------------------
+
+class TestLoadPreviousExtractionsCompatibility:
+    """Ensure combiner fallback loader supports current + legacy artifact names."""
+
+    def test_loads_sites_from_current_or_legacy_filename(self, tmp_path):
+        from pipeline.combiner import load_previous_extractions
+
+        # Legacy-only sites artifact should still load.
+        (tmp_path / "12_study_sites.json").write_text(
+            json.dumps(SAMPLE_SITES_JSON_FILE),
+            encoding="utf-8",
+        )
+
+        loaded = load_previous_extractions(str(tmp_path))
+        assert "sites" in loaded
+        assert loaded["sites"].get("sitesData", {}).get("summary", {}).get("siteCount") == 1
+
+    def test_prefers_current_phase_artifact_names_when_both_exist(self, tmp_path):
+        from pipeline.combiner import load_previous_extractions
+
+        legacy_sap = dict(SAMPLE_SAP_JSON_FILE)
+        legacy_sap["sourceFile"] = "legacy_sap.pdf"
+        current_sap = dict(SAMPLE_SAP_JSON_FILE)
+        current_sap["sourceFile"] = "current_sap.pdf"
+
+        legacy_sites = dict(SAMPLE_SITES_JSON_FILE)
+        legacy_sites["sourceFile"] = "legacy_sites.csv"
+        current_sites = dict(SAMPLE_SITES_JSON_FILE)
+        current_sites["sourceFile"] = "current_sites.csv"
+
+        # Write both legacy + current files; loader should pick current first.
+        (tmp_path / "11_sap_populations.json").write_text(json.dumps(legacy_sap), encoding="utf-8")
+        (tmp_path / "14_sap_extraction.json").write_text(json.dumps(current_sap), encoding="utf-8")
+        (tmp_path / "12_study_sites.json").write_text(json.dumps(legacy_sites), encoding="utf-8")
+        (tmp_path / "15_sites_extraction.json").write_text(json.dumps(current_sites), encoding="utf-8")
+
+        loaded = load_previous_extractions(str(tmp_path))
+
+        assert loaded["sap"]["sourceFile"] == "current_sap.pdf"
+        assert loaded["sites"]["sourceFile"] == "current_sites.csv"
+
+
+# ---------------------------------------------------------------------------
 # No duplicate extensions after combiner fix
 # ---------------------------------------------------------------------------
 
@@ -327,6 +372,16 @@ class TestNoDuplicateExtensions:
             f"Expected exactly 1 multiplicity extension, got {len(mult_exts)} — "
             f"duplicate integration not fully removed"
         )
+
+
+class TestLegacyIntegrationPathsRemoved:
+    """Guard against reintroducing deprecated SAP/Sites integration entry points."""
+
+    def test_integrations_module_has_no_legacy_conditional_helpers(self):
+        import pipeline.integrations as integrations
+
+        assert not hasattr(integrations, "integrate_sap")
+        assert not hasattr(integrations, "integrate_sites")
 
 
 # ---------------------------------------------------------------------------

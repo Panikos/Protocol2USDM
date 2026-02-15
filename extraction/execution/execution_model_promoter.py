@@ -1754,6 +1754,11 @@ class ExecutionModelPromoter:
         """
         elements = design.setdefault('elements', [])
         existing_element_ids = {e.get('id') for e in elements}
+        elements_by_id = {
+            e.get('id'): e
+            for e in elements
+            if isinstance(e, dict) and e.get('id')
+        }
         
         for schedule in titration_schedules:
             schedule_id = getattr(schedule, 'id', str(uuid.uuid4()))
@@ -1772,6 +1777,7 @@ class ExecutionModelPromoter:
                 
                 element_id = f"elem_{schedule_id}_{i}"
                 if element_id in existing_element_ids:
+                    prev_element_id = element_id
                     continue
                 
                 element = {
@@ -1794,9 +1800,13 @@ class ExecutionModelPromoter:
                 if prev_element_id:
                     # Reference previous element
                     element['previousElementId'] = prev_element_id
+                    prev_element = elements_by_id.get(prev_element_id)
+                    if isinstance(prev_element, dict) and not prev_element.get('nextElementId'):
+                        prev_element['nextElementId'] = element_id
                 
                 elements.append(element)
                 existing_element_ids.add(element_id)
+                elements_by_id[element_id] = element
                 self.result.elements_created += 1
                 
                 prev_element_id = element_id

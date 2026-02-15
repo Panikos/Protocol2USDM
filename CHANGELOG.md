@@ -4,6 +4,46 @@ All notable changes documented here. Dates in ISO-8601.
 
 ---
 
+## [7.14.0] – 2026-02-14
+
+### Integrity Checker Final Warning Cleanup
+
+Resolved the remaining Wilson integrity findings by refining orphan detection semantics and contextual-link handling.
+
+| Area | Change |
+|------|--------|
+| **StudyElement orphan logic** | Elements with chain/transition context (`previousElementId`, `nextElementId`, transition rules) are treated as context-linked (non-orphan) |
+| **Activity orphan logic** | Activities with `definedProcedures` or SoA source tags (`x-activitySource`/`x-activitySources` = `soa`) are treated as context-linked |
+| **Analysis populations** | `analysisPopulations` removed from orphan checks (frequently SAP-context only, not explicitly cross-linked) |
+| **Terminal epochs** | EOS/ET-style epochs remain exempt from `epoch_not_in_cell` warnings |
+
+### CDISC CORE Conformance Hardening
+
+| Area | Change |
+|------|--------|
+| **Schema parsing** | `validation/cdisc_conformance.py` now parses both legacy CORE output (`issues[]`) and CORE v0.14+ output (`Issue_Details` / `Issue_Summary`) |
+| **Timeout behavior** | Local CORE timeout default increased to 300s and made configurable via `CDISC_CORE_TIMEOUT_SECONDS` |
+| **Workflow update** | `.windsurf/workflows/validate-usdm.md` fixed to call `run_cdisc_conformance(json_path, output_dir)` correctly and display normalized error/warning counts |
+
+### Regression Coverage
+
+| File | Tests |
+|------|-------|
+| `tests/test_integrity.py` | +3 (analysis population orphan skipped, titration chain non-orphan, SoA-sourced activity non-orphan) |
+| `tests/test_execution_model.py` | Existing chain-link regression retained for promoted StudyElements |
+| `tests/test_cdisc_conformance.py` | +7 (legacy/v0.14 parsing + timeout resolution behavior) |
+
+### Verification Runs
+
+| Check | Result |
+|-------|--------|
+| Targeted regression suite | `245 passed` (`tests/test_cdisc_conformance.py`, `tests/test_integrity.py`, `tests/test_execution_model.py`, `tests/test_sprint1_gap_fixes.py`) |
+| Full Wilson pipeline rerun | `output/NCT04573309_Wilsons_Protocol_E2E_20260214_2305` created successfully |
+| Integrity report (E2E run) | `0 errors, 0 warnings, 0 info` |
+| CDISC CORE report (E2E run) | Parsed successfully (`544 errors, 0 warnings`) via normalized wrapper |
+
+---
+
 ## [7.13.0] – 2026-02-14
 
 ### Graph View — Neighborhood Focus & Layout Selector

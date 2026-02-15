@@ -210,7 +210,16 @@ Three-tier validation runs after extraction:
 
 **CDISC CORE auto-install**: On first pipeline run, `ensure_core_engine()` downloads ALL platform executables from GitHub releases (`cdisc-org/cdisc-rules-engine`) into `tools/core/bin/{windows,linux,mac}/`. Auto-detects correct executable at runtime. Use `--core windows|linux|mac` to override auto-detection. Version tracked in `tools/core/bin/.version.json`. Update via `python tools/core/download_core.py --update`.
 
+**CDISC CORE output parsing**: `validation/cdisc_conformance.py` supports both legacy CORE JSON (`issues[]`) and CORE v0.14+ JSON (`Issue_Details` / `Issue_Summary`) when computing standardized `issues`, `warnings`, and `issues_list` output fields.
+
+**CDISC CORE timeout**: Local CORE timeout defaults to 300 seconds and can be overridden with `CDISC_CORE_TIMEOUT_SECONDS`.
+
 Normalization pipeline: Type inference → UUID conversion → Provenance conversion → NCI enrichment → Validation → CDISC CORE.
+
+**Integrity checker policy notes** (`pipeline/integrity.py`):
+- Terminal epochs (e.g., EOS/ET variants) are exempt from `epoch_not_in_cell` warnings.
+- Analysis populations are excluded from orphan detection due to frequent SAP-context-only definitions.
+- StudyElements with transition/chain links and SoA-sourced activities (`x-activitySource(s)=soa`) are treated as context-linked (non-orphan).
 
 ---
 
@@ -494,7 +503,7 @@ All 28 extractor gaps (3 CRITICAL, 10 HIGH, 9 MEDIUM, 6 LOW) identified in the U
 ### 6.4 Structural Debt (from `docs/FULL_PROJECT_REVIEW.md`)
 | ID | Issue | Severity | File(s) |
 |----|-------|----------|--------|
-| ~~W-CRIT-1~~ | ~~`combine_to_full_usdm()` god function~~ | ~~CRITICAL~~ | ✅ Extracted `_integrate_sites()`, `_integrate_sap()`, data-driven `_SAP_EXTENSION_TYPES` |
+| ~~W-CRIT-1~~ | ~~`combine_to_full_usdm()` god function~~ | ~~CRITICAL~~ | ✅ Phase-driven combine flow (`SAPPhase`/`SitesPhase`); legacy `integrate_sap()`/`integrate_sites()` entry points removed; shared `SAP_EXTENSION_TYPES` kept in `pipeline/integrations.py` |
 | ~~W-CRIT-2~~ | ~~No automated end-to-end integration test with golden PDF~~ | ~~CRITICAL~~ | ✅ `tests/test_e2e_pipeline.py` — 36 tests: artifacts, USDM structure, entity counts/quality, M11 DOCX, cross-entity integrity, schema+USDM validation |
 | ~~W-CRIT-3~~ | ~~SAP/sites bypass phase registry~~ | ~~HIGH~~ | ✅ `SAPPhase` + `SitesPhase` registered (14 phases total) |
 | ~~W-HIGH-1~~ | ~~Monolithic files~~ | ~~HIGH~~ | ✅ Fixed: `m11_renderer.py` split into `document_setup.py` + `text_formatting.py` (1199L→465L). `orchestrator.py` already decomposed (357L). |

@@ -347,6 +347,18 @@ class TestComposeDiscontinuation:
         text = _compose_discontinuation({})
         assert isinstance(text, str)
 
+    def test_discontinuation_requires_section_type_tag(self):
+        from rendering.composers import _compose_discontinuation
+        usdm = _make_usdm(narrative=[
+            {
+                "id": "nc_x",
+                "sectionNumber": "6.8",
+                "sectionTitle": "Treatment Discontinuation",
+                "text": "Participants may withdraw early for safety reasons.",
+            }
+        ])
+        assert _compose_discontinuation(usdm) == ""
+
 
 # ============================================================================
 # Safety Composer
@@ -366,6 +378,18 @@ class TestComposeSafety:
         from rendering.composers import _compose_safety
         text = _compose_safety({})
         assert isinstance(text, str)
+
+    def test_safety_requires_section_type_tag(self):
+        from rendering.composers import _compose_safety
+        usdm = _make_usdm(narrative=[
+            {
+                "id": "nc_y",
+                "sectionNumber": "6.9",
+                "sectionTitle": "Safety Monitoring",
+                "text": "All adverse events are collected and reported.",
+            }
+        ])
+        assert _compose_safety(usdm) == ""
 
 
 # ============================================================================

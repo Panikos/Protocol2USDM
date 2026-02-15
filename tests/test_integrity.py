@@ -206,6 +206,59 @@ class TestOrphanDetection:
         orphan_encs = [f for f in findings if f.entity_type == 'Encounter' and 'enc_orphan' in f.entity_ids]
         assert len(orphan_encs) == 1
 
+    def test_orphan_analysis_population_is_skipped(self):
+        usdm = _make_usdm(design_overrides={
+            'analysisPopulations': [
+                {'id': 'pop_1', 'name': 'Screened Set', 'instanceType': 'AnalysisPopulation'},
+            ],
+            'estimands': [],
+        })
+        findings = check_orphans(usdm)
+        pop_orphans = [f for f in findings if f.entity_type == 'AnalysisPopulation' and 'pop_1' in f.entity_ids]
+        assert len(pop_orphans) == 0
+
+    def test_titration_element_chain_not_reported_as_orphan(self):
+        usdm = _make_usdm(design_overrides={
+            'elements': [
+                {'id': 'elem_1', 'name': 'Dose Step 1', 'instanceType': 'StudyElement'},
+                {
+                    'id': 'elem_2',
+                    'name': 'Dose Step 2',
+                    'instanceType': 'StudyElement',
+                    'previousElementId': 'elem_1',
+                },
+            ],
+            'studyCells': [
+                {'id': 'cell_1', 'armId': 'arm_1', 'epochId': 'epoch_1', 'elementIds': ['elem_1']},
+            ],
+        })
+        findings = check_orphans(usdm)
+        element_orphans = [f for f in findings if f.entity_type == 'StudyElement' and 'elem_2' in f.entity_ids]
+        assert len(element_orphans) == 0
+
+    def test_soa_sourced_activity_not_reported_as_orphan(self):
+        usdm = _make_usdm(design_overrides={
+            'activities': [
+                {'id': 'act_1', 'name': 'Used Activity', 'instanceType': 'Activity'},
+                {
+                    'id': 'act_soa_derived',
+                    'name': 'Unscheduled SoA Activity',
+                    'instanceType': 'Activity',
+                    'extensionAttributes': [
+                        {
+                            'id': 'ext_1',
+                            'url': 'https://protocol2usdm.io/extensions/x-activitySources',
+                            'valueString': 'soa',
+                            'instanceType': 'ExtensionAttribute',
+                        },
+                    ],
+                },
+            ],
+        })
+        findings = check_orphans(usdm)
+        activity_orphans = [f for f in findings if f.entity_type == 'Activity' and 'act_soa_derived' in f.entity_ids]
+        assert len(activity_orphans) == 0
+
 
 # ---------------------------------------------------------------------------
 # Layer 3: Semantic Rules Tests
@@ -240,6 +293,20 @@ class TestSemanticRules:
         findings = check_semantic_rules(usdm)
         epoch_findings = [f for f in findings if f.rule == 'epoch_not_in_cell']
         assert len(epoch_findings) == 1
+
+    def test_terminal_epoch_exempt_from_cell_assignment(self):
+        usdm = _make_usdm(design_overrides={
+            'epochs': [
+                {'id': 'epoch_1', 'name': 'Screening'},
+                {'id': 'epoch_et', 'name': 'EOS or ET'},
+            ],
+            'studyCells': [
+                {'id': 'cell_1', 'armId': 'arm_1', 'epochId': 'epoch_1', 'elementIds': []},
+            ],
+        })
+        findings = check_semantic_rules(usdm)
+        epoch_findings = [f for f in findings if f.rule == 'epoch_not_in_cell']
+        assert len(epoch_findings) == 0
 
     def test_unnamed_activities(self):
         usdm = _make_usdm(design_overrides={
