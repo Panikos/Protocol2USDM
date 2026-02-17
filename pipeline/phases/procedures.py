@@ -114,10 +114,10 @@ class ProceduresPhase(BasePhase):
             if procedures_linked > 0:
                 logger.info(f"  Linked {procedures_linked} procedures to activities")
         
-        # Medical devices go to studyDesign (not studyVersion per USDM 4.0)
+        # Medical devices go to studyVersion per USDM v4.0 dataStructure.yml
         devices_list = data_dict.get('medicalDevices', []) or data_dict.get('devices', [])
         if devices_list:
-            study_design["medicalDevices"] = devices_list
+            study_version["medicalDevices"] = devices_list
             logger.info(f"  Added {len(devices_list)} medical devices")
         
         # Product-related data stored temporarily for later processing
