@@ -34,6 +34,13 @@ interface StudySite {
   country?: string | { code?: string; decode?: string; codeSystem?: string };
   extensionAttributes?: { url?: string; valueString?: string }[];
   instanceType?: string;
+  // Legacy direct properties (older pipeline outputs before extensionAttribute migration)
+  siteNumber?: string;
+  status?: string;
+  city?: string;
+  address?: string | { line?: string; city?: string; state?: string; postalCode?: string; country?: string };
+  organization?: { name?: string };
+  organizationId?: string;
 }
 
 interface Organization {
@@ -69,12 +76,18 @@ export function StudySitesView({ usdm }: StudySitesViewProps) {
   // Get organizations (per USDM v4.0, sites live inside Organization.managedSites[])
   const organizations = (version?.organizations as Organization[]) ?? [];
 
-  // Collect all StudySites from Organization.managedSites[]
+  // Collect all StudySites from Organization.managedSites[] (USDM v4.0 path)
+  // Fallback: studyDesign.studySites for older pipeline outputs
   const studySites: StudySite[] = [];
   for (const org of organizations) {
     if (org.managedSites) {
       studySites.push(...org.managedSites);
     }
+  }
+  if (studySites.length === 0) {
+    const legacySites = (studyDesign.studySites as StudySite[]) ??
+      (version?.studySites as StudySite[]) ?? [];
+    studySites.push(...legacySites);
   }
 
   // Helper: resolve country display string from Code object or string
@@ -84,9 +97,14 @@ export function StudySitesView({ usdm }: StudySitesViewProps) {
     return site.country.decode || site.country.code || 'Unknown';
   };
 
-  // Helper: get extension attribute value
+  // Helper: get extension attribute value (with legacy direct-property fallback)
   const getExtension = (site: StudySite, urlSuffix: string): string | undefined => {
-    return site.extensionAttributes?.find(e => e.url?.endsWith(urlSuffix))?.valueString;
+    const extVal = site.extensionAttributes?.find(e => e.url?.endsWith(urlSuffix))?.valueString;
+    if (extVal) return extVal;
+    // Fallback to direct properties for legacy outputs
+    if (urlSuffix === 'siteNumber') return site.siteNumber;
+    if (urlSuffix === 'status') return site.status;
+    return undefined;
   };
 
   // Get geographic scope from top-level
