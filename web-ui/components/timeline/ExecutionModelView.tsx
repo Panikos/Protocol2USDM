@@ -1441,16 +1441,18 @@ function ConditionsPanel({ conditions, studyDesign }: { conditions: FootnoteCond
       map[`act_${idx + 1}`] = act.name || act.label || `Activity ${idx + 1}`;
     });
     
-    // Activity Groups
-    const groups = studyDesign?.activityGroups ?? [];
+    // Activity Groups: parent Activities with childIds (USDM v4.0), fall back to legacy activityGroups
+    const parentGroups = activities.filter((a: Record<string, unknown>) => Array.isArray(a.childIds) && (a.childIds as string[]).length > 0);
+    const legacyGroups = studyDesign?.activityGroups ?? [];
+    const groups = parentGroups.length > 0 ? parentGroups : legacyGroups;
     for (const grp of groups) {
       if (grp.id) {
         map[grp.id] = grp.name || 'Unknown Group';
       }
     }
     // Also handle grp_N format
-    groups.forEach((grp, idx) => {
-      map[`grp_${idx + 1}`] = grp.name || `Group ${idx + 1}`;
+    groups.forEach((grp: Record<string, unknown>, idx: number) => {
+      map[`grp_${idx + 1}`] = (grp.name as string) || `Group ${idx + 1}`;
     });
     
     // Encounters

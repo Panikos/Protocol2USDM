@@ -92,6 +92,8 @@ interface Activity {
   id: string;
   name?: string;
   label?: string;
+  description?: string;
+  childIds?: string[];
 }
 
 export function StudyDesignView({ usdm }: StudyDesignViewProps) {
@@ -156,10 +158,15 @@ export function StudyDesignView({ usdm }: StudyDesignViewProps) {
   const crossoverExt = extensionAttributes.find(e => e.url === 'x-executionModel-crossoverDesign');
   const crossoverDesign = crossoverExt?.valueJson as CrossoverDesign | undefined;
 
-  // Activity groups
-  const activityGroups = (design.activityGroups as ActivityGroup[]) ?? [];
+  // Activity groups: derive from parent Activities with childIds (USDM v4.0)
+  // Fall back to legacy activityGroups for backward compatibility
   const activities = (design.activities as Activity[]) ?? [];
   const activityMap = new Map(activities.map(a => [a.id, a]));
+  const activityGroups: ActivityGroup[] = (design.activityGroups as ActivityGroup[]) ?? [];
+  const parentActivityGroups = activities
+    .filter(a => a.childIds && a.childIds.length > 0)
+    .map(a => ({ id: a.id, name: a.name || a.label || '', label: a.label, description: a.description, childIds: a.childIds } as ActivityGroup));
+  const effectiveActivityGroups = parentActivityGroups.length > 0 ? parentActivityGroups : activityGroups;
 
   // Transition rules (from top-level)
   const transitionRules = (usdm.transitionRules as TransitionRule[]) ?? [];
@@ -511,18 +518,18 @@ export function StudyDesignView({ usdm }: StudyDesignViewProps) {
       )}
 
       {/* Activity Groups */}
-      {activityGroups.length > 0 && (
+      {effectiveActivityGroups.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Layers className="h-5 w-5" />
               Activity Groups
-              <Badge variant="secondary">{activityGroups.length}</Badge>
+              <Badge variant="secondary">{effectiveActivityGroups.length}</Badge>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {activityGroups.map((group, i) => {
+              {effectiveActivityGroups.map((group, i) => {
                 // Use childIds or activityIds to look up activities
                 const idList = group.childIds ?? group.activityIds ?? [];
                 const groupActivities = idList

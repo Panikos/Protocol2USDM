@@ -451,18 +451,18 @@ export class SoAProcessor {
   }
 
   private addActivityToGroup(activityId: string, groupId: string): void {
-    const studyDesign = this.getStudyDesign();
-    const groups = (studyDesign?.activityGroups as Array<{ id: string; activityIds?: string[] }>) ?? [];
-    const groupIdx = groups.findIndex(g => g.id === groupId);
+    // Activity groups are now parent Activity entities with childIds (USDM v4.0)
+    const activities = this.getActivities() as Array<{ id: string; childIds?: string[] }>;
+    const parentActivity = activities.find(a => a.id === groupId && a.childIds);
     
-    if (groupIdx === -1) {
-      this.warnings.push(`Activity group ${groupId} not found`);
+    if (!parentActivity) {
+      this.warnings.push(`Parent activity group ${groupId} not found`);
       return;
     }
 
     this.patches.push({
       op: 'add',
-      path: `/study/versions/0/studyDesigns/0/activityGroups/@id:${groupId}/activityIds/-`,
+      path: `/study/versions/0/studyDesigns/0/activities/@id:${groupId}/childIds/-`,
       value: activityId,
     });
   }
