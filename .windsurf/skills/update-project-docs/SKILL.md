@@ -21,8 +21,9 @@ This skill provides comprehensive knowledge for keeping all Protocol2USDM docume
 1. Run `git log --oneline -10` to see recent commits
 2. Run `git diff --stat HEAD~3` to see what files changed
 3. Run `git status --short` for uncommitted changes
-4. Run `python -m pytest tests/ --co -q` to get live test count
-5. Read the first 10-15 lines of each doc file to check current version strings
+4. Read `core/constants.py` — `VERSION` is the **single source of truth** for all version strings
+5. Run `python -m pytest tests/ --co -q` to get live test count
+6. Read the first 10-15 lines of each doc file to check current version strings
 
 ### Phase 2: Identify Staleness
 
@@ -47,14 +48,15 @@ If nothing significant changed since the last doc update, report "Docs are up to
 
 Follow the update rules in `update-rules.md` for each document. Key principles:
 
-1. **Never fabricate test counts or coverage** — always use live numbers from pytest
-2. **Test commands must reference files that actually exist** in `tests/` or `testing/`
-3. **Version strings must be consistent** across all docs
-4. **Dates use ISO-8601** format (YYYY-MM-DD)
-5. **CHANGELOG entries grouped by feature**, not by file
-6. **Project Structure in README must match reality** — verify with find_by_name if unsure
-7. **Previous releases in README go into `<details>` blocks**
-8. **Enhancement IDs** (E7, P12, etc.) should be referenced in CHANGELOG and FULL_PROJECT_REVIEW
+1. **`core/constants.py` → `VERSION` is the single source of truth** — all doc version strings derive from it. Format: `MAJOR.MINOR.PATCH` (e.g. `7.17.0`). Docs use shortened `MAJOR.MINOR` (e.g. `v7.17`). CHANGELOG uses full semver `[7.17.0]`. When bumping, update `constants.py` FIRST, then propagate.
+2. **Never fabricate test counts or coverage** — always use live numbers from pytest
+3. **Test commands must reference files that actually exist** in `tests/` or `testing/`
+4. **Version strings must be consistent** across all docs and match `constants.py`
+5. **Dates use ISO-8601** format (YYYY-MM-DD)
+6. **CHANGELOG entries grouped by feature**, not by file
+7. **Project Structure in README must match reality** — verify with find_by_name if unsure
+8. **Previous releases in README go into `<details>` blocks**
+9. **Enhancement IDs** (E7, P12, etc.) should be referenced in CHANGELOG and FULL_PROJECT_REVIEW
 
 ### Phase 4: Verify
 
@@ -77,8 +79,20 @@ for doc in docs:
     if versions and len(set(versions)) > 1:
         print(f'  WARNING: {doc} has inconsistent versions: {set(versions)}')
         errors += 1
+# Cross-check against constants.py (single source of truth)
+from core.constants import VERSION
+canonical = '.'.join(VERSION.split('.')[:2])
+for doc in docs:
+    if not os.path.exists(doc): continue
+    with open(doc, 'r', encoding='utf-8') as f:
+        content = f.read()
+    doc_versions = re.findall(r'\*\*(?:Version|v)[:\s]*\*?\*?\s*(\d+\.\d+)', content)
+    for v in set(doc_versions):
+        if v != canonical:
+            print(f'  WARNING: {doc} has version {v} but constants.py says {canonical}')
+            errors += 1
 if errors == 0:
-    print('All references and versions OK.')
+    print(f'All references and versions OK (canonical: v{canonical}).')
 else:
     print(f'{errors} issue(s) found — fix before committing.')
 ```

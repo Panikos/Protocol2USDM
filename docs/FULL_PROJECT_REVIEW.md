@@ -1,6 +1,6 @@
 # Protocol2USDM — Full Project Review
 
-**Date**: February 2026 (updated 2026-02-17 with v7.16 changes)
+**Date**: February 2026 (updated 2026-02-17 with v7.17 changes)
 **Scope**: Complete codebase review covering all modules except web-ui (covered separately in `docs/WEB_UI_REVIEW.md`)
 **Methodology**: Deep-read of every module's source code, architecture analysis, cross-module dependency tracing
 **External review**: Two independent reviewers validated findings. New items marked with ⚠️ EXT

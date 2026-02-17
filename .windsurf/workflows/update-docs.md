@@ -27,9 +27,16 @@ cd c:\Users\panik\Documents\GitHub\Protcol2USDMv3 && git diff --stat HEAD~3
 cd c:\Users\panik\Documents\GitHub\Protcol2USDMv3 && git status --short
 ```
 
+// turbo
+Read the canonical version (single source of truth):
+```bash
+python -c "from core.constants import VERSION; print(f'VERSION={VERSION}')"
+```
+
 Then read the current state of all doc files:
 
 Read these files (batch):
+- `core/constants.py` (VERSION is the single source of truth for all docs)
 - `README.md` (first 10 lines for version)
 - `USER_GUIDE.md` (first 10 lines for version)
 - `QUICK_REFERENCE.md` (first 10 lines for version)
@@ -63,9 +70,13 @@ If nothing significant changed since the last doc update, report "Docs are up to
 
 ## Step 4: Update each stale doc
 
+**IMPORTANT: The version in `core/constants.py` → `VERSION` is the single source of truth.** All doc version references (README, USER_GUIDE, QUICK_REFERENCE, CHANGELOG, FULL_PROJECT_REVIEW) must match this value. When bumping the version, update `constants.py` FIRST, then propagate to all docs.
+
+The version format is `MAJOR.MINOR.PATCH` (e.g. `7.17.0`). Docs use shortened `MAJOR.MINOR` (e.g. `v7.17`). The CHANGELOG uses the full semver `[7.17.0]`.
+
 ### CHANGELOG.md
 - Add new version entry at top (after `---` separator) if not already present
-- Format: `## [X.Y.Z] – YYYY-MM-DD` with ISO-8601 date
+- Format: `## [X.Y.Z] – YYYY-MM-DD` with ISO-8601 date — version MUST match `constants.py`
 - Group by feature area, include tables for new files
 - Reference enhancement IDs (E7, P12, etc.) when applicable
 
@@ -122,8 +133,20 @@ for doc in docs:
     if versions and len(set(versions)) > 1:
         print(f'  WARNING: {doc} has inconsistent versions: {set(versions)}')
         errors += 1
+# Cross-check docs against constants.py
+from core.constants import VERSION
+canonical = '.'.join(VERSION.split('.')[:2])  # e.g. '7.17'
+for doc in docs:
+    if not os.path.exists(doc): continue
+    with open(doc, 'r', encoding='utf-8') as f:
+        content = f.read()
+    doc_versions = re.findall(r'\*\*(?:Version|v)[:\s]*\*?\*?\s*(\d+\.\d+)', content)
+    for v in set(doc_versions):
+        if v != canonical:
+            print(f'  WARNING: {doc} has version {v} but constants.py says {canonical}')
+            errors += 1
 if errors == 0:
-    print('All references and versions OK.')
+    print(f'All references and versions OK (canonical: v{canonical}).')
 else:
     print(f'{errors} issue(s) found — fix before committing.')
 "
@@ -153,3 +176,4 @@ Ask the user if they want to commit the doc updates now or include them in a lar
 8. **Previous releases in README go into `<details>` blocks** to keep What's New focused
 9. **Enhancement IDs** (E7, P12, etc.) should be referenced in CHANGELOG and FULL_PROJECT_REVIEW
 10. **Always run the reference check** (Step 5) before committing
+11. **`core/constants.py` → `VERSION` is the single source of truth** — all doc version strings derive from it. Bump it FIRST, then propagate. Never hardcode versions in docs without checking constants.py.
