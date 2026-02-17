@@ -3,7 +3,7 @@
 **Version:** 7.17  
 **Last Updated:** 2026-02-17
 
-> **📢 What's New in v7.17:** **Reviewer fixes P3–P7** — StudyCell for all epochs (P6), sites→Organization.managedSites (P3), Study.documentedBy wiring (P5), cohorts→population (P4), footnotes→Condition entities (P7). **1118 tests** passing.
+> **📢 What's New in v7.17:** **Reviewer v9 Org/Site alignment** — `studySites` removed from studyDesign (not a USDM path), sites only in `Organization.managedSites[]`, required org fields backfilled, StudySite sanitized, ISO country codes, site-org mapping fix. Plus P3–P7 structural compliance functions. **1157 tests** collected, 1118 passing.
 
 > **v7.16:** USDM v4.0 endpoint nesting, ExtensionAttribute alignment, core_compliance architectural audit.
 > **v7.15:** Review fix sprint (B1–B9), keyword-guided enrollment extraction (G1).

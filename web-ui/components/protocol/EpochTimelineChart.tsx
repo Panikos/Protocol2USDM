@@ -28,7 +28,7 @@ interface Encounter {
   label?: string;
   description?: string;
   epochId?: string;
-  scheduledAtTimingId?: string;
+  scheduledAtId?: string;
   type?: { decode?: string; code?: string };
   scheduledDay?: number;
   [key: string]: unknown;

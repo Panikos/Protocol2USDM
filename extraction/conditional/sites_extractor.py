@@ -16,6 +16,66 @@ from typing import List, Optional, Dict, Any
 
 logger = logging.getLogger(__name__)
 
+# ISO 3166-1 alpha-3 codes for countries commonly found in clinical trial sites
+_ISO_COUNTRY_CODES: Dict[str, str] = {
+    "united states": "USA", "us": "USA", "usa": "USA",
+    "united kingdom": "GBR", "uk": "GBR", "great britain": "GBR", "england": "GBR",
+    "germany": "DEU", "de": "DEU",
+    "france": "FRA", "fr": "FRA",
+    "spain": "ESP", "es": "ESP",
+    "italy": "ITA", "it": "ITA",
+    "switzerland": "CHE", "ch": "CHE",
+    "japan": "JPN", "jp": "JPN",
+    "china": "CHN", "cn": "CHN",
+    "canada": "CAN", "ca": "CAN",
+    "australia": "AUS", "au": "AUS",
+    "brazil": "BRA", "br": "BRA",
+    "india": "IND", "in": "IND",
+    "south korea": "KOR", "korea": "KOR", "kr": "KOR",
+    "netherlands": "NLD", "nl": "NLD",
+    "belgium": "BEL", "be": "BEL",
+    "sweden": "SWE", "se": "SWE",
+    "poland": "POL", "pl": "POL",
+    "austria": "AUT", "at": "AUT",
+    "denmark": "DNK", "dk": "DNK",
+    "norway": "NOR", "no": "NOR",
+    "finland": "FIN", "fi": "FIN",
+    "ireland": "IRL", "ie": "IRL",
+    "portugal": "PRT", "pt": "PRT",
+    "czech republic": "CZE", "czechia": "CZE", "cz": "CZE",
+    "hungary": "HUN", "hu": "HUN",
+    "romania": "ROU", "ro": "ROU",
+    "greece": "GRC", "gr": "GRC",
+    "turkey": "TUR", "tr": "TUR",
+    "israel": "ISR", "il": "ISR",
+    "south africa": "ZAF", "za": "ZAF",
+    "mexico": "MEX", "mx": "MEX",
+    "argentina": "ARG", "ar": "ARG",
+    "colombia": "COL", "co": "COL",
+    "chile": "CHL", "cl": "CHL",
+    "new zealand": "NZL", "nz": "NZL",
+    "taiwan": "TWN", "tw": "TWN",
+    "singapore": "SGP", "sg": "SGP",
+    "malaysia": "MYS", "my": "MYS",
+    "thailand": "THA", "th": "THA",
+    "russia": "RUS", "ru": "RUS",
+    "ukraine": "UKR", "ua": "UKR",
+    "bulgaria": "BGR", "bg": "BGR",
+    "croatia": "HRV", "hr": "HRV",
+    "slovakia": "SVK", "sk": "SVK",
+    "serbia": "SRB", "rs": "SRB",
+    "philippines": "PHL", "ph": "PHL",
+    "egypt": "EGY", "eg": "EGY",
+    "peru": "PER", "pe": "PER",
+}
+
+
+def _resolve_iso_code(country_name: str) -> str:
+    """Resolve a country name to ISO 3166-1 alpha-3 code."""
+    if not country_name:
+        return ""
+    return _ISO_COUNTRY_CODES.get(country_name.strip().lower(), country_name)
+
 
 @dataclass
 class PersonName:
@@ -150,7 +210,14 @@ class StudySite:
         if self.address:
             result["address"] = self.address
         if self.country:
-            result["country"] = self.country
+            result["country"] = {
+                "id": f"{self.id}_country",
+                "code": _resolve_iso_code(self.country),
+                "codeSystem": "ISO 3166-1 alpha-3",
+                "codeSystemVersion": "2024",
+                "decode": self.country,
+                "instanceType": "Code",
+            }
         return result
 
 

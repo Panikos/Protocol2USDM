@@ -238,7 +238,10 @@ def _validate_synopsis(
         pop = pop[0] if pop else {}
 
     arms = design.get('arms', design.get('studyArms', []))
-    sites = design.get('studySites', [])
+    # Per USDM v4.0, StudySites live inside Organization.managedSites[]
+    sites = []
+    for org in version.get('organizations', []):
+        sites.extend(org.get('managedSites', []))
 
     # Check participants: first from USDM population, then narrative fallback
     has_participants = bool(

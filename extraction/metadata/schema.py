@@ -181,8 +181,9 @@ class Organization:
                 "district": self.address_state or "",
                 "country": {
                     "id": generate_uuid(),
-                    "code": "",
-                    "codeSystem": "http://www.iso.org",
+                    "code": self.address_country or "",
+                    "codeSystem": "ISO 3166-1 alpha-3",
+                    "codeSystemVersion": "2024",
                     "decode": self.address_country or "",
                     "instanceType": "Code",
                 },

@@ -1329,9 +1329,9 @@ class ExecutionModelPromoter:
         for timing in main_timeline.get('timings', []):
             timing_by_id[timing.get('id')] = timing
         
-        # Also check encounter.scheduledAtTimingId references
+        # Also check encounter.scheduledAtId references
         for enc in encounters:
-            timing_id = enc.get('scheduledAtTimingId')
+            timing_id = enc.get('scheduledAtId')
             if timing_id and timing_id in timing_by_id:
                 timing_by_encounter[enc.get('id')] = timing_by_id[timing_id]
         
@@ -1382,8 +1382,8 @@ class ExecutionModelPromoter:
             timing = timing_by_encounter.get(enc_id)
             
             if not timing:
-                # Check if encounter has scheduledAtTimingId
-                timing_id = encounter.get('scheduledAtTimingId')
+                # Check if encounter has scheduledAtId
+                timing_id = encounter.get('scheduledAtId')
                 if timing_id:
                     timing = timing_by_id.get(timing_id)
             
@@ -1407,7 +1407,7 @@ class ExecutionModelPromoter:
                 timing_by_encounter[enc_id] = timing
                 
                 # Link encounter to timing
-                encounter['scheduledAtTimingId'] = timing_id
+                encounter['scheduledAtId'] = timing_id
             
             # Set window bounds as ISO 8601 durations
             # windowLower is negative for days before (e.g., "-P2D")

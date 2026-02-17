@@ -29,7 +29,7 @@ interface ScheduledActivityInstance {
   epochId?: string;
   name?: string;
   scheduledAt?: string;
-  scheduledAtTimingId?: string;
+  scheduledAtId?: string;
   instanceType?: string;
 }
 
@@ -329,10 +329,10 @@ export function ScheduleTimelineView({ usdm }: ScheduleTimelineViewProps) {
                               .join(', ');
                             const encounter = encounterMap.get(instance.encounterId || '');
                             // Look up timing by ID for human-readable description
-                            const timing = timings.find(t => t.id === instance.scheduledAtTimingId);
+                            const timing = timings.find(t => t.id === instance.scheduledAtId);
                             const timingDescription = timing 
-                              ? (timing.name || timing.label || timing.description || instance.scheduledAtTimingId)
-                              : (instance.scheduledAt || instance.scheduledAtTimingId || '-');
+                              ? (timing.name || timing.label || timing.description || instance.scheduledAtId)
+                              : (instance.scheduledAt || instance.scheduledAtId || '-');
                             return (
                               <tr key={instance.id || ii} className="hover:bg-muted/50">
                                 <td className="p-2 border">

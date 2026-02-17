@@ -167,11 +167,14 @@ class TestP3NestSites:
         ]
 
         result = nest_sites_in_organizations(combined)
-        site_org = next(
-            o for o in result["study"]["versions"][0]["organizations"]
-            if o["id"] == "org_site"
-        )
-        assert len(site_org.get("managedSites", [])) == 1
+        orgs = result["study"]["versions"][0]["organizations"]
+        # Unmatched site should get its own new Organization (not dumped into existing)
+        new_org = next(o for o in orgs if o["id"] == "org_site_1")
+        assert len(new_org.get("managedSites", [])) == 1
+        assert new_org["name"] == "Totally Different Name"
+        # Original site-type org should be unchanged
+        site_org = next(o for o in orgs if o["id"] == "org_site")
+        assert len(site_org.get("managedSites", [])) == 0
 
     def test_no_duplicate_nesting(self):
         combined = _base_combined()
@@ -203,8 +206,9 @@ class TestP5WireDocumentLayer:
         ]
 
         result = wire_document_layer(combined)
-        doc = result["study"].get("documentedBy")
-        assert doc is not None
+        doc_list = result["study"].get("documentedBy")
+        assert isinstance(doc_list, list) and len(doc_list) == 1
+        doc = doc_list[0]
         assert doc["instanceType"] == "StudyDefinitionDocument"
         versions = doc.get("versions", [])
         assert len(versions) == 1
@@ -229,8 +233,9 @@ class TestP5WireDocumentLayer:
         }
 
         result = wire_document_layer(combined)
-        doc = result["study"]["documentedBy"]
-        assert doc["id"] == "sdd_existing"
+        doc_list = result["study"]["documentedBy"]
+        assert isinstance(doc_list, list) and len(doc_list) == 1
+        assert doc_list[0]["id"] == "sdd_existing"
         assert "studyDefinitionDocument" not in result
 
 

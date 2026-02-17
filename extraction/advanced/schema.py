@@ -168,11 +168,13 @@ class StudySite:
     USDM StudySite entity.
     
     Represents a clinical study site.
+    Per USDM v4.0: country is a Code object (ISO 3166-1), not a reference.
     """
     id: str
     name: str
     site_number: Optional[str] = None
-    country_id: Optional[str] = None
+    country_code: Optional[str] = None
+    country_name: Optional[str] = None
     city: Optional[str] = None
     instance_type: str = "StudySite"
     
@@ -184,8 +186,15 @@ class StudySite:
         }
         if self.site_number:
             result["siteNumber"] = self.site_number
-        if self.country_id:
-            result["countryId"] = self.country_id
+        if self.country_code or self.country_name:
+            result["country"] = {
+                "id": f"{self.id}_country",
+                "code": self.country_code or self.country_name or "",
+                "codeSystem": "ISO 3166-1 alpha-3",
+                "codeSystemVersion": "2024",
+                "decode": self.country_name or self.country_code or "",
+                "instanceType": "Code",
+            }
         if self.city:
             result["city"] = self.city
         return result

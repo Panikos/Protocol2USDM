@@ -263,7 +263,7 @@ export interface USDMScheduledInstance {
   }[];
   timelineExitId?: string;
   timelineId?: string;
-  scheduledAtTimingId?: string;
+  scheduledAtId?: string;
   extensionAttributes?: ExtensionAttribute[];
   [key: string]: unknown;
 }

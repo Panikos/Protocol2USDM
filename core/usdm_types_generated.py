@@ -646,8 +646,8 @@ class Encounter(USDMEntity):
     description: Optional[str] = None
     label: Optional[str] = None
     type: Optional[Code] = None
-    epochId: Optional[str] = None
-    scheduledAtTimingId: Optional[str] = None
+    epochId: Optional[str] = None  # Pipeline-internal; not in USDM schema (stripped by CORE compliance)
+    scheduledAtId: Optional[str] = None
     previousId: Optional[str] = None
     nextId: Optional[str] = None
     transitionStartRule: Optional['TransitionRule'] = None
@@ -672,8 +672,8 @@ class Encounter(USDMEntity):
         
         if self.epochId:
             result["epochId"] = self.epochId
-        if self.scheduledAtTimingId:
-            result["scheduledAtTimingId"] = self.scheduledAtTimingId
+        if self.scheduledAtId:
+            result["scheduledAtId"] = self.scheduledAtId
         if self.previousId:
             result["previousId"] = self.previousId
         if self.nextId:
@@ -1655,7 +1655,7 @@ def normalize_usdm_data(data: Dict[str, Any]) -> Dict[str, Any]:
             label=obj.get("label"),
             type=Code.from_dict(obj.get("type")) if obj.get("type") else None,
             epochId=obj.get("epochId"),
-            scheduledAtTimingId=obj.get("scheduledAtTimingId"),
+            scheduledAtId=obj.get("scheduledAtId"),
             previousId=obj.get("previousId"),
             nextId=obj.get("nextId"),
         )

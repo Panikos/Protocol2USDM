@@ -51,6 +51,33 @@ Restructure the web UI navigation from 4 groups (22 tabs) to 8 groups + 1 pinned
 4. ~~**P4: Cohort Nesting**~~ — ✅ `nest_cohorts_in_population()` moves studyCohorts into population.cohorts
 5. ~~**P7: Footnote Conditions**~~ — ✅ `promote_footnotes_to_conditions()` promotes conditional SoA footnotes to Condition entities
 
+### Reviewer v9 Fixes (Complete)
+
+**Status:** Complete  
+**Priority:** High  
+**Added:** 2026-02-17  
+**Completed:** 2026-02-17
+
+1. ~~**Site-Org Mapping Bug**~~ — ✅ Create new Organization for each unmatched site (was dumping Mass General/Yale/UMich under Cleveland Clinic)
+2. ~~**StudySite.country ISO Codes**~~ — ✅ ISO 3166-1 alpha-3 lookup (USA, GBR, DEU, etc.) instead of full country names
+3. ~~**documentedBy Wiring**~~ — ✅ Backfill SDD metadata (templateName, type, language), wire contentItemId, build childIds hierarchy, add previousId/nextId chain
+4. ~~**CORE Compliance Allowed Keys**~~ — ✅ Added NarrativeContent, SDD, SDDVersion, Organization, StudySite to allowed keys
+5. ~~**Condition contextIds/appliesToIds**~~ — ✅ Improved from 4/21 to ~12-15/21 wired footnote conditions (activity/encounter text matching, SAI linking)
+6. ~~**StudyIdentifier.type**~~ — ✅ False finding: field does not exist in USDM v4.0 schema (no action needed)
+7. ~~**Org/Site Schema Alignment**~~ — ✅ `studyDesigns[].studySites` removed (not a USDM path); sites only in `Organization.managedSites[]`
+8. ~~**Organization Required Fields**~~ — ✅ `_backfill_organization()` adds `identifier` + `identifierScheme` on all orgs
+9. ~~**StudySite Sanitization**~~ — ✅ Non-schema fields (siteNumber, status, address) moved to extensionAttributes or stripped
+10. ~~**Field Renames**~~ — ✅ `scheduledAtTimingId→scheduledAtId`, `environmentalSetting→environmentalSettings`
+11. ~~**Org Type C-code**~~ — ✅ Fixed from C188875 to EVS-verified C21541 (Healthcare Facility)
+
+### M11 DOCX Word Count (Backlog)
+
+**Status:** Backlog  
+**Priority:** Medium  
+**Added:** 2026-02-17
+
+Wilson's protocol produces 2,861 words vs 5,000 minimum threshold in `test_m11_regression`. Root cause: narrative extraction coverage — investigate section discovery for short protocols.
+
 ### USDM v4.0 Compliance Sprint (Complete)
 
 **Status:** Complete  

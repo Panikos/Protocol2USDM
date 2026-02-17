@@ -71,7 +71,7 @@ def _build_soa_data(usdm: Dict) -> Optional[Dict]:
             encounters_by_epoch.setdefault(epoch_id, []).append({
                 'id': enc.get('id', ''),
                 'name': enc.get('name', ''),
-                'timing': enc.get('scheduledAtTimingId', ''),
+                'timing': enc.get('scheduledAtId', ''),
             })
 
     # Activities

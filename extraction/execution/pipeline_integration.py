@@ -1894,8 +1894,8 @@ def propagate_windows_to_encounters(design: Dict[str, Any]) -> int:
         enc_name = encounter.get('name', '')
         enc_name_lower = enc_name.lower()
         
-        # Try to find timing by scheduledAtTimingId
-        timing_id = encounter.get('scheduledAtTimingId')
+        # Try to find timing by scheduledAtId
+        timing_id = encounter.get('scheduledAtId')
         timing = timing_map.get(timing_id) if timing_id else None
         
         # If no direct link, try name-based matching with visit windows

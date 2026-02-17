@@ -314,19 +314,22 @@ def _build_advanced_data(raw: Dict[str, Any]) -> AdvancedData:
         if not isinstance(site, dict):
             continue
         
-        # Find country ID
-        country_id = None
+        # Find country name/code for Code object
         site_country = site.get('country', '')
+        country_code = None
+        country_name = site_country
         for c in countries:
             if c.name.lower() == site_country.lower():
-                country_id = c.id
+                country_code = c.code
+                country_name = c.name
                 break
         
         sites.append(StudySite(
             id=f"site_{i+1}",
             name=site.get('name', f'Site {i+1}'),
             site_number=site.get('number'),
-            country_id=country_id,
+            country_code=country_code,
+            country_name=country_name if country_name else None,
             city=site.get('city'),
         ))
     

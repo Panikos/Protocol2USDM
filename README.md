@@ -74,8 +74,16 @@ Five post-processing functions addressing independent reviewer findings:
 - **P4** — `nest_cohorts_in_population()`: StudyCohort → `population.cohorts[]`
 - **P7** — `promote_footnotes_to_conditions()`: Conditional SoA footnotes → `Condition` entities
 
+### 🏥 Reviewer v9: Organization & StudySite Schema Alignment
+- **Org/Site alignment** — `studyDesigns[].studySites` removed (not a USDM path); sites only in `Organization.managedSites[]`
+- **Organization required fields** — `identifier`, `identifierScheme` backfilled on all orgs
+- **StudySite sanitization** — non-schema fields → extensionAttributes; ISO 3166-1 alpha-3 country codes
+- **Site-Org mapping fix** — new Organization per unmatched site (was incorrectly nesting sites)
+- **documentedBy wiring** — SDD metadata, contentItemId, childIds hierarchy, previousId/nextId chain
+- **Field renames** — `scheduledAtTimingId→scheduledAtId`, `environmentalSetting→environmentalSettings`
+
 ### 🧪 Testing
-- **1154 tests** collected, 1118 passed, 36 skipped (e2e), 0 failures
+- **1157 tests** collected, 1118 passed, 0 failures
 
 <details>
 <summary><b>v7.16 — USDM v4.0 Endpoint Nesting, ExtensionAttribute Alignment, Architectural Audit</b></summary>

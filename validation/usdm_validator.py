@@ -455,14 +455,16 @@ def validate_cross_references(data: Dict[str, Any]) -> List[ValidationIssue]:
                     severity=ValidationSeverity.WARNING
                 ))
         
-        # 5. Check for encounters without epochs
+        # 5. Check for encounters without epochs (informational only —
+        #    epochId is not a USDM schema attribute on Encounter; the
+        #    encounter→epoch relationship goes through ScheduledActivityInstance)
         for enc in design.get('encounters', []):
             if not enc.get('epochId'):
                 issues.append(ValidationIssue(
                     location=f"encounters -> {enc.get('id', '?')}",
-                    message="Encounter has no epochId (cannot be placed in timeline)",
+                    message="Encounter has no epochId extension (epoch link is via SAI instances)",
                     error_type="missing_relationship",
-                    severity=ValidationSeverity.WARNING
+                    severity=ValidationSeverity.INFO
                 ))
         
         # 6. Check StudyRole references (from sites)

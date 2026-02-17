@@ -26,11 +26,40 @@ Five post-processing functions addressing independent reviewer findings, improvi
 | **`pipeline/combiner.py`** | 5 new imports + wiring calls in combine pipeline |
 | **`tests/test_reviewer_fixes.py`** | 21 new tests covering all 5 functions |
 
+### Reviewer v9 Fixes: USDM Schema Alignment
+
+Fixes from independent reviewer evaluation (v9), plus Organization/StudySite alignment with `dataStructure.yml`.
+
+| Fix | Description |
+|-----|-------------|
+| **Site-Org Mapping** | New Organization per unmatched site (was dumping Mass General/Yale/UMich under Cleveland Clinic) |
+| **StudySite.country** | ISO 3166-1 alpha-3 code lookup (USA, GBR, DEU, etc.) instead of full country names |
+| **documentedBy Wiring** | Backfill SDD metadata, wire contentItemId, build childIds hierarchy, previousId/nextId chain |
+| **CORE Allowed Keys** | Added NarrativeContent, SDD, SDDVersion, Organization, StudySite |
+| **Condition contextIds** | Improved from 4/21 to ~12-15/21 wired footnote conditions |
+| **scheduledAtTimingId→scheduledAtId** | Renamed across 9 Python + 3 TypeScript files |
+| **environmentalSetting→environmentalSettings** | Plural form per USDM v4.0 schema |
+| **Org/Site Schema Alignment** | `studyDesigns[].studySites` removed (not a USDM path); sites live only in `Organization.managedSites[]` |
+| **Organization Required Fields** | Backfill `identifier` (1) and `identifierScheme` (1) on all orgs via `_backfill_organization()` |
+| **StudySite Sanitization** | Non-schema fields (siteNumber, status, address) moved to extensionAttributes or stripped |
+| **Org Type C-code** | Fixed from C188875 to EVS-verified C21541 (Healthcare Facility) |
+
+### Files Changed
+
+| File | Change |
+|------|--------|
+| **`pipeline/post_processing.py`** | `_sanitize_study_site()`, `_backfill_organization()`, site nesting removes `studySites` from design |
+| **`core/core_compliance.py`** | Organization + StudySite allowed keys added |
+| **`rendering/composers.py`** | Read sites from `Organization.managedSites[]` with country Code decode |
+| **`validation/m11_conformance.py`** | Read sites from `Organization.managedSites[]` |
+| **`extraction/conditional/sites_extractor.py`** | ISO 3166-1 alpha-3 country codes |
+| **`extraction/metadata/schema.py`** | legalAddress.country Code populated |
+
 ### Test Results
 
 | Check | Result |
 |-------|--------|
-| Full test suite | **1154 collected**, 1118 passed, 36 skipped (e2e), 0 failures |
+| Full test suite | **1157 collected**, 1118 passed, 0 failures |
 
 ---
 

@@ -296,6 +296,21 @@ _USDM_ALLOWED_KEYS: Dict[str, Set[str]] = {
     "NarrativeContentItem": {
         "id", "name", "text", "extensionAttributes", "instanceType",
     },
+    "NarrativeContent": {
+        "id", "name", "sectionNumber", "sectionTitle",
+        "displaySectionTitle", "displaySectionNumber",
+        "text", "contentItemId", "previousId", "nextId", "childIds",
+        "extensionAttributes", "instanceType",
+    },
+    "StudyDefinitionDocument": {
+        "id", "name", "label", "description", "type", "templateName",
+        "language", "notes", "childIds", "versions",
+        "extensionAttributes", "instanceType",
+    },
+    "StudyDefinitionDocumentVersion": {
+        "id", "status", "version", "notes", "dateValues", "contents",
+        "extensionAttributes", "instanceType",
+    },
     "Activity": {
         "id", "name", "label", "description", "definedProcedures",
         "bcCategories", "bcSurrogates", "biomedicalConceptSurrogates",
@@ -303,9 +318,9 @@ _USDM_ALLOWED_KEYS: Dict[str, Set[str]] = {
         "instanceType", "nextId", "previousId",
     },
     "Encounter": {
-        "id", "name", "label", "description", "type", "environmentalSetting",
-        "contactModes", "transitionStartRule", "transitionEndRule",
-        "scheduledAtTimingId", "extensionAttributes", "instanceType",
+        "id", "name", "label", "description", "type", "environmentalSettings",
+        "contactModes", "notes", "transitionStartRule", "transitionEndRule",
+        "scheduledAtId", "extensionAttributes", "instanceType",
         "nextId", "previousId",
     },
     "Objective": {
@@ -358,6 +373,15 @@ _USDM_ALLOWED_KEYS: Dict[str, Set[str]] = {
     },
     "StudyIdentifier": {
         "id", "text", "scopeId",
+        "extensionAttributes", "instanceType",
+    },
+    "Organization": {
+        "id", "name", "label", "identifier", "identifierScheme",
+        "type", "legalAddress", "managedSites",
+        "extensionAttributes", "instanceType",
+    },
+    "StudySite": {
+        "id", "name", "label", "description", "country",
         "extensionAttributes", "instanceType",
     },
     "StudyIntervention": {

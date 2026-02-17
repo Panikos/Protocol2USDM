@@ -1736,12 +1736,83 @@ def ensure_eos_study_cell(combined: dict) -> dict:
     return combined
 
 
+def _sanitize_study_site(site: dict) -> dict:
+    """Strip non-schema fields from StudySite, moving useful ones to extensions.
+
+    Per USDM v4.0 schema, StudySite only has: id, name, label, description,
+    country (Code), extensionAttributes, instanceType.
+    """
+    _STUDYSITE_SCHEMA_KEYS = {
+        "id", "name", "label", "description", "country",
+        "extensionAttributes", "instanceType",
+    }
+    ext_attrs = list(site.get("extensionAttributes", []))
+
+    # Preserve siteNumber as extension (useful for site identification)
+    site_number = site.get("siteNumber")
+    if site_number:
+        ext_attrs.append({
+            "id": f"{site.get('id', 'site')}_ext_siteNumber",
+            "url": "http://www.example.org/usdm/studySite/siteNumber",
+            "valueString": str(site_number),
+            "instanceType": "ExtensionAttribute",
+        })
+
+    # Preserve status as extension if present
+    status = site.get("status")
+    if status and status != "Active":
+        ext_attrs.append({
+            "id": f"{site.get('id', 'site')}_ext_status",
+            "url": "http://www.example.org/usdm/studySite/status",
+            "valueString": str(status),
+            "instanceType": "ExtensionAttribute",
+        })
+
+    # Build sanitized site with only schema keys
+    sanitized = {k: v for k, v in site.items() if k in _STUDYSITE_SCHEMA_KEYS}
+    if ext_attrs:
+        sanitized["extensionAttributes"] = ext_attrs
+    sanitized.setdefault("instanceType", "StudySite")
+    return sanitized
+
+
+def _backfill_organization(org: dict) -> None:
+    """Backfill required Organization fields per USDM v4.0 schema.
+
+    Required: id, name, identifier (1), identifierScheme (1), type (1 Code),
+    instanceType.
+    """
+    org.setdefault("instanceType", "Organization")
+
+    # identifier is required (cardinality 1)
+    if not org.get("identifier"):
+        org["identifier"] = org.get("id", str(uuid.uuid4()))
+
+    # identifierScheme is required (cardinality 1)
+    if not org.get("identifierScheme"):
+        org["identifierScheme"] = "USDM"
+
+    # type is required (Code, cardinality 1) — skip if already present and valid
+    if not org.get("type") or not isinstance(org.get("type"), dict):
+        org["type"] = {
+            "id": f"{org.get('id', 'org')}_type",
+            "code": "C21541",
+            "codeSystem": "http://www.cdisc.org",
+            "codeSystemVersion": "2024-09-27",
+            "decode": "Healthcare Facility",
+            "instanceType": "Code",
+        }
+
+
 def nest_sites_in_organizations(combined: dict) -> dict:
     """P3: Nest StudySite entities into Organization.managedSites.
 
     Matches sites to organizations by comparing site name / organization
-    name / identifier overlap.  Per USDM v4.0, Organization.managedSites
-    owns the StudySite entities.
+    name / identifier overlap.  Per USDM v4.0:
+    - Organization.managedSites owns the StudySite entities (Value relationship)
+    - There is NO studyDesigns[].studySites — sites ONLY live inside orgs
+    - Organization requires: id, name, identifier, identifierScheme, type
+    - StudySite requires: id, name, country (Code)
     """
     try:
         sv = combined.get("study", {}).get("versions", [{}])[0]
@@ -1751,6 +1822,9 @@ def nest_sites_in_organizations(combined: dict) -> dict:
 
         if not sites or not orgs:
             return combined
+
+        # Sanitize all StudySite entities (strip non-schema fields)
+        sites = [_sanitize_study_site(s) for s in sites]
 
         # Build org lookup by normalized name
         org_by_name: Dict[str, dict] = {}
@@ -1786,30 +1860,39 @@ def nest_sites_in_organizations(combined: dict) -> dict:
             else:
                 unmatched_sites.append(site)
 
-        # For unmatched sites, try to find the first site-type org
+        # For unmatched sites, create a new Organization for each one.
+        # Each clinical site should be its own org with exactly one managedSite.
         if unmatched_sites:
-            site_org = None
-            for org in orgs:
-                org_type = org.get("type", {})
-                if isinstance(org_type, dict) and org_type.get("decode", "").lower() in (
-                    "clinical study site", "site", "investigational site"
-                ):
-                    site_org = org
-                    break
-            # If no site-type org, use any org that already has managedSites
-            if not site_org:
-                for org in orgs:
-                    if org.get("managedSites"):
-                        site_org = org
-                        break
+            for site in unmatched_sites:
+                site_name = site.get("name", "Unknown Site")
+                site_id = site.get("id", "unknown")
+                new_org = {
+                    "id": f"org_{site_id}",
+                    "name": site_name,
+                    "identifier": f"org_{site_id}",
+                    "identifierScheme": "USDM",
+                    "type": {
+                        "id": f"org_{site_id}_type",
+                        "code": "C21541",
+                        "codeSystem": "http://www.cdisc.org",
+                        "codeSystemVersion": "2024-09-27",
+                        "decode": "Healthcare Facility",
+                        "instanceType": "Code",
+                    },
+                    "instanceType": "Organization",
+                    "managedSites": [site],
+                }
+                orgs.append(new_org)
+                nested += 1
+            logger.info(f"  ✓ Created {len(unmatched_sites)} new Organization(s) for unmatched sites")
 
-            if site_org:
-                site_org.setdefault("managedSites", [])
-                existing_ids = {s.get("id") for s in site_org["managedSites"]}
-                for site in unmatched_sites:
-                    if site.get("id") not in existing_ids:
-                        site_org["managedSites"].append(site)
-                        nested += 1
+        # Backfill required Organization fields on ALL orgs (including pre-existing)
+        for org in orgs:
+            _backfill_organization(org)
+
+        # Remove studySites from studyDesign — not a USDM schema path.
+        # Sites now live exclusively inside Organization.managedSites[].
+        sd.pop("studySites", None)
 
         if nested:
             logger.info(f"  ✓ Nested {nested} StudySite(s) into Organization.managedSites (P3)")
@@ -1828,6 +1911,12 @@ def wire_document_layer(combined: dict) -> dict:
       Study.documentedBy → StudyDefinitionDocument
         .versions[0] → StudyDefinitionDocumentVersion
           .contents[] → NarrativeContent
+
+    Also:
+    - Backfills missing SDD metadata (templateName, type, language)
+    - Wires contentItemId on NarrativeContent → NarrativeContentItem
+    - Builds childIds hierarchy from section numbers
+    - Sets required boolean fields (displaySectionTitle, displaySectionNumber)
     """
     try:
         study = combined.get("study", {})
@@ -1844,31 +1933,41 @@ def wire_document_layer(combined: dict) -> dict:
         if not sdd and not sv.get("narrativeContentItems"):
             return combined
 
-        # Build the StudyDefinitionDocument
+        # Build or backfill the StudyDefinitionDocument
         if not sdd:
             sdd = {
                 "id": str(uuid.uuid4()),
                 "name": "Protocol Document",
-                "label": "Protocol Document",
-                "description": "Clinical protocol document",
-                "templateName": "ICH M11",
-                "language": {
-                    "id": str(uuid.uuid4()),
-                    "code": "eng",
-                    "codeSystem": "ISO 639-2",
-                    "decode": "English",
-                    "instanceType": "Code",
-                },
-                "type": {
-                    "id": str(uuid.uuid4()),
-                    "code": "C70817",
-                    "codeSystem": "http://www.cdisc.org",
-                    "codeSystemVersion": "2024-09-27",
-                    "decode": "Protocol",
-                    "instanceType": "Code",
-                },
                 "instanceType": "StudyDefinitionDocument",
             }
+
+        # Backfill missing metadata on existing SDD (required fields per schema)
+        if not sdd.get("templateName") or sdd.get("templateName") == "?":
+            sdd["templateName"] = "ICH M11"
+        if not sdd.get("language") or sdd.get("language") == "?" or (
+            isinstance(sdd.get("language"), str) and sdd["language"] in ("en", "eng")
+        ):
+            sdd["language"] = {
+                "id": str(uuid.uuid4()),
+                "code": "eng",
+                "codeSystem": "ISO 639-2",
+                "codeSystemVersion": "2024",
+                "decode": "English",
+                "instanceType": "Code",
+            }
+        if not sdd.get("type") or sdd.get("type") == "?" or not isinstance(sdd.get("type"), dict):
+            sdd["type"] = {
+                "id": str(uuid.uuid4()),
+                "code": "C70817",
+                "codeSystem": "http://www.cdisc.org",
+                "codeSystemVersion": "2024-09-27",
+                "decode": "Protocol",
+                "instanceType": "Code",
+            }
+        if not sdd.get("label"):
+            sdd["label"] = sdd.get("name", "Protocol Document")
+        if not sdd.get("description"):
+            sdd["description"] = "Clinical protocol document"
 
         # Build document version
         doc_version = None
@@ -1879,41 +1978,98 @@ def wire_document_layer(combined: dict) -> dict:
         else:
             doc_version = {
                 "id": str(uuid.uuid4()),
-                "status": {
-                    "id": str(uuid.uuid4()),
-                    "code": "C132349",
-                    "codeSystem": "http://www.cdisc.org",
-                    "codeSystemVersion": "2024-09-27",
-                    "decode": "Final",
-                    "instanceType": "Code",
-                },
-                "version": "1.0",
                 "instanceType": "StudyDefinitionDocumentVersion",
+            }
+
+        # Backfill doc version metadata
+        if not doc_version.get("version"):
+            doc_version["version"] = "1.0"
+        if not doc_version.get("status") or not isinstance(doc_version.get("status"), dict):
+            status_text = doc_version.get("status", "Final")
+            if isinstance(status_text, str) and status_text != "Final":
+                status_text = status_text
+            else:
+                status_text = "Final"
+            doc_version["status"] = {
+                "id": str(uuid.uuid4()),
+                "code": "C132349",
+                "codeSystem": "http://www.cdisc.org",
+                "codeSystemVersion": "2024-09-27",
+                "decode": status_text,
+                "instanceType": "Code",
             }
 
         # Populate contents from narrativeContentItems
         narrative_items = sv.get("narrativeContentItems", [])
         if narrative_items:
-            contents = []
+            # Build NarrativeContentItem ID lookup by section number and name
+            nci_by_section: Dict[str, str] = {}
+            nci_by_name: Dict[str, str] = {}
             for item in narrative_items:
+                item_id = item.get("id")
+                sec_num = item.get("sectionNumber", "")
+                item_name = (item.get("name") or "").lower().strip()
+                if sec_num and item_id:
+                    nci_by_section[sec_num] = item_id
+                if item_name and item_id:
+                    nci_by_name[item_name] = item_id
+
+            contents = []
+            content_by_section: Dict[str, dict] = {}
+
+            for item in narrative_items:
+                sec_num = item.get("sectionNumber", "")
+                content_id = str(uuid.uuid4())
                 content = {
-                    "id": item.get("id", str(uuid.uuid4())),
+                    "id": content_id,
                     "name": item.get("name", ""),
-                    "sectionNumber": item.get("sectionNumber", ""),
+                    "sectionNumber": sec_num,
                     "sectionTitle": item.get("sectionTitle", item.get("name", "")),
+                    "displaySectionTitle": True,
+                    "displaySectionNumber": bool(sec_num),
                     "text": item.get("text", ""),
                     "instanceType": "NarrativeContent",
                 }
-                if item.get("childIds"):
-                    content["childIds"] = item["childIds"]
+
+                # Wire contentItemId → NarrativeContentItem
+                item_id = item.get("id")
+                if item_id:
+                    content["contentItemId"] = item_id
+
                 contents.append(content)
+                if sec_num:
+                    content_by_section[sec_num] = content
+
+            # Build childIds hierarchy from section numbers
+            # e.g., §2 gets children [§2.1, §2.2, §2.3]
+            for sec_num, content in content_by_section.items():
+                child_ids = []
+                for other_sec, other_content in content_by_section.items():
+                    if other_sec == sec_num:
+                        continue
+                    # Check if other_sec is a direct child (e.g., "2.1" is child of "2")
+                    if other_sec.startswith(sec_num + "."):
+                        remainder = other_sec[len(sec_num) + 1:]
+                        # Direct child has no more dots (e.g., "1" not "1.2")
+                        if "." not in remainder:
+                            child_ids.append(other_content["id"])
+                if child_ids:
+                    content["childIds"] = child_ids
+
+            # Build previousId/nextId ordering chain
+            for i, content in enumerate(contents):
+                if i > 0:
+                    content["previousId"] = contents[i - 1]["id"]
+                if i < len(contents) - 1:
+                    content["nextId"] = contents[i + 1]["id"]
+
             doc_version["contents"] = contents
 
         # Wire into SDD
         sdd["versions"] = [doc_version]
 
-        # Wire into Study.documentedBy
-        study["documentedBy"] = sdd
+        # Wire into Study.documentedBy (cardinality 0..* → must be a list)
+        study["documentedBy"] = [sdd]
 
         doc_count = len(doc_version.get("contents", []))
         logger.info(f"  ✓ Wired document layer into Study.documentedBy ({doc_count} contents) (P5)")
@@ -1977,6 +2133,11 @@ def promote_footnotes_to_conditions(combined: dict) -> dict:
         # Get footnote conditions from execution model extensions
         activities = sd.get("activities", [])
         activity_by_id = {a.get("id"): a for a in activities if a.get("id")}
+        activity_by_name = {}
+        for a in activities:
+            name = (a.get("name") or "").lower().strip()
+            if name and a.get("id"):
+                activity_by_name[name] = a["id"]
 
         # Parse footnote conditions from the SoA footnotes extension
         footnotes_ext = None
@@ -2030,13 +2191,45 @@ def promote_footnotes_to_conditions(combined: dict) -> dict:
                 "appliesToIds": [],
             }
 
-            # Try to link to encounters mentioned in the footnote
+            # --- Link to activities mentioned in the footnote ---
+            matched_activity_ids = set()
+            for act_name, act_id in activity_by_name.items():
+                if len(act_name) >= 4 and act_name in text_lower:
+                    matched_activity_ids.add(act_id)
+            if matched_activity_ids:
+                condition["appliesToIds"] = list(matched_activity_ids)
+
+            # --- Link to encounters mentioned in the footnote ---
+            matched_encounter_ids = set()
             for enc_name, enc_id in enc_by_name.items():
-                if enc_name in text_lower or any(
-                    kw in text_lower for kw in [f"day {enc_name.split()[-1]}"]
-                    if enc_name.split()
-                ):
-                    condition["contextIds"].append(enc_id)
+                if len(enc_name) >= 4 and enc_name in text_lower:
+                    matched_encounter_ids.add(enc_id)
+            # Also match "day N" patterns in text
+            day_matches = re.findall(r'day\s+(\d+)', text_lower)
+            for day_num in day_matches:
+                for enc_name, enc_id in enc_by_name.items():
+                    if f"day {day_num}" in enc_name or f"day{day_num}" in enc_name.replace(" ", ""):
+                        matched_encounter_ids.add(enc_id)
+
+            # --- Link to SAI instances that connect matched activities and encounters ---
+            context_ids = set()
+            if matched_activity_ids or matched_encounter_ids:
+                for tl in sd.get("scheduleTimelines", []):
+                    for inst in tl.get("instances", []):
+                        if inst.get("instanceType") != "ScheduledActivityInstance":
+                            continue
+                        inst_act_ids = set(inst.get("activityIds", []))
+                        inst_enc_id = inst.get("encounterId")
+                        # Match if SAI has a matched activity at a matched encounter
+                        if inst_act_ids & matched_activity_ids and inst_enc_id in matched_encounter_ids:
+                            context_ids.add(inst.get("id"))
+                        # Also add if SAI matches just activity (when no encounters matched)
+                        elif not matched_encounter_ids and inst_act_ids & matched_activity_ids:
+                            context_ids.add(inst.get("id"))
+            if context_ids:
+                condition["contextIds"] = list(context_ids)
+            elif matched_encounter_ids:
+                condition["contextIds"] = list(matched_encounter_ids)
 
             existing_conditions.append(condition)
             existing_texts.add(fn_text.lower().strip())

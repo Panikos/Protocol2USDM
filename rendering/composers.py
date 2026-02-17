@@ -182,7 +182,10 @@ def _compose_synopsis(usdm: Dict) -> str:
         fields.append(('Stratification Indicator', 'No'))
 
     # ---- Site Distribution ----
-    sites = design.get('studySites', [])
+    # Per USDM v4.0, StudySites live inside Organization.managedSites[]
+    sites = []
+    for org in version.get('organizations', []):
+        sites.extend(org.get('managedSites', []))
     if len(sites) > 1:
         fields.append(('Site Distribution', 'Multi-site'))
     elif len(sites) == 1:
@@ -193,11 +196,13 @@ def _compose_synopsis(usdm: Dict) -> str:
         countries = set()
         for site in sites:
             if isinstance(site, dict):
-                addr = site.get('address', site.get('legalAddress', {}))
-                if isinstance(addr, dict):
-                    country = addr.get('country', '')
-                    if country:
-                        countries.add(country)
+                country = site.get('country', {})
+                if isinstance(country, dict):
+                    decode = country.get('decode', '')
+                    if decode:
+                        countries.add(decode)
+                elif isinstance(country, str) and country:
+                    countries.add(country)
         if len(countries) > 1:
             fields.append(('Site Geographic Scope', 'Multi-Country'))
         elif len(countries) == 1:

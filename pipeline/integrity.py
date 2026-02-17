@@ -110,8 +110,8 @@ REFERENCE_RULES: List[Tuple[str, str, str, str, bool]] = [
     ('studyDesigns.0.encounters', 'previousId', 'studyDesigns.0.encounters', 'Encounter', False),
     ('studyDesigns.0.encounters', 'nextId', 'studyDesigns.0.encounters', 'Encounter', False),
     # NarrativeContent chain
-    ('documentedBy.versions.0.contents', 'previousId', 'documentedBy.versions.0.contents', 'NarrativeContent', False),
-    ('documentedBy.versions.0.contents', 'nextId', 'documentedBy.versions.0.contents', 'NarrativeContent', False),
+    ('documentedBy.0.versions.0.contents', 'previousId', 'documentedBy.0.versions.0.contents', 'NarrativeContent', False),
+    ('documentedBy.0.versions.0.contents', 'nextId', 'documentedBy.0.versions.0.contents', 'NarrativeContent', False),
     # Activity definedProcedures
     ('studyDesigns.0.activities', 'definedProcedures.*.procedureId', 'studyDesigns.0.procedures', 'Procedure', False),
 ]

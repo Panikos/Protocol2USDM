@@ -686,12 +686,12 @@ class ReconciliationLayer:
                     }
                 })
                 
-                # Also add scheduledAtTimingId if available
+                # Also add scheduledAtId if available
                 timing_id = getattr(vw, 'timing_id', None)
                 if timing_id:
                     ext_attrs.append({
                         "id": f"ext_timing_{matched_encounter['id'][:8]}",
-                        "url": "http://example.org/usdm/scheduledAtTimingId",
+                        "url": "http://example.org/usdm/scheduledAtId",
                         "instanceType": "ExtensionAttribute",
                         "valueString": timing_id
                     })
