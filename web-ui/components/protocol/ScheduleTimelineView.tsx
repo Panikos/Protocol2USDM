@@ -69,6 +69,7 @@ interface Activity {
   id: string;
   name?: string;
   label?: string;
+  childIds?: string[];
 }
 
 interface Encounter {
@@ -110,6 +111,17 @@ export function ScheduleTimelineView({ usdm }: ScheduleTimelineViewProps) {
   const activityMap = new Map(activities.map(a => [a.id, a]));
   const encounterMap = new Map(encounters.map(e => [e.id, e]));
 
+  // Activity grouping: parent Activities with childIds (USDM v4.0)
+  const parentActivities = activities.filter(a => a.childIds && a.childIds.length > 0);
+  const childToParent = new Map<string, Activity>();
+  for (const parent of parentActivities) {
+    for (const childId of parent.childIds ?? []) {
+      childToParent.set(childId, parent);
+    }
+  }
+  const allChildIds = new Set(parentActivities.flatMap(p => p.childIds ?? []));
+  const leafActivities = activities.filter(a => !a.childIds || a.childIds.length === 0);
+
   const hasData = scheduleTimelines.length > 0;
 
   if (!hasData) {
@@ -146,7 +158,7 @@ export function ScheduleTimelineView({ usdm }: ScheduleTimelineViewProps) {
       <EpochTimelineChart usdm={usdm} />
 
       {/* Summary */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-2">
@@ -163,8 +175,19 @@ export function ScheduleTimelineView({ usdm }: ScheduleTimelineViewProps) {
             <div className="flex items-center gap-2">
               <Activity className="h-5 w-5 text-purple-600" />
               <div>
-                <div className="text-2xl font-bold">{totalInstances}</div>
-                <div className="text-xs text-muted-foreground">Scheduled Instances</div>
+                <div className="text-2xl font-bold">{leafActivities.length}</div>
+                <div className="text-xs text-muted-foreground">Activities</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-2">
+              <Activity className="h-5 w-5 text-indigo-600" />
+              <div>
+                <div className="text-2xl font-bold">{parentActivities.length}</div>
+                <div className="text-xs text-muted-foreground">Activity Groups</div>
               </div>
             </div>
           </CardContent>
@@ -192,6 +215,41 @@ export function ScheduleTimelineView({ usdm }: ScheduleTimelineViewProps) {
           </CardContent>
         </Card>
       </div>
+
+      {/* Activity Groups */}
+      {parentActivities.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Activity className="h-5 w-5" />
+              Activity Groups
+              <Badge variant="secondary">{parentActivities.length}</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {parentActivities.map((parent) => {
+                const children = (parent.childIds ?? []).map(id => activityMap.get(id)).filter(Boolean);
+                return (
+                  <div key={parent.id} className="p-3 bg-muted rounded-lg">
+                    <div className="font-medium text-sm flex items-center gap-2">
+                      {parent.label ?? parent.name}
+                      <Badge variant="outline" className="text-xs">{children.length}</Badge>
+                    </div>
+                    <div className="mt-1.5 flex flex-wrap gap-1">
+                      {children.map((child) => (
+                        <Badge key={child!.id} variant="secondary" className="text-xs font-normal">
+                          {child!.label ?? child!.name}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Timelines */}
       {scheduleTimelines.map((timeline, i) => {
@@ -314,6 +372,7 @@ export function ScheduleTimelineView({ usdm }: ScheduleTimelineViewProps) {
                         <thead>
                           <tr className="bg-muted">
                             <th className="p-2 text-left border">Activity</th>
+                            <th className="p-2 text-left border">Group</th>
                             <th className="p-2 text-left border">Encounter</th>
                             <th className="p-2 text-left border">Scheduled At</th>
                           </tr>
@@ -325,8 +384,13 @@ export function ScheduleTimelineView({ usdm }: ScheduleTimelineViewProps) {
                             const activityNames = activityIdList
                               .map(id => activityMap.get(id))
                               .filter(Boolean)
-                              .map(a => a?.name || a?.label)
+                              .map(a => a?.label || a?.name)
                               .join(', ');
+                            // Find the group for the first activity
+                            const groupName = activityIdList
+                              .map(id => childToParent.get(id))
+                              .filter(Boolean)
+                              .map(p => p?.label ?? p?.name)[0] ?? null;
                             const encounter = encounterMap.get(instance.encounterId || '');
                             // Look up timing by ID for human-readable description
                             const timing = timings.find(t => t.id === instance.scheduledAtId);
@@ -337,6 +401,13 @@ export function ScheduleTimelineView({ usdm }: ScheduleTimelineViewProps) {
                               <tr key={instance.id || ii} className="hover:bg-muted/50">
                                 <td className="p-2 border">
                                   {activityNames || instance.name || '-'}
+                                </td>
+                                <td className="p-2 border">
+                                  {groupName ? (
+                                    <Badge variant="outline" className="text-xs font-normal">{groupName}</Badge>
+                                  ) : (
+                                    <span className="text-muted-foreground">-</span>
+                                  )}
                                 </td>
                                 <td className="p-2 border">
                                   {encounter?.name || encounter?.label || instance.encounterId || '-'}
