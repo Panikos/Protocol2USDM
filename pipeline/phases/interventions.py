@@ -77,9 +77,16 @@ class InterventionsPhase(BasePhase):
         
         if result.success and result.data:
             data = result.data
-            study_version["studyInterventions"] = [i.to_dict() for i in data.interventions]
+            interventions_dicts = [i.to_dict() for i in data.interventions]
+            admin_dicts = [a.to_dict() for a in data.administrations]
+            
+            # Nest administrations inside their parent StudyIntervention (USDM v4.0)
+            self._nest_administrations(interventions_dicts, admin_dicts)
+            
+            study_version["studyInterventions"] = interventions_dicts
             study_version["administrableProducts"] = [p.to_dict() for p in data.products]
-            combined["administrations"] = [a.to_dict() for a in data.administrations]
+            # Keep root-level copy for post-processing linkage (H8)
+            combined["administrations"] = admin_dicts
             combined["substances"] = [s.to_dict() for s in data.substances]
             interventions_added = True
         
@@ -95,11 +102,53 @@ class InterventionsPhase(BasePhase):
                     products = self._fix_dose_form_codes(intv['administrableProducts'])
                     study_version["administrableProducts"] = products
                 if intv.get('administrations'):
-                    combined["administrations"] = intv['administrations']
+                    admin_list = intv['administrations']
+                    si_list = study_version.get('studyInterventions', [])
+                    self._nest_administrations(si_list, admin_list)
+                    combined["administrations"] = admin_list
                 if intv.get('substances'):
                     combined["substances"] = intv['substances']
                 if intv.get('medicalDevices'):
                     study_version["medicalDevices"] = intv['medicalDevices']
+    
+    @staticmethod
+    def _nest_administrations(interventions: list, administrations: list) -> None:
+        """Nest Administration entities inside their parent StudyIntervention.
+        
+        USDM v4.0: StudyIntervention.administrations[] is the correct path.
+        Uses administrationIds linkage from the extractor, then falls back to
+        name-based matching (intervention name appears in administration name).
+        """
+        if not interventions or not administrations:
+            return
+        
+        admin_by_id = {a.get('id'): a for a in administrations}
+        assigned = set()
+        
+        # Pass 1: Use administrationIds linkage
+        for intv in interventions:
+            admin_ids = intv.pop('administrationIds', []) or []
+            intv.pop('productIds', None)  # Non-USDM property, remove
+            nested = []
+            for aid in admin_ids:
+                admin = admin_by_id.get(aid)
+                if admin:
+                    nested.append(admin)
+                    assigned.add(aid)
+            if nested:
+                intv['administrations'] = nested
+        
+        # Pass 2: Name-based matching for unassigned administrations
+        for admin in administrations:
+            if admin.get('id') in assigned:
+                continue
+            admin_name = (admin.get('name') or '').lower()
+            for intv in interventions:
+                intv_name = (intv.get('name') or '').lower()
+                if intv_name and intv_name in admin_name:
+                    intv.setdefault('administrations', []).append(admin)
+                    assigned.add(admin.get('id'))
+                    break
     
     def _fix_dose_form_codes(self, products: list) -> list:
         """Ensure administrableDoseForm is a proper AliasCode per USDM v4.0."""

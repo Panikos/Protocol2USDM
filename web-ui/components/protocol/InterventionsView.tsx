@@ -25,6 +25,7 @@ interface StudyIntervention {
   codes?: { decode?: string }[];
   administrableProducts?: AdministrableProduct[];
   administrableProductIds?: string[];
+  administrations?: Administration[];
 }
 
 interface AdministrableProduct {
@@ -49,7 +50,7 @@ interface Administration {
   durationDescription?: string;
   route?: { decode?: string };
   frequency?: { decode?: string };
-  dose?: string;
+  dose?: string | { value?: number; unit?: { decode?: string } };
   doseDescription?: string;
 }
 
@@ -102,8 +103,12 @@ export function InterventionsView({ usdm }: InterventionsViewProps) {
   const administrableProducts = (version?.administrableProducts as AdministrableProduct[]) ?? 
                                 (usdm.administrableProducts as AdministrableProduct[]) ?? [];
 
-  // Top-level USDM data for administrations, substances, ingredients
-  const administrations = (usdm.administrations as Administration[]) ?? [];
+  // USDM v4.0: administrations are nested inside each StudyIntervention
+  // Collect all nested administrations, falling back to root-level for legacy data
+  const nestedAdmins = studyInterventions.flatMap(si => si.administrations ?? []);
+  const administrations = nestedAdmins.length > 0
+    ? nestedAdmins
+    : (usdm.administrations as Administration[]) ?? [];
   const substances = (usdm.substances as Substance[]) ?? [];
   const ingredients = (usdm.ingredients as Ingredient[]) ?? [];
   const strengths = (usdm.strengths as Strength[]) ?? [];
@@ -372,7 +377,11 @@ export function InterventionsView({ usdm }: InterventionsViewProps) {
                         <span className="text-muted-foreground">Dose</span>
                         <EditableField
                           path={entityPath('/administrations', admin.id, 'dose')}
-                          value={admin.dose || admin.doseDescription || ''}
+                          value={
+                            typeof admin.dose === 'object' && admin.dose
+                              ? `${admin.dose.value ?? ''} ${admin.dose.unit?.decode ?? ''}`.trim()
+                              : (admin.dose as string) || admin.doseDescription || ''
+                          }
                           placeholder="Dose"
                         />
                       </div>
