@@ -20,10 +20,12 @@ export function ProvenanceView({ provenance }: ProvenanceViewProps) {
       return { activities: [], encounters: [] };
     }
 
-    const activities = (studyDesign.activities || []).map(a => ({
-      id: a.id,
-      name: a.label || a.name,
-    }));
+    const activities = (studyDesign.activities || [])
+      .filter(a => !a.childIds || a.childIds.length === 0) // Exclude parent group activities
+      .map(a => ({
+        id: a.id,
+        name: a.label || a.name,
+      }));
 
     const encounters = (studyDesign.encounters || []).map(e => ({
       id: e.id,
