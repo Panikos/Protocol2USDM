@@ -231,7 +231,7 @@ export function toSoATableModel(
       }
     }
   } else if (parentActivities.length > 0) {
-    // Legacy: Hierarchical structure from parent activities with childIds
+    // Primary: Hierarchical structure from parent activities with childIds (USDM v4.0)
     for (const parent of parentActivities) {
       const groupName = parent.label ?? parent.name;
       model.rowGroups.push({
@@ -252,6 +252,19 @@ export function toSoATableModel(
             isGroup: false,
           });
         }
+      }
+    }
+
+    // Add ungrouped activities (not a child, not a parent) at the end
+    const parentIds = new Set(parentActivities.map(p => p.id));
+    for (const activity of orderedActivities) {
+      if (!allChildIds.has(activity.id) && !parentIds.has(activity.id)) {
+        model.rows.push({
+          id: activity.id,
+          name: activity.label ?? activity.name,
+          order: rowIndex++,
+          isGroup: false,
+        });
       }
     }
   } else {

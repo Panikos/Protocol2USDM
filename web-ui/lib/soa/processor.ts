@@ -615,6 +615,20 @@ export class SoAProcessor {
       }
     }
 
+    // Remove this activity from any parent's childIds
+    const allActivities = this.getActivities() as Array<{ id: string; childIds?: string[] }>;
+    for (const parent of allActivities) {
+      if (parent.childIds?.includes(activityId)) {
+        const childIdx = parent.childIds.indexOf(activityId);
+        if (childIdx >= 0) {
+          this.patches.push({
+            op: 'remove',
+            path: `/study/versions/0/studyDesigns/0/activities/@id:${parent.id}/childIds/${childIdx}`,
+          });
+        }
+      }
+    }
+
     // Then remove the activity itself
     this.patches.push({
       op: 'remove',
