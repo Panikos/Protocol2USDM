@@ -13,6 +13,18 @@ from docx import Document
 from docx.shared import RGBColor
 
 
+# XML 1.0 allows: #x9 | #xA | #xD | [#x20-#xD7FF] | [#xE000-#xFFFD] | [#x10000-#x10FFFF]
+_ILLEGAL_XML_RE = re.compile(
+    '[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x84\x86-\x9f'
+    '\ud800-\udfff\ufdd0-\ufdef\ufffe\uffff]'
+)
+
+
+def _sanitize_xml_text(text: str) -> str:
+    """Strip characters that are illegal in XML 1.0 (used by python-docx)."""
+    return _ILLEGAL_XML_RE.sub('', text)
+
+
 def _add_narrative_text(doc: Document, text: str) -> None:
     """Add narrative text to the document with proper formatting.
 
@@ -24,6 +36,7 @@ def _add_narrative_text(doc: Document, text: str) -> None:
       - Markdown headings (### Heading)
       - Regular paragraphs with preserved line breaks
     """
+    text = _sanitize_xml_text(text)
     paragraphs = text.split('\n\n')
     for para_text in paragraphs:
         para_text = para_text.strip()
@@ -95,6 +108,7 @@ def _add_narrative_text(doc: Document, text: str) -> None:
 
 def _add_formatted_run(paragraph, text: str) -> None:
     """Add text to a paragraph with inline **bold** and *italic* formatting."""
+    text = _sanitize_xml_text(text)
     # Split on bold markers first
     parts = re.split(r'\*\*(.*?)\*\*', text)
     for i, part in enumerate(parts):
