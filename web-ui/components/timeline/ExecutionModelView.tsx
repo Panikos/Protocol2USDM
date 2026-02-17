@@ -2159,11 +2159,18 @@ function StateMachinePanel({ stateMachine, studyExits = [], studyDesign }: { sta
                 </div>
               </div>
 
-              {/* Main Study Flow - Active States in sequence */}
+              {/* Main Study Flow - Active States in sequence (exclude UNS/Unscheduled) */}
               <div className="relative mb-6">
                 <div className="flex flex-wrap justify-center items-center gap-2">
                   {stateMachine.states
-                    .filter(s => s !== stateMachine.initialState && !stateMachine.terminalStates.includes(s))
+                    .filter(s => {
+                      if (s === stateMachine.initialState) return false;
+                      if (stateMachine.terminalStates.includes(s)) return false;
+                      // Exclude unscheduled states from linear flow
+                      const sl = s.toLowerCase();
+                      if (sl === 'uns' || sl.includes('unscheduled')) return false;
+                      return true;
+                    })
                     .map((state, idx, arr) => (
                       <div key={state} className="flex items-center">
                         <div className={cn(
@@ -2196,8 +2203,34 @@ function StateMachinePanel({ stateMachine, studyExits = [], studyDesign }: { sta
                 </svg>
               </div>
 
-              {/* Terminal/Exit States */}
+              {/* Terminal/Exit States + Detached States (UNS) */}
               <div className="flex flex-wrap justify-center gap-3">
+                {/* Unscheduled / detached states */}
+                {stateMachine.states
+                  .filter(s => {
+                    const sl = s.toLowerCase();
+                    return sl === 'uns' || sl.includes('unscheduled');
+                  })
+                  .map(state => (
+                    <div
+                      key={state}
+                      className={cn(
+                        "px-4 py-2 rounded-lg border-2 font-medium border-dotted shadow-sm",
+                        'bg-orange-100 border-orange-400 text-orange-800'
+                      )}
+                    >
+                      {epochIndexMap.has(state) ? (
+                        <EditableField
+                          path={`/study/versions/0/studyDesigns/0/epochs/${epochIndexMap.get(state)}/name`}
+                          value={state}
+                          label=""
+                        />
+                      ) : state}
+                      <span className="text-xs ml-2 opacity-60">(Any time)</span>
+                    </div>
+                  ))
+                }
+                {/* Terminal states */}
                 {stateMachine.terminalStates.map(state => (
                   <div
                     key={state}
