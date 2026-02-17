@@ -109,9 +109,19 @@ export function SoAView({ provenance }: SoAViewProps) {
         const ext = extensions[i];
         if (ext.url?.includes('soaFootnotes') && ext.valueString) {
           try {
-            const soaFns = JSON.parse(ext.valueString as string) as string[];
+            const soaFns = JSON.parse(ext.valueString as string) as (string | { id?: string; text?: string; marker?: string })[];
             if (soaFns.length > 0) {
-              return { footnotes: soaFns, footnoteExtIndex: i };
+              // Normalize to strings: handle both "text" (legacy) and {id, text, marker} (new)
+              const normalized = soaFns.map(item => {
+                if (typeof item === 'string') return item;
+                if (item && typeof item === 'object') {
+                  const marker = item.marker || '';
+                  const text = item.text || '';
+                  return marker ? `${marker}. ${text}` : text;
+                }
+                return String(item);
+              });
+              return { footnotes: normalized, footnoteExtIndex: i };
             }
           } catch {
             // Skip malformed JSON
