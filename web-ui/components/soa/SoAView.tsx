@@ -3,7 +3,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { SoAGrid } from './SoAGrid';
 import { SoAToolbar, FilterOptions } from './SoAToolbar';
-import { FootnotePanel } from './FootnotePanel';
+import { FootnotePanel, SoAFootnote } from './FootnotePanel';
 import { toSoATableModel, SoACell, cellKey } from '@/lib/adapters/toSoATableModel';
 import { useOverlayStore, selectDraftPayload } from '@/stores/overlayStore';
 import { useSoAEditStore } from '@/stores/soaEditStore';
@@ -101,7 +101,7 @@ export function SoAView({ provenance }: SoAViewProps) {
   );
 
   // Get footnotes - prefer authoritative SoA footnotes from USDM extension, fall back to provenance
-  const { footnotes, footnoteExtIndex } = useMemo(() => {
+  const { footnotes, footnoteExtIndex } = useMemo((): { footnotes: SoAFootnote[]; footnoteExtIndex: number } => {
     // First check for authoritative SoA footnotes in studyDesign.extensionAttributes
     const extensions = studyDesign?.extensionAttributes as Array<{ url?: string; valueString?: string }> | undefined;
     if (extensions && Array.isArray(extensions)) {
@@ -111,17 +111,24 @@ export function SoAView({ provenance }: SoAViewProps) {
           try {
             const soaFns = JSON.parse(ext.valueString as string) as (string | { id?: string; text?: string; marker?: string })[];
             if (soaFns.length > 0) {
-              // Normalize to strings: handle both "text" (legacy) and {id, text, marker} (new)
-              const normalized = soaFns.map(item => {
-                if (typeof item === 'string') return item;
-                if (item && typeof item === 'object') {
-                  const marker = item.marker || '';
-                  const text = item.text || '';
-                  return marker ? `${marker}. ${text}` : text;
+              // Parse as SoAFootnote objects; handle both legacy strings and new objects
+              const parsed: SoAFootnote[] = soaFns.map((item, idx) => {
+                if (typeof item === 'string') {
+                  // Legacy string format: "a. Some text" → {id, text, marker}
+                  const match = item.match(/^([a-z]+)\.\s*/i);
+                  return {
+                    id: `fn-legacy-${idx}`,
+                    text: match ? item.slice(match[0].length) : item,
+                    marker: match ? match[1].toLowerCase() : undefined,
+                  };
                 }
-                return String(item);
+                return {
+                  id: item.id || `fn-${idx}`,
+                  text: item.text || '',
+                  marker: item.marker,
+                };
               });
-              return { footnotes: normalized, footnoteExtIndex: i };
+              return { footnotes: parsed, footnoteExtIndex: i };
             }
           } catch {
             // Skip malformed JSON
@@ -129,19 +136,25 @@ export function SoAView({ provenance }: SoAViewProps) {
         }
       }
     }
-    // Fall back to provenance footnotes
-    return { footnotes: provenance?.footnotes || [], footnoteExtIndex: -1 };
+    // Fall back to provenance footnotes (formatted as "id text" strings)
+    const provFns = (provenance?.footnotes || []).map((s, idx) => {
+      const match = typeof s === 'string' ? s.match(/^([a-z]+)\.?\s*/i) : null;
+      return {
+        id: `fn-prov-${idx}`,
+        text: match ? s.slice(match[0].length) : (typeof s === 'string' ? s : String(s)),
+        marker: match ? match[1].toLowerCase() : undefined,
+      } as SoAFootnote;
+    });
+    return { footnotes: provFns, footnoteExtIndex: -1 };
   }, [studyDesign, provenance]);
 
   // Build the list of available footnote labels for the cell editor
-  // Extracts actual letter prefixes from footnote strings (e.g., "y. Some text" → "y")
-  // and includes any refs already used by cells (in case footnote text was removed)
+  // Uses marker from footnote objects and includes any refs already used by cells
   const availableFootnoteLabels = useMemo(() => {
     const labels = new Set<string>();
     for (const fn of footnotes) {
-      const match = fn.match(/^([a-z]+)\./i);
-      if (match) {
-        labels.add(match[1].toLowerCase());
+      if (fn.marker) {
+        labels.add(fn.marker.toLowerCase());
       }
     }
     for (const cell of tableModel.cells.values()) {
@@ -186,7 +199,8 @@ export function SoAView({ provenance }: SoAViewProps) {
       footnoteRows.push('');
       footnoteRows.push('"Footnotes"');
       footnotes.forEach((fn, i) => {
-        footnoteRows.push(`"${(i + 1)}. ${fn.replace(/"/g, '""')}"`);
+        const label = fn.marker || `${i + 1}`;
+        footnoteRows.push(`"${label}. ${fn.text.replace(/"/g, '""')}"`);
       });
     }
 
@@ -261,7 +275,7 @@ export function SoAView({ provenance }: SoAViewProps) {
     }).join('');
 
     const footnoteHtml = footnotes.length > 0
-      ? `<div style="margin-top:12px;font-size:7px;color:#555">${footnotes.map((fn, i) => `<p style="margin:2px 0">${fn}</p>`).join('')}</div>`
+      ? `<div style="margin-top:12px;font-size:7px;color:#555">${footnotes.map((fn) => `<p style="margin:2px 0">${fn.marker ? fn.marker + '. ' : ''}${fn.text}</p>`).join('')}</div>`
       : '';
 
     printWindow.document.write(`<!DOCTYPE html><html><head><title>Schedule of Activities</title>
