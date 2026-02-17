@@ -79,7 +79,9 @@ class StudyDesignPhase(BasePhase):
             sd = result.data
             if sd.study_design:
                 if sd.study_design.blinding_schema:
-                    study_design["blindingSchema"] = {"code": sd.study_design.blinding_schema.value}
+                    study_design["blindingSchema"] = self._build_alias_code(
+                        sd.study_design.blinding_schema.value, "blindingSchema"
+                    )
                 if sd.study_design.randomization_type:
                     study_design["randomizationType"] = {"code": sd.study_design.randomization_type.value}
                 # C3: Design rationale
@@ -95,13 +97,8 @@ class StudyDesignPhase(BasePhase):
             study_design["studyCells"] = [c.to_dict() for c in sd.cells]
             study_design["studyElements"] = [e.to_dict() for e in sd.elements]
             
-            # Create Masking entities from blinding data
-            if sd.study_design and sd.study_design.blinding_schema:
-                masking_entities = self._create_masking_entities(
-                    sd.study_design.blinding_schema.value,
-                    sd.study_design.masked_roles if sd.study_design.masked_roles else []
-                )
-                study_design["maskingRoles"] = masking_entities
+            # Masking entities are now derived from blindingSchema in the UI;
+            # USDM v4.0 places Masking on StudyRole, not StudyDesign
             studydesign_added = True
         
         # Fallback to previously extracted study design
@@ -110,7 +107,14 @@ class StudyDesignPhase(BasePhase):
             if prev.get('studyDesign'):
                 sd = prev['studyDesign']
                 if sd.get('blindingSchema'):
-                    study_design["blindingSchema"] = sd['blindingSchema']
+                    bs = sd['blindingSchema']
+                    # Wrap flat Code in AliasCode if needed
+                    if isinstance(bs, dict) and 'standardCode' not in bs:
+                        study_design["blindingSchema"] = self._build_alias_code(
+                            bs.get('decode') or bs.get('code', ''), "blindingSchema"
+                        )
+                    else:
+                        study_design["blindingSchema"] = bs
                 if sd.get('randomizationType'):
                     study_design["randomizationType"] = sd['randomizationType']
                 # C3: Design rationale (fallback path)
@@ -128,40 +132,44 @@ class StudyDesignPhase(BasePhase):
                 
                 # Create Masking entities from fallback blinding data
                 if sd.get('blindingSchema'):
-                    blinding_code = sd['blindingSchema'].get('code', '')
-                    masked_roles = sd.get('maskedRoles', [])
-                    masking_entities = self._create_masking_entities(blinding_code, masked_roles)
-                    study_design["maskingRoles"] = masking_entities
+                    bs = sd['blindingSchema']
+                    if isinstance(bs, dict) and 'standardCode' not in bs:
+                        study_design["blindingSchema"] = self._build_alias_code(
+                            bs.get('decode') or bs.get('code', ''), "blindingSchema"
+                        )
+                    else:
+                        study_design["blindingSchema"] = bs
     
-    def _create_masking_entities(self, blinding_value: str, masked_roles: list) -> list:
-        """Create Masking entities from blinding schema."""
-        masking_entities = []
-        is_masked = blinding_value and 'Open' not in blinding_value
+    @staticmethod
+    def _build_alias_code(decode_value: str, attribute: str = "blindingSchema") -> dict:
+        """Build USDM AliasCode structure for blindingSchema.
         
-        if masked_roles:
-            for i, role in enumerate(masked_roles):
-                masking_entities.append({
-                    "id": f"mask_{i+1}",
-                    "text": f"{role} is masked in this {blinding_value} study",
-                    "isMasked": True,
-                    "instanceType": "Masking"
-                })
-        elif is_masked:
-            masking_entities.append({
-                "id": "mask_1",
-                "text": f"This is a {blinding_value} study",
-                "isMasked": True,
-                "instanceType": "Masking"
-            })
+        AliasCode = { id, standardCode: Code, instanceType: 'AliasCode' }
+        """
+        from core.code_registry import code_registry
+        code_obj = code_registry.lookup(attribute, decode_value)
+        if code_obj:
+            c_code = code_obj.code
         else:
-            masking_entities.append({
-                "id": "mask_1",
-                "text": "This is an Open Label study with no masking",
-                "isMasked": False,
-                "instanceType": "Masking"
-            })
+            # Fallback C-code lookup
+            _BLINDING_CODES = {
+                "open label": "C49659", "single blind": "C28233",
+                "double blind": "C15228", "triple blind": "C66959",
+            }
+            c_code = _BLINDING_CODES.get(decode_value.lower().replace(" study", ""), "")
         
-        return masking_entities
+        return {
+            "id": f"blind_1",
+            "instanceType": "AliasCode",
+            "standardCode": {
+                "id": f"code_blind_1",
+                "code": c_code,
+                "codeSystem": "http://www.cdisc.org",
+                "codeSystemVersion": "2024-09-27",
+                "decode": decode_value,
+                "instanceType": "Code",
+            },
+        }
 
 
 # Register the phase
