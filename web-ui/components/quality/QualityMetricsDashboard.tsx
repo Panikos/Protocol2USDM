@@ -21,6 +21,7 @@ interface QualityMetricsDashboardProps {
 
 interface EntityCounts {
   activities: number;
+  activityGroups: number;
   encounters: number;
   epochs: number;
   arms: number;
@@ -53,8 +54,13 @@ export function QualityMetricsDashboard({ usdm }: QualityMetricsDashboardProps) 
   const scheduleTimelines = (design?.scheduleTimelines as { timings?: unknown[] }[]) ?? [];
   const timingsCount = scheduleTimelines.reduce((sum, tl) => sum + (tl.timings?.length ?? 0), 0);
   
+  const allActivities = (design?.activities as { childIds?: string[] }[]) ?? [];
+  const leafActivityCount = allActivities.filter(a => !a.childIds || a.childIds.length === 0).length;
+  const parentActivityCount = allActivities.filter(a => a.childIds && a.childIds.length > 0).length;
+
   const counts: EntityCounts = {
-    activities: (design?.activities as unknown[])?.length ?? 0,
+    activities: leafActivityCount,
+    activityGroups: parentActivityCount,
     encounters: (design?.encounters as unknown[])?.length ?? 0,
     epochs: (design?.epochs as unknown[])?.length ?? 0,
     arms: (design?.arms as unknown[])?.length ?? 0,
@@ -85,6 +91,7 @@ export function QualityMetricsDashboard({ usdm }: QualityMetricsDashboardProps) 
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <MetricCard icon={<Activity className="h-4 w-4" />} label="Activities" value={counts.activities} />
+            <MetricCard icon={<Activity className="h-4 w-4" />} label="Activity Groups" value={counts.activityGroups} />
             <MetricCard icon={<Calendar className="h-4 w-4" />} label="Encounters" value={counts.encounters} />
             <MetricCard icon={<Layers className="h-4 w-4" />} label="Epochs" value={counts.epochs} />
             <MetricCard icon={<GitBranch className="h-4 w-4" />} label="Arms" value={counts.arms} />
@@ -254,10 +261,11 @@ function calculateFieldPopulation(
   
   if (design) {
     // Only check required/meaningful fields, not optional ones like 'description'
-    // Activities: name is required, label is alternative display name
-    checkFields(design.activities as unknown[], ['name'], 'Activities');
-    // Encounters: name and epochId are essential for SoA
-    checkFields(design.encounters as unknown[], ['name', 'epochId'], 'Encounters');
+    // Activities: name is required — only check leaf activities (exclude parent groups)
+    const leafActs = (design.activities as { childIds?: string[] }[])?.filter(a => !a.childIds || a.childIds.length === 0) ?? [];
+    checkFields(leafActs, ['name'], 'Activities');
+    // Encounters: name is essential (epochId is resolved via schedule instances, not stored directly)
+    checkFields(design.encounters as unknown[], ['name'], 'Encounters');
     // Epochs: name is the essential field (epochType often not populated from extraction)
     checkFields(design.epochs as unknown[], ['name'], 'Epochs');
     // Arms: name and type are essential
@@ -276,49 +284,63 @@ function calculateLinkageAccuracy(
     return { encounterEpoch: 0, activitySchedule: 0, overall: 0 };
   }
   
-  const encounters = (design.encounters as { id: string; epochId?: string }[]) ?? [];
+  const encounters = (design.encounters as { id: string }[]) ?? [];
   const epochs = (design.epochs as { id: string }[]) ?? [];
   const epochIds = new Set(epochs.map(e => e.id));
   
-  // Encounter → Epoch linkage
-  let encounterLinked = 0;
-  for (const enc of encounters) {
-    if (enc.epochId && epochIds.has(enc.epochId)) {
-      encounterLinked++;
+  // Encounter → Epoch linkage via ScheduledActivityInstance bridge
+  // USDM v4.0: encounters don't have epochId directly — the link is through
+  // instances which carry both encounterId and epochId.
+  const scheduleTimelines = (design.scheduleTimelines as {
+    instances?: { activityIds?: string[]; encounterId?: string; epochId?: string }[];
+  }[]) ?? [];
+  const allInstances = scheduleTimelines.flatMap(tl => tl.instances ?? []);
+  
+  const encounterIdsWithEpoch = new Set<string>();
+  for (const inst of allInstances) {
+    if (inst.encounterId && inst.epochId && epochIds.has(inst.epochId)) {
+      encounterIdsWithEpoch.add(inst.encounterId);
     }
   }
-  const encounterEpoch = encounters.length > 0 ? (encounterLinked / encounters.length) * 100 : 100;
+  const encounterEpoch = encounters.length > 0
+    ? (encounters.filter(e => encounterIdsWithEpoch.has(e.id)).length / encounters.length) * 100
+    : 100;
   
-  // Activity → Schedule linkage (check scheduleTimelines)
-  // Only count SoA activities, not procedure enrichment activities
-  const scheduleTimelines = (design.scheduleTimelines as { instances?: { activityIds?: string[] }[] }[]) ?? [];
-  const allActivities = (design.activities as { id: string; extensionAttributes?: { url?: string; valueString?: string }[] }[]) ?? [];
+  // Activity → Schedule linkage
+  // Exclude parent activities (groups with childIds) — they are never directly scheduled.
+  // Also exclude procedure_enrichment activities.
+  const allActivities = (design.activities as {
+    id: string;
+    childIds?: string[];
+    extensionAttributes?: { url?: string; valueString?: string }[];
+  }[]) ?? [];
+  
   const scheduledActivityIds = new Set<string>();
-  
-  for (const timeline of scheduleTimelines) {
-    for (const instance of timeline.instances ?? []) {
-      for (const actId of instance.activityIds ?? []) {
-        scheduledActivityIds.add(actId);
-      }
+  for (const inst of allInstances) {
+    for (const actId of inst.activityIds ?? []) {
+      scheduledActivityIds.add(actId);
     }
   }
   
-  // Filter to only SoA activities (exclude procedure_enrichment)
-  // Activities with source='soa' or source='unknown' (backward compat) should be counted
-  const soaActivities = allActivities.filter(act => {
+  // Filter: exclude parent activities (groups) and procedure_enrichment
+  const schedulableActivities = allActivities.filter(act => {
+    // Exclude parent activities (they group children, not scheduled themselves)
+    if (act.childIds && act.childIds.length > 0) return false;
+    // Exclude procedure enrichment activities
     const sourceExt = act.extensionAttributes?.find(ext => ext.url?.endsWith('activitySource'));
     const source = sourceExt?.valueString;
-    // Include if source is 'soa', 'unknown', or not set (backward compatibility)
     return source !== 'procedure_enrichment';
   });
   
   let activityLinked = 0;
-  for (const act of soaActivities) {
+  for (const act of schedulableActivities) {
     if (scheduledActivityIds.has(act.id)) {
       activityLinked++;
     }
   }
-  const activitySchedule = soaActivities.length > 0 ? (activityLinked / soaActivities.length) * 100 : 100;
+  const activitySchedule = schedulableActivities.length > 0
+    ? (activityLinked / schedulableActivities.length) * 100
+    : 100;
   
   // Overall
   const overall = (encounterEpoch + activitySchedule) / 2;
