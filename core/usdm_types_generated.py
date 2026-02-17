@@ -555,12 +555,16 @@ class StudyEpoch(USDMEntity):
             name_lower = self.name.lower()
             if "screen" in name_lower:
                 result["type"] = Code.make("C48262", "Trial Screening").to_dict()
-            elif "treatment" in name_lower or "intervention" in name_lower:
-                result["type"] = Code.make("C101526", "Treatment Epoch").to_dict()
-            elif "follow" in name_lower:
-                result["type"] = Code.make("C99158", "Clinical Study Follow-up").to_dict()
             elif "run-in" in name_lower or "runin" in name_lower or "washout" in name_lower:
                 result["type"] = Code.make("C98779", "Run-in Period").to_dict()
+            elif "treatment" in name_lower or "intervention" in name_lower:
+                result["type"] = Code.make("C101526", "Treatment Epoch").to_dict()
+            elif any(kw in name_lower for kw in (
+                "follow", "eos", "end of study", "end of treatment",
+                "early termination", "completion", "close-out",
+                "safety follow", "study closure",
+            )):
+                result["type"] = Code.make("C99158", "Clinical Study Follow-up").to_dict()
             else:
                 result["type"] = Code.make("C101526", "Treatment Epoch").to_dict()
         
@@ -604,12 +608,10 @@ class Activity(USDMEntity):
         result = {
             "id": self._ensure_id(),
             "name": self.name,
+            "label": self.label or self.name,
+            "description": self.description or self.name,
             "instanceType": self.instanceType,
         }
-        if self.label:
-            result["label"] = self.label
-        if self.description:
-            result["description"] = self.description
         if self.notes:
             result["notes"] = [n.to_dict() for n in self.notes]
         if self.definedProcedures:
@@ -656,13 +658,10 @@ class Encounter(USDMEntity):
         result = {
             "id": self._ensure_id(),
             "name": self.name,
+            "label": self.label or self.name,
+            "description": self.description or self.name,
             "instanceType": self.instanceType,
         }
-        
-        if self.description:
-            result["description"] = self.description
-        if self.label:
-            result["label"] = self.label
         
         # type is required - infer from name
         if self.type:
@@ -1020,6 +1019,8 @@ class Objective(USDMEntity):
         result = {
             "id": self._ensure_id(),
             "name": self.name,
+            "label": self.name,
+            "description": self.name,
             "text": self.text,
             "instanceType": self.instanceType,
         }
@@ -1042,6 +1043,8 @@ class Endpoint(USDMEntity):
         result = {
             "id": self._ensure_id(),
             "name": self.name,
+            "label": self.name,
+            "description": self.name,
             "text": self.text,
             "instanceType": self.instanceType,
         }
@@ -1084,6 +1087,8 @@ class Procedure(USDMEntity):
     id: str = ""
     name: str = ""
     description: Optional[str] = None
+    label: Optional[str] = None
+    procedureType: str = "Clinical Procedure"
     code: Optional[Code] = None
     instanceType: str = "Procedure"
     
@@ -1091,12 +1096,15 @@ class Procedure(USDMEntity):
         result = {
             "id": self._ensure_id(),
             "name": self.name,
+            "label": self.label or self.name,
+            "description": self.description or self.name,
+            "procedureType": self.procedureType or "Clinical Procedure",
             "instanceType": self.instanceType,
         }
-        if self.description:
-            result["description"] = self.description
         if self.code:
             result["code"] = self.code.to_dict()
+        else:
+            result["code"] = Code.make("C25218", "Clinical Intervention or Procedure").to_dict()
         return result
 
 
@@ -1617,10 +1625,14 @@ def normalize_usdm_data(data: Dict[str, Any]) -> Dict[str, Any]:
         """Normalize a Code object, optionally preserving nested standardCode."""
         if not obj or not isinstance(obj, dict):
             return obj
-        if "code" in obj:
+        # Detect Code-like objects: have 'code', or have 'decode'+'codeSystem' (LLM
+        # sometimes omits 'code' for non-CDISC codes like ISO, MeSH, UCUM).
+        is_code = "code" in obj or ("decode" in obj and "codeSystem" in obj)
+        if is_code:
+            code_val = obj.get("code") or obj.get("decode", "")
             code = Code(
-                code=obj.get("code", ""),
-                decode=obj.get("decode", obj.get("code", "")),
+                code=code_val,
+                decode=obj.get("decode", code_val),
                 codeSystem=obj.get("codeSystem", "http://www.cdisc.org"),
                 codeSystemVersion=obj.get("codeSystemVersion", "2024-09-27"),
                 id=obj.get("id"),
@@ -1667,6 +1679,8 @@ def normalize_usdm_data(data: Dict[str, Any]) -> Dict[str, Any]:
             name=obj.get("name", ""),
             description=obj.get("description"),
             type=Code.from_dict(obj.get("type")) if obj.get("type") else None,
+            previousId=obj.get("previousId"),
+            nextId=obj.get("nextId"),
         )
         result = epoch.to_dict()
         # Preserve extensionAttributes from epoch reconciliation
@@ -1765,12 +1779,14 @@ def normalize_usdm_data(data: Dict[str, Any]) -> Dict[str, Any]:
                     # AliasCode requires standardCode
                     normalized[key] = normalize_alias_code(value)
                 elif key == "administrableDoseForm" and isinstance(value, dict):
-                    # administrableDoseForm requires nested standardCode (USDM 4.0)
-                    if "code" in value and "standardCode" not in value:
-                        # Add standardCode as copy of the Code
+                    # administrableDoseForm is AliasCode per USDM v4.0
+                    if value.get("instanceType") == "AliasCode" and "standardCode" in value:
+                        normalized[key] = walk_and_normalize(value, new_path)
+                    elif "code" in value:
+                        # Legacy Code format → convert to AliasCode
                         code_normalized = normalize_code(value)
                         normalized[key] = {
-                            **code_normalized,
+                            "id": value.get("id", generate_uuid()),
                             "standardCode": {
                                 "id": generate_uuid(),
                                 "code": code_normalized.get("code", ""),
@@ -1778,7 +1794,8 @@ def normalize_usdm_data(data: Dict[str, Any]) -> Dict[str, Any]:
                                 "codeSystemVersion": code_normalized.get("codeSystemVersion", "25.01d"),
                                 "decode": code_normalized.get("decode", ""),
                                 "instanceType": "Code",
-                            }
+                            },
+                            "instanceType": "AliasCode",
                         }
                     else:
                         normalized[key] = walk_and_normalize(value, new_path)

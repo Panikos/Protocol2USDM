@@ -18,6 +18,7 @@ IMPORTANT: All codes verified against the NIH EVS API.
 Run `python tests/verify_evs_codes.py` to re-verify after changes.
 """
 
+import uuid as _uuid
 from typing import Dict, Any
 
 
@@ -29,12 +30,12 @@ from typing import Dict, Any
 OBJECTIVE_LEVEL_CODES: Dict[str, Dict[str, str]] = {
     "primary": {
         "code": "C85826",
-        "decode": "Primary Objective",
+        "decode": "Study Primary Objective",
         "definition": "The main purpose of the trial.",
     },
     "secondary": {
         "code": "C85827", 
-        "decode": "Secondary Objective",
+        "decode": "Study Secondary Objective",
         "definition": "The secondary purpose of the trial.",
     },
     "exploratory": {
@@ -53,17 +54,17 @@ OBJECTIVE_LEVEL_CODES: Dict[str, Dict[str, str]] = {
 ENDPOINT_LEVEL_CODES: Dict[str, Dict[str, str]] = {
     "primary": {
         "code": "C94496",
-        "decode": "Primary Endpoint",
+        "decode": "Study Primary Endpoint",
         "definition": "The outcome measure(s) of greatest importance specified in the protocol.",
     },
     "secondary": {
         "code": "C139173",
-        "decode": "Secondary Endpoint", 
+        "decode": "Study Secondary Endpoint", 
         "definition": "The outcome measure(s) that is part of a pre-specified analysis plan used to evaluate the secondary endpoint(s).",
     },
     "exploratory": {
         "code": "C170559",
-        "decode": "Exploratory Endpoint",
+        "decode": "Study Exploratory Endpoint",
         "definition": "The outcome measure(s) that is part of a pre-specified analysis plan used to evaluate the exploratory endpoint(s).",
     },
 }
@@ -258,6 +259,7 @@ def get_code_object(
     if level_lower not in codes_dict:
         # Return a minimal code object for unknown levels
         return {
+            "id": str(_uuid.uuid4()),
             "code": level,
             "codeSystem": code_system,
             "codeSystemVersion": code_system_version,
@@ -267,6 +269,7 @@ def get_code_object(
     
     info = codes_dict[level_lower]
     return {
+        "id": str(_uuid.uuid4()),
         "code": info["code"],
         "codeSystem": code_system,
         "codeSystemVersion": code_system_version,
@@ -306,6 +309,7 @@ def get_study_identifier_type(identifier_text: str) -> Dict[str, Any]:
     if not identifier_text:
         info = STUDY_IDENTIFIER_TYPE_CODES["sponsor"]
         return {
+            "id": str(_uuid.uuid4()),
             "code": info["code"],
             "codeSystem": "http://www.cdisc.org",
             "codeSystemVersion": "2024-09-27",
@@ -319,6 +323,7 @@ def get_study_identifier_type(identifier_text: str) -> Dict[str, Any]:
     if re.match(r'^NCT\d+$', text, re.IGNORECASE):
         info = STUDY_IDENTIFIER_TYPE_CODES["nct"]
         return {
+            "id": str(_uuid.uuid4()),
             "code": info["code"],
             "codeSystem": "http://www.cdisc.org",
             "codeSystemVersion": "2024-09-27",
@@ -330,6 +335,7 @@ def get_study_identifier_type(identifier_text: str) -> Dict[str, Any]:
     if re.match(r'^\d{4}-\d{6}-\d{2}$', text):
         info = STUDY_IDENTIFIER_TYPE_CODES["eudract"]
         return {
+            "id": str(_uuid.uuid4()),
             "code": info["code"],
             "codeSystem": "http://www.cdisc.org",
             "codeSystemVersion": "2024-09-27",
@@ -341,6 +347,7 @@ def get_study_identifier_type(identifier_text: str) -> Dict[str, Any]:
     if re.match(r'^\d{5,6}$', text):
         info = STUDY_IDENTIFIER_TYPE_CODES["ind"]
         return {
+            "id": str(_uuid.uuid4()),
             "code": info["code"],
             "codeSystem": "http://www.cdisc.org",
             "codeSystemVersion": "2024-09-27",
@@ -351,6 +358,7 @@ def get_study_identifier_type(identifier_text: str) -> Dict[str, Any]:
     # Default to Sponsor Protocol Identifier
     info = STUDY_IDENTIFIER_TYPE_CODES["sponsor"]
     return {
+        "id": str(_uuid.uuid4()),
         "code": info["code"],
         "codeSystem": "http://www.cdisc.org",
         "codeSystemVersion": "2024-09-27",

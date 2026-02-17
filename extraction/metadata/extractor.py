@@ -198,7 +198,7 @@ def _parse_metadata_response(raw: Dict[str, Any]) -> Optional[StudyMetadata]:
         for i, org_data in enumerate(raw.get('organizations') or []):
             if isinstance(org_data, dict) and org_data.get('name'):
                 org_id = f"org_{i+1}"
-                org_type = _map_org_type(org_data.get('type', 'Pharmaceutical Company'))
+                org_type = _map_org_type(org_data.get('type', 'Pharmaceutical Company'), org_name=org_data['name'])
                 # H1: Parse sponsor address if present
                 addr = raw.get('sponsorAddress', {})
                 addr_city = None
@@ -331,6 +331,9 @@ def _parse_metadata_response(raw: Dict[str, Any]) -> Optional[StudyMetadata]:
         sponsor_approval_date = gov_dates.get('sponsorApprovalDate') if isinstance(gov_dates, dict) else None
         original_protocol_date = gov_dates.get('originalProtocolDate') if isinstance(gov_dates, dict) else None
         
+        # G1: Extract planned enrollment number from synopsis
+        planned_enrollment = _parse_enrollment_from_metadata(raw.get('plannedEnrollmentNumber'))
+        
         # L1: Extract reference identifiers
         ref_ids = []
         for ref in (raw.get('referenceIdentifiers') or []):
@@ -365,11 +368,40 @@ def _parse_metadata_response(raw: Dict[str, Any]) -> Optional[StudyMetadata]:
             sponsor_approval_date=sponsor_approval_date,
             original_protocol_date=original_protocol_date,
             reference_identifiers=ref_ids,
+            planned_enrollment_number=planned_enrollment,
         )
         
     except Exception as e:
         logger.error(f"Failed to parse metadata response: {e}")
         return None
+
+
+def _parse_enrollment_from_metadata(raw_val) -> Optional[int]:
+    """Parse enrollment number from various LLM formats.
+    
+    Handles: 200, "200", "approximately 200", {"maxValue": 200}, "~200", null
+    """
+    if raw_val is None:
+        return None
+    if isinstance(raw_val, (int, float)) and raw_val > 0:
+        return int(raw_val)
+    if isinstance(raw_val, dict):
+        v = raw_val.get('maxValue', raw_val.get('value'))
+        if v is not None:
+            return _parse_enrollment_from_metadata(v)
+        return None
+    if isinstance(raw_val, str):
+        raw_val = raw_val.strip()
+        if not raw_val or raw_val.lower() in ('null', 'none', 'n/a', 'unknown'):
+            return None
+        # Extract first number from string like "approximately 200" or "~200"
+        match = re.search(r'(\d[\d,]*)', raw_val)
+        if match:
+            try:
+                return int(match.group(1).replace(',', ''))
+            except ValueError:
+                pass
+    return None
 
 
 def _map_title_type(type_str: str) -> TitleType:
@@ -388,8 +420,23 @@ def _map_title_type(type_str: str) -> TitleType:
     return TitleType.OFFICIAL
 
 
-def _map_org_type(type_str: str) -> OrganizationType:
-    """Map string to OrganizationType enum."""
+def _map_org_type(type_str: str, org_name: str = "") -> OrganizationType:
+    """Map string to OrganizationType enum.
+    
+    Uses both the explicit type string AND the organization name to infer
+    the correct type.  Known clinical trial registries are detected by name
+    so the LLM type string doesn't need to be perfect.
+    """
+    # Check org name for known registries first (overrides LLM type string)
+    if org_name:
+        name_lower = org_name.lower()
+        _REGISTRY_NAMES = [
+            'clinicaltrials.gov', 'ct.gov', 'eudract', 'isrctn',
+            'who ictrp', 'ctis', 'anzctr', 'chictr', 'jprn',
+        ]
+        if any(rn in name_lower for rn in _REGISTRY_NAMES):
+            return OrganizationType.REGISTRY
+    
     if not type_str:
         return OrganizationType.PHARMACEUTICAL_COMPANY
     type_lower = str(type_str).lower()

@@ -486,7 +486,8 @@ def extract_footnote_conditions(
     if use_llm and conditions:
         try:
             llm_conditions = _extract_conditions_llm(
-                [c.text for c in conditions], model
+                [c.text for c in conditions], model,
+                existing_activities=existing_activities,
             )
             conditions = _merge_conditions(conditions, llm_conditions)
         except Exception as e:
@@ -509,11 +510,23 @@ def extract_footnote_conditions(
 def _extract_conditions_llm(
     footnotes: List[str],
     model: str,
+    existing_activities: Optional[List[Dict[str, Any]]] = None,
 ) -> List[FootnoteCondition]:
     """Extract structured conditions using LLM."""
     from core.llm_client import call_llm
     
     footnotes_text = "\n".join([f"{i+1}. {fn}" for i, fn in enumerate(footnotes)])
+    
+    # Build activity name constraint block
+    activity_constraint = ""
+    if existing_activities:
+        act_names = [a.get('name', '') for a in existing_activities if a.get('name')]
+        if act_names:
+            names_list = "\n".join(f"- {n}" for n in act_names)
+            activity_constraint = (
+                f"\n## Available SoA Activity Names (use ONLY these exact names in appliesToActivities):\n"
+                f"{names_list}\n"
+            )
     
     prompt = f"""Analyze these clinical trial SoA footnotes and extract structured conditions.
 
@@ -522,7 +535,7 @@ For each footnote, identify:
 2. Structured condition expression (machine-readable)
 3. Any timing constraints (ISO 8601 duration)
 4. Which activities/timepoints it applies to
-
+{activity_constraint}
 Return JSON:
 ```json
 {{

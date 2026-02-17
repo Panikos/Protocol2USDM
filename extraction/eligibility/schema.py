@@ -78,9 +78,12 @@ class EligibilityCriterion:
             "id": self.id,
             "identifier": self.identifier,
             "category": {
-                "code": self.category.value,
-                "codeSystem": "USDM",
-                "decode": self.category.value,
+                "id": generate_uuid(),
+                "code": "C25532" if self.category == CriterionCategory.INCLUSION else "C25370",
+                "codeSystem": "http://www.cdisc.org",
+                "codeSystemVersion": "2024-09-27",
+                "decode": "Inclusion Criteria" if self.category == CriterionCategory.INCLUSION else "Exclusion Criteria",
+                "instanceType": "Code",
             },
             "criterionItemId": self.criterion_item_id,
             "instanceType": self.instance_type,
@@ -197,12 +200,14 @@ class StudyDesignPopulation:
             }
             result["plannedAge"] = age_range
         # USDM v4.0: plannedSex is Code[] (up to 2)
+        # SDTM codelist C66732: C20197=Male, C16576=Female
+        _SEX_C_CODES = {"Male": "C20197", "Female": "C16576"}
         if self.planned_sex:
             result["plannedSex"] = [
                 {
                     "id": generate_uuid(),
-                    "code": s,
-                    "codeSystem": "http://www.cdisc.org/USDM/sex",
+                    "code": _SEX_C_CODES.get(s, s),
+                    "codeSystem": "http://www.cdisc.org",
                     "codeSystemVersion": "2024-09-27",
                     "decode": s,
                     "instanceType": "Code",

@@ -58,18 +58,20 @@ class StudyAmendmentImpact:
     instance_type: str = "StudyAmendmentImpact"
     
     def to_dict(self) -> Dict[str, Any]:
-        result = {
+        return {
             "id": self.id,
-            "amendmentId": self.amendment_id,
-            "affectedSection": self.affected_section,
-            "impactLevel": self.impact_level.value,
+            "type": {
+                "id": generate_uuid(),
+                "code": "C17649",
+                "codeSystem": "http://www.cdisc.org",
+                "codeSystemVersion": "2024-09-27",
+                "decode": self.impact_level.value or "Other",
+                "instanceType": "Code",
+            },
+            "text": self.description or self.affected_section or "Amendment impact",
+            "isSubstantial": self.impact_level in (ImpactLevel.MAJOR,),
             "instanceType": self.instance_type,
         }
-        if self.description:
-            result["description"] = self.description
-        if self.affected_entity_ids:
-            result["affectedEntityIds"] = self.affected_entity_ids
-        return result
 
 
 @dataclass
@@ -88,10 +90,15 @@ class StudyAmendmentReason:
     def to_dict(self) -> Dict[str, Any]:
         return {
             "id": self.id,
-            "amendmentId": self.amendment_id,
-            "reasonText": self.reason_text,
-            "category": self.category.value,
-            "isPrimary": self.is_primary,
+            "code": {
+                "id": generate_uuid(),
+                "code": "C17649",
+                "codeSystem": "http://www.cdisc.org",
+                "codeSystemVersion": "2024-09-27",
+                "decode": self.category.value or "Other",
+                "instanceType": "Code",
+            },
+            "otherReason": self.reason_text,
             "instanceType": self.instance_type,
         }
 
@@ -112,21 +119,16 @@ class StudyChange:
     instance_type: str = "StudyChange"
     
     def to_dict(self) -> Dict[str, Any]:
-        result = {
+        name = self.summary or f"{self.change_type.value} in {self.section_number or 'protocol'}"
+        rationale = self.after_text or self.before_text or name
+        sections = [self.section_number] if self.section_number else ["N/A"]
+        return {
             "id": self.id,
-            "amendmentId": self.amendment_id,
-            "changeType": self.change_type.value,
+            "name": name,
+            "rationale": rationale,
+            "changedSections": sections,
             "instanceType": self.instance_type,
         }
-        if self.section_number:
-            result["sectionNumber"] = self.section_number
-        if self.before_text:
-            result["beforeText"] = self.before_text
-        if self.after_text:
-            result["afterText"] = self.after_text
-        if self.summary:
-            result["summary"] = self.summary
-        return result
 
 
 @dataclass

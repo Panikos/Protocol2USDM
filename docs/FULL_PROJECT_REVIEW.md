@@ -1,6 +1,6 @@
 # Protocol2USDM — Full Project Review
 
-**Date**: February 2026 (updated 2026-02-10 with external reviewer findings)
+**Date**: February 2026 (updated 2026-02-17 with v7.16 changes)
 **Scope**: Complete codebase review covering all modules except web-ui (covered separately in `docs/WEB_UI_REVIEW.md`)
 **Methodology**: Deep-read of every module's source code, architecture analysis, cross-module dependency tracing
 **External review**: Two independent reviewers validated findings. New items marked with ⚠️ EXT
@@ -46,8 +46,8 @@ Protocol2USDM is a sophisticated AI-powered pipeline that transforms clinical pr
 | USDM entity types modeled | 86 (from dataStructure.yml) |
 | M11 sections covered | 14 (all) |
 | Reconciliation systems | 3 (epoch, encounter, activity) |
-| Test files | 18 unit + 5 integration/benchmark |
-| Lines in orchestrator.py | 1,692 |
+| Test files | 35+ unit + 5 integration/benchmark |
+| Lines in orchestrator.py | 332 (after decomposition) |
 
 ---
 
@@ -242,7 +242,7 @@ This is the most complex extraction subsystem — 17 specialized sub-extractors 
 
 ### 2.3 pipeline/
 
-**Files reviewed**: `orchestrator.py` (1,692 lines), `base_phase.py` (251 lines), `phase_registry.py` (78 lines), `phases/` (13 files)
+**Files reviewed**: `orchestrator.py` (332 lines), `combiner.py` (420 lines), `integrations.py` (289 lines), `post_processing.py` (~810 lines), `promotion.py` (260 lines), `base_phase.py` (251 lines), `phase_registry.py` (78 lines), `regression_gate.py`, `integrity.py`, `phases/` (14 files)
 
 #### 2.3.1 Registry Pattern
 
@@ -295,7 +295,7 @@ This is the **single most critical function** in the entire codebase.
 
 ### 2.4 rendering/
 
-**Files reviewed**: `m11_renderer.py` (2,227 lines)
+**Files reviewed**: `m11_renderer.py` (1,075 lines), `composers.py` (836 lines), `tables.py` (375 lines)
 
 #### 2.4.1 M11 DOCX Renderer
 
@@ -309,7 +309,7 @@ This is the **single most critical function** in the entire codebase.
 - `M11RenderResult` tracks sections rendered, sections with content, and total words
 
 **Weaknesses**:
-- **W-R1**: Single 2,227-line file. The renderer, composers, style setup, and section mapper are all in one file. Extracting composers into separate modules would improve maintainability
+- **W-R1**: ✅ FIXED — Split into 3 focused modules: `m11_renderer.py` (1,075 lines), `composers.py` (836 lines), `tables.py` (375 lines)
 - **W-R2**: ✅ FIXED — SoA table now renders in DOCX with group separators, header shading, column widths, empty-activity filtering, and repeat-header-on-page-break
 - **W-R3**: No configurable template — the document styling is hardcoded. Sponsors may have their own protocol templates with different headers, footers, and branding
 - **W-R4**: Heading level determination uses dot-counting in section numbers, which fails for non-standard numbering (e.g., appendix sub-sections)
@@ -457,7 +457,7 @@ This is the **single most critical function** in the entire codebase.
 
 #### 2.10.2 Unit Tests (`tests/`)
 
-**Coverage**: 18 test files covering core modules, execution model, reconciliation, LLM providers, normalization, M11 regression, processing, prompt quality, provenance, viewer load, and EVS codes.
+**Coverage**: 35+ test files covering core modules, execution model, reconciliation, LLM providers, normalization, M11 regression, processing, prompt quality, provenance, viewer load, and EVS codes.
 
 **Strengths**:
 - `test_execution_model.py` at 76,695 bytes is comprehensive
@@ -561,8 +561,8 @@ SAP and sites extraction bypass the phase registry, losing parallel execution, d
 #### W-HIGH-3: ✅ FIXED — Provenance for Expansion Phases
 All expansion phases now auto-capture provenance (phase, model, timing, entity counts, confidence) via `PhaseProvenance` in `BasePhase.run()`. Aggregated to `extraction_provenance.json` by `PipelineOrchestrator.save_provenance()`.
 
-#### W-HIGH-4: Mutable Global State
-`phase_registry`, `usage_tracker`, and EVS `_client` singleton are mutable module-level globals. This makes testing difficult and creates hidden coupling.
+#### W-HIGH-4: ✅ FIXED — Mutable Global State
+`phase_registry` → `create_registry()` + `PhaseRegistry.reset()`. `usage_tracker` → `create_tracker()` + `set_usage_tracker()`. EVS `_client` → `set_client()` + `reset_client()`. All three singletons now injectable for test isolation.
 
 ### Medium (Improvement Opportunities)
 

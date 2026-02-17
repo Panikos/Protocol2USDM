@@ -4,6 +4,106 @@ All notable changes documented here. Dates in ISO-8601.
 
 ---
 
+## [7.16.0] – 2026-02-17
+
+### USDM v4.0 Endpoint Nesting
+
+Endpoints are now correctly nested inline inside `Objective.endpoints` per the USDM v4.0 schema (Value relationship), instead of being placed at the design level.
+
+| Area | Change |
+|------|--------|
+| **`pipeline/phases/objectives.py`** | `ObjectivesPhase.combine()` nests endpoints inside objectives via `endpointIds` mapping; stores flat `_temp_endpoints` in combined dict for cross-referencing |
+| **`pipeline/regression_gate.py`** | Endpoint counting updated to sum from `objective.endpoints[]` instead of design-level list |
+| **`rendering/composers.py`** | `_compose_objectives()` reads from `endpoints` (USDM v4.0) with `objectiveEndpoints` fallback |
+| **`core/core_compliance.py`** | `_fix_primary_endpoint_linkage()` updated for nested structure |
+| **`pipeline/post_processing.py`** | `fix_primary_endpoint_linkage()` updated for nested structure |
+
+### ExtensionAttribute USDM v4.0 Alignment
+
+Per USDM v4.0 `dataStructure.yml`, `ExtensionAttribute` uses `url` as its semantic identifier — the non-schema `name` field has been removed from all creation sites.
+
+| Area | Change |
+|------|--------|
+| **`extraction/execution/pipeline_integration.py`** | Removed `"name"` from `_create_extension_attribute()` |
+| **`core/reconciliation/base.py`** | Removed `"name"` from 5 extension creation blocks in `_add_extension_attributes()` |
+| **`pipeline/post_processing.py`** | Removed `"name"` from UNS encounter + SDI extension dicts |
+| **`core/core_compliance.py`** | `name` excluded from `_USDM_ALLOWED_KEYS["ExtensionAttribute"]` — strip filter catches any remaining |
+
+### Architectural Audit: core_compliance.py Cleanup
+
+Comprehensive audit of `core/core_compliance.py` to identify late-stage workarounds that should be fixed upstream. Relocated fixes to correct architectural layers.
+
+| Fix | Before (safety-net) | After (upstream) |
+|-----|---------------------|-----------------|
+| **Labels (399 fixes)** | `_walk_populate_labels()` copied `name→label` | `ReconciledEntity._base_usdm_dict()` now emits `label`/`description`; 4 SAI creation sites in `execution_model_promoter.py` fixed |
+| **Procedure defaults** | `_walk_fix_procedure_defaults()` added `procedureType`/`code` | Both `extraction/procedures/schema.py` and `core/usdm_types_generated.py` `Procedure.to_dict()` now emit defaults |
+| **Dead structural code (~210 lines)** | `_build_ordering_chains()`, `_fix_primary_endpoint_linkage()`, `_fix_timing_references()` defined but never called | Removed — these live correctly in `pipeline/post_processing.py` |
+| **File reduction** | 714 lines | 504 lines |
+
+**Remaining safety-nets** (legitimate): codeSystem normalization (~4), ID generation (~11), XHTML sanitization (~9), strip non-USDM properties (LLM noise).
+
+### New Files
+
+| File | Purpose |
+|------|---------|
+| **`core/core_compliance.py`** | CORE compliance safety-net (codeSystem, IDs, labels, XHTML, strip) |
+| **`pipeline/regression_gate.py`** | Pre-commit structural quality checks |
+| **`extraction/enrollment_finder.py`** | Keyword-guided enrollment extraction (G1) |
+| **`tests/test_core_compliance.py`** | CORE compliance tests (sort keys, ordering chains, endpoint linkage, labels, strip) |
+| **`tests/test_regression_gate.py`** | Regression gate tests |
+
+### Test Results
+
+| Check | Result |
+|-------|--------|
+| Full test suite | **1136 collected**, 1087 passed, 36 skipped (e2e), 0 failures |
+
+---
+
+## [7.15.0] – 2026-02-16
+
+### Review Fix Sprint (B1–B9)
+
+Systematic remediation of all findings from the Wilson protocol quality review.
+
+| ID | Issue | Fix |
+|----|-------|-----|
+| **B1** | Phantom activity UUIDs in execution model | Improved LLM prompts with reconciled activity list context; `_nullify_orphan_refs()` fallback |
+| **B3** | Name-string activity references | `resolve_name_as_id_references()` for substance/element name→ID resolution |
+| **B4** | Empty `plannedEnrollmentNumber` | Cross-phase SAP fallback via `populate_enrollment_from_sap()` (now superseded by G1) |
+| **B5** | Empty analysis population descriptions | Auto-populate `description` from `text`/`populationDescription` in SAP phase |
+| **B6** | Duplicate "Vital Signs" activities | Extended `CLINICAL_SYNONYMS` in activity reconciler for vitals variants |
+| **B7** | ClinicalTrials.gov org type wrong | `_map_org_type()` now checks known registry names before type-string matching |
+| **B8** | Missing `StudyCell` arm×epoch combos | Gap-fill logic in `_apply_defaults()` creates placeholder cells for missing combinations |
+| **B9** | Orphan `scopeId` / `exitEpochIds` | `clean_orphan_cross_refs()` nullifies refs to non-existent organizations and epochs |
+
+### G1: Keyword-Guided Enrollment Extraction
+
+New two-stage enrollment extraction: regex keyword search finds relevant pages/passages across the full PDF, then a focused LLM call extracts the precise number from those targeted passages.
+
+| Component | Details |
+|-----------|---------|
+| **`extraction/enrollment_finder.py`** | New module: `find_enrollment_passages()` (keyword scan) + `extract_enrollment_from_passages()` (focused LLM) + `find_planned_enrollment()` (convenience API) |
+| **4-tier fallback** | Protocol PDF keyword→LLM → SAP PDF keyword→LLM → SAP extension `targetSampleSize` → Metadata LLM synopsis |
+| **Metadata prompt** | Also asks for enrollment from synopsis (Tier 4 backup, zero extra LLM cost) |
+| **`enrich_enrollment_number()`** | Replaces `populate_enrollment_from_sap()` in `post_processing.py` |
+
+### Additional Improvements
+
+| Area | Change |
+|------|--------|
+| **`core/core_compliance.py`** | Safety-net fallback codeSystem normalization, ID generation, label population |
+| **`pipeline/regression_gate.py`** | Pre-commit regression gate for structural quality checks |
+| **Debug scripts** | 15+ new scripts in `scripts/debug/` for protocol analysis |
+
+### Test Results
+
+| Check | Result |
+|-------|--------|
+| Full test suite | **1100 passed**, 36 skipped, 0 failures |
+
+---
+
 ## [7.14.0] – 2026-02-14
 
 ### Integrity Checker Final Warning Cleanup

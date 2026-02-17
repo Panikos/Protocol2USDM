@@ -580,11 +580,16 @@ def validate_and_fix_schema(
     logger.info("USDM v4.0 Schema Validation Pipeline")
     logger.info("=" * 60)
     
-    # Step 1: Normalize data using dataclass auto-population
+    # Step 1a: Normalize data using dataclass auto-population
     # This leverages type inference in Encounter, StudyArm, Epoch, Code objects
     logger.info("\n[1/3] Normalizing entities (type inference)...")
     data = normalize_usdm_data(data)
     logger.info("      ✓ Applied type inference to Encounters, Epochs, Arms, Codes")
+    
+    # Step 1b: CORE compliance normalization
+    # Fixes codeSystem URIs, generates missing IDs, populates labels, sanitizes XHTML
+    from core.core_compliance import normalize_for_core_compliance
+    data, compliance_stats = normalize_for_core_compliance(data)
     
     # Step 2: Convert IDs to UUIDs (USDM 4.0 requirement)
     id_map = {}

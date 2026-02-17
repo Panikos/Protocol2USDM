@@ -106,6 +106,11 @@ Examples:
     conditional_group.add_argument("--sap", type=str, metavar="PATH", help="Path to SAP PDF")
     conditional_group.add_argument("--sites", type=str, metavar="PATH", help="Path to site list (CSV/Excel)")
 
+    # Regression gate
+    regression_group = parser.add_argument_group('Regression Gate')
+    regression_group.add_argument("--baseline", type=str, metavar="DIR",
+                                  help="Previous output directory for entity count regression comparison")
+
     # CDISC CORE engine
     core_group = parser.add_argument_group('CDISC CORE Engine')
     core_group.add_argument("--core", choices=["windows", "linux", "mac"],
@@ -311,6 +316,13 @@ def _combine_validate_and_render(args, output_dir, soa_data, expansion_results, 
         prov_path = os.path.join(output_dir, "protocol_usdm_provenance.json")
         if os.path.exists(prov_path):
             logger.info("  ✓ Provenance file: protocol_usdm_provenance.json")
+
+        # Save entity stats and run regression gate
+        from pipeline.regression_gate import save_entity_stats, check_regression
+        entity_stats = save_entity_stats(fixed_data, output_dir)
+        baseline_dir = getattr(args, 'baseline', None)
+        if baseline_dir:
+            check_regression(entity_stats, baseline_dir)
 
         combined_data = fixed_data
 

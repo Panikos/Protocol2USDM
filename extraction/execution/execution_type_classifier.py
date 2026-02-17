@@ -340,7 +340,7 @@ def classify_execution_types(
     # LLM enhancement
     if use_llm and len(text) > 100:
         try:
-            llm_assignments = _classify_with_llm(text, model)
+            llm_assignments = _classify_with_llm(text, model, activities=activities)
             assignments = _merge_assignments(assignments, llm_assignments)
         except Exception as e:
             logger.warning(f"LLM classification failed: {e}")
@@ -412,9 +412,24 @@ def _detect_common_activities(text: str) -> List[str]:
     return detected
 
 
-def _classify_with_llm(text: str, model: str) -> List[ExecutionTypeAssignment]:
+def _classify_with_llm(
+    text: str,
+    model: str,
+    activities: Optional[List[Dict[str, Any]]] = None,
+) -> List[ExecutionTypeAssignment]:
     """Use LLM for execution type classification."""
     from core.llm_client import call_llm
+    
+    # Build activity name constraint block
+    activity_constraint = ""
+    if activities:
+        act_names = [a.get('name', '') for a in activities if a.get('name')]
+        if act_names:
+            names_list = "\n".join(f"- {n}" for n in act_names)
+            activity_constraint = (
+                f"\n## Available SoA Activity Names (use ONLY these exact names as activityName):\n"
+                f"{names_list}\n"
+            )
     
     prompt = f"""Analyze this clinical protocol and classify the DATA COLLECTION ACTIVITIES by execution type:
 
@@ -423,7 +438,7 @@ EXECUTION TYPES:
 - EPISODE: Ordered conditional workflow with decision points (e.g., "if glucose < 70, administer glucagon", "until target reached")
 - SINGLE: One-time assessment (e.g., "at screening only")
 - RECURRING: Scheduled repeats at visits (e.g., "at each study visit")
-
+{activity_constraint}
 Return JSON:
 ```json
 {{

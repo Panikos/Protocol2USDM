@@ -478,7 +478,7 @@ Study:
         ├── population               # Study population
         ├── analysisPopulations[]    # SAP populations
         ├── objectives[]             # Study objectives
-        ├── endpoints[]              # Study endpoints
+        │   └── endpoints[]          # Endpoints (inline, Value relationship)
         ├── activities[]             # Study activities
         │   └── definedProcedures[]  # Procedures per activity
         ├── encounters[]             # Study visits
@@ -506,6 +506,7 @@ Study:
 | `studyInterventions` | `studyVersion` | ~~studyDesign~~ |
 | `indications` | `studyDesign` | ~~study~~ |
 | `analysisPopulations` | `studyDesign` | ~~root~~ |
+| `endpoints` | `objective` (inline) | ~~studyDesign~~ |
 | `timings` | `scheduleTimeline` | ~~root~~ |
 | `exits` | `scheduleTimeline` | ~~root~~ |
 | `definedProcedures` | `activity` | ~~root~~ |

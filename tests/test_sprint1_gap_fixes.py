@@ -181,7 +181,8 @@ class TestH5EndpointPurpose:
         combined = {}
         result = _make_objectives_result([("PFS", "PRIMARY")])
         phase.combine(result, sv, sd, combined, {})
-        eps = sd["endpoints"]
+        # Endpoints are now nested inside objectives per USDM v4.0
+        eps = combined["_temp_endpoints"]
         assert len(eps) == 1
         assert eps[0]["purpose"] == "Efficacy"
 
@@ -193,7 +194,7 @@ class TestH5EndpointPurpose:
         combined = {}
         result = _make_objectives_result([("ORR", "SECONDARY")])
         phase.combine(result, sv, sd, combined, {})
-        assert sd["endpoints"][0]["purpose"] == "Efficacy"
+        assert combined["_temp_endpoints"][0]["purpose"] == "Efficacy"
 
     def test_exploratory_endpoint_gets_exploratory(self):
         from pipeline.phases.objectives import ObjectivesPhase
@@ -203,7 +204,7 @@ class TestH5EndpointPurpose:
         combined = {}
         result = _make_objectives_result([("Biomarker", "EXPLORATORY")])
         phase.combine(result, sv, sd, combined, {})
-        assert sd["endpoints"][0]["purpose"] == "Exploratory"
+        assert combined["_temp_endpoints"][0]["purpose"] == "Exploratory"
 
     def test_existing_purpose_not_overwritten(self):
         from pipeline.phases.objectives import _default_endpoint_purpose
@@ -231,7 +232,7 @@ class TestH5EndpointPurpose:
         combined = {}
         prev = {
             "objectives": {
-                "objectives": {"objectives": [{"id": "o1"}], "endpoints": [
+                "objectives": {"objectives": [{"id": "o1", "endpointIds": ["ep1", "ep2"]}], "endpoints": [
                     {"id": "ep1", "level": {"decode": "Primary Endpoint"}},
                     {"id": "ep2", "level": {"decode": "Secondary Endpoint"}, "purpose": "Safety"},
                 ]}
@@ -239,7 +240,7 @@ class TestH5EndpointPurpose:
         }
         result = PhaseResult(success=False)
         phase.combine(result, sv, sd, combined, prev)
-        eps = sd.get("endpoints", [])
+        eps = combined.get("_temp_endpoints", [])
         assert eps[0]["purpose"] == "Efficacy"
         assert eps[1]["purpose"] == "Safety"  # not overwritten
 

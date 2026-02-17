@@ -842,6 +842,12 @@ class TestStateMachineGenerator:
         transitions = _detect_transitions_from_text(text, states)
         assert len(transitions) > 0
         
+    def test_sanitize_key_strips_parentheses(self):
+        from extraction.execution.state_machine_generator import _sanitize_key
+        assert _sanitize_key("Premature treatment discontinuation visit (PTDV)") == "Premature_treatment_discontinuation_visit_PTDV"
+        assert _sanitize_key("Study closure visit (SCV)") == "Study_closure_visit_SCV"
+        assert _sanitize_key(StateType.SCREENING) == "Screening"
+
     def test_build_from_traversal(self):
         tc = TraversalConstraint(
             id="tc_1",

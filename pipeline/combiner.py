@@ -11,6 +11,7 @@ from datetime import datetime
 import json
 import os
 import logging
+import re
 import uuid
 
 from .phase_registry import phase_registry
@@ -19,8 +20,10 @@ from .integrations import (
     resolve_content_references,
     reconcile_estimand_population_refs,
 )
+from extraction.execution.pipeline_integration import resolve_execution_model_references, emit_placeholder_activities
 from .post_processing import (
     run_reconciliation,
+    run_structural_compliance,
     filter_enrichment_epochs,
     tag_unscheduled_encounters,
     promote_unscheduled_to_decisions,
@@ -32,6 +35,7 @@ from .post_processing import (
     link_cohorts_to_population,
     add_soa_footnotes,
     validate_anchor_consistency,
+    resolve_name_as_id_references,
 )
 from .promotion import promote_extensions_to_usdm
 from core.constants import SYSTEM_NAME, VERSION
@@ -115,6 +119,7 @@ def combine_to_full_usdm(
         "generatedAt": datetime.now().isoformat(),
         "generator": f"{SYSTEM_NAME} v{VERSION}",
         "_output_dir": output_dir,  # Temp: used by SAP phase for ARS generation, stripped before save
+        "_pdf_path": pdf_path,  # Temp: used by enrollment finder, stripped before save
         "study": {
             "id": "study_1",
             "instanceType": "Study",
@@ -244,8 +249,37 @@ def combine_to_full_usdm(
                 # Filter epochs added by enrichment
                 combined = filter_enrichment_epochs(combined, soa_data)
     
+    # Snapshot pre-reconciliation activity IDs for old→new mapping
+    pre_recon_activities = {
+        a.get('id'): a.get('name', '').lower().strip()
+        for a in study_design.get('activities', [])
+        if a.get('id') and a.get('name')
+    }
+    
     # Run reconciliation
     combined = run_reconciliation(combined, expansion_results, soa_data)
+    
+    # Build old→new activity ID mapping after reconciliation
+    post_recon_name_to_id = {}
+    for a in study_design.get('activities', []):
+        name = a.get('name', '').lower().strip()
+        if name:
+            post_recon_name_to_id[name] = a.get('id')
+            post_recon_name_to_id[re.sub(r'[^a-z0-9]', '', name)] = a.get('id')
+    
+    old_to_new_activity_ids = {}
+    for old_id, old_name in pre_recon_activities.items():
+        if old_name in post_recon_name_to_id:
+            new_id = post_recon_name_to_id[old_name]
+            if new_id != old_id:
+                old_to_new_activity_ids[old_id] = new_id
+        else:
+            # Try normalized match
+            norm = re.sub(r'[^a-z0-9]', '', old_name)
+            if norm in post_recon_name_to_id:
+                new_id = post_recon_name_to_id[norm]
+                if new_id != old_id:
+                    old_to_new_activity_ids[old_id] = new_id
     
     # Tag unscheduled encounters (safety net for UNS visits)
     combined = tag_unscheduled_encounters(combined)
@@ -265,6 +299,14 @@ def combine_to_full_usdm(
     # Add SoA footnotes from header
     add_soa_footnotes(study_design, output_dir)
     
+    # Resolve execution model refs AFTER reconciliation + footnotes exist
+    try:
+        ref_stats = resolve_execution_model_references(
+            study_design, old_to_new_ids=old_to_new_activity_ids
+        )
+    except Exception as e:
+        logger.warning(f"Post-reconciliation extension ref resolution failed: {e}")
+    
     # Link interventions entities (H8, H9, H10)
     combined = link_administrations_to_products(combined)
     combined = nest_ingredients_in_products(combined)
@@ -276,11 +318,23 @@ def combine_to_full_usdm(
     # Validate anchor consistency against SoA encounters
     combined = validate_anchor_consistency(combined, expansion_results)
     
+    # Resolve name-as-ID references (substanceId, fromElementId, toElementId)
+    resolve_name_as_id_references(combined)
+    
+    # Structural CORE compliance (ordering chains, endpoint linkage, timing refs)
+    combined = run_structural_compliance(combined)
+    
     # Promote extension data back into core USDM entities
     promote_extensions_to_usdm(combined)
     
     # Strip internal temp keys before saving
     combined.pop("_output_dir", None)
+    combined.pop("_pdf_path", None)
+    combined.pop("_temp_planned_enrollment", None)
+    # Amendment detail entities are now embedded inline (A3 fix)
+    combined.pop("studyAmendmentReasons", None)
+    combined.pop("studyAmendmentImpacts", None)
+    combined.pop("studyChanges", None)
     
     # Save combined output
     output_path = os.path.join(output_dir, "protocol_usdm.json")
@@ -352,6 +406,12 @@ def _apply_defaults(study_version: dict, study_design: dict, combined: dict, pdf
     elif "includesHealthySubjects" not in study_design["population"]:
         study_design["population"]["includesHealthySubjects"] = False
     
+    # Link eligibility criteria to population (CORE-001018)
+    criteria = study_design.get("eligibilityCriteria", [])
+    population = study_design.get("population", {})
+    if criteria and population and "criterionIds" not in population:
+        population["criterionIds"] = [c["id"] for c in criteria if c.get("id")]
+    
     # Default arms
     if "arms" not in study_design or not study_design["arms"]:
         study_design["arms"] = [{
@@ -422,6 +482,31 @@ def _apply_defaults(study_version: dict, study_design: dict, combined: dict, pdf
                 "elementIds": [],
                 "instanceType": "StudyCell"
             }]
+    
+    # B8: Fill in missing arm×epoch combinations when cells exist but are incomplete
+    existing_cells = study_design.get("studyCells", [])
+    if existing_cells:
+        existing_combos = {
+            (c.get("armId"), c.get("epochId")) for c in existing_cells
+        }
+        arms = study_design.get("arms", [])
+        epochs = study_design.get("epochs", [])
+        gap_count = 0
+        for arm in arms:
+            arm_id = arm.get("id", "")
+            for epoch in epochs:
+                epoch_id = epoch.get("id", "") if isinstance(epoch, dict) else getattr(epoch, 'id', '')
+                if arm_id and epoch_id and (arm_id, epoch_id) not in existing_combos:
+                    existing_cells.append({
+                        "id": f"cell_{arm_id}_{epoch_id}",
+                        "armId": arm_id,
+                        "epochId": epoch_id,
+                        "elementIds": [],
+                        "instanceType": "StudyCell"
+                    })
+                    gap_count += 1
+        if gap_count:
+            logger.info(f"  ✓ Added {gap_count} missing StudyCell(s) for arm×epoch gaps")
     
     # Default model
     if "model" not in study_design:

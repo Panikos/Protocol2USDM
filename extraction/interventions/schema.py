@@ -90,6 +90,16 @@ class Substance:
         result = {
             "id": self.id,
             "name": self.name,
+            "strengths": [{
+                "id": generate_uuid(),
+                "name": "Not specified",
+                "numerator": {
+                    "id": generate_uuid(),
+                    "value": 0,
+                    "instanceType": "Quantity",
+                },
+                "instanceType": "Strength",
+            }],
             "instanceType": self.instance_type,
         }
         if self.description:
@@ -259,13 +269,9 @@ class AdministrableProduct:
         result = {
             "id": self.id,
             "name": self.name,
-            "administrableDoseForm": {  # Required field
+            "administrableDoseForm": {  # Required AliasCode per USDM v4.0
                 "id": generate_uuid(),
-                "code": code,
-                "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
-                "codeSystemVersion": "25.01d",
-                "decode": decode,
-                "standardCode": {  # Required nested Code
+                "standardCode": {
                     "id": generate_uuid(),
                     "code": code,
                     "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
@@ -273,7 +279,7 @@ class AdministrableProduct:
                     "decode": decode,
                     "instanceType": "Code",
                 },
-                "instanceType": "Code",
+                "instanceType": "AliasCode",
             },
             "productDesignation": desig_code,
             "instanceType": self.instance_type,
@@ -384,8 +390,8 @@ class StudyIntervention:
         type_term = _cr.match("interventionType", self.intervention_type.value) if self.intervention_type else None
         type_code_obj = _cr.make_code("interventionType", type_term.code) if type_term else _cr.make_code("interventionType", "C1909")
         type_code_obj["id"] = generate_uuid()
-        type_code_obj["codeSystem"] = "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl"
-        type_code_obj["codeSystemVersion"] = "25.01d"
+        type_code_obj["codeSystem"] = "http://www.cdisc.org"
+        type_code_obj["codeSystemVersion"] = "2024-09-27"
         
         result = {
             "id": self.id,

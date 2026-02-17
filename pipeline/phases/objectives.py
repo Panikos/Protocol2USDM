@@ -32,6 +32,73 @@ def _default_endpoint_purpose(endpoints: list) -> None:
                 break
 
 
+def _nest_endpoints_in_objectives(objectives: list, endpoints: list) -> None:
+    """Nest endpoints inside their parent objectives based on endpointIds.
+    
+    Per USDM v4.0, Objective.endpoints is a Value (inline) relationship.
+    Endpoints must be nested inside their parent objective, not at the design level.
+    """
+    if not endpoints:
+        return
+    
+    # Build endpoint lookup by ID
+    ep_by_id = {ep.get("id"): ep for ep in endpoints if ep.get("id")}
+    
+    # Track which endpoints have been assigned
+    assigned = set()
+    
+    for obj in objectives:
+        ep_ids = obj.get("endpointIds", [])
+        if not ep_ids:
+            continue
+        
+        nested = []
+        for eid in ep_ids:
+            ep = ep_by_id.get(eid)
+            if ep:
+                nested.append(ep)
+                assigned.add(eid)
+        
+        if nested:
+            obj["endpoints"] = nested
+        # Remove endpointIds — replaced by inline endpoints
+        obj.pop("endpointIds", None)
+    
+    # Assign any unmatched endpoints to the first objective with matching level
+    unassigned = [ep for ep in endpoints if ep.get("id") not in assigned]
+    if unassigned and objectives:
+        for ep in unassigned:
+            ep_level = _get_level_key(ep)
+            placed = False
+            for obj in objectives:
+                obj_level = _get_level_key(obj)
+                if ep_level and obj_level and ep_level == obj_level:
+                    obj.setdefault("endpoints", []).append(ep)
+                    placed = True
+                    break
+            if not placed:
+                # Last resort: put in first objective
+                objectives[0].setdefault("endpoints", []).append(ep)
+
+
+def _get_level_key(entity: dict) -> str:
+    """Extract level key (primary/secondary/exploratory) from an entity."""
+    level = entity.get("level")
+    if isinstance(level, dict):
+        decode = (level.get("decode") or "").strip().lower()
+    elif isinstance(level, str):
+        decode = level.strip().lower()
+    else:
+        return ""
+    if "primary" in decode:
+        return "primary"
+    elif "secondary" in decode:
+        return "secondary"
+    elif "exploratory" in decode:
+        return "exploratory"
+    return decode
+
+
 class ObjectivesPhase(BasePhase):
     """Extract objectives, endpoints, and estimands."""
     
@@ -97,16 +164,24 @@ class ObjectivesPhase(BasePhase):
         combined: dict,
         previous_extractions: dict,
     ) -> None:
-        """Add objectives and endpoints to study_design."""
+        """Add objectives and endpoints to study_design.
+        
+        Per USDM v4.0, Objective.endpoints is a Value (inline) relationship.
+        Endpoints are nested inside their parent objectives, not at the design level.
+        """
         objectives_added = False
         
         if result.success and result.data:
             data = result.data
-            study_design["objectives"] = [o.to_dict() for o in data.objectives]
+            objectives = [o.to_dict() for o in data.objectives]
             endpoints = [e.to_dict() for e in data.endpoints]
             # H5: Default Endpoint.purpose based on level if empty
             _default_endpoint_purpose(endpoints)
-            study_design["endpoints"] = endpoints
+            # Nest endpoints inside their parent objectives
+            _nest_endpoints_in_objectives(objectives, endpoints)
+            study_design["objectives"] = objectives
+            # Keep flat endpoints in _temp for cross-referencing by estimands/post-processing
+            combined["_temp_endpoints"] = endpoints
             if data.estimands:
                 # Filter out incomplete estimands (ICH E9(R1) requires these fields)
                 valid_estimands = []
@@ -134,11 +209,12 @@ class ObjectivesPhase(BasePhase):
             if prev.get('objectives'):
                 obj = prev['objectives']
                 if obj.get('objectives'):
-                    study_design["objectives"] = obj['objectives']
-                if obj.get('endpoints'):
-                    eps = obj['endpoints']
+                    objectives = obj['objectives']
+                    eps = obj.get('endpoints', [])
                     _default_endpoint_purpose(eps)
-                    study_design["endpoints"] = eps
+                    _nest_endpoints_in_objectives(objectives, eps)
+                    study_design["objectives"] = objectives
+                    combined["_temp_endpoints"] = eps
                 if obj.get('estimands'):
                     study_design["estimands"] = obj['estimands']
 

@@ -143,6 +143,9 @@ class MetadataPhase(BasePhase):
                 })
             if date_values:
                 study_version["dateValues"] = date_values
+            # G1: Store enrollment number for cross-phase population enrichment
+            if md.planned_enrollment_number:
+                combined["_temp_planned_enrollment"] = md.planned_enrollment_number
             if md.indications:
                 combined["_temp_indications"] = [i.to_dict() for i in md.indications]
                 # M1: Map indication names → StudyVersion.businessTherapeuticAreas
@@ -181,7 +184,7 @@ class MetadataPhase(BasePhase):
                             "decode": raw_type,
                             "instanceType": "Code",
                         },
-                        "instanceType": "StudyIdentifier",
+                        "instanceType": "ReferenceIdentifier",
                     }
                     if sponsor_org_id:
                         ref_entry["scopeId"] = sponsor_org_id

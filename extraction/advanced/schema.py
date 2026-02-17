@@ -75,7 +75,7 @@ class StudyAmendment:
             "scope": {
                 "id": generate_uuid(),
                 "code": self.scope.value,
-                "codeSystem": "USDM",
+                "codeSystem": "http://www.cdisc.org",
                 "codeSystemVersion": "2024-09-27",
                 "decode": self.scope.value,
                 "instanceType": "Code",
@@ -98,7 +98,7 @@ class StudyAmendment:
                 "type": {
                     "id": generate_uuid(),
                     "code": self.scope.value,
-                    "codeSystem": "USDM",
+                    "codeSystem": "http://www.cdisc.org",
                     "codeSystemVersion": "2024-09-27",
                     "decode": self.scope.value,
                     "instanceType": "Code",

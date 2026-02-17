@@ -75,6 +75,14 @@ class SAPPhase(BasePhase):
         # Analysis populations → studyDesign
         populations = sap_dict.get('analysisPopulations', [])
         if populations:
+            # B5: Populate empty description from text/populationDescription
+            for pop in populations:
+                if not pop.get('description'):
+                    pop['description'] = (
+                        pop.get('populationDescription')
+                        or pop.get('text')
+                        or ''
+                    )
             study_design['analysisPopulations'] = populations
             logger.info(f"  Added {len(populations)} analysis populations to studyDesign")
         

@@ -92,7 +92,7 @@ class NarrativeContentItem:
             result["sectionType"] = {
                 "id": generate_uuid(),
                 "code": self.section_type.value,
-                "codeSystem": "USDM",
+                "codeSystem": "http://www.cdisc.org",
                 "codeSystemVersion": "2024-09-27",
                 "decode": self.section_type.value,
                 "instanceType": "Code",
@@ -152,7 +152,7 @@ class NarrativeContent:
             result["sectionType"] = {
                 "id": generate_uuid(),
                 "code": self.section_type.value,
-                "codeSystem": "USDM",
+                "codeSystem": "http://www.cdisc.org",
                 "codeSystemVersion": "2024-09-27",
                 "decode": self.section_type.value,
                 "instanceType": "Code",

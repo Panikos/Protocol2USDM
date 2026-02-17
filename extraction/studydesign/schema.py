@@ -263,7 +263,7 @@ class StudyArm:
             "name": self.name,
             "type": {
                 "code": self.arm_type.value,
-                "codeSystem": "USDM",
+                "codeSystem": "http://www.cdisc.org",
                 "decode": self.arm_type.value,
             },
             "instanceType": self.instance_type,
@@ -429,18 +429,18 @@ class InterventionalStudyDesign:
             result["description"] = self.description
         if self.trial_intent_types:
             result["trialIntentTypes"] = [
-                {"code": t, "codeSystem": "USDM", "decode": t} for t in self.trial_intent_types
+                {"code": t, "codeSystem": "http://www.cdisc.org", "decode": t} for t in self.trial_intent_types
             ]
         if self.trial_type:
             result["trialType"] = {
                 "code": self.trial_type,
-                "codeSystem": "USDM", 
+                "codeSystem": "http://www.cdisc.org", 
                 "decode": self.trial_type,
             }
         if self.blinding_schema:
             result["blindingSchema"] = {
                 "code": self.blinding_schema.value,
-                "codeSystem": "USDM",
+                "codeSystem": "http://www.cdisc.org",
                 "decode": self.blinding_schema.value,
             }
         if self.masked_roles:
@@ -448,7 +448,7 @@ class InterventionalStudyDesign:
         if self.randomization_type:
             result["randomizationType"] = {
                 "code": self.randomization_type.value,
-                "codeSystem": "USDM",
+                "codeSystem": "http://www.cdisc.org",
                 "decode": self.randomization_type.value,
             }
         if self.allocation_ratio:
@@ -458,7 +458,7 @@ class InterventionalStudyDesign:
         if self.control_type:
             result["controlType"] = {
                 "code": self.control_type.value,
-                "codeSystem": "USDM",
+                "codeSystem": "http://www.cdisc.org",
                 "decode": self.control_type.value,
             }
         if self.arm_ids:

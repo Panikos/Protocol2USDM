@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Dict, Any, Optional, List, Tuple, Callable
 
 from .schema import ExecutionModelData, ExecutionModelResult, ExecutionModelExtension
+from core.reconciliation.activity_reconciler import _synonym_normalize, CLINICAL_SYNONYMS
 from .validation import validate_execution_model, ValidationResult
 from .export import export_to_csv, save_report
 from .time_anchor_extractor import extract_time_anchors
@@ -146,7 +147,9 @@ def extract_execution_model(
             existing_encounters=soa_context.encounters if soa_context.has_encounters() else None,
         )),
         ("execution_types", classify_execution_types, dict(
-            pdf_path=pdf_path, activities=activities, model=model, use_llm=enable_llm,
+            pdf_path=pdf_path,
+            activities=activities or (soa_context.activities if soa_context.has_activities() else None),
+            model=model, use_llm=enable_llm,
         )),
         ("crossover", extract_crossover_design, dict(
             pdf_path=pdf_path, model=model, use_llm=enable_llm,
@@ -500,6 +503,9 @@ def enrich_usdm_with_execution_model(
         )
         design.setdefault('extensionAttributes', []).append(typed_extension.to_usdm_extension())
         logger.info("  Added unified typed ExecutionModelExtension")
+    
+    # NOTE: Extension ref resolution (activityId, footnoteId) now runs
+    # post-reconciliation in combiner.py with old→new ID mapping.
     
     return enriched
 
@@ -1378,7 +1384,7 @@ def _add_execution_extensions(
             if dr.route:
                 route_code = {
                     "code": dr.route.value,
-                    "codeSystem": "USDM",
+                    "codeSystem": "http://www.cdisc.org",
                     "decode": dr.route.value,
                     "instanceType": "Code"
                 }
@@ -1471,11 +1477,19 @@ def _add_execution_extensions(
         for ab in execution_data.activity_bindings:
             ab_dict = ab.to_dict()
             
-            # Resolve activity ID to UUID
+            # Resolve activity ID to UUID — try exact, normalized, then fuzzy
             activity_key = ab.activity_name.lower() if ab.activity_name else ab.activity_id.lower()
             normalized_key = re.sub(r'[^a-z0-9]', '', activity_key)
             
             resolved_uuid = activity_uuid_map.get(activity_key) or activity_uuid_map.get(normalized_key)
+            
+            # Fuzzy: substring containment (same pattern as footnote resolution)
+            if not resolved_uuid:
+                for a_name, a_id in activity_uuid_map.items():
+                    if activity_key in a_name or a_name in activity_key:
+                        resolved_uuid = a_id
+                        break
+            
             if resolved_uuid:
                 ab_dict['activityId'] = resolved_uuid
             
@@ -1920,3 +1934,446 @@ def propagate_windows_to_encounters(design: Dict[str, Any]) -> int:
         logger.info(f"Propagated timing windows to {updated_count} encounters")
     
     return updated_count
+
+
+# =============================================================================
+# A1+A2: Comprehensive Extension Reference Resolution
+# =============================================================================
+
+def _build_activity_lookup(design: Dict[str, Any]) -> Dict[str, str]:
+    """
+    Build a comprehensive activity name→UUID lookup from reconciled activities.
+    
+    Returns a dict mapping various name forms to the canonical UUID:
+    - Exact lowercase name
+    - Normalized (alphanumeric only)
+    - Synonym-expanded (clinical abbreviation/qualifier stripping)
+    - Word set key for overlap matching
+    """
+    lookup: Dict[str, str] = {}
+    for act in design.get('activities', []):
+        act_id = act.get('id', '')
+        act_name = act.get('name', '')
+        if not act_id or not act_name:
+            continue
+        # Exact lowercase
+        lookup[act_name.lower()] = act_id
+        # Normalized (alphanumeric only)
+        normalized = re.sub(r'[^a-z0-9]', '', act_name.lower())
+        lookup[normalized] = act_id
+        # Synonym-expanded form
+        syn = _synonym_normalize(act_name)
+        if syn:
+            lookup[syn] = act_id
+            lookup[re.sub(r'[^a-z0-9]', '', syn)] = act_id
+        # Also store the UUID itself so we can detect already-resolved refs
+        lookup[act_id] = act_id
+    return lookup
+
+
+def _word_overlap_score(a: str, b: str) -> float:
+    """Jaccard similarity on word sets, ignoring short/stop words."""
+    stop = {'the', 'a', 'an', 'of', 'for', 'and', 'or', 'in', 'to', 'at', 'by', 'on'}
+    wa = {w for w in re.findall(r'[a-z0-9]+', a.lower()) if len(w) > 1 and w not in stop}
+    wb = {w for w in re.findall(r'[a-z0-9]+', b.lower()) if len(w) > 1 and w not in stop}
+    if not wa or not wb:
+        return 0.0
+    return len(wa & wb) / len(wa | wb)
+
+
+def _resolve_activity_ref(
+    ref: str,
+    lookup: Dict[str, str],
+    activity_names: Optional[Dict[str, str]] = None,
+) -> Optional[str]:
+    """Resolve a single activity reference (name or orphaned UUID) to a reconciled UUID.
+    
+    Args:
+        ref: The reference value (name, UUID, or orphaned UUID)
+        lookup: name/normalized/synonym → reconciled UUID mapping
+        activity_names: Optional id → name mapping for word-overlap scoring
+    """
+    if not ref or not isinstance(ref, str):
+        return None
+    # Already in lookup (exact UUID match)
+    if ref in lookup:
+        return lookup[ref]
+    # Lowercase name match
+    low = ref.lower().strip()
+    if low in lookup:
+        return lookup[low]
+    # Normalized match
+    normalized = re.sub(r'[^a-z0-9]', '', low)
+    if normalized in lookup:
+        return lookup[normalized]
+    # Synonym-expanded match
+    syn = _synonym_normalize(ref)
+    if syn and syn in lookup:
+        return lookup[syn]
+    syn_norm = re.sub(r'[^a-z0-9]', '', syn) if syn else ''
+    if syn_norm and syn_norm in lookup:
+        return lookup[syn_norm]
+    # Substring containment (both directions)
+    for key, uid in lookup.items():
+        if len(key) > 3 and (low in key or key in low):
+            return uid
+    # Word-overlap scoring (for semantically similar but textually different names)
+    if activity_names and not re.match(r'^[0-9a-f]{8}-', ref):
+        best_score = 0.0
+        best_id = None
+        ref_syn = _synonym_normalize(ref)
+        for act_id, act_name in activity_names.items():
+            score = _word_overlap_score(ref, act_name)
+            # Also try synonym-expanded forms
+            act_syn = _synonym_normalize(act_name)
+            syn_score = _word_overlap_score(ref_syn, act_syn)
+            final_score = max(score, syn_score)
+            if final_score > best_score:
+                best_score = final_score
+                best_id = act_id
+        if best_score >= 0.4 and best_id:
+            return best_id
+    return None
+
+
+def _resolve_refs_in_obj(
+    obj: Any,
+    activity_lookup: Dict[str, str],
+    footnote_id_map: Dict[str, str],
+    stats: Dict[str, int],
+    activity_names: Optional[Dict[str, str]] = None,
+) -> Any:
+    """Recursively walk an object and resolve activityId/appliesToActivityIds/footnoteId."""
+    if isinstance(obj, dict):
+        result = {}
+        for k, v in obj.items():
+            if k == 'activityId' and isinstance(v, str):
+                resolved = _resolve_activity_ref(v, activity_lookup, activity_names)
+                # Fallback: use sibling 'activityName' as resolution hint
+                if (not resolved or resolved == v) and 'activityName' in obj:
+                    hint = obj['activityName']
+                    if isinstance(hint, str) and hint:
+                        resolved = _resolve_activity_ref(hint, activity_lookup, activity_names)
+                if resolved and resolved != v:
+                    stats['activityId'] = stats.get('activityId', 0) + 1
+                    result[k] = resolved
+                else:
+                    result[k] = v
+            elif k == 'appliesToActivityIds' and isinstance(v, list):
+                new_list = []
+                for item in v:
+                    if isinstance(item, str):
+                        resolved = _resolve_activity_ref(item, activity_lookup, activity_names)
+                        if resolved and resolved != item:
+                            stats['appliesToActivityIds'] = stats.get('appliesToActivityIds', 0) + 1
+                            new_list.append(resolved)
+                        else:
+                            new_list.append(item)
+                    else:
+                        new_list.append(item)
+                result[k] = new_list
+            elif k == 'footnoteId' and isinstance(v, str) and v in footnote_id_map:
+                stats['footnoteId'] = stats.get('footnoteId', 0) + 1
+                result[k] = footnote_id_map[v]
+            elif k == 'valueString' and isinstance(v, str):
+                # Parse JSON in valueString and resolve refs within
+                try:
+                    if v.startswith('[') or v.startswith('{'):
+                        parsed = json.loads(v)
+                        resolved_parsed = _resolve_refs_in_obj(
+                            parsed, activity_lookup, footnote_id_map, stats, activity_names
+                        )
+                        result[k] = json.dumps(resolved_parsed, ensure_ascii=False)
+                    else:
+                        result[k] = v
+                except (json.JSONDecodeError, TypeError):
+                    result[k] = v
+            elif isinstance(v, (dict, list)):
+                result[k] = _resolve_refs_in_obj(v, activity_lookup, footnote_id_map, stats, activity_names)
+            else:
+                result[k] = v
+        return result
+    elif isinstance(obj, list):
+        return [_resolve_refs_in_obj(item, activity_lookup, footnote_id_map, stats, activity_names) for item in obj]
+    else:
+        return obj
+
+
+def _nullify_orphan_refs(
+    design: Dict[str, Any],
+    valid_activity_ids: set,
+) -> Dict[str, int]:
+    """
+    Walk extension attributes and nullify any activityId / appliesToActivityIds
+    values that are not in the valid activity ID set.
+    
+    This is the safety-net fallback after resolution: any remaining orphan
+    refs (phantom UUIDs, unresolvable name-strings) get set to None / removed
+    so they don't appear as broken references in the final USDM output.
+    
+    Returns stats dict with counts of nullified refs.
+    """
+    stats: Dict[str, int] = {}
+    
+    def _walk_and_nullify(obj: Any) -> Any:
+        if isinstance(obj, dict):
+            result = {}
+            for k, v in obj.items():
+                if k == 'activityId' and isinstance(v, str) and v not in valid_activity_ids:
+                    stats['activityId_nullified'] = stats.get('activityId_nullified', 0) + 1
+                    logger.debug(f"  Nullifying orphan activityId: {v[:50]}")
+                    result[k] = None
+                elif k == 'appliesToActivityIds' and isinstance(v, list):
+                    cleaned = [item for item in v if not isinstance(item, str) or item in valid_activity_ids]
+                    removed = len(v) - len(cleaned)
+                    if removed > 0:
+                        stats['appliesToActivityIds_nullified'] = stats.get('appliesToActivityIds_nullified', 0) + removed
+                        logger.debug(f"  Removed {removed} orphan appliesToActivityIds entries")
+                    result[k] = cleaned if cleaned else None
+                elif k == 'valueString' and isinstance(v, str):
+                    try:
+                        if v.startswith('[') or v.startswith('{'):
+                            parsed = json.loads(v)
+                            nullified = _walk_and_nullify(parsed)
+                            result[k] = json.dumps(nullified, ensure_ascii=False)
+                        else:
+                            result[k] = v
+                    except (json.JSONDecodeError, TypeError):
+                        result[k] = v
+                elif isinstance(v, (dict, list)):
+                    result[k] = _walk_and_nullify(v)
+                else:
+                    result[k] = v
+            return result
+        elif isinstance(obj, list):
+            return [_walk_and_nullify(item) for item in obj]
+        else:
+            return obj
+    
+    # Walk study design extensions
+    if 'extensionAttributes' in design:
+        design['extensionAttributes'] = _walk_and_nullify(design['extensionAttributes'])
+    
+    # Walk individual activity extensions
+    for activity in design.get('activities', []):
+        if 'extensionAttributes' in activity:
+            activity['extensionAttributes'] = _walk_and_nullify(activity['extensionAttributes'])
+    
+    return stats
+
+
+def resolve_execution_model_references(
+    design: Dict[str, Any],
+    old_to_new_ids: Optional[Dict[str, str]] = None,
+) -> Dict[str, int]:
+    """
+    Post-integration pass: resolve all activityId, appliesToActivityIds, and
+    footnoteId references in execution model extensions to reconciled entity UUIDs.
+    
+    This fixes:
+    - A1: Orphaned UUID activityIds (execution-phase UUIDs → reconciled UUIDs)
+    - A2: Name-as-ID activityIds and appliesToActivityIds
+    - A1: Orphaned footnoteIds (match to SoA footnote object IDs)
+    
+    Args:
+        design: The studyDesign dict (post-reconciliation)
+        old_to_new_ids: Optional mapping of pre-reconciliation activity IDs
+            to post-reconciliation IDs. Used to resolve orphaned UUIDs that
+            were valid before reconciliation but got replaced.
+    
+    Returns:
+        Dict of resolution stats (field_name → count of resolved refs)
+    """
+    activity_lookup = _build_activity_lookup(design)
+    
+    # Merge old→new ID mapping so orphaned pre-reconciliation UUIDs resolve
+    if old_to_new_ids:
+        for old_id, new_id in old_to_new_ids.items():
+            if old_id not in activity_lookup:
+                activity_lookup[old_id] = new_id
+    
+    # Build footnote ID map: old footnote_id → new object ID
+    # The x-soaFootnotes extension may store footnotes as objects with IDs
+    footnote_id_map: Dict[str, str] = {}
+    for ext in design.get('extensionAttributes', []):
+        if ext.get('url', '').endswith('soaFootnotes'):
+            vs = ext.get('valueString', '')
+            if vs:
+                try:
+                    footnotes = json.loads(vs)
+                    if isinstance(footnotes, list):
+                        for fn in footnotes:
+                            if isinstance(fn, dict) and 'id' in fn:
+                                # Map common patterns: fn_1, fn_2, markers a, b, etc.
+                                fn_id = fn['id']
+                                footnote_id_map[fn_id] = fn_id
+                except (json.JSONDecodeError, TypeError):
+                    pass
+    
+    # Build activity id→name mapping for word-overlap scoring
+    activity_names: Dict[str, str] = {
+        a.get('id', ''): a.get('name', '')
+        for a in design.get('activities', [])
+        if a.get('id') and a.get('name')
+    }
+    
+    stats: Dict[str, int] = {}
+    
+    # Walk all extension attributes on the study design
+    if 'extensionAttributes' in design:
+        design['extensionAttributes'] = _resolve_refs_in_obj(
+            design['extensionAttributes'], activity_lookup, footnote_id_map, stats, activity_names
+        )
+    
+    # Walk extension attributes on individual activities
+    for activity in design.get('activities', []):
+        if 'extensionAttributes' in activity:
+            activity['extensionAttributes'] = _resolve_refs_in_obj(
+                activity['extensionAttributes'], activity_lookup, footnote_id_map, stats, activity_names
+            )
+    
+    total = sum(stats.values())
+    if total > 0:
+        logger.info(f"  ✓ Resolved {total} execution model references: {stats}")
+    
+    # --- Nullification pass: clean up remaining orphan refs ---
+    # After resolution, any activityId / appliesToActivityIds values that are
+    # still not valid activity UUIDs are orphans. Nullify them to prevent
+    # broken references in the final USDM output.
+    valid_activity_ids = {a.get('id') for a in design.get('activities', []) if a.get('id')}
+    nullify_stats = _nullify_orphan_refs(design, valid_activity_ids)
+    if sum(nullify_stats.values()) > 0:
+        logger.info(f"  ✓ Nullified {sum(nullify_stats.values())} unresolvable orphan refs: {nullify_stats}")
+    stats.update(nullify_stats)
+    
+    return stats
+
+
+def emit_placeholder_activities(design: Dict[str, Any]) -> int:
+    """
+    Create placeholder Activity entities for any remaining unresolved
+    activityId / appliesToActivityIds references in execution model extensions.
+    
+    Handles:
+    - Orphaned UUIDs with sibling activityName: creates activity with the name
+    - Name-string refs: creates activity with that name
+    
+    Returns the number of placeholder activities created.
+    """
+    import uuid as uuid_mod
+    
+    act_ids = {a.get('id') for a in design.get('activities', []) if a.get('id')}
+    UUID_PAT = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$')
+    
+    # Collect unresolved refs: ref_value → best name hint
+    unresolved: Dict[str, Optional[str]] = {}
+    
+    def _scan(obj: Any) -> None:
+        if isinstance(obj, dict):
+            aid = obj.get('activityId')
+            if isinstance(aid, str) and aid not in act_ids:
+                hint = obj.get('activityName', '')
+                hint = hint.replace('\n', ' ').strip() if isinstance(hint, str) else ''
+                if UUID_PAT.match(aid):
+                    if aid not in unresolved and hint:
+                        unresolved[aid] = hint
+                else:
+                    unresolved[aid] = aid
+            applies = obj.get('appliesToActivityIds')
+            if isinstance(applies, list):
+                for item in applies:
+                    if isinstance(item, str) and item not in act_ids:
+                        if UUID_PAT.match(item):
+                            unresolved.setdefault(item, None)
+                        else:
+                            unresolved[item] = item
+            for k, v in obj.items():
+                if k == 'valueString' and isinstance(v, str):
+                    try:
+                        if v.startswith('[') or v.startswith('{'):
+                            _scan(json.loads(v))
+                    except Exception:
+                        pass
+                elif isinstance(v, (dict, list)):
+                    _scan(v)
+        elif isinstance(obj, list):
+            for item in obj:
+                _scan(item)
+    
+    _scan(design.get('extensionAttributes', []))
+    
+    if not unresolved:
+        return 0
+    
+    # Group by canonical name to avoid duplicate placeholders
+    name_to_new_id: Dict[str, str] = {}
+    old_to_placeholder: Dict[str, str] = {}
+    placeholders: List[Dict[str, Any]] = []
+    
+    for ref_val, name_hint in unresolved.items():
+        if not name_hint:
+            continue
+        canon = name_hint.strip()
+        canon_key = canon.lower()
+        if canon_key in name_to_new_id:
+            new_id = name_to_new_id[canon_key]
+        else:
+            new_id = str(uuid_mod.uuid4())
+            name_to_new_id[canon_key] = new_id
+            placeholders.append({
+                'id': new_id,
+                'name': canon,
+                'label': canon,
+                'description': f'Execution model activity category: {canon}',
+                'instanceType': 'Activity',
+            })
+        old_to_placeholder[ref_val] = new_id
+    
+    if not placeholders:
+        return 0
+    
+    design.setdefault('activities', []).extend(placeholders)
+    
+    # Remap references in extensions
+    remap_count = [0]
+    
+    def _remap(obj: Any) -> Any:
+        if isinstance(obj, dict):
+            result = {}
+            for k, v in obj.items():
+                if k == 'activityId' and isinstance(v, str) and v in old_to_placeholder:
+                    result[k] = old_to_placeholder[v]
+                    remap_count[0] += 1
+                elif k == 'appliesToActivityIds' and isinstance(v, list):
+                    result[k] = [
+                        old_to_placeholder.get(i, i) if isinstance(i, str) else i
+                        for i in v
+                    ]
+                    remap_count[0] += sum(1 for i in v if isinstance(i, str) and i in old_to_placeholder)
+                elif k == 'valueString' and isinstance(v, str):
+                    try:
+                        if v.startswith('[') or v.startswith('{'):
+                            parsed = json.loads(v)
+                            remapped = _remap(parsed)
+                            result[k] = json.dumps(remapped, ensure_ascii=False)
+                        else:
+                            result[k] = v
+                    except Exception:
+                        result[k] = v
+                elif isinstance(v, (dict, list)):
+                    result[k] = _remap(v)
+                else:
+                    result[k] = v
+            return result
+        elif isinstance(obj, list):
+            return [_remap(item) for item in obj]
+        return obj
+    
+    if 'extensionAttributes' in design:
+        design['extensionAttributes'] = _remap(design['extensionAttributes'])
+    
+    logger.info(
+        f"  ✓ Emitted {len(placeholders)} placeholder activities, "
+        f"remapped {remap_count[0]} refs"
+    )
+    return len(placeholders)

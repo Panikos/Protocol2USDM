@@ -146,10 +146,16 @@ class ReconciledEntity:
         pass
     
     def _base_usdm_dict(self) -> Dict[str, Any]:
-        """Base USDM dictionary structure."""
+        """Base USDM dictionary structure.
+        
+        Includes label and description defaulting to name, matching the
+        pattern in usdm_types_generated.py to_dict() methods.
+        """
         return {
             "id": self.id,
             "name": self.name,
+            "label": self.name,
+            "description": self.name,
             "instanceType": self.instance_type,
         }
     
@@ -165,44 +171,49 @@ class ReconciledEntity:
         
         # Raw name (for audit)
         if self.raw_name != self.name:
+            ext_name = f"x-{self.instance_type.lower()}RawName"
             extensions.append({
                 "id": str(uuid.uuid4()),
-                "url": f"https://protocol2usdm.io/extensions/x-{self.instance_type.lower()}RawName",
+                "url": f"https://protocol2usdm.io/extensions/{ext_name}",
                 "instanceType": "ExtensionAttribute",
                 "valueString": self.raw_name
             })
         
         # Sources attribution
+        ext_name = f"x-{self.instance_type.lower()}Sources"
         extensions.append({
             "id": str(uuid.uuid4()),
-            "url": f"https://protocol2usdm.io/extensions/x-{self.instance_type.lower()}Sources",
+            "url": f"https://protocol2usdm.io/extensions/{ext_name}",
             "instanceType": "ExtensionAttribute",
             "valueString": ",".join(self.sources)
         })
         
         # Footnote refs
         if self.footnote_refs:
+            ext_name = f"x-{self.instance_type.lower()}FootnoteRefs"
             extensions.append({
                 "id": str(uuid.uuid4()),
-                "url": f"https://protocol2usdm.io/extensions/x-{self.instance_type.lower()}FootnoteRefs",
+                "url": f"https://protocol2usdm.io/extensions/{ext_name}",
                 "instanceType": "ExtensionAttribute",
                 "valueString": ",".join(self.footnote_refs)
             })
         
         # Category
         if category:
+            ext_name = f"x-{self.instance_type.lower()}Category"
             extensions.append({
                 "id": str(uuid.uuid4()),
-                "url": f"https://protocol2usdm.io/extensions/x-{self.instance_type.lower()}Category",
+                "url": f"https://protocol2usdm.io/extensions/{ext_name}",
                 "instanceType": "ExtensionAttribute",
                 "valueString": category
             })
         
         # Sequence order
         if sequence_order is not None:
+            ext_name = f"x-{self.instance_type.lower()}SequenceOrder"
             extensions.append({
                 "id": str(uuid.uuid4()),
-                "url": f"https://protocol2usdm.io/extensions/x-{self.instance_type.lower()}SequenceOrder",
+                "url": f"https://protocol2usdm.io/extensions/{ext_name}",
                 "instanceType": "ExtensionAttribute",
                 "valueString": str(sequence_order)
             })

@@ -1,13 +1,13 @@
 # Protocol2USDM User Guide
 
-**Version:** 7.5  
-**Last Updated:** 2026-02-11
+**Version:** 7.16  
+**Last Updated:** 2026-02-17
 
-> **📢 What's New in v7.5:** **NCI code audit** (70+ fabricated codes fixed, EVS-verified), **Code Registry** (`core/code_registry.py` + `code_verification.py`), **Unscheduled Visit tagging** (auto-detection + amber visual distinction in SoA grid), **726 tests** collected.
+> **📢 What's New in v7.16:** **USDM v4.0 endpoint nesting** (inline inside `Objective.endpoints`), **ExtensionAttribute alignment** (`name` removed, `url` is semantic ID), **Architectural audit of core_compliance.py** (labels/procedures upstream, 210 lines dead code removed), **1136 tests** collected.
 
-> **v7.4:** Async LLM calls, LLM streaming, parallel execution model, chunked EVS cache, cache-aware execution.
-> **v7.3:** ICH M11 DOCX rendering, testing infrastructure, pipeline decomposition, LLM provider abstraction.
-> **v7.2:** Execution model promotion to native USDM entities, semantic editing in web UI.
+> **v7.15:** Review fix sprint (B1–B9), keyword-guided enrollment extraction (G1).
+> **v7.14:** Integrity checker cleanup, CDISC CORE conformance hardening.
+> **v7.13:** Graph view neighborhood focus, layout selector, toolbar flex-wrap.
 
 ---
 
@@ -631,7 +631,7 @@ Error: GOOGLE_API_KEY environment variable not set
 ### Unit Tests
 
 ```bash
-# Run all unit tests (611 collected, ~1 min)
+# Run all unit tests (1136 collected, ~3 min)
 python -m pytest tests/ -v
 
 # Run with coverage report
@@ -684,5 +684,5 @@ A: Check logs in `output/<protocol>/`, capture error messages, report to maintai
 
 ---
 
-**Last Updated:** 2026-02-11  
-**Version:** 7.5
+**Last Updated:** 2026-02-17  
+**Version:** 7.16

@@ -110,7 +110,7 @@ class StudyIdentifier:
         if self.identifier_type:
             result["identifierType"] = {
                 "code": self.identifier_type.value,
-                "codeSystem": "USDM",
+                "codeSystem": "http://www.cdisc.org",
                 "decode": self._get_identifier_decode()
             }
         return result
@@ -208,7 +208,7 @@ class StudyRole:
         result = {
             "id": self.id,
             "name": self.name,
-            "code": {"code": self.code.value, "codeSystem": "USDM", "decode": self.code.value},
+            "code": {"code": self.code.value, "codeSystem": "http://www.cdisc.org", "decode": self.code.value},
             "organizationIds": self.organization_ids,
             "instanceType": self.instance_type,
         }
@@ -337,6 +337,9 @@ class StudyMetadata:
     sponsor_approval_date: Optional[str] = None
     original_protocol_date: Optional[str] = None
     
+    # G1: Planned enrollment number from synopsis
+    planned_enrollment_number: Optional[int] = None
+    
     # L1: Cross-reference identifiers
     reference_identifiers: List[Dict[str, str]] = field(default_factory=list)
     
@@ -369,6 +372,9 @@ class StudyMetadata:
             result["sponsorApprovalDate"] = self.sponsor_approval_date
         if self.original_protocol_date:
             result["originalProtocolDate"] = self.original_protocol_date
+        # G1: Planned enrollment number
+        if self.planned_enrollment_number:
+            result["plannedEnrollmentNumber"] = self.planned_enrollment_number
         # L1: Reference identifiers
         if self.reference_identifiers:
             result["referenceIdentifiers"] = self.reference_identifiers

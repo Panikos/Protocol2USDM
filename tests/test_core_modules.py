@@ -281,8 +281,8 @@ class TestBackwardCompatibility:
 class TestNormalization:
     """Tests for USDM data normalization functions."""
     
-    def test_normalize_preserves_standard_code(self):
-        """Test that normalize_usdm_data preserves standardCode on Code objects."""
+    def test_normalize_preserves_alias_code_dose_form(self):
+        """Test that normalize_usdm_data preserves AliasCode administrableDoseForm."""
         from core.usdm_types_generated import normalize_usdm_data
         
         data = {
@@ -293,15 +293,13 @@ class TestNormalization:
                         "name": "Test Product",
                         "administrableDoseForm": {
                             "id": "df_1",
-                            "code": "C42998",
-                            "decode": "Tablet",
-                            "instanceType": "Code",
                             "standardCode": {
                                 "id": "sc_1",
                                 "code": "C42998",
                                 "decode": "Tablet",
                                 "instanceType": "Code"
-                            }
+                            },
+                            "instanceType": "AliasCode"
                         }
                     }]
                 }]
@@ -310,14 +308,15 @@ class TestNormalization:
         
         result = normalize_usdm_data(data)
         
-        # Verify standardCode is preserved
+        # Verify AliasCode structure is preserved
         prod = result["study"]["versions"][0]["administrableProducts"][0]
         dose_form = prod["administrableDoseForm"]
+        assert dose_form["instanceType"] == "AliasCode"
         assert "standardCode" in dose_form
         assert dose_form["standardCode"]["code"] == "C42998"
     
-    def test_normalize_adds_standard_code_when_missing(self):
-        """Test that normalize_usdm_data adds standardCode when missing on administrableDoseForm."""
+    def test_normalize_converts_legacy_code_to_alias_code(self):
+        """Test that normalize_usdm_data converts legacy Code to AliasCode for administrableDoseForm."""
         from core.usdm_types_generated import normalize_usdm_data
         
         data = {
@@ -339,9 +338,13 @@ class TestNormalization:
         
         result = normalize_usdm_data(data)
         
-        # Verify standardCode is added
+        # Verify conversion to AliasCode
         prod = result["study"]["versions"][0]["administrableProducts"][0]
         dose_form = prod["administrableDoseForm"]
+        assert dose_form["instanceType"] == "AliasCode"
         assert "standardCode" in dose_form
         assert dose_form["standardCode"]["code"] == "C42998"
         assert dose_form["standardCode"]["instanceType"] == "Code"
+        # Should NOT have top-level code/codeSystem fields
+        assert "code" not in dose_form
+        assert "codeSystem" not in dose_form

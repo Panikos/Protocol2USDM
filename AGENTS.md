@@ -48,7 +48,8 @@ Study
 │   └── studyDesigns[] → StudyDesign
 │       ├── arms[], epochs[], studyCells[], elements[]
 │       ├── population → StudyDesignPopulation
-│       ├── objectives[], endpoints[], estimands[]
+│       ├── objectives[] (each has endpoints[], Value relationship)
+│       ├── estimands[]
 │       ├── activities[] (each has definedProcedures[])
 │       ├── encounters[]
 │       ├── indications[] (NOT on study root)
@@ -214,7 +215,51 @@ Three-tier validation runs after extraction:
 
 **CDISC CORE timeout**: Local CORE timeout defaults to 300 seconds and can be overridden with `CDISC_CORE_TIMEOUT_SECONDS`.
 
-Normalization pipeline: Type inference → UUID conversion → Provenance conversion → NCI enrichment → Validation → CDISC CORE.
+Normalization pipeline: Type inference → **CORE compliance safety net** → UUID conversion → Provenance conversion → NCI enrichment → Validation → CDISC CORE.
+
+**CORE compliance — layered architecture** (v7.8): Fixes are applied at the correct architectural layer, with `core/core_compliance.py` serving as a safety net for data that bypasses source-level fixes.
+
+*Source-level fixes (extractors & dataclasses):*
+1. **codeSystem** — All extractor `to_dict()` methods emit `"http://www.cdisc.org"` directly (was `"USDM"`). `CodeRegistry.make_code()` also includes `id` field.
+2. **Labels/description** — `Activity`, `Encounter`, `Objective`, `Endpoint` dataclasses in `usdm_types_generated.py` default `label=name`, `description=name`. `ReconciledEntity._base_usdm_dict()` in `core/reconciliation/base.py` emits `label` and `description`. 4 raw SAI creation sites in `execution_model_promoter.py` include `label`. `Procedure.to_dict()` in both `extraction/procedures/schema.py` and `usdm_types_generated.py` defaults `label`, `description`, `procedureType`, `code`.
+3. **IDs** — `USDMEntity._ensure_id()` generates UUIDs at `to_dict()` time. `CodeRegistry.make_code()`/`make_code_from_text()` include `id` field.
+
+*Structural fixes (`pipeline/post_processing.py` → `run_structural_compliance()`):*
+4. **Epoch/encounter ordering chains** — `build_ordering_chains()`: Epochs use **array position** directly (the epoch reconciler's `_post_reconcile` already sorts by `(category, sequence_order)` reflecting SoA column order — the authoritative source). Encounters sort by temporal key (Day/Week/Visit number) with array index as stable tiebreaker.
+5. **Primary endpoint→objective linkage** — `fix_primary_endpoint_linkage()`: Ensures primary objectives reference at least one primary endpoint (CORE-000874/1036).
+6. **Timing reference IDs** — `fix_timing_references()`: Populates `relativeToScheduledInstanceId` using timeline `entryId` as default anchor.
+
+*Execution model reference resolution (`extraction/execution/pipeline_integration.py`):*
+7. **Activity binding ID resolution** — Uses exact match → normalized match → substring containment (fuzzy) to resolve LLM-provided activity names to actual activity UUIDs. Same pattern as footnote condition resolution.
+8. **Extension attribute `url` as semantic ID** — `_create_extension_attribute()` uses `url` as the sole semantic identifier per USDM v4.0. Non-schema `name` field has been removed from all creation sites.
+
+*Amendment reference linkage (`pipeline/phases/amendments.py`):*
+9. **Amendment detail→entity ID resolution** — The amendments combiner resolves `amendmentId` references in `StudyAmendmentImpact`/`Reason`/`Change` entities against actual amendment entity IDs from the advanced phase, matching by amendment number.
+
+*Code normalization (`core/usdm_types_generated.py` → `normalize_code()`):*
+10. **Missing code field** — Detects Code-like objects with `decode`+`codeSystem` but missing `code` (common for non-CDISC codes like ISO, MeSH, UCUM) and defaults `code=decode`.
+
+*Epoch type inference (`core/usdm_types_generated.py` → `StudyEpoch.to_dict()`):*
+11. **EOS/ET epoch type** — Epochs with names containing `eos`, `end of study`, `end of treatment`, `early termination`, `completion`, `close-out`, `safety follow`, or `study closure` are typed as `C99158 Clinical Study Follow-up` instead of the default `C101526 Treatment Epoch`.
+
+*Activity dedup (`core/reconciliation/activity_reconciler.py`):*
+12. **Clinical synonym normalization** — `ActivityReconciler._find_matching_key()` applies synonym expansion (ECG→electrocardiogram, vitals→vital signs, etc.) and qualifier stripping (monitoring, measurements, assessment, etc.) before fuzzy matching, catching near-duplicates that SequenceMatcher alone misses.
+
+*ExtensionAttribute USDM v4.0 alignment (source-level fixes):*
+13. **Base reconciler** (`core/reconciliation/base.py`) — Non-schema `name` field removed from all 5 extension attr creation blocks. `url` is the sole semantic identifier.
+14. **Entity reconcilers** (`activity_reconciler.py`, `encounter_reconciler.py`, `epoch_reconciler.py`) — `name` removed from inline extension attr dicts.
+15. **Post-processing** (`pipeline/post_processing.py`) — `name` removed from UNS encounter + SDI extension dicts.
+
+*Regression gate (`pipeline/regression_gate.py`):*
+16. **Entity count tracking** — `save_entity_stats()` writes `entity_stats.json` with key entity counts and instanceType counts after every pipeline run.
+17. **Baseline comparison** — `check_regression()` compares current counts against a baseline directory (via `--baseline DIR` CLI flag), warning on drops below 80% threshold.
+
+*Safety-net fixes (`core/core_compliance.py` → `normalize_for_core_compliance()`):*
+18. **Fallback codeSystem normalization** — Catches any remaining `"USDM"` or EVS URIs from LLM-generated dicts
+19. **Fallback ID generation** — Catches Code/ExtensionAttribute objects missing IDs from direct dict construction
+20. **Fallback label population** — Catches entities that bypassed dataclass `to_dict()`
+21. **XHTML sanitization** — Escapes raw `<` in `text` fields (cross-cutting output concern, correct at validation boundary)
+22. **Strip non-USDM properties** — Removes any remaining non-schema fields from entities (catches LLM-generated extras and any remaining `name` on ExtensionAttribute)
 
 **Integrity checker policy notes** (`pipeline/integrity.py`):
 - Terminal epochs (e.g., EOS/ET variants) are exempt from `epoch_not_in_cell` warnings.
@@ -236,6 +281,9 @@ Normalization pipeline: Type inference → UUID conversion → Provenance conver
 | `core/m11_usdm_mapping.yaml` | Single source of truth: 14 M11 sections, USDM entity paths, conformance rules, extractor coverage matrix, 6 regulatory frameworks |
 | `core/m11_mapping_config.py` | `M11MappingConfig` dataclass + `get_m11_config()` singleton (`@lru_cache`) |
 | `core/usdm_schema_loader.py` | Schema downloader/parser, `EntityDefinition` objects, pinned to v4.0 |
+| `core/core_compliance.py` | Safety-net CORE compliance: fallback codeSystem, ID, label, extension name normalization + XHTML sanitization |
+| `pipeline/post_processing.py` | Entity reconciliation, structural CORE compliance (`build_ordering_chains`, `fix_primary_endpoint_linkage`, `fix_timing_references`) |
+| `pipeline/regression_gate.py` | Entity count tracking (`entity_stats.json`) and baseline comparison (`--baseline DIR`) for regression detection |
 | `core/usdm_types_generated.py` | 86+ Python dataclasses with idempotent UUID generation |
 | `core/usdm_types.py` | Unified interface: official USDM types + internal extraction types |
 | `core/code_registry.py` | Centralized CodeRegistry singleton — USDM CT + supplementary codelists |

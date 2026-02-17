@@ -142,8 +142,8 @@ CODELIST_PARENTS: Dict[str, str] = {
 
 EVS_VERIFIED_CODES: Dict[str, Dict[str, Tuple[str, str]]] = {
     "StudyIntervention.type": {
-        "C1909":  ("Drug",               "Pharmacologic Substance"),
-        "C307":   ("Biological",          "Biological Agent"),
+        "C1909":  ("DRUG",               "Pharmacologic Substance"),
+        "C307":   ("BIOLOGICAL",          "Biological Agent"),
         "C16830": ("Device",              "Medical Device"),
         "C1505":  ("Dietary Supplement",  "Dietary Supplement"),
         "C15329": ("Procedure",           "Surgical Procedure"),

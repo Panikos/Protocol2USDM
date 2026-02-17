@@ -159,9 +159,13 @@ def _is_terminal_epoch_name(name: str) -> bool:
     terminal_patterns = (
         r'\beos\b',
         r'\bet\b',
+        r'\bscv\b',
+        r'\bptdv\b',
         r'early\s*termination',
         r'end\s+of\s+study',
         r'end\s+of\s+treatment',
+        r'study\s+closure',
+        r'premature\s+.*discontinuation',
         r'follow-up\s+only',
     )
     return any(re.search(pattern, normalized) for pattern in terminal_patterns)
@@ -402,9 +406,12 @@ def check_semantic_rules(usdm: dict) -> List[IntegrityFinding]:
                 entity_ids=[epoch_id or ''],
             ))
 
-    # Rule S3: Estimands should reference existing endpoints
+    # Rule S3: Estimands should reference existing endpoints (nested in objectives)
     estimands = design.get('estimands', [])
-    endpoint_ids = _collect_ids(design.get('endpoints', []))
+    _all_eps = []
+    for _obj in design.get('objectives', []):
+        _all_eps.extend(_obj.get('endpoints', []) if isinstance(_obj, dict) else [])
+    endpoint_ids = _collect_ids(_all_eps)
     for est in estimands:
         if not isinstance(est, dict):
             continue
@@ -472,7 +479,7 @@ def check_semantic_rules(usdm: dict) -> List[IntegrityFinding]:
     collections_to_check = [
         ('arms', arms), ('epochs', epochs), ('activities', activities),
         ('encounters', design.get('encounters', [])),
-        ('objectives', objectives), ('endpoints', design.get('endpoints', [])),
+        ('objectives', objectives), ('endpoints', _all_eps),
         ('interventions', interventions),
     ]
     for cname, coll in collections_to_check:

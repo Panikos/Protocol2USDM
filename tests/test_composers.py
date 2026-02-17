@@ -347,7 +347,7 @@ class TestComposeDiscontinuation:
         text = _compose_discontinuation({})
         assert isinstance(text, str)
 
-    def test_discontinuation_requires_section_type_tag(self):
+    def test_discontinuation_keyword_fallback_for_untagged_items(self):
         from rendering.composers import _compose_discontinuation
         usdm = _make_usdm(narrative=[
             {
@@ -357,7 +357,8 @@ class TestComposeDiscontinuation:
                 "text": "Participants may withdraw early for safety reasons.",
             }
         ])
-        assert _compose_discontinuation(usdm) == ""
+        text = _compose_discontinuation(usdm)
+        assert "discontinu" in text.lower() or "withdraw" in text.lower()
 
 
 # ============================================================================
@@ -379,7 +380,7 @@ class TestComposeSafety:
         text = _compose_safety({})
         assert isinstance(text, str)
 
-    def test_safety_requires_section_type_tag(self):
+    def test_safety_keyword_fallback_for_untagged_items(self):
         from rendering.composers import _compose_safety
         usdm = _make_usdm(narrative=[
             {
@@ -389,7 +390,8 @@ class TestComposeSafety:
                 "text": "All adverse events are collected and reported.",
             }
         ])
-        assert _compose_safety(usdm) == ""
+        text = _compose_safety(usdm)
+        assert "adverse" in text.lower() or "safety" in text.lower()
 
 
 # ============================================================================

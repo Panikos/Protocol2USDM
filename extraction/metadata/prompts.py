@@ -78,6 +78,12 @@ Look for organizations on the title page, in the synopsis, and in the "Sponsor I
 - IB (Investigator's Brochure) reference numbers
 - Related study protocol numbers
 
+### 11. Planned Enrollment Number
+- Target number of participants/subjects to be enrolled
+- Look for phrases like "approximately N participants", "planned enrollment of N", "target N subjects", "sample size of N"
+- Return the number as an integer (e.g., 200), or null if not found
+- If a range is given (e.g., "100-200 participants"), return the upper bound
+
 ## USDM v4.0 Output Format (MUST follow exactly)
 
 Every entity MUST have `id` and `instanceType` fields.
@@ -208,7 +214,8 @@ Code fields MUST use the {"code": "...", "codeSystem": "...", "decode": "..."} s
   "referenceIdentifiers": [
     {"text": "IB-2024-001", "type": "Investigator Brochure"},
     {"text": "SPONSOR-2020-002", "type": "Related Protocol"}
-  ]
+  ],
+  "plannedEnrollmentNumber": 200
 }
 ```
 

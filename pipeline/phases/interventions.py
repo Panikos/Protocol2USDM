@@ -102,24 +102,27 @@ class InterventionsPhase(BasePhase):
                     study_version["medicalDevices"] = intv['medicalDevices']
     
     def _fix_dose_form_codes(self, products: list) -> list:
-        """Ensure dose form codes have required standardCode field."""
+        """Ensure administrableDoseForm is a proper AliasCode per USDM v4.0."""
         fixed = []
         for p in products:
             if isinstance(p, dict):
                 dose_form = p.get('administrableDoseForm', {})
-                if dose_form and 'code' in dose_form and 'standardCode' not in dose_form:
-                    p = dict(p)
-                    p['administrableDoseForm'] = {
-                        **dose_form,
-                        'standardCode': {
-                            'id': str(uuid.uuid4()),
-                            'code': dose_form.get('code', ''),
-                            'codeSystem': dose_form.get('codeSystem', 'http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl'),
-                            'codeSystemVersion': dose_form.get('codeSystemVersion', '25.01d'),
-                            'decode': dose_form.get('decode', ''),
-                            'instanceType': 'Code',
+                if dose_form and dose_form.get('instanceType') != 'AliasCode':
+                    # Legacy Code format → convert to AliasCode
+                    if 'code' in dose_form:
+                        p = dict(p)
+                        p['administrableDoseForm'] = {
+                            'id': dose_form.get('id', str(uuid.uuid4())),
+                            'standardCode': {
+                                'id': str(uuid.uuid4()),
+                                'code': dose_form.get('code', ''),
+                                'codeSystem': dose_form.get('codeSystem', 'http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl'),
+                                'codeSystemVersion': dose_form.get('codeSystemVersion', '25.01d'),
+                                'decode': dose_form.get('decode', ''),
+                                'instanceType': 'Code',
+                            },
+                            'instanceType': 'AliasCode',
                         }
-                    }
             fixed.append(p)
         return fixed
 

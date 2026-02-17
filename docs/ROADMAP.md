@@ -38,6 +38,17 @@ Restructure the web UI navigation from 4 groups (22 tabs) to 8 groups + 1 pinned
    - Signature meaning (authored, reviewed, approved)
    - Full GxP compliance with audit trail integration
 
+### USDM v4.0 Compliance Sprint (Complete)
+
+**Status:** Complete  
+**Priority:** High  
+**Added:** 2026-02-17  
+**Completed:** 2026-02-17
+
+1. ~~**Endpoint Nesting**~~ — ✅ Endpoints nested inline inside `Objective.endpoints` per Value relationship
+2. ~~**ExtensionAttribute Alignment**~~ — ✅ Non-schema `name` removed; `url` is sole semantic identifier
+3. ~~**core_compliance.py Architectural Audit**~~ — ✅ Labels/procedures upstream, 210 lines dead code removed, file 714→504 lines
+
 ### Web UI Editing Improvements (Complete)
 
 **Status:** Complete  

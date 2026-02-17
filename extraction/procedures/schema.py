@@ -92,14 +92,12 @@ class Procedure:
         result = {
             "id": self.id,
             "name": self.name,
+            "label": self.label or self.name,
+            "description": self.description or self.name,
             "procedureType": proc_type_str,  # Required field - string type
             "code": code_obj,
             "instanceType": self.instance_type,
         }
-        if self.label:
-            result["label"] = self.label
-        if self.description:
-            result["description"] = self.description
         # L6: isOrderable
         if self.is_orderable is not None:
             result["isOrderable"] = self.is_orderable
@@ -157,7 +155,7 @@ class MedicalDevice:
         if self.device_type:
             result["deviceType"] = {
                 "code": self.device_type.value,
-                "codeSystem": "USDM",
+                "codeSystem": "http://www.cdisc.org",
                 "decode": self.device_type.value
             }
         if self.manufacturer:

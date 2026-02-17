@@ -281,8 +281,8 @@ class CodeRegistry:
                 extensible=True,
                 source="NCI_EVS",
                 terms=[
-                    CodeTerm("C1909", "Drug"),
-                    CodeTerm("C307", "Biological"),
+                    CodeTerm("C1909", "DRUG"),
+                    CodeTerm("C307", "BIOLOGICAL"),
                     CodeTerm("C16830", "Device"),
                     CodeTerm("C1505", "Dietary Supplement"),
                     CodeTerm("C15329", "Procedure"),
@@ -463,9 +463,11 @@ class CodeRegistry:
         code_system_version: str = _CODE_SYSTEM_VERSION,
     ) -> Dict[str, Any]:
         """Build a USDM-compliant Code dict for a given code."""
+        import uuid as _uuid
         term = self.lookup(key, code)
         decode = term.decode if term else code
         return {
+            "id": str(_uuid.uuid4()),
             "code": code,
             "codeSystem": code_system,
             "codeSystemVersion": code_system_version,
@@ -482,9 +484,11 @@ class CodeRegistry:
         code_system_version: str = _CODE_SYSTEM_VERSION,
     ) -> Dict[str, Any]:
         """Build a USDM Code dict by fuzzy-matching free text."""
+        import uuid as _uuid
         term = self.match(key, text)
         if term:
             return {
+                "id": str(_uuid.uuid4()),
                 "code": term.code,
                 "codeSystem": code_system,
                 "codeSystemVersion": code_system_version,
@@ -493,6 +497,7 @@ class CodeRegistry:
             }
         # Fallback: return text as-is
         return {
+            "id": str(_uuid.uuid4()),
             "code": text,
             "codeSystem": code_system,
             "codeSystemVersion": code_system_version,

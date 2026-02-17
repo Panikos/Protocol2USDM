@@ -29,15 +29,24 @@ logger = logging.getLogger(__name__)
 
 
 def _get_code_object(nci_code: str, client: EVSClient) -> Optional[Dict[str, Any]]:
-    """Get a USDM Code object for an NCI code, using cache."""
+    """Get a USDM Code object for an NCI code, using cache.
+    
+    Always returns a fresh copy with a unique UUID id so repeated calls
+    for the same code don't produce duplicate IDs (CORE-001015).
+    """
+    import copy
+    import uuid as _uuid
+    
     code_obj = client.fetch_ncit_code(nci_code)
     if code_obj:
-        return code_obj
+        result = copy.deepcopy(code_obj)
+        result["id"] = str(_uuid.uuid4())
+        return result
     
     # Fallback: return minimal code object from USDM_CODES
     if nci_code in USDM_CODES:
         return {
-            "id": nci_code,
+            "id": str(_uuid.uuid4()),
             "code": nci_code,
             "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
             "codeSystemVersion": "unknown",
@@ -127,62 +136,74 @@ def enrich_terminology(json_path: str, output_dir: str = None) -> Dict[str, Any]
                         by_type['BlindingSchema'] = by_type.get('BlindingSchema', 0) + 1
                         enriched_items.append({'type': 'BlindingSchema', 'name': blinding_text, 'nci_code': nci_code})
             
-            # Enrich objective level
+            # Enrich objective level (skip if already has valid CDISC code)
             if instance_type == 'Objective' and 'level' in obj:
                 level = obj['level']
-                level_text = ''
-                if isinstance(level, dict):
-                    level_text = level.get('decode') or level.get('code', '')
-                elif isinstance(level, str):
-                    level_text = level
-                
-                nci_code = _find_code(level_text, "objectiveLevel")
-                if nci_code:
-                    code_obj = _get_code_object(nci_code, client)
-                    if code_obj:
-                        obj['level'] = code_obj
-                        enriched_count += 1
-                        by_type['Objective'] = by_type.get('Objective', 0) + 1
-                        obj_name = obj.get('name', obj.get('text', 'Unnamed'))[:50]
-                        enriched_items.append({'type': 'Objective', 'name': obj_name, 'level': level_text, 'nci_code': nci_code})
+                _already_coded = (isinstance(level, dict)
+                                  and level.get('code', '').startswith('C')
+                                  and level.get('codeSystem') == 'http://www.cdisc.org')
+                if not _already_coded:
+                    level_text = ''
+                    if isinstance(level, dict):
+                        level_text = level.get('decode') or level.get('code', '')
+                    elif isinstance(level, str):
+                        level_text = level
+                    
+                    nci_code = _find_code(level_text, "objectiveLevel")
+                    if nci_code:
+                        code_obj = _get_code_object(nci_code, client)
+                        if code_obj:
+                            obj['level'] = code_obj
+                            enriched_count += 1
+                            by_type['Objective'] = by_type.get('Objective', 0) + 1
+                            obj_name = obj.get('name', obj.get('text', 'Unnamed'))[:50]
+                            enriched_items.append({'type': 'Objective', 'name': obj_name, 'level': level_text, 'nci_code': nci_code})
             
-            # Enrich endpoint level
+            # Enrich endpoint level (skip if already has valid CDISC code)
             if instance_type == 'Endpoint' and 'level' in obj:
                 level = obj['level']
-                level_text = ''
-                if isinstance(level, dict):
-                    level_text = level.get('decode') or level.get('code', '')
-                elif isinstance(level, str):
-                    level_text = level
-                
-                nci_code = _find_code(level_text, "endpointLevel")
-                if nci_code:
-                    code_obj = _get_code_object(nci_code, client)
-                    if code_obj:
-                        obj['level'] = code_obj
-                        enriched_count += 1
-                        by_type['Endpoint'] = by_type.get('Endpoint', 0) + 1
-                        ep_name = obj.get('name', obj.get('text', 'Unnamed'))[:50]
-                        enriched_items.append({'type': 'Endpoint', 'name': ep_name, 'level': level_text, 'nci_code': nci_code})
+                _already_coded = (isinstance(level, dict)
+                                  and level.get('code', '').startswith('C')
+                                  and level.get('codeSystem') == 'http://www.cdisc.org')
+                if not _already_coded:
+                    level_text = ''
+                    if isinstance(level, dict):
+                        level_text = level.get('decode') or level.get('code', '')
+                    elif isinstance(level, str):
+                        level_text = level
+                    
+                    nci_code = _find_code(level_text, "endpointLevel")
+                    if nci_code:
+                        code_obj = _get_code_object(nci_code, client)
+                        if code_obj:
+                            obj['level'] = code_obj
+                            enriched_count += 1
+                            by_type['Endpoint'] = by_type.get('Endpoint', 0) + 1
+                            ep_name = obj.get('name', obj.get('text', 'Unnamed'))[:50]
+                            enriched_items.append({'type': 'Endpoint', 'name': ep_name, 'level': level_text, 'nci_code': nci_code})
             
-            # Enrich eligibility category
+            # Enrich eligibility category (skip if already has valid CDISC code)
             if instance_type == 'EligibilityCriterion' and 'category' in obj:
                 category = obj['category']
-                cat_text = ''
-                if isinstance(category, dict):
-                    cat_text = category.get('decode') or category.get('code', '')
-                elif isinstance(category, str):
-                    cat_text = category
-                
-                nci_code = _find_code(cat_text, "eligibilityCategory")
-                if nci_code:
-                    code_obj = _get_code_object(nci_code, client)
-                    if code_obj:
-                        obj['category'] = code_obj
-                        enriched_count += 1
-                        by_type['EligibilityCriterion'] = by_type.get('EligibilityCriterion', 0) + 1
-                        crit_name = obj.get('name', obj.get('identifier', 'Unnamed'))[:40]
-                        enriched_items.append({'type': 'EligibilityCriterion', 'name': crit_name, 'category': cat_text, 'nci_code': nci_code})
+                _already_coded = (isinstance(category, dict) 
+                                  and category.get('code', '').startswith('C')
+                                  and category.get('codeSystem') == 'http://www.cdisc.org')
+                if not _already_coded:
+                    cat_text = ''
+                    if isinstance(category, dict):
+                        cat_text = category.get('decode') or category.get('code', '')
+                    elif isinstance(category, str):
+                        cat_text = category
+                    
+                    nci_code = _find_code(cat_text, "eligibilityCategory")
+                    if nci_code:
+                        code_obj = _get_code_object(nci_code, client)
+                        if code_obj:
+                            obj['category'] = code_obj
+                            enriched_count += 1
+                            by_type['EligibilityCriterion'] = by_type.get('EligibilityCriterion', 0) + 1
+                            crit_name = obj.get('name', obj.get('identifier', 'Unnamed'))[:40]
+                            enriched_items.append({'type': 'EligibilityCriterion', 'name': crit_name, 'category': cat_text, 'nci_code': nci_code})
             
             # Enrich study arm type
             if instance_type == 'StudyArm' and 'type' in obj:

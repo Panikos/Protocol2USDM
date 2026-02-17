@@ -277,11 +277,12 @@ def _infer_age_from_criteria(design: dict, version: dict) -> Optional[dict]:
 
 
 def _make_sex_code(sex: str) -> dict:
-    """Create a USDM Code object for sex."""
+    """Create a USDM Code object for sex (SDTM codelist C66732)."""
+    _SEX_C_CODES = {"Male": "C20197", "Female": "C16576"}
     return {
         'id': str(uuid.uuid4()),
-        'code': sex,
-        'codeSystem': 'http://www.cdisc.org/USDM/sex',
+        'code': _SEX_C_CODES.get(sex, sex),
+        'codeSystem': 'http://www.cdisc.org',
         'codeSystemVersion': '2024-09-27',
         'decode': sex,
         'instanceType': 'Code',

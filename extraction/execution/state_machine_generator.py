@@ -191,9 +191,16 @@ def _detect_guard_conditions(text: str, transitions: List[StateTransition]) -> L
 
 
 def _sanitize_key(name) -> str:
-    """Sanitize a string for use as a JSON object key (no spaces for CDISC engine path traversal)."""
+    """Sanitize a string for use as a JSON object key (no spaces for CDISC engine path traversal).
+
+    CDISC CORE treats keys as path segments.  Characters like spaces,
+    hyphens, parentheses, brackets and quotes break path resolution,
+    so we strip them here.
+    """
     s = name.value if hasattr(name, 'value') else str(name)
-    return s.replace(' ', '_').replace('-', '_')
+    import re as _re
+    # Keep only word characters (letters, digits, underscores)
+    return _re.sub(r'[^\w]+', '_', s).strip('_')
 
 
 def _build_from_traversal(

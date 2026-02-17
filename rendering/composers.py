@@ -408,11 +408,12 @@ def _compose_objectives(usdm: Dict) -> str:
         if text:
             lines.append(f"**{level_text} Objective**: {text}")
 
-        # Endpoints
-        for ep in obj.get('objectiveEndpoints', []):
+        # Endpoints (USDM v4.0: 'endpoints' inline, legacy: 'objectiveEndpoints')
+        ep_list = obj.get('endpoints', obj.get('objectiveEndpoints', []))
+        for ep in ep_list:
             if isinstance(ep, dict):
-                ep_text = ep.get('endpointText', ep.get('text', ''))
-                ep_level = ep.get('endpointLevel', {})
+                ep_text = ep.get('text', ep.get('endpointText', ''))
+                ep_level = ep.get('level', ep.get('endpointLevel', {}))
                 ep_level_text = ep_level.get('decode', '') if isinstance(ep_level, dict) else ''
                 if ep_text:
                     lines.append(f"  {ep_level_text} Endpoint: {ep_text}")
@@ -712,62 +713,191 @@ def _compose_statistics(usdm: Dict) -> str:
 
 
 def _compose_safety(usdm: Dict) -> str:
-    """Compose Section 9 content from sectionType-tagged narrative content."""
+    """Compose Section 9 content from narrative text containing safety info.
+
+    Strategy: prefer sectionType-tagged items (extraction-time tagging),
+    fall back to keyword scanning for older USDM outputs that lack tags.
+    """
     study = usdm.get('study', {})
     versions = study.get('versions', [{}])
     version = versions[0] if versions else {}
+    design = (version.get('studyDesigns', [{}]) or [{}])[0]
 
     nc = version.get('narrativeContents', [])
     nci = version.get('narrativeContentItems', [])
-    lines = []
-    for item in nc + nci:
+    all_items = nc + nci
+
+    # --- Pass 1: sectionType-based filtering (preferred) ---
+    tagged_items = []
+    untagged_items = []
+    for item in all_items:
         if not isinstance(item, dict):
             continue
-        if not _has_section_type(item, 'Safety'):
+        text = item.get('text', '')
+        if not text or text == item.get('sectionTitle', item.get('name', '')):
             continue
+        if _has_section_type(item, 'Safety'):
+            tagged_items.append(item)
+        else:
+            untagged_items.append(item)
 
+    # If we found tagged items, use them directly (no keyword scanning needed)
+    if tagged_items:
+        lines = []
+        for item in tagged_items:
+            title = item.get('sectionTitle', item.get('name', ''))
+            text = item.get('text', '')
+            source = item.get('sectionNumber', '')
+            header = f'{source} {title}'.strip() if source else title
+            lines.append(f'**{header}**\n{text}')
+        return '\n\n'.join(lines)
+
+    # --- Pass 2: keyword fallback for untagged USDM ---
+    logger.warning("Safety composer: no sectionType='Safety' items found; "
+                   "falling back to keyword scanning (legacy USDM)")
+    safety_categories = {
+        'ae_definition': {
+            'keywords': ['adverse event', 'definition of ae', 'ae is defined',
+                         'adverse experience'],
+            'heading': 'Adverse Events',
+        },
+        'sae_definition': {
+            'keywords': ['serious adverse event', 'definition of sae',
+                         'sae is defined', 'serious adverse experience'],
+            'heading': 'Serious Adverse Events',
+        },
+        'aesi': {
+            'keywords': ['special interest', 'aesi', 'adverse event of special'],
+            'heading': 'Adverse Events of Special Interest',
+        },
+        'reporting': {
+            'keywords': ['reporting', 'pharmacovigilance', 'report to sponsor',
+                         'expedited reporting', 'regulatory reporting',
+                         'safety report'],
+            'heading': 'Reporting Requirements',
+        },
+        'pregnancy': {
+            'keywords': ['pregnancy', 'postpartum', 'contraception requirement',
+                         'pregnancy test'],
+            'heading': 'Pregnancy and Postpartum Information',
+        },
+        'follow_up': {
+            'keywords': ['follow-up', 'follow up of ae', 'ae follow',
+                         'safety follow'],
+            'heading': 'Follow-up of AEs and SAEs',
+        },
+        'general_safety': {
+            'keywords': ['safety', 'tolerability', 'adverse', 'toxicity',
+                         'overdose', 'medication error'],
+            'heading': 'General Safety',
+        },
+    }
+
+    categorized: Dict[str, List[str]] = {k: [] for k in safety_categories}
+
+    for item in untagged_items:
         title = item.get('sectionTitle', item.get('name', ''))
         text = item.get('text', '')
-        if not text or text == title:
-            continue
+        combined = f'{title} {text[:1000]}'.lower()
 
-        source = item.get('sectionNumber', '')
-        header = f'{source} {title}'.strip() if source else title
-        lines.append(f'**{header}**\n{text}')
+        for cat_key, cat_def in safety_categories.items():
+            if any(kw in combined for kw in cat_def['keywords']):
+                source = item.get('sectionNumber', '')
+                header = f'{source} {title}'.strip() if source else title
+                categorized[cat_key].append(f'**{header}**\n{text}')
+                break
+
+    # Also check conditions for safety-related stopping rules
+    conditions = version.get('conditions', design.get('conditions', []))
+    for cond in conditions:
+        if not isinstance(cond, dict):
+            continue
+        name = cond.get('name', '')
+        desc = cond.get('description', '')
+        cond_text = cond.get('text', '')
+        combined = f'{name} {desc} {cond_text}'.lower()
+        if any(kw in combined for kw in ['safety', 'stopping', 'liver', 'toxicity']):
+            categorized['general_safety'].append(
+                f'**Safety Condition: {name}**\n{desc}\n{cond_text}'.strip()
+            )
+
+    lines = []
+    for cat_key, cat_def in safety_categories.items():
+        fragments = categorized.get(cat_key, [])
+        if fragments:
+            lines.append(f'**{cat_def["heading"]}**')
+            lines.extend(fragments)
+            lines.append('')
 
     if not lines:
-        logger.warning("Safety composer: no sectionType-tagged 'Safety' narrative items found")
         return ''
 
     return '\n\n'.join(lines)
 
 
 def _compose_discontinuation(usdm: Dict) -> str:
-    """Compose Section 7 content from sectionType-tagged narrative content."""
+    """Compose Section 7 content from narrative text containing discontinuation info.
+
+    Many protocols embed discontinuation/withdrawal rules within the Study
+    Intervention section (§6) or Study Population section (§5).
+
+    Strategy: prefer sectionType-tagged items (extraction-time tagging),
+    fall back to keyword scanning for older USDM outputs that lack tags.
+    """
     study = usdm.get('study', {})
     versions = study.get('versions', [{}])
     version = versions[0] if versions else {}
 
     nc = version.get('narrativeContents', [])
     nci = version.get('narrativeContentItems', [])
-    fragments = []
-    for item in nc + nci:
+    all_items = nc + nci
+
+    # --- Pass 1: sectionType-based filtering (preferred) ---
+    tagged_items = []
+    untagged_items = []
+    for item in all_items:
         if not isinstance(item, dict):
             continue
-        if not _has_section_type(item, 'Discontinuation'):
+        text = item.get('text', '')
+        if not text or text == item.get('sectionTitle', item.get('name', '')):
             continue
+        if _has_section_type(item, 'Discontinuation'):
+            tagged_items.append(item)
+        else:
+            untagged_items.append(item)
 
+    if tagged_items:
+        fragments = []
+        for item in tagged_items:
+            title = item.get('sectionTitle', item.get('name', ''))
+            text = item.get('text', '')
+            source = item.get('sectionNumber', '')
+            header = f'{source} {title}'.strip() if source else title
+            fragments.append(f'**{header}**\n{text}')
+        return '\n\n'.join(fragments)
+
+    # --- Pass 2: keyword fallback for untagged USDM ---
+    logger.warning("Discontinuation composer: no sectionType='Discontinuation' items found; "
+                   "falling back to keyword scanning (legacy USDM)")
+    discontinuation_keywords = [
+        'discontinu', 'withdraw', 'dropout', 'drop-out', 'drop out',
+        'early termination', 'stopping rule', 'lost to follow',
+        'premature', 'removal from study',
+    ]
+
+    pattern = re.compile('|'.join(discontinuation_keywords), re.IGNORECASE)
+
+    fragments = []
+    for item in untagged_items:
         title = item.get('sectionTitle', item.get('name', ''))
         text = item.get('text', '')
-        if not text or text == title:
-            continue
 
-        source = item.get('sectionNumber', '')
-        header = f'{source} {title}'.strip() if source else title
-        fragments.append(f'**{header}**\n{text}')
+        if pattern.search(title) or pattern.search(text[:500]):
+            source = item.get('sectionNumber', '')
+            header = f'{source} {title}'.strip() if source else title
+            fragments.append(f'**{header}**\n{text}')
 
     if not fragments:
-        logger.warning("Discontinuation composer: no sectionType-tagged 'Discontinuation' narrative items found")
         return ''
 
     return '\n\n'.join(fragments)

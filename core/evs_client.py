@@ -241,7 +241,7 @@ class EVSClient:
             logger.debug(f"NCIt code {code} not found")
             return None
         
-        # Build USDM Code object
+        # Build USDM Code object (id will be replaced with UUID at point of use)
         result = {
             "id": code,
             "code": code,

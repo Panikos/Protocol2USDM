@@ -5,6 +5,7 @@ Reconciles activity data from multiple extraction sources (SoA, Procedures,
 Execution Model) into canonical activities for protocol_usdm.json.
 """
 
+import re
 import uuid
 import logging
 from dataclasses import dataclass, field
@@ -16,10 +17,77 @@ from .base import (
     ReconciledEntity,
     clean_entity_name,
     extract_footnote_refs,
+    fuzzy_match_names,
     normalize_for_matching,
 )
 
 logger = logging.getLogger(__name__)
+
+
+# =============================================================================
+# Clinical Synonym Normalization
+# =============================================================================
+
+# Maps common clinical abbreviations/variants to canonical forms for matching.
+# Applied before fuzzy matching to catch synonyms that SequenceMatcher misses.
+CLINICAL_SYNONYMS = {
+    "ecg": "electrocardiogram",
+    "ekg": "electrocardiogram",
+    "12-lead ecg": "electrocardiogram",
+    "vitals": "vital signs",
+    "vital sign": "vital signs",
+    "vitals sign": "vital signs",
+    "vital signs monitoring": "vital signs",
+    "vitals sign measurements": "vital signs",
+    "bp": "blood pressure",
+    "bmi": "body mass index",
+    "pe": "physical examination",
+    "physical exam": "physical examination",
+    "labs": "laboratory tests",
+    "lab tests": "laboratory tests",
+    "laboratory assessments": "laboratory tests",
+    "cbc": "complete blood count",
+    "lfts": "liver function tests",
+    "ct": "computed tomography",
+    "mri": "magnetic resonance imaging",
+    "pk": "pharmacokinetics",
+    "pd": "pharmacodynamics",
+    "ae": "adverse events",
+    "sae": "serious adverse events",
+    "icf": "informed consent",
+    "fsh": "follicle-stimulating hormone",
+    "fsh test": "follicle-stimulating hormone",
+    "copper": "cu",
+    "molybdenum": "mo",
+    "diet": "meals",
+    "controlled diet": "controlled meals",
+    "admission": "admit",
+    "cru": "clinical research unit",
+}
+
+
+_QUALIFIER_SUFFIXES = re.compile(
+    r'\b(monitoring|measurements?|assessment|evaluation|testing|'
+    r'collection|sampling|check|determination|recording|examination)\b'
+)
+
+
+def _synonym_normalize(name: str) -> str:
+    """Apply clinical synonym expansion and qualifier stripping for matching."""
+    low = name.lower().strip()
+    # Try exact match first
+    if low in CLINICAL_SYNONYMS:
+        return CLINICAL_SYNONYMS[low]
+    # Replace known abbreviations within the name
+    result = low
+    for abbrev, canonical in CLINICAL_SYNONYMS.items():
+        pattern = r'\b' + re.escape(abbrev) + r'\b'
+        result = re.sub(pattern, canonical, result)
+    # Strip qualifier suffixes that don't change the core clinical concept
+    result = _QUALIFIER_SUFFIXES.sub('', result)
+    # Normalize whitespace after stripping
+    result = ' '.join(result.split())
+    return result
 
 
 # =============================================================================
@@ -118,9 +186,6 @@ class ReconciledActivity(ReconciledEntity):
         if self.activity_type == "procedure":
             result["definedProcedures"] = []
         
-        # Add biomedicalConcepts placeholder
-        result["biomedicalConcepts"] = []
-        
         # Build extension attributes
         extra_extensions = []
         
@@ -194,6 +259,26 @@ class ActivityReconciler(BaseReconciler[ActivityContribution, ReconciledActivity
     - Execution Model: 25 (repetition patterns, timing)
     - Procedures: 20 (detailed procedure info, lower priority)
     """
+    
+    def _find_matching_key(
+        self,
+        name: str,
+        existing_keys: Dict[str, List['ActivityContribution']]
+    ) -> Optional[str]:
+        """Find existing key that matches, with clinical synonym awareness."""
+        # Standard fuzzy match first (inherited logic)
+        for key in existing_keys:
+            if fuzzy_match_names(name, key, self.match_threshold):
+                return key
+        
+        # Synonym-expanded match: normalize both sides and retry
+        syn_name = _synonym_normalize(name)
+        for key in existing_keys:
+            syn_key = _synonym_normalize(key)
+            if fuzzy_match_names(syn_name, syn_key, self.match_threshold):
+                return key
+        
+        return None
     
     def _create_contribution(
         self,

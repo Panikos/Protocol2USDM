@@ -24,8 +24,8 @@ class TestInterventionTypeCodes:
     """Verify StudyIntervention.type codes match EVS-verified values."""
 
     EXPECTED = {
-        "C1909": "Drug",
-        "C307": "Biological",
+        "C1909": "DRUG",
+        "C307": "BIOLOGICAL",
         "C16830": "Device",
         "C1505": "Dietary Supplement",
         "C15329": "Procedure",

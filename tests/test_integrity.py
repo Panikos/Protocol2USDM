@@ -308,6 +308,21 @@ class TestSemanticRules:
         epoch_findings = [f for f in findings if f.rule == 'epoch_not_in_cell']
         assert len(epoch_findings) == 0
 
+    def test_study_closure_and_ptdv_epochs_are_terminal(self):
+        usdm = _make_usdm(design_overrides={
+            'epochs': [
+                {'id': 'epoch_1', 'name': 'Screening'},
+                {'id': 'epoch_scv', 'name': 'Study closure visit (SCV)'},
+                {'id': 'epoch_ptdv', 'name': 'Premature treatment discontinuation visit (PTDV)'},
+            ],
+            'studyCells': [
+                {'id': 'cell_1', 'armId': 'arm_1', 'epochId': 'epoch_1', 'elementIds': []},
+            ],
+        })
+        findings = check_semantic_rules(usdm)
+        epoch_findings = [f for f in findings if f.rule == 'epoch_not_in_cell']
+        assert len(epoch_findings) == 0
+
     def test_unnamed_activities(self):
         usdm = _make_usdm(design_overrides={
             'activities': [

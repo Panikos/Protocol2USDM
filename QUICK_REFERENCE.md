@@ -1,8 +1,8 @@
 # Protocol2USDM Quick Reference
 
-**v7.5** | One-page command reference
+**v7.16** | One-page command reference
 
-> **Current:** NCI code audit (70+ fixes, EVS-verified), Code Registry + Verification Service, Unscheduled Visit tagging (UNS auto-detection + amber SoA columns), 726 tests collected, async LLM calls, LLM streaming, parallel execution model, chunked EVS cache, M11 DOCX rendering, phase registry architecture (`main_v3.py`), default `--complete` mode, `gemini-3-flash-preview` default model.
+> **Current:** USDM v4.0 endpoint nesting, ExtensionAttribute alignment, core_compliance architectural audit, 1136 tests collected, review fix sprint (B1–B9), keyword-guided enrollment (G1), integrity checker, CDISC CORE hardening, procedure code enrichment, M11 DOCX rendering, phase registry architecture (`main_v3.py`), default `--complete` mode, `gemini-3-flash-preview` default model.
 
 ---
 
@@ -182,7 +182,7 @@ output/<protocol>/
 ## Testing
 
 ```bash
-# All unit tests (726 collected, ~1 min)
+# All unit tests (1136 collected, ~3 min)
 python -m pytest tests/ -v
 
 # With coverage
@@ -267,7 +267,7 @@ CDISC_API_KEY=...            # For CORE (optional)
 
 ---
 
-## USDM Entity Placement (v7.2)
+## USDM Entity Placement (v7.16)
 
 | Entity | Location |
 |--------|----------|
@@ -283,6 +283,7 @@ CDISC_API_KEY=...            # For CORE (optional)
 | `eligibilityCriteria` | `studyDesign` |
 | `indications` | `studyDesign` |
 | `analysisPopulations` | `studyDesign` |
+| `endpoints` | `objective` (inline, Value relationship) |
 | `timings` | `scheduleTimeline` |
 | `exits` | `scheduleTimeline` |
 | `definedProcedures` | `activity` |
@@ -291,5 +292,5 @@ CDISC_API_KEY=...            # For CORE (optional)
 
 **Docs:** [README.md](README.md) | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
-**Last Updated:** 2026-02-11  
-**Version:** 7.5
+**Last Updated:** 2026-02-17  
+**Version:** 7.16

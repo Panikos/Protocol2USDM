@@ -332,6 +332,7 @@ class ExecutionModelPromoter:
                 anchor_instance = {
                     "id": instance_id,
                     "name": anchor_name,
+                    "label": anchor_name,
                     "description": f"Event anchor: {anchor_name}",
                     "activityIds": [activity_id] if activity_id else [],
                     "instanceType": "ScheduledActivityInstance",
@@ -373,6 +374,7 @@ class ExecutionModelPromoter:
                 anchor_instance = {
                     "id": instance_id,
                     "name": anchor_name,
+                    "label": anchor_name,
                     "description": f"Visit anchor: {anchor_name}",
                     "encounterId": matched_encounter_id,
                     "epochId": self._find_first_treatment_epoch_id(design),
@@ -533,6 +535,7 @@ class ExecutionModelPromoter:
                     instance = {
                         "id": instance_id,
                         "name": f"{activity_name} @ Day {day}",
+                        "label": f"{activity_name} @ Day {day}",
                         "activityIds": [activity_id],
                         "encounterId": encounter_id,
                         "scheduledDay": day,
@@ -698,6 +701,7 @@ class ExecutionModelPromoter:
                         anchor_instance = {
                             "id": ref_id,
                             "name": f"Anchor: {timing_name}" if timing_name else f"Anchor: {ref_id}",
+                            "label": f"Anchor: {timing_name}" if timing_name else f"Anchor: {ref_id}",
                             "activityIds": [],
                             "encounterId": encounter_id,
                             "instanceType": "ScheduledActivityInstance",
@@ -1389,12 +1393,12 @@ class ExecutionModelPromoter:
                 timing = {
                     'id': timing_id,
                     'name': f"Timing for {visit_name}",
-                    'type': {'code': 'C71738', 'codeSystem': 'http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl', 
-                             'decode': 'Study Day', 'instanceType': 'Code'},
+                    'type': {'id': generate_uuid(), 'code': 'C201356', 'codeSystem': 'http://www.cdisc.org',
+                             'codeSystemVersion': '2024-09-27', 'decode': 'After', 'instanceType': 'Code'},
                     'value': f"P{target_day}D",
                     'valueLabel': f"Day {target_day}",
-                    'relativeToFrom': {'code': 'C71738', 'codeSystem': 'http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl',
-                                       'decode': 'Study Day', 'instanceType': 'Code'},
+                    'relativeToFrom': {'id': generate_uuid(), 'code': 'C201355', 'codeSystem': 'http://www.cdisc.org',
+                                       'codeSystemVersion': '2024-09-27', 'decode': 'Start to Start', 'instanceType': 'Code'},
                     'relativeFromScheduledInstanceId': main_timeline.get('entryId', generate_uuid()),
                     'instanceType': 'Timing',
                 }

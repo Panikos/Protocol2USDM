@@ -901,7 +901,13 @@ def link_cohorts_to_population(combined: dict) -> dict:
 
 
 def add_soa_footnotes(study_design: dict, output_dir: str) -> None:
-    """Add authoritative SoA footnotes from header_structure.json."""
+    """Add authoritative SoA footnotes from header_structure.json.
+    
+    Creates footnotes in two forms:
+    1. x-soaFootnotes extension (backward compat for SoA table rendering)
+    2. CommentAnnotation entities on Activity.notes[] and StudyDesign.notes[]
+       (USDM v4.0 aligned — makes footnote IDs discoverable as proper entities)
+    """
     try:
         header_path = os.path.join(output_dir, "4_header_structure.json")
         if not os.path.exists(header_path):
@@ -911,26 +917,162 @@ def add_soa_footnotes(study_design: dict, output_dir: str) -> None:
             header_data = json.load(f)
         
         soa_footnotes = header_data.get('footnotes', [])
-        if soa_footnotes:
-            if 'extensionAttributes' not in study_design:
-                study_design['extensionAttributes'] = []
-            
-            # Remove existing SoA footnotes
-            study_design['extensionAttributes'] = [
-                ext for ext in study_design['extensionAttributes']
-                if not ext.get('url', '').endswith('soaFootnotes')
-            ]
-            
-            study_design['extensionAttributes'].append({
-                'id': f"ext_soa_footnotes_{study_design.get('id', 'sd')[:8]}",
-                'url': 'https://protocol2usdm.io/extensions/x-soaFootnotes',
-                'valueString': json.dumps(soa_footnotes),
-                'instanceType': 'ExtensionAttribute'
-            })
-            logger.info(f"  ✓ Added {len(soa_footnotes)} authoritative SoA footnotes")
+        if not soa_footnotes:
+            return
+        
+        if 'extensionAttributes' not in study_design:
+            study_design['extensionAttributes'] = []
+        
+        # Remove existing SoA footnotes
+        study_design['extensionAttributes'] = [
+            ext for ext in study_design['extensionAttributes']
+            if not ext.get('url', '').endswith('soaFootnotes')
+        ]
+        
+        # Convert plain strings to objects with IDs so footnoteId refs resolve
+        markers = 'abcdefghijklmnopqrstuvwxyz'
+        footnote_objects = []
+        for idx, fn in enumerate(soa_footnotes):
+            if isinstance(fn, str):
+                fn_obj = {
+                    'id': f"fn_{idx + 1}",
+                    'text': fn,
+                }
+                if idx < len(markers):
+                    fn_obj['marker'] = markers[idx]
+                footnote_objects.append(fn_obj)
+            elif isinstance(fn, dict):
+                if 'id' not in fn:
+                    fn['id'] = f"fn_{idx + 1}"
+                footnote_objects.append(fn)
+        
+        study_design['extensionAttributes'].append({
+            'id': f"ext_soa_footnotes_{study_design.get('id', 'sd')[:8]}",
+            'url': 'https://protocol2usdm.io/extensions/x-soaFootnotes',
+            'valueString': json.dumps(footnote_objects),
+            'instanceType': 'ExtensionAttribute'
+        })
+        logger.info(f"  ✓ Added {len(footnote_objects)} authoritative SoA footnotes (with IDs)")
+        
+        # --- USDM-aligned: promote to CommentAnnotation on Activity/StudyDesign notes ---
+        _promote_footnotes_to_notes(study_design, footnote_objects, output_dir)
     
     except Exception as e:
         logger.warning(f"  ⚠ SoA footnotes addition skipped: {e}")
+
+
+def _promote_footnotes_to_notes(
+    study_design: dict,
+    footnote_objects: list,
+    output_dir: str,
+) -> None:
+    """Promote SoA footnotes to CommentAnnotation entities on USDM notes[] arrays.
+    
+    Uses the SoA provenance cellFootnotes mapping to place footnotes on the
+    correct Activity.notes[] for cell-mapped footnotes, and on
+    StudyDesign.notes[] for design-level footnotes.
+    """
+    markers = 'abcdefghijklmnopqrstuvwxyz'
+    
+    # Build marker → footnote object mapping
+    marker_to_fn = {}
+    for fn_obj in footnote_objects:
+        m = fn_obj.get('marker', '')
+        if m:
+            marker_to_fn[m] = fn_obj
+    
+    # Load SoA provenance for cell-level footnote mapping
+    prov_path = os.path.join(output_dir, "9_final_soa_provenance.json")
+    cell_footnotes = {}
+    if os.path.exists(prov_path):
+        try:
+            with open(prov_path, 'r', encoding='utf-8') as f:
+                prov = json.load(f)
+            cell_footnotes = prov.get('cellFootnotes', {})
+        except Exception:
+            pass
+    
+    # Load pre-reconciliation SoA to get act_N → activity name mapping
+    soa_path = os.path.join(output_dir, "9_final_soa.json")
+    act_n_to_name = {}
+    if os.path.exists(soa_path):
+        try:
+            with open(soa_path, 'r', encoding='utf-8') as f:
+                soa_data = json.load(f)
+            soa_sd = soa_data.get('study', {}).get('versions', [{}])[0].get('studyDesigns', [{}])[0]
+            for i, act in enumerate(soa_sd.get('activities', [])):
+                act_n_to_name[f"act_{i + 1}"] = act.get('name', '')
+        except Exception:
+            pass
+    
+    # Build reconciled activity name → activity dict (lowercase normalized)
+    act_name_to_entity = {}
+    norm_re = re.compile(r'[^a-z0-9]')
+    for act in study_design.get('activities', []):
+        name = act.get('name', '')
+        if name:
+            act_name_to_entity[name.lower()] = act
+            act_name_to_entity[norm_re.sub('', name.lower())] = act
+    
+    # Build marker → set of reconciled activity dicts
+    marker_to_activities: Dict[str, list] = {}
+    for cell_key, fn_markers in cell_footnotes.items():
+        act_key = cell_key.split('|')[0]
+        soa_name = act_n_to_name.get(act_key, '')
+        if not soa_name:
+            continue
+        # Find reconciled activity
+        act_entity = act_name_to_entity.get(soa_name.lower())
+        if not act_entity:
+            act_entity = act_name_to_entity.get(norm_re.sub('', soa_name.lower()))
+        if not act_entity:
+            # Substring fallback
+            for key, ent in act_name_to_entity.items():
+                if len(key) > 3 and (soa_name.lower() in key or key in soa_name.lower()):
+                    act_entity = ent
+                    break
+        if act_entity:
+            for m in fn_markers:
+                marker_to_activities.setdefault(m, [])
+                if act_entity not in marker_to_activities[m]:
+                    marker_to_activities[m].append(act_entity)
+    
+    # Place CommentAnnotation entities
+    cell_placed = 0
+    design_placed = 0
+    
+    for fn_obj in footnote_objects:
+        m = fn_obj.get('marker', '')
+        annotation = {
+            'id': fn_obj['id'],
+            'text': fn_obj.get('text', ''),
+            'codes': [],
+            'instanceType': 'CommentAnnotation',
+        }
+        
+        target_activities = marker_to_activities.get(m, [])
+        if target_activities:
+            # Place on each mapped activity's notes[]
+            for act in target_activities:
+                act.setdefault('notes', [])
+                # Avoid duplicates
+                existing_ids = {n.get('id') for n in act['notes']}
+                if annotation['id'] not in existing_ids:
+                    act['notes'].append(annotation)
+                    cell_placed += 1
+        else:
+            # Design-level footnote → StudyDesign.notes[]
+            study_design.setdefault('notes', [])
+            existing_ids = {n.get('id') for n in study_design['notes']}
+            if annotation['id'] not in existing_ids:
+                study_design['notes'].append(annotation)
+                design_placed += 1
+    
+    if cell_placed or design_placed:
+        logger.info(
+            f"  ✓ Promoted {cell_placed + design_placed} footnotes to CommentAnnotation "
+            f"({cell_placed} on Activity.notes[], {design_placed} on StudyDesign.notes[])"
+        )
 
 
 def validate_anchor_consistency(combined: dict, expansion_results: dict) -> dict:
@@ -1020,4 +1162,553 @@ def validate_anchor_consistency(combined: dict, expansion_results: dict) -> dict
     except Exception as e:
         logger.warning(f"  ⚠ Anchor consistency validation skipped: {e}")
     
+    return combined
+
+
+# ---------------------------------------------------------------------------
+# Structural CORE Compliance Fixes
+# (Run after reconciliation, before validation/UUID conversion)
+# ---------------------------------------------------------------------------
+
+def _extract_sort_key(name: str) -> float:
+    """Extract a numeric sort key from an encounter/epoch name.
+
+    Strategies (in order):
+      1. Day number  — "Day -7", "Day 1", "Day 360"
+      2. Week number — "Week -3", "Week 52"
+      3. Visit number — "Visit 1", "V3a"
+      4. Fallback    — large number (pushed to end)
+    """
+    if not name:
+        return 9999.0
+    low = name.lower()
+
+    m = re.search(r'day\s*(-?\d+)', low)
+    if m:
+        return float(m.group(1))
+
+    m = re.search(r'week\s*(-?\d+)', low)
+    if m:
+        return float(m.group(1)) * 7
+
+    m = re.search(r'(?:visit|v)\s*(\d+)', low)
+    if m:
+        return float(m.group(1)) * 0.01
+
+    terminal_kw = ("eos", "et ", "ptdv", "scv", "early termination",
+                   "end of study", "end of treatment", "unscheduled",
+                   "follow-up", "safety follow", "study closure",
+                   "final treatment", "premature")
+    for kw in terminal_kw:
+        if kw in low:
+            return 9990.0
+
+    return 9999.0
+
+
+def build_ordering_chains(study_design: Dict[str, Any]) -> int:
+    """
+    Populate ``previousId`` / ``nextId`` on epochs and encounters.
+
+    **Epochs**: Use array position directly. The epoch reconciler
+    (``_post_reconcile``) already sorts by ``(category, sequence_order)``
+    which reflects the SoA column ordering — the authoritative source.
+    Re-sorting would destroy this correct order.
+
+    **Encounters**: Sort by temporal key (Day/Week/Visit number) with
+    array index as stable tiebreaker for encounters that lack numeric names.
+
+    Returns the number of links set.
+    """
+    epochs: List[Dict] = study_design.get("epochs", [])
+    encounters: List[Dict] = study_design.get("encounters", [])
+
+    if not epochs and not encounters:
+        return 0
+
+    linked = 0
+
+    # --- Encounter chain: sort by temporal key, array index as tiebreaker ---
+    if len(encounters) > 1:
+        indexed = [(i, enc) for i, enc in enumerate(encounters)]
+        indexed.sort(key=lambda t: (_extract_sort_key(t[1].get("name", "")), t[0]))
+        sorted_encs = [enc for _, enc in indexed]
+        for i, enc in enumerate(sorted_encs):
+            if i > 0:
+                enc["previousId"] = sorted_encs[i - 1].get("id")
+                linked += 1
+            else:
+                enc.pop("previousId", None)
+            if i < len(sorted_encs) - 1:
+                enc["nextId"] = sorted_encs[i + 1].get("id")
+                linked += 1
+            else:
+                enc.pop("nextId", None)
+
+    # --- Epoch chain: use array position (reconciler order is authoritative) ---
+    if len(epochs) > 1:
+        for i, ep in enumerate(epochs):
+            if i > 0:
+                ep["previousId"] = epochs[i - 1].get("id")
+                linked += 1
+            else:
+                ep.pop("previousId", None)
+            if i < len(epochs) - 1:
+                ep["nextId"] = epochs[i + 1].get("id")
+                linked += 1
+            else:
+                ep.pop("nextId", None)
+
+    return linked
+
+
+_PRIMARY_OBJECTIVE_CODES = {"C85826"}
+_PRIMARY_ENDPOINT_CODES = {"C94496", "C98772"}
+
+
+def fix_primary_endpoint_linkage(study_design: Dict[str, Any]) -> int:
+    """
+    Ensure at least one primary endpoint is nested in a primary objective
+    (CORE-000874) and that one primary endpoint exists (CORE-001036).
+
+    Per USDM v4.0, endpoints are nested inline inside Objective.endpoints.
+    Returns number of links fixed.
+    """
+    objectives: List[Dict] = study_design.get("objectives", [])
+    if not objectives:
+        return 0
+
+    # Collect all endpoints from inside objectives
+    all_endpoints = []
+    for obj in objectives:
+        all_endpoints.extend(obj.get("endpoints", []))
+
+    if not all_endpoints:
+        return 0
+
+    fixed = 0
+
+    def _get_code(code_obj):
+        if isinstance(code_obj, dict):
+            return code_obj.get("code", "")
+        return ""
+
+    primary_objs = [o for o in objectives
+                    if _get_code(o.get("level")) in _PRIMARY_OBJECTIVE_CODES]
+    primary_eps = [e for e in all_endpoints
+                   if _get_code(e.get("level")) in _PRIMARY_ENDPOINT_CODES]
+
+    if not primary_objs or not primary_eps:
+        return 0
+
+    for obj in primary_objs:
+        obj_eps = obj.get("endpoints", [])
+        has_primary = any(
+            _get_code(ep.get("level")) in _PRIMARY_ENDPOINT_CODES
+            for ep in obj_eps
+        )
+        if not has_primary:
+            obj.setdefault("endpoints", []).append(primary_eps[0])
+            fixed += 1
+
+    return fixed
+
+
+def fix_timing_references(study_design: Dict[str, Any]) -> int:
+    """
+    Populate ``relativeToScheduledInstanceId`` on timings that have a
+    ``relativeFromScheduledInstanceId`` but are missing the "to" reference.
+
+    Defaults to the timeline's ``entryId`` (the anchor/first instance).
+
+    Returns number of timing references fixed.
+    """
+    timelines: List[Dict] = study_design.get("scheduleTimelines", [])
+    if not timelines:
+        return 0
+
+    fixed = 0
+    for tl in timelines:
+        entry_id = tl.get("entryId")
+        if not entry_id:
+            instances = tl.get("instances", [])
+            if instances:
+                entry_id = instances[0].get("id")
+        if not entry_id:
+            continue
+
+        for timing in tl.get("timings", []):
+            has_from = timing.get("relativeFromScheduledInstanceId")
+            has_to = timing.get("relativeToScheduledInstanceId")
+            if has_from and not has_to:
+                timing["relativeToScheduledInstanceId"] = entry_id
+                fixed += 1
+
+    return fixed
+
+
+def resolve_name_as_id_references(combined: dict) -> int:
+    """
+    Resolve remaining name-as-ID references for substanceId, fromElementId, toElementId.
+    
+    These fields contain entity names instead of UUIDs. This function matches
+    them to existing entities or creates new ones as needed.
+    
+    Returns count of resolved references.
+    """
+    resolved = 0
+    sd = combined.get("study", {}).get("versions", [{}])[0].get("studyDesigns", [{}])[0]
+    sv = combined.get("study", {}).get("versions", [{}])[0]
+    
+    # --- substanceId resolution ---
+    # Build substance name→ID lookup from existing substances
+    substances = combined.get("substances", [])
+    substance_lookup = {}
+    for s in substances:
+        sid = s.get("id", "")
+        sname = s.get("name", "").lower()
+        if sid and sname:
+            substance_lookup[sname] = sid
+            substance_lookup[re.sub(r'[^a-z0-9]', '', sname)] = sid
+    
+    # Also collect substance info from interventions
+    for si in sv.get("studyInterventions", []):
+        si_name = (si.get("name") or "").lower()
+        si_id = si.get("id", "")
+        # Intervention names often match substance names
+        if si_name and si_id:
+            for s in substances:
+                if si_name in s.get("name", "").lower() or s.get("name", "").lower() in si_name:
+                    substance_lookup[si_name] = s.get("id", "")
+    
+    UUID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
+    
+    # Fix substanceId in _temp_ingredients and anywhere else
+    for key in ("_temp_ingredients", "ingredients"):
+        for ing in combined.get(key, []):
+            sub_id = ing.get("substanceId", "")
+            if sub_id and not UUID_RE.match(sub_id):
+                # Name-as-ID: try lookup, else create substance
+                name_lower = sub_id.lower()
+                norm = re.sub(r'[^a-z0-9]', '', name_lower)
+                match_id = substance_lookup.get(name_lower) or substance_lookup.get(norm)
+                if not match_id:
+                    # Substring match
+                    for sname, sid in substance_lookup.items():
+                        if name_lower in sname or sname in name_lower:
+                            match_id = sid
+                            break
+                if not match_id:
+                    # Create new substance entity
+                    new_id = str(uuid.uuid4())
+                    substances.append({
+                        "id": new_id,
+                        "name": sub_id,
+                        "strengths": [{
+                            "id": str(uuid.uuid4()),
+                            "name": "Not specified",
+                            "numerator": {
+                                "id": str(uuid.uuid4()),
+                                "value": 0,
+                                "instanceType": "Quantity",
+                            },
+                            "instanceType": "Strength",
+                        }],
+                        "instanceType": "Substance",
+                    })
+                    substance_lookup[name_lower] = new_id
+                    substance_lookup[norm] = new_id
+                    match_id = new_id
+                    combined["substances"] = substances
+                
+                ing["substanceId"] = match_id
+                resolved += 1
+    
+    # --- fromElementId / toElementId resolution ---
+    # Build element/epoch name→ID lookup
+    element_lookup = {}
+    for el in sd.get("elements", []):
+        el_name = (el.get("name") or "").lower()
+        el_id = el.get("id", "")
+        if el_name and el_id:
+            element_lookup[el_name] = el_id
+            element_lookup[re.sub(r'[^a-z0-9]', '', el_name)] = el_id
+    # Also include epochs (transition rules may reference epochs)
+    for ep in sd.get("epochs", []):
+        ep_name = (ep.get("name") or "").lower()
+        ep_id = ep.get("id", "")
+        if ep_name and ep_id:
+            element_lookup[ep_name] = ep_id
+            element_lookup[re.sub(r'[^a-z0-9]', '', ep_name)] = ep_id
+    
+    # Build dose amount→element mapping for dosing-related refs (e.g. "15 mg/day" → "Dose Step 1")
+    dose_step_elements = sorted(
+        [(el.get("name", ""), el.get("id", "")) for el in sd.get("elements", [])
+         if "dose" in (el.get("name") or "").lower() and "step" in (el.get("name") or "").lower()],
+        key=lambda x: x[0],  # Sort by name (Dose Step 1, Dose Step 2, ...)
+    )
+    
+    # Fix transition rules
+    for tr in combined.get("transitionRules", []):
+        for field in ("fromElementId", "toElementId"):
+            val = tr.get(field, "")
+            if val and not UUID_RE.match(val):
+                name_lower = val.lower()
+                norm = re.sub(r'[^a-z0-9]', '', name_lower)
+                match_id = element_lookup.get(name_lower) or element_lookup.get(norm)
+                if not match_id:
+                    for ename, eid in element_lookup.items():
+                        if name_lower in ename or ename in name_lower:
+                            match_id = eid
+                            break
+                # Dosing-specific fallback: match dose amounts to dose step elements
+                if not match_id and dose_step_elements and re.search(r'\d+\s*mg', val):
+                    dose_match = re.search(r'(\d+(?:\.\d+)?)\s*mg', val)
+                    if dose_match:
+                        dose_val = float(dose_match.group(1))
+                        # Collect all dose refs in transition rules to determine ordering
+                        all_doses = set()
+                        for tr2 in combined.get("transitionRules", []):
+                            for f2 in ("fromElementId", "toElementId"):
+                                v2 = tr2.get(f2, "")
+                                m2 = re.search(r'(\d+(?:\.\d+)?)\s*mg', v2) if v2 else None
+                                if m2:
+                                    all_doses.add(float(m2.group(1)))
+                        sorted_doses = sorted(all_doses)
+                        if dose_val in sorted_doses:
+                            idx = sorted_doses.index(dose_val)
+                            if idx < len(dose_step_elements):
+                                match_id = dose_step_elements[idx][1]
+                if match_id:
+                    tr[field] = match_id
+                    resolved += 1
+    
+    if resolved:
+        logger.info(f"  ✓ Resolved {resolved} name-as-ID references (substance/element)")
+    
+    return resolved
+
+
+def _build_enrollment_quantity(n: int) -> dict:
+    """Build a USDM Range for plannedEnrollmentNumber.
+    
+    Per USDM v4.0: QuantityRange is abstract; concrete types are Quantity and Range.
+    Range.minValue/maxValue are Quantity objects. Quantity.unit is an AliasCode.
+    """
+    def _make_unit_alias_code() -> dict:
+        """Build an AliasCode for the 'Participant' unit."""
+        return {
+            'id': str(uuid.uuid4()),
+            'standardCode': {
+                'id': str(uuid.uuid4()),
+                'code': 'C25613',
+                'codeSystem': 'http://www.cdisc.org',
+                'codeSystemVersion': '2024-09-27',
+                'decode': 'Participant',
+                'instanceType': 'Code',
+            },
+            'instanceType': 'AliasCode',
+        }
+    
+    return {
+        'id': str(uuid.uuid4()),
+        'minValue': {
+            'id': str(uuid.uuid4()),
+            'value': n,
+            'unit': _make_unit_alias_code(),
+            'instanceType': 'Quantity',
+        },
+        'maxValue': {
+            'id': str(uuid.uuid4()),
+            'value': n,
+            'unit': _make_unit_alias_code(),
+            'instanceType': 'Quantity',
+        },
+        'isApproximate': True,
+        'instanceType': 'Range',
+    }
+
+
+def enrich_enrollment_number(combined: dict) -> bool:
+    """
+    G1: Populate plannedEnrollmentNumber using a keyword-guided approach.
+    
+    Fallback chain (first match wins):
+      1. Keyword-guided LLM extraction from protocol PDF
+      2. Keyword-guided LLM extraction from SAP PDF (if available)
+      3. SAP extension targetSampleSize (already extracted, no LLM cost)
+      4. Metadata _temp_planned_enrollment (from LLM synopsis extraction)
+    
+    Returns True if a value was populated.
+    """
+    sv = combined.get('study', {}).get('versions', [{}])[0]
+    sd = (sv.get('studyDesigns') or [{}])[0]
+    pop = sd.get('population', {})
+    if not pop or pop.get('plannedEnrollmentNumber'):
+        return False
+    
+    # --- Tier 1: Keyword-guided LLM from protocol PDF ---
+    pdf_path = combined.get('_pdf_path')
+    if pdf_path:
+        try:
+            from extraction.enrollment_finder import find_planned_enrollment
+            enrollment = find_planned_enrollment(pdf_path)
+            if enrollment:
+                pop['plannedEnrollmentNumber'] = _build_enrollment_quantity(enrollment)
+                logger.info(f"  ✓ plannedEnrollmentNumber={enrollment} (keyword-guided, protocol PDF)")
+                return True
+        except Exception as e:
+            logger.debug(f"  Keyword-guided enrollment from protocol PDF failed: {e}")
+    
+    # --- Tier 2: Keyword-guided LLM from SAP PDF ---
+    output_dir = combined.get('_output_dir')
+    if output_dir:
+        sap_source = _find_sap_source_file(output_dir)
+        if sap_source:
+            try:
+                from extraction.enrollment_finder import find_planned_enrollment
+                enrollment = find_planned_enrollment(sap_source)
+                if enrollment:
+                    pop['plannedEnrollmentNumber'] = _build_enrollment_quantity(enrollment)
+                    logger.info(f"  ✓ plannedEnrollmentNumber={enrollment} (keyword-guided, SAP PDF)")
+                    return True
+            except Exception as e:
+                logger.debug(f"  Keyword-guided enrollment from SAP PDF failed: {e}")
+    
+    # --- Tier 3: SAP extension targetSampleSize ---
+    for ext in sd.get('extensionAttributes', []):
+        if ext.get('url', '').endswith('sample-size-calculations'):
+            vs = ext.get('valueString', '')
+            if not vs:
+                continue
+            try:
+                calcs = json.loads(vs)
+                if isinstance(calcs, list):
+                    for calc in calcs:
+                        target = calc.get('targetSampleSize')
+                        if target and isinstance(target, (int, float)) and target > 0:
+                            pop['plannedEnrollmentNumber'] = _build_enrollment_quantity(int(target))
+                            logger.info(f"  ✓ plannedEnrollmentNumber={int(target)} (SAP extension)")
+                            return True
+            except (json.JSONDecodeError, TypeError):
+                pass
+    
+    # --- Tier 4: Metadata LLM extraction ---
+    enrollment = combined.get('_temp_planned_enrollment')
+    if enrollment and isinstance(enrollment, (int, float)) and enrollment > 0:
+        pop['plannedEnrollmentNumber'] = _build_enrollment_quantity(int(enrollment))
+        logger.info(f"  ✓ plannedEnrollmentNumber={int(enrollment)} (metadata extraction)")
+        return True
+    
+    return False
+
+
+def _find_sap_source_file(output_dir: str) -> Optional[str]:
+    """Find the SAP PDF path from the saved SAP extraction output."""
+    sap_file = os.path.join(output_dir, '11_sap_populations.json')
+    if not os.path.exists(sap_file):
+        return None
+    try:
+        with open(sap_file, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        source = data.get('sourceFile')
+        if source and os.path.exists(source):
+            return source
+    except (json.JSONDecodeError, OSError):
+        pass
+    return None
+
+
+def clean_orphan_cross_refs(combined: dict) -> int:
+    """
+    B9: Clean up orphan cross-references that point to non-existent entities.
+    
+    Handles:
+    - studyIdentifiers[].scopeId → must reference a valid Organization
+    - exitEpochIds[] in traversal constraints → must reference valid epochs
+    
+    Returns count of cleaned refs.
+    """
+    cleaned = 0
+    sv = combined.get("study", {}).get("versions", [{}])[0]
+    sd = (sv.get("studyDesigns") or [{}])[0]
+    
+    # Collect valid entity IDs
+    valid_org_ids = {
+        org.get("id") for org in sv.get("organizations", [])
+        if isinstance(org, dict) and org.get("id")
+    }
+    valid_epoch_ids = {
+        e.get("id") for e in sd.get("epochs", [])
+        if isinstance(e, dict) and e.get("id")
+    }
+    
+    # Fix scopeId on studyIdentifiers
+    for si in sv.get("studyIdentifiers", []):
+        scope_id = si.get("scopeId")
+        if scope_id and isinstance(scope_id, str) and scope_id not in valid_org_ids:
+            si["scopeId"] = None
+            cleaned += 1
+            logger.debug(f"  Nullified orphan scopeId: {scope_id[:30]}")
+    
+    # Fix exitEpochIds in extension attributes (traversal constraints)
+    def _clean_epoch_refs(obj):
+        nonlocal cleaned
+        if isinstance(obj, dict):
+            if "exitEpochIds" in obj and isinstance(obj["exitEpochIds"], list):
+                original = obj["exitEpochIds"]
+                obj["exitEpochIds"] = [
+                    eid for eid in original
+                    if not isinstance(eid, str) or eid in valid_epoch_ids
+                ]
+                removed = len(original) - len(obj["exitEpochIds"])
+                if removed:
+                    cleaned += removed
+                    logger.debug(f"  Removed {removed} orphan exitEpochIds")
+            for v in obj.values():
+                if isinstance(v, (dict, list)):
+                    _clean_epoch_refs(v)
+        elif isinstance(obj, list):
+            for item in obj:
+                if isinstance(item, (dict, list)):
+                    _clean_epoch_refs(item)
+    
+    _clean_epoch_refs(sd.get("extensionAttributes", []))
+    
+    return cleaned
+
+
+def run_structural_compliance(combined: dict) -> dict:
+    """
+    Apply structural CORE compliance fixes after reconciliation.
+
+    These fixes require cross-entity context (all epochs, encounters,
+    objectives, endpoints) and must run before UUID conversion.
+    """
+    try:
+        sd = combined.get("study", {}).get("versions", [{}])[0].get("studyDesigns", [{}])[0]
+
+        ordering = build_ordering_chains(sd)
+        if ordering:
+            logger.info(f"  ✓ Built ordering chains: {ordering} links")
+
+        ep_links = fix_primary_endpoint_linkage(sd)
+        if ep_links:
+            logger.info(f"  ✓ Fixed primary endpoint linkage: {ep_links} links")
+
+        timing_refs = fix_timing_references(sd)
+        if timing_refs:
+            logger.info(f"  ✓ Fixed timing references: {timing_refs} refs")
+
+        # G1: Keyword-guided enrollment number enrichment
+        enrich_enrollment_number(combined)
+
+        # B9: Clean orphan cross-references
+        orphan_count = clean_orphan_cross_refs(combined)
+        if orphan_count:
+            logger.info(f"  ✓ Cleaned {orphan_count} orphan cross-references")
+
+    except (KeyError, IndexError, TypeError) as e:
+        logger.debug(f"Structural compliance skipped: {e}")
+
     return combined

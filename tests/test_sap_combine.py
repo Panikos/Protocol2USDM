@@ -374,6 +374,63 @@ class TestNoDuplicateExtensions:
         )
 
 
+class TestNormalizeStudyElements:
+    """Tests for _normalize_study_elements legacy key migration."""
+
+    def test_merges_legacy_study_elements_into_elements(self):
+        from pipeline.combiner import _normalize_study_elements
+
+        design = {
+            "studyElements": [
+                {"id": "elem_legacy", "name": "Legacy Element"},
+            ],
+            "elements": [
+                {"id": "elem_existing", "name": "Existing Element"},
+            ],
+        }
+        _normalize_study_elements(design)
+        assert "studyElements" not in design
+        ids = {e["id"] for e in design["elements"]}
+        assert ids == {"elem_existing", "elem_legacy"}
+
+    def test_deduplicates_by_id(self):
+        from pipeline.combiner import _normalize_study_elements
+
+        design = {
+            "studyElements": [
+                {"id": "elem_1", "name": "Duplicate"},
+            ],
+            "elements": [
+                {"id": "elem_1", "name": "Original"},
+            ],
+        }
+        _normalize_study_elements(design)
+        assert len(design["elements"]) == 1
+        assert design["elements"][0]["name"] == "Original"
+
+    def test_noop_when_no_legacy_key(self):
+        from pipeline.combiner import _normalize_study_elements
+
+        design = {
+            "elements": [{"id": "elem_1", "name": "Only"}],
+        }
+        _normalize_study_elements(design)
+        assert len(design["elements"]) == 1
+
+    def test_creates_elements_from_legacy_only(self):
+        from pipeline.combiner import _normalize_study_elements
+
+        design = {
+            "studyElements": [
+                {"id": "elem_a", "name": "A"},
+                {"id": "elem_b", "name": "B"},
+            ],
+        }
+        _normalize_study_elements(design)
+        assert "studyElements" not in design
+        assert len(design["elements"]) == 2
+
+
 class TestLegacyIntegrationPathsRemoved:
     """Guard against reintroducing deprecated SAP/Sites integration entry points."""
 

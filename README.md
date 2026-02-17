@@ -64,15 +64,42 @@ GOOGLE_CLOUD_LOCATION=us-central1  # or your preferred region
 
 ---
 
-## What's New in v7.13
+## What's New in v7.16
 
-### � Graph View — Neighborhood Focus & Layout Selector
-- **Neighborhood dimming**: Click a node to dim all non-connected elements; click background to clear
-- **Layout selector**: 6 Cytoscape layouts — Saved, Grid, Circle, Concentric, Hierarchy, Force
-- **Toolbar flex-wrap**: Actions bar wraps on narrow viewports
+### 🏗️ USDM v4.0 Endpoint Nesting
+Endpoints now correctly nested inline inside `Objective.endpoints` per USDM v4.0 schema (Value relationship), instead of design-level placement.
+
+### 🔧 ExtensionAttribute Alignment
+`ExtensionAttribute` cleaned up: non-schema `name` field removed from all creation sites — `url` is the sole semantic identifier per `dataStructure.yml`.
+
+### 🏛️ Architectural Audit: core_compliance.py
+- **Labels (399 fixes)** relocated upstream → `ReconciledEntity._base_usdm_dict()` + 4 SAI creation sites
+- **Procedure defaults** relocated upstream → `Procedure.to_dict()` in schema + types
+- **Dead structural code (~210 lines)** removed — already in `post_processing.py`
+- **File reduced** from 714 → 504 lines; safety-nets retained for LLM edge cases
 
 ### 🧪 Testing
-- **1017 tests** passing, 36 skipped, 0 failures, 0 TS errors
+- **1136 tests** collected, 1087 passed, 36 skipped (e2e), 0 failures
+
+<details>
+<summary><b>v7.15 — Review Fix Sprint (B1–B9), Enrollment Extraction</b></summary>
+
+- **Phantom activity refs** — improved execution model prompts + orphan nullification fallback
+- **Duplicate activities** — extended clinical synonym normalization
+- **Missing StudyCells** — gap-fill for incomplete arm×epoch combinations
+- **Orphan cross-refs** — `scopeId` and `exitEpochIds` cleanup
+- **Keyword-guided enrollment** (G1) — regex scan → focused LLM, 4-tier fallback
+- 1100 tests passing
+</details>
+
+<details>
+<summary><b>v7.13 — Graph View Neighborhood Focus & Layout Selector</b></summary>
+
+- **Neighborhood dimming**: Click a node to dim all non-connected elements
+- **Layout selector**: 6 Cytoscape layouts
+- **Toolbar flex-wrap**: Actions bar wraps on narrow viewports
+- 1017 tests passing
+</details>
 
 <details>
 <summary><b>v7.12 — Procedure Codes, Graph Editing, Anchor Nodes</b></summary>
@@ -601,6 +628,7 @@ Protocol2USDMv3/
 │   ├── post_processing.py    # Entity reconciliation, procedure linking
 │   ├── promotion.py          # Extension→USDM promotion rules
 │   ├── integrity.py          # 3-layer referential integrity checker
+│   ├── regression_gate.py    # Pre-commit structural quality checks
 │   └── phases/               # 14 individual phase implementations
 ├── core/                     # Core modules
 │   ├── usdm_schema_loader.py # Official CDISC schema parser
@@ -608,6 +636,7 @@ Protocol2USDMv3/
 │   ├── llm_client.py         # LLM client utilities (call_llm, call_llm_with_image)
 │   ├── constants.py          # Centralized constants (DEFAULT_MODEL, etc.)
 │   ├── evs_client.py         # NCI EVS API client with 30-day cache
+│   ├── core_compliance.py    # CORE compliance safety-net (labels, IDs, XHTML)
 │   ├── terminology_codes.py  # EVS-verified NCI C-codes
 │   ├── procedure_codes.py    # Multi-system procedure code enricher
 │   ├── m11_mapping_config.py # M11 section ↔ USDM entity mapping
@@ -629,7 +658,7 @@ Protocol2USDMv3/
 │   └── m11_conformance.py    # M11 conformance scoring
 ├── enrichment/               # Terminology enrichment
 │   └── terminology.py        # NCI EVS enrichment
-├── tests/                    # 1017 tests (unit + e2e)
+├── tests/                    # 1136 tests (unit + e2e)
 │   ├── test_extractors.py    # Mocked LLM extractor tests (58)
 │   ├── test_composers.py     # M11 composer tests (22)
 │   ├── test_pipeline_context.py # PipelineContext tests (48)
@@ -658,7 +687,7 @@ For detailed architecture, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 ## Testing
 
 ```bash
-# Run all unit tests (1017 collected, ~3 min)
+# Run all unit tests (1136 collected, ~3 min)
 python -m pytest tests/ -v
 
 # Run with coverage report
@@ -761,7 +790,7 @@ The following items are planned for upcoming releases:
 - [x] **Provenance Tracking** (E14): PhaseProvenance for all phases *(completed v7.4)*
 - [x] **Prompt Versioning** (E15): SHA-256 hashes in run manifest *(completed v7.4)*
 - [x] **ICH M11 Document Rendering**: DOCX generation with 9 entity composers *(completed v7.3)*
-- [x] **Testing Infrastructure**: 611 tests, mocked LLM tests *(completed v7.3–v7.4)*
+- [x] **Testing Infrastructure**: 1136 tests, mocked LLM tests *(completed v7.3–v7.16)*
 - [x] **Pipeline Decomposition**: combiner/integrations/post_processing/promotion *(completed v7.3)*
 - [x] **Web UI Semantic Editing**: JSON Patch editing with draft/publish workflow *(completed v7.2.1)*
 - [x] **Execution Model Promotion**: Native USDM entities instead of extensions *(completed v7.2)*
