@@ -29,16 +29,10 @@ interface StudySitesViewProps {
 interface StudySite {
   id: string;
   name?: string;
-  identifier?: string;
+  label?: string;
   description?: string;
-  country?: string;
-  region?: string;
-  city?: string;
-  address?: string | { line?: string; city?: string; state?: string; postalCode?: string; country?: string };
-  organization?: { name?: string };
-  organizationId?: string;
-  siteNumber?: string;
-  status?: string;
+  country?: string | { code?: string; decode?: string; codeSystem?: string };
+  extensionAttributes?: { url?: string; valueString?: string }[];
   instanceType?: string;
 }
 
@@ -47,7 +41,9 @@ interface Organization {
   name?: string;
   type?: string | { decode?: string; code?: string };
   identifier?: string;
-  legalAddress?: { country?: string; city?: string };
+  identifierScheme?: string;
+  legalAddress?: { country?: string | { decode?: string }; city?: string; text?: string };
+  managedSites?: StudySite[];
   instanceType?: string;
 }
 
@@ -70,12 +66,28 @@ export function StudySitesView({ usdm }: StudySitesViewProps) {
   const studyDesigns = (version?.studyDesigns as Record<string, unknown>[]) ?? [];
   const studyDesign = studyDesigns[0] ?? {};
 
-  // Get study sites
-  const studySites = (studyDesign.studySites as StudySite[]) ?? 
-    (version?.studySites as StudySite[]) ?? [];
-
-  // Get organizations
+  // Get organizations (per USDM v4.0, sites live inside Organization.managedSites[])
   const organizations = (version?.organizations as Organization[]) ?? [];
+
+  // Collect all StudySites from Organization.managedSites[]
+  const studySites: StudySite[] = [];
+  for (const org of organizations) {
+    if (org.managedSites) {
+      studySites.push(...org.managedSites);
+    }
+  }
+
+  // Helper: resolve country display string from Code object or string
+  const getCountryName = (site: StudySite): string => {
+    if (!site.country) return 'Unknown';
+    if (typeof site.country === 'string') return site.country;
+    return site.country.decode || site.country.code || 'Unknown';
+  };
+
+  // Helper: get extension attribute value
+  const getExtension = (site: StudySite, urlSuffix: string): string | undefined => {
+    return site.extensionAttributes?.find(e => e.url?.endsWith(urlSuffix))?.valueString;
+  };
 
   // Get geographic scope from top-level
   const geographicScope = usdm.geographicScope as { type?: { decode?: string }; regions?: string[] } | undefined;
@@ -83,23 +95,33 @@ export function StudySitesView({ usdm }: StudySitesViewProps) {
 
   // Get countries from sites (fallback)
   const countriesFromSites = [...new Set(
-    studySites
-      .map(site => site.country)
-      .filter(Boolean)
+    studySites.map(s => getCountryName(s)).filter(c => c !== 'Unknown')
   )];
-  
+
   // Use countries list if available, otherwise derive from sites
-  const countries = countriesList.length > 0 
+  const countries = countriesList.length > 0
     ? countriesList.map(c => c.name || c.decode || c.code || 'Unknown')
     : countriesFromSites;
 
   // Group sites by country for display
   const sitesByCountry = studySites.reduce((acc, site) => {
-    const country = site.country || 'Unknown';
+    const country = getCountryName(site);
     if (!acc[country]) acc[country] = [];
     acc[country].push(site);
     return acc;
   }, {} as Record<string, StudySite[]>);
+
+  // Get planned enrollment from population
+  const population = studyDesign.population as Record<string, unknown> | undefined;
+  const enrollmentRange = population?.plannedEnrollmentNumber as {
+    minValue?: { value?: number };
+    maxValue?: { value?: number };
+    isApproximate?: boolean;
+  } | undefined;
+  const enrollmentNumber = enrollmentRange?.maxValue?.value ?? enrollmentRange?.minValue?.value;
+  const enrollmentDisplay = enrollmentNumber
+    ? `${enrollmentRange?.isApproximate ? '~' : ''}${enrollmentNumber.toLocaleString()}`
+    : '-';
 
   const hasData = studySites.length > 0 || organizations.length > 0;
 
@@ -159,7 +181,7 @@ export function StudySitesView({ usdm }: StudySitesViewProps) {
             <div className="flex items-center gap-2">
               <Users className="h-5 w-5 text-orange-600" />
               <div>
-                <div className="text-2xl font-bold">-</div>
+                <div className="text-2xl font-bold">{enrollmentDisplay}</div>
                 <div className="text-xs text-muted-foreground">Total Enrollment</div>
               </div>
             </div>
@@ -225,49 +247,44 @@ export function StudySitesView({ usdm }: StudySitesViewProps) {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {studySites.map((site, i) => {
-                const hasDetails = site.siteNumber || site.status || site.id || site.description || 
-                  (typeof site.address === 'object' && site.address);
+                const siteNumber = getExtension(site, 'siteNumber');
+                const siteStatus = getExtension(site, 'status');
+                const countryName = getCountryName(site);
+                const hasDetails = siteNumber || siteStatus || site.id || site.description;
                 
-                const StatusIcon = site.status === 'Active' ? CheckCircle : 
-                  site.status === 'Inactive' ? XCircle : Clock;
-                const statusColor = site.status === 'Active' ? 'text-green-600' : 
-                  site.status === 'Inactive' ? 'text-red-600' : 'text-yellow-600';
+                const StatusIcon = siteStatus === 'Active' ? CheckCircle : 
+                  siteStatus === 'Inactive' ? XCircle : Clock;
+                const statusColor = siteStatus === 'Active' ? 'text-green-600' : 
+                  siteStatus === 'Inactive' ? 'text-red-600' : 'text-yellow-600';
                 
                 const siteCard = (
                   <div className={`p-3 bg-muted rounded-lg ${hasDetails ? 'cursor-pointer hover:bg-muted/80 transition-colors' : ''}`}>
                     <div className="flex items-start justify-between">
                       <div className="font-medium flex items-center gap-2" onClick={e => e.stopPropagation()}>
                         <EditableField
-                          path={site.id ? designPath('studySites', site.id, 'name') : `/study/versions/0/studyDesigns/0/studySites/${i}/name`}
+                          path={`/study/versions/0/organizations/*/managedSites/${site.id}/name`}
                           value={site.name || `Site ${i + 1}`}
                           placeholder="Site name"
                         />
                         {hasDetails && <Info className="h-3 w-3 text-muted-foreground" />}
                       </div>
                       <div className="flex items-center gap-1">
-                        {site.siteNumber && (
+                        {siteNumber && (
                           <Badge variant="outline" className="text-xs">
                             <Hash className="h-3 w-3 mr-1" />
-                            {site.siteNumber}
+                            {siteNumber}
                           </Badge>
                         )}
-                        {site.status && (
-                          <Badge variant={site.status === 'Active' ? 'default' : 'secondary'} className="text-xs">
+                        {siteStatus && (
+                          <Badge variant={siteStatus === 'Active' ? 'default' : 'secondary'} className="text-xs">
                             <StatusIcon className={`h-3 w-3 mr-1 ${statusColor}`} />
-                            {site.status}
+                            {siteStatus}
                           </Badge>
                         )}
                       </div>
                     </div>
-                    {site.organization?.name && (
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {site.organization.name}
-                      </p>
-                    )}
                     <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-                      {site.city && <span>{site.city}</span>}
-                      {site.city && site.country && <span>•</span>}
-                      {site.country && <span>{site.country}</span>}
+                      {countryName !== 'Unknown' && <span>{countryName}</span>}
                     </div>
                   </div>
                 );
@@ -286,13 +303,13 @@ export function StudySitesView({ usdm }: StudySitesViewProps) {
                         <div className="flex items-start justify-between">
                           <div>
                             <h4 className="font-semibold">{site.name || `Site ${i + 1}`}</h4>
-                            {site.siteNumber && (
-                              <p className="text-sm text-muted-foreground">Site #{site.siteNumber}</p>
+                            {siteNumber && (
+                              <p className="text-sm text-muted-foreground">Site #{siteNumber}</p>
                             )}
                           </div>
-                          {site.status && (
-                            <Badge variant={site.status === 'Active' ? 'default' : 'secondary'}>
-                              {site.status}
+                          {siteStatus && (
+                            <Badge variant={siteStatus === 'Active' ? 'default' : 'secondary'}>
+                              {siteStatus}
                             </Badge>
                           )}
                         </div>
@@ -305,28 +322,10 @@ export function StudySitesView({ usdm }: StudySitesViewProps) {
                             </div>
                           )}
                           
-                          {typeof site.address === 'object' && site.address && (
-                            <div>
-                              <span className="font-medium">Address:</span>
-                              <p className="text-muted-foreground">
-                                {[site.address.line, site.address.city, site.address.state, site.address.postalCode, site.address.country]
-                                  .filter(Boolean)
-                                  .join(', ')}
-                              </p>
-                            </div>
-                          )}
-                          
-                          {typeof site.address === 'string' && site.address && (
-                            <div>
-                              <span className="font-medium">Address:</span>
-                              <p className="text-muted-foreground">{site.address}</p>
-                            </div>
-                          )}
-                          
-                          {site.country && (
+                          {countryName !== 'Unknown' && (
                             <div className="flex items-center gap-2">
                               <Globe className="h-4 w-4 text-muted-foreground" />
-                              <span>{site.country}</span>
+                              <span>{countryName}</span>
                             </div>
                           )}
                           
