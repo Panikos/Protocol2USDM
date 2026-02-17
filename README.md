@@ -64,22 +64,27 @@ GOOGLE_CLOUD_LOCATION=us-central1  # or your preferred region
 
 ---
 
-## What's New in v7.16
+## What's New in v7.17
 
-### 🏗️ USDM v4.0 Endpoint Nesting
-Endpoints now correctly nested inline inside `Objective.endpoints` per USDM v4.0 schema (Value relationship), instead of design-level placement.
-
-### 🔧 ExtensionAttribute Alignment
-`ExtensionAttribute` cleaned up: non-schema `name` field removed from all creation sites — `url` is the sole semantic identifier per `dataStructure.yml`.
-
-### 🏛️ Architectural Audit: core_compliance.py
-- **Labels (399 fixes)** relocated upstream → `ReconciledEntity._base_usdm_dict()` + 4 SAI creation sites
-- **Procedure defaults** relocated upstream → `Procedure.to_dict()` in schema + types
-- **Dead structural code (~210 lines)** removed — already in `post_processing.py`
-- **File reduced** from 714 → 504 lines; safety-nets retained for LLM edge cases
+### 📋 Reviewer Fixes P3–P7: USDM Structural Compliance
+Five post-processing functions addressing independent reviewer findings:
+- **P6** — `ensure_eos_study_cell()`: StudyCell for every epoch (EOS/ET/follow-up)
+- **P3** — `nest_sites_in_organizations()`: StudySite → `Organization.managedSites`
+- **P5** — `wire_document_layer()`: `Study.documentedBy` → NarrativeContent wiring
+- **P4** — `nest_cohorts_in_population()`: StudyCohort → `population.cohorts[]`
+- **P7** — `promote_footnotes_to_conditions()`: Conditional SoA footnotes → `Condition` entities
 
 ### 🧪 Testing
-- **1136 tests** collected, 1087 passed, 36 skipped (e2e), 0 failures
+- **1154 tests** collected, 1118 passed, 36 skipped (e2e), 0 failures
+
+<details>
+<summary><b>v7.16 — USDM v4.0 Endpoint Nesting, ExtensionAttribute Alignment, Architectural Audit</b></summary>
+
+- **Endpoint nesting** — inline inside `Objective.endpoints` per USDM v4.0
+- **ExtensionAttribute** — `name` removed, `url` is sole semantic identifier
+- **core_compliance.py** — 210 lines dead code removed, label/procedure fixes upstream
+- 1136 tests passing
+</details>
 
 <details>
 <summary><b>v7.15 — Review Fix Sprint (B1–B9), Enrollment Extraction</b></summary>

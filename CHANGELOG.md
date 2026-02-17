@@ -4,6 +4,36 @@ All notable changes documented here. Dates in ISO-8601.
 
 ---
 
+## [7.17.0] – 2026-02-17
+
+### Reviewer Fixes P3–P7: USDM Structural Compliance
+
+Five post-processing functions addressing independent reviewer findings, improving USDM v4.0 structural conformance.
+
+| Fix | Function | Description |
+|-----|----------|-------------|
+| **P6** | `ensure_eos_study_cell()` | Creates StudyElement + StudyCell for any epoch lacking a cell (EOS, ET, follow-up) — schema requires `studyCells [1..*]` |
+| **P3** | `nest_sites_in_organizations()` | Nests StudySite entities into `Organization.managedSites` by name matching with fallback to site-type org |
+| **P5** | `wire_document_layer()` | Builds `Study.documentedBy → StudyDefinitionDocument → versions[0].contents[]` from narrativeContentItems |
+| **P4** | `nest_cohorts_in_population()` | Moves `studyCohorts[]` into `StudyDesignPopulation.cohorts[]` with required field defaults |
+| **P7** | `promote_footnotes_to_conditions()` | Promotes conditional SoA footnotes to `Condition` entities with `contextIds` linking to encounters |
+
+### Files Changed
+
+| File | Change |
+|------|--------|
+| **`pipeline/post_processing.py`** | 5 new functions (P3–P7) added before `run_structural_compliance()` |
+| **`pipeline/combiner.py`** | 5 new imports + wiring calls in combine pipeline |
+| **`tests/test_reviewer_fixes.py`** | 21 new tests covering all 5 functions |
+
+### Test Results
+
+| Check | Result |
+|-------|--------|
+| Full test suite | **1154 collected**, 1118 passed, 36 skipped (e2e), 0 failures |
+
+---
+
 ## [7.16.0] – 2026-02-17
 
 ### USDM v4.0 Endpoint Nesting

@@ -1,8 +1,8 @@
 # Protocol2USDM Quick Reference
 
-**v7.16** | One-page command reference
+**v7.17** | One-page command reference
 
-> **Current:** USDM v4.0 endpoint nesting, ExtensionAttribute alignment, core_compliance architectural audit, 1136 tests collected, review fix sprint (B1–B9), keyword-guided enrollment (G1), integrity checker, CDISC CORE hardening, procedure code enrichment, M11 DOCX rendering, phase registry architecture (`main_v3.py`), default `--complete` mode, `gemini-3-flash-preview` default model.
+> **Current:** Reviewer fixes P3–P7 (StudyCell gaps, sites nesting, document layer, cohorts, footnote→Condition), 1118 tests passing, USDM v4.0 endpoint nesting, ExtensionAttribute alignment, core_compliance audit, review fix sprint (B1–B9), keyword-guided enrollment (G1), integrity checker, CDISC CORE hardening, procedure code enrichment, M11 DOCX rendering, phase registry architecture (`main_v3.py`), default `--complete` mode, `gemini-3-flash-preview` default model.
 
 ---
 
@@ -267,7 +267,7 @@ CDISC_API_KEY=...            # For CORE (optional)
 
 ---
 
-## USDM Entity Placement (v7.16)
+## USDM Entity Placement (v7.17)
 
 | Entity | Location |
 |--------|----------|
@@ -293,4 +293,4 @@ CDISC_API_KEY=...            # For CORE (optional)
 **Docs:** [README.md](README.md) | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
 **Last Updated:** 2026-02-17  
-**Version:** 7.16
+**Version:** 7.17

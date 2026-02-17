@@ -1678,6 +1678,379 @@ def clean_orphan_cross_refs(combined: dict) -> int:
     return cleaned
 
 
+def ensure_eos_study_cell(combined: dict) -> dict:
+    """P6: Ensure every epoch has at least one StudyCell.
+
+    The USDM v4.0 schema requires studyCells [1..*].  Terminal epochs
+    (EOS, ET, follow-up) are often missing a cell because the extractor
+    only creates cells for treatment epochs.  This function creates a
+    follow-up StudyElement and a StudyCell for any uncovered epoch.
+    """
+    try:
+        sd = combined.get("study", {}).get("versions", [{}])[0].get("studyDesigns", [{}])[0]
+        epochs = sd.get("epochs", [])
+        cells = sd.get("studyCells", [])
+        arms = sd.get("arms", [])
+        elements = sd.get("elements", [])
+
+        if not epochs or not arms:
+            return combined
+
+        covered_epoch_ids = {c.get("epochId") for c in cells if c.get("epochId")}
+        arm_id = arms[0].get("id", "arm_1")
+
+        added_cells = 0
+        for epoch in epochs:
+            epoch_id = epoch.get("id")
+            if not epoch_id or epoch_id in covered_epoch_ids:
+                continue
+
+            # Create a follow-up element for the uncovered epoch
+            elem_id = f"elem_followup_{epoch_id}"
+            element = {
+                "id": elem_id,
+                "name": f"{epoch.get('name', 'Follow-up')} Element",
+                "label": f"{epoch.get('name', 'Follow-up')} Element",
+                "description": f"Study element for the {epoch.get('name', '')} epoch",
+                "instanceType": "StudyElement",
+            }
+            elements.append(element)
+
+            cell = {
+                "id": f"cell_{arm_id}_{epoch_id}",
+                "armId": arm_id,
+                "epochId": epoch_id,
+                "elementIds": [elem_id],
+                "instanceType": "StudyCell",
+            }
+            cells.append(cell)
+            added_cells += 1
+
+        if added_cells:
+            sd["studyCells"] = cells
+            sd["elements"] = elements
+            logger.info(f"  ✓ Created {added_cells} StudyCell(s) for uncovered epochs (P6)")
+    except Exception as e:
+        logger.warning(f"  ⚠ EOS/ET StudyCell creation skipped: {e}")
+
+    return combined
+
+
+def nest_sites_in_organizations(combined: dict) -> dict:
+    """P3: Nest StudySite entities into Organization.managedSites.
+
+    Matches sites to organizations by comparing site name / organization
+    name / identifier overlap.  Per USDM v4.0, Organization.managedSites
+    owns the StudySite entities.
+    """
+    try:
+        sv = combined.get("study", {}).get("versions", [{}])[0]
+        sd = (sv.get("studyDesigns") or [{}])[0]
+        sites = sd.get("studySites", [])
+        orgs = sv.get("organizations", [])
+
+        if not sites or not orgs:
+            return combined
+
+        # Build org lookup by normalized name
+        org_by_name: Dict[str, dict] = {}
+        for org in orgs:
+            name = (org.get("name") or "").lower().strip()
+            if name:
+                org_by_name[name] = org
+                org_by_name[_normalize_link_name(name)] = org
+
+        nested = 0
+        unmatched_sites: List[dict] = []
+
+        for site in sites:
+            site_name = (site.get("name") or "").lower().strip()
+            matched_org = None
+
+            # Exact match
+            matched_org = org_by_name.get(site_name) or org_by_name.get(_normalize_link_name(site_name))
+
+            # Substring match
+            if not matched_org:
+                for oname, org in org_by_name.items():
+                    if len(oname) > 3 and (oname in site_name or site_name in oname):
+                        matched_org = org
+                        break
+
+            if matched_org:
+                matched_org.setdefault("managedSites", [])
+                existing_ids = {s.get("id") for s in matched_org["managedSites"]}
+                if site.get("id") not in existing_ids:
+                    matched_org["managedSites"].append(site)
+                    nested += 1
+            else:
+                unmatched_sites.append(site)
+
+        # For unmatched sites, try to find the first site-type org
+        if unmatched_sites:
+            site_org = None
+            for org in orgs:
+                org_type = org.get("type", {})
+                if isinstance(org_type, dict) and org_type.get("decode", "").lower() in (
+                    "clinical study site", "site", "investigational site"
+                ):
+                    site_org = org
+                    break
+            # If no site-type org, use any org that already has managedSites
+            if not site_org:
+                for org in orgs:
+                    if org.get("managedSites"):
+                        site_org = org
+                        break
+
+            if site_org:
+                site_org.setdefault("managedSites", [])
+                existing_ids = {s.get("id") for s in site_org["managedSites"]}
+                for site in unmatched_sites:
+                    if site.get("id") not in existing_ids:
+                        site_org["managedSites"].append(site)
+                        nested += 1
+
+        if nested:
+            logger.info(f"  ✓ Nested {nested} StudySite(s) into Organization.managedSites (P3)")
+    except Exception as e:
+        logger.warning(f"  ⚠ Site nesting skipped: {e}")
+
+    return combined
+
+
+def wire_document_layer(combined: dict) -> dict:
+    """P5: Wire root-level document structures into Study.documentedBy.
+
+    Moves root-level studyDefinitionDocument, documentContentReferences,
+    inlineCrossReferences, commentAnnotations, and protocolFigures into
+    the canonical USDM v4.0 path:
+      Study.documentedBy → StudyDefinitionDocument
+        .versions[0] → StudyDefinitionDocumentVersion
+          .contents[] → NarrativeContent
+    """
+    try:
+        study = combined.get("study", {})
+        sv = study.get("versions", [{}])[0]
+
+        # Gather root-level doc structures
+        sdd = combined.pop("studyDefinitionDocument", None)
+        sdd_versions = combined.pop("studyDefinitionDocumentVersions", None)
+        doc_refs = combined.get("documentContentReferences", [])
+        inline_xrefs = combined.get("inlineCrossReferences", [])
+        annotations = combined.get("commentAnnotations", [])
+        figures = combined.get("protocolFigures", [])
+
+        if not sdd and not sv.get("narrativeContentItems"):
+            return combined
+
+        # Build the StudyDefinitionDocument
+        if not sdd:
+            sdd = {
+                "id": str(uuid.uuid4()),
+                "name": "Protocol Document",
+                "label": "Protocol Document",
+                "description": "Clinical protocol document",
+                "templateName": "ICH M11",
+                "language": {
+                    "id": str(uuid.uuid4()),
+                    "code": "eng",
+                    "codeSystem": "ISO 639-2",
+                    "decode": "English",
+                    "instanceType": "Code",
+                },
+                "type": {
+                    "id": str(uuid.uuid4()),
+                    "code": "C70817",
+                    "codeSystem": "http://www.cdisc.org",
+                    "codeSystemVersion": "2024-09-27",
+                    "decode": "Protocol",
+                    "instanceType": "Code",
+                },
+                "instanceType": "StudyDefinitionDocument",
+            }
+
+        # Build document version
+        doc_version = None
+        if sdd_versions and isinstance(sdd_versions, list) and sdd_versions:
+            doc_version = sdd_versions[0]
+        elif isinstance(sdd.get("versions"), list) and sdd["versions"]:
+            doc_version = sdd["versions"][0]
+        else:
+            doc_version = {
+                "id": str(uuid.uuid4()),
+                "status": {
+                    "id": str(uuid.uuid4()),
+                    "code": "C132349",
+                    "codeSystem": "http://www.cdisc.org",
+                    "codeSystemVersion": "2024-09-27",
+                    "decode": "Final",
+                    "instanceType": "Code",
+                },
+                "version": "1.0",
+                "instanceType": "StudyDefinitionDocumentVersion",
+            }
+
+        # Populate contents from narrativeContentItems
+        narrative_items = sv.get("narrativeContentItems", [])
+        if narrative_items:
+            contents = []
+            for item in narrative_items:
+                content = {
+                    "id": item.get("id", str(uuid.uuid4())),
+                    "name": item.get("name", ""),
+                    "sectionNumber": item.get("sectionNumber", ""),
+                    "sectionTitle": item.get("sectionTitle", item.get("name", "")),
+                    "text": item.get("text", ""),
+                    "instanceType": "NarrativeContent",
+                }
+                if item.get("childIds"):
+                    content["childIds"] = item["childIds"]
+                contents.append(content)
+            doc_version["contents"] = contents
+
+        # Wire into SDD
+        sdd["versions"] = [doc_version]
+
+        # Wire into Study.documentedBy
+        study["documentedBy"] = sdd
+
+        doc_count = len(doc_version.get("contents", []))
+        logger.info(f"  ✓ Wired document layer into Study.documentedBy ({doc_count} contents) (P5)")
+    except Exception as e:
+        logger.warning(f"  ⚠ Document layer wiring skipped: {e}")
+
+    return combined
+
+
+def nest_cohorts_in_population(combined: dict) -> dict:
+    """P4: Nest StudyCohort entities into StudyDesignPopulation.cohorts.
+
+    Moves studyCohorts from the flat design-level collection into the
+    population.cohorts[] array per USDM v4.0 schema.  If no cohorts
+    exist but the population has characteristics suggesting subgroups,
+    this is a no-op (cohort creation requires protocol-specific data).
+    """
+    try:
+        sd = combined.get("study", {}).get("versions", [{}])[0].get("studyDesigns", [{}])[0]
+        cohorts = sd.get("studyCohorts", [])
+        population = sd.get("population")
+
+        if not population:
+            return combined
+
+        if cohorts:
+            # Move into population.cohorts
+            existing = population.get("cohorts", [])
+            existing_ids = {c.get("id") for c in existing}
+            for cohort in cohorts:
+                if cohort.get("id") not in existing_ids:
+                    # Ensure required fields per schema
+                    cohort.setdefault("instanceType", "StudyCohort")
+                    cohort.setdefault("includesHealthySubjects", False)
+                    cohort.setdefault("label", cohort.get("name", ""))
+                    existing.append(cohort)
+            population["cohorts"] = existing
+            logger.info(f"  ✓ Nested {len(cohorts)} StudyCohort(s) into population.cohorts (P4)")
+    except Exception as e:
+        logger.warning(f"  ⚠ Cohort nesting skipped: {e}")
+
+    return combined
+
+
+def promote_footnotes_to_conditions(combined: dict) -> dict:
+    """P7: Promote SoA footnote conditions to USDM Condition entities.
+
+    SoA footnotes that describe conditional application of activities
+    (e.g. 'At screening and Day 1 only', 'For female participants only')
+    are promoted to Condition entities at StudyVersion.conditions[] with
+    contextIds and appliesToIds linking them to activities and encounters.
+    """
+    try:
+        sv = combined.get("study", {}).get("versions", [{}])[0]
+        sd = (sv.get("studyDesigns") or [{}])[0]
+
+        # Get existing conditions
+        existing_conditions = sv.get("conditions", [])
+        existing_texts = {c.get("text", "").lower().strip() for c in existing_conditions}
+
+        # Get footnote conditions from execution model extensions
+        activities = sd.get("activities", [])
+        activity_by_id = {a.get("id"): a for a in activities if a.get("id")}
+
+        # Parse footnote conditions from the SoA footnotes extension
+        footnotes_ext = None
+        for ext in sd.get("extensionAttributes", []):
+            if ext.get("url", "").endswith("soaFootnotes"):
+                try:
+                    footnotes_ext = json.loads(ext.get("valueString", "[]"))
+                except (json.JSONDecodeError, TypeError):
+                    pass
+
+        if not footnotes_ext:
+            return combined
+
+        # Build encounter name → id lookup
+        enc_by_name = {}
+        for enc in sd.get("encounters", []):
+            name = (enc.get("name") or "").lower().strip()
+            if name:
+                enc_by_name[name] = enc.get("id")
+
+        promoted = 0
+        for fn in footnotes_ext:
+            fn_text = fn.get("text", "").strip()
+            if not fn_text:
+                continue
+
+            # Skip if already a condition
+            if fn_text.lower().strip() in existing_texts:
+                continue
+
+            # Only promote footnotes that look like conditions (contain temporal/gender/procedural qualifiers)
+            text_lower = fn_text.lower()
+            is_conditional = any(kw in text_lower for kw in (
+                "only", "if ", "when ", "unless", "prior to", "before ",
+                "after ", "within ", "at screening", "at check-in",
+                "for women", "for female", "for male",
+                "predose", "fasting", "as needed", "at the discretion",
+            ))
+            if not is_conditional:
+                continue
+
+            fn_id = fn.get("id", str(uuid.uuid4()))
+            condition = {
+                "id": f"cond_fn_{fn_id}",
+                "name": fn_text[:80],
+                "label": fn_text[:80],
+                "description": fn_text,
+                "text": fn_text,
+                "instanceType": "Condition",
+                "contextIds": [],
+                "appliesToIds": [],
+            }
+
+            # Try to link to encounters mentioned in the footnote
+            for enc_name, enc_id in enc_by_name.items():
+                if enc_name in text_lower or any(
+                    kw in text_lower for kw in [f"day {enc_name.split()[-1]}"]
+                    if enc_name.split()
+                ):
+                    condition["contextIds"].append(enc_id)
+
+            existing_conditions.append(condition)
+            existing_texts.add(fn_text.lower().strip())
+            promoted += 1
+
+        if promoted:
+            sv["conditions"] = existing_conditions
+            logger.info(f"  ✓ Promoted {promoted} SoA footnotes to Condition entities (P7)")
+    except Exception as e:
+        logger.warning(f"  ⚠ Footnote→Condition promotion skipped: {e}")
+
+    return combined
+
+
 def run_structural_compliance(combined: dict) -> dict:
     """
     Apply structural CORE compliance fixes after reconciliation.

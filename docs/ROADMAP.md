@@ -38,6 +38,19 @@ Restructure the web UI navigation from 4 groups (22 tabs) to 8 groups + 1 pinned
    - Signature meaning (authored, reviewed, approved)
    - Full GxP compliance with audit trail integration
 
+### Reviewer Fixes P3–P7 (Complete)
+
+**Status:** Complete  
+**Priority:** High  
+**Added:** 2026-02-17  
+**Completed:** 2026-02-17
+
+1. ~~**P6: EOS/ET StudyCell**~~ — ✅ `ensure_eos_study_cell()` creates StudyElement + StudyCell for uncovered epochs
+2. ~~**P3: Sites Nesting**~~ — ✅ `nest_sites_in_organizations()` nests StudySite into Organization.managedSites
+3. ~~**P5: Document Layer**~~ — ✅ `wire_document_layer()` wires Study.documentedBy → NarrativeContent
+4. ~~**P4: Cohort Nesting**~~ — ✅ `nest_cohorts_in_population()` moves studyCohorts into population.cohorts
+5. ~~**P7: Footnote Conditions**~~ — ✅ `promote_footnotes_to_conditions()` promotes conditional SoA footnotes to Condition entities
+
 ### USDM v4.0 Compliance Sprint (Complete)
 
 **Status:** Complete  

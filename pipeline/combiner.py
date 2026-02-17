@@ -36,6 +36,11 @@ from .post_processing import (
     add_soa_footnotes,
     validate_anchor_consistency,
     resolve_name_as_id_references,
+    ensure_eos_study_cell,
+    nest_sites_in_organizations,
+    wire_document_layer,
+    nest_cohorts_in_population,
+    promote_footnotes_to_conditions,
 )
 from .promotion import promote_extensions_to_usdm
 from core.constants import SYSTEM_NAME, VERSION
@@ -315,6 +320,18 @@ def combine_to_full_usdm(
     # Link cohorts to population (M3/M9)
     combined = link_cohorts_to_population(combined)
     
+    # P6: Ensure all epochs have StudyCells
+    combined = ensure_eos_study_cell(combined)
+    
+    # P3: Nest sites into Organization.managedSites
+    combined = nest_sites_in_organizations(combined)
+    
+    # P4: Nest cohorts into population.cohorts
+    combined = nest_cohorts_in_population(combined)
+    
+    # P7: Promote conditional SoA footnotes to Condition entities
+    combined = promote_footnotes_to_conditions(combined)
+    
     # Validate anchor consistency against SoA encounters
     combined = validate_anchor_consistency(combined, expansion_results)
     
@@ -323,6 +340,9 @@ def combine_to_full_usdm(
     
     # Structural CORE compliance (ordering chains, endpoint linkage, timing refs)
     combined = run_structural_compliance(combined)
+    
+    # P5: Wire document layer into Study.documentedBy
+    combined = wire_document_layer(combined)
     
     # Promote extension data back into core USDM entities
     promote_extensions_to_usdm(combined)

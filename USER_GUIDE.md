@@ -1,12 +1,12 @@
 # Protocol2USDM User Guide
 
-**Version:** 7.16  
+**Version:** 7.17  
 **Last Updated:** 2026-02-17
 
-> **📢 What's New in v7.16:** **USDM v4.0 endpoint nesting** (inline inside `Objective.endpoints`), **ExtensionAttribute alignment** (`name` removed, `url` is semantic ID), **Architectural audit of core_compliance.py** (labels/procedures upstream, 210 lines dead code removed), **1136 tests** collected.
+> **📢 What's New in v7.17:** **Reviewer fixes P3–P7** — StudyCell for all epochs (P6), sites→Organization.managedSites (P3), Study.documentedBy wiring (P5), cohorts→population (P4), footnotes→Condition entities (P7). **1118 tests** passing.
 
+> **v7.16:** USDM v4.0 endpoint nesting, ExtensionAttribute alignment, core_compliance architectural audit.
 > **v7.15:** Review fix sprint (B1–B9), keyword-guided enrollment extraction (G1).
-> **v7.14:** Integrity checker cleanup, CDISC CORE conformance hardening.
 > **v7.13:** Graph view neighborhood focus, layout selector, toolbar flex-wrap.
 
 ---
@@ -685,4 +685,4 @@ A: Check logs in `output/<protocol>/`, capture error messages, report to maintai
 ---
 
 **Last Updated:** 2026-02-17  
-**Version:** 7.16
+**Version:** 7.17
