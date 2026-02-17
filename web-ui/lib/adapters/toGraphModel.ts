@@ -162,6 +162,22 @@ export function toGraphModel(
   const encounterMap = new Map(encounters.map(e => [e.id, e]));
   const activityMap = new Map(activities.map(a => [a.id, a]));
 
+  // Resolve encounter→epoch linkage via ScheduledActivityInstance bridge
+  // USDM v4.0: encounters don't have epochId directly
+  const resolvedEncounterEpoch = new Map<string, string>();
+  for (const tl of scheduleTimelines) {
+    for (const inst of tl.instances ?? []) {
+      const encId = inst.encounterId;
+      const epId = inst.epochId;
+      if (encId && epId && epochMap.has(epId) && !resolvedEncounterEpoch.has(encId)) {
+        resolvedEncounterEpoch.set(encId, epId);
+      }
+    }
+  }
+  // Helper: get effective epochId for an encounter
+  const getEncounterEpochId = (enc: USDMEncounter): string | undefined =>
+    enc.epochId || resolvedEncounterEpoch.get(enc.id);
+
   // Track node IDs for validation
   const nodeIds = new Set<string>();
   
@@ -170,7 +186,7 @@ export function toGraphModel(
   const epochPositions = new Map<string, { x: number; width: number }>();
 
   for (const epoch of epochs) {
-    const encountersInEpoch = encounters.filter(e => e.epochId === epoch.id);
+    const encountersInEpoch = encounters.filter(e => getEncounterEpochId(e) === epoch.id);
     const width = Math.max(
       DEFAULT_SPACING.epochWidth,
       encountersInEpoch.length * DEFAULT_SPACING.encounterSpacing
@@ -210,7 +226,7 @@ export function toGraphModel(
     const epochPos = epochPositions.get(epoch.id);
     if (!epochPos) continue;
 
-    const encountersInEpoch = encounters.filter(e => e.epochId === epoch.id);
+    const encountersInEpoch = encounters.filter(e => getEncounterEpochId(e) === epoch.id);
     let encX = epochPos.x;
 
     for (const enc of encountersInEpoch) {
@@ -283,7 +299,10 @@ export function toGraphModel(
 
   // Generate sequence edges between encounters (only for those with nodes)
   // Filter to encounters whose epoch is in the filtered epoch list to avoid missing endpoint errors
-  const encountersWithNodes = encounters.filter(e => e.epochId && epochMap.has(e.epochId));
+  const encountersWithNodes = encounters.filter(e => {
+    const epId = getEncounterEpochId(e);
+    return epId && epochMap.has(epId);
+  });
   
   for (let i = 0; i < encountersWithNodes.length - 1; i++) {
     const current = encountersWithNodes[i];
