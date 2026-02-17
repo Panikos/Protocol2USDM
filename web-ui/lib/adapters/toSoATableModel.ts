@@ -285,18 +285,34 @@ export function toSoATableModel(
   const columnOrder = overlay?.table.columnOrder ?? [];
   const orderedEncounters = orderItems(encounters, columnOrder, 'id');
 
-  // Group columns by epoch - filter out encounters without valid epochId
+  // Resolve encounter→epoch linkage
+  // USDM v4.0: encounters don't have epochId directly — resolve via
+  // ScheduledActivityInstance which carries both encounterId and epochId.
+  const encounterEpochMap = new Map<string, string>();
+  for (const tl of scheduleTimelines) {
+    for (const inst of tl.instances ?? []) {
+      const encId = (inst as Record<string, unknown>).encounterId as string | undefined;
+      const epId = (inst as Record<string, unknown>).epochId as string | undefined;
+      if (encId && epId && epochMap.has(epId) && !encounterEpochMap.has(encId)) {
+        encounterEpochMap.set(encId, epId);
+      }
+    }
+  }
+
+  // Group columns by epoch
   const epochEncounters = new Map<string, USDMEncounter[]>();
+  const unassignedEncounters: USDMEncounter[] = [];
   for (const enc of orderedEncounters) {
-    const epochId = enc.epochId;
-    // Skip encounters without epochId - they can't be displayed properly
-    if (!epochId || !epochMap.has(epochId)) {
-      continue;
+    // Try direct epochId first (legacy), then resolved via instances
+    const epochId = enc.epochId || encounterEpochMap.get(enc.id);
+    if (epochId && epochMap.has(epochId)) {
+      if (!epochEncounters.has(epochId)) {
+        epochEncounters.set(epochId, []);
+      }
+      epochEncounters.get(epochId)!.push(enc);
+    } else {
+      unassignedEncounters.push(enc);
     }
-    if (!epochEncounters.has(epochId)) {
-      epochEncounters.set(epochId, []);
-    }
-    epochEncounters.get(epochId)!.push(enc);
   }
 
   let colIndex = 0;
@@ -323,6 +339,24 @@ export function toSoATableModel(
         timing: enc.timing?.windowLabel,
         order: colIndex++,
         isUnscheduled,
+      });
+    }
+  }
+
+  // Add unassigned encounters (no epoch link) so they still appear
+  if (unassignedEncounters.length > 0) {
+    model.columnGroups.push({
+      id: '_unassigned',
+      name: 'Unassigned',
+      visitIds: unassignedEncounters.map(e => e.id),
+    });
+    for (const enc of unassignedEncounters) {
+      model.columns.push({
+        id: enc.id,
+        name: enc.name,
+        epochId: undefined,
+        epochName: 'Unassigned',
+        order: colIndex++,
       });
     }
   }
