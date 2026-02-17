@@ -82,6 +82,12 @@ Five post-processing functions addressing independent reviewer findings:
 - **documentedBy wiring** — SDD metadata, contentItemId, childIds hierarchy, previousId/nextId chain
 - **Field renames** — `scheduledAtTimingId→scheduledAtId`, `environmentalSetting→environmentalSettings`
 
+### 🔧 UI & Rendering Fixes
+- **medicalDevices** — moved from studyDesign to studyVersion (CORE compliance was stripping them)
+- **DOCX XML sanitization** — strip control characters before python-docx (fixes DAPA-HF crash)
+- **StudySitesView** — reads from `Organization.managedSites[]` + shows planned enrollment + backward compat for legacy outputs
+- **FootnotesView** — handles `{id, text, marker}` objects in `x-soaFootnotes` (was `[object Object]`) + reads `studyDesign.notes[]`
+
 ### 🧪 Testing
 - **1157 tests** collected, 1118 passed, 0 failures
 

@@ -55,6 +55,17 @@ Fixes from independent reviewer evaluation (v9), plus Organization/StudySite ali
 | **`extraction/conditional/sites_extractor.py`** | ISO 3166-1 alpha-3 country codes |
 | **`extraction/metadata/schema.py`** | legalAddress.country Code populated |
 
+### UI & Rendering Fixes
+
+| Fix | File | Description |
+|-----|------|-------------|
+| **medicalDevices placement** | `pipeline/phases/procedures.py` | Moved from `studyDesign` to `studyVersion` per USDM v4.0 — CORE compliance was stripping them |
+| **DOCX XML sanitization** | `rendering/text_formatting.py` | Strip XML-illegal control characters before python-docx (fixes DAPA-HF crash) |
+| **StudySitesView — data source** | `web-ui/.../StudySitesView.tsx` | Read sites from `Organization.managedSites[]` with backward compat for legacy `studyDesign.studySites` |
+| **StudySitesView — enrollment** | `web-ui/.../StudySitesView.tsx` | Display total planned enrollment from `population.plannedEnrollmentNumber` |
+| **FootnotesView — object format** | `web-ui/.../FootnotesView.tsx` | Handle `{id, text, marker}` objects in `x-soaFootnotes` (was rendering as `[object Object]`) |
+| **FootnotesView — notes[]** | `web-ui/.../FootnotesView.tsx` | Read promoted footnotes from `studyDesign.notes[]` (USDM-correct location) |
+
 ### Test Results
 
 | Check | Result |

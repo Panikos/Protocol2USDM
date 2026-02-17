@@ -70,6 +70,20 @@ Restructure the web UI navigation from 4 groups (22 tabs) to 8 groups + 1 pinned
 10. ~~**Field Renames**~~ — ✅ `scheduledAtTimingId→scheduledAtId`, `environmentalSetting→environmentalSettings`
 11. ~~**Org Type C-code**~~ — ✅ Fixed from C188875 to EVS-verified C21541 (Healthcare Facility)
 
+### UI & Rendering Fixes (Complete)
+
+**Status:** Complete  
+**Priority:** High  
+**Added:** 2026-02-17  
+**Completed:** 2026-02-17
+
+1. ~~**medicalDevices placement**~~ — ✅ Moved from `studyDesign` to `studyVersion` per USDM v4.0 (CORE compliance was stripping them)
+2. ~~**DOCX XML sanitization**~~ — ✅ Strip control characters before python-docx (fixes DAPA-HF crash)
+3. ~~**StudySitesView data source**~~ — ✅ Read from `Organization.managedSites[]` with backward compat for legacy `studyDesign.studySites`
+4. ~~**StudySitesView enrollment**~~ — ✅ Display total planned enrollment from `population.plannedEnrollmentNumber`
+5. ~~**FootnotesView object format**~~ — ✅ Handle `{id, text, marker}` objects in `x-soaFootnotes` (was `[object Object]`)
+6. ~~**FootnotesView notes[]**~~ — ✅ Read promoted footnotes from `studyDesign.notes[]`
+
 ### M11 DOCX Word Count (Backlog)
 
 **Status:** Backlog  

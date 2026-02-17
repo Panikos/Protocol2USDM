@@ -2,7 +2,7 @@
 
 **v7.17** | One-page command reference
 
-> **Current:** Reviewer v9 Org/Site schema alignment (sites only in `Organization.managedSites[]`, required fields backfilled, StudySite sanitized, ISO country codes), P3–P7 structural compliance, 1157 tests collected / 1118 passing, USDM v4.0 endpoint nesting, ExtensionAttribute alignment, core_compliance audit, review fix sprint (B1–B9), integrity checker, CDISC CORE hardening, procedure code enrichment, M11 DOCX rendering, phase registry architecture (`main_v3.py`), default `--complete` mode, `gemini-3-flash-preview` default model.
+> **Current:** Reviewer v9 Org/Site schema alignment, P3–P7 structural compliance, UI fixes (StudySitesView reads `Organization.managedSites[]` + planned enrollment, FootnotesView handles object footnotes + `studyDesign.notes[]`, medicalDevices on studyVersion, DOCX XML sanitization), 1157 tests collected / 1118 passing, USDM v4.0 endpoint nesting, ExtensionAttribute alignment, core_compliance audit, review fix sprint (B1–B9), integrity checker, CDISC CORE hardening, procedure code enrichment, M11 DOCX rendering, phase registry architecture (`main_v3.py`), default `--complete` mode, `gemini-3-flash-preview` default model.
 
 ---
 
