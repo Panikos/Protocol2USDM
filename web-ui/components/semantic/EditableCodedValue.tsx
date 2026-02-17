@@ -76,14 +76,23 @@ export function EditableCodedValue({
 
   const canEdit = editable && isEditMode;
 
-  // Normalize current value — defensively coerce to string since USDM data
+  // Normalize current value — defensively unwrap since USDM data
   // may contain nested objects in code/decode fields (e.g. amendments)
+  const _unwrap = (v: unknown): string => {
+    if (typeof v === 'string') return v;
+    if (v && typeof v === 'object') {
+      const obj = v as Record<string, unknown>;
+      return (typeof obj.decode === 'string' ? obj.decode : '')
+        || (typeof obj.code === 'string' ? obj.code : '');
+    }
+    return String(v ?? '');
+  };
   const currentDecode = typeof value === 'string'
     ? value
-    : (typeof value?.decode === 'string' ? value.decode : String(value?.decode ?? ''));
+    : _unwrap(value?.decode) || _unwrap(value);
   const rawCode = typeof value === 'string'
     ? options.find(o => o.decode === value)?.code ?? ''
-    : (typeof value?.code === 'string' ? value.code : String(value?.code ?? ''));
+    : (typeof value?.code === 'string' ? value.code : _unwrap(value?.code));
   // If the stored code is not a valid C-code (e.g. decode was stored in the code field),
   // look up the real C-code from the options list using the decode value.
   // Uses tolerant matching: exact → case-insensitive startsWith → includes.
