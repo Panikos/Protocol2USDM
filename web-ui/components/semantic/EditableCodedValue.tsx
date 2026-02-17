@@ -158,9 +158,13 @@ export function EditableCodedValue({
         )}
         onClick={() => canEdit && setIsOpen(!isOpen)}
       >
-        <span className="flex-1 text-sm">
-          {currentDecode || placeholder}
-        </span>
+        {currentDecode ? (
+          <Badge variant="outline" className="text-sm font-normal">
+            {currentDecode}
+          </Badge>
+        ) : (
+          <span className="flex-1 text-sm">{placeholder}</span>
+        )}
         {showCode && currentCode && (
           <CodeLink code={currentCode} codeOnly className="text-[10px] px-1 py-0 h-4" />
         )}
