@@ -111,16 +111,20 @@ export function FootnotesView({ usdm }: FootnotesViewProps) {
         const ext = extensions[extIdx];
         if (ext.url?.includes('soaFootnotes') && ext.valueString) {
           try {
-            const soaFns = JSON.parse(ext.valueString) as string[];
+            const soaFns = JSON.parse(ext.valueString) as (string | { id?: string; text?: string; marker?: string })[];
             if (soaFns.length > 0) {
               groups.unshift({
                 source: 'Schedule of Activities',
-                footnotes: soaFns.map((text, idx) => ({
-                  id: `soa_fn_${idx + 1}`,
-                  text,
-                  editable: true,
-                  editPath: `/study/versions/0/studyDesigns/0/extensionAttributes/${extIdx}/valueString`,
-                })),
+                footnotes: soaFns.map((item, idx) => {
+                  // Handle both string format (legacy) and object format (new: {id, text, marker})
+                  const isObj = typeof item === 'object' && item !== null;
+                  return {
+                    id: isObj && item.id ? item.id : `soa_fn_${idx + 1}`,
+                    text: isObj ? (item.text || '') : String(item),
+                    editable: true,
+                    editPath: `/study/versions/0/studyDesigns/0/extensionAttributes/${extIdx}/valueString`,
+                  };
+                }),
               });
             }
           } catch {
@@ -128,8 +132,26 @@ export function FootnotesView({ usdm }: FootnotesViewProps) {
           }
         }
       }
-      
-      // NOTE: Removed x-executionModel-footnoteConditions - authoritative SoA footnotes come from x-soaFootnotes
+
+      // Also read promoted footnotes from studyDesign.notes[] (USDM-correct location)
+      const designNotes = (studyDesign.notes as CommentAnnotation[]) ?? [];
+      const promotedFootnotes = designNotes.filter(n => n.text);
+      if (promotedFootnotes.length > 0) {
+        // Avoid duplicates: skip if SoA footnotes already captured from extension
+        const existingTexts = new Set(groups.flatMap(g => g.footnotes.map(f => f.text.slice(0, 60))));
+        const uniquePromoted = promotedFootnotes.filter(n => !existingTexts.has((n.text || '').slice(0, 60)));
+        if (uniquePromoted.length > 0) {
+          groups.push({
+            source: 'Study Design Notes',
+            footnotes: uniquePromoted.map((n, idx) => ({
+              id: n.id || `note_${idx}`,
+              text: n.text || '',
+              editable: true,
+              editPath: `/study/versions/0/studyDesigns/0/notes/${designNotes.indexOf(n)}/text`,
+            })),
+          });
+        }
+      }
     }
     
     // 3. Add abbreviations from StudyVersion (reuse version from above)
