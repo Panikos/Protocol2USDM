@@ -592,6 +592,64 @@ def filter_enrichment_epochs(combined: dict, soa_data: Optional[dict]) -> dict:
     return combined
 
 
+def promote_activity_groups_to_parents(study_design: dict) -> None:
+    """Convert non-schema activityGroups[] into parent Activity entities with childIds.
+
+    USDM v4.0 has no ``activityGroups`` property on InterventionalStudyDesign.
+    Activity grouping is expressed via ``Activity.childIds`` — parent activities
+    that reference child activities.  This function:
+
+    1. Takes each entry in ``studyDesign.activityGroups``
+    2. Creates a parent Activity with ``childIds`` pointing to the group's members
+    3. Prepends parent activities to ``studyDesign.activities``
+    4. Removes the non-schema ``activityGroups`` array
+
+    Must run **before** ``mark_activity_sources`` and CORE compliance.
+    """
+    groups = study_design.get('activityGroups', [])
+    if not groups:
+        return
+
+    activities = study_design.get('activities', [])
+    existing_ids = {a.get('id') for a in activities}
+
+    parent_activities = []
+    for group in groups:
+        group_id = group.get('id', '')
+        group_name = group.get('name', '')
+        child_ids = group.get('childIds', group.get('activityIds', []))
+
+        if not group_name:
+            continue
+
+        # Skip if a parent activity with this id already exists
+        if group_id and group_id in existing_ids:
+            # Just ensure childIds is set on the existing activity
+            for act in activities:
+                if act.get('id') == group_id:
+                    act['childIds'] = child_ids
+                    break
+            continue
+
+        parent = {
+            'id': group_id or str(uuid.uuid4()),
+            'name': group_name,
+            'label': group_name,
+            'description': group.get('description', group_name),
+            'childIds': child_ids,
+            'instanceType': 'Activity',
+        }
+        parent_activities.append(parent)
+
+    if parent_activities:
+        # Prepend parent activities so they appear before their children
+        study_design['activities'] = parent_activities + activities
+        logger.info(f"  ✓ Promoted {len(parent_activities)} activityGroups to parent Activities with childIds")
+
+    # Remove the non-schema array
+    study_design.pop('activityGroups', None)
+
+
 def mark_activity_sources(study_design: dict) -> None:
     """Mark activities with their source (soa vs procedure_enrichment)."""
     try:
@@ -620,7 +678,9 @@ def mark_activity_sources(study_design: dict) -> None:
                 if not ext.get('url', '').endswith('activitySource')
             ]
             
-            source = 'soa' if has_ticks else 'procedure_enrichment'
+            # Parent activities (with childIds) are SoA group headers even without direct ticks
+            is_parent = bool(activity.get('childIds'))
+            source = 'soa' if (has_ticks or is_parent) else 'procedure_enrichment'
             activity['extensionAttributes'].append({
                 'id': f"ext_source_{act_id[:8] if act_id else 'unknown'}",
                 'url': 'https://protocol2usdm.io/extensions/x-activitySource',
@@ -635,10 +695,11 @@ def mark_activity_sources(study_design: dict) -> None:
         
         logger.info(f"  ✓ Marked activities: {soa_count} SoA, {procedure_count} procedure enrichment")
         
-        # Update activityGroups.childIds to only include SoA activities
-        for group in study_design.get('activityGroups', []):
-            child_ids = group.get('childIds', [])
-            group['childIds'] = [cid for cid in child_ids if cid in activity_ids_with_ticks]
+        # Update parent activities' childIds to only include SoA activities
+        for activity in study_design.get('activities', []):
+            child_ids = activity.get('childIds', [])
+            if child_ids:
+                activity['childIds'] = [cid for cid in child_ids if cid in activity_ids_with_ticks]
     
     except Exception as e:
         logger.warning(f"  ⚠ Activity source marking skipped: {e}")

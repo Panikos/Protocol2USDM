@@ -41,6 +41,7 @@ from .post_processing import (
     wire_document_layer,
     nest_cohorts_in_population,
     promote_footnotes_to_conditions,
+    promote_activity_groups_to_parents,
 )
 from .promotion import promote_extensions_to_usdm
 from core.constants import SYSTEM_NAME, VERSION
@@ -294,6 +295,9 @@ def combine_to_full_usdm(
     
     # Resolve cross-references (targetId + pageNumber)
     resolve_content_references(combined)
+    
+    # P8: Convert non-schema activityGroups to parent Activities with childIds
+    promote_activity_groups_to_parents(study_design)
     
     # Mark activity sources
     mark_activity_sources(study_design)

@@ -315,7 +315,8 @@ _USDM_ALLOWED_KEYS: Dict[str, Set[str]] = {
         "id", "name", "label", "description", "definedProcedures",
         "bcCategories", "bcSurrogates", "biomedicalConceptSurrogates",
         "biomedicalConceptCategories", "notes", "extensionAttributes",
-        "instanceType", "nextId", "previousId",
+        "instanceType", "nextId", "previousId", "childIds", "timelineId",
+        "biomedicalConceptIds", "bcCategoryIds", "bcSurrogateIds",
     },
     "Encounter": {
         "id", "name", "label", "description", "type", "environmentalSettings",
