@@ -104,8 +104,8 @@ export function StudyMetadataView({ usdm }: StudyMetadataViewProps) {
   // Extract characteristics
   const characteristics = (design?.characteristics as Characteristic[]) ?? [];
 
-  // Extract conditions (medical conditions)
-  const conditions = (version.conditions as { id?: string; name?: string; description?: string; codes?: { decode?: string }[] }[]) ?? [];
+  // Extract indications (medical conditions) from studyDesign — USDM v4.0 correct path
+  const indications = (design?.indications as { id?: string; name?: string; description?: string; codes?: { decode?: string; code?: string; codeSystem?: string }[] }[]) ?? [];
 
   // State for collapsible sections
   const [showAllOrgs, setShowAllOrgs] = useState(false);
@@ -478,43 +478,43 @@ export function StudyMetadataView({ usdm }: StudyMetadataViewProps) {
         );
       })()}
 
-      {/* Medical Conditions */}
+      {/* Medical Conditions (from studyDesign.indications — USDM v4.0) */}
       <EditableList
-        basePath="/study/versions/0/conditions"
-        items={conditions}
+        basePath="/study/versions/0/studyDesigns/0/indications"
+        items={indications}
         title="Medical Conditions"
         icon={<Tag className="h-5 w-5" />}
         addLabel="Add Condition"
         newItemTemplate={{
           name: '',
           description: '',
-          instanceType: 'Condition',
+          instanceType: 'Indication',
         }}
         itemDescriptor={{
           labelKey: 'name',
           subtitleKey: 'description',
           render: (item, index, itemPath) => {
-            const cond = (item ?? {}) as { id?: string; name?: string; description?: string; codes?: { decode?: string }[] };
+            const ind = (item ?? {}) as { id?: string; name?: string; description?: string; codes?: { decode?: string; code?: string; codeSystem?: string }[] };
             return (
               <div className="flex-1 min-w-0">
                 <EditableField
                   path={`${itemPath}/name`}
-                  value={cond.name || `Condition ${index + 1}`}
+                  value={ind.name || `Condition ${index + 1}`}
                   label=""
                   className="font-medium"
                   placeholder="Condition name"
                 />
                 <EditableField
                   path={`${itemPath}/description`}
-                  value={cond.description || ''}
+                  value={ind.description || ''}
                   label=""
                   type="textarea"
                   className="text-sm text-muted-foreground mt-1"
                   placeholder="No description"
                 />
-                {cond.codes && cond.codes.length > 0 && (
+                {ind.codes && ind.codes.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-2">
-                    {cond.codes.map((code: { code?: string; decode?: string; codeSystem?: string }, j: number) => (
+                    {ind.codes.map((code: { code?: string; decode?: string; codeSystem?: string }, j: number) => (
                       <CodeLink key={j} code={code.code} decode={code.decode} codeSystem={code.codeSystem} className="text-xs" />
                     ))}
                   </div>
