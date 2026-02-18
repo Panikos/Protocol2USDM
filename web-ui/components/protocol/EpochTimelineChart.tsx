@@ -70,16 +70,34 @@ export function EpochTimelineChart({ usdm, className }: EpochTimelineChartProps)
     const epochs = (design.epochs as Epoch[]) ?? [];
     const encounters = (design.encounters as Encounter[]) ?? [];
     const arms = (design.arms as Arm[]) ?? [];
+    const scheduleTimelines = (design.scheduleTimelines as { instances?: { encounterId?: string; epochId?: string }[] }[]) ?? [];
 
     if (epochs.length === 0) return null;
+
+    // Resolve encounter→epoch linkage via ScheduledActivityInstance bridge
+    // USDM v4.0: encounters don't have epochId directly
+    const epochIds = new Set(epochs.map(e => e.id));
+    const resolvedEpoch = new Map<string, string>();
+    for (const tl of scheduleTimelines) {
+      for (const inst of tl.instances ?? []) {
+        const encId = inst.encounterId;
+        const epId = inst.epochId;
+        if (encId && epId && epochIds.has(epId) && !resolvedEpoch.has(encId)) {
+          resolvedEpoch.set(encId, epId);
+        }
+      }
+    }
+
+    const getEpochId = (enc: Encounter): string | undefined =>
+      enc.epochId || resolvedEpoch.get(enc.id);
 
     // Group encounters by epoch
     const encountersByEpoch = new Map<string, Encounter[]>();
     const unassigned: Encounter[] = [];
 
     for (const enc of encounters) {
-      const epochId = enc.epochId;
-      if (epochId) {
+      const epochId = getEpochId(enc);
+      if (epochId && epochIds.has(epochId)) {
         const list = encountersByEpoch.get(epochId) ?? [];
         list.push(enc);
         encountersByEpoch.set(epochId, list);
@@ -93,19 +111,22 @@ export function EpochTimelineChart({ usdm, className }: EpochTimelineChartProps)
       encs.sort((a, b) => (a.scheduledDay ?? 0) - (b.scheduledDay ?? 0));
     }
 
-    return { epochs, encounters, arms, encountersByEpoch, unassigned };
+    return { epochs, encounters, arms, encountersByEpoch, unassigned, resolvedEpoch };
   }, [usdm]);
 
   if (!data) {
     return null;
   }
 
-  const { epochs, encounters, encountersByEpoch, unassigned } = data;
+  const { epochs, encounters, encountersByEpoch, unassigned, resolvedEpoch } = data;
   const selectedEnc = selectedEncounter
     ? encounters.find(e => e.id === selectedEncounter)
     : null;
-  const selectedEncEpochIndex = selectedEnc?.epochId
-    ? epochs.findIndex(ep => ep.id === selectedEnc.epochId)
+  const selectedEncEpochId = selectedEnc
+    ? (selectedEnc.epochId || resolvedEpoch.get(selectedEnc.id))
+    : undefined;
+  const selectedEncEpochIndex = selectedEncEpochId
+    ? epochs.findIndex(ep => ep.id === selectedEncEpochId)
     : -1;
   const selectedEncIndex = selectedEnc
     ? encounters.findIndex(e => e.id === selectedEnc.id)
