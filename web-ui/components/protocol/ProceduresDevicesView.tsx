@@ -101,7 +101,12 @@ export function ProceduresDevicesView({ usdm }: ProceduresDevicesViewProps) {
     }
   }
   
-  const procedures = Array.from(procedureMap.values());
+  // Filter out dosing and administrative activities that are not clinical procedures
+  const SKIP_PATTERN = /\b(?:mg(?:\/day|\/kg)?|dose|dosing|tablet|capsule|infusion|injection|admit|discharge|diet|meal|exercise|consent|compliance|enrollment|inclusion|exclusion|discontinue|washout|phone\s*call|outpatient\s*visit|concomitant\s*med|prior\s*(?:wd|treatment)|history|demographics)\b/i;
+  const procedures = Array.from(procedureMap.values()).filter(p => {
+    const name = p.name || '';
+    return !SKIP_PATTERN.test(name);
+  });
 
   // USDM-compliant: medicalDevices are at studyVersion level (per dataStructure.yml)
   const devices = (version?.medicalDevices as Device[]) ?? 

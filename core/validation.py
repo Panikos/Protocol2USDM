@@ -588,8 +588,22 @@ def validate_and_fix_schema(
     
     # Step 1b: CORE compliance normalization
     # Fixes codeSystem URIs, generates missing IDs, populates labels, sanitizes XHTML
+    # Non-USDM properties are audited (log-only) — NOT stripped from the output
     from core.core_compliance import normalize_for_core_compliance
-    data, compliance_stats = normalize_for_core_compliance(data)
+    data, compliance_stats, compliance_findings = normalize_for_core_compliance(data)
+    
+    # Save compliance audit log
+    compliance_log = {
+        "mode": "log-only",
+        "description": "Non-USDM properties detected but NOT removed. Review to decide if they should be added to the schema allowlist or removed at source.",
+        "stats": compliance_stats,
+        "findings": compliance_findings,
+    }
+    compliance_log_path = os.path.join(output_dir, "compliance_log.json")
+    with open(compliance_log_path, 'w', encoding='utf-8') as f:
+        json.dump(compliance_log, f, indent=2)
+    if compliance_findings:
+        logger.info(f"      ✓ Saved compliance audit log ({len(compliance_findings)} findings) → compliance_log.json")
     
     # Step 2: Convert IDs to UUIDs (USDM 4.0 requirement)
     id_map = {}

@@ -94,6 +94,17 @@ Unscheduled visits rendered as **isolated islands** in both the graph view (with
 
 ### ⚙️ CDISC CORE Compliance
 - 11 automated CORE rule fixes in post-processing (dedup, child ordering, country decode, window durations, codeSystemVersions, leaf procedures, timing durations, amendment codeSystems)
+- **Log-only audit mode** — property stripping replaced with non-destructive audit; `compliance_log.json` output with findings per entity
+- **Compliance Audit card** in Validation tab — grouped by entity type, expandable detail rows
+
+### 🔧 UI Data Display Refinements
+- **Randomization** — read from `subTypes[]` via CDISC C-codes instead of phantom attribute
+- **Substance type/description** — derived from linked `StudyIntervention` by name matching
+- **Amendment changes** — human-readable text instead of raw JSON objects
+- **Procedures filter** — skip non-clinical activities (dosing, diet, consent) in pipeline + UI
+- **Footnote numbering** — changed from letters `[a],[b]` to numeric `[1],[2]`
+- **Age range dash** — fixed unicode en-dash rendering in SampleSizePanel
+- **UNS connector** — removed "No unscheduled event" fallback edge from graph
 
 ### 🧪 Testing
 - **1157 tests** collected, 1118 passed, 0 failures
@@ -694,7 +705,7 @@ Protocol2USDMv3/
 │   └── m11_conformance.py    # M11 conformance scoring
 ├── enrichment/               # Terminology enrichment
 │   └── terminology.py        # NCI EVS enrichment
-├── tests/                    # 1136 tests (unit + e2e)
+├── tests/                    # 1157 tests (unit + e2e)
 │   ├── test_extractors.py    # Mocked LLM extractor tests (58)
 │   ├── test_composers.py     # M11 composer tests (22)
 │   ├── test_pipeline_context.py # PipelineContext tests (48)
@@ -723,7 +734,7 @@ For detailed architecture, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 ## Testing
 
 ```bash
-# Run all unit tests (1136 collected, ~3 min)
+# Run all unit tests (1157 collected, ~3 min)
 python -m pytest tests/ -v
 
 # Run with coverage report
@@ -826,7 +837,7 @@ The following items are planned for upcoming releases:
 - [x] **Provenance Tracking** (E14): PhaseProvenance for all phases *(completed v7.4)*
 - [x] **Prompt Versioning** (E15): SHA-256 hashes in run manifest *(completed v7.4)*
 - [x] **ICH M11 Document Rendering**: DOCX generation with 9 entity composers *(completed v7.3)*
-- [x] **Testing Infrastructure**: 1136 tests, mocked LLM tests *(completed v7.3–v7.16)*
+- [x] **Testing Infrastructure**: 1157 tests, mocked LLM tests *(completed v7.3–v7.17)*
 - [x] **Pipeline Decomposition**: combiner/integrations/post_processing/promotion *(completed v7.3)*
 - [x] **Web UI Semantic Editing**: JSON Patch editing with draft/publish workflow *(completed v7.2.1)*
 - [x] **Execution Model Promotion**: Native USDM entities instead of extensions *(completed v7.2)*

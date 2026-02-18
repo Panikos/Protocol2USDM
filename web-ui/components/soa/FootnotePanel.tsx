@@ -20,15 +20,9 @@ interface FootnotePanelProps {
   editBasePath?: string;
 }
 
-/** Convert 0-based index to letter marker: 0→a, 25→z, 26→aa, 27→ab, ... */
+/** Convert 0-based index to numeric marker: 0→1, 1→2, ... */
 function indexToMarker(index: number): string {
-  let result = '';
-  let n = index;
-  do {
-    result = String.fromCharCode(97 + (n % 26)) + result;
-    n = Math.floor(n / 26) - 1;
-  } while (n >= 0);
-  return result;
+  return String(index + 1);
 }
 
 // Build a map of marker -> footnote for quick lookup
@@ -103,11 +97,7 @@ export function FootnotePanel({
                       : 'bg-muted/30'
                   )}
                 >
-                  {marker ? (
-                    <span className="font-medium text-blue-700 mr-2">
-                      [{marker}]
-                    </span>
-                  ) : (
+                  {(
                     <span className="font-medium text-blue-700 mr-2">
                       [{indexToMarker(index)}]
                     </span>

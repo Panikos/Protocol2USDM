@@ -2669,8 +2669,24 @@ def _ensure_leaf_activity_procedures(study_design: Dict[str, Any]) -> int:
     one procedure, biomedical concept, or child.
 
     Fix: auto-create a Procedure from the activity name for leaf activities
-    that have empty ``definedProcedures``.
+    that have empty ``definedProcedures``.  Skip dosing and administrative
+    activities that are not clinical procedures.
     """
+    import re
+
+    # Patterns for activities that should NOT get auto-created procedures
+    # (dosing, administrative, dietary, consent, compliance, enrollment)
+    _SKIP_PATTERNS = re.compile(
+        r'\b(?:'
+        r'mg(?:/day|/kg)?|dose|dosing|tablet|capsule|infusion|injection'
+        r'|admit|discharge|diet|meal|exercise'
+        r'|consent|compliance|enrollment|inclusion|exclusion'
+        r'|discontinue|washout|phone\s*call|outpatient\s*visit'
+        r'|concomitant\s*med|prior\s*(?:wd|treatment)|history|demographics'
+        r')\b',
+        re.IGNORECASE
+    )
+
     activities: List[Dict] = study_design.get("activities", [])
     if not activities:
         return 0
@@ -2688,6 +2704,11 @@ def _ensure_leaf_activity_procedures(study_design: Dict[str, Any]) -> int:
 
         # Leaf activity with no references — create a procedure from name
         act_name = act.get("name", act.get("label", "Unknown"))
+
+        # Skip dosing and administrative activities
+        if _SKIP_PATTERNS.search(act_name):
+            continue
+
         proc = {
             "id": str(uuid.uuid4()),
             "name": act_name,
@@ -2767,9 +2788,13 @@ def _fix_empty_amendment_changes(combined: dict) -> int:
     for amend in ver.get("amendments", []):
         changes = amend.get("changes", [])
         if isinstance(changes, list) and len(changes) == 0:
+            change_name = amend.get("summary") or amend.get("name") or "Amendment change"
             amend["changes"] = [{
                 "id": str(uuid.uuid4()),
-                "summary": amend.get("summary", "Amendment change"),
+                "name": change_name,
+                "description": change_name,
+                "rationale": amend.get("summary") or "See amendment summary",
+                "changedSections": [],
                 "instanceType": "StudyChange",
             }]
             fixed += 1

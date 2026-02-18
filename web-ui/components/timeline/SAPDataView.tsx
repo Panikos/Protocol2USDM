@@ -939,7 +939,7 @@ function SampleSizePanel({ calculations, populationInfo }: { calculations: Sampl
                 <div className="p-3 bg-green-50 rounded-lg border border-green-200">
                   <dt className="text-muted-foreground text-xs uppercase tracking-wide">Age Range</dt>
                   <dd className="text-2xl font-bold text-green-700 mt-1">
-                    {populationInfo.plannedAgeMin ?? '?'}\u2013{populationInfo.plannedAgeMax ?? '?'}
+                    {populationInfo.plannedAgeMin ?? '?'}{'\u2013'}{populationInfo.plannedAgeMax ?? '?'}
                   </dd>
                   {populationInfo.ageUnit && (
                     <dd className="text-xs text-muted-foreground">{populationInfo.ageUnit}</dd>

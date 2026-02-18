@@ -82,8 +82,19 @@ class StudyDesignPhase(BasePhase):
                     study_design["blindingSchema"] = self._build_alias_code(
                         sd.study_design.blinding_schema.value, "blindingSchema"
                     )
-                if sd.study_design.randomization_type:
-                    study_design["randomizationType"] = {"code": sd.study_design.randomization_type.value}
+                if sd.study_design.randomization_type and sd.study_design.randomization_type.value:
+                    from core.terminology_codes import RANDOMIZATION_CODES
+                    rand_val = sd.study_design.randomization_type.value.lower()
+                    rand_code_info = RANDOMIZATION_CODES.get(rand_val, RANDOMIZATION_CODES.get('non-randomized', {}))
+                    rand_code = {
+                        "id": str(uuid.uuid4()),
+                        "code": rand_code_info.get('code', ''),
+                        "codeSystem": "http://www.cdisc.org",
+                        "codeSystemVersion": "2024-09-27",
+                        "decode": rand_code_info.get('decode', sd.study_design.randomization_type.value),
+                        "instanceType": "Code",
+                    }
+                    study_design.setdefault("subTypes", []).append(rand_code)
                 # C3: Design rationale
                 if sd.study_design.rationale:
                     study_design["rationale"] = sd.study_design.rationale
@@ -124,7 +135,19 @@ class StudyDesignPhase(BasePhase):
                             inferred.value, "blindingSchema"
                         )
                 if sd.get('randomizationType'):
-                    study_design["randomizationType"] = sd['randomizationType']
+                    from core.terminology_codes import RANDOMIZATION_CODES
+                    rt = sd['randomizationType']
+                    rand_val = (rt.get('decode') or rt.get('code', '')).lower()
+                    rand_code_info = RANDOMIZATION_CODES.get(rand_val, RANDOMIZATION_CODES.get('non-randomized', {}))
+                    rand_code = {
+                        "id": str(uuid.uuid4()),
+                        "code": rand_code_info.get('code', ''),
+                        "codeSystem": "http://www.cdisc.org",
+                        "codeSystemVersion": "2024-09-27",
+                        "decode": rand_code_info.get('decode', rt.get('decode', '')),
+                        "instanceType": "Code",
+                    }
+                    study_design.setdefault("subTypes", []).append(rand_code)
                 # C3: Design rationale (fallback path)
                 if sd.get('rationale'):
                     study_design["rationale"] = sd['rationale']

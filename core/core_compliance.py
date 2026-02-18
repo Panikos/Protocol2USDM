@@ -369,7 +369,8 @@ _USDM_ALLOWED_KEYS: Dict[str, Set[str]] = {
         "extensionAttributes", "instanceType",
     },
     "StudyChange": {
-        "id", "name", "rationale", "changedSections",
+        "id", "name", "label", "description", "rationale",
+        "summary", "changedSections",
         "extensionAttributes", "instanceType",
     },
     "StudyIdentifier": {
@@ -438,25 +439,58 @@ _USDM_ALLOWED_KEYS: Dict[str, Set[str]] = {
 }
 
 
-def _walk_strip_non_usdm(obj: Any, parent_key: str = "") -> int:
-    """Remove properties not in the USDM schema from typed entities."""
-    stripped = 0
+def _walk_audit_non_usdm(
+    obj: Any,
+    findings: List[Dict[str, Any]],
+    path: str = "",
+    parent_key: str = "",
+) -> int:
+    """Audit (log-only) properties not in the USDM schema from typed entities.
+    
+    Does NOT delete anything — collects findings for review.
+    """
+    found = 0
     if isinstance(obj, dict):
         inst = obj.get("instanceType", "")
         if inst in _USDM_ALLOWED_KEYS:
             allowed = _USDM_ALLOWED_KEYS[inst]
-            to_remove = [k for k in obj if k not in allowed]
-            for k in to_remove:
-                del obj[k]
-                stripped += 1
-        # Recurse into remaining values
-        for value in list(obj.values()):
-            if isinstance(value, (dict, list)):
-                stripped += _walk_strip_non_usdm(value, parent_key=parent_key)
+            non_usdm = [k for k in obj if k not in allowed]
+            for k in non_usdm:
+                val = obj[k]
+                # Summarise value for the log (avoid dumping huge objects)
+                if isinstance(val, str):
+                    preview = val[:120] + ("..." if len(val) > 120 else "")
+                elif isinstance(val, (int, float, bool)):
+                    preview = str(val)
+                elif isinstance(val, list):
+                    preview = f"[list, {len(val)} items]"
+                elif isinstance(val, dict):
+                    preview = f"{{dict, {len(val)} keys}}"
+                else:
+                    preview = str(type(val).__name__)
+                findings.append({
+                    "entityType": inst,
+                    "entityId": obj.get("id", ""),
+                    "entityName": obj.get("name", obj.get("label", "")),
+                    "property": k,
+                    "valuePreview": preview,
+                    "path": f"{path}.{k}" if path else k,
+                    "severity": "info",
+                    "message": f"Non-USDM property '{k}' on {inst} — kept (log-only mode)",
+                })
+                found += 1
+        # Recurse into values
+        for key, value in obj.items():
+            child_path = f"{path}.{key}" if path else key
+            if isinstance(value, dict):
+                found += _walk_audit_non_usdm(value, findings, child_path, parent_key=key)
+            elif isinstance(value, list):
+                for idx, item in enumerate(value):
+                    found += _walk_audit_non_usdm(item, findings, f"{child_path}[{idx}]", parent_key=key)
     elif isinstance(obj, list):
-        for item in obj:
-            stripped += _walk_strip_non_usdm(item, parent_key=parent_key)
-    return stripped
+        for idx, item in enumerate(obj):
+            found += _walk_audit_non_usdm(item, findings, f"{path}[{idx}]", parent_key=parent_key)
+    return found
 
 
 # ---------------------------------------------------------------------------
@@ -494,7 +528,9 @@ def _walk_fix_procedure_defaults(obj: Any) -> int:
 # Public API
 # ---------------------------------------------------------------------------
 
-def normalize_for_core_compliance(data: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, int]]:
+def normalize_for_core_compliance(
+    data: Dict[str, Any],
+) -> Tuple[Dict[str, Any], Dict[str, int], List[Dict[str, Any]]]:
     """
     Safety-net CORE compliance normalizations applied at validation time.
 
@@ -511,24 +547,32 @@ def normalize_for_core_compliance(data: Dict[str, Any]) -> Tuple[Dict[str, Any],
         data: USDM JSON dict (will be deep-copied)
 
     Returns:
-        Tuple of (normalized data, stats dict with counts per fix category)
+        Tuple of (normalized data, stats dict, compliance_findings list).
+        compliance_findings contains one dict per non-USDM property detected
+        (log-only — properties are NOT removed from the output).
     """
     result = copy.deepcopy(data)
     stats: Dict[str, int] = {}
+    compliance_findings: List[Dict[str, Any]] = []
 
     stats["codes_fixed"] = _walk_normalize_codes(result)
     stats["ids_generated"] = _walk_generate_ids(result)
     stats["labels_populated"] = _walk_populate_labels(result)
     stats["xhtml_sanitized"] = _walk_sanitize_xhtml(result)
     stats["proc_defaults"] = _walk_fix_procedure_defaults(result)
-    stats["props_stripped"] = _walk_strip_non_usdm(result)
+    stats["non_usdm_properties"] = _walk_audit_non_usdm(result, compliance_findings)
 
     total = sum(stats.values())
     logger.info(
-        f"      CORE compliance: {total} safety-net fixes "
+        f"      CORE compliance: {total} normalizations "
         f"(codes={stats['codes_fixed']}, ids={stats['ids_generated']}, "
         f"labels={stats['labels_populated']}, xhtml={stats['xhtml_sanitized']}, "
-        f"stripped={stats['props_stripped']})"
+        f"non_usdm_props={stats['non_usdm_properties']})"
     )
+    if compliance_findings:
+        logger.info(
+            f"      Non-USDM properties audit: {len(compliance_findings)} properties "
+            f"detected but KEPT (log-only mode)"
+        )
 
-    return result, stats
+    return result, stats, compliance_findings

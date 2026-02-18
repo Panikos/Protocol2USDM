@@ -693,9 +693,14 @@ export function toGraphModel(
       nodeIds.add(nodeId);
 
       // Edges from decision to UNS encounter targets only (no main-flow edges)
+      // Skip "no unscheduled event" fallback branches — they just loop back to main flow
       for (const ca of instance.conditionAssignments ?? []) {
         const targetId = ca.conditionTargetId;
         if (!targetId) continue;
+
+        // Filter out "no event" / negative fallback conditions
+        const condText = (ca.condition ?? '').toLowerCase();
+        if (condText.includes('no ') && condText.includes('unscheduled')) continue;
 
         const targetNodeId = `enc_${targetId}`;
         if (!nodeIds.has(targetNodeId)) continue;

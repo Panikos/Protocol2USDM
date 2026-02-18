@@ -120,6 +120,24 @@ interface CoreConformance {
   }>;
 }
 
+interface ComplianceFinding {
+  entityType: string;
+  entityId?: string;
+  entityName?: string;
+  property: string;
+  valuePreview?: string;
+  path?: string;
+  severity?: string;
+  message?: string;
+}
+
+interface ComplianceLog {
+  mode?: string;
+  description?: string;
+  stats?: Record<string, number>;
+  findings?: ComplianceFinding[];
+}
+
 interface ValidationData {
   extraction?: {
     success?: boolean;
@@ -128,6 +146,7 @@ interface ValidationData {
   schema?: SchemaValidation;
   usdm?: USDMValidation;
   core?: CoreConformance;
+  compliance?: ComplianceLog;
 }
 
 // Build a flat id→name lookup from all USDM entities
@@ -583,6 +602,70 @@ export function ValidationResultsView({ protocolId, usdm }: ValidationResultsVie
                 Output conforms to USDM {data.usdm.usdm_version_found || 'specification'}.
               </p>
             )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Compliance Audit Log */}
+      {data.compliance && data.compliance.findings && data.compliance.findings.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Info className="h-5 w-5 text-blue-600" />
+              CORE Compliance Audit
+              <Badge variant="secondary">{data.compliance.findings.length} Non-USDM Properties</Badge>
+              <Badge variant="outline" className="text-xs">log-only</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">
+              {data.compliance.description || 'Non-USDM properties detected but NOT removed from output.'}
+            </p>
+
+            {/* Stats summary */}
+            {data.compliance.stats && (
+              <div className="flex flex-wrap gap-2 mb-4">
+                {Object.entries(data.compliance.stats)
+                  .filter(([, v]) => v > 0)
+                  .map(([key, val]) => (
+                    <Badge key={key} variant="outline" className="text-xs">
+                      {key.replace(/_/g, ' ')}: {val}
+                    </Badge>
+                  ))}
+              </div>
+            )}
+
+            {/* Grouped findings by entityType */}
+            {(() => {
+              const grouped = new Map<string, ComplianceFinding[]>();
+              for (const f of data.compliance.findings ?? []) {
+                const key = f.entityType;
+                if (!grouped.has(key)) grouped.set(key, []);
+                grouped.get(key)!.push(f);
+              }
+              return Array.from(grouped.entries()).map(([entityType, items]) => (
+                <details key={entityType} className="mb-2">
+                  <summary className="cursor-pointer text-sm font-medium hover:text-foreground flex items-center gap-2 py-1">
+                    <Badge variant="secondary" className="text-xs font-mono">{entityType}</Badge>
+                    <span className="text-muted-foreground">{items.length} propert{items.length === 1 ? 'y' : 'ies'}</span>
+                  </summary>
+                  <div className="ml-4 mt-1 space-y-1 max-h-[300px] overflow-auto">
+                    {items.map((f, i) => (
+                      <div key={i} className="p-2 bg-blue-50/50 border border-blue-100 rounded text-xs flex items-start gap-2">
+                        <code className="font-mono text-blue-800 shrink-0">{f.property}</code>
+                        <span className="text-muted-foreground">=</span>
+                        <span className="text-muted-foreground truncate" title={f.valuePreview}>{f.valuePreview}</span>
+                        {f.entityName && (
+                          <Badge variant="outline" className="text-[10px] ml-auto shrink-0">
+                            {f.entityName}
+                          </Badge>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              ));
+            })()}
           </CardContent>
         </Card>
       )}

@@ -173,10 +173,9 @@ interface Administration {
 interface Substance {
   id: string;
   name?: string;
-  substanceName?: string;
+  label?: string;
   description?: string;
-  substanceType?: { decode?: string };
-  codes?: { code?: string; decode?: string }[];
+  codes?: { code?: string; decode?: string; codeSystem?: string }[];
 }
 
 interface Ingredient {
@@ -232,6 +231,17 @@ export function InterventionsView({ usdm }: InterventionsViewProps) {
   // Build lookup maps
   const substanceMap = new Map(substances.map(s => [s.id, s]));
   const strengthMap = new Map(strengths.map(s => [s.id, s]));
+
+  // Build substance→intervention lookup by name matching (for type & description fallback)
+  const substanceInterventionMap = new Map<string, StudyIntervention>();
+  for (const sub of substances) {
+    const subName = (sub.name || '').toLowerCase();
+    const match = studyInterventions.find(si => {
+      const siName = (si.name || '').toLowerCase();
+      return siName && (subName.includes(siName) || siName.includes(subName));
+    });
+    if (match) substanceInterventionMap.set(sub.id, match);
+  }
 
   const { addPatchOp } = useSemanticStore();
   const isEditMode = useEditModeStore((s) => s.isEditMode);
@@ -584,34 +594,35 @@ export function InterventionsView({ usdm }: InterventionsViewProps) {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {substances.map((substance, i) => (
+              {substances.map((substance, i) => {
+                const linkedIntv = substanceInterventionMap.get(substance.id);
+                const intvType = linkedIntv?.type;
+                const fallbackDesc = linkedIntv?.description;
+                return (
                 <div key={substance.id || i} className="p-3 border rounded-lg">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <EditableField
-                        path={entityPath('/substances', substance.id, 'substanceName')}
-                        value={substance.substanceName || substance.name || `Substance ${i + 1}`}
+                        path={entityPath('/substances', substance.id, 'name')}
+                        value={substance.name || substance.label || `Substance ${i + 1}`}
                         label=""
                         className="font-medium"
                         placeholder="Substance name"
                       />
                       <EditableField
                         path={entityPath('/substances', substance.id, 'description')}
-                        value={substance.description || ''}
+                        value={substance.description || fallbackDesc || ''}
                         label=""
                         type="textarea"
                         className="text-sm text-muted-foreground mt-1"
                         placeholder="No description"
                       />
                     </div>
-                    <EditableCodedValue
-                      path={entityPath('/substances', substance.id, 'substanceType')}
-                      value={substance.substanceType}
-                      options={CDISC_TERMINOLOGIES.substanceType}
-                      showCode
-                      placeholder="Type"
-                      className="shrink-0"
-                    />
+                    {intvType?.decode && (
+                      <Badge variant="outline" className="shrink-0 text-xs">
+                        {intvType.decode}
+                      </Badge>
+                    )}
                   </div>
                   {substance.codes && substance.codes.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-2">
@@ -621,7 +632,8 @@ export function InterventionsView({ usdm }: InterventionsViewProps) {
                     </div>
                   )}
                 </div>
-              ))}
+              );
+              })}
             </div>
           </CardContent>
         </Card>
@@ -646,7 +658,7 @@ export function InterventionsView({ usdm }: InterventionsViewProps) {
                   <div key={ingredient.id || i} className="p-3 bg-muted rounded-lg">
                     <div className="flex items-center justify-between">
                       <span className="font-medium">
-                        {ingredient.name || substance?.substanceName || substance?.name || `Ingredient ${i + 1}`}
+                        {ingredient.name || substance?.name || substance?.label || `Ingredient ${i + 1}`}
                       </span>
                       <EditableCodedValue
                         path={entityPath('/ingredients', ingredient.id, 'role')}

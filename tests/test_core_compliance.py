@@ -249,10 +249,11 @@ class TestNormalizeForCoreCompliance:
                 }]
             }
         }
-        result, stats = normalize_for_core_compliance(data)
+        result, stats, findings = normalize_for_core_compliance(data)
         assert stats["codes_fixed"] >= 1
         assert stats["ids_generated"] >= 1
         assert stats["labels_populated"] >= 1
+        assert isinstance(findings, list)
         # Verify original data was deep-copied
         assert data["study"]["versions"][0]["studyDesigns"][0]["eligibilityCriteria"][0]["category"]["codeSystem"] == "USDM"
 

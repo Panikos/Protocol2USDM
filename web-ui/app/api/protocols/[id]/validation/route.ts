@@ -21,6 +21,7 @@ export async function GET(
       'schema_validation.json',
       'usdm_validation.json',
       'conformance_report.json',
+      'compliance_log.json',
     ];
 
     const validationData: {
@@ -28,6 +29,7 @@ export async function GET(
       schema?: unknown;
       usdm?: unknown;
       core?: unknown;
+      compliance?: unknown;
     } = {};
 
     for (const filename of validationFiles) {
@@ -44,6 +46,8 @@ export async function GET(
           validationData.usdm = data;
         } else if (filename === 'conformance_report.json') {
           validationData.core = data;
+        } else if (filename === 'compliance_log.json') {
+          validationData.compliance = data;
         }
       } catch {
         // File doesn't exist or can't be parsed, skip

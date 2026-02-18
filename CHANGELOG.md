@@ -46,10 +46,46 @@ Unscheduled visits can occur at any point during the study. Previously they appe
 | **Provenance explorer** | `ProvenanceExplorer.tsx` | Filter parent activities to avoid noise rows |
 | **SoA footnotes** | `SoAFootnotes.tsx` | Consume USDM-aligned `{id, text, marker}` objects + normalize to strings |
 
+### CORE Compliance: Log-Only Mode
+
+The property stripping pass (`_walk_strip_non_usdm`) has been converted to **log-only audit mode** — non-USDM properties are no longer deleted from the output. Instead, findings are collected and saved to `compliance_log.json` for review.
+
+| Change | Description |
+|--------|-------------|
+| **Audit mode** | `_walk_audit_non_usdm` collects findings without deleting properties |
+| **compliance_log.json** | New output file with per-entity findings (entityType, property, valuePreview, path) |
+| **Validation UI** | New "CORE Compliance Audit" card in Validation tab — grouped by entity type, expandable |
+| **Return signature** | `normalize_for_core_compliance()` now returns 3-tuple: `(data, stats, findings)` |
+
+### UI Data Display Refinements
+
+| Fix | Component | Description |
+|-----|-----------|-------------|
+| **Randomization** | `StudyMetadataView.tsx` | Read from `subTypes[]` via CDISC C-codes (C25196/C48660) instead of phantom `randomizationType` |
+| **Substance type** | `InterventionsView.tsx` | Derive type from linked `StudyIntervention` by name matching; fallback description |
+| **Amendment changes** | `AmendmentHistoryView.tsx` | Human-readable text instead of raw JSON; placeholder `StudyChange` uses CORE-compliant fields |
+| **Procedures filter** | `ProceduresDevicesView.tsx` | Skip non-clinical activities (dosing, diet, consent, etc.) in both pipeline and UI |
+| **Footnote numbering** | `FootnotePanel.tsx` | Changed from letters `[a],[b]...` to numeric `[1],[2]...` |
+| **Age range dash** | `SAPDataView.tsx` | Fix unicode en-dash rendering (`\u2013` → `{'\u2013'}` in JSX) |
+| **UNS connector** | `toGraphModel.ts` | Remove "No unscheduled event" fallback edge from graph |
+
 ### Files Changed
 
 | File | Change |
 |------|--------|
+| **`core/core_compliance.py`** | `_walk_strip_non_usdm` → `_walk_audit_non_usdm` (log-only); 3-tuple return |
+| **`core/validation.py`** | Save `compliance_log.json` to output dir |
+| **`pipeline/phases/studydesign.py`** | Randomization stored in `subTypes[]` as Code |
+| **`pipeline/post_processing.py`** | Amendment changes CORE-compliant; procedure skip patterns |
+| **`web-ui/components/quality/ValidationResultsView.tsx`** | Compliance Audit card |
+| **`web-ui/components/protocol/StudyMetadataView.tsx`** | Randomization from `subTypes[]` |
+| **`web-ui/components/protocol/InterventionsView.tsx`** | Substance→intervention linkage |
+| **`web-ui/components/protocol/ProceduresDevicesView.tsx`** | Non-procedure filter |
+| **`web-ui/components/soa/FootnotePanel.tsx`** | Numeric markers |
+| **`web-ui/components/timeline/SAPDataView.tsx`** | Unicode dash fix |
+| **`web-ui/lib/adapters/toGraphModel.ts`** | Remove "No unscheduled event" edge |
+| **`web-ui/app/api/protocols/[id]/validation/route.ts`** | Load compliance_log.json |
+| **`web-ui/app/api/protocols/[id]/intermediate/route.ts`** | Register compliance_log |
 | **`web-ui/lib/adapters/toSoATableModel.ts`** | Encounter→epoch via instance bridge + unassigned group |
 | **`web-ui/lib/adapters/toGraphModel.ts`** | Instance bridge + UNS detached island |
 | **`web-ui/styles/cytoscape-theme.ts`** | UNS annotation, detached node/edge styles |

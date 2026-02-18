@@ -104,6 +104,12 @@ export function StudyMetadataView({ usdm }: StudyMetadataViewProps) {
   // Extract characteristics
   const characteristics = (design?.characteristics as Characteristic[]) ?? [];
 
+  // Extract randomization from subTypes[] (USDM v4.0 stores randomization as a Code in subTypes)
+  const RANDOMIZATION_CODES = new Set(['C25196', 'C48660']);
+  const subTypes = (design?.subTypes as { code?: string; decode?: string }[]) ?? [];
+  const randomizationEntry = subTypes.find(st => st.code && RANDOMIZATION_CODES.has(st.code));
+  const randomizationIndex = subTypes.findIndex(st => st.code && RANDOMIZATION_CODES.has(st.code));
+
   // Extract indications (medical conditions) from studyDesign — USDM v4.0 correct path
   const indications = (design?.indications as { id?: string; name?: string; description?: string; codes?: { decode?: string; code?: string; codeSystem?: string }[] }[]) ?? [];
 
@@ -254,8 +260,8 @@ export function StudyMetadataView({ usdm }: StudyMetadataViewProps) {
 
             <div>
               <EditableCodedValue
-                path="/study/versions/0/studyDesigns/0/randomizationType"
-                value={design?.randomizationType as { code?: string; decode?: string } | undefined}
+                path={randomizationIndex >= 0 ? `/study/versions/0/studyDesigns/0/subTypes/${randomizationIndex}` : '/study/versions/0/studyDesigns/0/subTypes/0'}
+                value={randomizationEntry}
                 label="Randomization"
                 options={CDISC_TERMINOLOGIES.randomizationType ?? []}
                 showCode
