@@ -155,7 +155,14 @@ export function toGraphModel(
 
   // Show all epochs - don't filter based on traversal constraints
   // This ensures the complete study timeline is visible in the graph view
-  const epochs = allEpochs;
+  // Separate UNS (unscheduled) epochs — they're detached from the linear flow
+  const isUnsEpoch = (e: USDMEpoch) => {
+    const n = (e.name ?? '').toLowerCase();
+    return n === 'uns' || n.includes('unscheduled');
+  };
+  const epochs = allEpochs.filter(e => !isUnsEpoch(e));
+  const unsEpochs = allEpochs.filter(e => isUnsEpoch(e));
+  const unsEpochIds = new Set(unsEpochs.map(e => e.id));
 
   // Build maps
   const epochMap = new Map(epochs.map(e => [e.id, e]));
@@ -298,10 +305,10 @@ export function toGraphModel(
   }
 
   // Generate sequence edges between encounters (only for those with nodes)
-  // Filter to encounters whose epoch is in the filtered epoch list to avoid missing endpoint errors
+  // Filter to encounters whose epoch is in the main (non-UNS) epoch list
   const encountersWithNodes = encounters.filter(e => {
     const epId = getEncounterEpochId(e);
-    return epId && epochMap.has(epId);
+    return epId && epochMap.has(epId) && !unsEpochIds.has(epId);
   });
   
   for (let i = 0; i < encountersWithNodes.length - 1; i++) {
@@ -558,20 +565,101 @@ export function toGraphModel(
   }
 
   // ---------------------------------------------------------------
-  // Generate ScheduledDecisionInstance (UNS branch) nodes
+  // Detached UNS island — unscheduled epoch, encounters, SDI node
+  // Positioned separately from main flow with annotation
   // ---------------------------------------------------------------
+  if (unsEpochs.length > 0) {
+    // Compute island position: below-right of main graph
+    const mainMaxX = Math.max(...Array.from(epochPositions.values()).map(p => p.x + p.width), DEFAULT_SPACING.startX + 400);
+    const unsIslandX = mainMaxX + 80;
+    const unsIslandY = DEFAULT_SPACING.epochHeaderHeight;
+
+    // Add UNS epoch nodes
+    for (const unsEp of unsEpochs) {
+      const nodeId = `epoch_${unsEp.id}`;
+      const position = getNodePosition(nodeId, overlay, { x: unsIslandX, y: unsIslandY });
+
+      model.nodes.push({
+        data: {
+          id: nodeId,
+          label: unsEp.name,
+          type: 'epoch',
+          usdmRef: unsEp.id,
+          description: unsEp.description,
+        },
+        position,
+        locked: overlay?.diagram.nodes[nodeId]?.locked,
+        classes: 'epoch-node uns-detached',
+      });
+      nodeIds.add(nodeId);
+
+      // Add UNS encounters under this epoch
+      const unsEncounters = encounters.filter(e => getEncounterEpochId(e) === unsEp.id);
+      let unsEncY = unsIslandY + 80;
+
+      for (const enc of unsEncounters) {
+        const encNodeId = `enc_${enc.id}`;
+        const encPos = getNodePosition(encNodeId, overlay, { x: unsIslandX, y: unsEncY });
+        encounterPositions.set(enc.id, encPos);
+
+        model.nodes.push({
+          data: {
+            id: encNodeId,
+            label: enc.name,
+            type: 'timing',
+            usdmRef: enc.id,
+            epochId: unsEp.id,
+            encounterId: enc.id,
+            description: enc.description,
+          },
+          position: encPos,
+          locked: overlay?.diagram.nodes[encNodeId]?.locked,
+          classes: 'uns-detached',
+        });
+        nodeIds.add(encNodeId);
+
+        // Edge from UNS epoch to encounter
+        model.edges.push({
+          data: {
+            id: `uns_link_${unsEp.id}_${enc.id}`,
+            source: nodeId,
+            target: encNodeId,
+            type: 'activity',
+          },
+          classes: 'uns-detached-edge',
+        });
+
+        unsEncY += 80;
+      }
+    }
+
+    // Add annotation node
+    const annotId = '_uns_annotation';
+    const annotPos = getNodePosition(annotId, overlay, { x: unsIslandX, y: unsIslandY - 50 });
+    model.nodes.push({
+      data: {
+        id: annotId,
+        label: 'Can occur at any point\nper traversal rules',
+        type: 'halo' as NodeType,
+        usdmRef: '',
+      },
+      position: annotPos,
+      classes: 'uns-annotation',
+    });
+    nodeIds.add(annotId);
+  }
+
+  // ScheduledDecisionInstance nodes — only connect within the UNS island
   for (const timeline of scheduleTimelines) {
     for (const instance of timeline.instances ?? []) {
       if (instance.instanceType !== 'ScheduledDecisionInstance') continue;
 
-      // Find the UNS encounter this SDI controls (from x-unsDecisionInstance extension)
+      // Find the UNS encounter this SDI controls
       const unsExt = (instance.extensionAttributes ?? []).find(
         (e) => (e.url ?? '').includes('unsDecisionInstance')
       );
       let unsEncounterId = unsExt?.valueString as string | undefined;
 
-      // The extension may store an alias (e.g. "enc_23") instead of a UUID.
-      // Fall back to the first conditionTargetId which is always remapped.
       let unsEncPos = unsEncounterId ? encounterPositions.get(unsEncounterId) : null;
       if (!unsEncPos && instance.conditionAssignments?.length) {
         const firstTarget = instance.conditionAssignments[0].conditionTargetId;
@@ -580,8 +668,8 @@ export function toGraphModel(
           unsEncounterId = firstTarget;
         }
       }
-      const defaultX = unsEncPos ? unsEncPos.x : DEFAULT_SPACING.startX;
-      const defaultY = unsEncPos ? unsEncPos.y + 80 : DEFAULT_SPACING.encounterY + 80;
+      const defaultX = unsEncPos ? unsEncPos.x + 100 : DEFAULT_SPACING.startX;
+      const defaultY = unsEncPos ? unsEncPos.y : DEFAULT_SPACING.encounterY + 80;
 
       const nodeId = `decision_${instance.id}`;
       const position = getNodePosition(nodeId, overlay, { x: defaultX, y: defaultY });
@@ -596,11 +684,11 @@ export function toGraphModel(
         },
         position,
         locked: overlay?.diagram.nodes[nodeId]?.locked,
-        classes: 'decision-node',
+        classes: 'decision-node uns-detached',
       });
       nodeIds.add(nodeId);
 
-      // Edges from decision to branch targets
+      // Edges from decision to UNS encounter targets only (no main-flow edges)
       for (const ca of instance.conditionAssignments ?? []) {
         const targetId = ca.conditionTargetId;
         if (!targetId) continue;
@@ -608,44 +696,22 @@ export function toGraphModel(
         const targetNodeId = `enc_${targetId}`;
         if (!nodeIds.has(targetNodeId)) continue;
 
-        const isDefault = targetId === instance.defaultConditionId;
         const edgeId = `decision_edge_${instance.id}_${ca.id ?? targetId}`;
-
         model.edges.push({
           data: {
             id: edgeId,
             source: nodeId,
             target: targetNodeId,
-            type: isDefault ? 'decision-default' : 'decision-branch',
-            label: isDefault ? 'default' : ca.condition?.substring(0, 25) || 'event',
+            type: 'decision-branch',
+            label: ca.condition?.substring(0, 25) || '',
           },
-          classes: isDefault ? 'decision-default-edge' : 'decision-branch-edge',
+          classes: 'decision-branch-edge',
         });
-      }
-
-      // Edge from the preceding encounter to this decision node
-      if (unsEncounterId) {
-        const encIdx = encounters.findIndex(e => e.id === unsEncounterId);
-        if (encIdx > 0) {
-          const prevEnc = encounters[encIdx - 1];
-          const prevNodeId = `enc_${prevEnc.id}`;
-          if (nodeIds.has(prevNodeId)) {
-            model.edges.push({
-              data: {
-                id: `seq_to_decision_${instance.id}`,
-                source: prevNodeId,
-                target: nodeId,
-                type: 'sequence',
-              },
-              classes: 'decision-entry-edge',
-            });
-          }
-        }
       }
     }
   }
 
-  // Add epoch transition arrows
+  // Add epoch transition arrows (main flow only — UNS epochs excluded)
   for (let i = 0; i < epochs.length - 1; i++) {
     const currentEpoch = epochs[i];
     const nextEpoch = epochs[i + 1];

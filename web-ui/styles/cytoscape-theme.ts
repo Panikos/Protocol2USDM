@@ -458,6 +458,47 @@ export const cytoscapeStyles: any[] = [
     },
   },
 
+  // UNS detached island — annotation label
+  {
+    selector: 'node.uns-annotation',
+    style: {
+      'background-opacity': 0,
+      'border-width': 0,
+      'shape': 'round-rectangle',
+      'width': 180,
+      'height': 40,
+      'font-size': '10px',
+      'text-wrap': 'wrap',
+      'text-max-width': '170px',
+      'text-valign': 'center',
+      'text-halign': 'center',
+      'color': '#92400e',
+      'font-style': 'italic',
+    },
+  },
+
+  // UNS detached nodes — dotted border to signal disconnected status
+  {
+    selector: 'node.uns-detached',
+    style: {
+      'border-style': 'dotted',
+    },
+  },
+
+  // UNS detached edges — light dashed
+  {
+    selector: 'edge.uns-detached-edge',
+    style: {
+      'line-color': '#d97706',
+      'line-style': 'dotted',
+      'width': 1.5,
+      'target-arrow-shape': 'triangle',
+      'target-arrow-color': '#d97706',
+      'arrow-scale': 0.6,
+      'curve-style': 'straight',
+    },
+  },
+
   // Dimmed nodes (neighborhood focus: fade non-connected elements)
   {
     selector: 'node.dimmed',
