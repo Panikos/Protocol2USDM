@@ -24,7 +24,7 @@ class SAPPhase(BasePhase):
         return PhaseConfig(
             name="SAP",
             display_name="SAP Analysis Populations",
-            phase_number=14,
+            phase_number=13,
             output_filename="14_sap_extraction.json",
             requires_pdf=False,
             optional=True,

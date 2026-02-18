@@ -84,6 +84,17 @@ Unscheduled visits rendered as **isolated islands** in both the graph view (with
 - **Medical Conditions** — sources from `studyDesign.indications`
 - **SoA footnotes** — consume USDM-aligned `{id, text, marker}` objects
 
+### 📋 UI Data Display Fixes
+- **InterventionsView** — aligned to USDM v4.0 nested `AdministrableProduct` structure (ingredients/substance/strengths); FDA Labels disabled; descriptions now display correctly
+- **Estimands** — resolve `interventionIds`→names, `variableOfInterestId`→endpoint name, extract summary measure from population text
+- **Boolean fields** — show "Yes"/"No" instead of raw `true`/`false`
+- **Randomization type** — added to study metadata display
+- **Traversal constraints** — UNS filtered from sequential flow with annotation note
+- **SAP Populations** — definition and description mapped to actual USDM fields
+
+### ⚙️ CDISC CORE Compliance
+- 11 automated CORE rule fixes in post-processing (dedup, child ordering, country decode, window durations, codeSystemVersions, leaf procedures, timing durations, amendment codeSystems)
+
 ### 🧪 Testing
 - **1157 tests** collected, 1118 passed, 0 failures
 

@@ -14,7 +14,7 @@ class EligibilityPhase(BasePhase):
         return PhaseConfig(
             name="Eligibility",
             display_name="Eligibility Criteria",
-            phase_number=1,
+            phase_number=2,
             output_filename="3_eligibility_criteria.json",
         )
     

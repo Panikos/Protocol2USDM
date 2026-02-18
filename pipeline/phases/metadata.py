@@ -31,7 +31,7 @@ class MetadataPhase(BasePhase):
         return PhaseConfig(
             name="Metadata",
             display_name="Study Metadata",
-            phase_number=2,
+            phase_number=1,
             output_filename="2_study_metadata.json",
         )
     

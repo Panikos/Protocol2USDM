@@ -17,7 +17,7 @@ class AmendmentDetailsPhase(BasePhase):
         return PhaseConfig(
             name="AmendmentDetails",
             display_name="Amendment Details",
-            phase_number=13,
+            phase_number=11,
             output_filename="14_amendment_details.json",
             optional=True,
         )

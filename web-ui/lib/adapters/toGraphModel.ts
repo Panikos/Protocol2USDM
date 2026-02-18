@@ -165,19 +165,31 @@ export function toGraphModel(
   const unsEpochIds = new Set(unsEpochs.map(e => e.id));
 
   // Build maps
-  const epochMap = new Map(epochs.map(e => [e.id, e]));
+  const epochMap = new Map(epochs.map(e => [e.id, e]));  // Non-UNS epochs (main flow)
+  const allEpochMap = new Map(allEpochs.map(e => [e.id, e]));  // All epochs including UNS
   const encounterMap = new Map(encounters.map(e => [e.id, e]));
   const activityMap = new Map(activities.map(a => [a.id, a]));
 
   // Resolve encounter→epoch linkage via ScheduledActivityInstance bridge
   // USDM v4.0: encounters don't have epochId directly
+  // Use allEpochMap so UNS encounters are also resolved
   const resolvedEncounterEpoch = new Map<string, string>();
   for (const tl of scheduleTimelines) {
     for (const inst of tl.instances ?? []) {
       const encId = inst.encounterId;
       const epId = inst.epochId;
-      if (encId && epId && epochMap.has(epId) && !resolvedEncounterEpoch.has(encId)) {
+      if (encId && epId && allEpochMap.has(epId) && !resolvedEncounterEpoch.has(encId)) {
         resolvedEncounterEpoch.set(encId, epId);
+      }
+      // Also resolve via ScheduledDecisionInstance conditionAssignments
+      // (UNS encounters are linked this way — SDI has epochId + targets encounter)
+      if (inst.instanceType === 'ScheduledDecisionInstance' && epId && allEpochMap.has(epId)) {
+        for (const ca of inst.conditionAssignments ?? []) {
+          const targetId = ca.conditionTargetId;
+          if (targetId && encounterMap.has(targetId) && !resolvedEncounterEpoch.has(targetId)) {
+            resolvedEncounterEpoch.set(targetId, epId);
+          }
+        }
       }
     }
   }
@@ -618,16 +630,8 @@ export function toGraphModel(
         });
         nodeIds.add(encNodeId);
 
-        // Edge from UNS epoch to encounter
-        model.edges.push({
-          data: {
-            id: `uns_link_${unsEp.id}_${enc.id}`,
-            source: nodeId,
-            target: encNodeId,
-            type: 'activity',
-          },
-          classes: 'uns-detached-edge',
-        });
+        // No connector edges — UNS visits are visually grouped
+        // under the epoch by position alone
 
         unsEncY += 80;
       }

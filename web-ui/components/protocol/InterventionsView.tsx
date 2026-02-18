@@ -137,12 +137,25 @@ interface AdministrableProduct {
   label?: string;
   description?: string;
   administrableDoseForm?: { code?: string; decode?: string; standardCode?: { code?: string; decode?: string } };
-  routeOfAdministration?: { code?: string; decode?: string };
   productDesignation?: { code?: string; decode?: string };
   sourcing?: { code?: string; decode?: string };
   pharmacologicClass?: { code?: string; decode?: string };
-  strength?: string;
-  manufacturer?: string;
+  ingredients?: {
+    id: string;
+    role?: { code?: string; decode?: string };
+    substance?: {
+      id: string;
+      name?: string;
+      description?: string;
+      strengths?: {
+        id: string;
+        name?: string;
+        numerator?: { value?: number; unit?: { decode?: string; standardCode?: { decode?: string } } };
+        denominator?: { value?: number; unit?: { decode?: string; standardCode?: { decode?: string } } };
+        presentationText?: string;
+      }[];
+    };
+  }[];
 }
 
 interface Administration {
@@ -328,10 +341,7 @@ export function InterventionsView({ usdm }: InterventionsViewProps) {
                     </div>
                   )}
 
-                  {/* OpenFDA drug label enrichment */}
-                  {(intervention.name || intervention.label) && (
-                    <DrugInfoPanel drugName={(intervention.name || intervention.label)!} />
-                  )}
+                  {/* OpenFDA drug label enrichment — disabled (inaccurate results) */}
                 </div>
               ))}
             </div>
@@ -362,79 +372,101 @@ export function InterventionsView({ usdm }: InterventionsViewProps) {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {administrableProducts.map((product, i) => (
-                <div key={product.id || i} className="p-4 border rounded-lg">
-                  <EditableField
-                    path={versionPath('administrableProducts', product.id, 'name')}
-                    value={product.label || product.name || `Product ${i + 1}`}
-                    label=""
-                    className="font-medium"
-                    placeholder="Product name"
-                  />
-                  
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3 text-sm">
+              {administrableProducts.map((product, i) => {
+                // Extract first ingredient's substance and strength for display
+                const firstIngredient = product.ingredients?.[0];
+                const substance = firstIngredient?.substance;
+                const firstStrength = substance?.strengths?.[0];
+                const strengthDisplay = firstStrength?.presentationText
+                  || (firstStrength?.numerator?.value
+                    ? `${firstStrength.numerator.value} ${firstStrength.numerator.unit?.standardCode?.decode || firstStrength.numerator.unit?.decode || ''}`.trim()
+                    : undefined);
+
+                return (
+                  <div key={product.id || i} className="p-4 border rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <EditableField
+                        path={versionPath('administrableProducts', product.id, 'name')}
+                        value={product.name || product.label || `Product ${i + 1}`}
+                        label=""
+                        className="font-medium"
+                        placeholder="Product name"
+                      />
+                      {product.label && product.label !== product.name && (
+                        <Badge variant="outline" className="text-xs shrink-0">{product.label}</Badge>
+                      )}
+                    </div>
+                    
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3 text-sm">
+                      <EditableField
+                        path={versionPath('administrableProducts', product.id, 'administrableDoseForm/standardCode/decode')}
+                        value={product.administrableDoseForm?.standardCode?.decode || product.administrableDoseForm?.decode || ''}
+                        label="Dose Form"
+                        placeholder="Not specified"
+                      />
+                      <EditableCodedValue
+                        path={versionPath('administrableProducts', product.id, 'productDesignation')}
+                        value={product.productDesignation}
+                        label="Designation"
+                        options={CDISC_TERMINOLOGIES.productDesignation ?? []}
+                        showCode
+                        placeholder="Not specified"
+                      />
+                      <EditableCodedValue
+                        path={versionPath('administrableProducts', product.id, 'sourcing')}
+                        value={product.sourcing}
+                        label="Sourcing"
+                        options={CDISC_TERMINOLOGIES.productSourcing ?? []}
+                        showCode
+                        placeholder="Not specified"
+                      />
+                      <EditableCodedValue
+                        path={versionPath('administrableProducts', product.id, 'pharmacologicClass')}
+                        value={product.pharmacologicClass}
+                        label="Pharmacologic Class"
+                        options={[]}
+                        placeholder="Not specified"
+                      />
+                    </div>
+
+                    {/* Ingredients (nested USDM structure) */}
+                    {product.ingredients && product.ingredients.length > 0 && (
+                      <div className="mt-3 pt-3 border-t">
+                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Ingredients</span>
+                        <div className="mt-2 space-y-2">
+                          {product.ingredients.map((ing, ii) => (
+                            <div key={ing.id || ii} className="flex items-center gap-3 text-sm">
+                              {ing.role?.decode && (
+                                <Badge variant="outline" className="text-xs shrink-0">{ing.role.decode}</Badge>
+                              )}
+                              <span className="font-medium">{ing.substance?.name || 'Unknown substance'}</span>
+                              {ing.substance?.strengths?.[0] && (() => {
+                                const s = ing.substance!.strengths![0];
+                                const display = s.presentationText
+                                  || (s.numerator?.value
+                                    ? `${s.numerator.value} ${s.numerator.unit?.standardCode?.decode || s.numerator.unit?.decode || ''}`.trim()
+                                    : s.name && s.name !== 'Not specified' ? s.name : null);
+                                return display ? (
+                                  <span className="text-muted-foreground">— {display}</span>
+                                ) : null;
+                              })()}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
                     <EditableField
-                      path={versionPath('administrableProducts', product.id, 'administrableDoseForm/decode')}
-                      value={product.administrableDoseForm?.decode || product.administrableDoseForm?.standardCode?.decode || ''}
-                      label="Dose Form"
-                      placeholder="Not specified"
-                    />
-                    <EditableCodedValue
-                      path={versionPath('administrableProducts', product.id, 'routeOfAdministration')}
-                      value={product.routeOfAdministration}
-                      label="Route"
-                      options={CDISC_TERMINOLOGIES.routeOfAdministration}
-                      showCode
-                      placeholder="Not specified"
-                    />
-                    <EditableField
-                      path={versionPath('administrableProducts', product.id, 'strength')}
-                      value={product.strength || ''}
-                      label="Strength"
-                      placeholder="Not specified"
-                    />
-                    <EditableCodedValue
-                      path={versionPath('administrableProducts', product.id, 'productDesignation')}
-                      value={product.productDesignation}
-                      label="Designation"
-                      options={CDISC_TERMINOLOGIES.productDesignation ?? []}
-                      showCode
-                      placeholder="Not specified"
+                      path={versionPath('administrableProducts', product.id, 'description')}
+                      value={product.description || ''}
+                      label=""
+                      type="textarea"
+                      className="text-sm text-muted-foreground mt-2"
+                      placeholder="No description"
                     />
                   </div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-2 text-sm">
-                    <EditableCodedValue
-                      path={versionPath('administrableProducts', product.id, 'sourcing')}
-                      value={product.sourcing}
-                      label="Sourcing"
-                      options={CDISC_TERMINOLOGIES.productSourcing ?? []}
-                      showCode
-                      placeholder="Not specified"
-                    />
-                    <EditableField
-                      path={versionPath('administrableProducts', product.id, 'pharmacologicClass/decode')}
-                      value={product.pharmacologicClass?.decode || ''}
-                      label="Pharmacologic Class"
-                      placeholder="Not specified"
-                    />
-                    <EditableField
-                      path={versionPath('administrableProducts', product.id, 'manufacturer')}
-                      value={product.manufacturer || ''}
-                      label="Manufacturer"
-                      placeholder="Not specified"
-                    />
-                  </div>
-                  
-                  <EditableField
-                    path={versionPath('administrableProducts', product.id, 'description')}
-                    value={product.description || ''}
-                    label=""
-                    type="textarea"
-                    className="text-sm text-muted-foreground mt-2"
-                    placeholder="No description"
-                  />
-                </div>
-              ))}
+                );
+              })}
             </div>
           </CardContent>
         </Card>

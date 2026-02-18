@@ -271,8 +271,10 @@ export function EligibilityCriteriaView({ usdm }: EligibilityCriteriaViewProps) 
                 <div>
                   <span className="text-sm text-muted-foreground">Planned Enrollment</span>
                   <EditableField
-                    path="/study/versions/0/studyDesigns/0/population/plannedEnrollmentNumber/value"
-                    value={String((population.plannedEnrollmentNumber as Record<string, unknown>)?.value ?? '')}
+                    path="/study/versions/0/studyDesigns/0/population/plannedEnrollmentNumber/maxValue/value"
+                    value={String((population.plannedEnrollmentNumber as Record<string, unknown> | undefined)?.maxValue
+                      ? ((population.plannedEnrollmentNumber as Record<string, unknown>).maxValue as Record<string, unknown>)?.value ?? ''
+                      : (population.plannedEnrollmentNumber as Record<string, unknown>)?.value ?? '')}
                     type="number"
                     className="font-medium"
                     placeholder="N/A"

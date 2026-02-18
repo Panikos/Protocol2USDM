@@ -36,7 +36,7 @@ class SchedulingPhase(BasePhase):
         return PhaseConfig(
             name="Scheduling",
             display_name="Scheduling Logic",
-            phase_number=11,
+            phase_number=9,
             output_filename="10_scheduling_logic.json",
             optional=True,
         )

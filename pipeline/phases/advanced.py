@@ -62,7 +62,7 @@ class AdvancedPhase(BasePhase):
         return PhaseConfig(
             name="Advanced",
             display_name="Advanced Entities",
-            phase_number=8,
+            phase_number=7,
             output_filename="8_advanced_entities.json",
         )
     

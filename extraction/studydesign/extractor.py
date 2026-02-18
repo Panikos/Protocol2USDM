@@ -342,6 +342,10 @@ def _parse_design_response(raw: Dict[str, Any]) -> Optional[StudyDesignData]:
             else:
                 masked_roles = []
             
+            # Fallback: infer blinding from rationale/description if LLM didn't return it
+            if blinding is None:
+                blinding = _infer_blinding_from_text(design_data)
+            
             # Randomization - use None if not extracted (don't inject 'Non-Randomized')
             randomization = None
             allocation = None
@@ -451,6 +455,36 @@ def _map_arm_type(type_str: str) -> ArmType:
     elif 'experimental' in type_lower:
         return ArmType.EXPERIMENTAL
     return ArmType.OTHER  # Use OTHER for unrecognized, not EXPERIMENTAL
+
+
+def _infer_blinding_from_text(design_data: dict) -> Optional[BlindingSchema]:
+    """Infer blinding from rationale/description/type text when LLM omits it.
+    
+    Scans design fields for common blinding keywords like 'open-label',
+    'double-blind', etc. Returns None if no blinding keyword is found.
+    """
+    # Gather text fields to scan
+    texts = []
+    for key in ('rationale', 'designRationale', 'description', 'type', 'name'):
+        val = design_data.get(key)
+        if isinstance(val, str):
+            texts.append(val)
+    combined = ' '.join(texts).lower()
+    if not combined:
+        return None
+    
+    # Order matters: check most specific (quadruple) first, least specific (open) last
+    patterns = [
+        (re.compile(r'quadruple[\s-]?blind'), BlindingSchema.QUADRUPLE_BLIND),
+        (re.compile(r'triple[\s-]?blind'), BlindingSchema.TRIPLE_BLIND),
+        (re.compile(r'double[\s-]?blind'), BlindingSchema.DOUBLE_BLIND),
+        (re.compile(r'single[\s-]?blind'), BlindingSchema.SINGLE_BLIND),
+        (re.compile(r'open[\s-]?label'), BlindingSchema.OPEN_LABEL),
+    ]
+    for pattern, schema in patterns:
+        if pattern.search(combined):
+            return schema
+    return None
 
 
 def _map_blinding(schema_str: str) -> BlindingSchema:

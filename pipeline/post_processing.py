@@ -1380,7 +1380,8 @@ def fix_timing_references(study_design: Dict[str, Any]) -> int:
     Populate ``relativeToScheduledInstanceId`` on timings that have a
     ``relativeFromScheduledInstanceId`` but are missing the "to" reference.
 
-    Defaults to the timeline's ``entryId`` (the anchor/first instance).
+    Uses encounter-name matching to find the correct target SAI, falling
+    back to the timeline anchor only when no encounter match is found.
 
     Returns number of timing references fixed.
     """
@@ -1388,21 +1389,62 @@ def fix_timing_references(study_design: Dict[str, Any]) -> int:
     if not timelines:
         return 0
 
+    # Build encounter name → id lookup and day-range index
+    encounters: List[Dict] = study_design.get("encounters", [])
+    enc_by_name: Dict[str, str] = {}
+    enc_day_ranges: List[tuple] = []
+    for enc in encounters:
+        ename = (enc.get("name") or "").strip()
+        eid = enc.get("id", "")
+        if ename and eid:
+            enc_by_name[ename.lower()] = eid
+            nums = [int(n) for n in re.findall(r"-?\d+", ename)]
+            if nums:
+                enc_day_ranges.append((eid, min(nums), max(nums)))
+
     fixed = 0
     for tl in timelines:
         entry_id = tl.get("entryId")
-        if not entry_id:
-            instances = tl.get("instances", [])
-            if instances:
-                entry_id = instances[0].get("id")
-        if not entry_id:
-            continue
+        instances = tl.get("instances", [])
+        if not entry_id and instances:
+            entry_id = instances[0].get("id")
+
+        # Build encounter_id → first SAI id
+        enc_to_sai: Dict[str, str] = {}
+        for inst in instances:
+            eid = inst.get("encounterId", "")
+            if eid and eid not in enc_to_sai:
+                enc_to_sai[eid] = inst.get("id", "")
 
         for timing in tl.get("timings", []):
             has_from = timing.get("relativeFromScheduledInstanceId")
             has_to = timing.get("relativeToScheduledInstanceId")
             if has_from and not has_to:
-                timing["relativeToScheduledInstanceId"] = entry_id
+                # Try to resolve via encounter name matching
+                tname = timing.get("name", timing.get("label", ""))
+                m = re.match(r"Timing for (.+)", tname, re.IGNORECASE)
+                enc_part = (m.group(1).strip() if m else tname).lower()
+
+                matched_enc = enc_by_name.get(enc_part)
+                if not matched_enc:
+                    for ename_lower, eid in enc_by_name.items():
+                        if enc_part in ename_lower or ename_lower in enc_part:
+                            matched_enc = eid
+                            break
+                if not matched_enc:
+                    day_m = re.search(r"(?:Day\s*)?(\d+)", enc_part, re.IGNORECASE)
+                    if day_m:
+                        target_day = int(day_m.group(1))
+                        for eid, lo, hi in enc_day_ranges:
+                            if lo <= target_day <= hi:
+                                matched_enc = eid
+                                break
+
+                target_sai = enc_to_sai.get(matched_enc) if matched_enc else None
+                if target_sai and target_sai != has_from:
+                    timing["relativeToScheduledInstanceId"] = target_sai
+                elif entry_id:
+                    timing["relativeToScheduledInstanceId"] = entry_id
                 fixed += 1
 
     return fixed
@@ -2305,6 +2347,500 @@ def promote_footnotes_to_conditions(combined: dict) -> dict:
     return combined
 
 
+def _deduplicate_ids(combined: dict) -> int:
+    """
+    CORE-001015: Ensure every entity instance has a unique ``id``.
+
+    Walks the entire USDM tree. For objects that have both ``id`` and
+    ``instanceType`` (i.e. proper entity instances), if the same id appears
+    more than once, regenerate all but the first occurrence.
+
+    Returns count of IDs regenerated.
+    """
+    seen: Dict[str, bool] = {}
+    regenerated = 0
+
+    def _walk(obj: Any) -> None:
+        nonlocal regenerated
+        if isinstance(obj, list):
+            for item in obj:
+                _walk(item)
+        elif isinstance(obj, dict):
+            oid = obj.get("id")
+            itype = obj.get("instanceType")
+            if oid and itype and isinstance(oid, str):
+                if oid in seen:
+                    obj["id"] = str(uuid.uuid4())
+                    regenerated += 1
+                else:
+                    seen[oid] = True
+            for v in obj.values():
+                _walk(v)
+
+    _walk(combined)
+    return regenerated
+
+
+def _fix_activity_child_ordering(study_design: Dict[str, Any]) -> int:
+    """
+    CORE-001066: For parent activities (with childIds), ``nextId`` must
+    point to the first child, and children must be chained together.
+
+    Returns count of links set.
+    """
+    activities: List[Dict] = study_design.get("activities", [])
+    if not activities:
+        return 0
+
+    act_by_id: Dict[str, Dict] = {a["id"]: a for a in activities if "id" in a}
+    linked = 0
+
+    for act in activities:
+        child_ids = act.get("childIds", [])
+        if not child_ids:
+            continue
+
+        # Parent's nextId → first child
+        children = [act_by_id[cid] for cid in child_ids if cid in act_by_id]
+        if not children:
+            continue
+
+        act["nextId"] = children[0]["id"]
+        children[0]["previousId"] = act["id"]
+        linked += 1
+
+        # Chain children sequentially
+        for i in range(len(children)):
+            if i > 0:
+                children[i]["previousId"] = children[i - 1]["id"]
+                linked += 1
+            if i < len(children) - 1:
+                children[i]["nextId"] = children[i + 1]["id"]
+                linked += 1
+            else:
+                # Last child: clear nextId (don't chain to next parent)
+                children[i].pop("nextId", None)
+
+    return linked
+
+
+# Endpoint level decode corrections per DDF codelist C188726
+_ENDPOINT_DECODE_FIX = {
+    "Study Primary Endpoint": "Primary Endpoint",
+    "Study Secondary Endpoint": "Secondary Endpoint",
+    "Study Exploratory Endpoint": "Exploratory Endpoint",
+}
+
+
+def _fix_endpoint_level_decodes(study_design: Dict[str, Any]) -> int:
+    """
+    CORE-000940: Fix endpoint level decodes to match DDF codelist C188726.
+
+    The codes (C94496, C139173, C170559) are correct but decodes had a
+    "Study " prefix that doesn't match the DDF codelist.
+    """
+    fixed = 0
+    for obj in study_design.get("objectives", []):
+        for ep in obj.get("endpoints", []):
+            lvl = ep.get("level")
+            if isinstance(lvl, dict):
+                decode = lvl.get("decode", "")
+                if decode in _ENDPOINT_DECODE_FIX:
+                    lvl["decode"] = _ENDPOINT_DECODE_FIX[decode]
+                    fixed += 1
+    return fixed
+
+
+_DAY_NUM_RE = re.compile(r"(?:Day\s*)?(\d+)", re.IGNORECASE)
+
+
+def _fix_timing_relative_refs(study_design: Dict[str, Any]) -> int:
+    """
+    CORE-000423: For non-Fixed-Reference timings, ``relativeFromScheduledInstanceId``
+    and ``relativeToScheduledInstanceId`` must point to two *different* SAIs.
+
+    Strategy: match timing names to encounters (exact, substring, then
+    day-number range), resolve to SAIs via encounter→SAI map, and set
+    relativeToScheduledInstanceId to the encounter's first SAI.
+    """
+    encounters: List[Dict] = study_design.get("encounters", [])
+    enc_by_name: Dict[str, str] = {}
+    enc_day_ranges: List[tuple] = []  # (enc_id, lo, hi)
+    for enc in encounters:
+        ename = (enc.get("name") or "").strip()
+        eid = enc.get("id", "")
+        if ename and eid:
+            enc_by_name[ename.lower()] = eid
+            # Parse day ranges like "Day 4-7", "Day -42 to -9"
+            nums = [int(n) for n in re.findall(r"-?\d+", ename)]
+            if nums:
+                enc_day_ranges.append((eid, min(nums), max(nums)))
+
+    fixed = 0
+    for tl in study_design.get("scheduleTimelines", []):
+        instances = tl.get("instances", [])
+
+        # Build encounter_id → first SAI id
+        enc_to_sai: Dict[str, str] = {}
+        for inst in instances:
+            eid = inst.get("encounterId", "")
+            if eid and eid not in enc_to_sai:
+                enc_to_sai[eid] = inst.get("id", "")
+
+        for timing in tl.get("timings", []):
+            ttype = timing.get("type", {})
+            if isinstance(ttype, dict) and ttype.get("code") == "C201358":
+                continue  # Fixed Reference — skip
+
+            rel_from = timing.get("relativeFromScheduledInstanceId", "")
+            rel_to = timing.get("relativeToScheduledInstanceId", "")
+
+            if not (rel_from and rel_to and rel_from == rel_to):
+                continue
+
+            # Extract encounter name from "Timing for X"
+            tname = timing.get("name", timing.get("label", ""))
+            m = re.match(r"Timing for (.+)", tname, re.IGNORECASE)
+            enc_part = (m.group(1).strip() if m else tname).lower()
+
+            # Try exact match
+            matched_enc = enc_by_name.get(enc_part)
+
+            # Try substring match
+            if not matched_enc:
+                for ename_lower, eid in enc_by_name.items():
+                    if enc_part in ename_lower or ename_lower in enc_part:
+                        matched_enc = eid
+                        break
+
+            # Try day-number range match
+            if not matched_enc:
+                day_m = _DAY_NUM_RE.search(enc_part)
+                if day_m:
+                    target_day = int(day_m.group(1))
+                    for eid, lo, hi in enc_day_ranges:
+                        if lo <= target_day <= hi:
+                            matched_enc = eid
+                            break
+
+            if matched_enc:
+                target_sai = enc_to_sai.get(matched_enc)
+                if target_sai and target_sai != rel_from:
+                    timing["relativeToScheduledInstanceId"] = target_sai
+                    fixed += 1
+
+    return fixed
+
+
+def _normalize_country_decodes(combined: dict) -> int:
+    """
+    CORE-000427: Ensure code/decode is one-to-one within a codeSystem.
+
+    Fix: normalize all ``decode`` values for ISO 3166-1 country codes
+    (e.g. code="USA" must always decode to "United States", not "USA").
+    """
+    _COUNTRY_DECODE = {
+        "USA": "United States", "GBR": "United Kingdom",
+        "DEU": "Germany", "FRA": "France", "ESP": "Spain",
+        "CHE": "Switzerland", "JPN": "Japan", "CAN": "Canada",
+        "AUS": "Australia", "ITA": "Italy", "NLD": "Netherlands",
+        "BEL": "Belgium", "AUT": "Austria", "SWE": "Sweden",
+        "DNK": "Denmark", "NOR": "Norway", "FIN": "Finland",
+        "POL": "Poland", "CZE": "Czech Republic", "HUN": "Hungary",
+        "IRL": "Ireland", "PRT": "Portugal", "GRC": "Greece",
+        "BRA": "Brazil", "MEX": "Mexico", "ARG": "Argentina",
+        "CHL": "Chile", "COL": "Colombia", "KOR": "Korea, Republic of",
+        "CHN": "China", "IND": "India", "ISR": "Israel",
+        "ZAF": "South Africa", "NZL": "New Zealand", "SGP": "Singapore",
+        "TWN": "Taiwan", "THA": "Thailand", "MYS": "Malaysia",
+        "RUS": "Russian Federation", "TUR": "Turkey", "UKR": "Ukraine",
+    }
+    fixed = 0
+
+    def _walk(obj: Any) -> None:
+        nonlocal fixed
+        if isinstance(obj, list):
+            for item in obj:
+                _walk(item)
+        elif isinstance(obj, dict):
+            # Check if this is a Code with an ISO country codeSystem
+            cs = obj.get("codeSystem", "")
+            if "3166" in str(cs) or "country" in str(cs).lower():
+                code = obj.get("code", "")
+                expected = _COUNTRY_DECODE.get(code)
+                if expected and obj.get("decode") != expected:
+                    obj["decode"] = expected
+                    fixed += 1
+            for v in obj.values():
+                _walk(v)
+
+    _walk(combined)
+    return fixed
+
+
+def _fix_window_durations(study_design: Dict[str, Any]) -> int:
+    """
+    CORE-000825: ``windowLower`` must be a non-negative ISO 8601 duration.
+
+    Fix: strip leading '-' from window values (e.g. "-P7D" → "P7D").
+    """
+    fixed = 0
+    for tl in study_design.get("scheduleTimelines", []):
+        for timing in tl.get("timings", []):
+            for field in ("windowLower", "windowUpper"):
+                val = timing.get(field, "")
+                if isinstance(val, str) and val.startswith("-"):
+                    timing[field] = val.lstrip("-")
+                    fixed += 1
+    return fixed
+
+
+def _normalize_code_system_versions(combined: dict) -> int:
+    """
+    CORE-000808: Only one ``codeSystemVersion`` per ``codeSystem``.
+
+    Fix: normalize all CDISC codes to "2024-09-27" and ISO 3166-1 to "2024".
+    """
+    _VERSION_MAP = {
+        "http://www.cdisc.org": "2024-09-27",
+        "http://www.nlm.nih.gov/mesh": "2024",
+    }
+    fixed = 0
+
+    def _walk(obj: Any) -> None:
+        nonlocal fixed
+        if isinstance(obj, list):
+            for item in obj:
+                _walk(item)
+        elif isinstance(obj, dict):
+            cs = obj.get("codeSystem", "")
+            expected_ver = _VERSION_MAP.get(cs)
+            if expected_ver and obj.get("codeSystemVersion") and obj["codeSystemVersion"] != expected_ver:
+                obj["codeSystemVersion"] = expected_ver
+                fixed += 1
+            for v in obj.values():
+                _walk(v)
+
+    _walk(combined)
+    return fixed
+
+
+def _remove_non_usdm_properties(combined: dict) -> int:
+    """
+    CORE-000937: Remove properties not defined in the USDM v4.0 schema.
+
+    Known non-USDM properties:
+    - MedicalDevice.deviceType (no such attribute in schema)
+    - NarrativeContent.text (narrative text belongs in NarrativeContentItem)
+    """
+    fixed = 0
+
+    # MedicalDevice.deviceType → remove
+    ver = combined.get("study", {}).get("versions", [{}])[0]
+    for md in ver.get("medicalDevices", []):
+        if "deviceType" in md:
+            md.pop("deviceType")
+            fixed += 1
+
+    # NarrativeContent.text → move to extensionAttribute if present
+    sdd_list = combined.get("study", {}).get("documentedBy", [])
+    for sdd in sdd_list:
+        for sdd_ver in sdd.get("versions", []):
+            for nc in sdd_ver.get("contents", []):
+                if "text" in nc:
+                    text_val = nc.pop("text")
+                    # Preserve content as an extensionAttribute
+                    if text_val and isinstance(text_val, str):
+                        ext_attrs = nc.setdefault("extensionAttributes", [])
+                        ext_attrs.append({
+                            "id": str(uuid.uuid4()),
+                            "url": "http://www.example.org/usdmExtensions/narrativeText",
+                            "valueString": text_val,
+                            "instanceType": "ExtensionAttribute",
+                        })
+                    fixed += 1
+
+    return fixed
+
+
+def _ensure_leaf_activity_procedures(study_design: Dict[str, Any]) -> int:
+    """
+    CORE-001076: Every leaf activity (no childIds) must reference at least
+    one procedure, biomedical concept, or child.
+
+    Fix: auto-create a Procedure from the activity name for leaf activities
+    that have empty ``definedProcedures``.
+    """
+    activities: List[Dict] = study_design.get("activities", [])
+    if not activities:
+        return 0
+
+    fixed = 0
+    for act in activities:
+        child_ids = act.get("childIds") or []
+        procedures = act.get("definedProcedures") or []
+        bc_ids = act.get("biomedicalConceptIds") or []
+        bc_cats = act.get("bcCategoryIds") or act.get("bcCategories") or []
+        bc_surr = act.get("bcSurrogateIds") or act.get("bcSurrogates") or []
+
+        if child_ids or procedures or bc_ids or bc_cats or bc_surr:
+            continue
+
+        # Leaf activity with no references — create a procedure from name
+        act_name = act.get("name", act.get("label", "Unknown"))
+        proc = {
+            "id": str(uuid.uuid4()),
+            "name": act_name,
+            "label": act_name,
+            "description": act_name,
+            "procedureType": {
+                "id": str(uuid.uuid4()),
+                "code": "C25218",
+                "codeSystem": "http://www.cdisc.org",
+                "codeSystemVersion": "2024-09-27",
+                "decode": "Procedure",
+                "instanceType": "Code",
+            },
+            "instanceType": "Procedure",
+        }
+        act["definedProcedures"] = [proc]
+        fixed += 1
+
+    return fixed
+
+
+def _fix_timing_values(study_design: Dict[str, Any]) -> int:
+    """
+    CORE-000820: Timing ``value`` must be a non-negative ISO 8601 duration.
+
+    Fix: strip embedded minus signs (e.g., ``P-14D`` → ``P14D``).
+    """
+    fixed = 0
+    for tl in study_design.get("scheduleTimelines", []):
+        for timing in tl.get("timings", []):
+            val = timing.get("value", "")
+            if isinstance(val, str) and val.startswith("P") and "-" in val[1:]:
+                timing["value"] = val[0] + val[1:].replace("-", "")
+                fixed += 1
+    return fixed
+
+
+def _fix_amendment_reason_codesystem(combined: dict) -> int:
+    """
+    CORE-000930: Amendment reason ``code.codeSystem`` must be
+    ``http://www.cdisc.org`` (codelist C207415).
+
+    Fix: remap NCI EVS codeSystem to CDISC for known amendment reason codes.
+    """
+    _AMENDMENT_REASON_CODES = {
+        "C132347",  # Protocol Amendment
+        "C17649",   # Other
+        "C156631", "C156632", "C156633", "C156634", "C156635",
+    }
+    fixed = 0
+    ver = combined.get("study", {}).get("versions", [{}])[0]
+    for amend in ver.get("amendments", []):
+        for reason_field in ("primaryReason", "secondaryReasons"):
+            reasons = amend.get(reason_field)
+            if reasons is None:
+                continue
+            if isinstance(reasons, dict):
+                reasons = [reasons]
+            for reason in reasons:
+                code_obj = reason.get("code")
+                if isinstance(code_obj, dict) and code_obj.get("code") in _AMENDMENT_REASON_CODES:
+                    if code_obj.get("codeSystem") != "http://www.cdisc.org":
+                        code_obj["codeSystem"] = "http://www.cdisc.org"
+                        code_obj["codeSystemVersion"] = "2024-09-27"
+                        fixed += 1
+    return fixed
+
+
+def _fix_empty_amendment_changes(combined: dict) -> int:
+    """
+    CORE-000938: ``StudyAmendment.changes`` must have at least one entry.
+
+    Fix: create a placeholder ``StudyChange`` if changes list is empty.
+    """
+    fixed = 0
+    ver = combined.get("study", {}).get("versions", [{}])[0]
+    for amend in ver.get("amendments", []):
+        changes = amend.get("changes", [])
+        if isinstance(changes, list) and len(changes) == 0:
+            amend["changes"] = [{
+                "id": str(uuid.uuid4()),
+                "summary": amend.get("summary", "Amendment change"),
+                "instanceType": "StudyChange",
+            }]
+            fixed += 1
+    return fixed
+
+
+def _fix_unit_codes(combined: dict) -> int:
+    """
+    CORE-001060 / CORE-001061: Unit codes must use the correct codeSystem.
+
+    Fix: ensure unit Code objects for known units (Year, %) have
+    ``codeSystem`` set to ``http://www.cdisc.org``.
+    """
+    _UNIT_CODE_MAP = {
+        "Year": ("C29848", "Year"),
+        "YEARS": ("C29848", "Year"),
+        "year": ("C29848", "Year"),
+        "%": ("C25613", "Percentage"),
+        "Percentage": ("C25613", "Percentage"),
+        "kg/m2": ("C49671", "Kilogram Per Square Meter"),
+        "mg": ("C28253", "Milligram"),
+    }
+    fixed = 0
+
+    def _walk(obj: Any) -> None:
+        nonlocal fixed
+        if isinstance(obj, list):
+            for item in obj:
+                _walk(item)
+        elif isinstance(obj, dict):
+            # Look for unit Code objects
+            if obj.get("instanceType") == "Code":
+                decode = obj.get("decode", "")
+                if decode in _UNIT_CODE_MAP and not obj.get("codeSystem"):
+                    code_val, decode_val = _UNIT_CODE_MAP[decode]
+                    obj["code"] = code_val
+                    obj["decode"] = decode_val
+                    obj["codeSystem"] = "http://www.cdisc.org"
+                    obj["codeSystemVersion"] = "2024-09-27"
+                    fixed += 1
+            for v in obj.values():
+                _walk(v)
+
+    _walk(combined)
+    return fixed
+
+
+def _fix_amendment_other_reason(combined: dict) -> int:
+    """
+    CORE-000413: ``otherReason`` should only be populated when
+    ``code.code`` is C17649 ('Other'). Remove it otherwise.
+    """
+    fixed = 0
+    ver = combined.get("study", {}).get("versions", [{}])[0]
+    for amend in ver.get("amendments", []):
+        for reason_field in ("primaryReason", "secondaryReasons"):
+            reasons = amend.get(reason_field)
+            if reasons is None:
+                continue
+            items = reasons if isinstance(reasons, list) else [reasons]
+            for reason in items:
+                if not isinstance(reason, dict):
+                    continue
+                code_obj = reason.get("code", {})
+                code_val = code_obj.get("code", "") if isinstance(code_obj, dict) else ""
+                if code_val != "C17649" and reason.get("otherReason"):
+                    reason.pop("otherReason", None)
+                    fixed += 1
+    return fixed
+
+
 def run_structural_compliance(combined: dict) -> dict:
     """
     Apply structural CORE compliance fixes after reconciliation.
@@ -2334,6 +2870,63 @@ def run_structural_compliance(combined: dict) -> dict:
         orphan_count = clean_orphan_cross_refs(combined)
         if orphan_count:
             logger.info(f"  ✓ Cleaned {orphan_count} orphan cross-references")
+
+        # ── CORE compliance batch fixes ──────────────────────────────
+        dedup = _deduplicate_ids(combined)
+        if dedup:
+            logger.info(f"  ✓ CORE-001015: Deduplicated {dedup} entity IDs")
+
+        act_order = _fix_activity_child_ordering(sd)
+        if act_order:
+            logger.info(f"  ✓ CORE-001066: Fixed {act_order} activity child ordering links")
+
+        ep_decode = _fix_endpoint_level_decodes(sd)
+        if ep_decode:
+            logger.info(f"  ✓ CORE-000940: Fixed {ep_decode} endpoint level decodes")
+
+        timing_rel = _fix_timing_relative_refs(sd)
+        if timing_rel:
+            logger.info(f"  ✓ CORE-000423: Fixed {timing_rel} timing relativeFrom/To refs")
+
+        country = _normalize_country_decodes(combined)
+        if country:
+            logger.info(f"  ✓ CORE-000427: Normalized {country} country decodes")
+
+        window = _fix_window_durations(sd)
+        if window:
+            logger.info(f"  ✓ CORE-000825: Fixed {window} window durations")
+
+        csv = _normalize_code_system_versions(combined)
+        if csv:
+            logger.info(f"  ✓ CORE-000808: Normalized {csv} codeSystemVersions")
+
+        amend = _fix_amendment_other_reason(combined)
+        if amend:
+            logger.info(f"  ✓ CORE-000413: Removed {amend} invalid otherReason values")
+
+        non_usdm = _remove_non_usdm_properties(combined)
+        if non_usdm:
+            logger.info(f"  ✓ CORE-000937: Removed {non_usdm} non-USDM properties")
+
+        leaf_procs = _ensure_leaf_activity_procedures(sd)
+        if leaf_procs:
+            logger.info(f"  ✓ CORE-001076: Created procedures for {leaf_procs} leaf activities")
+
+        timing_vals = _fix_timing_values(sd)
+        if timing_vals:
+            logger.info(f"  ✓ CORE-000820: Fixed {timing_vals} timing value durations")
+
+        amend_cs = _fix_amendment_reason_codesystem(combined)
+        if amend_cs:
+            logger.info(f"  ✓ CORE-000930: Fixed {amend_cs} amendment reason codeSystems")
+
+        amend_changes = _fix_empty_amendment_changes(combined)
+        if amend_changes:
+            logger.info(f"  ✓ CORE-000938: Populated {amend_changes} empty amendment changes")
+
+        unit_codes = _fix_unit_codes(combined)
+        if unit_codes:
+            logger.info(f"  ✓ CORE-001060: Fixed {unit_codes} unit codes")
 
     except (KeyError, IndexError, TypeError) as e:
         logger.debug(f"Structural compliance skipped: {e}")

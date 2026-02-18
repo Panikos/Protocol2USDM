@@ -111,7 +111,9 @@ export function EditableField({
 
   const displayValue = effectiveValue === null || effectiveValue === undefined || effectiveValue === ''
     ? placeholder
-    : String(effectiveValue);
+    : type === 'boolean'
+      ? (effectiveValue === 'true' || effectiveValue === true ? 'Yes' : 'No')
+      : String(effectiveValue);
   
   // Show visual indicator if value has been edited (differs from original)
   const hasBeenEdited = effectiveValue !== value;

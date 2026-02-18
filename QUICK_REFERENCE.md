@@ -2,7 +2,7 @@
 
 **v7.17** | One-page command reference
 
-> **Current:** Encounter→epoch resolution via `ScheduledActivityInstance` bridge (SoA table, graph view, quality dashboard), UNS detached islands in graph + state machine, administrations nested in StudyIntervention, blindingSchema as AliasCode, activityGroups→parent Activity with childIds, footnote letter sequence (z→aa→ab), EditableCodedValue unwrap + Badge, SoA footnote objects. Reviewer v9 Org/Site alignment, P3–P7 structural compliance, 1157 tests / 1118 passing, USDM v4.0 endpoint nesting, M11 DOCX rendering, phase registry (`main_v3.py`), `gemini-3-flash-preview` default.
+> **Current:** Encounter→epoch resolution via `ScheduledActivityInstance` bridge, UNS detached in graph + state machine + traversal constraints, InterventionsView aligned to USDM v4.0 nested structure, estimand ID→name resolution, boolean Yes/No display, randomizationType added, SAP population fields corrected, 11 automated CDISC CORE fixes. Reviewer v9 Org/Site alignment, P3–P7 structural compliance, 1157 tests / 1118 passing, M11 DOCX rendering, phase registry (`main_v3.py`), `gemini-3-flash-preview` default.
 
 ---
 

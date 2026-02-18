@@ -1,7 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { FileJson, Download, Loader2, FolderOpen } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import {
+  FileJson, FileText, Download, Loader2, FolderOpen,
+  LayoutGrid, List, ArrowUpDown, Clock, SortAsc, HardDrive,
+} from 'lucide-react';
 import JsonView from 'react18-json-view';
 import 'react18-json-view/src/style.css';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,11 +15,15 @@ interface IntermediateFile {
   size: number;
   phase: string;
   updatedAt: string;
+  order: number;
 }
 
 interface IntermediateFilesTabProps {
   protocolId: string;
 }
+
+type ViewMode = 'grouped' | 'flat';
+type SortKey = 'order' | 'name' | 'size' | 'date';
 
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -26,29 +33,71 @@ function formatFileSize(bytes: number): string {
 
 function getPhaseColor(phase: string): string {
   const colors: Record<string, string> = {
-    soa: 'bg-blue-100 text-blue-800',
-    metadata: 'bg-green-100 text-green-800',
-    eligibility: 'bg-purple-100 text-purple-800',
-    objectives: 'bg-orange-100 text-orange-800',
-    studydesign: 'bg-cyan-100 text-cyan-800',
-    interventions: 'bg-pink-100 text-pink-800',
-    narrative: 'bg-yellow-100 text-yellow-800',
-    advanced: 'bg-indigo-100 text-indigo-800',
-    procedures: 'bg-teal-100 text-teal-800',
-    scheduling: 'bg-lime-100 text-lime-800',
-    execution: 'bg-amber-100 text-amber-800',
-    sap: 'bg-rose-100 text-rose-800',
-    sites: 'bg-emerald-100 text-emerald-800',
-    docstructure: 'bg-sky-100 text-sky-800',
-    amendments: 'bg-violet-100 text-violet-800',
-    validation: 'bg-red-100 text-red-800',
-    conformance: 'bg-red-100 text-red-800',
-    terminology: 'bg-fuchsia-100 text-fuchsia-800',
-    meta: 'bg-gray-100 text-gray-800',
-    other: 'bg-gray-100 text-gray-800',
+    soa: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
+    metadata: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+    eligibility: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
+    objectives: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
+    studydesign: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-300',
+    interventions: 'bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-300',
+    narrative: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
+    advanced: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300',
+    procedures: 'bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300',
+    scheduling: 'bg-lime-100 text-lime-800 dark:bg-lime-900/30 dark:text-lime-300',
+    execution: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300',
+    sap: 'bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300',
+    sites: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300',
+    docstructure: 'bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-300',
+    amendments: 'bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-300',
+    output: 'bg-blue-200 text-blue-900 dark:bg-blue-800/40 dark:text-blue-200',
+    validation: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
+    conformance: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
+    terminology: 'bg-fuchsia-100 text-fuchsia-800 dark:bg-fuchsia-900/30 dark:text-fuchsia-300',
+    provenance: 'bg-stone-100 text-stone-800 dark:bg-stone-900/30 dark:text-stone-300',
+    meta: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300',
+    other: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300',
   };
   return colors[phase] || colors.other;
 }
+
+function getFileIcon(filename: string) {
+  if (filename.endsWith('.docx')) return FileText;
+  return FileJson;
+}
+
+function isBinaryFile(filename: string) {
+  return filename.endsWith('.docx');
+}
+
+const SORT_OPTIONS: { key: SortKey; label: string; icon: React.ElementType }[] = [
+  { key: 'order', label: 'Pipeline Order', icon: ArrowUpDown },
+  { key: 'name', label: 'Alphabetical', icon: SortAsc },
+  { key: 'size', label: 'Size', icon: HardDrive },
+  { key: 'date', label: 'Modified', icon: Clock },
+];
+
+function sortFiles(files: IntermediateFile[], key: SortKey): IntermediateFile[] {
+  const sorted = [...files];
+  switch (key) {
+    case 'order':
+      return sorted.sort((a, b) => a.order - b.order || a.filename.localeCompare(b.filename));
+    case 'name':
+      return sorted.sort((a, b) => a.filename.localeCompare(b.filename));
+    case 'size':
+      return sorted.sort((a, b) => b.size - a.size);
+    case 'date':
+      return sorted.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+    default:
+      return sorted;
+  }
+}
+
+// Pipeline phase display order for grouped view
+const PHASE_ORDER = [
+  'metadata', 'eligibility', 'soa', 'objectives', 'studydesign',
+  'interventions', 'narrative', 'advanced', 'procedures', 'scheduling',
+  'execution', 'sap', 'sites', 'docstructure', 'amendments',
+  'output', 'validation', 'conformance', 'terminology', 'provenance', 'meta', 'other',
+];
 
 
 export function IntermediateFilesTab({ protocolId }: IntermediateFilesTabProps) {
@@ -58,6 +107,8 @@ export function IntermediateFilesTab({ protocolId }: IntermediateFilesTabProps) 
   const [selectedFile, setSelectedFile] = useState<IntermediateFile | null>(null);
   const [fileData, setFileData] = useState<unknown>(null);
   const [fileLoading, setFileLoading] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>('grouped');
+  const [sortKey, setSortKey] = useState<SortKey>('order');
 
   useEffect(() => {
     async function loadFiles() {
@@ -76,6 +127,11 @@ export function IntermediateFilesTab({ protocolId }: IntermediateFilesTabProps) 
   }, [protocolId]);
 
   const handleSelectFile = async (file: IntermediateFile) => {
+    // Binary files go straight to download
+    if (isBinaryFile(file.filename)) {
+      handleDownload(file);
+      return;
+    }
     setSelectedFile(file);
     setFileData(null);
     setFileLoading(true);
@@ -101,6 +157,32 @@ export function IntermediateFilesTab({ protocolId }: IntermediateFilesTabProps) 
       '_blank'
     );
   };
+
+  // Sorted flat list
+  const sortedFiles = useMemo(() => sortFiles(files, sortKey), [files, sortKey]);
+
+  // Grouped view data
+  const { groupedFiles, sortedPhases } = useMemo(() => {
+    const grouped = files.reduce((acc, file) => {
+      if (!acc[file.phase]) acc[file.phase] = [];
+      acc[file.phase].push(file);
+      return acc;
+    }, {} as Record<string, IntermediateFile[]>);
+
+    // Sort phases by pipeline order
+    const phases = Object.keys(grouped).sort((a, b) => {
+      const ai = PHASE_ORDER.indexOf(a);
+      const bi = PHASE_ORDER.indexOf(b);
+      return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+    });
+
+    // Sort files within each phase by order
+    for (const phase of phases) {
+      grouped[phase].sort((a, b) => a.order - b.order || a.filename.localeCompare(b.filename));
+    }
+
+    return { groupedFiles: grouped, sortedPhases: phases };
+  }, [files]);
 
   if (isLoading) {
     return (
@@ -134,59 +216,129 @@ export function IntermediateFilesTab({ protocolId }: IntermediateFilesTabProps) 
     );
   }
 
-  // Group files by phase and sort alphabetically
-  const groupedFiles = files.reduce((acc, file) => {
-    if (!acc[file.phase]) acc[file.phase] = [];
-    acc[file.phase].push(file);
-    return acc;
-  }, {} as Record<string, IntermediateFile[]>);
-  
-  // Sort phases alphabetically
-  const sortedPhases = Object.keys(groupedFiles).sort((a, b) => a.localeCompare(b));
-  
-  // Sort files within each phase alphabetically
-  for (const phase of sortedPhases) {
-    groupedFiles[phase].sort((a, b) => a.filename.localeCompare(b.filename));
-  }
+  const FileRow = ({ file }: { file: IntermediateFile }) => {
+    const Icon = getFileIcon(file.filename);
+    const binary = isBinaryFile(file.filename);
+    return (
+      <div
+        onClick={() => handleSelectFile(file)}
+        className={`p-2 rounded-lg cursor-pointer transition-colors hover:bg-muted/50 ${
+          selectedFile?.filename === file.filename ? 'bg-muted ring-1 ring-primary' : ''
+        }`}
+      >
+        <div className="flex items-center gap-2">
+          <Icon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium truncate">
+              {file.filename}
+              {binary && (
+                <span className="ml-1.5 text-[10px] font-normal text-muted-foreground">(download)</span>
+              )}
+            </p>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span>{formatFileSize(file.size)}</span>
+              {viewMode === 'flat' && (
+                <span className={`px-1.5 py-0 rounded text-[10px] font-medium ${getPhaseColor(file.phase)}`}>
+                  {file.phase}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="grid md:grid-cols-3 gap-6">
       {/* File List */}
-      <div className="md:col-span-1 space-y-4">
-        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-          Extraction Artifacts ({files.length})
-        </h3>
-        
-        {sortedPhases.map((phase) => {
-          const phaseFiles = groupedFiles[phase];
-          return (
-          <div key={phase} className="space-y-1">
-            <div className="flex items-center gap-2 mb-1">
-              <span className={`px-2 py-0.5 rounded text-xs font-medium ${getPhaseColor(phase)}`}>
-                {phase}
-              </span>
-              <span className="text-xs text-muted-foreground">({phaseFiles.length})</span>
-            </div>
-            {phaseFiles.map((file) => (
-              <div
-                key={file.filename}
-                onClick={() => handleSelectFile(file)}
-                className={`p-2 rounded-lg cursor-pointer transition-colors hover:bg-muted/50 ${
-                  selectedFile?.filename === file.filename ? 'bg-muted ring-1 ring-primary' : ''
-                }`}
+      <div className="md:col-span-1 space-y-3">
+        {/* Header with view toggle and sort */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+              Pipeline Artifacts ({files.length})
+            </h3>
+            <div className="flex items-center gap-1">
+              <Button
+                variant={viewMode === 'grouped' ? 'secondary' : 'ghost'}
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => setViewMode('grouped')}
+                title="Grouped by phase"
               >
-                <div className="flex items-center gap-2">
-                  <FileJson className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{file.filename}</p>
-                    <p className="text-xs text-muted-foreground">{formatFileSize(file.size)}</p>
+                <LayoutGrid className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                variant={viewMode === 'flat' ? 'secondary' : 'ghost'}
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => setViewMode('flat')}
+                title="Flat list"
+              >
+                <List className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Sort controls — shown in flat mode */}
+          {viewMode === 'flat' && (
+            <div className="flex flex-wrap gap-1">
+              {SORT_OPTIONS.map((opt) => {
+                const SIcon = opt.icon;
+                return (
+                  <button
+                    key={opt.key}
+                    onClick={() => setSortKey(opt.key)}
+                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${
+                      sortKey === opt.key
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                    }`}
+                  >
+                    <SIcon className="h-3 w-3" />
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* File list body */}
+        <div className="space-y-1 max-h-[600px] overflow-y-auto pr-1">
+          {viewMode === 'grouped' ? (
+            sortedPhases.map((phase) => {
+              const phaseFiles = groupedFiles[phase];
+              return (
+                <div key={phase} className="space-y-1 mb-3">
+                  <div className="flex items-center gap-2 mb-1 sticky top-0 bg-background/95 backdrop-blur-sm py-0.5 z-10">
+                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${getPhaseColor(phase)}`}>
+                      {phase}
+                    </span>
+                    <span className="text-xs text-muted-foreground">({phaseFiles.length})</span>
                   </div>
+                  {phaseFiles.map((file) => (
+                    <FileRow key={file.filename} file={file} />
+                  ))}
+                </div>
+              );
+            })
+          ) : (
+            sortedFiles.map((file, idx) => (
+              <div key={file.filename} className="flex items-center gap-1">
+                {sortKey === 'order' && (
+                  <span className="text-[10px] text-muted-foreground w-5 text-right flex-shrink-0">
+                    {idx + 1}.
+                  </span>
+                )}
+                <div className="flex-1 min-w-0">
+                  <FileRow file={file} />
                 </div>
               </div>
-            ))}
-          </div>
-        );
-        })}
+            ))
+          )}
+        </div>
       </div>
 
       {/* Preview Panel */}
@@ -196,7 +348,7 @@ export function IntermediateFilesTab({ protocolId }: IntermediateFilesTabProps) 
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle className="flex items-center gap-2 text-base">
-                  <FileJson className="h-5 w-5" />
+                  {(() => { const Icon = getFileIcon(selectedFile.filename); return <Icon className="h-5 w-5" />; })()}
                   {selectedFile.filename}
                 </CardTitle>
                 <p className="text-sm text-muted-foreground mt-1">
@@ -204,6 +356,9 @@ export function IntermediateFilesTab({ protocolId }: IntermediateFilesTabProps) 
                     {selectedFile.phase}
                   </span>
                   <span className="ml-2">{formatFileSize(selectedFile.size)}</span>
+                  <span className="ml-2 text-xs">
+                    {new Date(selectedFile.updatedAt).toLocaleString()}
+                  </span>
                 </p>
               </div>
               <Button variant="outline" size="sm" onClick={() => handleDownload(selectedFile)}>
@@ -217,7 +372,7 @@ export function IntermediateFilesTab({ protocolId }: IntermediateFilesTabProps) 
                   <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                 </div>
               ) : fileData ? (
-                <div className="overflow-auto max-h-[500px] bg-slate-50 rounded-lg p-4">
+                <div className="overflow-auto max-h-[500px] bg-slate-50 dark:bg-slate-900/50 rounded-lg p-4">
                   <JsonView 
                     src={fileData as object} 
                     collapsed={2}

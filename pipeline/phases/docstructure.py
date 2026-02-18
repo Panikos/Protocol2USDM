@@ -17,7 +17,7 @@ class DocStructurePhase(BasePhase):
         return PhaseConfig(
             name="DocStructure",
             display_name="Document Structure",
-            phase_number=12,
+            phase_number=10,
             output_filename="13_document_structure.json",
             optional=True,
         )

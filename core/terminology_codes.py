@@ -54,17 +54,17 @@ OBJECTIVE_LEVEL_CODES: Dict[str, Dict[str, str]] = {
 ENDPOINT_LEVEL_CODES: Dict[str, Dict[str, str]] = {
     "primary": {
         "code": "C94496",
-        "decode": "Study Primary Endpoint",
+        "decode": "Primary Endpoint",
         "definition": "The outcome measure(s) of greatest importance specified in the protocol.",
     },
     "secondary": {
         "code": "C139173",
-        "decode": "Study Secondary Endpoint", 
+        "decode": "Secondary Endpoint",
         "definition": "The outcome measure(s) that is part of a pre-specified analysis plan used to evaluate the secondary endpoint(s).",
     },
     "exploratory": {
         "code": "C170559",
-        "decode": "Study Exploratory Endpoint",
+        "decode": "Exploratory Endpoint",
         "definition": "The outcome measure(s) that is part of a pre-specified analysis plan used to evaluate the exploratory endpoint(s).",
     },
 }

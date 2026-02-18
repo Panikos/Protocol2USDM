@@ -30,9 +30,8 @@ interface AnalysisPopulation {
   name: string;
   label?: string;
   text?: string;
+  description?: string;
   populationType?: string;
-  populationDescription?: string;
-  criteria?: string;
 }
 
 interface StatisticalMethod {
@@ -127,6 +126,17 @@ interface DataHandlingRule {
   rule?: string;
 }
 
+interface PopulationSizeInfo {
+  plannedEnrollmentMin?: number;
+  plannedEnrollmentMax?: number;
+  enrollmentUnit?: string;
+  plannedAgeMin?: number;
+  plannedAgeMax?: number;
+  ageUnit?: string;
+  plannedSex?: string[];
+  populationDescription?: string;
+}
+
 interface SAPData {
   analysisPopulations?: AnalysisPopulation[];
   statisticalMethods?: StatisticalMethod[];
@@ -137,6 +147,7 @@ interface SAPData {
   sampleSizeCalculations?: SampleSizeCalculation[];
   derivedVariables?: DerivedVariable[];
   dataHandlingRules?: DataHandlingRule[];
+  populationSizeInfo?: PopulationSizeInfo;
 }
 
 type TabId = 'overview' | 'populations' | 'methods' | 'multiplicity' | 'sensitivity' | 'subgroups' | 'interim' | 'samplesize' | 'derived' | 'handling';
@@ -192,8 +203,47 @@ export function SAPDataView() {
       }
     }
     
+    // Extract population sample size info from USDM core model
+    const population = studyDesign?.population as Record<string, unknown> | undefined;
+    if (population) {
+      const info: PopulationSizeInfo = {};
+      // plannedEnrollmentNumber (Range with min/max Quantity)
+      const enrollment = population.plannedEnrollmentNumber as Record<string, unknown> | undefined;
+      if (enrollment) {
+        const minQ = enrollment.minValue as Record<string, unknown> | undefined;
+        const maxQ = enrollment.maxValue as Record<string, unknown> | undefined;
+        if (minQ?.value !== undefined) info.plannedEnrollmentMin = Number(minQ.value);
+        if (maxQ?.value !== undefined) info.plannedEnrollmentMax = Number(maxQ.value);
+        const unitAlias = (minQ?.unit ?? maxQ?.unit) as Record<string, unknown> | undefined;
+        const unitCode = unitAlias?.standardCode as Record<string, unknown> | undefined;
+        if (unitCode?.decode) info.enrollmentUnit = String(unitCode.decode);
+      }
+      // plannedAge (Range)
+      const age = population.plannedAge as Record<string, unknown> | undefined;
+      if (age) {
+        const minA = age.minValue as Record<string, unknown> | undefined;
+        const maxA = age.maxValue as Record<string, unknown> | undefined;
+        if (minA?.value !== undefined) info.plannedAgeMin = Number(minA.value);
+        if (maxA?.value !== undefined) info.plannedAgeMax = Number(maxA.value);
+        const ageUnitAlias = (minA?.unit ?? maxA?.unit) as Record<string, unknown> | undefined;
+        const ageUnitCode = ageUnitAlias?.standardCode as Record<string, unknown> | undefined;
+        if (ageUnitCode?.decode) info.ageUnit = String(ageUnitCode.decode);
+      }
+      // plannedSex (array of Code objects)
+      const sexCodes = population.plannedSex as Array<Record<string, unknown>> | undefined;
+      if (sexCodes && Array.isArray(sexCodes)) {
+        info.plannedSex = sexCodes.map(c => String(c.decode ?? c.code ?? '')).filter(Boolean);
+      }
+      // Population description
+      if (population.description) info.populationDescription = String(population.description);
+      if (Object.keys(info).length > 0) data.populationSizeInfo = info;
+    }
+
     return data;
   }, [studyDesign]);
+
+  // Sample size tab count: SAP calculations + population info
+  const sampleSizeCount = (sapData.sampleSizeCalculations?.length ?? 0) + (sapData.populationSizeInfo ? 1 : 0);
 
   const tabs = [
     { id: 'overview' as TabId, label: 'Overview', icon: <Activity className="h-4 w-4" /> },
@@ -203,7 +253,7 @@ export function SAPDataView() {
     { id: 'sensitivity' as TabId, label: 'Sensitivity', icon: <FlaskConical className="h-4 w-4" />, count: sapData.sensitivityAnalyses?.length },
     { id: 'subgroups' as TabId, label: 'Subgroups', icon: <GitBranch className="h-4 w-4" />, count: sapData.subgroupAnalyses?.length },
     { id: 'interim' as TabId, label: 'Interim', icon: <Clock className="h-4 w-4" />, count: sapData.interimAnalyses?.length },
-    { id: 'samplesize' as TabId, label: 'Sample Size', icon: <Hash className="h-4 w-4" />, count: sapData.sampleSizeCalculations?.length },
+    { id: 'samplesize' as TabId, label: 'Sample Size', icon: <Hash className="h-4 w-4" />, count: sampleSizeCount || undefined },
     { id: 'derived' as TabId, label: 'Derived Vars', icon: <Calculator className="h-4 w-4" />, count: sapData.derivedVariables?.length },
     { id: 'handling' as TabId, label: 'Data Handling', icon: <ClipboardList className="h-4 w-4" />, count: sapData.dataHandlingRules?.length },
   ];
@@ -261,7 +311,7 @@ export function SAPDataView() {
         {activeTab === 'sensitivity' && <SensitivityPanel analyses={sapData.sensitivityAnalyses ?? []} />}
         {activeTab === 'subgroups' && <SubgroupsPanel analyses={sapData.subgroupAnalyses ?? []} />}
         {activeTab === 'interim' && <InterimPanel analyses={sapData.interimAnalyses ?? []} />}
-        {activeTab === 'samplesize' && <SampleSizePanel calculations={sapData.sampleSizeCalculations ?? []} />}
+        {activeTab === 'samplesize' && <SampleSizePanel calculations={sapData.sampleSizeCalculations ?? []} populationInfo={sapData.populationSizeInfo} />}
         {activeTab === 'derived' && <DerivedVariablesPanel variables={sapData.derivedVariables ?? []} />}
         {activeTab === 'handling' && <DataHandlingPanel rules={sapData.dataHandlingRules ?? []} />}
       </div>
@@ -411,7 +461,7 @@ function PopulationsPanel({ populations }: { populations: AnalysisPopulation[] }
                     />
                     {pop.label && <Badge variant="secondary">{pop.label}</Badge>}
                   </div>
-                  <p className="text-sm text-muted-foreground">{pop.criteria || pop.populationType}</p>
+                  <p className="text-sm text-muted-foreground">{pop.text || pop.description || pop.populationType}</p>
                 </div>
               </div>
               {pop.populationType && (
@@ -426,8 +476,8 @@ function PopulationsPanel({ populations }: { populations: AnalysisPopulation[] }
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mt-4">
                 <div className="md:col-span-2">
                   <EditableField
-                    path={`${basePath}/${populations.indexOf(pop)}/populationDescription`}
-                    value={pop.populationDescription || ''}
+                    path={`${basePath}/${populations.indexOf(pop)}/text`}
+                    value={pop.text || ''}
                     label="Definition"
                     type="textarea"
                     placeholder="No definition specified"
@@ -435,19 +485,11 @@ function PopulationsPanel({ populations }: { populations: AnalysisPopulation[] }
                 </div>
                 <div className="md:col-span-2">
                   <EditableField
-                    path={`${basePath}/${populations.indexOf(pop)}/text`}
-                    value={pop.text || ''}
+                    path={`${basePath}/${populations.indexOf(pop)}/description`}
+                    value={pop.description || ''}
                     label="Description"
                     type="textarea"
                     placeholder="No description specified"
-                  />
-                </div>
-                <div>
-                  <EditableField
-                    path={`${basePath}/${populations.indexOf(pop)}/criteria`}
-                    value={pop.criteria || ''}
-                    label="Criteria"
-                    placeholder="No criteria specified"
                   />
                 </div>
                 <div>
@@ -558,7 +600,7 @@ function StatisticalMethodsPanel({ methods }: { methods: StatisticalMethod[] }) 
                     <dd className="mt-1 flex flex-wrap gap-2">
                       {method.arsOperationId && (
                         <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
-                          Operation: {method.arsOperationId}
+                          Operation: {method.name || method.arsOperationId}
                         </Badge>
                       )}
                       {method.arsReason && (
@@ -848,8 +890,11 @@ function InterimPanel({ analyses }: { analyses: InterimAnalysis[] }) {
 // Sample Size Panel
 // ============================================================================
 
-function SampleSizePanel({ calculations }: { calculations: SampleSizeCalculation[] }) {
-  if (calculations.length === 0) {
+function SampleSizePanel({ calculations, populationInfo }: { calculations: SampleSizeCalculation[]; populationInfo?: PopulationSizeInfo }) {
+  const hasCalcs = calculations.length > 0;
+  const hasPopInfo = !!populationInfo;
+
+  if (!hasCalcs && !hasPopInfo) {
     return (
       <Card>
         <CardContent className="py-8 text-center text-muted-foreground">
@@ -861,8 +906,63 @@ function SampleSizePanel({ calculations }: { calculations: SampleSizeCalculation
   }
 
   return (
-    <div className="space-y-3">
-      {calculations.map(calc => (
+    <div className="space-y-4">
+      {/* USDM Core Population Metrics */}
+      {hasPopInfo && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Planned Enrollment &amp; Demographics
+            </CardTitle>
+            <CardDescription>From the USDM study population definition</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {populationInfo.populationDescription && (
+              <p className="text-sm mb-4 text-muted-foreground">{populationInfo.populationDescription}</p>
+            )}
+            <dl className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              {(populationInfo.plannedEnrollmentMin !== undefined || populationInfo.plannedEnrollmentMax !== undefined) && (
+                <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <dt className="text-muted-foreground text-xs uppercase tracking-wide">Planned Enrollment</dt>
+                  <dd className="text-2xl font-bold text-blue-700 mt-1">
+                    {populationInfo.plannedEnrollmentMin !== undefined && populationInfo.plannedEnrollmentMax !== undefined && populationInfo.plannedEnrollmentMin !== populationInfo.plannedEnrollmentMax
+                      ? `${populationInfo.plannedEnrollmentMin}\u2013${populationInfo.plannedEnrollmentMax}`
+                      : (populationInfo.plannedEnrollmentMax ?? populationInfo.plannedEnrollmentMin)}
+                  </dd>
+                  {populationInfo.enrollmentUnit && (
+                    <dd className="text-xs text-muted-foreground">{populationInfo.enrollmentUnit}</dd>
+                  )}
+                </div>
+              )}
+              {(populationInfo.plannedAgeMin !== undefined || populationInfo.plannedAgeMax !== undefined) && (
+                <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+                  <dt className="text-muted-foreground text-xs uppercase tracking-wide">Age Range</dt>
+                  <dd className="text-2xl font-bold text-green-700 mt-1">
+                    {populationInfo.plannedAgeMin ?? '?'}\u2013{populationInfo.plannedAgeMax ?? '?'}
+                  </dd>
+                  {populationInfo.ageUnit && (
+                    <dd className="text-xs text-muted-foreground">{populationInfo.ageUnit}</dd>
+                  )}
+                </div>
+              )}
+              {populationInfo.plannedSex && populationInfo.plannedSex.length > 0 && (
+                <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
+                  <dt className="text-muted-foreground text-xs uppercase tracking-wide">Planned Sex</dt>
+                  <dd className="mt-1">
+                    {populationInfo.plannedSex.map(s => (
+                      <Badge key={s} variant="outline" className="mr-1 mb-1">{s}</Badge>
+                    ))}
+                  </dd>
+                </div>
+              )}
+            </dl>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* SAP Sample Size Calculations */}
+      {hasCalcs && calculations.map(calc => (
         <Card key={calc.id}>
           <CardHeader>
             <CardTitle className="text-base">{calc.name}</CardTitle>

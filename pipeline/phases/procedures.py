@@ -17,7 +17,7 @@ class ProceduresPhase(BasePhase):
         return PhaseConfig(
             name="Procedures",
             display_name="Procedures & Devices",
-            phase_number=10,
+            phase_number=8,
             output_filename="9_procedures_devices.json",
             optional=True,  # Module may not exist
         )

@@ -121,6 +121,35 @@ Fixes from independent reviewer evaluation (v9), plus Organization/StudySite ali
 | **FootnotesView — object format** | `web-ui/.../FootnotesView.tsx` | Handle `{id, text, marker}` objects in `x-soaFootnotes` (was rendering as `[object Object]`) |
 | **FootnotesView — notes[]** | `web-ui/.../FootnotesView.tsx` | Read promoted footnotes from `studyDesign.notes[]` (USDM-correct location) |
 
+### UI Data Display Fixes
+
+| Fix | Component | Description |
+|-----|-----------|-------------|
+| **Boolean display** | `EditableField.tsx` | Show "Yes"/"No" instead of raw `true`/`false` for boolean fields |
+| **Planned Enrollment** | `EligibilityCriteriaView.tsx` | Fixed path to `maxValue.value` in `QuantityRange` object |
+| **InterventionsView USDM v4.0** | `InterventionsView.tsx` | Aligned `AdministrableProduct` interface/rendering to nested `ingredients[].substance.strengths[]` structure; removed phantom `routeOfAdministration`, `strength`, `manufacturer` fields |
+| **Randomization type** | `StudyMetadataView.tsx` | Added `randomizationType` `EditableCodedValue` to study metadata display |
+| **Estimand ID resolution** | `AdvancedEntitiesView.tsx` | Resolve `interventionIds`→intervention names, `variableOfInterestId`→endpoint name, extract `summaryMeasure` from `populationSummary` text |
+| **Analysis Population level** | `AdvancedEntitiesView.tsx` | Removed phantom `level` coded value (not in USDM v4.0 schema); replaced with editable name |
+| **SAP Population fields** | `SAPDataView.tsx` | Mapped Definition→`text`, Description→`description` (was reading phantom `populationDescription`/`criteria`) |
+| **ARS Operation badge** | `SAPDataView.tsx` | Show method name instead of raw UUID in CDISC ARS Operation badge |
+| **FDA Labels** | `InterventionsView.tsx` | Disabled `DrugInfoPanel` rendering (inaccurate results) |
+
+### UI UX Fixes
+
+| Fix | Component | Description |
+|-----|-----------|-------------|
+| **Traversal UNS filtering** | `ExecutionModelView.tsx` | UNS/Unscheduled filtered from Required Epoch Sequence and Mandatory Visits; orange annotation note added (matches StateMachinePanel approach) |
+| **Intermediate Files** | `IntermediateFilesTab.tsx` | Enhanced viewer with file content display and improved layout |
+
+### Pipeline & CORE Compliance Fixes
+
+| Fix | Description |
+|-----|-------------|
+| **code_registry import** | `pipeline/phases/studydesign.py` — fixed `from core.code_registry import registry as code_registry` (was importing non-existent name) |
+| **Phase output filenames** | All 13 phase files — standardized `output_filename` in `PhaseConfig` |
+| **CDISC CORE fixes** | `pipeline/post_processing.py` — CORE-001015 dedup, CORE-001066 child ordering, CORE-000427 country decode, CORE-000825 window durations, CORE-000808 codeSystemVersions, CORE-000413 otherReason, CORE-000937 non-USDM props, CORE-001076 leaf procedures, CORE-000820 timing durations, CORE-000930 amendment codeSystems, CORE-000938 amendment changes |
+
 ### Test Results
 
 | Check | Result |

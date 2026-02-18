@@ -14,7 +14,7 @@ class NarrativePhase(BasePhase):
         return PhaseConfig(
             name="Narrative",
             display_name="Narrative Structure",
-            phase_number=7,
+            phase_number=6,
             output_filename="7_narrative_structure.json",
         )
     

@@ -252,6 +252,17 @@ export function StudyMetadataView({ usdm }: StudyMetadataViewProps) {
               />
             </div>
 
+            <div>
+              <EditableCodedValue
+                path="/study/versions/0/studyDesigns/0/randomizationType"
+                value={design?.randomizationType as { code?: string; decode?: string } | undefined}
+                label="Randomization"
+                options={CDISC_TERMINOLOGIES.randomizationType ?? []}
+                showCode
+                placeholder="Not specified"
+              />
+            </div>
+
             {therapeuticAreas.length > 0 && (
               <div>
                 <span className="text-sm text-muted-foreground">Therapeutic Area</span>
@@ -416,15 +427,15 @@ export function StudyMetadataView({ usdm }: StudyMetadataViewProps) {
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                   <EditableField
-                    path={`${popPath}/plannedEnrollmentNumber/maxValue`}
-                    value={String(enrollment?.maxValue ?? enrollment?.value ?? '')}
+                    path={`${popPath}/plannedEnrollmentNumber/maxValue/value`}
+                    value={String((enrollment?.maxValue as Record<string, unknown>)?.value ?? (enrollment as Record<string, unknown>)?.value ?? '')}
                     label="Planned Enrollment"
                     type="number"
                     placeholder="N/A"
                   />
                   <EditableField
-                    path={`${popPath}/plannedCompletionNumber/maxValue`}
-                    value={String(completion?.maxValue ?? completion?.value ?? '')}
+                    path={`${popPath}/plannedCompletionNumber/maxValue/value`}
+                    value={String((completion?.maxValue as Record<string, unknown>)?.value ?? (completion as Record<string, unknown>)?.value ?? '')}
                     label="Planned Completers"
                     type="number"
                     placeholder="N/A"

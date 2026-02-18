@@ -17,7 +17,7 @@ class ExecutionPhase(BasePhase):
         return PhaseConfig(
             name="Execution",
             display_name="Execution Model",
-            phase_number=14,
+            phase_number=12,
             output_filename="11_execution_model.json",
             requires_soa=True,
         )

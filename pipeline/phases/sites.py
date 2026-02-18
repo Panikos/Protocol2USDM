@@ -22,7 +22,7 @@ class SitesPhase(BasePhase):
         return PhaseConfig(
             name="Sites",
             display_name="Study Sites",
-            phase_number=15,
+            phase_number=14,
             output_filename="15_sites_extraction.json",
             requires_pdf=False,
             optional=True,

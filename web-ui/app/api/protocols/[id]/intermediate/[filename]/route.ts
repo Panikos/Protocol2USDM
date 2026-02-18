@@ -25,7 +25,7 @@ export async function GET(
     if (!idCheck.valid) {
       return NextResponse.json({ error: idCheck.error }, { status: 400 });
     }
-    const fnCheck = validateFilename(filename, { allowedExtensions: ['.json'] });
+    const fnCheck = validateFilename(filename, { allowedExtensions: ['.json', '.docx'] });
     if (!fnCheck.valid) {
       return NextResponse.json({ error: fnCheck.error }, { status: 400 });
     }
@@ -46,10 +46,28 @@ export async function GET(
       );
     }
     
-    // Read file
-    const content = await fs.readFile(filePath, 'utf-8');
     const stat = await fs.stat(filePath);
-    
+    const ext = path.extname(filename).toLowerCase();
+    const isBinary = ext !== '.json';
+
+    // Binary files (e.g. .docx) — always download
+    if (isBinary) {
+      const buffer = await fs.readFile(filePath);
+      const mimeTypes: Record<string, string> = {
+        '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      };
+      return new NextResponse(buffer, {
+        headers: {
+          'Content-Type': mimeTypes[ext] || 'application/octet-stream',
+          'Content-Disposition': `attachment; filename="${filename}"`,
+          'Content-Length': stat.size.toString(),
+        },
+      });
+    }
+
+    // JSON files
+    const content = await fs.readFile(filePath, 'utf-8');
+
     // For download, return with attachment header
     if (download) {
       return new NextResponse(content, {

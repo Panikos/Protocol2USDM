@@ -55,7 +55,7 @@ interface Estimand {
   name?: string;
   label?: string;
   description?: string;
-  // ICH E9(R1) Five Attributes
+  // ICH E9(R1) Five Attributes — legacy inline strings
   treatment?: string;
   population?: string;
   populationSummary?: string;
@@ -63,7 +63,10 @@ interface Estimand {
   variableOfInterest?: string;
   summaryMeasure?: string;
   intercurrentEvents?: IntercurrentEvent[];
-  // Linkage
+  // USDM v4.0 ID references
+  interventionIds?: string[];
+  variableOfInterestId?: string;
+  analysisPopulationId?: string;
   endpointId?: string;
   instanceType?: string;
 }
@@ -74,7 +77,6 @@ interface AnalysisPopulation {
   label?: string;
   description?: string;
   text?: string;
-  level?: { decode?: string };
   includesHealthySubjects?: boolean;
 }
 
@@ -108,6 +110,15 @@ export function AdvancedEntitiesView({ usdm }: AdvancedEntitiesViewProps) {
   const estimands = (studyDesign.estimands as Estimand[]) ?? [];
   const therapeuticAreas = (studyDesign.therapeuticAreas as { code?: string; codeSystem?: string; term?: string; decode?: string }[]) ?? [];
   const analysisPopulations = (studyDesign.analysisPopulations as AnalysisPopulation[]) ?? [];
+
+  // Build lookup maps for resolving USDM ID references
+  const studyInterventions = (version?.studyInterventions as { id: string; name?: string; label?: string }[]) ?? [];
+  const objectives = (studyDesign.objectives as { id: string; endpoints?: { id: string; name?: string; text?: string }[] }[]) ?? [];
+  const interventionMap = new Map(studyInterventions.map(si => [si.id, si.name || si.label || si.id]));
+  const endpointMap = new Map(
+    objectives.flatMap(o => (o.endpoints ?? []).map(ep => [ep.id, ep.name || ep.text || ep.id]))
+  );
+  const analysisPopMap = new Map(analysisPopulations.map(ap => [ap.id, ap.name || ap.label || ap.id]));
 
   const { addPatchOp } = useSemanticStore();
   const isEditMode = useEditModeStore((s) => s.isEditMode);
@@ -372,7 +383,28 @@ export function AdvancedEntitiesView({ usdm }: AdvancedEntitiesViewProps) {
           <CardContent>
             <div className="space-y-6">
               {estimands.map((estimand, i) => {
-                const population = estimand.population || estimand.populationSummary || estimand.analysisPopulation;
+                const population = estimand.population || estimand.populationSummary || estimand.analysisPopulation
+                  || (estimand.analysisPopulationId ? analysisPopMap.get(estimand.analysisPopulationId) : undefined);
+                
+                // Resolve treatment: prefer inline string, fall back to interventionIds lookup
+                const treatmentResolved = estimand.treatment
+                  || (estimand.interventionIds?.length
+                    ? estimand.interventionIds.map(id => interventionMap.get(id) || id).join(', ')
+                    : '');
+                
+                // Resolve variable of interest: prefer inline string, fall back to ID lookup
+                const variableResolved = estimand.variableOfInterest
+                  || (estimand.variableOfInterestId ? endpointMap.get(estimand.variableOfInterestId) : '')
+                  || '';
+
+                // Extract summary measure from populationSummary if embedded after "Summary measure:"
+                const summaryResolved = estimand.summaryMeasure
+                  || (() => {
+                    const ps = estimand.populationSummary || '';
+                    const match = ps.match(/Summary measure:\s*(.+)/i);
+                    return match ? match[1].trim().replace(/\.$/, '') : '';
+                  })();
+
                 const getStrategyText = (strategy: IntercurrentEvent['strategy']) => {
                   if (!strategy) return 'Not specified';
                   return strategy;  // USDM 4.0: strategy is a string
@@ -390,7 +422,7 @@ export function AdvancedEntitiesView({ usdm }: AdvancedEntitiesViewProps) {
                           className="font-semibold text-lg"
                           placeholder="Estimand name"
                         />
-                        {estimand.label && (
+                        {estimand.label && estimand.label !== estimand.name && (
                           <EditableField
                             path={designPath('estimands', estimand.id, 'label')}
                             value={estimand.label}
@@ -401,11 +433,6 @@ export function AdvancedEntitiesView({ usdm }: AdvancedEntitiesViewProps) {
                         )}
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
-                        {estimand.endpointId && (
-                          <Badge variant="outline" className="text-xs">
-                            → {estimand.endpointId}
-                          </Badge>
-                        )}
                         {isEditMode && (
                           <Button
                             variant="ghost"
@@ -438,7 +465,7 @@ export function AdvancedEntitiesView({ usdm }: AdvancedEntitiesViewProps) {
                         </div>
                         <EditableField
                           path={designPath('estimands', estimand.id, 'treatment')}
-                          value={estimand.treatment || ''}
+                          value={treatmentResolved}
                           placeholder="Not specified"
                         />
                       </div>
@@ -450,7 +477,7 @@ export function AdvancedEntitiesView({ usdm }: AdvancedEntitiesViewProps) {
                           Population
                         </div>
                         <EditableField
-                          path={designPath('estimands', estimand.id, 'population')}
+                          path={designPath('estimands', estimand.id, 'populationSummary')}
                           value={population || ''}
                           placeholder="Not specified"
                         />
@@ -464,7 +491,7 @@ export function AdvancedEntitiesView({ usdm }: AdvancedEntitiesViewProps) {
                         </div>
                         <EditableField
                           path={designPath('estimands', estimand.id, 'variableOfInterest')}
-                          value={estimand.variableOfInterest || ''}
+                          value={variableResolved}
                           placeholder="Not specified"
                         />
                       </div>
@@ -477,7 +504,7 @@ export function AdvancedEntitiesView({ usdm }: AdvancedEntitiesViewProps) {
                         </div>
                         <EditableField
                           path={designPath('estimands', estimand.id, 'summaryMeasure')}
-                          value={estimand.summaryMeasure || ''}
+                          value={summaryResolved}
                           placeholder="Not specified"
                         />
                       </div>
@@ -587,14 +614,12 @@ export function AdvancedEntitiesView({ usdm }: AdvancedEntitiesViewProps) {
                 <div key={pop.id || i} className="p-4 border rounded-lg bg-gradient-to-r from-cyan-50/50 to-transparent dark:from-cyan-950/20">
                   <div className="flex items-start justify-between">
                     <div>
-                      <div className="font-semibold text-lg">
-                        {pop.name || pop.label || `Population ${i + 1}`}
-                      </div>
-                      <EditableCodedValue
-                        path={designPath('analysisPopulations', pop.id, 'level')}
-                        value={pop.level}
-                        options={CDISC_TERMINOLOGIES.populationLevel}
-                        placeholder="Level"
+                      <EditableField
+                        path={designPath('analysisPopulations', pop.id, 'name')}
+                        value={pop.name || pop.label || `Population ${i + 1}`}
+                        label=""
+                        className="font-semibold text-lg"
+                        placeholder="Population name"
                       />
                     </div>
                     {pop.includesHealthySubjects !== undefined && (

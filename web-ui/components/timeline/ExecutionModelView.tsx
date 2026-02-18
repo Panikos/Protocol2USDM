@@ -2253,51 +2253,89 @@ function StateMachinePanel({ stateMachine, studyExits = [], studyDesign }: { sta
             </div>
 
             {/* Transitions Table */}
-            {stateMachine.transitions.length > 0 && (
-            <div className="mt-6">
-              <h4 className="font-medium mb-3">State Transitions</h4>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-2 px-3 font-medium">From</th>
-                      <th className="text-left py-2 px-3 font-medium">To</th>
-                      <th className="text-left py-2 px-3 font-medium">Trigger</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {stateMachine.transitions.map((trans, i) => (
-                      <tr key={i} className="border-b">
-                        <td className="py-2 px-3">
-                          {epochIndexMap.has(trans.fromState) ? (
-                            <EditableField
-                              path={`/study/versions/0/studyDesigns/0/epochs/${epochIndexMap.get(trans.fromState)}/name`}
-                              value={trans.fromState}
-                              label=""
-                            />
-                          ) : (
-                            <Badge variant="outline">{trans.fromState}</Badge>
-                          )}
-                        </td>
-                        <td className="py-2 px-3">
-                          {epochIndexMap.has(trans.toState) ? (
-                            <EditableField
-                              path={`/study/versions/0/studyDesigns/0/epochs/${epochIndexMap.get(trans.toState)}/name`}
-                              value={trans.toState}
-                              label=""
-                            />
-                          ) : (
-                            <Badge variant="outline">{trans.toState}</Badge>
-                          )}
-                        </td>
-                        <td className="py-2 px-3 text-muted-foreground">{trans.trigger}</td>
+            {stateMachine.transitions.length > 0 && (() => {
+              // Separate UNS/Unscheduled transitions from regular ones
+              const isUnsState = (s: string) => {
+                const sl = s.toLowerCase();
+                return sl === 'uns' || sl.includes('unscheduled');
+              };
+              const unsTransitions = stateMachine.transitions.filter(
+                t => isUnsState(t.fromState) || isUnsState(t.toState)
+              );
+              const regularTransitions = stateMachine.transitions.filter(
+                t => !isUnsState(t.fromState) && !isUnsState(t.toState)
+              );
+
+              // Reconstruct skipped links: if A→UNS and UNS→B exist, add A→B
+              const bridged: typeof regularTransitions = [];
+              const intoUns = unsTransitions.filter(t => isUnsState(t.toState));
+              const outOfUns = unsTransitions.filter(t => isUnsState(t.fromState));
+              for (const into of intoUns) {
+                for (const out of outOfUns) {
+                  const alreadyExists = regularTransitions.some(
+                    t => t.fromState === into.fromState && t.toState === out.toState
+                  );
+                  if (!alreadyExists) {
+                    bridged.push({
+                      fromState: into.fromState,
+                      toState: out.toState,
+                      trigger: `Progress to ${out.toState}`,
+                    });
+                  }
+                }
+              }
+
+              const displayTransitions = [...regularTransitions, ...bridged];
+              const unsStateNames = [...new Set(
+                unsTransitions.flatMap(t => [t.fromState, t.toState]).filter(isUnsState)
+              )];
+
+              const renderStateCell = (state: string) =>
+                epochIndexMap.has(state) ? (
+                  <EditableField
+                    path={`/study/versions/0/studyDesigns/0/epochs/${epochIndexMap.get(state)}/name`}
+                    value={state}
+                    label=""
+                  />
+                ) : (
+                  <Badge variant="outline">{state}</Badge>
+                );
+
+              return (
+              <div className="mt-6">
+                <h4 className="font-medium mb-3">State Transitions</h4>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left py-2 px-3 font-medium">From</th>
+                        <th className="text-left py-2 px-3 font-medium">To</th>
+                        <th className="text-left py-2 px-3 font-medium">Trigger</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {displayTransitions.map((trans, i) => (
+                        <tr key={i} className="border-b">
+                          <td className="py-2 px-3">{renderStateCell(trans.fromState)}</td>
+                          <td className="py-2 px-3">{renderStateCell(trans.toState)}</td>
+                          <td className="py-2 px-3 text-muted-foreground">{trans.trigger}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* UNS / Unscheduled annotation */}
+                {unsStateNames.length > 0 && (
+                  <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-lg text-sm text-orange-800">
+                    <span className="font-medium">{unsStateNames.join(', ')}</span>
+                    {' '}&mdash; Unscheduled visits can occur from any active state at any time during the study.
+                    They are not part of the sequential flow.
+                  </div>
+                )}
               </div>
-            </div>
-            )}
+              );
+            })()}
           </CardContent>
         </Card>
       )}
@@ -2519,11 +2557,18 @@ function TraversalPanel({
               {constraints.map(constraint => (
                 <div key={constraint.id} className="p-4 border rounded-lg bg-gradient-to-r from-slate-50 to-slate-100">
                   {/* Required Sequence */}
-                  {constraint.requiredSequence && constraint.requiredSequence.length > 0 && (
+                  {constraint.requiredSequence && constraint.requiredSequence.length > 0 && (() => {
+                    const isUns = (id: string) => {
+                      const name = resolveEpochName(id).toLowerCase();
+                      return name === 'uns' || name.includes('unscheduled');
+                    };
+                    const sequentialEpochs = constraint.requiredSequence.filter(id => !isUns(id));
+                    const unsEpochs = constraint.requiredSequence.filter(id => isUns(id)).map(id => resolveEpochName(id));
+                    return (
                     <div className="mb-4">
                       <h4 className="text-sm font-medium text-muted-foreground mb-2">Required Epoch Sequence</h4>
                       <div className="flex items-center flex-wrap gap-2">
-                        {constraint.requiredSequence.map((epochId, idx) => {
+                        {sequentialEpochs.map((epochId, idx) => {
                           const usdmIdx = getEpochIdx(epochId);
                           return (
                           <div key={epochId} className="flex items-center">
@@ -2538,15 +2583,22 @@ function TraversalPanel({
                                 {resolveEpochName(epochId)}
                               </Badge>
                             )}
-                            {idx < constraint.requiredSequence!.length - 1 && (
+                            {idx < sequentialEpochs.length - 1 && (
                               <span className="mx-2 text-gray-400">→</span>
                             )}
                           </div>
                           );
                         })}
                       </div>
+                      {unsEpochs.length > 0 && (
+                        <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-lg text-sm text-orange-800">
+                          <span className="font-medium">{unsEpochs.join(', ')}</span>
+                          {' '}&mdash; Unscheduled visits can occur at any time during the study and are not part of the required sequential flow.
+                        </div>
+                      )}
                     </div>
-                  )}
+                    );
+                  })()}
 
                   {/* Early Exit */}
                   {constraint.allowEarlyExit && (
@@ -2561,11 +2613,17 @@ function TraversalPanel({
                   )}
 
                   {/* Mandatory Visits */}
-                  {constraint.mandatoryVisits && constraint.mandatoryVisits.length > 0 && (
+                  {constraint.mandatoryVisits && constraint.mandatoryVisits.length > 0 && (() => {
+                    const isUnsVisit = (id: string) => {
+                      const name = resolveEncounterName(id).toLowerCase();
+                      return name === 'uns' || name.includes('unscheduled');
+                    };
+                    const scheduledVisits = constraint.mandatoryVisits.filter(v => !isUnsVisit(v));
+                    return scheduledVisits.length > 0 ? (
                     <div>
                       <h4 className="text-sm font-medium text-muted-foreground mb-2">Mandatory Visits</h4>
                       <div className="flex flex-wrap gap-2">
-                        {constraint.mandatoryVisits.map(visit => {
+                        {scheduledVisits.map(visit => {
                           const usdmIdx = getEncounterIdx(visit);
                           return usdmIdx !== undefined ? (
                             <EditableField
@@ -2582,7 +2640,8 @@ function TraversalPanel({
                         })}
                       </div>
                     </div>
-                  )}
+                    ) : null;
+                  })()}
                 </div>
               ))}
             </div>

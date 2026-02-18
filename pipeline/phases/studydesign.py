@@ -115,6 +115,14 @@ class StudyDesignPhase(BasePhase):
                         )
                     else:
                         study_design["blindingSchema"] = bs
+                else:
+                    # Infer blinding from rationale text if not explicitly extracted
+                    from extraction.studydesign.extractor import _infer_blinding_from_text
+                    inferred = _infer_blinding_from_text(sd)
+                    if inferred and inferred.value:
+                        study_design["blindingSchema"] = self._build_alias_code(
+                            inferred.value, "blindingSchema"
+                        )
                 if sd.get('randomizationType'):
                     study_design["randomizationType"] = sd['randomizationType']
                 # C3: Design rationale (fallback path)
@@ -146,7 +154,7 @@ class StudyDesignPhase(BasePhase):
         
         AliasCode = { id, standardCode: Code, instanceType: 'AliasCode' }
         """
-        from core.code_registry import code_registry
+        from core.code_registry import registry as code_registry
         code_obj = code_registry.lookup(attribute, decode_value)
         if code_obj:
             c_code = code_obj.code

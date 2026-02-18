@@ -387,7 +387,7 @@ _USDM_ALLOWED_KEYS: Dict[str, Set[str]] = {
     },
     "StudyIntervention": {
         "id", "name", "label", "description", "role", "type",
-        "minimumResponseDuration", "codes",
+        "minimumResponseDuration", "codes", "administrations",
         "extensionAttributes", "instanceType",
     },
     "Estimand": {
@@ -395,6 +395,12 @@ _USDM_ALLOWED_KEYS: Dict[str, Set[str]] = {
         "populationSummary", "analysisPopulationId",
         "variableOfInterestId", "interventionIds",
         "intercurrentEvents", "notes",
+        "extensionAttributes", "instanceType",
+    },
+    "Administration": {
+        "id", "name", "label", "description",
+        "dose", "frequency", "route", "duration",
+        "notes", "administrableProductId",
         "extensionAttributes", "instanceType",
     },
     "AdministrableProduct": {
