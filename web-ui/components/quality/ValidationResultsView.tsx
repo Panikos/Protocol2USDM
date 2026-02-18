@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, XCircle, AlertTriangle, Info, Loader2 } from 'lucide-react';
@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 
 interface ValidationResultsViewProps {
   protocolId: string;
+  usdm?: Record<string, unknown> | null;
 }
 
 interface ExtractionIssue {
@@ -129,10 +130,54 @@ interface ValidationData {
   core?: CoreConformance;
 }
 
-export function ValidationResultsView({ protocolId }: ValidationResultsViewProps) {
+// Build a flat id→name lookup from all USDM entities
+function buildIdNameMap(usdm: Record<string, unknown> | null | undefined): Map<string, string> {
+  const map = new Map<string, string>();
+  if (!usdm) return map;
+
+  function walk(obj: unknown) {
+    if (!obj || typeof obj !== 'object') return;
+    if (Array.isArray(obj)) {
+      for (const item of obj) walk(item);
+      return;
+    }
+    const rec = obj as Record<string, unknown>;
+    const id = rec.id as string | undefined;
+    const name = (rec.name ?? rec.label ?? rec.text ?? rec.title) as string | undefined;
+    if (id && typeof id === 'string' && name && typeof name === 'string') {
+      // Only store if name is not itself a UUID
+      if (!/^[0-9a-f]{8}-/.test(name)) {
+        map.set(id, name.length > 60 ? name.slice(0, 57) + '…' : name);
+      }
+    }
+    for (const val of Object.values(rec)) {
+      walk(val);
+    }
+  }
+
+  walk(usdm);
+  return map;
+}
+
+// Replace UUIDs in a location string with human-readable names
+function humanizeLocation(location: string, nameMap: Map<string, string>): string {
+  // Match UUIDs (8-4-4-4-12 hex)
+  return location.replace(
+    /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi,
+    (uuid) => {
+      const name = nameMap.get(uuid);
+      return name ? `${name}` : uuid;
+    }
+  );
+}
+
+export function ValidationResultsView({ protocolId, usdm }: ValidationResultsViewProps) {
   const [data, setData] = useState<ValidationData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Build ID→name map once from USDM data
+  const nameMap = useMemo(() => buildIdNameMap(usdm), [usdm]);
 
   useEffect(() => {
     async function fetchValidation() {
@@ -404,7 +449,7 @@ export function ValidationResultsView({ protocolId }: ValidationResultsViewProps
                       
                       {location && (
                         <div className="mt-2 text-xs text-muted-foreground font-mono bg-muted/50 p-2 rounded overflow-x-auto">
-                          {location}
+                          {humanizeLocation(location, nameMap)}
                         </div>
                       )}
                       
@@ -518,7 +563,7 @@ export function ValidationResultsView({ protocolId }: ValidationResultsViewProps
                       
                       {location && (
                         <div className="mt-2 text-xs text-muted-foreground font-mono bg-muted/50 p-2 rounded overflow-x-auto">
-                          {location}
+                          {humanizeLocation(location, nameMap)}
                         </div>
                       )}
                       

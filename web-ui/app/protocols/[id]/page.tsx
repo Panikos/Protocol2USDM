@@ -518,7 +518,7 @@ export default function ProtocolDetailPage() {
           <QualityMetricsDashboard usdm={usdm} />
         )}
         {activeTab === 'validation' && (
-          <ValidationResultsView protocolId={protocolId} />
+          <ValidationResultsView protocolId={protocolId} usdm={usdm} />
         )}
         {activeTab === 'documents' && (
           <DocumentsTab protocolId={protocolId} />
