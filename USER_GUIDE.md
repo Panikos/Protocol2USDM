@@ -1,9 +1,9 @@
 # Protocol2USDM User Guide
 
 **Version:** 7.17  
-**Last Updated:** 2026-02-17
+**Last Updated:** 2026-02-18
 
-> **📢 What's New in v7.17:** **Reviewer v9 Org/Site alignment** — `studySites` removed from studyDesign (not a USDM path), sites only in `Organization.managedSites[]`, required org fields backfilled, StudySite sanitized, ISO country codes, site-org mapping fix. P3–P7 structural compliance. **UI fixes** — StudySitesView reads from `Organization.managedSites[]` + shows planned enrollment; FootnotesView handles object footnotes + reads `studyDesign.notes[]`; medicalDevices on studyVersion; DOCX XML sanitization. **1157 tests** collected, 1118 passing.
+> **📢 What's New in v7.17:** **Encounter→epoch resolution** — USDM v4.0 encounters linked via `ScheduledActivityInstance` bridge (SoA table, graph view, quality dashboard). **UNS detached** — unscheduled visits shown as isolated islands in graph and state machine. **Schema compliance** — administrations nested in StudyIntervention, blindingSchema as AliasCode, activityGroups→parent Activity with childIds. **UI fixes** — footnote letters (z, aa, ab...), EditableCodedValue unwrap + Badge, ScheduleTimelineView childIds grouping, SoA footnote objects. P3–P7 structural compliance, Reviewer v9 Org/Site alignment. **1157 tests** collected, 1118 passing.
 
 > **v7.16:** USDM v4.0 endpoint nesting, ExtensionAttribute alignment, core_compliance architectural audit.
 > **v7.15:** Review fix sprint (B1–B9), keyword-guided enrollment extraction (G1).
@@ -684,5 +684,5 @@ A: Check logs in `output/<protocol>/`, capture error messages, report to maintai
 
 ---
 
-**Last Updated:** 2026-02-17  
+**Last Updated:** 2026-02-18  
 **Version:** 7.17

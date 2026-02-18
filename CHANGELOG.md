@@ -4,7 +4,62 @@ All notable changes documented here. Dates in ISO-8601.
 
 ---
 
-## [7.17.0] – 2026-02-17
+## [7.17.0] – 2026-02-18
+
+### Functionality Hardening: USDM v4.0 Encounter→Epoch Resolution
+
+USDM v4.0 encounters no longer carry a direct `epochId` — the linkage is through `ScheduledActivityInstance`. Three UI adapters were filtering encounters by the missing field, causing empty renders.
+
+| Fix | Component | Description |
+|-----|-----------|-------------|
+| **SoA table** | `toSoATableModel.ts` | Columns not rendering (AG Grid `width: 0px`) — resolve via instance bridge; unassigned encounters get own group |
+| **Graph view** | `toGraphModel.ts` | All encounter/activity nodes missing — same instance bridge fix at 4 filter sites |
+| **Quality dashboard** | `QualityMetricsDashboard.tsx` | Encounter→Epoch linkage metric was 0% — bridge resolution + exclude parent activities from activity→schedule |
+
+### UNS (Unscheduled) Detached Handling
+
+Unscheduled visits can occur at any point during the study. Previously they appeared inline in the linear flow, which was visually misleading.
+
+| Fix | Component | Description |
+|-----|-----------|-------------|
+| **State machine** | `ExecutionModelView.tsx` | UNS state moved out of linear flow, shown as detached with "(Any time)" label |
+| **Graph view** | `toGraphModel.ts` | UNS epoch/encounters rendered as isolated island with annotation "Can occur at any point per traversal rules" |
+
+### USDM v4.0 Schema Compliance Fixes
+
+| Fix | Description |
+|-----|-------------|
+| **Administrations nesting** | `StudyIntervention.administrations[]` nested per schema (was flat at root) |
+| **blindingSchema** | Output as proper USDM `AliasCode` with `standardCode` (was plain string) |
+| **Activity groups** | `activityGroups` promoted to parent `Activity` with `childIds` (USDM v4.0 schema compliance) |
+
+### UI Component Fixes
+
+| Fix | Component | Description |
+|-----|-----------|-------------|
+| **EditableCodedValue** | `EditableCodedValue.tsx` | Unwrap nested Code objects to prevent `[object Object]` display |
+| **Footnote numbering** | `FootnotePanel.tsx` | Letters continue as z, aa, ab... instead of falling back to numbers 27, 28... |
+| **ScheduleTimelineView** | `ScheduleTimelineView.tsx` | Updated for parent Activity + `childIds` grouping model |
+| **CodedValue badge** | `EditableCodedValue.tsx` | Render display as Badge tag to match other coded values |
+| **Medical Conditions** | `StudyDesignView.tsx` | Sources from `studyDesign.indications` instead of `version.conditions` |
+| **Activity audit** | Multiple | Ungrouped activities no longer dropped; deleteActivity cascade cleanup |
+| **Provenance explorer** | `ProvenanceExplorer.tsx` | Filter parent activities to avoid noise rows |
+| **SoA footnotes** | `SoAFootnotes.tsx` | Consume USDM-aligned `{id, text, marker}` objects + normalize to strings |
+
+### Files Changed
+
+| File | Change |
+|------|--------|
+| **`web-ui/lib/adapters/toSoATableModel.ts`** | Encounter→epoch via instance bridge + unassigned group |
+| **`web-ui/lib/adapters/toGraphModel.ts`** | Instance bridge + UNS detached island |
+| **`web-ui/styles/cytoscape-theme.ts`** | UNS annotation, detached node/edge styles |
+| **`web-ui/components/timeline/ExecutionModelView.tsx`** | UNS state detached from linear flow |
+| **`web-ui/components/soa/FootnotePanel.tsx`** | `indexToMarker()` letter sequence |
+| **`web-ui/components/quality/QualityMetricsDashboard.tsx`** | Linkage via instance bridge |
+| **`web-ui/components/protocol/ScheduleTimelineView.tsx`** | Parent Activity + childIds |
+| **`web-ui/components/semantic/EditableCodedValue.tsx`** | `_unwrap` helper for nested Code |
+| **`web-ui/components/protocol/InterventionsView.tsx`** | Nested administrations + Quantity dose |
+| **`pipeline/phases/interventions.py`** | Nest administrations inside StudyIntervention |
 
 ### Reviewer Fixes P3–P7: USDM Structural Compliance
 

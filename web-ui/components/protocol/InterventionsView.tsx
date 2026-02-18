@@ -8,11 +8,114 @@ import { EditableField, EditableCodedValue, CDISC_TERMINOLOGIES, CodeLink } from
 import { versionPath, entityPath } from '@/lib/semantic/schema';
 import { useSemanticStore } from '@/stores/semanticStore';
 import { useEditModeStore } from '@/stores/editModeStore';
-import { Pill, Syringe, Clock, Beaker, FlaskConical, ChevronDown, ChevronRight, Plus, Trash2 } from 'lucide-react';
+import { Pill, Syringe, Clock, Beaker, FlaskConical, ChevronDown, ChevronRight, Plus, Trash2, ExternalLink, AlertTriangle, Info, Loader2 } from 'lucide-react';
 import { ProvenanceBadge } from '@/components/provenance';
+import { useDrugInfo } from '@/hooks/useDrugInfo';
 
 interface InterventionsViewProps {
   usdm: Record<string, unknown> | null;
+}
+
+// ---------------------------------------------------------------------------
+// DrugInfoPanel — collapsible FDA enrichment for a single drug
+// ---------------------------------------------------------------------------
+function DrugInfoPanel({ drugName }: { drugName: string }) {
+  const { data, loading, error } = useDrugInfo(drugName);
+  const [expanded, setExpanded] = useState(false);
+
+  if (loading) {
+    return (
+      <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+        <Loader2 className="h-3 w-3 animate-spin" />
+        Looking up FDA label…
+      </div>
+    );
+  }
+
+  if (error || !data) return null;
+
+  const summary = [
+    data.generic_name && data.generic_name.toLowerCase() !== drugName.toLowerCase()
+      ? `Generic: ${data.generic_name}`
+      : null,
+    data.brand_name && data.brand_name.toLowerCase() !== drugName.toLowerCase()
+      ? `Brand: ${data.brand_name}`
+      : null,
+    data.manufacturer ? `Mfr: ${data.manufacturer}` : null,
+    data.route.length > 0 ? `Route: ${data.route.join(', ')}` : null,
+    data.pharmacologic_class.length > 0
+      ? `Class: ${data.pharmacologic_class[0]}`
+      : null,
+  ].filter(Boolean);
+
+  return (
+    <div className="mt-2 rounded-md border border-blue-200 bg-blue-50/50 dark:border-blue-900 dark:bg-blue-950/30 text-xs">
+      {/* Collapsed summary row */}
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="flex w-full items-center gap-1.5 px-3 py-1.5 text-left hover:bg-blue-100/50 dark:hover:bg-blue-900/30 transition-colors"
+      >
+        <Info className="h-3 w-3 text-blue-600 shrink-0" />
+        <span className="font-medium text-blue-700 dark:text-blue-400">FDA Label</span>
+        <span className="text-muted-foreground truncate flex-1">
+          {summary.length > 0 ? `— ${summary.join(' · ')}` : ''}
+        </span>
+        {expanded ? (
+          <ChevronDown className="h-3 w-3 shrink-0 text-muted-foreground" />
+        ) : (
+          <ChevronRight className="h-3 w-3 shrink-0 text-muted-foreground" />
+        )}
+      </button>
+
+      {/* Expanded details */}
+      {expanded && (
+        <div className="px-3 pb-3 space-y-2 border-t border-blue-200 dark:border-blue-900 pt-2">
+          {data.indications && (
+            <FdaSection title="Indications & Usage" text={data.indications} />
+          )}
+          {data.clinical_pharmacology && (
+            <FdaSection title="Clinical Pharmacology" text={data.clinical_pharmacology} />
+          )}
+          {data.dosage_and_administration && (
+            <FdaSection title="Dosage & Administration" text={data.dosage_and_administration} />
+          )}
+          {data.boxed_warning && (
+            <div className="rounded border border-red-300 bg-red-50 dark:bg-red-950/30 dark:border-red-800 px-2 py-1.5">
+              <div className="flex items-center gap-1 font-semibold text-red-700 dark:text-red-400 mb-0.5">
+                <AlertTriangle className="h-3 w-3" /> Boxed Warning
+              </div>
+              <p className="text-red-800 dark:text-red-300 whitespace-pre-wrap">{data.boxed_warning}</p>
+            </div>
+          )}
+          {data.contraindications && (
+            <FdaSection title="Contraindications" text={data.contraindications} />
+          )}
+          {data.adverse_reactions && (
+            <FdaSection title="Adverse Reactions" text={data.adverse_reactions} />
+          )}
+          {data.drug_interactions && (
+            <FdaSection title="Drug Interactions" text={data.drug_interactions} />
+          )}
+          {data.mechanism_of_action.length > 0 && (
+            <FdaSection title="Mechanism of Action" text={data.mechanism_of_action.join('; ')} />
+          )}
+          <p className="text-[10px] text-muted-foreground flex items-center gap-1 pt-1">
+            <ExternalLink className="h-2.5 w-2.5" />
+            Source: openFDA Drug Label API · api.fda.gov
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FdaSection({ title, text }: { title: string; text: string }) {
+  return (
+    <div>
+      <div className="font-semibold text-blue-800 dark:text-blue-300 mb-0.5">{title}</div>
+      <p className="text-muted-foreground whitespace-pre-wrap leading-relaxed">{text}</p>
+    </div>
+  );
 }
 
 interface StudyIntervention {
@@ -223,6 +326,11 @@ export function InterventionsView({ usdm }: InterventionsViewProps) {
                         <CodeLink key={ci} code={code.code} decode={code.decode} codeSystem={code.codeSystem} variant="secondary" className="text-xs" />
                       ))}
                     </div>
+                  )}
+
+                  {/* OpenFDA drug label enrichment */}
+                  {(intervention.name || intervention.label) && (
+                    <DrugInfoPanel drugName={(intervention.name || intervention.label)!} />
                   )}
                 </div>
               ))}

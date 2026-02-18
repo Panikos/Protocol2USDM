@@ -66,30 +66,36 @@ GOOGLE_CLOUD_LOCATION=us-central1  # or your preferred region
 
 ## What's New in v7.17
 
-### 📋 Reviewer Fixes P3–P7: USDM Structural Compliance
-Five post-processing functions addressing independent reviewer findings:
-- **P6** — `ensure_eos_study_cell()`: StudyCell for every epoch (EOS/ET/follow-up)
-- **P3** — `nest_sites_in_organizations()`: StudySite → `Organization.managedSites`
-- **P5** — `wire_document_layer()`: `Study.documentedBy` → NarrativeContent wiring
-- **P4** — `nest_cohorts_in_population()`: StudyCohort → `population.cohorts[]`
-- **P7** — `promote_footnotes_to_conditions()`: Conditional SoA footnotes → `Condition` entities
+### � Encounter→Epoch Resolution (USDM v4.0)
+USDM v4.0 encounters no longer have a direct `epochId` — three UI adapters (SoA table, graph view, quality dashboard) were silently dropping encounters, now resolved via `ScheduledActivityInstance` bridge.
 
-### 🏥 Reviewer v9: Organization & StudySite Schema Alignment
-- **Org/Site alignment** — `studyDesigns[].studySites` removed (not a USDM path); sites only in `Organization.managedSites[]`
-- **Organization required fields** — `identifier`, `identifierScheme` backfilled on all orgs
-- **StudySite sanitization** — non-schema fields → extensionAttributes; ISO 3166-1 alpha-3 country codes
-- **Site-Org mapping fix** — new Organization per unmatched site (was incorrectly nesting sites)
-- **documentedBy wiring** — SDD metadata, contentItemId, childIds hierarchy, previousId/nextId chain
-- **Field renames** — `scheduledAtTimingId→scheduledAtId`, `environmentalSetting→environmentalSettings`
+### 🏝️ UNS Detached Handling
+Unscheduled visits rendered as **isolated islands** in both the graph view (with "Can occur at any point per traversal rules" annotation) and the state machine diagram (detached with "(Any time)" label).
 
-### 🔧 UI & Rendering Fixes
-- **medicalDevices** — moved from studyDesign to studyVersion (CORE compliance was stripping them)
-- **DOCX XML sanitization** — strip control characters before python-docx (fixes DAPA-HF crash)
-- **StudySitesView** — reads from `Organization.managedSites[]` + shows planned enrollment + backward compat for legacy outputs
-- **FootnotesView** — handles `{id, text, marker}` objects in `x-soaFootnotes` (was `[object Object]`) + reads `studyDesign.notes[]`
+### 🔧 USDM v4.0 Schema Compliance
+- **Administrations** nested inside `StudyIntervention` per schema
+- **blindingSchema** output as proper `AliasCode` with `standardCode`
+- **Activity groups** promoted to parent `Activity` with `childIds`
+
+### 🖥️ UI Component Fixes
+- **Footnote numbering** — letters continue as z, aa, ab... (was falling back to numbers)
+- **EditableCodedValue** — unwrap nested Code objects; render as Badge tag
+- **ScheduleTimelineView** — parent Activity + `childIds` grouping
+- **Medical Conditions** — sources from `studyDesign.indications`
+- **SoA footnotes** — consume USDM-aligned `{id, text, marker}` objects
 
 ### 🧪 Testing
 - **1157 tests** collected, 1118 passed, 0 failures
+
+<details>
+<summary><b>v7.17 Earlier — Reviewer Fixes P3–P7 + Org/Site Alignment</b></summary>
+
+**Reviewer Fixes P3–P7: USDM Structural Compliance** — `ensure_eos_study_cell()`, `nest_sites_in_organizations()`, `wire_document_layer()`, `nest_cohorts_in_population()`, `promote_footnotes_to_conditions()`
+
+**Reviewer v9: Organization & StudySite Schema Alignment** — `studySites` removed from studyDesign (not a USDM path), sites only in `Organization.managedSites[]`, required org fields backfilled, ISO 3166-1 alpha-3 country codes, site-org mapping fix, documentedBy wiring, field renames (`scheduledAtTimingId→scheduledAtId`, `environmentalSetting→environmentalSettings`)
+
+**UI & Rendering** — medicalDevices on studyVersion, DOCX XML sanitization, StudySitesView reads `Organization.managedSites[]` + planned enrollment, FootnotesView handles object footnotes + `studyDesign.notes[]`
+</details>
 
 <details>
 <summary><b>v7.16 — USDM v4.0 Endpoint Nesting, ExtensionAttribute Alignment, Architectural Audit</b></summary>

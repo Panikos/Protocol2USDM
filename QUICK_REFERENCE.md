@@ -2,7 +2,7 @@
 
 **v7.17** | One-page command reference
 
-> **Current:** Reviewer v9 Org/Site schema alignment, P3–P7 structural compliance, UI fixes (StudySitesView reads `Organization.managedSites[]` + planned enrollment, FootnotesView handles object footnotes + `studyDesign.notes[]`, medicalDevices on studyVersion, DOCX XML sanitization), 1157 tests collected / 1118 passing, USDM v4.0 endpoint nesting, ExtensionAttribute alignment, core_compliance audit, review fix sprint (B1–B9), integrity checker, CDISC CORE hardening, procedure code enrichment, M11 DOCX rendering, phase registry architecture (`main_v3.py`), default `--complete` mode, `gemini-3-flash-preview` default model.
+> **Current:** Encounter→epoch resolution via `ScheduledActivityInstance` bridge (SoA table, graph view, quality dashboard), UNS detached islands in graph + state machine, administrations nested in StudyIntervention, blindingSchema as AliasCode, activityGroups→parent Activity with childIds, footnote letter sequence (z→aa→ab), EditableCodedValue unwrap + Badge, SoA footnote objects. Reviewer v9 Org/Site alignment, P3–P7 structural compliance, 1157 tests / 1118 passing, USDM v4.0 endpoint nesting, M11 DOCX rendering, phase registry (`main_v3.py`), `gemini-3-flash-preview` default.
 
 ---
 
@@ -292,5 +292,5 @@ CDISC_API_KEY=...            # For CORE (optional)
 
 **Docs:** [README.md](README.md) | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
-**Last Updated:** 2026-02-17  
+**Last Updated:** 2026-02-18  
 **Version:** 7.17
