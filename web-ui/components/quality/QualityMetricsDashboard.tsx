@@ -301,6 +301,16 @@ function calculateLinkageAccuracy(
     if (inst.encounterId && inst.epochId && epochIds.has(inst.epochId)) {
       encounterIdsWithEpoch.add(inst.encounterId);
     }
+    // ScheduledDecisionInstance: conditionTargetId points to encounters (e.g. UNS)
+    const sdiInst = inst as Record<string, unknown>;
+    if (sdiInst.instanceType === 'ScheduledDecisionInstance' && sdiInst.epochId && epochIds.has(sdiInst.epochId as string)) {
+      const cas = (sdiInst.conditionAssignments as { conditionTargetId?: string }[]) ?? [];
+      for (const ca of cas) {
+        if (ca.conditionTargetId) {
+          encounterIdsWithEpoch.add(ca.conditionTargetId);
+        }
+      }
+    }
   }
   const encounterEpoch = encounters.length > 0
     ? (encounters.filter(e => encounterIdsWithEpoch.has(e.id)).length / encounters.length) * 100
