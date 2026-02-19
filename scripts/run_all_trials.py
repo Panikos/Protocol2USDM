@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Run full pipeline for all trials in input/trial directory."""
 
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -34,19 +35,21 @@ def find_trial_files(trial_dir: Path) -> tuple[Path | None, Path | None, Path | 
     
     return protocol, sap, sites
 
-def run_trial(trial_dir: Path, model: str = "gemini-3-flash-preview") -> dict:
+def run_trial(trial_dir: Path, version: str = "v800") -> dict:
     """Run the pipeline for a single trial."""
     protocol, sap, sites = find_trial_files(trial_dir)
     
     if not protocol:
         return {"trial": trial_dir.name, "status": "skipped", "reason": "No protocol PDF found"}
     
+    output_dir = f"output/{trial_dir.name}_{version}"
+    
     cmd = [
         sys.executable, "main_v3.py",
         str(protocol),
         "--complete",
         "--parallel",
-        "--model", model
+        "--output-dir", output_dir
     ]
     
     if sap:
@@ -60,6 +63,7 @@ def run_trial(trial_dir: Path, model: str = "gemini-3-flash-preview") -> dict:
     print(f"Protocol: {protocol.name}")
     print(f"SAP: {sap.name if sap else 'None'}")
     print(f"Sites: {sites.name if sites else 'None'}")
+    print(f"Output:   {output_dir}")
     print(f"Command: {' '.join(cmd)}")
     print()
     
@@ -68,16 +72,24 @@ def run_trial(trial_dir: Path, model: str = "gemini-3-flash-preview") -> dict:
         result = subprocess.run(
             cmd,
             cwd=Path(__file__).parent.parent,
-            capture_output=False,
+            capture_output=True,
             text=True
         )
         elapsed = time.time() - start_time
+        
+        # Print stdout/stderr live
+        if result.stdout:
+            print(result.stdout[-2000:] if len(result.stdout) > 2000 else result.stdout)
+        if result.returncode != 0 and result.stderr:
+            print(f"\nSTDERR (last 2000 chars):\n{result.stderr[-2000:]}")
         
         return {
             "trial": trial_dir.name,
             "status": "success" if result.returncode == 0 else "failed",
             "exit_code": result.returncode,
-            "elapsed_seconds": round(elapsed, 1)
+            "elapsed_seconds": round(elapsed, 1),
+            "output_dir": output_dir,
+            "error_tail": result.stderr[-500:] if result.returncode != 0 and result.stderr else None
         }
     except Exception as e:
         return {
@@ -126,7 +138,15 @@ def main():
         print("\nFailed trials:")
         for r in results:
             if r["status"] == "failed":
-                print(f"  - {r['trial']}")
+                print(f"  - {r['trial']} (exit {r.get('exit_code','?')})")
+                if r.get('error_tail'):
+                    print(f"    {r['error_tail'][:200]}")
+    
+    # Save results JSON for tracking
+    results_path = Path(__file__).parent.parent / "output" / "run_all_results.json"
+    results_path.parent.mkdir(parents=True, exist_ok=True)
+    results_path.write_text(json.dumps(results, indent=2))
+    print(f"\nResults saved to: {results_path}")
 
 if __name__ == "__main__":
     main()
