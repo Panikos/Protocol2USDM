@@ -72,6 +72,19 @@ USDM alignment tracking. Update when:
 - Promotion rules added/changed
 - Schema alignment changes
 
+### AGENTS.md (root)
+AI assistant knowledge base. Must reflect the current codebase accurately. Sections to check:
+- **§2.1 Pipeline Phases** (~line 110): Phase table, module line counts, dependency changes, new post-processing functions
+- **§2.6 Validation Pipeline** (~line 203): Validation steps, output files (e.g., `compliance_log.json`)
+- **§3 Key Files** (~line 271): Important files organized by category (pipeline, core, extraction, rendering, web-ui). Add new files here.
+- **§5.7 Testing** (~line 479): Test count, new test files
+- **§5.8 Web UI Architecture** (~line 490): Components, views, API routes
+- **§6 Known Gaps** (~line 518): Mark completed items as ✅ Fixed, add new gaps
+- **§6.4 Structural Debt** (~line 551): W-HIGH/W-CRIT item status
+- **§8 Documentation Index** (~line 588): Doc file inventory table
+
+**Do NOT update** `core/reference_data/AGENTS.md` — that is a static USDM controlled terminology reference and only changes when the CT spreadsheet is updated.
+
 ## Other Docs (rarely need updating)
 
 - `docs/EXECUTION_MODEL_EXTENSIONS.md` — Execution model spec

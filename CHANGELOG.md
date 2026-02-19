@@ -4,6 +4,21 @@ All notable changes documented here. Dates in ISO-8601.
 
 ---
 
+## [8.0.0] – 2026-02-19
+
+**Major version bump** — 33 commits of significant architectural and UI changes since the v7.17 baseline.
+
+### Highlights
+- **CORE Compliance: Log-Only Mode** — property stripping replaced with non-destructive audit (`compliance_log.json`)
+- **Encounter→Epoch Resolution** — USDM v4.0 encounters linked via `ScheduledActivityInstance` bridge
+- **UNS Detached Handling** — unscheduled visits rendered as isolated islands in graph + state machine
+- **11 Automated CDISC CORE Rule Fixes** — dedup, child ordering, country decode, leaf procedures, timing durations
+- **UI Data Display Refinements** — randomization, substance types, amendments, procedures filter, numeric footnotes
+- **Compliance Audit UI** — new Validation tab card grouped by entity type
+- **1157 tests** collected, 1118 passing
+
+---
+
 ## [7.17.0] – 2026-02-18
 
 ### Functionality Hardening: USDM v4.0 Encounter→Epoch Resolution

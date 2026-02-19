@@ -1,6 +1,6 @@
 # Protocol2USDM Quick Reference
 
-**v7.17** | One-page command reference
+**v8.0** | One-page command reference
 
 > **Current:** Encounter→epoch resolution via `ScheduledActivityInstance` bridge, UNS detached in graph + state machine + traversal constraints, InterventionsView aligned to USDM v4.0 nested structure, estimand ID→name resolution, boolean Yes/No display, randomization from `subTypes[]`, substance type from linked intervention, amendment changes human-readable, procedures filter non-clinical, numeric footnote markers, CORE compliance log-only audit mode (`compliance_log.json` + Validation UI card), 11 automated CDISC CORE fixes. Reviewer v9 Org/Site alignment, P3–P7 structural compliance, 1157 tests / 1118 passing, M11 DOCX rendering, phase registry (`main_v3.py`), `gemini-3-flash-preview` default.
 
@@ -292,5 +292,5 @@ CDISC_API_KEY=...            # For CORE (optional)
 
 **Docs:** [README.md](README.md) | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
-**Last Updated:** 2026-02-18  
-**Version:** 7.17
+**Last Updated:** 2026-02-19  
+**Version:** 8.0

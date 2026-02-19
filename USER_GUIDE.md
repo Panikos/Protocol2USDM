@@ -1,9 +1,9 @@
 # Protocol2USDM User Guide
 
-**Version:** 7.17  
-**Last Updated:** 2026-02-18
+**Version:** 8.0  
+**Last Updated:** 2026-02-19
 
-> **📢 What's New in v7.17:** **Encounter→epoch resolution** — USDM v4.0 encounters linked via `ScheduledActivityInstance` bridge (SoA table, graph view, quality dashboard). **UNS detached** — unscheduled visits shown as isolated islands in graph, state machine, and traversal constraints. **Schema compliance** — administrations nested in StudyIntervention, blindingSchema as AliasCode, activityGroups→parent Activity with childIds. **UI data fixes** — InterventionsView aligned to USDM v4.0 nested structure, estimand ID→name resolution, boolean Yes/No display, randomization from `subTypes[]`, SAP population fields corrected, substance type/description from linked intervention, amendment changes human-readable, procedures filter non-clinical items, numeric footnote markers, unicode dash fix. **CORE compliance** — 11 automated fixes + **log-only audit mode** (property stripping replaced with `compliance_log.json` output and Compliance Audit card in Validation tab). P3–P7 structural compliance, Reviewer v9 Org/Site alignment. **1157 tests** collected, 1118 passing.
+> **📢 What's New in v8.0:** **Encounter→epoch resolution** — USDM v4.0 encounters linked via `ScheduledActivityInstance` bridge (SoA table, graph view, quality dashboard). **UNS detached** — unscheduled visits shown as isolated islands in graph, state machine, and traversal constraints. **Schema compliance** — administrations nested in StudyIntervention, blindingSchema as AliasCode, activityGroups→parent Activity with childIds. **UI data fixes** — InterventionsView aligned to USDM v4.0 nested structure, estimand ID→name resolution, boolean Yes/No display, randomization from `subTypes[]`, SAP population fields corrected, substance type/description from linked intervention, amendment changes human-readable, procedures filter non-clinical items, numeric footnote markers, unicode dash fix. **CORE compliance** — 11 automated fixes + **log-only audit mode** (property stripping replaced with `compliance_log.json` output and Compliance Audit card in Validation tab). P3–P7 structural compliance, Reviewer v9 Org/Site alignment. **1157 tests** collected, 1118 passing.
 
 > **v7.16:** USDM v4.0 endpoint nesting, ExtensionAttribute alignment, core_compliance architectural audit.
 > **v7.15:** Review fix sprint (B1–B9), keyword-guided enrollment extraction (G1).
@@ -684,5 +684,5 @@ A: Check logs in `output/<protocol>/`, capture error messages, report to maintai
 
 ---
 
-**Last Updated:** 2026-02-18  
-**Version:** 7.17
+**Last Updated:** 2026-02-19  
+**Version:** 8.0

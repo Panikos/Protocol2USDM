@@ -1,5 +1,5 @@
 ---
-description: Automatically check and update all project documentation (README, USER_GUIDE, CHANGELOG, QUICK_REFERENCE, ARCHITECTURE, ROADMAP) to reflect recent code changes. Invoke before committing or on demand.
+description: Automatically check and update all project documentation (README, USER_GUIDE, CHANGELOG, QUICK_REFERENCE, ARCHITECTURE, ROADMAP, AGENTS.md) to reflect recent code changes. Invoke before committing or on demand.
 ---
 
 # Update Documentation Workflow
@@ -43,6 +43,7 @@ Read these files (batch):
 - `CHANGELOG.md` (first 15 lines for latest entry)
 - `docs/ROADMAP.md` (full)
 - `docs/FULL_PROJECT_REVIEW.md` (grep for enhancement status)
+- `AGENTS.md` (grep for section headings to check architecture/key files/known gaps)
 
 ## Step 2: Get live test count and coverage
 
@@ -57,14 +58,17 @@ Based on the git log and diff, categorize:
 
 | Change Type | Docs to Update |
 |-------------|---------------|
-| **New modules/files** | README.md (Project Structure), ARCHITECTURE.md |
+| **New modules/files** | README.md (Project Structure), ARCHITECTURE.md, AGENTS.md (§3 Key Files) |
 | **New features** | README.md (What's New), USER_GUIDE.md (What's New banner), CHANGELOG.md |
-| **New/changed tests** | README.md (Testing section), QUICK_REFERENCE.md (Testing section) |
-| **Bug fixes** | CHANGELOG.md |
-| **Architecture changes** | docs/ARCHITECTURE.md |
+| **New/changed tests** | README.md (Testing section), QUICK_REFERENCE.md (Testing section), AGENTS.md (§5.7 Testing) |
+| **Bug fixes** | CHANGELOG.md, AGENTS.md (§6 Known Gaps — mark as fixed) |
+| **Architecture changes** | docs/ARCHITECTURE.md, AGENTS.md (§2 Architecture) |
 | **New CLI flags** | QUICK_REFERENCE.md, USER_GUIDE.md |
 | **Version bump** | All docs — version strings must be consistent |
-| **Enhancement completed** | docs/FULL_PROJECT_REVIEW.md, README.md (Roadmap) |
+| **Enhancement completed** | docs/FULL_PROJECT_REVIEW.md, README.md (Roadmap), AGENTS.md (§6.4 Structural Debt) |
+| **Pipeline phase changes** | AGENTS.md (§2.1 Pipeline Phases table, post_processing line count) |
+| **New validation/compliance** | AGENTS.md (§2.6 Validation Pipeline) |
+| **New UI components/views** | AGENTS.md (§5.8 Web UI Architecture) |
 
 If nothing significant changed since the last doc update, report "Docs are up to date" and stop.
 
@@ -110,6 +114,19 @@ The version format is `MAJOR.MINOR.PATCH` (e.g. `7.17.0`). Docs use shortened `M
 ### docs/ROADMAP.md
 - Move completed items to "Completed Features" section
 - Add new planned items
+
+### AGENTS.md (root)
+The root `AGENTS.md` is the AI assistant knowledge base — it must reflect the current codebase accurately. Update these sections when relevant:
+- **§2.1 Pipeline Phases** — Update phase table, module line counts, dependency changes, new post-processing functions
+- **§2.6 Validation Pipeline** — Update if new validation steps or output files added (e.g., `compliance_log.json`)
+- **§3 Key Files** — Add new important files (pipeline, core, extraction, rendering, web-ui)
+- **§5.7 Testing** — Update test count, add new test files
+- **§5.8 Web UI Architecture** — Add new components, views, or API routes
+- **§6 Known Gaps** — Mark completed items as ✅ Fixed, add new gaps
+- **§6.4 Structural Debt** — Update status of W-HIGH/W-CRIT items
+- **§8 Documentation Index** — Add new doc files
+
+**Do NOT update** `core/reference_data/AGENTS.md` — that is a static USDM controlled terminology reference and only changes when the CT spreadsheet is updated.
 
 ## Step 5: Verify no broken references
 
@@ -157,7 +174,7 @@ else:
 Show the user a summary of what was updated, then stage the doc files:
 
 ```bash
-git add README.md USER_GUIDE.md CHANGELOG.md QUICK_REFERENCE.md docs/ARCHITECTURE.md docs/ROADMAP.md docs/FULL_PROJECT_REVIEW.md
+git add README.md USER_GUIDE.md CHANGELOG.md QUICK_REFERENCE.md AGENTS.md docs/ARCHITECTURE.md docs/ROADMAP.md docs/FULL_PROJECT_REVIEW.md
 ```
 
 Ask the user if they want to commit the doc updates now or include them in a larger commit.

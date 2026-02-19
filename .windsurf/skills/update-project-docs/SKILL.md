@@ -1,6 +1,6 @@
 ---
 name: update-project-docs
-description: Check and update all project documentation (README, USER_GUIDE, CHANGELOG, QUICK_REFERENCE, ARCHITECTURE, ROADMAP, FULL_PROJECT_REVIEW) to reflect recent code changes. Gathers live context from git and pytest, identifies stale sections, makes targeted edits, verifies references, and stages for commit.
+description: Check and update all project documentation (README, USER_GUIDE, CHANGELOG, QUICK_REFERENCE, ARCHITECTURE, ROADMAP, FULL_PROJECT_REVIEW, AGENTS.md) to reflect recent code changes. Gathers live context from git and pytest, identifies stale sections, makes targeted edits, verifies references, and stages for commit.
 ---
 
 # Update Project Documentation Skill
@@ -24,6 +24,7 @@ This skill provides comprehensive knowledge for keeping all Protocol2USDM docume
 4. Read `core/constants.py` — `VERSION` is the **single source of truth** for all version strings
 5. Run `python -m pytest tests/ --co -q` to get live test count
 6. Read the first 10-15 lines of each doc file to check current version strings
+7. Read `AGENTS.md` section headings (grep for `## ` and `### `) to check architecture/key files/known gaps
 
 ### Phase 2: Identify Staleness
 
@@ -33,14 +34,17 @@ Categorize changes:
 
 | Change Type | Docs to Update |
 |-------------|---------------|
-| New modules/files | README (Project Structure), ARCHITECTURE |
+| New modules/files | README (Project Structure), ARCHITECTURE, AGENTS.md (§3 Key Files) |
 | New features | README (What's New), USER_GUIDE (What's New banner), CHANGELOG |
-| New/changed tests | README (Testing), QUICK_REFERENCE (Testing) |
-| Bug fixes | CHANGELOG |
-| Architecture changes | ARCHITECTURE |
+| New/changed tests | README (Testing), QUICK_REFERENCE (Testing), AGENTS.md (§5.7 Testing) |
+| Bug fixes | CHANGELOG, AGENTS.md (§6 Known Gaps — mark as fixed) |
+| Architecture changes | ARCHITECTURE, AGENTS.md (§2 Architecture) |
 | New CLI flags | QUICK_REFERENCE, USER_GUIDE |
 | Version bump | All docs — version strings must be consistent |
-| Enhancement completed | FULL_PROJECT_REVIEW, README (Roadmap) |
+| Enhancement completed | FULL_PROJECT_REVIEW, README (Roadmap), AGENTS.md (§6.4 Structural Debt) |
+| Pipeline phase changes | AGENTS.md (§2.1 Pipeline Phases table, post_processing line count) |
+| New validation/compliance | AGENTS.md (§2.6 Validation Pipeline) |
+| New UI components/views | AGENTS.md (§5.8 Web UI Architecture) |
 
 If nothing significant changed since the last doc update, report "Docs are up to date" and stop.
 

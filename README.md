@@ -64,53 +64,38 @@ GOOGLE_CLOUD_LOCATION=us-central1  # or your preferred region
 
 ---
 
-## What's New in v7.17
+## What's New in v8.0
 
-### � Encounter→Epoch Resolution (USDM v4.0)
-USDM v4.0 encounters no longer have a direct `epochId` — three UI adapters (SoA table, graph view, quality dashboard) were silently dropping encounters, now resolved via `ScheduledActivityInstance` bridge.
+### ⚙️ CORE Compliance: Log-Only Audit Mode
+Property stripping (`_walk_strip_non_usdm`) replaced with **non-destructive audit** — non-USDM properties are kept in the output and findings saved to `compliance_log.json`. New **Compliance Audit card** in the Validation tab shows findings grouped by entity type.
+
+### 🔗 Encounter→Epoch Resolution (USDM v4.0)
+USDM v4.0 encounters linked via `ScheduledActivityInstance` bridge — SoA table, graph view, and quality dashboard all resolved.
 
 ### 🏝️ UNS Detached Handling
-Unscheduled visits rendered as **isolated islands** in both the graph view (with "Can occur at any point per traversal rules" annotation) and the state machine diagram (detached with "(Any time)" label).
-
-### 🔧 USDM v4.0 Schema Compliance
-- **Administrations** nested inside `StudyIntervention` per schema
-- **blindingSchema** output as proper `AliasCode` with `standardCode`
-- **Activity groups** promoted to parent `Activity` with `childIds`
-
-### 🖥️ UI Component Fixes
-- **Footnote numbering** — letters continue as z, aa, ab... (was falling back to numbers)
-- **EditableCodedValue** — unwrap nested Code objects; render as Badge tag
-- **ScheduleTimelineView** — parent Activity + `childIds` grouping
-- **Medical Conditions** — sources from `studyDesign.indications`
-- **SoA footnotes** — consume USDM-aligned `{id, text, marker}` objects
-
-### 📋 UI Data Display Fixes
-- **InterventionsView** — aligned to USDM v4.0 nested `AdministrableProduct` structure (ingredients/substance/strengths); FDA Labels disabled; descriptions now display correctly
-- **Estimands** — resolve `interventionIds`→names, `variableOfInterestId`→endpoint name, extract summary measure from population text
-- **Boolean fields** — show "Yes"/"No" instead of raw `true`/`false`
-- **Randomization type** — added to study metadata display
-- **Traversal constraints** — UNS filtered from sequential flow with annotation note
-- **SAP Populations** — definition and description mapped to actual USDM fields
-
-### ⚙️ CDISC CORE Compliance
-- 11 automated CORE rule fixes in post-processing (dedup, child ordering, country decode, window durations, codeSystemVersions, leaf procedures, timing durations, amendment codeSystems)
-- **Log-only audit mode** — property stripping replaced with non-destructive audit; `compliance_log.json` output with findings per entity
-- **Compliance Audit card** in Validation tab — grouped by entity type, expandable detail rows
+Unscheduled visits rendered as **isolated islands** in graph view and state machine (detached with annotation).
 
 ### 🔧 UI Data Display Refinements
-- **Randomization** — read from `subTypes[]` via CDISC C-codes instead of phantom attribute
+- **Randomization** — read from `subTypes[]` via CDISC C-codes (C25196/C48660)
 - **Substance type/description** — derived from linked `StudyIntervention` by name matching
 - **Amendment changes** — human-readable text instead of raw JSON objects
 - **Procedures filter** — skip non-clinical activities (dosing, diet, consent) in pipeline + UI
 - **Footnote numbering** — changed from letters `[a],[b]` to numeric `[1],[2]`
-- **Age range dash** — fixed unicode en-dash rendering in SampleSizePanel
-- **UNS connector** — removed "No unscheduled event" fallback edge from graph
+- **InterventionsView** — aligned to USDM v4.0 nested `AdministrableProduct` structure
+- **Estimands** — resolve `interventionIds`→names, `variableOfInterestId`→endpoint name
+- **Boolean fields** — show “Yes”/“No” instead of raw `true`/`false`
+
+### ⚙️ CDISC CORE Compliance
+- 11 automated CORE rule fixes in post-processing
+- **Administrations** nested inside `StudyIntervention` per schema
+- **blindingSchema** output as proper `AliasCode` with `standardCode`
+- **Activity groups** promoted to parent `Activity` with `childIds`
 
 ### 🧪 Testing
 - **1157 tests** collected, 1118 passed, 0 failures
 
 <details>
-<summary><b>v7.17 Earlier — Reviewer Fixes P3–P7 + Org/Site Alignment</b></summary>
+<summary><b>v7.17 — Reviewer Fixes P3–P7, Org/Site Alignment, Schema Compliance</b></summary>
 
 **Reviewer Fixes P3–P7: USDM Structural Compliance** — `ensure_eos_study_cell()`, `nest_sites_in_organizations()`, `wire_document_layer()`, `nest_cohorts_in_population()`, `promote_footnotes_to_conditions()`
 
@@ -837,7 +822,7 @@ The following items are planned for upcoming releases:
 - [x] **Provenance Tracking** (E14): PhaseProvenance for all phases *(completed v7.4)*
 - [x] **Prompt Versioning** (E15): SHA-256 hashes in run manifest *(completed v7.4)*
 - [x] **ICH M11 Document Rendering**: DOCX generation with 9 entity composers *(completed v7.3)*
-- [x] **Testing Infrastructure**: 1157 tests, mocked LLM tests *(completed v7.3–v7.17)*
+- [x] **Testing Infrastructure**: 1157 tests, mocked LLM tests *(completed v7.3–v8.0)*
 - [x] **Pipeline Decomposition**: combiner/integrations/post_processing/promotion *(completed v7.3)*
 - [x] **Web UI Semantic Editing**: JSON Patch editing with draft/publish workflow *(completed v7.2.1)*
 - [x] **Execution Model Promotion**: Native USDM entities instead of extensions *(completed v7.2)*
