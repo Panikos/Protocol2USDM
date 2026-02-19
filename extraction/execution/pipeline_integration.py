@@ -1397,7 +1397,14 @@ def _add_execution_extensions(
             if dose_str:
                 admin["dose"] = dose_str
             if freq_str:
-                admin["doseFrequency"] = freq_str
+                admin["frequency"] = {
+                    "id": f"freq_exec_{dr.id}",
+                    "code": "",
+                    "codeSystem": "http://www.cdisc.org",
+                    "codeSystemVersion": "2024-09-27",
+                    "decode": freq_str,
+                    "instanceType": "Code",
+                }
             if route_code:
                 admin["route"] = route_code
             if dr.duration_description:
@@ -1407,15 +1414,12 @@ def _add_execution_extensions(
             
             promoted_administrations.append(admin)
             
-            # Try to link to matching intervention
+            # Nest admin directly into matching intervention (USDM: inline administrations[])
             treatment_lower = dr.treatment_name.lower()
             for intervention in design.get('studyInterventions', []):
                 int_name = intervention.get('name', '').lower()
                 if treatment_lower in int_name or int_name in treatment_lower:
-                    if 'administrationIds' not in intervention:
-                        intervention['administrationIds'] = []
-                    if admin['id'] not in intervention['administrationIds']:
-                        intervention['administrationIds'].append(admin['id'])
+                    intervention.setdefault('administrations', []).append(admin)
                     break
         
         # Add promoted administrations to a dedicated array (if not already present)

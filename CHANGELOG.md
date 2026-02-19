@@ -4,6 +4,24 @@ All notable changes documented here. Dates in ISO-8601.
 
 ---
 
+## [8.0.2] – 2026-02-19
+
+**CORE Compliance Property Cleanup + Estimand→Endpoint Reconciliation** — Removes 4 non-USDM properties from output and adds endpoint reference reconciliation.
+
+### Non-USDM Property Fixes (verified against `usdm_model` + `dataStructure.yml`)
+- **C12**: `Administration.doseFrequency` — replaced with USDM-compliant `frequency` Code object in execution pipeline (`extraction/execution/pipeline_integration.py`)
+- **C38**: `StudyVersion.studyPhase` — removed from StudyVersion (not a USDM field); kept on StudyDesign where schema expects it (`pipeline/phases/metadata.py`, `web-ui/lib/export/exportUtils.ts`, `validation/m11_conformance.py`)
+- **C30**: `StudyIntervention.administrationIds` — replaced with inline `administrations[]` nesting per USDM v4.0 (`extraction/execution/pipeline_integration.py`, `extraction/execution/execution_model_promoter.py`, `rendering/composers.py`)
+- **C46-C47**: `StudyDesignPopulation.cohortIds` — removed non-USDM ref property; `cohorts[]` inline nesting (already handled by `nest_cohorts_in_population`) is the USDM-compliant path (`pipeline/post_processing.py`)
+
+### Estimand Reconciliation
+- **FIX-5**: `Estimand.variableOfInterestId` — new `reconcile_estimand_endpoint_refs()` matches estimand endpoint references to actual Endpoint IDs using name/level/fuzzy matching (32 hits, 14/34 trials) (`pipeline/integrations.py`, `pipeline/combiner.py`)
+
+### Test Results
+- 1117 passed, 0 failed
+
+---
+
 ## [8.0.1] – 2026-02-19
 
 **USDM Schema Compliance Fixes** — Cross-validated all output entities against the official `usdm_model` Pydantic package and `dataStructure.yml`. Eliminates ~88% of schema validation errors across 34 trials.

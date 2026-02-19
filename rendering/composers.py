@@ -345,10 +345,14 @@ def _compose_interventions(usdm: Dict) -> str:
         imp_class = 'IMP' if ('investigational' in role_lower or 'experimental' in role_lower) else 'NIMP'
 
         # Get administration details (route, frequency)
-        admin_ids = si.get('administrationIds', [])
+        # USDM v4.0: admins are inline in si.administrations[]; fall back to legacy administrationIds
+        inline_admins = si.get('administrations', [])
+        if not inline_admins:
+            inline_admins = [admin_map.get(aid, {}) for aid in si.get('administrationIds', [])]
         routes = []
-        for aid in admin_ids:
-            admin = admin_map.get(aid, {})
+        for admin in inline_admins:
+            if not isinstance(admin, dict):
+                continue
             route = admin.get('route', {})
             route_text = route.get('decode', '') if isinstance(route, dict) else ''
             if route_text:

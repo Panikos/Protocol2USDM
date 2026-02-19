@@ -140,7 +140,7 @@ def _validate_title_page(
     titles = version.get('titles', [])
     identifiers = version.get('studyIdentifiers', study.get('studyIdentifiers', []))
     organizations = version.get('organizations', study.get('organizations', []))
-    phase = version.get('studyPhase', design.get('studyPhase', {}))
+    phase = design.get('studyPhase', version.get('studyPhase', {}))
     interventions = version.get('studyInterventions', [])
 
     # Build presence checks

@@ -632,7 +632,7 @@ class ExecutionModelPromoter:
             
             # Link to intervention
             if intervention:
-                intervention.setdefault('administrationIds', []).append(admin_id)
+                intervention.setdefault('administrations', []).append(administration)
                 logger.info(f"  Created administration: {treatment_name} → {intervention.get('name')}")
             else:
                 logger.info(f"  Created unlinked administration: {treatment_name}")

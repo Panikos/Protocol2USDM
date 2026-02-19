@@ -19,6 +19,7 @@ from .base_phase import PhaseResult
 from .integrations import (
     resolve_content_references,
     reconcile_estimand_population_refs,
+    reconcile_estimand_endpoint_refs,
 )
 from extraction.execution.pipeline_integration import resolve_execution_model_references, emit_placeholder_activities
 from .post_processing import (
@@ -229,6 +230,8 @@ def combine_to_full_usdm(
     
     # Reconcile estimand.analysisPopulationId → analysisPopulations references
     reconcile_estimand_population_refs(study_design)
+    # FIX-5: Reconcile estimand.variableOfInterestId → Endpoint references
+    reconcile_estimand_endpoint_refs(study_design)
     
     # Add studyDesign to study_version
     study_version["studyDesigns"] = [study_design]

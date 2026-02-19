@@ -329,3 +329,104 @@ def reconcile_estimand_population_refs(study_design: dict) -> None:
     
     if reconciled:
         logger.info(f"  Reconciled {reconciled}/{len(estimands)} estimand → population references")
+
+
+def reconcile_estimand_endpoint_refs(study_design: dict) -> None:
+    """
+    Reconcile estimand.variableOfInterestId → Endpoint references.
+
+    The objectives phase generates estimands with LLM-created endpoint IDs
+    (often synthetic like ``{id}_var``) while endpoints are nested inside
+    objectives with separate UUIDs.  This function links them by matching
+    endpoint name/text.
+
+    Matching strategy:
+      1. Already valid — variableOfInterestId exists in endpoint set
+      2. Exact name match (estimand.variableOfInterest text == endpoint.name)
+      3. Level-based match (primary estimand → primary endpoint, etc.)
+      4. Word-overlap fuzzy match (>30% of words in common)
+    """
+    estimands = study_design.get('estimands', [])
+    if not estimands:
+        return
+
+    # Collect all endpoints nested inside objectives
+    all_endpoints = []
+    for obj in study_design.get('objectives', []):
+        if isinstance(obj, dict):
+            all_endpoints.extend(obj.get('endpoints', []))
+
+    if not all_endpoints:
+        return
+
+    ep_ids = {ep.get('id') for ep in all_endpoints if ep.get('id')}
+
+    def _normalize(text: str) -> str:
+        return text.lower().strip().replace('-', ' ').replace('_', ' ')
+
+    def _get_level(entity: dict) -> str:
+        level = entity.get('level', {})
+        if isinstance(level, dict):
+            return _normalize(level.get('decode', ''))
+        return _normalize(str(level)) if level else ''
+
+    def _find_best_endpoint(est: dict):
+        var_text = _normalize(est.get('variableOfInterest', '') or est.get('name', ''))
+        est_level = _get_level(est)
+
+        # Pass 1: Exact name match
+        for ep in all_endpoints:
+            if _normalize(ep.get('name', '')) == var_text:
+                return ep
+            if _normalize(ep.get('text', '')) == var_text:
+                return ep
+
+        # Pass 2: Level-based match (primary estimand → primary endpoint)
+        if est_level:
+            level_matches = [ep for ep in all_endpoints if _get_level(ep) == est_level]
+            if len(level_matches) == 1:
+                return level_matches[0]
+
+        # Pass 3: Word overlap
+        var_words = set(var_text.split())
+        if not var_words:
+            return None
+        best_ep = None
+        best_overlap = 0.0
+        for ep in all_endpoints:
+            ep_words = set(_normalize(ep.get('name', '')).split())
+            ep_words |= set(_normalize(ep.get('text', '')).split())
+            if not ep_words:
+                continue
+            overlap = len(var_words & ep_words) / max(len(var_words), len(ep_words))
+            if overlap > best_overlap and overlap > 0.3:
+                best_overlap = overlap
+                best_ep = ep
+        return best_ep
+
+    reconciled = 0
+    for est in estimands:
+        current_id = est.get('variableOfInterestId', '')
+        if current_id in ep_ids:
+            continue  # Already valid
+
+        match = _find_best_endpoint(est)
+        if match:
+            est['variableOfInterestId'] = match['id']
+            reconciled += 1
+            logger.info(
+                f"  Reconciled estimand '{est.get('name', '?')[:40]}' "
+                f"endpoint → '{match.get('name', '?')[:40]}'"
+            )
+        else:
+            # Last resort: assign the first endpoint to avoid dangling ref
+            if all_endpoints:
+                est['variableOfInterestId'] = all_endpoints[0]['id']
+                reconciled += 1
+                logger.info(
+                    f"  Fallback: estimand '{est.get('name', '?')[:40]}' "
+                    f"→ first endpoint '{all_endpoints[0].get('name', '?')[:40]}'"
+                )
+
+    if reconciled:
+        logger.info(f"  Reconciled {reconciled}/{len(estimands)} estimand → endpoint references")

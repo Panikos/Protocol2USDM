@@ -82,8 +82,7 @@ class MetadataPhase(BasePhase):
             study_version["studyIdentifiers"] = [i.to_dict() for i in md.identifiers]
             study_version["organizations"] = [o.to_dict() for o in md.organizations]
             if md.study_phase:
-                study_version["studyPhase"] = md.study_phase.to_dict()
-                # H3: Copy studyPhase to study_design (USDM expects it there)
+                # H3: studyPhase belongs on StudyDesign per USDM v4.0 schema
                 study_design["studyPhase"] = md.study_phase.to_dict()
             # C1: Map protocolVersion → versionIdentifier
             if md.protocol_version:
@@ -207,8 +206,7 @@ class MetadataPhase(BasePhase):
                 if md.get('organizations'):
                     study_version["organizations"] = md['organizations']
                 if md.get('studyPhase'):
-                    study_version["studyPhase"] = md['studyPhase']
-                    # H3: Copy studyPhase to study_design (fallback path)
+                    # H3: studyPhase belongs on StudyDesign per USDM v4.0 (fallback path)
                     study_design["studyPhase"] = md['studyPhase']
                 # C1: Map protocolVersion → versionIdentifier (fallback path)
                 if md.get('protocolVersion'):

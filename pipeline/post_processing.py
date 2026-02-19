@@ -944,20 +944,13 @@ def link_ingredient_strengths(combined: dict) -> dict:
 
 
 def link_cohorts_to_population(combined: dict) -> dict:
-    """M3/M9: Link studyCohorts to StudyDesignPopulation.cohortIds."""
-    try:
-        study_design = combined.get("study", {}).get("versions", [{}])[0].get("studyDesigns", [{}])[0]
-        cohorts = study_design.get("studyCohorts", [])
-        population = study_design.get("population")
-        
-        if cohorts and population:
-            cohort_ids = [c.get("id") for c in cohorts if c.get("id")]
-            if cohort_ids and not population.get("cohortIds"):
-                population["cohortIds"] = cohort_ids
-                logger.info(f"  ✓ Linked {len(cohort_ids)} cohort(s) to population (M3/M9)")
-    except Exception as e:
-        logger.warning(f"  ⚠ Cohort-population linking skipped: {e}")
-    
+    """M3/M9: Cohort→Population linkage (no-op since P4 nest_cohorts_in_population handles it).
+
+    Previously emitted non-USDM ``cohortIds`` on StudyDesignPopulation.
+    USDM v4.0 schema uses inline ``cohorts[]`` (Value relationship) on
+    StudyDesignPopulation, which ``nest_cohorts_in_population()`` handles.
+    Kept as a callable for backward compatibility with the combiner pipeline.
+    """
     return combined
 
 

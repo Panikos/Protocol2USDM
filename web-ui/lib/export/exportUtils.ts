@@ -156,7 +156,7 @@ export function formatUSDMForExport(usdm: Record<string, unknown>): {
   const metadata = {
     studyTitle: version?.studyTitle ?? '',
     studyAcronym: version?.studyAcronym ?? '',
-    studyPhase: version?.studyPhase ?? '',
+    studyPhase: (studyDesign as Record<string, unknown>)?.studyPhase ?? '',
     protocolVersion: version?.protocolVersion ?? '',
   };
 

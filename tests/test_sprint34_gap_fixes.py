@@ -135,9 +135,11 @@ class TestM2AssignedPersons:
 # ---------------------------------------------------------------------------
 
 class TestM3M9CohortPopulationLink:
-    """M3/M9: Link cohorts to population via post-processing."""
+    """M3/M9: Cohort→Population linkage. link_cohorts_to_population is now a
+    no-op (cohortIds is non-USDM). nest_cohorts_in_population handles the
+    USDM-compliant inline cohorts[] relationship."""
 
-    def test_link_cohorts_to_population(self):
+    def test_link_cohorts_is_noop(self):
         from pipeline.post_processing import link_cohorts_to_population
         combined = {
             "study": {"versions": [{"studyDesigns": [{
@@ -150,31 +152,22 @@ class TestM3M9CohortPopulationLink:
         }
         result = link_cohorts_to_population(combined)
         pop = result["study"]["versions"][0]["studyDesigns"][0]["population"]
-        assert pop["cohortIds"] == ["cohort_1", "cohort_2"]
+        assert "cohortIds" not in pop  # No longer emitted (non-USDM)
 
-    def test_no_link_when_no_cohorts(self):
-        from pipeline.post_processing import link_cohorts_to_population
+    def test_nest_cohorts_in_population(self):
+        from pipeline.post_processing import nest_cohorts_in_population
         combined = {
             "study": {"versions": [{"studyDesigns": [{
-                "studyCohorts": [],
+                "studyCohorts": [
+                    {"id": "cohort_1", "name": "Cohort A"},
+                    {"id": "cohort_2", "name": "Cohort B"},
+                ],
                 "population": {"id": "pop_1", "name": "ITT"},
             }]}]},
         }
-        result = link_cohorts_to_population(combined)
+        result = nest_cohorts_in_population(combined)
         pop = result["study"]["versions"][0]["studyDesigns"][0]["population"]
-        assert "cohortIds" not in pop
-
-    def test_no_overwrite_existing_cohort_ids(self):
-        from pipeline.post_processing import link_cohorts_to_population
-        combined = {
-            "study": {"versions": [{"studyDesigns": [{
-                "studyCohorts": [{"id": "cohort_1"}],
-                "population": {"id": "pop_1", "cohortIds": ["existing"]},
-            }]}]},
-        }
-        result = link_cohorts_to_population(combined)
-        pop = result["study"]["versions"][0]["studyDesigns"][0]["population"]
-        assert pop["cohortIds"] == ["existing"]  # Not overwritten
+        assert len(pop.get("cohorts", [])) == 2  # USDM-compliant inline nesting
 
 
 # ---------------------------------------------------------------------------
