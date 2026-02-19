@@ -42,9 +42,10 @@ def run_trial(trial_dir: Path, model: str = "gemini-3-flash-preview") -> dict:
         return {"trial": trial_dir.name, "status": "skipped", "reason": "No protocol PDF found"}
     
     cmd = [
-        sys.executable, "main_v2.py",
+        sys.executable, "main_v3.py",
         str(protocol),
         "--complete",
+        "--parallel",
         "--model", model
     ]
     
