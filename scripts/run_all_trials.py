@@ -77,19 +77,27 @@ def run_trial(trial_dir: Path, version: str = "v800") -> dict:
         )
         elapsed = time.time() - start_time
         
-        # Print stdout/stderr live
+        # Print last portion of stdout
         if result.stdout:
             print(result.stdout[-2000:] if len(result.stdout) > 2000 else result.stdout)
-        if result.returncode != 0 and result.stderr:
+        
+        # Check for actual output as success indicator (exit code 1 is common
+        # even on successful runs due to SoA success flag)
+        usdm_path = Path(result.cwd if hasattr(result, 'cwd') else Path(__file__).parent.parent) / output_dir / "protocol_usdm.json"
+        output_exists = usdm_path.exists()
+        
+        if result.returncode != 0 and not output_exists and result.stderr:
             print(f"\nSTDERR (last 2000 chars):\n{result.stderr[-2000:]}")
+        
+        status = "success" if output_exists else "failed"
         
         return {
             "trial": trial_dir.name,
-            "status": "success" if result.returncode == 0 else "failed",
+            "status": status,
             "exit_code": result.returncode,
             "elapsed_seconds": round(elapsed, 1),
             "output_dir": output_dir,
-            "error_tail": result.stderr[-500:] if result.returncode != 0 and result.stderr else None
+            "error_tail": result.stderr[-500:] if not output_exists and result.stderr else None
         }
     except Exception as e:
         return {
