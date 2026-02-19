@@ -119,14 +119,27 @@ class StudyChange:
     instance_type: str = "StudyChange"
     
     def to_dict(self) -> Dict[str, Any]:
+        from core.id_utils import generate_uuid
         name = self.summary or f"{self.change_type.value} in {self.section_number or 'protocol'}"
         rationale = self.after_text or self.before_text or name
-        sections = [self.section_number] if self.section_number else ["N/A"]
+        summary = self.summary or name
+        sec_num = self.section_number or "N/A"
+        sec_title = f"Section {sec_num}" if sec_num != "N/A" else "Protocol"
+        changed_sections = [{
+            "id": generate_uuid(),
+            "sectionNumber": sec_num,
+            "sectionTitle": sec_title,
+            "appliesToId": self.amendment_id,
+            "instanceType": "DocumentContentReference",
+        }]
         return {
             "id": self.id,
             "name": name,
+            "label": name,
+            "description": rationale,
+            "summary": summary,
             "rationale": rationale,
-            "changedSections": sections,
+            "changedSections": changed_sections,
             "instanceType": self.instance_type,
         }
 

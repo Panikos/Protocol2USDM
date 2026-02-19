@@ -197,7 +197,13 @@ class Administration:
                     "instanceType": "Code",
                 }
         if self.duration:
-            result["duration"] = self.duration
+            result["duration"] = {
+                "id": generate_uuid(),
+                "text": self.duration,
+                "durationWillVary": True,
+                "reasonDurationWillVary": self.duration,
+                "instanceType": "Duration",
+            }
         if self.description:
             result["description"] = self.description
         return result
@@ -414,7 +420,8 @@ class StudyIntervention:
         if self.minimum_response_duration:
             result["minimumResponseDuration"] = {
                 "id": generate_uuid(),
-                "value": self.minimum_response_duration,
+                "text": self.minimum_response_duration,
+                "durationWillVary": False,
                 "instanceType": "Duration",
             }
         # L4: Notes

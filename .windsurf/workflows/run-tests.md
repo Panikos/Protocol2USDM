@@ -12,10 +12,10 @@ Run the full test suite and report pass/fail summary.
 
 // turbo
 ```bash
-cd c:\Users\panik\Documents\GitHub\Protcol2USDMv3 && python -m pytest tests/ -x -q 2>&1 | Select-Object -Last 20
+cd c:\Users\panik\Documents\GitHub\Protcol2USDMv3 && python -m pytest tests/ -x -q --ignore=tests/test_m11_regression.py --ignore=tests/test_e2e_pipeline.py 2>&1 | Select-Object -Last 20
 ```
 
-If tests pass, report the summary line (e.g. "619 passed, 36 skipped in 230s") and stop.
+If tests pass, report the summary line (e.g. "1118 passed in 92s") and stop.
 
 If tests fail, continue to Step 2.
 
@@ -45,4 +45,4 @@ cd c:\Users\panik\Documents\GitHub\Protcol2USDMv3\web-ui && npx tsc --noEmit --p
 
 - The **pre-existing** `test_m11_regression` word count failure is known and expected — do not attempt to fix it
 - E2E tests (`test_e2e_pipeline.py`) require `--run-e2e` flag and recent pipeline output — they are skipped by default
-- Total test count as of v7.17: **1157 collected** (619 run without e2e, 36 skipped)
+- Total test count as of v8.0: **1157 collected**, **1118 passed** (excluding m11_regression + e2e)

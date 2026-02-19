@@ -308,9 +308,23 @@ def reconcile_estimand_population_refs(study_design: dict) -> None:
                 f"(old: {old_id[:12]}…)"
             )
         else:
-            logger.warning(
-                f"  Could not reconcile estimand '{est.get('name', '?')[:40]}' "
-                f"population '{pop_text[:50]}' — no matching analysisPopulation found"
+            # Create a new AnalysisPopulation so the reference resolves
+            import uuid as _uuid
+            new_pop = {
+                "id": str(_uuid.uuid4()),
+                "name": pop_text[:80] or "Analysis Population",
+                "label": pop_text[:40] or "Analysis Population",
+                "description": pop_text or "Analysis population referenced by estimand",
+                "text": pop_text or "Analysis population referenced by estimand",
+                "instanceType": "AnalysisPopulation",
+            }
+            populations.append(new_pop)
+            pop_ids.add(new_pop["id"])
+            est['analysisPopulationId'] = new_pop['id']
+            reconciled += 1
+            logger.info(
+                f"  Created AnalysisPopulation for estimand '{est.get('name', '?')[:40]}' "
+                f"population '{pop_text[:50]}'"
             )
     
     if reconciled:

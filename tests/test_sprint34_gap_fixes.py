@@ -200,7 +200,7 @@ class TestM4MinimumResponseDuration:
         )
         d = si.to_dict()
         assert "minimumResponseDuration" in d
-        assert d["minimumResponseDuration"]["value"] == "24 weeks"
+        assert d["minimumResponseDuration"]["text"] == "24 weeks"
         assert d["minimumResponseDuration"]["instanceType"] == "Duration"
 
     def test_to_dict_omits_when_none(self):

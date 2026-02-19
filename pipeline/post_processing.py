@@ -2714,7 +2714,8 @@ def _ensure_leaf_activity_procedures(study_design: Dict[str, Any]) -> int:
             "name": act_name,
             "label": act_name,
             "description": act_name,
-            "procedureType": {
+            "procedureType": "Clinical Procedure",
+            "code": {
                 "id": str(uuid.uuid4()),
                 "code": "C25218",
                 "codeSystem": "http://www.cdisc.org",
@@ -2789,12 +2790,21 @@ def _fix_empty_amendment_changes(combined: dict) -> int:
         changes = amend.get("changes", [])
         if isinstance(changes, list) and len(changes) == 0:
             change_name = amend.get("summary") or amend.get("name") or "Amendment change"
+            rationale = amend.get("summary") or "See amendment summary"
             amend["changes"] = [{
                 "id": str(uuid.uuid4()),
                 "name": change_name,
-                "description": change_name,
-                "rationale": amend.get("summary") or "See amendment summary",
-                "changedSections": [],
+                "label": change_name,
+                "description": rationale,
+                "summary": change_name,
+                "rationale": rationale,
+                "changedSections": [{
+                    "id": str(uuid.uuid4()),
+                    "sectionNumber": "N/A",
+                    "sectionTitle": "Protocol",
+                    "appliesToId": amend.get("id", str(uuid.uuid4())),
+                    "instanceType": "DocumentContentReference",
+                }],
                 "instanceType": "StudyChange",
             }]
             fixed += 1

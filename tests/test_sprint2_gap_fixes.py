@@ -563,7 +563,9 @@ class TestAdministrationIntegration:
         # Route as Code (upgraded)
         assert d["route"]["instanceType"] == "Code"
         # Other fields
-        assert d["duration"] == "24 weeks"
+        assert d["duration"]["instanceType"] == "Duration"
+        assert d["duration"]["text"] == "24 weeks"
+        assert d["duration"]["durationWillVary"] is True
         assert d["description"] == "Oral administration"
 
     def test_interventions_data_to_dict_includes_structured_dose(self):

@@ -17,20 +17,23 @@ def find_trial_files(trial_dir: Path) -> tuple[Path | None, Path | None, Path | 
     for f in trial_dir.iterdir():
         name_lower = f.name.lower()
         if f.suffix.lower() == '.pdf':
-            if 'sap' in name_lower:
+            has_prot = 'protocol' in name_lower or 'prot_' in name_lower or name_lower.startswith('prot_')
+            has_sap = 'sap' in name_lower
+            if has_prot and has_sap:
+                # Combined Protocol+SAP file — use as both
+                protocol = f
                 sap = f
-            elif 'protocol' in name_lower or not sap:
-                # Prefer files with 'protocol' in name, otherwise use first PDF
-                if 'protocol' in name_lower or protocol is None:
-                    if 'sap' not in name_lower:
-                        protocol = f
+            elif has_sap:
+                sap = f
+            elif has_prot or protocol is None:
+                protocol = f
         elif f.suffix.lower() == '.csv' and 'site' in name_lower:
             sites = f
     
-    # If no protocol found but we have PDFs, use the non-SAP one
+    # If no protocol found but we have PDFs, use the first one
     if protocol is None:
         for f in trial_dir.iterdir():
-            if f.suffix.lower() == '.pdf' and 'sap' not in f.name.lower():
+            if f.suffix.lower() == '.pdf':
                 protocol = f
                 break
     

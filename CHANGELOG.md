@@ -4,6 +4,26 @@ All notable changes documented here. Dates in ISO-8601.
 
 ---
 
+## [8.0.1] – 2026-02-19
+
+**USDM Schema Compliance Fixes** — Cross-validated all output entities against the official `usdm_model` Pydantic package and `dataStructure.yml`. Eliminates ~88% of schema validation errors across 34 trials.
+
+### Fixes (verified against `usdm_model` + `dataStructure.yml`)
+- **FIX-1**: `Procedure.procedureType` — changed from Code dict to plain string (731 hits, 34/34 trials) — `pipeline/post_processing.py`
+- **FIX-2**: `StudyChange` — added missing `summary`, `label`, `description` fields; converted `changedSections` from `str[]` to `DocumentContentReference[]` (513 hits, 34/34) — `extraction/amendments/schema.py`, `pipeline/post_processing.py`
+- **FIX-3**: `Administration.duration` — wrapped string in proper `Duration{text, durationWillVary}` object; also fixed `StudyIntervention.minimumResponseDuration` (117 hits, 33/34) — `extraction/interventions/schema.py`
+- **FIX-4**: `Estimand.analysisPopulationId` — create `AnalysisPopulation` on-the-fly when no match found, with required `text` field (66 hits, 21/34) — `pipeline/integrations.py`
+
+### Analysis Tooling
+- New `scripts/analyze_validation_errors.py` — aggregates schema, USDM, integrity, and CORE findings across all trial outputs
+- New `scripts/trace_errors.py` — traces root cause of validation errors to specific code paths
+
+### Test Results
+- 1118 passed, 0 failed (excl. pre-existing M11 regression)
+- Updated duration assertions in `test_sprint2_gap_fixes.py`, `test_sprint34_gap_fixes.py`
+
+---
+
 ## [8.0.0] – 2026-02-19
 
 **Major version bump** — 33 commits of significant architectural and UI changes since the v7.17 baseline.
