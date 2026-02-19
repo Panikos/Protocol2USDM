@@ -2,7 +2,7 @@
 
 **v8.0** | One-page command reference
 
-> **Current:** Encounter→epoch resolution via `ScheduledActivityInstance` bridge, UNS detached in graph + state machine + traversal constraints, InterventionsView aligned to USDM v4.0 nested structure, estimand ID→name resolution, boolean Yes/No display, randomization from `subTypes[]`, substance type from linked intervention, amendment changes human-readable, procedures filter non-clinical, numeric footnote markers, CORE compliance log-only audit mode (`compliance_log.json` + Validation UI card), 11 automated CDISC CORE fixes. Reviewer v9 Org/Site alignment, P3–P7 structural compliance, 1157 tests / 1118 passing, M11 DOCX rendering, phase registry (`main_v3.py`), `gemini-3-flash-preview` default.
+> **Current:** Encounter→epoch resolution via `ScheduledActivityInstance` bridge, UNS detached in graph + state machine + traversal constraints, InterventionsView aligned to USDM v4.0 nested structure, estimand ID→name resolution, boolean Yes/No display, randomization from `subTypes[]`, substance type from linked intervention, amendment changes human-readable, procedures filter non-clinical, numeric footnote markers, CORE compliance log-only audit mode (`compliance_log.json` + Validation UI card), 11 automated CDISC CORE fixes. Reviewer v9 Org/Site alignment, P3–P7 structural compliance, 1117 tests passing, v8.0.1–v8.0.2 schema compliance fixes, M11 DOCX rendering, phase registry (`main_v3.py`), `gemini-3-flash-preview` default.
 
 ---
 

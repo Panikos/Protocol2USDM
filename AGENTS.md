@@ -110,9 +110,9 @@ SAP extraction includes CDISC ARS linkage via `extraction/conditional/ars_genera
 ### 2.1 Pipeline Phases
 The extraction pipeline (`pipeline/orchestrator.py`) uses a registry-driven phase system with dependency resolution and parallel execution waves. The combine/post-processing logic is decomposed into focused modules:
 - **`pipeline/orchestrator.py`** (332 lines) — `PipelineOrchestrator` class, dependency graph, parallel wave execution
-- **`pipeline/combiner.py`** (420 lines) — `combine_to_full_usdm()`, USDM defaults, SoA data integration
-- **`pipeline/integrations.py`** (289 lines) — SAP/sites integration, content reference resolution, estimand→population reconciliation
-- **`pipeline/post_processing.py`** (~810 lines) — Entity reconciliation (epochs, encounters, activities), activity source marking, procedure linking, SoA footnotes, cohort→population linking, UNS tagging + UNS→SDI promotion
+- **`pipeline/combiner.py`** (640 lines) — `combine_to_full_usdm()`, USDM defaults, SoA data integration
+- **`pipeline/integrations.py`** (432 lines) — SAP/sites integration, content reference resolution, estimand→population reconciliation, estimand→endpoint reconciliation
+- **`pipeline/post_processing.py`** (~2962 lines) — Entity reconciliation (epochs, encounters, activities), activity source marking, procedure linking, SoA footnotes, cohort→population nesting, UNS tagging + UNS→SDI promotion
 - **`pipeline/promotion.py`** (260 lines) — Extension→USDM promotion rules (4 rules: sample size, completers, sex, age)
 
 | Phase | Module | M11 §§ | Key USDM Entities | Dependencies |

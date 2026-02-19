@@ -91,8 +91,13 @@ Unscheduled visits rendered as **isolated islands** in graph view and state mach
 - **blindingSchema** output as proper `AliasCode` with `standardCode`
 - **Activity groups** promoted to parent `Activity` with `childIds`
 
+### 🛡️ USDM Schema Compliance (v8.0.1–v8.0.2)
+- **FIX-1–FIX-5**: 5 architectural fixes eliminating ~88% of schema validation errors across 34 trials
+- **CORE property cleanup**: Removed 4 non-USDM properties (`doseFrequency`, `studyPhase` on version, `administrationIds`, `cohortIds`)
+- **Estimand→Endpoint reconciliation**: `variableOfInterestId` matched to real endpoint IDs via name/level/fuzzy matching
+
 ### 🧪 Testing
-- **1157 tests** collected, 1118 passed, 0 failures
+- **1117 tests** passed, 0 failures
 
 <details>
 <summary><b>v7.17 — Reviewer Fixes P3–P7, Org/Site Alignment, Schema Compliance</b></summary>
@@ -690,7 +695,7 @@ Protocol2USDMv3/
 │   └── m11_conformance.py    # M11 conformance scoring
 ├── enrichment/               # Terminology enrichment
 │   └── terminology.py        # NCI EVS enrichment
-├── tests/                    # 1157 tests (unit + e2e)
+├── tests/                    # 1117 tests (unit + e2e)
 │   ├── test_extractors.py    # Mocked LLM extractor tests (58)
 │   ├── test_composers.py     # M11 composer tests (22)
 │   ├── test_pipeline_context.py # PipelineContext tests (48)
@@ -719,7 +724,7 @@ For detailed architecture, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 ## Testing
 
 ```bash
-# Run all unit tests (1157 collected, ~3 min)
+# Run all unit tests (1117 collected, ~3 min)
 python -m pytest tests/ -v
 
 # Run with coverage report
@@ -822,7 +827,7 @@ The following items are planned for upcoming releases:
 - [x] **Provenance Tracking** (E14): PhaseProvenance for all phases *(completed v7.4)*
 - [x] **Prompt Versioning** (E15): SHA-256 hashes in run manifest *(completed v7.4)*
 - [x] **ICH M11 Document Rendering**: DOCX generation with 9 entity composers *(completed v7.3)*
-- [x] **Testing Infrastructure**: 1157 tests, mocked LLM tests *(completed v7.3–v8.0)*
+- [x] **Testing Infrastructure**: 1117 tests, mocked LLM tests *(completed v7.3–v8.0)*
 - [x] **Pipeline Decomposition**: combiner/integrations/post_processing/promotion *(completed v7.3)*
 - [x] **Web UI Semantic Editing**: JSON Patch editing with draft/publish workflow *(completed v7.2.1)*
 - [x] **Execution Model Promotion**: Native USDM entities instead of extensions *(completed v7.2)*
