@@ -8,6 +8,19 @@ When invoked, automatically gather context, identify stale docs, make edits, ver
 
 ---
 
+## Step 0: Propagate version from constants.py to all docs
+
+**Always run this first.** `core/constants.py` → `VERSION` is the single source of truth. This script patches all doc files to match.
+
+// turbo
+```bash
+cd c:\Users\panik\Documents\GitHub\Protcol2USDMv3 && python scripts/propagate_version.py --apply
+```
+
+If the script reports changes, they are already written. Continue to Step 1.
+
+---
+
 ## Step 1: Gather context — what changed recently
 
 Run these commands to understand the current state:
