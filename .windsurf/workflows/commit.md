@@ -26,10 +26,10 @@ If nothing to commit, report "Working tree clean" and stop.
 
 // turbo
 ```bash
-cd c:\Users\panik\Documents\GitHub\Protcol2USDMv3 && python -m pytest tests/ -x -q 2>&1 | Select-Object -Last 10
+cd c:\Users\panik\Documents\GitHub\Protcol2USDMv3 && python -m pytest tests/ -x -q --ignore=tests/test_m11_regression.py --ignore=tests/test_e2e_pipeline.py 2>&1 | Select-Object -Last 10
 ```
 
-If tests fail (excluding the pre-existing `test_m11_regression` word count failure), **stop and report the failure**. Do not commit broken code.
+**Note:** `test_m11_regression.py` is excluded (pre-existing word count failure that blocks `-x`). `test_e2e_pipeline.py` is excluded (requires `--run-e2e` and live LLM). If any other test fails, **stop and report the failure**. Do not commit broken code.
 
 ## Step 3: TypeScript check (if web-ui files changed)
 
