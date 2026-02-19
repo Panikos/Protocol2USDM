@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Run full pipeline for all trials in input/trial directory."""
 
+import argparse
 import json
 import subprocess
 import sys
@@ -107,7 +108,13 @@ def run_trial(trial_dir: Path, version: str = "v800") -> dict:
         }
 
 def main():
-    input_dir = Path(__file__).parent.parent / "input" / "trial"
+    parser = argparse.ArgumentParser(description="Run pipeline for all trials")
+    parser.add_argument("--version", default="v800", help="Version tag for output dirs (default: v800)")
+    parser.add_argument("--resume", action="store_true", help="Skip trials that already have protocol_usdm.json")
+    args = parser.parse_args()
+    
+    base_dir = Path(__file__).parent.parent
+    input_dir = base_dir / "input" / "trial"
     
     if not input_dir.exists():
         print(f"Error: {input_dir} does not exist")
@@ -115,11 +122,21 @@ def main():
     
     trials = sorted([d for d in input_dir.iterdir() if d.is_dir()])
     print(f"Found {len(trials)} trials to process")
+    if args.resume:
+        print(f"Resume mode: will skip trials with existing output")
     
     results = []
     for i, trial_dir in enumerate(trials, 1):
+        # Check if already completed (resume mode)
+        if args.resume:
+            out_path = base_dir / "output" / f"{trial_dir.name}_{args.version}" / "protocol_usdm.json"
+            if out_path.exists():
+                print(f"\n[{i}/{len(trials)}] SKIP {trial_dir.name} (already completed)")
+                results.append({"trial": trial_dir.name, "status": "success", "elapsed_seconds": 0, "output_dir": str(out_path.parent.relative_to(base_dir)), "resumed": True})
+                continue
+        
         print(f"\n[{i}/{len(trials)}] Processing {trial_dir.name}...")
-        result = run_trial(trial_dir)
+        result = run_trial(trial_dir, version=args.version)
         results.append(result)
         
         # Print summary after each trial
