@@ -50,6 +50,7 @@ class GeminiProvider(LLMProvider):
     
     SUPPORTED_MODELS = [
         # Gemini 3.x (preview) - use -preview suffix on Vertex AI
+        'gemini-3.1-pro-preview',
         'gemini-3-pro', 'gemini-3-flash', 'gemini-3-pro-preview', 'gemini-3-flash-preview',
         # Gemini 2.5 (stable)
         'gemini-2.5-pro', 'gemini-2.5-flash',
@@ -66,10 +67,11 @@ class GeminiProvider(LLMProvider):
     VERTEX_MODEL_ALIASES = {
         'gemini-3-flash': 'gemini-3-flash-preview',
         'gemini-3-pro': 'gemini-3-pro-preview',
+        'gemini-3.1-pro': 'gemini-3.1-pro-preview',
     }
     
     # Models that require global endpoint (not regional like us-central1)
-    GLOBAL_ENDPOINT_MODELS = ['gemini-3-flash', 'gemini-3-pro', 'gemini-3-flash-preview', 'gemini-3-pro-preview']
+    GLOBAL_ENDPOINT_MODELS = ['gemini-3.1-pro-preview', 'gemini-3.1-pro', 'gemini-3-flash', 'gemini-3-pro', 'gemini-3-flash-preview', 'gemini-3-pro-preview']
     
     # Models that are only available via AI Studio (not Vertex AI)
     AI_STUDIO_ONLY_MODELS = []  # Empty - route all models through Vertex AI when available

@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs/promises';
+import { createReadStream } from 'fs';
+import { Readable } from 'stream';
 import path from 'path';
 import { validateProtocolId, validateFilename, ensureWithinRoot } from '@/lib/sanitize';
 
@@ -155,8 +157,8 @@ export async function GET(
       });
     }
     
-    // Stream the file
-    const content = await fs.readFile(filePath);
+    // Stream the file — use createReadStream + native Response to avoid
+    // NextResponse truncating large binary Buffer payloads (Next.js 16 bug).
     const forceDownload = url.searchParams.get('download') === 'true';
     
     const mimeTypes: Record<string, string> = {
@@ -174,7 +176,10 @@ export async function GET(
     // use 'attachment' only when the user explicitly requests a download.
     const disposition = forceDownload ? 'attachment' : 'inline';
     
-    return new NextResponse(content, {
+    const nodeStream = createReadStream(filePath);
+    const webStream = Readable.toWeb(nodeStream) as ReadableStream;
+    
+    return new Response(webStream, {
       headers: {
         'Content-Type': contentType,
         'Content-Disposition': `${disposition}; filename="${filename}"`,

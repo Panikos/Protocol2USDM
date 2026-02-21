@@ -79,17 +79,20 @@ class TokenUsageTracker:
     
     def print_summary(self, model: str = "claude-opus-4-5"):
         """Print a formatted summary with cost estimates (thread-safe)."""
-        # Pricing per million tokens (as of Jan 2025)
+        # Pricing per million tokens (as of Feb 2026)
         pricing = {
             # Claude models
             "claude-opus-4-5": (15.0, 75.0),
             "claude-sonnet-4": (3.0, 15.0),
             "claude-3-5-sonnet": (3.0, 15.0),
-            # Gemini models (much cheaper)
-            "gemini-2.5-pro": (1.25, 10.0),
-            "gemini-2.5-flash": (0.075, 0.30),
+            # Gemini models
+            "gemini-3.1-pro-preview": (2.00, 12.00),
+            "gemini-3-pro": (1.25, 10.0),
+            "gemini-3-pro-preview": (1.25, 10.0),
             "gemini-3-flash": (0.50, 3.00),
             "gemini-3-flash-preview": (0.50, 3.00),
+            "gemini-2.5-pro": (1.25, 10.0),
+            "gemini-2.5-flash": (0.075, 0.30),
             # OpenAI models
             "gpt-4o": (2.50, 10.0),
             "gpt-4o-mini": (0.15, 0.60),
