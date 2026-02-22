@@ -79,6 +79,7 @@ class ValidationResult:
     model_used: str = ""
     raw_response: str = ""
     error: Optional[str] = None
+    cell_footnotes: dict = field(default_factory=dict)  # "activityId|timepointId" -> ["a", "b"]
     
     @property
     def hallucination_count(self) -> int:
@@ -123,13 +124,15 @@ TICKS TO VERIFY:
 {context_section}
 
 For each tick, check if you can see a mark (X, ✓, •, or similar) in the corresponding cell.
+ALSO: If a tick mark has superscript footnote letters (e.g., X^a, ✓^m,n, X^a,b,c), capture them in "footnoteRefs".
 
 OUTPUT FORMAT:
 Return a JSON object:
 {{
   "verified_ticks": [
     {{"activity_id": "act_1", "timepoint_id": "pt_1", "visible": true, "confidence": 0.95}},
-    {{"activity_id": "act_2", "timepoint_id": "pt_3", "visible": false, "confidence": 0.8, "reason": "Cell appears empty"}}
+    {{"activity_id": "act_2", "timepoint_id": "pt_3", "visible": true, "confidence": 0.9, "footnoteRefs": ["a", "b"]}},
+    {{"activity_id": "act_3", "timepoint_id": "pt_5", "visible": false, "confidence": 0.8, "reason": "Cell appears empty"}}
   ],
   "possible_missed_ticks": [
     {{"activity_id": "act_5", "timepoint_id": "pt_2", "confidence": 0.7, "reason": "Visible mark not in provided list"}}
@@ -144,6 +147,9 @@ CRITICAL RULES:
 - Confidence should reflect your certainty (0-1)
 - Only report missed_ticks if you're reasonably confident (>0.6)
 - Focus on accuracy over completeness
+- If a tick has superscript letters (a, b, c, ... or 1, 2, 3, ...), include "footnoteRefs": ["a", "b"] etc.
+  These are footnote references that appear as small raised characters next to the tick mark.
+  Only include if you can clearly see superscript markers. Omit the field if no superscript is present.
 
 Output ONLY the JSON object."""
 
@@ -245,9 +251,19 @@ def validate_extraction(
         
         data = parse_llm_json(result['response'], fallback={})
         
+        # Collect footnote refs from validated ticks
+        cell_footnotes = {}  # "activityId|timepointId" -> ["a", "b"]
+        
         for tick in data.get('verified_ticks', []):
             if tick.get('visible', True):
                 confirmed += 1
+                # Capture footnote refs from image validation
+                fn_refs = tick.get('footnoteRefs', [])
+                if fn_refs:
+                    act_id = tick.get('activity_id', '')
+                    tp_id = tick.get('timepoint_id', '')
+                    if act_id and tp_id:
+                        cell_footnotes[f"{act_id}|{tp_id}"] = fn_refs
             else:
                 # Potential hallucination
                 act_id = tick.get('activity_id', '')
@@ -275,6 +291,9 @@ def validate_extraction(
                 details=missed.get('reason', 'Visible in image but not in text'),
             ))
         
+        if cell_footnotes:
+            logger.info(f"  Captured {len(cell_footnotes)} cell-level footnote markers from image validation")
+        
         return ValidationResult(
             success=True,
             issues=issues,
@@ -282,6 +301,7 @@ def validate_extraction(
             total_ticks_checked=len(text_ticks),
             model_used=model_name,
             raw_response=result['response'],
+            cell_footnotes=cell_footnotes,
         )
         
     except Exception as e:

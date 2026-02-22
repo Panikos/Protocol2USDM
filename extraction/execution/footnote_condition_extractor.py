@@ -577,7 +577,10 @@ Return ONLY the JSON."""
         
         conditions = []
         for item in data.get('conditions', []):
-            idx = item.get('footnoteIndex', 0) - 1
+            try:
+                idx = int(item.get('footnoteIndex', 0)) - 1
+            except (ValueError, TypeError):
+                continue
             if 0 <= idx < len(footnotes):
                 conditions.append(FootnoteCondition(
                     id=f"fn_cond_llm_{idx+1}",

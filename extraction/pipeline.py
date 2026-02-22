@@ -331,6 +331,16 @@ def run_extraction_pipeline(
                 provenance.merge(val_provenance)
                 result.ticks_count = len(final_ticks)
                 
+                # Merge cell-level footnote refs captured from image validation
+                if validation.cell_footnotes:
+                    for cell_key, fn_refs in validation.cell_footnotes.items():
+                        parts = cell_key.split('|', 1)
+                        if len(parts) == 2:
+                            existing = provenance.get_cell_footnotes(parts[0], parts[1])
+                            merged = list(set(existing + fn_refs))
+                            provenance.tag_cell_footnotes(parts[0], parts[1], merged)
+                    logger.info(f"  Merged {len(validation.cell_footnotes)} cell footnote markers from image validation into provenance")
+                
                 logger.info(f"  Validation complete: {validation.confirmed_ticks} confirmed, "
                            f"{validation.hallucination_count} possible hallucinations, "
                            f"{validation.missed_count} possibly missed")
