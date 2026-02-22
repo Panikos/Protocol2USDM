@@ -24,6 +24,7 @@ Usage:
 import json
 import base64
 import logging
+import random
 from pathlib import Path
 from typing import List, Optional, Tuple
 from dataclasses import dataclass
@@ -318,9 +319,9 @@ def _analyze_with_gemini(
             'data': base64.b64encode(img_bytes.getvalue()).decode('utf-8')
         })
     
-    # Retry configuration
-    max_retries = 3
-    initial_backoff = 5
+    # Retry configuration (aligned with providers/base.py)
+    max_retries = 5
+    initial_backoff = 10
     
     def call_api_gemini3(images_data: List[dict]) -> Tuple[str, HeaderStructure]:
         """Make API call using google-genai SDK for Gemini 3."""
@@ -425,8 +426,9 @@ def _analyze_with_gemini(
                 is_rate_limit = '429' in error_str or 'rate' in error_str or 'exhausted' in error_str or 'quota' in error_str
                 
                 if is_rate_limit and attempt < max_retries:
-                    wait_time = min(initial_backoff * (2 ** attempt), 60)
-                    logger.warning(f"Rate limit in header analysis, retrying in {wait_time}s (attempt {attempt + 1}/{max_retries + 1})")
+                    jitter = random.uniform(0, initial_backoff * 0.5)
+                    wait_time = min(initial_backoff * (2 ** attempt) + jitter, 120)
+                    logger.warning(f"Rate limit in header analysis, retrying in {wait_time:.1f}s (attempt {attempt + 1}/{max_retries + 1})")
                     time.sleep(wait_time)
                 else:
                     raise

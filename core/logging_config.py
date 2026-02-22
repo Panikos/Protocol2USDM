@@ -93,6 +93,8 @@ def configure_logging(
 
     # File handler (always JSON)
     if log_file:
+        from pathlib import Path
+        Path(log_file).parent.mkdir(parents=True, exist_ok=True)
         fh = logging.FileHandler(log_file, encoding="utf-8")
         fh.setLevel(level)
         fh.setFormatter(JSONFormatter())

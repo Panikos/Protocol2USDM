@@ -10,14 +10,15 @@ from typing import Dict, Generator, List, Optional, Any, Callable
 from dataclasses import dataclass, field
 import asyncio
 import time
+import random
 import logging
 
 _logger = logging.getLogger(__name__)
 
 # Retry configuration for rate limiting (429 errors)
-MAX_RETRIES = 3
-INITIAL_BACKOFF_SECONDS = 5
-MAX_BACKOFF_SECONDS = 60
+MAX_RETRIES = 5
+INITIAL_BACKOFF_SECONDS = 10
+MAX_BACKOFF_SECONDS = 120
 
 
 def _retry_with_backoff(func, max_retries=MAX_RETRIES, initial_backoff=INITIAL_BACKOFF_SECONDS):
@@ -47,8 +48,10 @@ def _retry_with_backoff(func, max_retries=MAX_RETRIES, initial_backoff=INITIAL_B
             is_rate_limit = '429' in error_str or 'rate' in error_str or 'exhausted' in error_str or 'quota' in error_str
             
             if is_rate_limit and attempt < max_retries:
-                wait_time = min(backoff, MAX_BACKOFF_SECONDS)
-                _logger.warning(f"Rate limit hit, retrying in {wait_time}s (attempt {attempt + 1}/{max_retries + 1}): {e}")
+                # Exponential backoff with jitter to prevent thundering herd
+                jitter = random.uniform(0, backoff * 0.5)
+                wait_time = min(backoff + jitter, MAX_BACKOFF_SECONDS)
+                _logger.warning(f"Rate limit hit, retrying in {wait_time:.1f}s (attempt {attempt + 1}/{max_retries + 1}): {e}")
                 time.sleep(wait_time)
                 backoff *= 2  # Exponential backoff
                 last_exception = e

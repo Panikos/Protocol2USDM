@@ -375,7 +375,7 @@ DO NOT wrap in "study" or any other container. Return FLAT JSON only."""
             
             # Generate response
             response = client.generate(messages, config)
-            raw_response = response.content
+            raw_response = response.content or ""
             
             # Parse response
             data = parse_llm_json(raw_response, fallback={})

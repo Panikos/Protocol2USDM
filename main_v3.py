@@ -245,14 +245,21 @@ def _run_expansion_stages(args, output_dir, config, soa_data, phases_to_run, run
         orchestrator = PipelineOrchestrator(usage_tracker=usage_tracker)
 
         if args.parallel:
-            logger.info(f"Parallel mode enabled (max {args.max_workers} workers)")
+            # Auto-reduce workers for rate-limited models (Pro) unless user explicitly set --max-workers
+            effective_workers = args.max_workers
+            is_pro_model = 'pro' in config.model_name.lower() and 'flash' not in config.model_name.lower()
+            if is_pro_model and args.max_workers == 4:  # 4 is the default
+                effective_workers = 2
+                logger.info(f"Parallel mode enabled (auto-reduced to {effective_workers} workers for Pro model to avoid 429 rate limits)")
+            else:
+                logger.info(f"Parallel mode enabled (max {effective_workers} workers)")
             expansion_results = orchestrator.run_phases_parallel(
                 pdf_path=args.pdf_path,
                 output_dir=output_dir,
                 model=config.model_name,
                 phases_to_run=phases_to_run,
                 soa_data=soa_data,
-                max_workers=args.max_workers,
+                max_workers=effective_workers,
                 sap_path=getattr(args, 'sap', None),
                 sites_path=getattr(args, 'sites', None),
             )
