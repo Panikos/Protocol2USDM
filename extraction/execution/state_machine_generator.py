@@ -305,8 +305,8 @@ def _build_from_traversal(
     # Handle crossover-specific transitions
     if crossover and crossover.is_crossover:
         # Find washout state if present
-        washout_states = [s for s in states if 'washout' in s.lower() or 'wash' in s.lower()]
-        period_states = [s for s in states if 'period' in s.lower()]
+        washout_states = [s for s in states if 'washout' in _to_str(s).lower() or 'wash' in _to_str(s).lower()]
+        period_states = [s for s in states if 'period' in _to_str(s).lower()]
         
         if washout_states and len(period_states) >= 2:
             # Add crossover transition through washout

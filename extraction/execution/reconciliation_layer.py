@@ -360,15 +360,19 @@ class ReconciliationLayer:
             
             for seq in crossover.sequences:
                 # Create arm for sequence if needed
-                arm_name = f"Sequence {seq.sequence_name}"
+                # sequences can be strings (e.g. "AB") or objects with .sequence_name
+                seq_name = seq.sequence_name if hasattr(seq, 'sequence_name') else str(seq)
+                arm_name = f"Sequence {seq_name}"
                 if arm_name not in existing_arms:
-                    arm = self._create_arm(seq.sequence_name, arm_name)
+                    arm = self._create_arm(seq_name, arm_name)
                     design.setdefault('arms', []).append(arm)
                     existing_arms[arm_name] = arm
                     logger.info(f"Created arm for sequence: {arm_name}")
                 
                 # Create cells linking arm to period epochs
-                for i, treatment in enumerate(seq.treatment_order):
+                # treatment_order: list from object, or characters from string (e.g. "AB" → ["A","B"])
+                treatment_order = seq.treatment_order if hasattr(seq, 'treatment_order') else list(str(seq))
+                for i, treatment in enumerate(treatment_order):
                     if i < len(period_epochs):
                         cell = self._create_study_cell(
                             arm_id=existing_arms[arm_name]['id'],
