@@ -109,11 +109,34 @@ export function EditableField({
     }
   };
 
-  const displayValue = effectiveValue === null || effectiveValue === undefined || effectiveValue === ''
+  // Defensive: unwrap objects that may be passed as value (e.g. USDM Duration, Quantity, AliasCode)
+  const _safeString = (v: unknown): string => {
+    if (v === null || v === undefined || v === '') return '';
+    if (typeof v === 'string') return v;
+    if (typeof v === 'object') {
+      const obj = v as Record<string, unknown>;
+      // Try common USDM object shapes: {text}, {decode}, {value, unit}, {standardCode: {decode}}
+      if (typeof obj.text === 'string') return obj.text;
+      if (typeof obj.decode === 'string') return obj.decode;
+      if (typeof obj.standardCode === 'object' && obj.standardCode) {
+        const sc = obj.standardCode as Record<string, unknown>;
+        if (typeof sc.decode === 'string') return sc.decode;
+      }
+      if (obj.value != null) return `${obj.value}${typeof obj.unit === 'string' ? ' ' + obj.unit : ''}`.trim();
+      return JSON.stringify(v);
+    }
+    return String(v);
+  };
+
+  const safeEffective = typeof effectiveValue === 'object' && effectiveValue !== null
+    ? _safeString(effectiveValue)
+    : effectiveValue;
+
+  const displayValue = safeEffective === null || safeEffective === undefined || safeEffective === ''
     ? placeholder
     : type === 'boolean'
-      ? (effectiveValue === 'true' || effectiveValue === true ? 'Yes' : 'No')
-      : String(effectiveValue);
+      ? (safeEffective === 'true' || safeEffective === true ? 'Yes' : 'No')
+      : String(safeEffective);
   
   // Show visual indicator if value has been edited (differs from original)
   const hasBeenEdited = effectiveValue !== value;

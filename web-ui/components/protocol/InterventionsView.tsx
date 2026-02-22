@@ -162,11 +162,11 @@ interface Administration {
   id: string;
   name?: string;
   description?: string;
-  duration?: string;
+  duration?: string | { text?: string; value?: number; unit?: { decode?: string; standardCode?: { decode?: string } }; durationDescription?: string };
   durationDescription?: string;
-  route?: { decode?: string };
-  frequency?: { decode?: string };
-  dose?: string | { value?: number; unit?: { decode?: string } };
+  route?: { decode?: string; standardCode?: { decode?: string } };
+  frequency?: { decode?: string; standardCode?: { decode?: string } };
+  dose?: string | { value?: number; unit?: { decode?: string; standardCode?: { decode?: string } } };
   doseDescription?: string;
 }
 
@@ -233,9 +233,20 @@ export function InterventionsView({ usdm }: InterventionsViewProps) {
   const strengthMap = new Map(strengths.map(s => [s.id, s]));
 
   // Build substance→intervention lookup by name matching (for type & description fallback)
+  // Also resolve proper names from nested product ingredients for ID-like substance names
+  const substanceNameMap = new Map<string, string>();
+  for (const prod of administrableProducts) {
+    for (const ing of prod.ingredients ?? []) {
+      const nested = ing.substance;
+      if (nested?.id && nested?.name) {
+        substanceNameMap.set(nested.id, nested.name);
+      }
+    }
+  }
+
   const substanceInterventionMap = new Map<string, StudyIntervention>();
   for (const sub of substances) {
-    const subName = (sub.name || '').toLowerCase();
+    const subName = (substanceNameMap.get(sub.id) || sub.name || '').toLowerCase();
     const match = studyInterventions.find(si => {
       const siName = (si.name || '').toLowerCase();
       return siName && (subName.includes(siName) || siName.includes(subName));
@@ -512,12 +523,12 @@ export function InterventionsView({ usdm }: InterventionsViewProps) {
                       showCode
                       placeholder="Route"
                     />
-                    {admin.frequency?.decode && (
+                    {(admin.frequency?.standardCode?.decode || admin.frequency?.decode) && (
                       <div>
                         <span className="text-muted-foreground">Frequency</span>
                         <EditableField
                           path={entityPath('/administrations', admin.id, 'frequency/decode')}
-                          value={admin.frequency.decode}
+                          value={admin.frequency?.standardCode?.decode || admin.frequency?.decode || ''}
                           placeholder="Frequency"
                         />
                       </div>
@@ -529,7 +540,7 @@ export function InterventionsView({ usdm }: InterventionsViewProps) {
                           path={entityPath('/administrations', admin.id, 'dose')}
                           value={
                             typeof admin.dose === 'object' && admin.dose
-                              ? `${admin.dose.value ?? ''} ${admin.dose.unit?.decode ?? ''}`.trim()
+                              ? `${admin.dose.value ?? ''} ${admin.dose.unit?.standardCode?.decode || admin.dose.unit?.decode || ''}`.trim()
                               : (admin.dose as string) || admin.doseDescription || ''
                           }
                           placeholder="Dose"
@@ -541,7 +552,11 @@ export function InterventionsView({ usdm }: InterventionsViewProps) {
                         <span className="text-muted-foreground">Duration</span>
                         <EditableField
                           path={entityPath('/administrations', admin.id, 'duration')}
-                          value={admin.duration || admin.durationDescription || ''}
+                          value={
+                            typeof admin.duration === 'object' && admin.duration
+                              ? (admin.duration.text || admin.duration.durationDescription || (admin.duration.value != null ? `${admin.duration.value} ${admin.duration.unit?.standardCode?.decode || admin.duration.unit?.decode || ''}`.trim() : '') || '')
+                              : (admin.duration as string) || admin.durationDescription || ''
+                          }
                           placeholder="Duration"
                         />
                       </div>
@@ -598,13 +613,15 @@ export function InterventionsView({ usdm }: InterventionsViewProps) {
                 const linkedIntv = substanceInterventionMap.get(substance.id);
                 const intvType = linkedIntv?.type;
                 const fallbackDesc = linkedIntv?.description;
+                // Resolve proper name: prefer nested product ingredient name over ID-like root names
+                const resolvedName = substanceNameMap.get(substance.id) || substance.name || substance.label || `Substance ${i + 1}`;
                 return (
                 <div key={substance.id || i} className="p-3 border rounded-lg">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <EditableField
                         path={entityPath('/substances', substance.id, 'name')}
-                        value={substance.name || substance.label || `Substance ${i + 1}`}
+                        value={resolvedName}
                         label=""
                         className="font-medium"
                         placeholder="Substance name"
