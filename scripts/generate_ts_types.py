@@ -412,12 +412,51 @@ export interface DerivedVariable {
   sourceText?: string | null;
 }
 
+export interface FactorLevel {
+  id: string;
+  label: string;
+  definition?: string | null;
+  criterionId?: string | null;
+  code?: Record<string, unknown> | null;
+}
+
+export interface StratificationFactor {
+  id: string;
+  name: string;
+  categories: string[];
+  factorLevels?: FactorLevel[];
+  isBlocking: boolean;
+  isNesting?: boolean;
+  parentFactorId?: string | null;
+  dataSource?: string | null;
+  sourceText?: string | null;
+}
+
+export interface AllocationCell {
+  id: string;
+  factorLevels: Record<string, string>;
+  armId?: string | null;
+  ratioWeight: number;
+  isValid: boolean;
+  plannedEnrollment?: number | null;
+}
+
 export interface RandomizationScheme {
   id: string;
+  ratio: string;
   method: string;
-  stratificationFactors?: string[];
+  algorithmType: string;
   blockSize?: number | null;
-  ratio?: string | null;
+  blockSizes?: number[];
+  stratificationFactors?: StratificationFactor[];
+  allocationCells?: AllocationCell[];
+  centralRandomization: boolean;
+  iwrsSystem?: string | null;
+  concealmentMethod?: string | null;
+  seedMethod?: string | null;
+  isAdaptive?: boolean;
+  adaptiveRules?: string | null;
+  blindingSchemaId?: string | null;
   sourceText?: string | null;
 }
 

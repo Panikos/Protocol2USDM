@@ -154,6 +154,47 @@ Wilson's protocol produces 2,861 words vs 5,000 minimum threshold in `test_m11_r
 2. ~~**Phase 2 (Complete)**~~ — ✅ Promote UNS to `ScheduledDecisionInstance` (C201351) with `Condition` + `ConditionAssignment` branches (event → UNS visit, default → next scheduled encounter)
 3. ~~**Phase 3 (Complete)**~~ — ✅ Timeline graph visualization: diamond decision nodes, dashed amber branch edges, legend updated
 
+### Stratification & Randomization Enhancement (Complete)
+
+**Status:** Complete (all 5 sprints)  
+**Priority:** High  
+**Added:** 2026-02-20  
+**Completed:** 2026-02-22
+
+1. ~~**Sprint A: Schema Refactor**~~ -- FactorLevel, AllocationCell dataclasses; 3-pass LLM extraction
+2. ~~**Sprint B: Cross-Phase Linking**~~ -- `pipeline/stratification_linker.py`: factor-to-eligibility, factor-to-SAP covariate, scheme-to-arm, scheme-to-analysis population
+3. ~~**Sprint C: USDM Mapping + M11 Rendering**~~ -- `create_strata_cohorts()`, treatment assignment composer, synopsis display
+4. ~~**Sprint D: Web UI**~~ -- `StratificationSchemeView.tsx`: randomization summary, factor levels, allocation weights
+5. ~~**Sprint E: Validation**~~ -- 7 coherence checks in `extraction/execution/validation.py`
+
+### SAP Multi-Pass Enhancement (Complete)
+
+**Status:** Complete (all 4 sprints)  
+**Priority:** High  
+**Added:** 2026-02-20  
+**Completed:** 2026-02-22
+
+1. ~~**Sprint 1: Multi-Pass Extraction**~~ -- 4-pass LLM with `sap_prompts.py`, MAX_SAP_PAGES=100
+2. ~~**Sprint 2: AnalysisSpecification**~~ -- endpoint-to-method-to-population-to-estimand bridge, approach-aware gating
+3. ~~**Sprint 3: MissingDataStrategy + ARS**~~ -- ICE mapping, ResultPattern on operations
+4. ~~**Sprint 4: Traceability UI**~~ -- `StatisticalTraceabilityView.tsx` with completeness scoring
+
+### Tier 1 Enhancements (Complete)
+
+**Status:** Complete  
+**Priority:** High  
+**Added:** 2026-02-21  
+**Completed:** 2026-02-22
+
+1. ~~**OBJ-1/OBJ-2**~~ -- Estimand-to-intervention and estimand-to-population ID reconciliation
+2. ~~**DES-1**~~ -- TransitionRule promotion to StudyElement (data-derived text only)
+3. ~~**DES-3**~~ -- Duration extraction as ISO 8601 with EVS-verified NCI C-codes
+4. ~~**M11-1**~~ -- Blinding procedures rendering (narrative-sourced only)
+5. ~~**SOA-2**~~ -- ConditionAssignment from SoA footnotes + ScheduledDecisionInstance injection
+6. ~~**SAP-1**~~ -- SAP method-to-estimand binding via endpoint matching
+7. ~~**VAL-1/VAL-4**~~ -- Referential integrity checks S9-S14
+8. ~~**Hallucination Audit**~~ -- Removed fabricated clinical text, verified C-codes via NCI EVS API
+
 ---
 
 ## Completed Features

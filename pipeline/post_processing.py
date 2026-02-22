@@ -2175,6 +2175,98 @@ def wire_document_layer(combined: dict) -> dict:
     return combined
 
 
+def create_strata_cohorts(combined: dict) -> dict:
+    """C1: Create StudyCohort entities from stratification factor levels.
+
+    Per the locked USDM-IG decision: one StudyCohort per top-level factor
+    level (not per cross-cell).  Each cohort gets:
+      - name / label from the factor level label
+      - characteristics[] with the factor level definition
+      - criterionIds[] linking to EligibilityCriterion (if linked in B1)
+
+    Cohorts are placed at studyDesign.studyCohorts[] for later nesting
+    into population.cohorts[] by nest_cohorts_in_population().
+    """
+    try:
+        sd = combined.get("study", {}).get("versions", [{}])[0].get("studyDesigns", [{}])[0]
+
+        # Find the randomization scheme extension
+        scheme = None
+        for ext in sd.get("extensionAttributes", []):
+            if isinstance(ext, dict) and "randomizationScheme" in ext.get("url", ""):
+                val = ext.get("valueObject", ext.get("value"))
+                if isinstance(val, str):
+                    import json as _json
+                    try:
+                        scheme = _json.loads(val)
+                    except Exception:
+                        pass
+                elif isinstance(val, dict):
+                    scheme = val
+                break
+
+        if not scheme:
+            return combined
+
+        factors = scheme.get("stratificationFactors", [])
+        if not factors:
+            return combined
+
+        existing_cohorts = sd.setdefault("studyCohorts", [])
+        existing_names = {c.get("name", "").lower() for c in existing_cohorts}
+        created = 0
+
+        for factor in factors:
+            factor_name = factor.get("name", "")
+            levels = factor.get("factorLevels", [])
+            # Fall back to bare categories if no structured levels
+            if not levels:
+                levels = [{"id": f"fl_auto_{i}", "label": cat}
+                          for i, cat in enumerate(factor.get("categories", []))]
+
+            for level in levels:
+                label = level.get("label", "")
+                cohort_name = f"{factor_name}: {label}" if factor_name else label
+                if cohort_name.lower() in existing_names:
+                    continue
+
+                cohort_id = f"cohort_strat_{uuid.uuid4()}"
+                cohort: Dict[str, Any] = {
+                    "id": cohort_id,
+                    "instanceType": "StudyCohort",
+                    "name": cohort_name,
+                    "label": cohort_name,
+                    "description": level.get("definition", f"Stratum: {cohort_name}"),
+                    "includesHealthySubjects": False,
+                }
+
+                # Add Characteristic for the factor level
+                char_id = f"char_{uuid.uuid4()}"
+                cohort["characteristics"] = [{
+                    "id": char_id,
+                    "instanceType": "Characteristic",
+                    "name": factor_name,
+                    "label": label,
+                    "text": level.get("definition", label),
+                }]
+
+                # Link to EligibilityCriterion if available
+                crit_id = level.get("criterionId")
+                if crit_id:
+                    cohort["criterionIds"] = [crit_id]
+
+                existing_cohorts.append(cohort)
+                existing_names.add(cohort_name.lower())
+                created += 1
+
+        if created:
+            logger.info(f"  ✓ Created {created} StudyCohort(s) from stratification factors (C1)")
+    except Exception as e:
+        logger.warning(f"  ⚠ Strata cohort creation skipped: {e}")
+
+    return combined
+
+
 def nest_cohorts_in_population(combined: dict) -> dict:
     """P4: Nest StudyCohort entities into StudyDesignPopulation.cohorts.
 
@@ -2208,6 +2300,355 @@ def nest_cohorts_in_population(combined: dict) -> dict:
         logger.warning(f"  ⚠ Cohort nesting skipped: {e}")
 
     return combined
+
+
+def promote_transition_rules_to_elements(combined: dict) -> dict:
+    """DES-1: Promote transition rules onto StudyElement entities.
+
+    Per USDM v4.0, StudyElement has ``transitionStartRule`` and
+    ``transitionEndRule`` (both TransitionRule entities) that describe
+    when a subject enters/exits the element.
+
+    Sources:
+      1. **Epoch sequence** — derive default rules from ordered epochs
+         (e.g., "Complete screening assessments and meet eligibility criteria"
+         → start of treatment element).
+      2. **Execution model state machine** — if transitions extracted,
+         enrich element rules with trigger/guard text.
+
+    Rules are only created when the element does not already have one.
+    """
+    try:
+        study = combined.get("study", {})
+        sv = study.get("versions", [{}])[0]
+        sd = sv.get("studyDesigns", [{}])[0]
+
+        elements = sd.get("studyElements", [])
+        epochs = sd.get("epochs", [])
+        cells = sd.get("studyCells", [])
+
+        if not elements or not epochs:
+            return combined
+
+        # --- Build lookups ------------------------------------------------
+        epoch_by_id = {ep.get("id"): ep for ep in epochs}
+        element_by_id = {el.get("id"): el for el in elements}
+
+        # Ordered epoch list (use previousId/nextId chain or index order)
+        ordered_epoch_ids = _order_by_chain(epochs)
+
+        # Map element → epoch via StudyCell
+        element_epoch_map: dict = {}  # element_id → epoch_id
+        for cell in cells:
+            eid = cell.get("epochId")
+            for el_id in cell.get("elementIds", []):
+                element_epoch_map.setdefault(el_id, eid)
+
+        # Execution model state machine transitions (if available)
+        sm_transitions = _get_state_machine_transitions(sd)
+
+        # --- Assign rules to elements ---
+        # NOTE: Rule text is derived ONLY from epoch/element names and state
+        # machine data.  We never fabricate clinical procedures.
+        created = 0
+        for el in elements:
+            el_id = el.get("id")
+            epoch_id = element_epoch_map.get(el_id)
+            epoch = epoch_by_id.get(epoch_id, {}) if epoch_id else {}
+            epoch_name = epoch.get("name") or el.get("name") or "Element"
+            el_name = el.get("name") or epoch_name
+
+            # Start rule
+            if not el.get("transitionStartRule"):
+                sm_text = _find_sm_rule(sm_transitions, epoch, "start")
+                rule_text = sm_text or f"Start of {el_name}"
+                el["transitionStartRule"] = {
+                    "id": f"tr_start_{el_id}",
+                    "name": f"Start: {el_name}",
+                    "text": rule_text,
+                    "instanceType": "TransitionRule",
+                }
+                created += 1
+
+            # End rule
+            if not el.get("transitionEndRule"):
+                sm_text = _find_sm_rule(sm_transitions, epoch, "end")
+                rule_text = sm_text or f"End of {el_name}"
+                el["transitionEndRule"] = {
+                    "id": f"tr_end_{el_id}",
+                    "name": f"End: {el_name}",
+                    "text": rule_text,
+                    "instanceType": "TransitionRule",
+                }
+                created += 1
+
+        if created:
+            logger.info(f"  ✓ DES-1: Created {created} TransitionRule(s) on StudyElement entities")
+
+    except (KeyError, IndexError, TypeError) as e:
+        logger.debug(f"TransitionRule promotion skipped: {e}")
+
+    return combined
+
+
+def _order_by_chain(epochs: list) -> list:
+    """Order epochs using previousId/nextId chain, falling back to list order."""
+    if not epochs:
+        return []
+    # Try chain-based ordering
+    by_prev = {ep.get("previousId"): ep for ep in epochs if ep.get("previousId")}
+    # Find the first epoch (no previousId or previousId not in epoch set)
+    epoch_ids = {ep.get("id") for ep in epochs}
+    first = None
+    for ep in epochs:
+        prev = ep.get("previousId")
+        if not prev or prev not in epoch_ids:
+            first = ep
+            break
+    if not first:
+        return [ep.get("id") for ep in epochs]
+    ordered = [first.get("id")]
+    next_id = first.get("nextId")
+    seen = {first.get("id")}
+    while next_id and next_id not in seen:
+        seen.add(next_id)
+        ordered.append(next_id)
+        nxt = next((ep for ep in epochs if ep.get("id") == next_id), None)
+        next_id = nxt.get("nextId") if nxt else None
+    return ordered
+
+
+def _get_state_machine_transitions(sd: dict) -> list:
+    """Extract state machine transitions from execution model extensions."""
+    for ext in sd.get("extensionAttributes", []):
+        url = ext.get("url", "")
+        if "x-executionModel-stateMachine" in url:
+            sm = ext.get("valueObject", {})
+            return sm.get("transitions", [])
+    return []
+
+
+def _find_sm_rule(transitions: list, epoch: dict, direction: str) -> str:
+    """Find a state machine transition rule matching an epoch for start/end."""
+    if not transitions or not epoch:
+        return ""
+    epoch_name = (epoch.get("name") or "").lower()
+    if not epoch_name:
+        return ""
+    for tr in transitions:
+        from_s = (tr.get("fromState") or tr.get("from_state") or "").lower()
+        to_s = (tr.get("toState") or tr.get("to_state") or "").lower()
+        trigger = tr.get("trigger") or ""
+        guard = tr.get("guardCondition") or tr.get("guard_condition") or ""
+        if direction == "start" and epoch_name in to_s:
+            return f"{trigger} [Guard: {guard}]".rstrip(" []") if guard else trigger
+        if direction == "end" and epoch_name in from_s:
+            return f"{trigger} [Guard: {guard}]".rstrip(" []") if guard else trigger
+    return ""
+
+
+def normalize_durations_to_iso8601(combined: dict) -> dict:
+    """DES-3: Normalize freeform duration text to ISO 8601 Duration entities.
+
+    Per USDM v4.0, ``Duration`` has ``id``, ``text``, ``quantity``
+    (QuantityRange), and ``durationWillVary``.  This function:
+
+      1. Extracts duration from epoch names/descriptions
+         (e.g., "28-day screening period" → ``P28D``).
+      2. Sets ``ScheduleTimeline.plannedDuration`` by summing epoch
+         durations or parsing from study description.
+      3. Normalises any bare duration strings already present in the
+         output (e.g., Timing window values).
+    """
+    try:
+        study = combined.get("study", {})
+        sv = study.get("versions", [{}])[0]
+        sd = sv.get("studyDesigns", [{}])[0]
+
+        epochs = sd.get("epochs", [])
+        timelines = sd.get("scheduleTimelines", [])
+
+        normalised = 0
+
+        # --- 1. Epoch-level Duration entities ---
+        total_days = 0
+        for epoch in epochs:
+            if not isinstance(epoch, dict):
+                continue
+            text = f"{epoch.get('name', '')} {epoch.get('description', '')}"
+            iso = _parse_duration_text(text)
+            if iso:
+                days_val = _iso_to_days(iso)
+                if days_val:
+                    total_days += days_val
+                # Attach Duration entity as extension if not already present
+                if not epoch.get("_duration_iso"):
+                    epoch["_duration_iso"] = iso
+                    normalised += 1
+
+        # --- 2. ScheduleTimeline.plannedDuration ---
+        for tl in timelines:
+            if not isinstance(tl, dict):
+                continue
+            if not tl.get("plannedDuration"):
+                # Try to derive from total epoch durations
+                if total_days > 0:
+                    iso_total = f"P{total_days}D"
+                    tl["plannedDuration"] = _make_duration_entity(
+                        iso_total,
+                        f"Approximately {total_days} days",
+                        tl.get("id", ""),
+                    )
+                    normalised += 1
+
+        # --- 3. Normalise Timing window values ---
+        for tl in timelines:
+            if not isinstance(tl, dict):
+                continue
+            for timing in tl.get("timings", []):
+                if not isinstance(timing, dict):
+                    continue
+                for field in ("windowLower", "windowUpper"):
+                    val = timing.get(field)
+                    if val and isinstance(val, str) and not val.startswith("P"):
+                        iso = _parse_duration_text(val)
+                        if iso:
+                            timing[field] = iso
+                            normalised += 1
+
+        if normalised:
+            logger.info(f"  ✓ DES-3: Normalised {normalised} duration(s) to ISO 8601")
+
+    except (KeyError, IndexError, TypeError) as e:
+        logger.debug(f"Duration normalisation skipped: {e}")
+
+    return combined
+
+
+# --- Duration parsing helpers -----------------------------------------------
+
+_DURATION_PATTERN = re.compile(
+    r'(\d+(?:\.\d+)?)\s*[-–]?\s*'
+    r'(day|week|month|year|hour|minute|wk|mo|yr|hr|min|d|w|m|h)s?\b',
+    re.IGNORECASE,
+)
+
+_UNIT_MAP = {
+    "day": "D", "days": "D", "d": "D",
+    "week": "W", "weeks": "W", "wk": "W", "w": "W",
+    "month": "M", "months": "M", "mo": "M",
+    "year": "Y", "years": "Y", "yr": "Y",
+    "hour": "H", "hours": "H", "hr": "H", "h": "H",
+    "minute": "MIN", "minutes": "MIN", "min": "MIN",
+}
+
+
+def _parse_duration_text(text: str) -> str:
+    """Parse freeform text for a duration and return ISO 8601 string.
+
+    Examples:
+      - "28-day screening" → "P28D"
+      - "12 weeks treatment" → "P12W"
+      - "6 months follow-up" → "P6M"
+      - "2 hours infusion" → "PT2H"
+
+    Returns empty string if no parseable duration found.
+    """
+    if not text:
+        return ""
+    # Already ISO 8601?
+    if re.match(r'^P\d', text.strip()):
+        return text.strip()
+    m = _DURATION_PATTERN.search(text)
+    if not m:
+        return ""
+    value = int(float(m.group(1)))
+    unit_raw = m.group(2).lower().rstrip("s")
+    iso_unit = _UNIT_MAP.get(unit_raw, "")
+    if not iso_unit:
+        return ""
+    if iso_unit in ("H", "MIN"):
+        time_code = "M" if iso_unit == "MIN" else "H"
+        return f"PT{value}{time_code}"
+    return f"P{value}{iso_unit}"
+
+
+def _iso_to_days(iso: str) -> int:
+    """Approximate ISO 8601 duration to integer days."""
+    if not iso:
+        return 0
+    m = re.match(r'P(\d+)([DWMY])', iso)
+    if not m:
+        mt = re.match(r'PT(\d+)([HM])', iso)
+        if mt:
+            return 1  # sub-day durations count as ~1 day
+        return 0
+    val = int(m.group(1))
+    unit = m.group(2)
+    if unit == "D":
+        return val
+    if unit == "W":
+        return val * 7
+    if unit == "M":
+        return val * 30
+    if unit == "Y":
+        return val * 365
+    return val
+
+
+_DURATION_UNIT_CODES = {
+    # EVS-verified NCI C-codes for time units (api-evsrest.nci.nih.gov)
+    "Day":   "C25301",
+    "Week":  "C29844",
+    "Month": "C29846",
+    "Year":  "C29848",
+    "Hour":  "C25529",
+}
+
+
+def _make_duration_entity(iso: str, text: str, parent_id: str) -> dict:
+    """Create a USDM Duration entity dict.
+
+    Unit codes are EVS-verified NCI C-codes (see ``_DURATION_UNIT_CODES``).
+    """
+    num_match = re.search(r'(\d+)', iso)
+    decode = _iso_unit_decode(iso)
+    code = _DURATION_UNIT_CODES.get(decode, "")
+    unit_dict: dict = {
+        "id": str(uuid.uuid4()),
+        "decode": decode,
+        "instanceType": "Code",
+    }
+    if code:
+        unit_dict["code"] = code
+        unit_dict["codeSystem"] = "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl"
+    return {
+        "id": f"dur_{parent_id}" if parent_id else str(uuid.uuid4()),
+        "text": text,
+        "quantity": {
+            "id": str(uuid.uuid4()),
+            "maxValue": float(num_match.group(1)) if num_match else 0,
+            "unit": unit_dict,
+            "instanceType": "QuantityRange",
+        },
+        "durationWillVary": False,
+        "instanceType": "Duration",
+    }
+
+
+def _iso_unit_decode(iso: str) -> str:
+    """Get human-readable unit from ISO duration."""
+    if "Y" in iso:
+        return "Year"
+    if "M" in iso and "T" not in iso:
+        return "Month"
+    if "W" in iso:
+        return "Week"
+    if "D" in iso:
+        return "Day"
+    if "H" in iso:
+        return "Hour"
+    return "Day"
 
 
 def promote_footnotes_to_conditions(combined: dict) -> dict:
@@ -2255,6 +2696,7 @@ def promote_footnotes_to_conditions(combined: dict) -> dict:
                 enc_by_name[name] = enc.get("id")
 
         promoted = 0
+        condition_assignments = []  # SOA-2: collect ConditionAssignment entities
         for fn in footnotes_ext:
             fn_text = fn.get("text", "").strip()
             if not fn_text:
@@ -2331,13 +2773,130 @@ def promote_footnotes_to_conditions(combined: dict) -> dict:
             existing_texts.add(fn_text.lower().strip())
             promoted += 1
 
+            # SOA-2: Create ConditionAssignment for each matched activity+encounter pair
+            for act_id in matched_activity_ids:
+                for enc_id in matched_encounter_ids:
+                    condition_assignments.append({
+                        "id": f"ca_fn_{fn_id}_{act_id[:8]}_{enc_id[:8]}",
+                        "conditionId": condition["id"],
+                        "conditionTargetId": act_id,
+                        "encounterId": enc_id,
+                        "conditionText": fn_text,
+                        "instanceType": "ConditionAssignment",
+                    })
+                # If no encounters matched, still link to activity
+                if not matched_encounter_ids:
+                    condition_assignments.append({
+                        "id": f"ca_fn_{fn_id}_{act_id[:8]}",
+                        "conditionId": condition["id"],
+                        "conditionTargetId": act_id,
+                        "conditionText": fn_text,
+                        "instanceType": "ConditionAssignment",
+                    })
+
         if promoted:
             sv["conditions"] = existing_conditions
             logger.info(f"  ✓ Promoted {promoted} SoA footnotes to Condition entities (P7)")
+
+        # SOA-2: Store ConditionAssignments on StudyDesign as extension
+        if condition_assignments:
+            _store_condition_assignments(sd, condition_assignments)
+            logger.info(f"  ✓ SOA-2: Created {len(condition_assignments)} ConditionAssignment(s) from footnotes")
+
     except Exception as e:
         logger.warning(f"  ⚠ Footnote→Condition promotion skipped: {e}")
 
     return combined
+
+
+def _store_condition_assignments(sd: dict, assignments: list) -> None:
+    """Store ConditionAssignment entities as a USDM extension on StudyDesign.
+
+    Also insert ScheduledDecisionInstance nodes into the first timeline
+    when the assignment links an activity to a specific encounter in the
+    existing schedule.
+    """
+    # Store as extension for downstream consumers (web UI, validators)
+    ext_url = "https://protocol2usdm.io/extensions/x-footnoteConditionAssignments"
+    exts = sd.setdefault("extensionAttributes", [])
+
+    # Remove old version if present
+    exts[:] = [e for e in exts if e.get("url") != ext_url]
+
+    exts.append({
+        "url": ext_url,
+        "valueObject": assignments,
+        "instanceType": "ExtensionAttribute",
+    })
+
+    # Also inject SDI nodes into the first timeline for assignments that
+    # reference an existing SAI (activity at encounter)
+    timelines = sd.get("scheduleTimelines", [])
+    if not timelines:
+        return
+    tl = timelines[0]
+    instances = tl.get("instances", [])
+
+    # Build SAI lookup: (activityId, encounterId) → SAI
+    sai_by_key: dict = {}
+    for inst in instances:
+        if inst.get("instanceType") != "ScheduledActivityInstance":
+            continue
+        enc_id = inst.get("encounterId", "")
+        for aid in inst.get("activityIds", []):
+            sai_by_key[(aid, enc_id)] = inst
+
+    # Group assignments by condition
+    from collections import defaultdict
+    by_condition: dict = defaultdict(list)
+    for ca in assignments:
+        by_condition[ca["conditionId"]].append(ca)
+
+    sdi_count = 0
+    existing_sdi_conditions = {
+        inst.get("name", "")
+        for inst in instances
+        if inst.get("instanceType") == "ScheduledDecisionInstance"
+    }
+
+    for cond_id, cas in by_condition.items():
+        # Build ConditionAssignment list for this SDI
+        sdi_cas = []
+        target_sai = None
+        for ca in cas:
+            target = ca.get("conditionTargetId", "")
+            enc = ca.get("encounterId", "")
+            sai = sai_by_key.get((target, enc))
+            if sai:
+                target_sai = sai
+            sdi_cas.append({
+                "id": ca["id"],
+                "condition": ca.get("conditionText", ""),
+                "conditionTargetId": target,
+                "instanceType": "ConditionAssignment",
+            })
+
+        if not sdi_cas:
+            continue
+
+        sdi_name = f"Decision: {cas[0].get('conditionText', '')[:60]}"
+        if sdi_name in existing_sdi_conditions:
+            continue
+
+        sdi = {
+            "id": f"sdi_fn_{cond_id}",
+            "name": sdi_name,
+            "conditionAssignments": sdi_cas,
+            "instanceType": "ScheduledDecisionInstance",
+        }
+        if target_sai and target_sai.get("epochId"):
+            sdi["epochId"] = target_sai["epochId"]
+
+        instances.append(sdi)
+        sdi_count += 1
+
+    if sdi_count:
+        logger.info(f"    → Inserted {sdi_count} ScheduledDecisionInstance(s) into timeline")
 
 
 def _deduplicate_ids(combined: dict) -> int:

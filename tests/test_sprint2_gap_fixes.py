@@ -455,21 +455,21 @@ class TestH6AdministrationDose:
         assert isinstance(d["dose"], dict)
         assert d["dose"]["instanceType"] == "Quantity"
         assert d["dose"]["value"] == 100.0
-        assert d["dose"]["unit"]["decode"] == "mg"
+        assert d["dose"]["unit"]["standardCode"]["decode"] == "mg"
 
     def test_dose_with_complex_unit(self):
         from extraction.interventions.schema import Administration
         admin = Administration(id="a1", name="Drug B", dose="5 mg/kg")
         d = admin.to_dict()
         assert d["dose"]["value"] == 5.0
-        assert d["dose"]["unit"]["decode"] == "mg/kg"
+        assert d["dose"]["unit"]["standardCode"]["decode"] == "mg/kg"
 
     def test_dose_with_decimal(self):
         from extraction.interventions.schema import Administration
         admin = Administration(id="a1", name="Drug C", dose="0.5 mL")
         d = admin.to_dict()
         assert d["dose"]["value"] == 0.5
-        assert d["dose"]["unit"]["decode"] == "mL"
+        assert d["dose"]["unit"]["standardCode"]["decode"] == "mL"
 
     def test_dose_unparseable_fallback(self):
         from extraction.interventions.schema import Administration
@@ -477,7 +477,7 @@ class TestH6AdministrationDose:
         d = admin.to_dict()
         assert d["dose"]["instanceType"] == "Quantity"
         assert d["dose"]["value"] == 0
-        assert d["dose"]["unit"]["decode"] == "as directed"
+        assert d["dose"]["unit"]["standardCode"]["decode"] == "as directed"
 
     def test_dose_absent(self):
         from extraction.interventions.schema import Administration
@@ -490,7 +490,7 @@ class TestH6AdministrationDose:
         admin = Administration(id="a1", name="Drug F", dose="1,000 IU")
         d = admin.to_dict()
         assert d["dose"]["value"] == 1000.0
-        assert d["dose"]["unit"]["decode"] == "IU"
+        assert d["dose"]["unit"]["standardCode"]["decode"] == "IU"
 
     def test_parse_dose_string_helper(self):
         from extraction.interventions.schema import Administration
@@ -512,14 +512,14 @@ class TestH7AdministrationFrequency:
         admin = Administration(id="a1", name="Drug A", dose_frequency="once daily")
         d = admin.to_dict()
         assert "frequency" in d
-        assert d["frequency"]["instanceType"] == "Code"
-        assert d["frequency"]["decode"] == "once daily"
+        assert d["frequency"]["instanceType"] == "AliasCode"
+        assert d["frequency"]["standardCode"]["decode"] == "once daily"
 
     def test_frequency_twice_daily(self):
         from extraction.interventions.schema import Administration
         admin = Administration(id="a1", name="Drug B", dose_frequency="twice daily")
         d = admin.to_dict()
-        assert d["frequency"]["decode"] == "twice daily"
+        assert d["frequency"]["standardCode"]["decode"] == "twice daily"
 
     def test_frequency_absent(self):
         from extraction.interventions.schema import Administration
@@ -531,7 +531,7 @@ class TestH7AdministrationFrequency:
         from extraction.interventions.schema import Administration
         admin = Administration(id="a1", name="Drug D", dose_frequency="every 2 weeks")
         d = admin.to_dict()
-        assert d["frequency"]["decode"] == "every 2 weeks"
+        assert d["frequency"]["standardCode"]["decode"] == "every 2 weeks"
         assert "id" in d["frequency"]
 
 
@@ -557,11 +557,11 @@ class TestAdministrationIntegration:
         # H6: dose as Quantity
         assert d["dose"]["instanceType"] == "Quantity"
         assert d["dose"]["value"] == 200.0
-        # H7: frequency as Code
-        assert d["frequency"]["instanceType"] == "Code"
-        assert d["frequency"]["decode"] == "twice daily"
-        # Route as Code (upgraded)
-        assert d["route"]["instanceType"] == "Code"
+        # H7: frequency as AliasCode
+        assert d["frequency"]["instanceType"] == "AliasCode"
+        assert d["frequency"]["standardCode"]["decode"] == "twice daily"
+        # Route as AliasCode (upgraded)
+        assert d["route"]["instanceType"] == "AliasCode"
         # Other fields
         assert d["duration"]["instanceType"] == "Duration"
         assert d["duration"]["text"] == "24 weeks"
@@ -582,4 +582,4 @@ class TestAdministrationIntegration:
         d = data.to_dict()
         admin_dict = d["administrations"][0]
         assert admin_dict["dose"]["instanceType"] == "Quantity"
-        assert admin_dict["frequency"]["instanceType"] == "Code"
+        assert admin_dict["frequency"]["instanceType"] == "AliasCode"

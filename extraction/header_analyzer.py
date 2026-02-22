@@ -337,10 +337,12 @@ def _analyze_with_gemini(
                 mime_type=img_data['mime_type']
             ))
         
+        # Only Flash models support thinking_budget; Pro models reject it
+        supports_thinking = 'flash' in model_name.lower()
         config = genai_types.GenerateContentConfig(
             temperature=0.1,
             response_mime_type="application/json",
-            thinking_config=genai_types.ThinkingConfig(thinking_budget=0),
+            thinking_config=genai_types.ThinkingConfig(thinking_budget=0) if supports_thinking else None,
         )
         
         response = client.models.generate_content(

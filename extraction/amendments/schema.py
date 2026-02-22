@@ -119,7 +119,7 @@ class StudyChange:
     instance_type: str = "StudyChange"
     
     def to_dict(self) -> Dict[str, Any]:
-        from core.id_utils import generate_uuid
+        from core.usdm_types_generated import generate_uuid
         name = self.summary or f"{self.change_type.value} in {self.section_number or 'protocol'}"
         rationale = self.after_text or self.before_text or name
         summary = self.summary or name

@@ -64,7 +64,28 @@ GOOGLE_CLOUD_LOCATION=us-central1  # or your preferred region
 
 ---
 
-## What's New in v8.0
+## What's New in v8.1
+
+### Stratification & Randomization (5 Sprints)
+Full stratification pipeline: structured `StratificationFactor`/`RandomizationScheme` extraction, cross-phase linking (factor-to-eligibility, factor-to-SAP covariate, scheme-to-arm allocation), USDM `StudyCohort` creation per factor level, M11 treatment assignment composer, and `StratificationSchemeView` web UI component.
+
+### SAP Multi-Pass Enhancement (4 Sprints)
+4-pass LLM extraction with cross-referencing, `AnalysisSpecification` bridge (endpoint-to-method-to-population-to-estimand), `MissingDataStrategy` with ICE mapping, `ResultPattern` on ARS operations, and `StatisticalTraceabilityView` with completeness scoring.
+
+### Tier 1 Enhancements
+- **OBJ-1/OBJ-2** -- Estimand-to-intervention and estimand-to-population ID reconciliation
+- **DES-1** -- TransitionRule promotion to StudyElement (data-derived text only)
+- **DES-3** -- Duration extraction as ISO 8601 with EVS-verified NCI C-codes
+- **M11-1** -- Blinding procedures rendering (narrative-sourced, no fabricated boilerplate)
+- **SOA-2** -- ConditionAssignment from SoA footnotes + ScheduledDecisionInstance injection
+- **SAP-1** -- SAP method-to-estimand binding via endpoint name/level matching
+- **VAL-1/VAL-4** -- Referential integrity checks S9-S14
+
+### Hallucination Audit
+Removed fabricated clinical text from TransitionRule templates and blinding composer. Verified all duration unit C-codes via live NCI EVS API. Tightened narrative keyword matching.
+
+<details>
+<summary><b>v8.0 -- CORE Compliance, Encounter Resolution, Schema Fixes</b></summary>
 
 ### ⚙️ CORE Compliance: Log-Only Audit Mode
 Property stripping (`_walk_strip_non_usdm`) replaced with **non-destructive audit** — non-USDM properties are kept in the output and findings saved to `compliance_log.json`. New **Compliance Audit card** in the Validation tab shows findings grouped by entity type.
@@ -97,7 +118,9 @@ Unscheduled visits rendered as **isolated islands** in graph view and state mach
 - **Estimand→Endpoint reconciliation**: `variableOfInterestId` matched to real endpoint IDs via name/level/fuzzy matching
 
 ### 🧪 Testing
-- **1117 tests** passed, 0 failures
+- **1366 tests** collected, **1327 passed**, 36 skipped (e2e)
+
+</details>
 
 <details>
 <summary><b>v7.17 — Reviewer Fixes P3–P7, Org/Site Alignment, Schema Compliance</b></summary>

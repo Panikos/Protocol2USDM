@@ -38,7 +38,8 @@ import { ExportButton, ExportFormat } from '@/components/ui/export-button';
 import { exportToCSV, exportToJSON, exportToPDF, formatUSDMForExport } from '@/lib/export/exportUtils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { SoAView } from '@/components/soa';
-import { TimelineView, ExecutionModelView, SAPDataView, ARSDataView } from '@/components/timeline';
+import { TimelineView, ExecutionModelView, SAPDataView, ARSDataView, StatisticalTraceabilityView } from '@/components/timeline';
+import { StratificationSchemeView } from '@/components/timeline/StratificationSchemeView';
 import { ProvenanceView, ExtractionProvenanceView, IntegrityReportView } from '@/components/provenance';
 import {
   StudyMetadataView,
@@ -584,7 +585,7 @@ function SoATab({ provenance }: { provenance: ProvenanceData | null }) {
 }
 
 function TimelineTab({ intermediateFiles, protocolId }: { intermediateFiles: Record<string, unknown> | null; protocolId: string }) {
-  const [viewMode, setViewMode] = useState<'execution' | 'sap' | 'ars' | 'graph'>('execution');
+  const [viewMode, setViewMode] = useState<'execution' | 'sap' | 'ars' | 'traceability' | 'stratification' | 'graph'>('execution');
   
   // Extract execution model data from intermediate files
   const executionModel = useMemo(() => {
@@ -624,6 +625,24 @@ function TimelineTab({ intermediateFiles, protocolId }: { intermediateFiles: Rec
           CDISC ARS
         </Button>
         <Button
+          variant={viewMode === 'traceability' ? 'default' : 'ghost'}
+          size="sm"
+          onClick={() => setViewMode('traceability')}
+          className="flex items-center gap-2"
+        >
+          <Link2 className="h-4 w-4" />
+          Traceability
+        </Button>
+        <Button
+          variant={viewMode === 'stratification' ? 'default' : 'ghost'}
+          size="sm"
+          onClick={() => setViewMode('stratification')}
+          className="flex items-center gap-2"
+        >
+          <Layers className="h-4 w-4" />
+          Stratification
+        </Button>
+        <Button
           variant={viewMode === 'graph' ? 'default' : 'ghost'}
           size="sm"
           onClick={() => setViewMode('graph')}
@@ -638,6 +657,8 @@ function TimelineTab({ intermediateFiles, protocolId }: { intermediateFiles: Rec
       {viewMode === 'execution' && <ExecutionModelView />}
       {viewMode === 'sap' && <SAPDataView />}
       {viewMode === 'ars' && <ARSDataView protocolId={protocolId} />}
+      {viewMode === 'traceability' && <StatisticalTraceabilityView />}
+      {viewMode === 'stratification' && <StratificationSchemeView />}
       {viewMode === 'graph' && <TimelineView executionModel={executionModel} />}
     </div>
   );

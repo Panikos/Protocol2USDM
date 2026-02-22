@@ -1,8 +1,8 @@
 # Protocol2USDM Quick Reference
 
-**v8.0** | One-page command reference
+**v8.1** | One-page command reference
 
-> **Current:** Encounter→epoch resolution via `ScheduledActivityInstance` bridge, UNS detached in graph + state machine + traversal constraints, InterventionsView aligned to USDM v4.0 nested structure, estimand ID→name resolution, boolean Yes/No display, randomization from `subTypes[]`, substance type from linked intervention, amendment changes human-readable, procedures filter non-clinical, numeric footnote markers, CORE compliance log-only audit mode (`compliance_log.json` + Validation UI card), 11 automated CDISC CORE fixes. Reviewer v9 Org/Site alignment, P3–P7 structural compliance, 1117 tests passing, v8.0.1–v8.0.2 schema compliance fixes, M11 DOCX rendering, phase registry (`main_v3.py`), `gemini-3-flash-preview` default.
+> **Current:** Encounter→epoch resolution via `ScheduledActivityInstance` bridge, UNS detached in graph + state machine + traversal constraints, InterventionsView aligned to USDM v4.0 nested structure, estimand ID→name resolution, boolean Yes/No display, randomization from `subTypes[]`, substance type from linked intervention, amendment changes human-readable, procedures filter non-clinical, numeric footnote markers, CORE compliance log-only audit mode (`compliance_log.json` + Validation UI card), 11 automated CDISC CORE fixes. Reviewer v9 Org/Site alignment, P3–P7 structural compliance, 1327 tests passing. **v8.1:** Stratification & Randomization (5 sprints), SAP Multi-Pass (4 sprints), Tier 1 enhancements (OBJ-1/2, DES-1, DES-3, M11-1, SOA-2, SAP-1, VAL-1/4), hallucination audit (EVS-verified C-codes), 1366 tests collected. v8.0.1–v8.0.2 schema compliance fixes, M11 DOCX rendering, phase registry (`main_v3.py`), `gemini-3-flash-preview` default.
 
 ---
 
@@ -293,4 +293,4 @@ CDISC_API_KEY=...            # For CORE (optional)
 **Docs:** [README.md](README.md) | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
 **Last Updated:** 2026-02-19  
-**Version:** 8.0
+**Version:** 8.1

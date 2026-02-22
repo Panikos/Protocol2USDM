@@ -114,6 +114,9 @@ def validate_execution_model(
     issues.extend(_validate_derived_variables(data.derived_variables, min_confidence))
     issues.extend(_validate_state_machine(data.state_machine, require_state_machine))
     
+    # Phase 4 stratification validations
+    issues.extend(_validate_stratification(data.randomization_scheme))
+    
     # Phase 5 validations
     issues.extend(_validate_sampling_constraints(data.sampling_constraints))
     
@@ -576,6 +579,114 @@ def _validate_consistency(
                 message="Change-from-baseline endpoints found but no CFB derived variables",
                 suggestion="Check derived variable extraction",
             ))
+    
+    return issues
+
+
+def _validate_stratification(scheme) -> List[ValidationIssue]:
+    """E1: Validate randomization scheme and stratification coherence."""
+    issues: List[ValidationIssue] = []
+    
+    if not scheme:
+        return issues
+    
+    # Check allocation ratio is present
+    ratio = getattr(scheme, 'ratio', '') or ''
+    if not ratio:
+        issues.append(ValidationIssue(
+            severity=ValidationSeverity.WARNING,
+            component="Stratification",
+            message="Randomization scheme missing allocation ratio",
+            field="ratio",
+        ))
+    
+    # Check all factors have ≥2 categories/levels
+    factors = getattr(scheme, 'stratification_factors', []) or []
+    for factor in factors:
+        cats = getattr(factor, 'categories', []) or []
+        levels = getattr(factor, 'factor_levels', []) or []
+        n_levels = len(levels) if levels else len(cats)
+        name = getattr(factor, 'name', 'Unknown')
+        
+        if n_levels == 0:
+            issues.append(ValidationIssue(
+                severity=ValidationSeverity.WARNING,
+                component="Stratification",
+                message=f"Factor '{name}' has no categories or levels defined",
+                field="categories",
+                suggestion="Levels should be extracted from protocol text",
+            ))
+        elif n_levels == 1:
+            issues.append(ValidationIssue(
+                severity=ValidationSeverity.WARNING,
+                component="Stratification",
+                message=f"Factor '{name}' has only 1 level — stratification requires ≥2",
+                field="categories",
+            ))
+    
+    # Block size compatibility with ratio
+    block_size = getattr(scheme, 'block_size', None)
+    block_sizes = getattr(scheme, 'block_sizes', []) or []
+    if ratio and (block_size or block_sizes):
+        import re as _re
+        ratio_weights = [int(w) for w in _re.findall(r'\d+', ratio)]
+        ratio_sum = sum(ratio_weights) if ratio_weights else 0
+        sizes_to_check = block_sizes if block_sizes else ([block_size] if block_size else [])
+        for bs in sizes_to_check:
+            if ratio_sum > 0 and bs % ratio_sum != 0:
+                issues.append(ValidationIssue(
+                    severity=ValidationSeverity.WARNING,
+                    component="Stratification",
+                    message=(
+                        f"Block size {bs} is not a multiple of ratio sum "
+                        f"{ratio_sum} ({ratio}) — may cause imbalance"
+                    ),
+                    field="block_size",
+                ))
+    
+    # Overstratification warning (>16 cells with few subjects)
+    if len(factors) >= 2:
+        total_cells = 1
+        for factor in factors:
+            cats = getattr(factor, 'categories', []) or []
+            levels = getattr(factor, 'factor_levels', []) or []
+            n = len(levels) if levels else len(cats)
+            if n > 0:
+                total_cells *= n
+        if total_cells > 16:
+            issues.append(ValidationIssue(
+                severity=ValidationSeverity.WARNING,
+                component="Stratification",
+                message=(
+                    f"Stratification creates {total_cells} cells — "
+                    f"risk of overstratification (recommend ≤16 cells)"
+                ),
+                suggestion="Consider collapsing factor levels or removing low-impact factors",
+            ))
+    
+    # IWRS check: central randomization claims need a system identified
+    central = getattr(scheme, 'central_randomization', False)
+    iwrs = getattr(scheme, 'iwrs_system', None)
+    if central and not iwrs:
+        issues.append(ValidationIssue(
+            severity=ValidationSeverity.INFO,
+            component="Stratification",
+            message="Central randomization indicated but no IWRS/IXRS system identified",
+            field="iwrs_system",
+            suggestion="Check protocol for IWRS vendor name",
+        ))
+    
+    # Adaptive design should have rules
+    is_adaptive = getattr(scheme, 'is_adaptive', False)
+    adaptive_rules = getattr(scheme, 'adaptive_rules', None)
+    if is_adaptive and not adaptive_rules:
+        issues.append(ValidationIssue(
+            severity=ValidationSeverity.WARNING,
+            component="Stratification",
+            message="Adaptive randomization indicated but no adaptation rules specified",
+            field="adaptive_rules",
+            suggestion="Protocol should describe when/how allocation ratios change",
+        ))
     
     return issues
 

@@ -22,6 +22,7 @@ from .schema import (
     ObjectiveLevel,
     EndpointLevel,
     IntercurrentEventStrategy,
+    AnalysisApproach,
 )
 from .prompts import build_objectives_extraction_prompt, build_estimands_prompt
 
@@ -191,10 +192,10 @@ def extract_objectives_endpoints(
         )
         
         # =====================================================================
-        # PHASE 2: Extract estimands with endpoint context (optional)
+        # PHASE 2: Classify analysis approach & extract estimands (if any)
         # =====================================================================
         if extract_estimands and objectives_data.endpoints:
-            logger.info("Phase 2: Extracting estimands with endpoint context...")
+            logger.info("Phase 2: Classifying analysis approach & extracting estimands...")
             
             # Build endpoint context for Phase 2
             endpoints_for_context = [ep.to_dict() for ep in objectives_data.endpoints]
@@ -206,12 +207,40 @@ def extract_objectives_endpoints(
                 max_retries=2,
             )
             
-            if phase2_response and phase2_response.get('estimands'):
-                estimands = _parse_estimands(phase2_response)
-                objectives_data.estimands = estimands
-                logger.info(f"Phase 2 complete: {len(estimands)} estimands extracted")
+            if phase2_response:
+                # Parse analysis approach classification
+                approach_str = phase2_response.get('analysisApproach', '').lower().strip()
+                if approach_str == 'confirmatory':
+                    objectives_data.analysis_approach = AnalysisApproach.CONFIRMATORY
+                elif approach_str == 'descriptive':
+                    objectives_data.analysis_approach = AnalysisApproach.DESCRIPTIVE
+                else:
+                    objectives_data.analysis_approach = AnalysisApproach.UNKNOWN
+                
+                objectives_data.analysis_approach_rationale = (
+                    phase2_response.get('analysisApproachRationale', '')
+                )
+                
+                logger.info(
+                    f"Analysis approach: {objectives_data.analysis_approach.value} "
+                    f"({objectives_data.analysis_approach_rationale[:100]})"
+                )
+                
+                # Only populate estimands if explicitly found
+                if phase2_response.get('estimands'):
+                    estimands = _parse_estimands(phase2_response)
+                    if estimands:
+                        objectives_data.estimands = estimands
+                        logger.info(f"Phase 2 complete: {len(estimands)} estimands extracted")
+                    else:
+                        logger.info("Phase 2: No valid estimands parsed from response")
+                else:
+                    logger.info(
+                        f"Phase 2: No estimands defined in protocol "
+                        f"(approach={objectives_data.analysis_approach.value})"
+                    )
             else:
-                logger.warning("Phase 2: No estimands extracted (non-fatal)")
+                logger.warning("Phase 2: Failed to get response (non-fatal)")
         
         # Store combined raw response
         result.raw_response = {
@@ -410,15 +439,6 @@ def _parse_estimands(raw: Dict[str, Any]) -> List[Estimand]:
                         description=ie_data.get('description'),
                         label=ie_data.get('label'),
                     ))
-            
-            # Add default intercurrent event if none provided (USDM requires at least 1)
-            if not ice_list:
-                ice_list.append(IntercurrentEvent(
-                    id=f"ice_{len(estimands)+1}_1",
-                    name="Treatment discontinuation",
-                    text="Subject discontinues study treatment",
-                    strategy=IntercurrentEventStrategy.TREATMENT_POLICY,
-                ))
             
             # Population summary - combine population and analysis population
             pop_text = est_data.get('populationSummary') or est_data.get('population', '')

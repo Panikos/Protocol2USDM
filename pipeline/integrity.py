@@ -501,6 +501,134 @@ def check_semantic_rules(usdm: dict) -> List[IntegrityFinding]:
                 details={'collections': locs},
             ))
 
+    # Rule S9: Encounters should reference a valid epoch (VAL-4)
+    encounters = design.get('encounters', [])
+    epoch_id_set = {ep.get('id') for ep in epochs if isinstance(ep, dict)}
+    for enc in encounters:
+        if not isinstance(enc, dict):
+            continue
+        enc_epoch = enc.get('epochId')
+        if enc_epoch and epoch_id_set and enc_epoch not in epoch_id_set:
+            findings.append(IntegrityFinding(
+                rule='encounter_epoch_mismatch',
+                severity=Severity.ERROR,
+                message=f'Encounter "{enc.get("name", enc.get("id"))}" references unknown epoch',
+                entity_type='Encounter',
+                entity_ids=[enc.get('id', '')],
+                details={'epochId': enc_epoch},
+            ))
+
+    # Rule S10: Estimand interventionIds should resolve to studyInterventions (VAL-4)
+    int_ids = {si.get('id') for si in interventions if isinstance(si, dict)}
+    for est in estimands:
+        if not isinstance(est, dict):
+            continue
+        est_int_ids = est.get('interventionIds', [])
+        if not isinstance(est_int_ids, list):
+            est_int_ids = [est_int_ids]
+        for iid in est_int_ids:
+            if iid and int_ids and iid not in int_ids:
+                findings.append(IntegrityFinding(
+                    rule='estimand_intervention_mismatch',
+                    severity=Severity.ERROR,
+                    message=f'Estimand "{est.get("name", est.get("id"))}" references unknown intervention',
+                    entity_type='Estimand',
+                    entity_ids=[est.get('id', '')],
+                    details={'interventionId': iid},
+                ))
+
+    # Rule S11: Required 1..* cardinality enforcement (VAL-1)
+    REQUIRED_ARRAYS = [
+        ('objectives', objectives, 'endpoints', 'Objective'),
+        ('estimands', estimands, 'intercurrentEvents', 'Estimand'),
+    ]
+    for coll_name, coll, array_field, entity_type in REQUIRED_ARRAYS:
+        for entity in coll:
+            if not isinstance(entity, dict):
+                continue
+            arr = entity.get(array_field, [])
+            if not arr:
+                findings.append(IntegrityFinding(
+                    rule='empty_required_array',
+                    severity=Severity.WARNING,
+                    message=f'{entity_type} "{entity.get("name", entity.get("id"))}" has empty {array_field}[] (1..* required)',
+                    entity_type=entity_type,
+                    entity_ids=[entity.get('id', '')],
+                    details={'field': array_field},
+                ))
+
+    # Rule S12: Timeline instances should reference existing encounters and activities (VAL-4)
+    timelines = design.get('scheduleTimelines', [])
+    activity_ids = {a.get('id') for a in activities if isinstance(a, dict)}
+    encounter_ids = {e.get('id') for e in encounters if isinstance(e, dict)}
+    for tl in timelines:
+        if not isinstance(tl, dict):
+            continue
+        for inst in tl.get('instances', []):
+            if not isinstance(inst, dict):
+                continue
+            inst_enc = inst.get('encounterId')
+            if inst_enc and encounter_ids and inst_enc not in encounter_ids:
+                findings.append(IntegrityFinding(
+                    rule='instance_encounter_mismatch',
+                    severity=Severity.WARNING,
+                    message=f'ScheduledActivityInstance references unknown encounter "{inst_enc}"',
+                    entity_type='ScheduledActivityInstance',
+                    entity_ids=[inst.get('id', '')],
+                    details={'encounterId': inst_enc},
+                ))
+            inst_acts = inst.get('activityIds', [])
+            if isinstance(inst_acts, list):
+                for aid in inst_acts:
+                    if aid and activity_ids and aid not in activity_ids:
+                        findings.append(IntegrityFinding(
+                            rule='instance_activity_mismatch',
+                            severity=Severity.WARNING,
+                            message=f'ScheduledActivityInstance references unknown activity "{aid}"',
+                            entity_type='ScheduledActivityInstance',
+                            entity_ids=[inst.get('id', '')],
+                            details={'activityId': aid},
+                        ))
+
+    # Rule S13: SAP statistical methods should reference endpoint names that exist (VAL-4)
+    _sap_methods = []
+    for ext in design.get('extensionAttributes', []):
+        if isinstance(ext, dict) and 'statistical-methods' in ext.get('url', ''):
+            val = ext.get('valueObject')
+            if isinstance(val, list):
+                _sap_methods = val
+            break
+    if _sap_methods and _all_eps:
+        ep_names = {(ep.get('name') or '').lower() for ep in _all_eps if isinstance(ep, dict)}
+        for method in _sap_methods:
+            if not isinstance(method, dict):
+                continue
+            method_ep = (method.get('endpointName') or method.get('endpoint') or '').lower()
+            if method_ep and ep_names and method_ep not in ep_names:
+                # Fuzzy check — method endpoint name may be a substring
+                if not any(method_ep in epn or epn in method_ep for epn in ep_names):
+                    findings.append(IntegrityFinding(
+                        rule='sap_endpoint_mismatch',
+                        severity=Severity.WARNING,
+                        message=f'SAP method "{method.get("name", "?")}" references endpoint "{method_ep}" not found in objectives',
+                        entity_type='StatisticalMethod',
+                        details={'endpointName': method_ep},
+                    ))
+
+    # Rule S14: Population objects should have non-empty name and text (VAL-1)
+    pops = design.get('analysisPopulations', [])
+    for pop in pops:
+        if not isinstance(pop, dict):
+            continue
+        if not pop.get('name') and not pop.get('label'):
+            findings.append(IntegrityFinding(
+                rule='unnamed_population',
+                severity=Severity.WARNING,
+                message=f'AnalysisPopulation "{pop.get("id", "?")}" has no name or label',
+                entity_type='AnalysisPopulation',
+                entity_ids=[pop.get('id', '')],
+            ))
+
     return findings
 
 

@@ -117,6 +117,64 @@ class DataHandlingRule:
 
 
 @dataclass
+class MissingDataStrategy:
+    """Missing data handling approach per ICH E9(R1) alignment.
+    
+    Bridges estimand ICE handling strategies to statistical missing data methods.
+    Each strategy specifies how missing data is handled for a specific endpoint
+    and how it aligns with the estimand framework.
+    
+    ICE Strategy → Missing Data Method mapping:
+      Treatment Policy → Include all data (MMRM, MI)
+      Hypothetical     → Estimate as if no discontinuation (MMRM under MAR)
+      Composite        → Composite endpoint (no imputation needed)
+      While on Treatment → Censor at discontinuation
+      Principal Stratum → Model-based (causal inference)
+    """
+    id: str
+    name: str                                    # e.g., "MMRM for primary endpoint"
+    method: str                                  # MMRM, LOCF, MI, tipping point, etc.
+    endpoint_name: Optional[str] = None          # Which endpoint
+    endpoint_id: Optional[str] = None            # USDM Endpoint reference
+    estimand_alignment: Optional[str] = None     # Which ICE strategy this supports
+    assumptions: Optional[str] = None            # MAR, MNAR, etc.
+    sensitivity_method: Optional[str] = None     # Sensitivity analysis for this strategy
+    description: Optional[str] = None            # Full description from SAP
+    instance_type: str = "MissingDataStrategy"
+    
+    def to_dict(self) -> Dict[str, Any]:
+        result = {
+            "id": self.id,
+            "name": self.name,
+            "method": self.method,
+            "instanceType": self.instance_type,
+        }
+        if self.endpoint_name:
+            result["endpointName"] = self.endpoint_name
+        if self.endpoint_id:
+            result["endpointId"] = self.endpoint_id
+        if self.estimand_alignment:
+            result["estimandAlignment"] = self.estimand_alignment
+        if self.assumptions:
+            result["assumptions"] = self.assumptions
+        if self.sensitivity_method:
+            result["sensitivityMethod"] = self.sensitivity_method
+        if self.description:
+            result["description"] = self.description
+        return result
+
+
+# ICE Strategy → Missing Data Method standard mapping
+ICE_MISSING_DATA_MAP = {
+    "treatment policy": ["MMRM", "MI", "mixed model"],
+    "hypothetical": ["MMRM under MAR", "MI under MAR", "BOCF"],
+    "composite": [],  # No imputation needed
+    "while on treatment": ["censor", "LOCF", "truncation"],
+    "principal stratum": ["causal inference", "principal stratum"],
+}
+
+
+@dataclass
 class StatisticalMethod:
     """Statistical analysis method with STATO ontology and CDISC ARS mapping."""
     id: str
@@ -332,6 +390,54 @@ class SampleSizeCalculation:
 
 
 @dataclass
+class AnalysisSpecification:
+    """Traceability entity linking an endpoint to its analysis method, population, and estimand.
+    
+    This is the core entity that connects the clinical question (endpoint/estimand)
+    to the statistical answer (method/population/missing data strategy).
+    Built during post-processing by reconciling SAP methods with protocol endpoints.
+    """
+    id: str
+    endpoint_id: Optional[str] = None       # USDM Endpoint reference
+    endpoint_name: Optional[str] = None     # Endpoint text (for display)
+    method_id: Optional[str] = None         # StatisticalMethod reference
+    method_name: Optional[str] = None       # Method name (for display)
+    population_id: Optional[str] = None     # AnalysisPopulation reference
+    population_name: Optional[str] = None   # Population name (for display)
+    estimand_id: Optional[str] = None       # Estimand reference (confirmatory only)
+    analysis_type: str = "primary"           # primary, secondary, sensitivity, exploratory
+    missing_data_strategy: Optional[str] = None  # How missing data is handled
+    model_specification: Optional[str] = None    # Full model spec text
+    instance_type: str = "AnalysisSpecification"
+    
+    def to_dict(self) -> Dict[str, Any]:
+        result = {
+            "id": self.id,
+            "analysisType": self.analysis_type,
+            "instanceType": self.instance_type,
+        }
+        if self.endpoint_id:
+            result["endpointId"] = self.endpoint_id
+        if self.endpoint_name:
+            result["endpointName"] = self.endpoint_name
+        if self.method_id:
+            result["methodId"] = self.method_id
+        if self.method_name:
+            result["methodName"] = self.method_name
+        if self.population_id:
+            result["populationId"] = self.population_id
+        if self.population_name:
+            result["populationName"] = self.population_name
+        if self.estimand_id:
+            result["estimandId"] = self.estimand_id
+        if self.missing_data_strategy:
+            result["missingDataStrategy"] = self.missing_data_strategy
+        if self.model_specification:
+            result["modelSpecification"] = self.model_specification
+        return result
+
+
+@dataclass
 class SAPData:
     """Container for SAP extraction results."""
     analysis_populations: List[AnalysisPopulation] = field(default_factory=list)
@@ -344,6 +450,8 @@ class SAPData:
     subgroup_analyses: List[SubgroupAnalysis] = field(default_factory=list)
     interim_analyses: List[InterimAnalysis] = field(default_factory=list)
     sample_size_calculations: List[SampleSizeCalculation] = field(default_factory=list)
+    analysis_specifications: List[AnalysisSpecification] = field(default_factory=list)
+    missing_data_strategies: List[MissingDataStrategy] = field(default_factory=list)
     
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -357,6 +465,8 @@ class SAPData:
             "subgroupAnalyses": [s.to_dict() for s in self.subgroup_analyses],
             "interimAnalyses": [i.to_dict() for i in self.interim_analyses],
             "sampleSizeCalculations": [s.to_dict() for s in self.sample_size_calculations],
+            "analysisSpecifications": [a.to_dict() for a in self.analysis_specifications],
+            "missingDataStrategies": [m.to_dict() for m in self.missing_data_strategies],
             "summary": {
                 "populationCount": len(self.analysis_populations),
                 "characteristicCount": len(self.characteristics),
@@ -368,6 +478,8 @@ class SAPData:
                 "subgroupAnalysisCount": len(self.subgroup_analyses),
                 "interimAnalysisCount": len(self.interim_analyses),
                 "sampleSizeCalculationCount": len(self.sample_size_calculations),
+                "analysisSpecificationCount": len(self.analysis_specifications),
+                "missingDataStrategyCount": len(self.missing_data_strategies),
             }
         }
 
@@ -569,15 +681,263 @@ DOCUMENT TEXT:
 """
 
 
+# =============================================================================
+# Multi-pass extraction helpers
+# =============================================================================
+
+MAX_SAP_PAGES = 100  # Phase E: increased from 40 to handle large SAPs
+MAX_PROMPT_CHARS = 50000  # Per-pass character limit (smaller per pass = better focus)
+
+
+def _call_sap_pass(
+    prompt: str,
+    model: str,
+    pass_name: str,
+    max_retries: int = 2,
+) -> Optional[Dict[str, Any]]:
+    """Call LLM for a single SAP extraction pass with retry and JSON parsing."""
+    for attempt in range(max_retries + 1):
+        try:
+            result = call_llm(
+                prompt=prompt,
+                model_name=model,
+                json_mode=True,
+                extractor_name=f"sap_{pass_name}",
+                temperature=0.1,
+            )
+            response = result.get('response', '')
+            json_match = re.search(r'```json\s*(.*?)\s*```', response, re.DOTALL)
+            json_str = json_match.group(1) if json_match else response
+            data = json.loads(json_str)
+            if isinstance(data, dict):
+                return data
+            logger.warning(f"SAP {pass_name}: LLM returned non-dict, retrying")
+        except (json.JSONDecodeError, Exception) as e:
+            if attempt < max_retries:
+                logger.warning(f"SAP {pass_name} attempt {attempt+1} failed: {e}, retrying")
+            else:
+                logger.error(f"SAP {pass_name} failed after {max_retries+1} attempts: {e}")
+    return None
+
+
+def _build_context_summary(label: str, items: list, fields: List[str]) -> str:
+    """Build a concise context summary of previously extracted items for cross-referencing."""
+    if not items:
+        return f"{label}: None extracted\n"
+    lines = [f"{label} ({len(items)} items):"]
+    for item in items[:20]:  # Cap to avoid context overflow
+        parts = []
+        for f in fields:
+            val = item.get(f, '') if isinstance(item, dict) else getattr(item, f, '')
+            if val:
+                parts.append(f"{f}={val}")
+        lines.append(f"  - {', '.join(parts)}")
+    return '\n'.join(lines) + '\n'
+
+
+def _safe_list(data: Optional[Dict], key: str) -> list:
+    """Safely extract a list from a dict, returning [] if missing or wrong type."""
+    if not data:
+        return []
+    val = data.get(key, [])
+    return val if isinstance(val, list) else []
+
+
+# =============================================================================
+# Entity parsers (shared between single-pass and multi-pass)
+# =============================================================================
+
+def _parse_populations(pop_list: list) -> List[AnalysisPopulation]:
+    return [
+        AnalysisPopulation(
+            id=p.get('id', f"pop_{i+1}") if isinstance(p, dict) else f"pop_{i+1}",
+            name=(p.get('name') or p.get('label') or f'Population {i+1}') if isinstance(p, dict) else str(p),
+            label=p.get('label') if isinstance(p, dict) else None,
+            description=p.get('description') if isinstance(p, dict) else None,
+            definition=p.get('definition') if isinstance(p, dict) else None,
+            population_type=p.get('populationType', 'Analysis') if isinstance(p, dict) else 'Analysis',
+            criteria=p.get('criteria') if isinstance(p, dict) else None,
+        )
+        for i, p in enumerate(pop_list)
+    ]
+
+
+def _parse_characteristics(char_list: list) -> List[Characteristic]:
+    return [
+        Characteristic(
+            id=c.get('id', f"char_{i+1}") if isinstance(c, dict) else f"char_{i+1}",
+            name=c.get('name', '') if isinstance(c, dict) else str(c),
+            description=c.get('description') if isinstance(c, dict) else None,
+            data_type=c.get('dataType', 'Text') if isinstance(c, dict) else 'Text',
+        )
+        for i, c in enumerate(char_list)
+    ]
+
+
+def _parse_sample_size(ss_list: list) -> List[SampleSizeCalculation]:
+    return [
+        SampleSizeCalculation(
+            id=ss.get('id', f"ss_{i+1}") if isinstance(ss, dict) else f"ss_{i+1}",
+            name=ss.get('name', '') if isinstance(ss, dict) else str(ss),
+            description=ss.get('description', '') if isinstance(ss, dict) else '',
+            target_sample_size=ss.get('targetSampleSize') if isinstance(ss, dict) else None,
+            power=ss.get('power') if isinstance(ss, dict) else None,
+            alpha=ss.get('alpha') if isinstance(ss, dict) else None,
+            effect_size=ss.get('effectSize') if isinstance(ss, dict) else None,
+            dropout_rate=ss.get('dropoutRate') if isinstance(ss, dict) else None,
+            assumptions=ss.get('assumptions') if isinstance(ss, dict) else None,
+        )
+        for i, ss in enumerate(ss_list)
+    ]
+
+
+def _parse_statistical_methods(sm_list: list) -> List[StatisticalMethod]:
+    return [
+        StatisticalMethod(
+            id=s.get('id', f"sm_{i+1}") if isinstance(s, dict) else f"sm_{i+1}",
+            name=s.get('name', '') if isinstance(s, dict) else str(s),
+            description=s.get('description', '') if isinstance(s, dict) else '',
+            endpoint_name=s.get('endpointName') if isinstance(s, dict) else None,
+            stato_code=s.get('statoCode') if isinstance(s, dict) else None,
+            stato_label=s.get('statoLabel') if isinstance(s, dict) else None,
+            hypothesis_type=s.get('hypothesisType') if isinstance(s, dict) else None,
+            test_type=s.get('testType') if isinstance(s, dict) else None,
+            alpha_level=s.get('alphaLevel') if isinstance(s, dict) else None,
+            covariates=s.get('covariates') if isinstance(s, dict) else None,
+            software=s.get('software') if isinstance(s, dict) else None,
+            ars_method_id=s.get('arsMethodId') if isinstance(s, dict) else None,
+            ars_operation_id=s.get('arsOperationId') if isinstance(s, dict) else None,
+            ars_reason=s.get('arsReason') if isinstance(s, dict) else None,
+        )
+        for i, s in enumerate(sm_list)
+    ]
+
+
+def _parse_multiplicity(mult_list: list) -> List[MultiplicityAdjustment]:
+    return [
+        MultiplicityAdjustment(
+            id=m.get('id', f"mult_{i+1}") if isinstance(m, dict) else f"mult_{i+1}",
+            name=m.get('name', '') if isinstance(m, dict) else str(m),
+            description=m.get('description', '') if isinstance(m, dict) else '',
+            method_type=m.get('methodType', 'familywise') if isinstance(m, dict) else 'familywise',
+            stato_code=m.get('statoCode') if isinstance(m, dict) else None,
+            overall_alpha=m.get('overallAlpha') if isinstance(m, dict) else None,
+            endpoints_covered=m.get('endpointsCovered') if isinstance(m, dict) else None,
+            hierarchy=m.get('hierarchy') if isinstance(m, dict) else None,
+        )
+        for i, m in enumerate(mult_list)
+    ]
+
+
+def _parse_sensitivity(sens_list: list) -> List[SensitivityAnalysis]:
+    return [
+        SensitivityAnalysis(
+            id=s.get('id', f"sens_{i+1}") if isinstance(s, dict) else f"sens_{i+1}",
+            name=s.get('name', '') if isinstance(s, dict) else str(s),
+            description=s.get('description', '') if isinstance(s, dict) else '',
+            primary_endpoint=s.get('primaryEndpoint') if isinstance(s, dict) else None,
+            analysis_type=s.get('analysisType', 'sensitivity') if isinstance(s, dict) else 'sensitivity',
+            method_variation=s.get('methodVariation') if isinstance(s, dict) else None,
+            population=s.get('population') if isinstance(s, dict) else None,
+            ars_reason=s.get('arsReason') if isinstance(s, dict) else None,
+            ars_analysis_id=s.get('arsAnalysisId') if isinstance(s, dict) else None,
+        )
+        for i, s in enumerate(sens_list)
+    ]
+
+
+def _parse_subgroups(sub_list: list) -> List[SubgroupAnalysis]:
+    return [
+        SubgroupAnalysis(
+            id=s.get('id', f"sub_{i+1}") if isinstance(s, dict) else f"sub_{i+1}",
+            name=s.get('name', '') if isinstance(s, dict) else str(s),
+            description=s.get('description', '') if isinstance(s, dict) else '',
+            subgroup_variable=s.get('subgroupVariable', '') if isinstance(s, dict) else '',
+            categories=s.get('categories') if isinstance(s, dict) else None,
+            endpoints=s.get('endpoints') if isinstance(s, dict) else None,
+            interaction_test=s.get('interactionTest', False) if isinstance(s, dict) else False,
+        )
+        for i, s in enumerate(sub_list)
+    ]
+
+
+def _parse_interim(ia_list: list) -> List[InterimAnalysis]:
+    return [
+        InterimAnalysis(
+            id=ia.get('id', f"ia_{i+1}") if isinstance(ia, dict) else f"ia_{i+1}",
+            name=ia.get('name', '') if isinstance(ia, dict) else str(ia),
+            description=ia.get('description', '') if isinstance(ia, dict) else '',
+            timing=ia.get('timing') if isinstance(ia, dict) else None,
+            information_fraction=ia.get('informationFraction') if isinstance(ia, dict) else None,
+            stopping_rule_efficacy=ia.get('stoppingRuleEfficacy') if isinstance(ia, dict) else None,
+            stopping_rule_futility=ia.get('stoppingRuleFutility') if isinstance(ia, dict) else None,
+            alpha_spent=ia.get('alphaSpent') if isinstance(ia, dict) else None,
+            spending_function=ia.get('spendingFunction') if isinstance(ia, dict) else None,
+            ars_reporting_event_type=ia.get('arsReportingEventType') if isinstance(ia, dict) else None,
+        )
+        for i, ia in enumerate(ia_list)
+    ]
+
+
+def _parse_derived_variables(dv_list: list) -> List[DerivedVariable]:
+    return [
+        DerivedVariable(
+            id=d.get('id', f"dv_{i+1}") if isinstance(d, dict) else f"dv_{i+1}",
+            name=d.get('name', '') if isinstance(d, dict) else str(d),
+            formula=d.get('formula', '') if isinstance(d, dict) else '',
+            unit=d.get('unit') if isinstance(d, dict) else None,
+            notes=d.get('notes') if isinstance(d, dict) else None,
+        )
+        for i, d in enumerate(dv_list)
+    ]
+
+
+def _parse_data_handling(rule_list: list) -> List[DataHandlingRule]:
+    return [
+        DataHandlingRule(
+            id=r.get('id', f"rule_{i+1}") if isinstance(r, dict) else f"rule_{i+1}",
+            name=r.get('name', '') if isinstance(r, dict) else str(r),
+            rule=r.get('rule', '') if isinstance(r, dict) else '',
+        )
+        for i, r in enumerate(rule_list)
+    ]
+
+
+# =============================================================================
+# Main extraction function (multi-pass)
+# =============================================================================
+
 def extract_from_sap(
     sap_path: str,
     model: str = "gemini-2.5-pro",
     output_dir: Optional[str] = None,
+    endpoints_context: Optional[List[Dict]] = None,
+    analysis_approach: Optional[str] = None,
 ) -> SAPExtractionResult:
     """
-    Extract analysis populations and characteristics from SAP document.
+    Extract statistical analysis information from SAP using 4 focused passes.
+    
+    Multi-pass architecture (each pass receives context from previous passes):
+      Pass 1: Populations, sample size, baseline characteristics
+      Pass 2: Statistical methods (with endpoint + population context)
+      Pass 3: Sensitivity, subgroup, interim analyses (with method context)
+           — skipped for descriptive studies
+      Pass 4: Derived variables, data handling rules
+    
+    Args:
+        sap_path: Path to SAP PDF file
+        model: LLM model name
+        output_dir: Optional directory for output JSON
+        endpoints_context: Optional list of endpoint dicts from protocol extraction
+            for cross-referencing in Pass 2
+        analysis_approach: Optional 'confirmatory', 'descriptive', or 'unknown'
+            from objectives phase. Gates Pass 3 extraction.
     """
-    logger.info(f"Extracting from SAP: {sap_path}")
+    from .sap_prompts import (
+        SAP_PASS1_PROMPT, SAP_PASS2_PROMPT, SAP_PASS3_PROMPT, SAP_PASS4_PROMPT,
+    )
+    
+    logger.info(f"Extracting from SAP (multi-pass): {sap_path}")
     
     if not Path(sap_path).exists():
         return SAPExtractionResult(
@@ -586,10 +946,12 @@ def extract_from_sap(
             source_file=sap_path,
         )
     
-    # Extract text from SAP
+    # Phase E: Extract up to MAX_SAP_PAGES (100) for large SAPs
     try:
-        pages = list(range(min(40, get_page_count(sap_path))))
+        total_pages = get_page_count(sap_path)
+        pages = list(range(min(MAX_SAP_PAGES, total_pages)))
         text = extract_text_from_pages(sap_path, pages)
+        logger.info(f"SAP: {total_pages} pages, extracted {len(pages)} pages, {len(text)} chars")
     except Exception as e:
         return SAPExtractionResult(
             success=False,
@@ -597,215 +959,130 @@ def extract_from_sap(
             source_file=sap_path,
         )
     
-    prompt = SAP_EXTRACTION_PROMPT.format(sap_text=text[:30000])
+    # Truncate text per pass to stay within context limits
+    sap_text = text[:MAX_PROMPT_CHARS]
     
     try:
-        # Combine system prompt with user prompt
-        full_prompt = f"You are an expert biostatistician extracting analysis populations from SAP documents.\n\n{prompt}"
-        result = call_llm(
-            prompt=full_prompt,
-            model_name=model,
-            json_mode=True,
-            extractor_name="sap",
-            temperature=0.1,
+        # =================================================================
+        # PASS 1: Populations + Sample Size + Characteristics
+        # =================================================================
+        logger.info("SAP Pass 1/4: Populations, sample size, characteristics...")
+        pass1_prompt = SAP_PASS1_PROMPT.format(sap_text=sap_text)
+        pass1_data = _call_sap_pass(pass1_prompt, model, "pass1")
+        
+        populations = _parse_populations(_safe_list(pass1_data, 'analysisPopulations'))
+        characteristics = _parse_characteristics(_safe_list(pass1_data, 'characteristics'))
+        sample_size_calculations = _parse_sample_size(_safe_list(pass1_data, 'sampleSizeCalculations'))
+        
+        logger.info(
+            f"  Pass 1 complete: {len(populations)} populations, "
+            f"{len(sample_size_calculations)} sample size calcs, {len(characteristics)} characteristics"
         )
-        response = result.get('response', '')
         
-        json_match = re.search(r'```json\s*(.*?)\s*```', response, re.DOTALL)
-        json_str = json_match.group(1) if json_match else response
-        raw_data = json.loads(json_str)
+        # Build Pass 1 context for subsequent passes
+        pass1_pop_dicts = [p.to_dict() for p in populations]
+        pass1_context = _build_context_summary(
+            "Analysis Populations", pass1_pop_dicts,
+            ['id', 'name', 'populationType'],
+        )
+        pass1_context += _build_context_summary(
+            "Sample Size",
+            [s.to_dict() for s in sample_size_calculations],
+            ['id', 'name', 'targetSampleSize', 'power', 'alpha'],
+        )
         
-        # Handle case where LLM returns a list directly
-        if isinstance(raw_data, list):
-            raw_data = {"analysisPopulations": raw_data, "characteristics": []}
+        # =================================================================
+        # PASS 2: Statistical Methods + Multiplicity (with endpoint context)
+        # =================================================================
+        logger.info("SAP Pass 2/4: Statistical methods with endpoint context...")
         
-        pop_list = raw_data.get('analysisPopulations', [])
-        if not isinstance(pop_list, list):
-            pop_list = []
+        ep_context_str = "No endpoint context available from protocol."
+        if endpoints_context:
+            ep_lines = ["Endpoints from protocol:"]
+            for ep in endpoints_context[:20]:
+                ep_id = ep.get('id', '')
+                ep_text = ep.get('endpointText', ep.get('text', ep.get('name', '')))
+                ep_level = ep.get('level', ep.get('endpointLevel', ''))
+                if isinstance(ep_level, dict):
+                    ep_level = ep_level.get('decode', ep_level.get('code', ''))
+                ep_lines.append(f"  - id={ep_id}, level={ep_level}, text={ep_text}")
+            ep_context_str = '\n'.join(ep_lines)
         
-        populations = [
-            AnalysisPopulation(
-                id=p.get('id', f"pop_{i+1}") if isinstance(p, dict) else f"pop_{i+1}",
-                name=(p.get('name') or p.get('label') or f'Population {i+1}') if isinstance(p, dict) else str(p),
-                label=p.get('label') if isinstance(p, dict) else None,
-                description=p.get('description') if isinstance(p, dict) else None,
-                definition=p.get('definition') if isinstance(p, dict) else None,
-                population_type=p.get('populationType', 'Analysis') if isinstance(p, dict) else 'Analysis',
-                criteria=p.get('criteria') if isinstance(p, dict) else None,
+        pass2_prompt = SAP_PASS2_PROMPT.format(
+            sap_text=sap_text,
+            pass1_context=pass1_context,
+            endpoints_context=ep_context_str,
+        )
+        pass2_data = _call_sap_pass(pass2_prompt, model, "pass2")
+        
+        statistical_methods = _parse_statistical_methods(_safe_list(pass2_data, 'statisticalMethods'))
+        multiplicity_adjustments = _parse_multiplicity(_safe_list(pass2_data, 'multiplicityAdjustments'))
+        
+        logger.info(
+            f"  Pass 2 complete: {len(statistical_methods)} methods, "
+            f"{len(multiplicity_adjustments)} multiplicity adjustments"
+        )
+        
+        # Build Pass 2 context for Pass 3
+        pass2_method_dicts = [m.to_dict() for m in statistical_methods]
+        pass2_context = _build_context_summary(
+            "Statistical Methods", pass2_method_dicts,
+            ['id', 'name', 'endpointName', 'arsReason'],
+        )
+        
+        # =================================================================
+        # PASS 3: Sensitivity + Subgroup + Interim Analyses
+        # Gated by analysis approach — descriptive studies skip this pass
+        # =================================================================
+        is_descriptive = (analysis_approach or '').lower() == 'descriptive'
+        sensitivity_analyses = []
+        subgroup_analyses = []
+        interim_analyses = []
+        
+        if is_descriptive:
+            logger.info(
+                "SAP Pass 3/4: SKIPPED — descriptive study "
+                "(sensitivity/subgroup/interim analyses not applicable)"
             )
-            for i, p in enumerate(pop_list)
-        ]
-        
-        char_list = raw_data.get('characteristics', [])
-        if not isinstance(char_list, list):
-            char_list = []
-        
-        characteristics = [
-            Characteristic(
-                id=c.get('id', f"char_{i+1}") if isinstance(c, dict) else f"char_{i+1}",
-                name=c.get('name', '') if isinstance(c, dict) else str(c),
-                description=c.get('description') if isinstance(c, dict) else None,
-                data_type=c.get('dataType', 'Text') if isinstance(c, dict) else 'Text',
+        else:
+            logger.info("SAP Pass 3/4: Sensitivity, subgroup, interim analyses...")
+            pass3_prompt = SAP_PASS3_PROMPT.format(
+                sap_text=sap_text,
+                pass1_context=pass1_context,
+                pass2_context=pass2_context,
             )
-            for i, c in enumerate(char_list)
-        ]
-        
-        # Parse derived variables
-        dv_list = raw_data.get('derivedVariables', [])
-        if not isinstance(dv_list, list):
-            dv_list = []
-        
-        derived_variables = [
-            DerivedVariable(
-                id=d.get('id', f"dv_{i+1}") if isinstance(d, dict) else f"dv_{i+1}",
-                name=d.get('name', '') if isinstance(d, dict) else str(d),
-                formula=d.get('formula', '') if isinstance(d, dict) else '',
-                unit=d.get('unit') if isinstance(d, dict) else None,
-                notes=d.get('notes') if isinstance(d, dict) else None,
+            pass3_data = _call_sap_pass(pass3_prompt, model, "pass3")
+            
+            sensitivity_analyses = _parse_sensitivity(_safe_list(pass3_data, 'sensitivityAnalyses'))
+            subgroup_analyses = _parse_subgroups(_safe_list(pass3_data, 'subgroupAnalyses'))
+            interim_analyses = _parse_interim(_safe_list(pass3_data, 'interimAnalyses'))
+            
+            logger.info(
+                f"  Pass 3 complete: {len(sensitivity_analyses)} sensitivity, "
+                f"{len(subgroup_analyses)} subgroup, {len(interim_analyses)} interim analyses"
             )
-            for i, d in enumerate(dv_list)
-        ]
         
-        # Parse data handling rules
-        rule_list = raw_data.get('dataHandlingRules', [])
-        if not isinstance(rule_list, list):
-            rule_list = []
+        # =================================================================
+        # PASS 4: Derived Variables + Data Handling Rules
+        # =================================================================
+        logger.info("SAP Pass 4/4: Derived variables, data handling rules...")
+        pass4_prompt = SAP_PASS4_PROMPT.format(
+            sap_text=sap_text,
+            endpoints_context=ep_context_str,
+        )
+        pass4_data = _call_sap_pass(pass4_prompt, model, "pass4")
         
-        data_handling_rules = [
-            DataHandlingRule(
-                id=r.get('id', f"rule_{i+1}") if isinstance(r, dict) else f"rule_{i+1}",
-                name=r.get('name', '') if isinstance(r, dict) else str(r),
-                rule=r.get('rule', '') if isinstance(r, dict) else '',
-            )
-            for i, r in enumerate(rule_list)
-        ]
+        derived_variables = _parse_derived_variables(_safe_list(pass4_data, 'derivedVariables'))
+        data_handling_rules = _parse_data_handling(_safe_list(pass4_data, 'dataHandlingRules'))
         
-        # Parse statistical methods
-        sm_list = raw_data.get('statisticalMethods', [])
-        if not isinstance(sm_list, list):
-            sm_list = []
+        logger.info(
+            f"  Pass 4 complete: {len(derived_variables)} derived variables, "
+            f"{len(data_handling_rules)} data handling rules"
+        )
         
-        statistical_methods = [
-            StatisticalMethod(
-                id=s.get('id', f"sm_{i+1}") if isinstance(s, dict) else f"sm_{i+1}",
-                name=s.get('name', '') if isinstance(s, dict) else str(s),
-                description=s.get('description', '') if isinstance(s, dict) else '',
-                endpoint_name=s.get('endpointName') if isinstance(s, dict) else None,
-                stato_code=s.get('statoCode') if isinstance(s, dict) else None,
-                stato_label=s.get('statoLabel') if isinstance(s, dict) else None,
-                hypothesis_type=s.get('hypothesisType') if isinstance(s, dict) else None,
-                test_type=s.get('testType') if isinstance(s, dict) else None,
-                alpha_level=s.get('alphaLevel') if isinstance(s, dict) else None,
-                covariates=s.get('covariates') if isinstance(s, dict) else None,
-                software=s.get('software') if isinstance(s, dict) else None,
-                # ARS linkage fields
-                ars_method_id=s.get('arsMethodId') if isinstance(s, dict) else None,
-                ars_operation_id=s.get('arsOperationId') if isinstance(s, dict) else None,
-                ars_reason=s.get('arsReason') if isinstance(s, dict) else None,
-            )
-            for i, s in enumerate(sm_list)
-        ]
-        
-        # Parse multiplicity adjustments
-        mult_list = raw_data.get('multiplicityAdjustments', [])
-        if not isinstance(mult_list, list):
-            mult_list = []
-        
-        multiplicity_adjustments = [
-            MultiplicityAdjustment(
-                id=m.get('id', f"mult_{i+1}") if isinstance(m, dict) else f"mult_{i+1}",
-                name=m.get('name', '') if isinstance(m, dict) else str(m),
-                description=m.get('description', '') if isinstance(m, dict) else '',
-                method_type=m.get('methodType', 'familywise') if isinstance(m, dict) else 'familywise',
-                stato_code=m.get('statoCode') if isinstance(m, dict) else None,
-                overall_alpha=m.get('overallAlpha') if isinstance(m, dict) else None,
-                endpoints_covered=m.get('endpointsCovered') if isinstance(m, dict) else None,
-                hierarchy=m.get('hierarchy') if isinstance(m, dict) else None,
-            )
-            for i, m in enumerate(mult_list)
-        ]
-        
-        # Parse sensitivity analyses
-        sens_list = raw_data.get('sensitivityAnalyses', [])
-        if not isinstance(sens_list, list):
-            sens_list = []
-        
-        sensitivity_analyses = [
-            SensitivityAnalysis(
-                id=s.get('id', f"sens_{i+1}") if isinstance(s, dict) else f"sens_{i+1}",
-                name=s.get('name', '') if isinstance(s, dict) else str(s),
-                description=s.get('description', '') if isinstance(s, dict) else '',
-                primary_endpoint=s.get('primaryEndpoint') if isinstance(s, dict) else None,
-                analysis_type=s.get('analysisType', 'sensitivity') if isinstance(s, dict) else 'sensitivity',
-                method_variation=s.get('methodVariation') if isinstance(s, dict) else None,
-                population=s.get('population') if isinstance(s, dict) else None,
-                # ARS linkage fields
-                ars_reason=s.get('arsReason') if isinstance(s, dict) else None,
-                ars_analysis_id=s.get('arsAnalysisId') if isinstance(s, dict) else None,
-            )
-            for i, s in enumerate(sens_list)
-        ]
-        
-        # Parse subgroup analyses
-        sub_list = raw_data.get('subgroupAnalyses', [])
-        if not isinstance(sub_list, list):
-            sub_list = []
-        
-        subgroup_analyses = [
-            SubgroupAnalysis(
-                id=s.get('id', f"sub_{i+1}") if isinstance(s, dict) else f"sub_{i+1}",
-                name=s.get('name', '') if isinstance(s, dict) else str(s),
-                description=s.get('description', '') if isinstance(s, dict) else '',
-                subgroup_variable=s.get('subgroupVariable', '') if isinstance(s, dict) else '',
-                categories=s.get('categories') if isinstance(s, dict) else None,
-                endpoints=s.get('endpoints') if isinstance(s, dict) else None,
-                interaction_test=s.get('interactionTest', False) if isinstance(s, dict) else False,
-            )
-            for i, s in enumerate(sub_list)
-        ]
-        
-        # Parse interim analyses
-        ia_list = raw_data.get('interimAnalyses', [])
-        if not isinstance(ia_list, list):
-            ia_list = []
-        
-        interim_analyses = [
-            InterimAnalysis(
-                id=ia.get('id', f"ia_{i+1}") if isinstance(ia, dict) else f"ia_{i+1}",
-                name=ia.get('name', '') if isinstance(ia, dict) else str(ia),
-                description=ia.get('description', '') if isinstance(ia, dict) else '',
-                timing=ia.get('timing') if isinstance(ia, dict) else None,
-                information_fraction=ia.get('informationFraction') if isinstance(ia, dict) else None,
-                stopping_rule_efficacy=ia.get('stoppingRuleEfficacy') if isinstance(ia, dict) else None,
-                stopping_rule_futility=ia.get('stoppingRuleFutility') if isinstance(ia, dict) else None,
-                alpha_spent=ia.get('alphaSpent') if isinstance(ia, dict) else None,
-                spending_function=ia.get('spendingFunction') if isinstance(ia, dict) else None,
-                # ARS linkage field
-                ars_reporting_event_type=ia.get('arsReportingEventType') if isinstance(ia, dict) else None,
-            )
-            for i, ia in enumerate(ia_list)
-        ]
-        
-        # Parse sample size calculations
-        ss_list = raw_data.get('sampleSizeCalculations', [])
-        if not isinstance(ss_list, list):
-            ss_list = []
-        
-        sample_size_calculations = [
-            SampleSizeCalculation(
-                id=ss.get('id', f"ss_{i+1}") if isinstance(ss, dict) else f"ss_{i+1}",
-                name=ss.get('name', '') if isinstance(ss, dict) else str(ss),
-                description=ss.get('description', '') if isinstance(ss, dict) else '',
-                target_sample_size=ss.get('targetSampleSize') if isinstance(ss, dict) else None,
-                power=ss.get('power') if isinstance(ss, dict) else None,
-                alpha=ss.get('alpha') if isinstance(ss, dict) else None,
-                effect_size=ss.get('effectSize') if isinstance(ss, dict) else None,
-                dropout_rate=ss.get('dropoutRate') if isinstance(ss, dict) else None,
-                assumptions=ss.get('assumptions') if isinstance(ss, dict) else None,
-            )
-            for i, ss in enumerate(ss_list)
-        ]
-        
+        # =================================================================
+        # Assemble final result
+        # =================================================================
         data = SAPData(
             analysis_populations=populations,
             characteristics=characteristics,
@@ -832,11 +1109,20 @@ def extract_from_sap(
             with open(output_path, 'w', encoding='utf-8') as f:
                 json.dump(result.to_dict(), f, indent=2, ensure_ascii=False)
         
-        logger.info(f"Extracted {len(populations)} populations, {len(characteristics)} characteristics, "
-                    f"{len(derived_variables)} derived variables, {len(data_handling_rules)} data handling rules, "
-                    f"{len(statistical_methods)} statistical methods, {len(multiplicity_adjustments)} multiplicity adjustments, "
-                    f"{len(sensitivity_analyses)} sensitivity analyses, {len(subgroup_analyses)} subgroup analyses, "
-                    f"{len(interim_analyses)} interim analyses, {len(sample_size_calculations)} sample size calculations from SAP")
+        total_entities = (
+            len(populations) + len(characteristics) + len(statistical_methods)
+            + len(multiplicity_adjustments) + len(sensitivity_analyses)
+            + len(subgroup_analyses) + len(interim_analyses)
+            + len(sample_size_calculations) + len(derived_variables)
+            + len(data_handling_rules)
+        )
+        logger.info(
+            f"SAP extraction complete: {total_entities} total entities across 4 passes "
+            f"({len(populations)} pops, {len(statistical_methods)} methods, "
+            f"{len(sensitivity_analyses)} sensitivity, {len(subgroup_analyses)} subgroup, "
+            f"{len(interim_analyses)} interim, {len(sample_size_calculations)} sample size, "
+            f"{len(derived_variables)} derived vars, {len(data_handling_rules)} data rules)"
+        )
         return result
         
     except Exception as e:

@@ -326,54 +326,54 @@ class ReportingEvent:
 # Standard ARS operation patterns for common statistical methods
 ARS_OPERATION_PATTERNS = {
     "ANCOVA": [
-        Operation(id="op_lsmean", name="Mth01_LsMean", label="LS Mean", order=1),
-        Operation(id="op_lsmean_se", name="Mth01_LsMean_SE", label="LS Mean SE", order=2),
-        Operation(id="op_diff", name="Mth01_Diff", label="LS Mean Difference", order=3),
-        Operation(id="op_diff_ci", name="Mth01_Diff_CI", label="95% CI for Difference", order=4),
-        Operation(id="op_pvalue", name="Mth01_PValue", label="P-value", order=5),
+        Operation(id="op_lsmean", name="Mth01_LsMean", label="LS Mean", order=1, resultPattern="XX.XX"),
+        Operation(id="op_lsmean_se", name="Mth01_LsMean_SE", label="LS Mean SE", order=2, resultPattern="XX.XX"),
+        Operation(id="op_diff", name="Mth01_Diff", label="LS Mean Difference", order=3, resultPattern="XX.XX"),
+        Operation(id="op_diff_ci", name="Mth01_Diff_CI", label="95% CI for Difference", order=4, resultPattern="(XX.XX, XX.XX)"),
+        Operation(id="op_pvalue", name="Mth01_PValue", label="P-value", order=5, resultPattern="X.XXXX"),
     ],
     "MMRM": [
-        Operation(id="op_lsmean", name="Mth01_MMRM_LsMean", label="LS Mean", order=1),
-        Operation(id="op_lsmean_se", name="Mth01_MMRM_SE", label="Standard Error", order=2),
-        Operation(id="op_diff", name="Mth01_MMRM_Diff", label="Treatment Difference", order=3),
-        Operation(id="op_ci", name="Mth01_MMRM_CI", label="95% CI", order=4),
-        Operation(id="op_pvalue", name="Mth01_MMRM_PValue", label="P-value", order=5),
+        Operation(id="op_lsmean", name="Mth01_MMRM_LsMean", label="LS Mean", order=1, resultPattern="XX.XX"),
+        Operation(id="op_lsmean_se", name="Mth01_MMRM_SE", label="Standard Error", order=2, resultPattern="XX.XX"),
+        Operation(id="op_diff", name="Mth01_MMRM_Diff", label="Treatment Difference", order=3, resultPattern="XX.XX"),
+        Operation(id="op_ci", name="Mth01_MMRM_CI", label="95% CI", order=4, resultPattern="(XX.XX, XX.XX)"),
+        Operation(id="op_pvalue", name="Mth01_MMRM_PValue", label="P-value", order=5, resultPattern="X.XXXX"),
     ],
     "t-test": [
-        Operation(id="op_mean", name="Mth01_Mean", label="Mean", order=1),
-        Operation(id="op_sd", name="Mth01_SD", label="Standard Deviation", order=2),
-        Operation(id="op_diff", name="Mth01_MeanDiff", label="Mean Difference", order=3),
-        Operation(id="op_pvalue", name="Mth01_TTest_PValue", label="P-value", order=4),
+        Operation(id="op_mean", name="Mth01_Mean", label="Mean", order=1, resultPattern="XX.XX"),
+        Operation(id="op_sd", name="Mth01_SD", label="Standard Deviation", order=2, resultPattern="XX.XX"),
+        Operation(id="op_diff", name="Mth01_MeanDiff", label="Mean Difference", order=3, resultPattern="XX.XX"),
+        Operation(id="op_pvalue", name="Mth01_TTest_PValue", label="P-value", order=4, resultPattern="X.XXXX"),
     ],
     "Chi-square": [
-        Operation(id="op_n", name="Mth01_Count", label="n", order=1),
-        Operation(id="op_pct", name="Mth01_Percent", label="Percentage", order=2),
-        Operation(id="op_chisq", name="Mth01_ChiSq", label="Chi-square statistic", order=3),
-        Operation(id="op_pvalue", name="Mth01_ChiSq_PValue", label="P-value", order=4),
+        Operation(id="op_n", name="Mth01_Count", label="n", order=1, resultPattern="XXX"),
+        Operation(id="op_pct", name="Mth01_Percent", label="Percentage", order=2, resultPattern="XX.X%"),
+        Operation(id="op_chisq", name="Mth01_ChiSq", label="Chi-square statistic", order=3, resultPattern="XX.XX"),
+        Operation(id="op_pvalue", name="Mth01_ChiSq_PValue", label="P-value", order=4, resultPattern="X.XXXX"),
     ],
     "Fisher exact": [
-        Operation(id="op_n", name="Mth01_Count", label="n", order=1),
-        Operation(id="op_pct", name="Mth01_Percent", label="Percentage", order=2),
-        Operation(id="op_pvalue", name="Mth01_Fisher_PValue", label="P-value (Fisher)", order=3),
+        Operation(id="op_n", name="Mth01_Count", label="n", order=1, resultPattern="XXX"),
+        Operation(id="op_pct", name="Mth01_Percent", label="Percentage", order=2, resultPattern="XX.X%"),
+        Operation(id="op_pvalue", name="Mth01_Fisher_PValue", label="P-value (Fisher)", order=3, resultPattern="X.XXXX"),
     ],
     "Kaplan-Meier": [
-        Operation(id="op_median", name="Mth01_KM_Median", label="Median Survival", order=1),
-        Operation(id="op_ci", name="Mth01_KM_CI", label="95% CI", order=2),
-        Operation(id="op_rate", name="Mth01_KM_Rate", label="Event Rate", order=3),
+        Operation(id="op_median", name="Mth01_KM_Median", label="Median Survival", order=1, resultPattern="XX.X"),
+        Operation(id="op_ci", name="Mth01_KM_CI", label="95% CI", order=2, resultPattern="(XX.X, XX.X)"),
+        Operation(id="op_rate", name="Mth01_KM_Rate", label="Event Rate", order=3, resultPattern="XX.X%"),
     ],
     "Cox regression": [
-        Operation(id="op_hr", name="Mth01_HR", label="Hazard Ratio", order=1),
-        Operation(id="op_ci", name="Mth01_HR_CI", label="95% CI for HR", order=2),
-        Operation(id="op_pvalue", name="Mth01_Cox_PValue", label="P-value", order=3),
+        Operation(id="op_hr", name="Mth01_HR", label="Hazard Ratio", order=1, resultPattern="X.XX"),
+        Operation(id="op_ci", name="Mth01_HR_CI", label="95% CI for HR", order=2, resultPattern="(X.XX, X.XX)"),
+        Operation(id="op_pvalue", name="Mth01_Cox_PValue", label="P-value", order=3, resultPattern="X.XXXX"),
     ],
     "Log-rank": [
-        Operation(id="op_chisq", name="Mth01_LogRank_ChiSq", label="Log-rank Chi-square", order=1),
-        Operation(id="op_pvalue", name="Mth01_LogRank_PValue", label="P-value", order=2),
+        Operation(id="op_chisq", name="Mth01_LogRank_ChiSq", label="Log-rank Chi-square", order=1, resultPattern="XX.XX"),
+        Operation(id="op_pvalue", name="Mth01_LogRank_PValue", label="P-value", order=2, resultPattern="X.XXXX"),
     ],
     "Wilcoxon": [
-        Operation(id="op_median", name="Mth01_Median", label="Median", order=1),
-        Operation(id="op_iqr", name="Mth01_IQR", label="IQR", order=2),
-        Operation(id="op_pvalue", name="Mth01_Wilcoxon_PValue", label="P-value", order=3),
+        Operation(id="op_median", name="Mth01_Median", label="Median", order=1, resultPattern="XX.XX"),
+        Operation(id="op_iqr", name="Mth01_IQR", label="IQR", order=2, resultPattern="XX.XX"),
+        Operation(id="op_pvalue", name="Mth01_Wilcoxon_PValue", label="P-value", order=3, resultPattern="X.XXXX"),
     ],
 }
 
@@ -403,9 +403,11 @@ class ARSGenerator:
     Generates CDISC ARS-compliant JSON from SAP extraction data.
     """
     
-    def __init__(self, sap_data: Dict[str, Any], study_name: str = "Study"):
+    def __init__(self, sap_data: Dict[str, Any], study_name: str = "Study",
+                 endpoint_map: Optional[Dict[str, str]] = None):
         self.sap_data = sap_data
         self.study_name = study_name
+        self.endpoint_map: Dict[str, str] = endpoint_map or {}  # name→endpoint_id
         self.reporting_event: Optional[ReportingEvent] = None
         
     def generate(self) -> ReportingEvent:
@@ -495,10 +497,11 @@ class ARSGenerator:
                     for op in ops
                 ]
         
-        # Default operations for unknown methods
+        # Default operation for unknown/unmatched methods — only a generic result.
+        # P-value is NOT assumed: descriptive methods don't produce p-values.
+        # Inferential tests (ANCOVA, t-test, etc.) get p-values via ARS_OPERATION_PATTERNS.
         return [
             Operation(id=f"op_result_{str(uuid.uuid4())[:4]}", name="Result", label="Analysis Result", order=1),
-            Operation(id=f"op_pvalue_{str(uuid.uuid4())[:4]}", name="PValue", label="P-value", order=2),
         ]
     
     def _generate_categorizations(self):
@@ -652,6 +655,7 @@ def generate_ars_from_sap(
     sap_data: Dict[str, Any],
     study_name: str = "Study",
     output_path: Optional[str] = None,
+    endpoint_map: Optional[Dict[str, str]] = None,
 ) -> Dict[str, Any]:
     """
     Generate CDISC ARS JSON from SAP extraction data.
@@ -660,11 +664,12 @@ def generate_ars_from_sap(
         sap_data: SAP extraction data dictionary
         study_name: Name of the study for the reporting event
         output_path: Optional path to save ARS JSON
+        endpoint_map: Optional {endpoint_name_lower: usdm_endpoint_id} for linkage
         
     Returns:
         ARS JSON as dictionary
     """
-    generator = ARSGenerator(sap_data, study_name)
+    generator = ARSGenerator(sap_data, study_name, endpoint_map=endpoint_map)
     result = generator.generate()
     
     if output_path:

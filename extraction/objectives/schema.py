@@ -19,6 +19,22 @@ from core.terminology_codes import (
 )
 
 
+class AnalysisApproach(Enum):
+    """Classification of the study's statistical analysis approach.
+    
+    Determines whether formal estimands (ICH E9(R1)) are expected.
+    - CONFIRMATORY: Formal hypothesis testing with pre-specified estimands
+      (typically Phase 3, some Phase 2b). Estimands required per ICH E9(R1).
+    - DESCRIPTIVE: Exploratory/descriptive statistics only, no formal
+      hypothesis testing (Phase 1, Phase 2a, PK/PD studies). Estimands
+      are not applicable and should not be fabricated.
+    - UNKNOWN: Could not determine from protocol text.
+    """
+    CONFIRMATORY = "confirmatory"
+    DESCRIPTIVE = "descriptive"
+    UNKNOWN = "unknown"
+
+
 class ObjectiveLevel(Enum):
     """USDM Objective level codes."""
     UNKNOWN = ""  # Not extracted from source
@@ -275,12 +291,7 @@ class Estimand:
             "analysisPopulationId": self.analysis_population_id or f"{self.id}_pop",  # Required
             "variableOfInterestId": self.variable_of_interest_id or self.endpoint_id or f"{self.id}_var",  # Required
             "interventionIds": self.intervention_ids if self.intervention_ids else [f"{self.id}_int"],  # At least 1 required
-            "intercurrentEvents": [ie.to_dict() for ie in self.intercurrent_events] if self.intercurrent_events else [
-                # Provide default intercurrent event if none specified
-                {"id": f"{self.id}_ice_1", "name": "Treatment discontinuation", 
-                 "text": "Subject discontinues study treatment", "strategy": "Treatment Policy", 
-                 "instanceType": "IntercurrentEvent"}
-            ],
+            "intercurrentEvents": [ie.to_dict() for ie in self.intercurrent_events],
             "instanceType": self.instance_type,
         }
         # Optional fields
@@ -352,6 +363,10 @@ class ObjectivesData:
     endpoints: List[Endpoint] = field(default_factory=list)
     estimands: List[Estimand] = field(default_factory=list)
     
+    # Statistical analysis classification
+    analysis_approach: AnalysisApproach = AnalysisApproach.UNKNOWN
+    analysis_approach_rationale: str = ""  # LLM-provided rationale for classification
+    
     # Summary counts
     primary_objectives_count: int = 0
     secondary_objectives_count: int = 0
@@ -391,21 +406,32 @@ class ObjectivesData:
                     "severity": "WARNING",
                     "message": "No estimand references a primary endpoint (ICH E9(R1) best practice)",
                 })
+            # Warn if estimands exist for a descriptive study (likely fabricated)
+            if self.analysis_approach == AnalysisApproach.DESCRIPTIVE:
+                all_issues.append({
+                    "attribute": "approach_mismatch",
+                    "severity": "WARNING",
+                    "message": (
+                        f"Study uses descriptive statistics only but {len(self.estimands)} "
+                        f"estimand(s) were extracted. Estimands may not be applicable "
+                        f"per ICH E9(R1) for non-confirmatory studies."
+                    ),
+                })
         elif self.endpoints:
             # Have endpoints but no estimands at all
             primary_eps = [ep for ep in self.endpoints if ep.level == EndpointLevel.PRIMARY]
-            if primary_eps:
+            if primary_eps and self.analysis_approach == AnalysisApproach.CONFIRMATORY:
                 all_issues.append({
                     "attribute": "estimand_existence",
                     "severity": "WARNING",
-                    "message": f"Protocol has {len(primary_eps)} primary endpoint(s) but no estimands defined (ICH E9(R1))",
+                    "message": f"Confirmatory study has {len(primary_eps)} primary endpoint(s) but no estimands defined (ICH E9(R1))",
                 })
         
         return all_issues
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert to USDM-compatible dictionary structure."""
-        return {
+        result = {
             "objectives": [o.to_dict() for o in self.objectives],
             "endpoints": [e.to_dict() for e in self.endpoints],
             "estimands": [est.to_dict() for est in self.estimands],
@@ -415,8 +441,12 @@ class ObjectivesData:
                 "exploratoryObjectives": self.exploratory_objectives_count,
                 "totalEndpoints": len(self.endpoints),
                 "totalEstimands": len(self.estimands),
+                "analysisApproach": self.analysis_approach.value,
             }
         }
+        if self.analysis_approach_rationale:
+            result["summary"]["analysisApproachRationale"] = self.analysis_approach_rationale
+        return result
     
     @property
     def primary_objectives(self) -> List[Objective]:

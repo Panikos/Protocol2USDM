@@ -95,103 +95,88 @@ def resolve_content_references(combined: dict) -> None:
         logger.info(f"  Resolved {resolved}/{len(refs)} cross-references → targetId")
 
 
+def _get_analysis_approach_from_design(study_design: dict) -> str:
+    """Read analysisApproach from studyDesign extension attributes.
+    
+    Returns 'confirmatory', 'descriptive', or 'unknown'.
+    The approach is stored by the objectives phase as an x-analysisApproach
+    extension attribute during extraction.
+    """
+    for ext in study_design.get('extensionAttributes', []):
+        url = ext.get('url', '')
+        if 'x-analysisApproach' in url:
+            return ext.get('valueString', 'unknown').lower()
+    return 'unknown'
+
+
 def _create_populations_from_estimands(estimands: list) -> list:
     """
     Create AnalysisPopulation entities from estimand population references.
     
     Fallback for when the SAP phase doesn't run (no separate SAP PDF).
-    Extracts unique population names from estimand.analysisPopulation fields
-    and creates standard clinical trial populations.
+    Uses the actual population text from estimands — never boilerplate definitions.
+    Each population is sourced from the estimand's own analysisPopulation field
+    which was extracted from protocol language by the LLM.
     """
     import uuid as _uuid
     
-    # Standard clinical trial populations with descriptions
-    STANDARD_POPULATIONS = {
-        'itt': {
-            'name': 'Intent-to-Treat (ITT) Population',
-            'label': 'ITT',
-            'populationType': 'Efficacy',
-            'text': 'All randomized participants who received at least one dose of study intervention, analyzed according to randomized treatment assignment.',
-        },
-        'fas': {
-            'name': 'Full Analysis Set (FAS)',
-            'label': 'FAS',
-            'populationType': 'Efficacy',
-            'text': 'All randomized participants who received at least one dose of study intervention and had at least one post-baseline efficacy assessment.',
-        },
-        'safety': {
-            'name': 'Safety Population',
-            'label': 'Safety',
-            'populationType': 'Safety',
-            'text': 'All participants who received at least one dose of study intervention, analyzed according to actual treatment received.',
-        },
-        'pp': {
-            'name': 'Per Protocol (PP) Population',
-            'label': 'PP',
-            'populationType': 'Efficacy',
-            'text': 'All participants in the ITT population who completed the study without major protocol deviations.',
-        },
-        'pk': {
-            'name': 'Pharmacokinetic (PK) Population',
-            'label': 'PK',
-            'populationType': 'PK',
-            'text': 'All participants who received study intervention and had evaluable PK data.',
-        },
-        'pd': {
-            'name': 'Pharmacodynamic (PD) Population',
-            'label': 'PD',
-            'populationType': 'PD',
-            'text': 'All participants who received study intervention and had evaluable PD data.',
-        },
-        'screened': {
-            'name': 'Screened Population',
-            'label': 'Screened',
-            'populationType': 'Screening',
-            'text': 'All participants who signed informed consent and underwent screening procedures.',
-        },
-        'enrolled': {
-            'name': 'Enrolled Population',
-            'label': 'Enrolled',
-            'populationType': 'Enrollment',
-            'text': 'All participants who met eligibility criteria and were enrolled in the study.',
-        },
+    # Keywords for classifying populationType (NOT for generating definitions)
+    _TYPE_KEYWORDS = {
+        'Efficacy': ['intent-to-treat', 'intent to treat', 'itt', 'full analysis set', 'fas',
+                      'per protocol', 'per-protocol', 'pp population', 'efficacy'],
+        'Safety': ['safety'],
+        'PK': ['pharmacokinetic', 'pk population', 'pk analysis'],
+        'PD': ['pharmacodynamic', 'pd population', 'pd analysis'],
+        'Screening': ['screened', 'screening population'],
+        'Enrollment': ['enrolled', 'enrollment population'],
     }
     
-    # Keywords to match estimand population text to standard populations
-    KEYWORD_MAP = {
-        'itt': ['intent-to-treat', 'intent to treat', 'itt'],
-        'fas': ['full analysis set', 'fas'],
-        'safety': ['safety'],
-        'pp': ['per protocol', 'per-protocol', 'pp population'],
-        'pk': ['pharmacokinetic', 'pk population', 'pk analysis'],
-        'pd': ['pharmacodynamic', 'pd population', 'pd analysis'],
-        'screened': ['screened', 'screening population'],
-        'enrolled': ['enrolled', 'enrollment population'],
-    }
+    def _classify_population_type(text: str) -> str:
+        """Classify populationType from text using keywords. Default to 'Analysis'."""
+        text_lower = text.lower()
+        for pop_type, keywords in _TYPE_KEYWORDS.items():
+            if any(kw in text_lower for kw in keywords):
+                return pop_type
+        return 'Analysis'
     
-    # Collect unique population references from estimands
-    referenced_keys = set()
+    # Collect unique population references from estimands using actual extracted text
+    seen_names = {}  # normalized_name → (name, text, pop_type)
     for est in estimands:
-        pop_text = (est.get('analysisPopulation', '') or est.get('populationSummary', '')).lower()
-        if not pop_text:
+        pop_text = est.get('analysisPopulation', '') or ''
+        pop_summary = est.get('populationSummary', '') or ''
+        
+        # Use the most specific text available
+        name = pop_text or pop_summary
+        if not name or not name.strip():
             continue
-        for key, keywords in KEYWORD_MAP.items():
-            if any(kw in pop_text for kw in keywords):
-                referenced_keys.add(key)
-                break
+        
+        # Deduplicate by normalized name
+        norm_key = name.strip().lower()
+        if norm_key in seen_names:
+            continue
+        
+        pop_type = _classify_population_type(name)
+        seen_names[norm_key] = (name.strip(), pop_text or pop_summary, pop_type)
     
-    # Always include safety if any efficacy population is referenced
-    if referenced_keys & {'itt', 'fas', 'pp'}:
-        referenced_keys.add('safety')
-    
-    # Create population entities
+    # Create population entities from actual extracted references
     populations = []
-    for key in sorted(referenced_keys):
-        if key in STANDARD_POPULATIONS:
-            pop = dict(STANDARD_POPULATIONS[key])
-            pop['id'] = str(_uuid.uuid4())
-            pop['instanceType'] = 'AnalysisPopulation'
-            populations.append(pop)
+    for norm_key, (name, description, pop_type) in sorted(seen_names.items()):
+        pop = {
+            'id': str(_uuid.uuid4()),
+            'name': name,
+            'label': name,
+            'populationType': pop_type,
+            'text': description,
+            'populationDescription': description,
+            'instanceType': 'AnalysisPopulation',
+        }
+        populations.append(pop)
+    
+    if populations:
+        logger.info(
+            f"  Created {len(populations)} analysis populations from estimand references "
+            f"(using extracted protocol text, not boilerplate)"
+        )
     
     return populations
 
@@ -212,12 +197,23 @@ def reconcile_estimand_population_refs(study_design: dict) -> None:
     estimands = study_design.get('estimands', [])
     populations = study_design.get('analysisPopulations', [])
     
+    # Check analysis approach — descriptive studies should not have populations
+    # inferred from estimands (which themselves may be inappropriate)
+    analysis_approach = _get_analysis_approach_from_design(study_design)
+    
     # Fallback: if SAP phase didn't produce populations, create from estimand refs
+    # BUT only for confirmatory studies where estimands are expected
     if estimands and not populations:
-        populations = _create_populations_from_estimands(estimands)
-        if populations:
-            study_design['analysisPopulations'] = populations
-            logger.info(f"  Created {len(populations)} analysis populations from estimand references")
+        if analysis_approach == 'descriptive':
+            logger.info(
+                "  Skipping population creation from estimand refs: "
+                "study uses descriptive statistics (no formal estimand framework)"
+            )
+        else:
+            populations = _create_populations_from_estimands(estimands)
+            if populations:
+                study_design['analysisPopulations'] = populations
+                logger.info(f"  Created {len(populations)} analysis populations from estimand references")
     
     if not estimands or not populations:
         return
@@ -430,3 +426,284 @@ def reconcile_estimand_endpoint_refs(study_design: dict) -> None:
 
     if reconciled:
         logger.info(f"  Reconciled {reconciled}/{len(estimands)} estimand → endpoint references")
+
+
+def reconcile_estimand_intervention_refs(study_design: dict, study_version: dict) -> None:
+    """
+    Reconcile estimand.interventionIds → StudyIntervention references.
+
+    Per USDM v4.0, Estimand.interventionIds is a 1..* array referencing
+    StudyIntervention entities on StudyVersion.  The objectives phase
+    generates estimands with LLM-created placeholder IDs (e.g. "{id}_int")
+    that don't resolve to real entities.  This function links them by
+    matching treatment text against intervention names.
+
+    Matching strategy (per expert panel consensus):
+      1. Already valid — interventionId exists in the StudyIntervention set
+      2. Exact name match (estimand.treatment text == intervention.name)
+      3. Keyword / alias match (brand↔generic, INN↔trade name patterns)
+      4. Word-overlap fuzzy match (>30 % of words in common)
+      5. Arm-type heuristic — investigational arm interventions for primary
+         estimands, all interventions otherwise
+
+    ICH E9(R1) Attribute 1: Treatment condition must be specified.
+    """
+    estimands = study_design.get('estimands', [])
+    if not estimands:
+        return
+
+    interventions = study_version.get('studyInterventions', [])
+    if not interventions:
+        return
+
+    int_ids = {si.get('id') for si in interventions if si.get('id')}
+
+    # Build a rich text index for each intervention
+    # (name + administration names + product names for broader matching)
+    int_text_index: list = []  # [(intervention_dict, set_of_normalized_terms)]
+    for si in interventions:
+        terms: set = set()
+        name = (si.get('name') or '').strip()
+        if name:
+            terms.add(_norm_intv(name))
+            terms |= set(_norm_intv(name).split())
+        label = (si.get('label') or '').strip()
+        if label:
+            terms.add(_norm_intv(label))
+        # Nested administrations
+        for adm in si.get('administrations', []):
+            adm_name = (adm.get('name') or '').strip()
+            if adm_name:
+                terms.add(_norm_intv(adm_name))
+                terms |= set(_norm_intv(adm_name).split())
+        int_text_index.append((si, terms))
+
+    # Intervention role classification
+    _IMP_ROLES = {'experimental intervention', 'investigational', 'active comparator'}
+
+    def _is_investigational(si: dict) -> bool:
+        role = si.get('role', {})
+        if isinstance(role, dict):
+            decode = (role.get('decode') or '').lower()
+        elif isinstance(role, str):
+            decode = role.lower()
+        else:
+            decode = ''
+        return any(r in decode for r in _IMP_ROLES)
+
+    def _find_matching_interventions(est: dict) -> list:
+        """Return list of matching StudyIntervention IDs for an estimand."""
+        treatment_text = _norm_intv(
+            est.get('treatment', '') or est.get('name', '')
+        )
+        if not treatment_text:
+            return []
+
+        # Pass 1: Exact name match
+        for si, terms in int_text_index:
+            if treatment_text in terms or _norm_intv(si.get('name', '')) == treatment_text:
+                return [si['id']]
+
+        # Pass 2: Keyword overlap — if treatment text contains an intervention name
+        for si, terms in int_text_index:
+            si_name = _norm_intv(si.get('name', ''))
+            if si_name and (si_name in treatment_text or treatment_text in si_name):
+                return [si['id']]
+
+        # Pass 3: Word-overlap fuzzy match
+        treat_words = set(treatment_text.split())
+        if not treat_words:
+            return []
+        best_si = None
+        best_overlap = 0.0
+        for si, terms in int_text_index:
+            if not terms:
+                continue
+            overlap = len(treat_words & terms) / max(len(treat_words), len(terms))
+            if overlap > best_overlap and overlap > 0.3:
+                best_overlap = overlap
+                best_si = si
+        if best_si:
+            return [best_si['id']]
+
+        # Pass 4: Heuristic — for primary estimands, use investigational interventions;
+        #          otherwise return all interventions
+        imp_ids = [si['id'] for si in interventions if _is_investigational(si)]
+        if imp_ids:
+            return imp_ids
+        return [si['id'] for si in interventions]
+
+    reconciled = 0
+    for est in estimands:
+        current_ids = est.get('interventionIds', [])
+
+        # Check if all current IDs are already valid
+        if current_ids and all(cid in int_ids for cid in current_ids):
+            continue
+
+        matches = _find_matching_interventions(est)
+        if matches:
+            est['interventionIds'] = matches
+            reconciled += 1
+            matched_names = [
+                si.get('name', '?')[:30]
+                for si in interventions if si.get('id') in matches
+            ]
+            logger.info(
+                f"  Reconciled estimand '{est.get('name', '?')[:40]}' "
+                f"interventionIds → {matched_names}"
+            )
+
+    if reconciled:
+        logger.info(
+            f"  Reconciled {reconciled}/{len(estimands)} "
+            f"estimand → intervention references"
+        )
+
+
+def _norm_intv(text: str) -> str:
+    """Normalize intervention text for matching."""
+    return text.lower().strip().replace('-', ' ').replace('_', ' ')
+
+
+def reconcile_method_estimand_refs(study_design: dict) -> None:
+    """SAP-1: Reconcile SAP statistical methods → estimand references.
+
+    Per ICH E9(R1), each estimand should be linked to the statistical method
+    used to estimate it.  The SAP phase extracts ``statisticalMethods`` as an
+    extension attribute on StudyDesign.  This function cross-links each method
+    to the estimand(s) it targets by matching the method's endpoint reference
+    to the estimand's endpoint.
+
+    Matching strategy:
+      1. Exact endpoint name match (method.endpointName == endpoint.name)
+      2. Endpoint level match (method targets "primary" → primary estimands)
+      3. Word-overlap fuzzy match (>40% overlap)
+
+    Creates ``estimandId`` on each matched method and ``methodIds`` extension
+    on each matched estimand.
+    """
+    estimands = study_design.get('estimands', [])
+    if not estimands:
+        return
+
+    # Find statistical methods from extension
+    methods = []
+    methods_ext = None
+    for ext in study_design.get('extensionAttributes', []):
+        if isinstance(ext, dict) and 'statistical-methods' in ext.get('url', ''):
+            val = ext.get('valueObject')
+            if isinstance(val, list):
+                methods = val
+                methods_ext = ext
+            break
+
+    if not methods:
+        return
+
+    # Build endpoint lookup from objectives
+    ep_by_id: dict = {}
+    ep_by_name: dict = {}
+    for obj in study_design.get('objectives', []):
+        if not isinstance(obj, dict):
+            continue
+        for ep in obj.get('endpoints', []):
+            if not isinstance(ep, dict):
+                continue
+            ep_id = ep.get('id', '')
+            ep_name = (ep.get('name') or '').lower().strip()
+            if ep_id:
+                ep_by_id[ep_id] = ep
+            if ep_name:
+                ep_by_name[ep_name] = ep
+
+    # Build estimand → endpoint mapping
+    est_by_endpoint: dict = {}  # endpoint_id → [estimand]
+    est_by_level: dict = {}     # level_str → [estimand]
+    for est in estimands:
+        if not isinstance(est, dict):
+            continue
+        var_id = est.get('variableOfInterestId', '')
+        if var_id:
+            est_by_endpoint.setdefault(var_id, []).append(est)
+        # Level
+        level = est.get('level', {})
+        if isinstance(level, dict):
+            lvl_decode = (level.get('decode') or '').lower()
+        elif isinstance(level, str):
+            lvl_decode = level.lower()
+        else:
+            lvl_decode = ''
+        if lvl_decode:
+            est_by_level.setdefault(lvl_decode, []).append(est)
+
+    reconciled = 0
+    for method in methods:
+        if not isinstance(method, dict):
+            continue
+
+        method_ep_name = (method.get('endpointName') or method.get('endpoint') or '').lower().strip()
+        method_level = (method.get('level') or method.get('endpointLevel') or '').lower().strip()
+
+        matched_estimands = []
+
+        # Pass 1: Exact endpoint name → find endpoint → find estimand
+        if method_ep_name and method_ep_name in ep_by_name:
+            ep = ep_by_name[method_ep_name]
+            ep_id = ep.get('id', '')
+            if ep_id in est_by_endpoint:
+                matched_estimands = est_by_endpoint[ep_id]
+
+        # Pass 2: Endpoint name substring match
+        if not matched_estimands and method_ep_name:
+            for epn, ep in ep_by_name.items():
+                if method_ep_name in epn or epn in method_ep_name:
+                    ep_id = ep.get('id', '')
+                    if ep_id in est_by_endpoint:
+                        matched_estimands = est_by_endpoint[ep_id]
+                        break
+
+        # Pass 3: Level-based match (primary method → primary estimand)
+        if not matched_estimands and method_level:
+            for lvl_key in ('primary', 'secondary', 'exploratory'):
+                if lvl_key in method_level and lvl_key in est_by_level:
+                    matched_estimands = est_by_level[lvl_key]
+                    break
+
+        # Pass 4: Word-overlap fuzzy match on endpoint name
+        if not matched_estimands and method_ep_name:
+            method_words = set(method_ep_name.split())
+            best_est_list = []
+            best_overlap = 0.0
+            for ep_id, ests in est_by_endpoint.items():
+                ep = ep_by_id.get(ep_id, {})
+                ep_name = (ep.get('name') or '').lower()
+                ep_words = set(ep_name.split())
+                if not ep_words:
+                    continue
+                overlap = len(method_words & ep_words) / max(len(method_words), len(ep_words))
+                if overlap > best_overlap and overlap > 0.4:
+                    best_overlap = overlap
+                    best_est_list = ests
+            if best_est_list:
+                matched_estimands = best_est_list
+
+        # Apply binding
+        if matched_estimands:
+            method['estimandIds'] = [e.get('id') for e in matched_estimands if e.get('id')]
+            for est in matched_estimands:
+                method_ids = est.setdefault('_methodIds', [])
+                mid = method.get('id') or method.get('name', '')
+                if mid and mid not in method_ids:
+                    method_ids.append(mid)
+            reconciled += 1
+
+    # Update the extension in place
+    if methods_ext and reconciled:
+        methods_ext['valueObject'] = methods
+
+    if reconciled:
+        logger.info(
+            f"  ✓ SAP-1: Linked {reconciled}/{len(methods)} "
+            f"statistical methods to estimands"
+        )

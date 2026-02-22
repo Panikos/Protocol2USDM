@@ -586,6 +586,11 @@ class ExecutionModelPromoter:
             dose = getattr(regimen, 'dose', '')
             route = getattr(regimen, 'route', '')
             frequency = getattr(regimen, 'frequency', '')
+            # Convert enums to strings for JSON serialization
+            if hasattr(treatment_name, 'value'): treatment_name = treatment_name.value
+            if hasattr(dose, 'value'): dose = dose.value
+            if hasattr(route, 'value'): route = str(route.value)
+            if hasattr(frequency, 'value'): frequency = frequency.value
             
             # Skip prose fragments
             if self._is_prose_fragment(treatment_name):
@@ -601,30 +606,56 @@ class ExecutionModelPromoter:
             if admin_id in existing_admin_ids:
                 continue
             
+            admin_name = f"Administration of {treatment_name}" if treatment_name else "Study Drug Administration"
             administration = {
                 "id": admin_id,
-                "name": f"Administration of {treatment_name}" if treatment_name else "Study Drug Administration",
+                "name": admin_name,
                 "description": f"{dose} {route} {frequency}".strip(),
                 "instanceType": "Administration",
             }
             
-            # Add dose if parseable
+            # Add dose if parseable (unit is AliasCode per USDM schema)
             if dose:
                 dose_match = re.match(r'(\d+(?:\.\d+)?)\s*(\w+)?', dose)
                 if dose_match:
-                    administration["doseValue"] = float(dose_match.group(1))
-                    if dose_match.group(2):
-                        administration["doseUnit"] = {
+                    unit_text = dose_match.group(2) or dose
+                    administration["dose"] = {
+                        "id": str(uuid.uuid4()),
+                        "value": float(dose_match.group(1)),
+                        "unit": {
                             "id": str(uuid.uuid4()),
-                            "code": dose_match.group(2),
-                            "decode": dose_match.group(2),
-                            "instanceType": "Code"
-                        }
+                            "standardCode": {
+                                "id": str(uuid.uuid4()),
+                                "code": "",
+                                "codeSystem": "http://unitsofmeasure.org",
+                                "decode": unit_text,
+                                "instanceType": "Code",
+                            },
+                            "standardCodeAliases": [],
+                            "instanceType": "AliasCode",
+                        },
+                        "instanceType": "Quantity",
+                    }
             
-            # Add route if available
+            # Add route if available (AliasCode per USDM schema)
             if route:
                 route_code = self._get_route_code(route)
-                administration["route"] = route_code
+                administration["route"] = {
+                    "id": str(uuid.uuid4()),
+                    "standardCode": route_code,
+                    "standardCodeAliases": [],
+                    "instanceType": "AliasCode",
+                }
+            
+            # duration is required (cardinality 1) per USDM schema
+            dur_text = frequency or admin_name
+            administration["duration"] = {
+                "id": str(uuid.uuid4()),
+                "text": dur_text,
+                "durationWillVary": True,
+                "reasonDurationWillVary": dur_text,
+                "instanceType": "Duration",
+            }
             
             administrations.append(administration)
             self._administration_map[regimen_id] = admin_id

@@ -1144,20 +1144,65 @@ class VisitWindow:
 
 
 @dataclass
+class FactorLevel:
+    """
+    A structured level/category within a stratification factor.
+    
+    Maps to USDM Characteristic entity on StudyCohort.
+    
+    Attributes:
+        id: Unique identifier
+        label: Human-readable level label (e.g., "≥65 years")
+        definition: Full definition of this level
+        criterion_id: Link to EligibilityCriterion that defines this level
+        code: NCI code if applicable (e.g., sex codes)
+    """
+    id: str
+    label: str
+    definition: Optional[str] = None
+    criterion_id: Optional[str] = None
+    code: Optional[Dict[str, Any]] = None
+    
+    def to_dict(self) -> Dict[str, Any]:
+        result = {
+            "id": self.id,
+            "label": self.label,
+        }
+        if self.definition:
+            result["definition"] = self.definition
+        if self.criterion_id:
+            result["criterionId"] = self.criterion_id
+        if self.code:
+            result["code"] = self.code
+        return result
+
+
+@dataclass
 class StratificationFactor:
     """
     A factor used for randomization stratification.
     
+    Maps to USDM StudyCohort (one per factor level) with Characteristic
+    entities for factor level definitions.
+    
     Attributes:
         id: Unique identifier
         name: Factor name (e.g., "Age Group", "Disease Severity")
-        categories: Possible values/levels
+        categories: Possible values/levels (legacy, bare strings)
+        factor_levels: Structured levels with definitions and links
         is_blocking: Whether used for block randomization
+        is_nesting: Whether nested within another factor
+        parent_factor_id: If nested, which factor contains this
+        data_source: Where the factor value comes from (e.g., "screening CRF")
     """
     id: str
     name: str
     categories: List[str] = field(default_factory=list)
+    factor_levels: List[FactorLevel] = field(default_factory=list)
     is_blocking: bool = False
+    is_nesting: bool = False
+    parent_factor_id: Optional[str] = None
+    data_source: Optional[str] = None
     source_text: Optional[str] = None
     
     def to_dict(self) -> Dict[str, Any]:
@@ -1167,8 +1212,53 @@ class StratificationFactor:
             "categories": self.categories,
             "isBlocking": self.is_blocking,
         }
+        if self.factor_levels:
+            result["factorLevels"] = [fl.to_dict() for fl in self.factor_levels]
+        if self.is_nesting:
+            result["isNesting"] = True
+            if self.parent_factor_id:
+                result["parentFactorId"] = self.parent_factor_id
+        if self.data_source:
+            result["dataSource"] = self.data_source
         if self.source_text:
             result["sourceText"] = self.source_text[:200]
+        return result
+
+
+@dataclass
+class AllocationCell:
+    """
+    A valid combination of stratification factor levels mapped to an arm.
+    
+    Represents one cell in the strata × arm allocation matrix.
+    Goes in the x-stratification-scheme extension (no USDM entity for this).
+    
+    Attributes:
+        id: Unique identifier
+        factor_levels: Mapping of factor_id → level_id for this cell
+        arm_id: Target arm for this allocation cell
+        ratio_weight: Allocation weight within this cell
+        is_valid: False if this factor combination is excluded
+        planned_enrollment: Per-cell enrollment target
+    """
+    id: str
+    factor_levels: Dict[str, str] = field(default_factory=dict)
+    arm_id: Optional[str] = None
+    ratio_weight: int = 1
+    is_valid: bool = True
+    planned_enrollment: Optional[int] = None
+    
+    def to_dict(self) -> Dict[str, Any]:
+        result = {
+            "id": self.id,
+            "factorLevels": self.factor_levels,
+            "ratioWeight": self.ratio_weight,
+            "isValid": self.is_valid,
+        }
+        if self.arm_id:
+            result["armId"] = self.arm_id
+        if self.planned_enrollment is not None:
+            result["plannedEnrollment"] = self.planned_enrollment
         return result
 
 
@@ -1178,22 +1268,46 @@ class RandomizationScheme:
     Randomization design including stratification.
     
     Captures how subjects are allocated to treatment arms,
-    including ratios and stratification factors.
+    including ratios, stratification factors, and IWRS details.
+    
+    USDM mapping:
+      - Randomization type → StudyDesign.subTypes[] Code
+      - Allocation ratio → TransitionRule.text on randomization StudyElement
+      - Strata → StudyCohort per factor level under population.cohorts[]
+      - Full scheme → ExtensionAttribute x-stratification-scheme
     
     Attributes:
         id: Unique identifier
         ratio: Allocation ratio (e.g., "1:1", "2:1", "1:1:1")
-        method: Randomization method (e.g., "Blocked", "Stratified")
-        block_size: Block size if blocked randomization
+        method: Randomization method description
+        algorithm_type: Algorithm classification (block/minimization/adaptive/simple)
+        block_sizes: Block sizes if blocked (supports variable block sizes)
+        block_size: Legacy single block size (deprecated, use block_sizes)
         stratification_factors: Factors used for stratification
+        allocation_cells: Valid strata × arm combinations
         central_randomization: Whether using IWRS/IXRS
+        iwrs_system: IWRS/IXRS system name
+        concealment_method: Allocation concealment method
+        seed_method: Randomization seed generation method
+        is_adaptive: Whether response-adaptive randomization
+        adaptive_rules: Description of adaptation rules
+        blinding_schema_id: Link to blinding entity
     """
     id: str
     ratio: str = "1:1"
     method: str = "Stratified block randomization"
+    algorithm_type: str = "block"
+    block_sizes: List[int] = field(default_factory=list)
     block_size: Optional[int] = None
     stratification_factors: List[StratificationFactor] = field(default_factory=list)
+    allocation_cells: List[AllocationCell] = field(default_factory=list)
     central_randomization: bool = True
+    iwrs_system: Optional[str] = None
+    concealment_method: Optional[str] = None
+    seed_method: Optional[str] = None
+    is_adaptive: bool = False
+    adaptive_rules: Optional[str] = None
+    blinding_schema_id: Optional[str] = None
     source_text: Optional[str] = None
     
     def to_dict(self) -> Dict[str, Any]:
@@ -1201,12 +1315,29 @@ class RandomizationScheme:
             "id": self.id,
             "ratio": self.ratio,
             "method": self.method,
+            "algorithmType": self.algorithm_type,
             "centralRandomization": self.central_randomization,
         }
         if self.block_size:
             result["blockSize"] = self.block_size
+        if self.block_sizes:
+            result["blockSizes"] = self.block_sizes
         if self.stratification_factors:
             result["stratificationFactors"] = [s.to_dict() for s in self.stratification_factors]
+        if self.allocation_cells:
+            result["allocationCells"] = [c.to_dict() for c in self.allocation_cells]
+        if self.iwrs_system:
+            result["iwrsSystem"] = self.iwrs_system
+        if self.concealment_method:
+            result["concealmentMethod"] = self.concealment_method
+        if self.seed_method:
+            result["seedMethod"] = self.seed_method
+        if self.is_adaptive:
+            result["isAdaptive"] = True
+            if self.adaptive_rules:
+                result["adaptiveRules"] = self.adaptive_rules
+        if self.blinding_schema_id:
+            result["blindingSchemaId"] = self.blinding_schema_id
         if self.source_text:
             result["sourceText"] = self.source_text[:200]
         return result
@@ -1436,16 +1567,45 @@ class ExecutionModelData:
             randomization_scheme = RandomizationScheme(
                 id=rand_raw.get('id', ''), ratio=rand_raw.get('ratio', '1:1'),
                 method=rand_raw.get('method', ''),
+                algorithm_type=rand_raw.get('algorithmType', 'block'),
+                block_sizes=rand_raw.get('blockSizes', []),
                 block_size=rand_raw.get('blockSize'),
                 stratification_factors=[
                     StratificationFactor(
                         id=sf.get('id', ''), name=sf.get('name', ''),
                         categories=sf.get('categories', []),
+                        factor_levels=[
+                            FactorLevel(
+                                id=fl.get('id', ''), label=fl.get('label', ''),
+                                definition=fl.get('definition'),
+                                criterion_id=fl.get('criterionId'),
+                                code=fl.get('code'),
+                            ) for fl in sf.get('factorLevels', [])
+                        ],
                         is_blocking=sf.get('isBlocking', False),
+                        is_nesting=sf.get('isNesting', False),
+                        parent_factor_id=sf.get('parentFactorId'),
+                        data_source=sf.get('dataSource'),
                         source_text=sf.get('sourceText'),
                     ) for sf in rand_raw.get('stratificationFactors', [])
                 ],
+                allocation_cells=[
+                    AllocationCell(
+                        id=ac.get('id', ''),
+                        factor_levels=ac.get('factorLevels', {}),
+                        arm_id=ac.get('armId'),
+                        ratio_weight=ac.get('ratioWeight', 1),
+                        is_valid=ac.get('isValid', True),
+                        planned_enrollment=ac.get('plannedEnrollment'),
+                    ) for ac in rand_raw.get('allocationCells', [])
+                ],
                 central_randomization=rand_raw.get('centralRandomization', True),
+                iwrs_system=rand_raw.get('iwrsSystem'),
+                concealment_method=rand_raw.get('concealmentMethod'),
+                seed_method=rand_raw.get('seedMethod'),
+                is_adaptive=rand_raw.get('isAdaptive', False),
+                adaptive_rules=rand_raw.get('adaptiveRules'),
+                blinding_schema_id=rand_raw.get('blindingSchemaId'),
                 source_text=rand_raw.get('sourceText'),
             )
         

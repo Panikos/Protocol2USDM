@@ -46,7 +46,9 @@ from extraction.execution.schema import (
     DosingFrequency,
     RouteOfAdministration,
     VisitWindow,
+    FactorLevel,
     StratificationFactor,
+    AllocationCell,
     RandomizationScheme,
 )
 
@@ -1958,6 +1960,193 @@ class TestFromDictRoundTrip:
         restored = ExecutionModelData.from_dict(d1)
         d2 = restored.to_dict()
         assert set(d1.keys()) == set(d2.keys())
+
+
+class TestEnhancedStratificationSchema:
+    """Tests for Sprint A enhanced stratification schema."""
+    
+    def test_factor_level_creation(self):
+        fl = FactorLevel(
+            id="fl_1", label=">=65 years",
+            definition="Participants aged 65 years or older at screening",
+            criterion_id="crit_age_1",
+        )
+        assert fl.label == ">=65 years"
+        assert fl.criterion_id == "crit_age_1"
+        d = fl.to_dict()
+        assert d["label"] == ">=65 years"
+        assert d["criterionId"] == "crit_age_1"
+        assert d["definition"] == "Participants aged 65 years or older at screening"
+    
+    def test_factor_level_minimal(self):
+        fl = FactorLevel(id="fl_min", label="Male")
+        d = fl.to_dict()
+        assert d == {"id": "fl_min", "label": "Male"}
+        assert "definition" not in d
+        assert "criterionId" not in d
+    
+    def test_factor_level_with_code(self):
+        fl = FactorLevel(
+            id="fl_sex_m", label="Male",
+            code={"code": "C20197", "codeSystem": "http://www.cdisc.org", "decode": "Male"},
+        )
+        d = fl.to_dict()
+        assert d["code"]["code"] == "C20197"
+    
+    def test_stratification_factor_with_levels(self):
+        factor = StratificationFactor(
+            id="strat_1", name="Age Group",
+            categories=["<65 years", ">=65 years"],
+            factor_levels=[
+                FactorLevel(id="fl_1_1", label="<65 years"),
+                FactorLevel(id="fl_1_2", label=">=65 years", definition="Age 65+ at screening"),
+            ],
+            is_blocking=True,
+            data_source="screening assessment",
+        )
+        d = factor.to_dict()
+        assert len(d["factorLevels"]) == 2
+        assert d["factorLevels"][0]["label"] == "<65 years"
+        assert d["dataSource"] == "screening assessment"
+        assert d["isBlocking"] == True
+    
+    def test_stratification_factor_nesting(self):
+        factor = StratificationFactor(
+            id="strat_nested", name="Disease Severity",
+            categories=["Mild", "Severe"],
+            is_nesting=True,
+            parent_factor_id="strat_region",
+        )
+        d = factor.to_dict()
+        assert d["isNesting"] == True
+        assert d["parentFactorId"] == "strat_region"
+    
+    def test_stratification_factor_backward_compat(self):
+        """Old-style construction still works with bare categories."""
+        factor = StratificationFactor(
+            id="strat_old", name="Sex",
+            categories=["Male", "Female"],
+            is_blocking=False,
+        )
+        d = factor.to_dict()
+        assert d["categories"] == ["Male", "Female"]
+        assert "factorLevels" not in d  # Empty list = not serialized
+    
+    def test_allocation_cell_creation(self):
+        cell = AllocationCell(
+            id="cell_1",
+            factor_levels={"strat_1": "fl_1_1", "strat_2": "fl_2_1"},
+            arm_id="arm_drug",
+            ratio_weight=2,
+            planned_enrollment=100,
+        )
+        d = cell.to_dict()
+        assert d["factorLevels"] == {"strat_1": "fl_1_1", "strat_2": "fl_2_1"}
+        assert d["armId"] == "arm_drug"
+        assert d["ratioWeight"] == 2
+        assert d["plannedEnrollment"] == 100
+    
+    def test_allocation_cell_excluded(self):
+        cell = AllocationCell(id="cell_x", is_valid=False)
+        d = cell.to_dict()
+        assert d["isValid"] == False
+    
+    def test_enhanced_randomization_scheme(self):
+        scheme = RandomizationScheme(
+            id="rand_enhanced",
+            ratio="2:1",
+            method="Stratified permuted block randomization",
+            algorithm_type="block",
+            block_sizes=[4, 6],
+            stratification_factors=[
+                StratificationFactor(
+                    id="s1", name="Age",
+                    categories=["<65", ">=65"],
+                    factor_levels=[
+                        FactorLevel(id="fl_1", label="<65"),
+                        FactorLevel(id="fl_2", label=">=65"),
+                    ],
+                ),
+            ],
+            allocation_cells=[
+                AllocationCell(id="c1", factor_levels={"s1": "fl_1"}, arm_id="arm1"),
+            ],
+            central_randomization=True,
+            iwrs_system="Oracle Argus IXRS",
+            concealment_method="Interactive response technology",
+        )
+        d = scheme.to_dict()
+        assert d["algorithmType"] == "block"
+        assert d["blockSizes"] == [4, 6]
+        assert d["iwrsSystem"] == "Oracle Argus IXRS"
+        assert d["concealmentMethod"] == "Interactive response technology"
+        assert len(d["stratificationFactors"]) == 1
+        assert len(d["allocationCells"]) == 1
+        assert len(d["stratificationFactors"][0]["factorLevels"]) == 2
+    
+    def test_adaptive_randomization_scheme(self):
+        scheme = RandomizationScheme(
+            id="rand_adaptive",
+            ratio="1:1",
+            method="Response-adaptive randomization",
+            algorithm_type="adaptive",
+            is_adaptive=True,
+            adaptive_rules="Allocation ratio adjusts based on interim efficacy",
+        )
+        d = scheme.to_dict()
+        assert d["isAdaptive"] == True
+        assert d["adaptiveRules"] == "Allocation ratio adjusts based on interim efficacy"
+        assert d["algorithmType"] == "adaptive"
+    
+    def test_round_trip_enhanced_randomization(self):
+        """Verify to_dict() -> from_dict() preserves new fields."""
+        original = ExecutionModelData(
+            randomization_scheme=RandomizationScheme(
+                id="r1", ratio="2:1:1",
+                method="Stratified permuted block",
+                algorithm_type="block",
+                block_sizes=[4, 8],
+                block_size=4,
+                stratification_factors=[
+                    StratificationFactor(
+                        id="s1", name="Region",
+                        categories=["NA", "EU"],
+                        factor_levels=[
+                            FactorLevel(id="fl1", label="North America", definition="US + Canada"),
+                            FactorLevel(id="fl2", label="Europe"),
+                        ],
+                        data_source="site location",
+                        is_nesting=False,
+                    ),
+                ],
+                allocation_cells=[
+                    AllocationCell(id="c1", factor_levels={"s1": "fl1"}, arm_id="arm1", ratio_weight=2),
+                    AllocationCell(id="c2", factor_levels={"s1": "fl2"}, arm_id="arm2", ratio_weight=1),
+                ],
+                central_randomization=True,
+                iwrs_system="IWRS",
+                concealment_method="Interactive response technology",
+                is_adaptive=False,
+            ),
+        )
+        d1 = original.to_dict()
+        restored = ExecutionModelData.from_dict(d1)
+        d2 = restored.to_dict()
+        
+        # Verify new fields survived round-trip
+        rs = d2["randomizationScheme"]
+        assert rs["algorithmType"] == "block"
+        assert rs["blockSizes"] == [4, 8]
+        assert rs["iwrsSystem"] == "IWRS"
+        assert rs["concealmentMethod"] == "Interactive response technology"
+        assert len(rs["stratificationFactors"]) == 1
+        sf = rs["stratificationFactors"][0]
+        assert sf["dataSource"] == "site location"
+        assert len(sf["factorLevels"]) == 2
+        assert sf["factorLevels"][0]["label"] == "North America"
+        assert sf["factorLevels"][0]["definition"] == "US + Canada"
+        assert len(rs["allocationCells"]) == 2
+        assert rs["allocationCells"][0]["ratioWeight"] == 2
 
 
 if __name__ == "__main__":

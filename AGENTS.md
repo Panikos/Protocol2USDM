@@ -102,6 +102,8 @@ SAP extraction includes CDISC ARS linkage via `extraction/conditional/ars_genera
 - Full ARS model: `ReportingEvent`, `Analysis`, `AnalysisSet`, `AnalysisMethod`, `Operation`
 - STATO ontology mapping for statistical methods (ANCOVA→STATO:0000029, MMRM→STATO:0000325, etc.)
 - ARS operation ID patterns: `Mth01_ContVar_Ancova`, `Mth01_TTE_KaplanMeier`, etc.
+- `ResultPattern` on all operations (e.g., `X.XXXX` for p-values, `(XX.XX, XX.XX)` for CIs)
+- `endpoint_map` parameter links ARS `Analysis` objects to USDM endpoint IDs
 
 ---
 
@@ -128,7 +130,7 @@ The extraction pipeline (`pipeline/orchestrator.py`) uses a registry-driven phas
 | procedures | `extraction/procedures/` | §8 | Activity, Procedure | None |
 | advanced | `extraction/advanced/` | §8–§11 | Various | None |
 | amendments | `extraction/amendments/` | §12.3 | StudyAmendment, StudyAmendmentReason | None |
-| sap | `extraction/conditional/` | §10 | AnalysisPopulation, SampleSizeCalculation | None |
+| sap | `extraction/conditional/` | §10 | AnalysisPopulation, StatisticalMethod, AnalysisSpecification, MissingDataStrategy | None |
 | sites | `extraction/conditional/` | — | StudySite, Organization | None |
 | doc_structure | `extraction/document_structure/` | — | DocumentContentReference | None |
 
@@ -284,6 +286,8 @@ Normalization pipeline: Type inference → **CORE compliance safety net** → UU
 | `core/core_compliance.py` | Safety-net CORE compliance: fallback codeSystem, ID, label, extension name normalization + XHTML sanitization |
 | `pipeline/post_processing.py` | Entity reconciliation, structural CORE compliance (`build_ordering_chains`, `fix_primary_endpoint_linkage`, `fix_timing_references`) |
 | `pipeline/regression_gate.py` | Entity count tracking (`entity_stats.json`) and baseline comparison (`--baseline DIR`) for regression detection |
+| `pipeline/stratification_linker.py` | Cross-phase stratification linking: factor-to-eligibility, factor-to-SAP covariate, scheme-to-arm allocation, scheme-to-analysis population |
+| `pipeline/integrity.py` | 3-layer referential integrity checker (S1-S14 checks) |
 | `core/usdm_types_generated.py` | 86+ Python dataclasses with idempotent UUID generation |
 | `core/usdm_types.py` | Unified interface: official USDM types + internal extraction types |
 | `core/code_registry.py` | Centralized CodeRegistry singleton — USDM CT + supplementary codelists |
@@ -304,8 +308,11 @@ Normalization pipeline: Type inference → **CORE compliance safety net** → UU
 | `extraction/execution/reconciliation_layer.py` | Entity resolution, crossover promotion, integrity issue classification |
 | `extraction/execution/entity_resolver.py` | LLM-based semantic entity resolution (abstract concepts → protocol entities) |
 | `extraction/execution/pipeline_integration.py` | Integration into enrichment flow |
-| `extraction/conditional/sap_extractor.py` | SAP extraction: analysis populations, statistical methods, sample size |
-| `extraction/conditional/ars_generator.py` | CDISC ARS model generation from SAP data |
+| `extraction/conditional/sap_extractor.py` | Multi-pass SAP extraction (4 passes): populations, methods, analyses, data handling |
+| `extraction/conditional/sap_prompts.py` | Focused prompts for each SAP extraction pass (Pass 1–4) |
+| `extraction/conditional/ars_generator.py` | CDISC ARS model generation from SAP data with endpoint linkage |
+| `extraction/execution/validation.py` | Stratification coherence validation (7 checks: ratio, levels, block size, overstratification, IWRS, adaptive) |
+| `extraction/execution/stratification_extractor.py` | 3-pass LLM stratification extraction with structured FactorLevel/AllocationCell |
 
 ### 3.3 Rendering & Validation
 | File | Purpose |
@@ -333,6 +340,8 @@ Normalization pipeline: Type inference → **CORE compliance safety net** → UU
 | `web-ui/hooks/useUnsavedChangesGuard.ts` | Beforeunload guard for unsaved edits |
 | `web-ui/components/semantic/` | EditableField, EditableObject, EditableList, EditableCodedValue, DiffView |
 | `web-ui/components/protocol/EpochTimelineChart.tsx` | Gantt-style epoch visualization |
+| `web-ui/components/timeline/StratificationSchemeView.tsx` | Randomization scheme, stratification factors, allocation weights, SAP covariate alignment |
+| `web-ui/components/timeline/StatisticalTraceabilityView.tsx` | Endpoint-to-method-to-population-to-estimand chains with completeness scoring |
 
 ---
 
@@ -555,9 +564,9 @@ All 28 extractor gaps (3 CRITICAL, 10 HIGH, 9 MEDIUM, 6 LOW) identified in the U
 | ~~W-CRIT-2~~ | ~~No automated end-to-end integration test with golden PDF~~ | ~~CRITICAL~~ | ✅ `tests/test_e2e_pipeline.py` — 36 tests: artifacts, USDM structure, entity counts/quality, M11 DOCX, cross-entity integrity, schema+USDM validation |
 | ~~W-CRIT-3~~ | ~~SAP/sites bypass phase registry~~ | ~~HIGH~~ | ✅ `SAPPhase` + `SitesPhase` registered (14 phases total) |
 | ~~W-HIGH-1~~ | ~~Monolithic files~~ | ~~HIGH~~ | ✅ Fixed: `m11_renderer.py` split into `document_setup.py` + `text_formatting.py` (1199L→465L). `orchestrator.py` already decomposed (357L). |
-| W-HIGH-2 | `PipelineContext` growing into god object (28 fields + 7 lookup maps) | HIGH | `extraction/pipeline_context.py` |
-| W-HIGH-3 | No provenance tracking for expansion phase entities (objectives, eligibility, etc.) | HIGH | `core/provenance.py` |
-| W-HIGH-4 | Mutable global singletons (`phase_registry`, `usage_tracker`, EVS `_client`) hinder testing | MEDIUM | Multiple |
+| ~~W-HIGH-2~~ | ~~`PipelineContext` growing into god object~~ | ~~HIGH~~ | ✅ Fixed: decomposed into 5 sub-contexts (SoA, Metadata, Design, Intervention, Scheduling) with `@property` delegates |
+| ~~W-HIGH-3~~ | ~~No provenance tracking for expansion phase entities~~ | ~~HIGH~~ | ✅ Fixed: `PhaseProvenance` tracks `pages_used` + `entity_ids`; `entity_provenance.json` output |
+| ~~W-HIGH-4~~ | ~~Mutable global singletons hinder testing~~ | ~~MEDIUM~~ | ✅ Fixed: `phase_registry`, EVS client, usage tracker all injectable via DI |
 
 ---
 
@@ -601,3 +610,7 @@ All 28 extractor gaps (3 CRITICAL, 10 HIGH, 9 MEDIUM, 6 LOW) identified in the U
 | ~~`docs/EXTRACTOR_GAP_AUDIT.md`~~ | *(Deleted)* All 28 gaps fixed — see `CHANGELOG.md` v7.8 |
 | `docs/TIMELINE_REVIEW_GUIDE.md` | Timeline tab reviewer guide: execution model view, graph view |
 | `docs/WEB_UI_REVIEW.md` | Web UI deep dive: architecture, data flow, editing, audit trail, strengths/weaknesses, enhancement roadmap |
+| `docs/sap_enhancement_strategy.md` | SAP 4-sprint enhancement plan: multi-pass extraction, AnalysisSpecification, MissingDataStrategy, traceability UI |
+| `docs/stratification_enhancement_strategy.md` | Stratification 5-sprint enhancement plan: schema, linking, USDM mapping, web UI, validation |
+| `docs/platform_enhancement_strategy.md` | Multi-expert analysis of platform enhancement opportunities |
+| `docs/hallucination_risks.md` | Audit of hallucination-prone patterns: fabricated text, unverified C-codes, protocol-specific assumptions |

@@ -4,6 +4,55 @@ All notable changes documented here. Dates in ISO-8601.
 
 ---
 
+## [8.1.0] – 2026-02-22
+
+**Stratification & Randomization, SAP Multi-Pass, Tier 1 Enhancements, Hallucination Audit** — Major feature release with 5 stratification sprints, 4 SAP enhancement sprints, 7 tier-1 extraction/rendering fixes, and systematic hallucination removal.
+
+### Stratification & Randomization (5 Sprints)
+- **Sprint A**: Schema refactor — `FactorLevel`, `AllocationCell` dataclasses; enhanced `StratificationFactor` + `RandomizationScheme`; 3-pass LLM extraction replacing hardcoded `_get_factor_categories()`
+- **Sprint B**: Cross-phase linking — `pipeline/stratification_linker.py` (NEW ~310 lines): factor→eligibility criterion, factor→SAP covariate (ICH E9), scheme→arm allocation, scheme→analysis population
+- **Sprint C**: USDM mapping — `create_strata_cohorts()` in post_processing, M11 §4.3 treatment assignment composer, synopsis stratification display
+- **Sprint D**: Web UI — `StratificationSchemeView.tsx` (NEW ~310 lines): randomization summary, factor levels with linked criteria badges, allocation weights, SAP covariate findings
+- **Sprint E**: Validation — 7 coherence checks in `extraction/execution/validation.py`
+
+### SAP Enhancement (4 Sprints)
+- **Sprint 1**: Multi-pass extraction (`sap_prompts.py` NEW) — 4 focused LLM passes with cross-referencing; `MAX_SAP_PAGES=100` (was 40)
+- **Sprint 2**: `AnalysisSpecification` bridge (endpoint→method→population→estimand); approach-aware gating for descriptive studies
+- **Sprint 3**: `MissingDataStrategy` (ICE→missing data mapping); `ResultPattern` on all ARS operations
+- **Sprint 4**: `StatisticalTraceabilityView.tsx` (NEW) — endpoint→method→population→estimand chains with completeness scoring
+
+### Tier 1 Enhancements
+- **OBJ-1/OBJ-2**: Estimand→intervention and estimand→population ID reconciliation
+- **DES-1**: TransitionRule promotion to StudyElement (data-derived text only, no fabricated clinical content)
+- **DES-3**: Duration extraction as ISO 8601 with EVS-verified NCI C-codes (C25301 Day, C29844 Week, C29846 Month, C29848 Year, C25529 Hour)
+- **M11-1**: §4.3 blinding procedures rendering (narrative-sourced only, no fabricated boilerplate)
+- **SOA-2**: ConditionAssignment from SoA footnotes + ScheduledDecisionInstance injection
+- **SAP-1**: SAP statistical method→estimand binding via endpoint name/level matching
+- **VAL-1/VAL-4**: Referential integrity checks S9–S14 (encounter→epoch, estimand→intervention, SAI references, SAP→endpoint coherence)
+
+### Hallucination Audit
+- Removed fabricated clinical text from TransitionRule templates (DES-1)
+- Removed fabricated boilerplate from blinding composer (M11-1)
+- Verified all duration unit C-codes via live NCI EVS API (DES-3)
+- Tightened narrative keyword matching to avoid false matches
+
+### New Files
+| File | Description |
+|------|-------------|
+| `pipeline/stratification_linker.py` | Cross-phase stratification linking (B1–B4) |
+| `extraction/conditional/sap_prompts.py` | 4-pass SAP extraction prompts |
+| `extraction/execution/validation.py` | Stratification coherence validation |
+| `web-ui/components/timeline/StratificationSchemeView.tsx` | Stratification UI |
+| `web-ui/components/timeline/StatisticalTraceabilityView.tsx` | SAP traceability UI |
+| `tests/test_tier1_enhancements.py` | 95 tests for tier 1 features |
+| `tests/test_stratification_sprints.py` | 31 tests for stratification |
+| `tests/test_sap_enhancement.py` | 42 tests for SAP enhancement |
+
+### Test Results
+- 1366 collected, 1327 passed, 36 skipped (e2e), 3 pre-existing M11 regression (word count threshold)
+
+---
+
 ## [8.0.2] – 2026-02-19
 
 **CORE Compliance Property Cleanup + Estimand→Endpoint Reconciliation** — Removes 4 non-USDM properties from output and adds endpoint reference reconciliation.

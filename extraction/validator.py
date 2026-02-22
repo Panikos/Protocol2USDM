@@ -341,11 +341,12 @@ def _validate_with_gemini(prompt: str, image_paths: List[str], model_name: str) 
                             mime_type=img_part['mime_type']
                         ))
                     
-                    # Config with thinking disabled
+                    # Config with thinking disabled (only Flash models support thinking_budget)
+                    supports_thinking = 'flash' in model_name.lower()
                     config = genai_types.GenerateContentConfig(
                         temperature=0.1,
                         response_mime_type="application/json",
-                        thinking_config=genai_types.ThinkingConfig(thinking_budget=0),
+                        thinking_config=genai_types.ThinkingConfig(thinking_budget=0) if supports_thinking else None,
                     )
                     
                     response = client.models.generate_content(

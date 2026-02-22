@@ -172,7 +172,12 @@ def _parse_json_response(response_text: str) -> Optional[Dict[str, Any]]:
     response_text = response_text.strip()
     
     try:
-        return json.loads(response_text)
+        parsed = json.loads(response_text)
+        # Handle models that wrap response in a list [{...}]
+        if isinstance(parsed, list) and len(parsed) == 1 and isinstance(parsed[0], dict):
+            logger.warning("LLM returned list-wrapped dict, unwrapping")
+            parsed = parsed[0]
+        return parsed if isinstance(parsed, dict) else None
     except json.JSONDecodeError as e:
         logger.warning(f"Failed to parse JSON response: {e}")
         return None

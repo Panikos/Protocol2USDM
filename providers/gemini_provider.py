@@ -73,6 +73,13 @@ class GeminiProvider(LLMProvider):
     # Models that require global endpoint (not regional like us-central1)
     GLOBAL_ENDPOINT_MODELS = ['gemini-3.1-pro-preview', 'gemini-3.1-pro', 'gemini-3-flash', 'gemini-3-pro', 'gemini-3-flash-preview', 'gemini-3-pro-preview']
     
+    # Models that support thinking_config (thinking_budget parameter)
+    # Pro models do NOT support thinking_budget=0; only Flash/thinking models do
+    THINKING_SUPPORTED_MODELS = [
+        'gemini-3-flash', 'gemini-3-flash-preview',
+        'gemini-2.5-flash',
+    ]
+    
     # Models that are only available via AI Studio (not Vertex AI)
     AI_STUDIO_ONLY_MODELS = []  # Empty - route all models through Vertex AI when available
     
@@ -126,6 +133,11 @@ class GeminiProvider(LLMProvider):
             raise ConfigurationError("GOOGLE_API_KEY environment variable not set", model=self.model)
         return api_key
     
+    def _supports_thinking(self) -> bool:
+        """Check if current model supports thinking_config (thinking_budget)."""
+        resolved = self.VERTEX_MODEL_ALIASES.get(self.model, self.model)
+        return resolved in self.THINKING_SUPPORTED_MODELS or self.model in self.THINKING_SUPPORTED_MODELS
+
     def supports_json_mode(self) -> bool:
         """Gemini supports JSON mode via response_mime_type."""
         return True
@@ -195,10 +207,10 @@ class GeminiProvider(LLMProvider):
             top_p=gen_config_dict.get("top_p"),
             top_k=gen_config_dict.get("top_k"),
             response_mime_type=gen_config_dict.get("response_mime_type"),
-            # Disable thinking to reduce token usage and avoid 429 rate limits
+            # Disable thinking to reduce token usage (only for models that support it)
             thinking_config=genai_types.ThinkingConfig(
-                thinking_budget=0,  # 0 = DISABLED, -1 = AUTOMATIC
-            ),
+                thinking_budget=0,
+            ) if self._supports_thinking() else None,
             # Disable all safety filters for clinical/medical content
             safety_settings=[
                 genai_types.SafetySetting(
@@ -397,7 +409,7 @@ class GeminiProvider(LLMProvider):
             top_p=gen_config_dict.get("top_p"),
             top_k=gen_config_dict.get("top_k"),
             response_mime_type=gen_config_dict.get("response_mime_type"),
-            thinking_config=genai_types.ThinkingConfig(thinking_budget=0),
+            thinking_config=genai_types.ThinkingConfig(thinking_budget=0) if self._supports_thinking() else None,
             safety_settings=[
                 genai_types.SafetySetting(category=genai_types.HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold=genai_types.HarmBlockThreshold.BLOCK_NONE),
                 genai_types.SafetySetting(category=genai_types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold=genai_types.HarmBlockThreshold.BLOCK_NONE),
@@ -621,7 +633,7 @@ class GeminiProvider(LLMProvider):
             top_p=gen_config_dict.get("top_p"),
             top_k=gen_config_dict.get("top_k"),
             response_mime_type=gen_config_dict.get("response_mime_type"),
-            thinking_config=genai_types.ThinkingConfig(thinking_budget=0),
+            thinking_config=genai_types.ThinkingConfig(thinking_budget=0) if self._supports_thinking() else None,
             safety_settings=[
                 genai_types.SafetySetting(category=genai_types.HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold=genai_types.HarmBlockThreshold.BLOCK_NONE),
                 genai_types.SafetySetting(category=genai_types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold=genai_types.HarmBlockThreshold.BLOCK_NONE),
@@ -698,7 +710,7 @@ class GeminiProvider(LLMProvider):
             temperature=gen_config_dict.get("temperature", 0.0),
             max_output_tokens=gen_config_dict.get("max_output_tokens"),
             response_mime_type=gen_config_dict.get("response_mime_type"),
-            thinking_config=genai_types.ThinkingConfig(thinking_budget=0),
+            thinking_config=genai_types.ThinkingConfig(thinking_budget=0) if self._supports_thinking() else None,
             safety_settings=[
                 genai_types.SafetySetting(
                     category=genai_types.HarmCategory.HARM_CATEGORY_HATE_SPEECH,

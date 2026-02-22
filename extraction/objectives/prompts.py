@@ -80,32 +80,47 @@ Now extract objectives and endpoints from the protocol:
 # PHASE 2: Estimands (Enhancement - runs after objectives/endpoints)
 # =============================================================================
 
-ESTIMANDS_PROMPT = """You are an expert at extracting estimands from clinical trial protocols using the ICH E9(R1) framework.
+ESTIMANDS_PROMPT = """You are a senior biostatistician reviewing a clinical trial protocol. Your task is to:
+1. Classify the study's statistical analysis approach
+2. Extract ONLY explicitly defined estimands (if any)
 
 ## Previously Extracted Endpoints
 {endpoints_context}
 
-## ICH E9(R1) Estimand Framework
+## STEP 1: Classify the Analysis Approach
 
-An estimand precisely describes the treatment effect. Extract ALL FIVE attributes:
+Determine whether this study uses:
+- **"confirmatory"**: Formal hypothesis testing (superiority, non-inferiority, equivalence). 
+  Indicators: pre-specified primary hypothesis, alpha level, power calculation for hypothesis test,
+  comparator arm, ICH E9(R1) estimand framework explicitly referenced.
+  Typical: Phase 3, some Phase 2b with formal interim analyses.
 
-1. **Treatment** - Intervention AND comparator with specific names
-2. **Population** - Target patients AND analysis population (ITT, PP, mITT, etc.)
-3. **Variable** - The endpoint being measured (MUST reference endpoint ID from above)
-4. **Intercurrent Events** - Events affecting interpretation WITH handling strategy
-5. **Summary Measure** - Statistical summary (difference in means, hazard ratio, odds ratio, etc.)
+- **"descriptive"**: Exploratory/descriptive statistics only, no formal hypothesis testing.
+  Indicators: "no formal hypothesis testing", "descriptive statistics", "exploratory study",
+  single-arm design, PK/PD study, dose-finding, "characterize" rather than "demonstrate".
+  Typical: Phase 1, Phase 1b, Phase 2a, PK/PD, first-in-human studies.
 
-## Intercurrent Event Strategies (MUST specify one)
-- **Treatment Policy** - Include all data regardless of event
-- **Composite** - Event becomes part of outcome
-- **Hypothetical** - Estimate as if event hadn't occurred
-- **Principal Stratum** - Subset who wouldn't experience event
-- **While on Treatment** - Only data while on treatment
+## STEP 2: Extract Estimands (ONLY if explicitly defined)
 
-## USDM 4.0 Required Output Format
+**CRITICAL**: Only extract estimands that the protocol EXPLICITLY defines using estimand framework
+language (ICH E9(R1)). Look for:
+- The word "estimand" in the protocol text
+- Explicit intercurrent event definitions WITH handling strategies
+- Formal estimand tables or structured estimand descriptions
+
+**DO NOT fabricate estimands.** If the protocol does not explicitly define estimands:
+- Return an empty estimands array
+- This is the correct scientific answer for exploratory/descriptive studies
+
+If estimands ARE explicitly defined, extract all 5 ICH E9(R1) attributes:
+1. Treatment, 2. Population, 3. Variable (endpoint), 4. Intercurrent events + strategies, 5. Summary measure
+
+## Output Format
 
 ```json
 {{
+  "analysisApproach": "confirmatory" or "descriptive",
+  "analysisApproachRationale": "Brief justification citing specific protocol language",
   "estimands": [
     {{
       "id": "est_1",
@@ -124,13 +139,6 @@ An estimand precisely describes the treatment effect. Extract ALL FIVE attribute
           "text": "Subject discontinues study treatment before Week 12",
           "strategy": "Treatment Policy",
           "instanceType": "IntercurrentEvent"
-        }},
-        {{
-          "id": "ice_2",
-          "name": "Use of rescue medication",
-          "text": "Subject uses prohibited rescue medication",
-          "strategy": "Hypothetical",
-          "instanceType": "IntercurrentEvent"
         }}
       ],
       "instanceType": "Estimand"
@@ -139,17 +147,15 @@ An estimand precisely describes the treatment effect. Extract ALL FIVE attribute
 }}
 ```
 
-## CRITICAL Rules
-1. **MUST link to endpoint IDs** from Phase 1 using endpointId field
-2. **MUST include summaryMeasure** - the statistical method (e.g., "Difference in means", "Hazard ratio")
-3. **MUST include at least one intercurrentEvent** with strategy
-4. **MUST include analysisPopulation** - the population type (ITT, PP, Safety, etc.)
-5. **MUST include interventionNames** - list of intervention names being compared
-6. Extract at least one estimand for each primary endpoint
-7. Include common intercurrent events (discontinuation, rescue medication) even if not explicit
-8. Return ONLY valid JSON
+## Rules
+1. The analysisApproach and analysisApproachRationale fields are ALWAYS required
+2. If no estimands are explicitly defined in the protocol, return "estimands": []
+3. Do NOT invent intercurrent events — only extract those explicitly stated with strategies
+4. Do NOT construct estimands from objectives/endpoints — only extract formally defined ones
+5. Link to endpoint IDs from Phase 1 using endpointId field when estimands exist
+6. Return ONLY valid JSON
 
-Now extract estimands from the protocol:
+Now analyze the protocol:
 """
 
 # =============================================================================

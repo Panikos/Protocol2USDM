@@ -44,7 +44,9 @@ from .schema import (
     DosingFrequency,
     RouteOfAdministration,
     VisitWindow,
+    FactorLevel,
     StratificationFactor,
+    AllocationCell,
     RandomizationScheme,
     # Fix A: Titration schedules
     TitrationDoseLevel,
@@ -136,7 +138,9 @@ __all__ = [
     "DosingFrequency",
     "RouteOfAdministration",
     "VisitWindow",
+    "FactorLevel",
     "StratificationFactor",
+    "AllocationCell",
     "RandomizationScheme",
     # Container
     "ExecutionModelData",

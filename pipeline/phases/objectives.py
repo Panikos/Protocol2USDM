@@ -201,6 +201,25 @@ class ObjectivesPhase(BasePhase):
                 
                 if valid_estimands:
                     study_design["estimands"] = valid_estimands
+            
+            # Store analysis approach as extension attribute for M11 rendering
+            if hasattr(data, 'analysis_approach') and data.analysis_approach:
+                approach_ext = {
+                    "id": f"ext_analysis_approach",
+                    "url": "http://www.example.org/usdm/extensions/x-analysisApproach",
+                    "valueString": data.analysis_approach.value,
+                    "instanceType": "ExtensionAttribute",
+                }
+                study_design.setdefault("extensionAttributes", []).append(approach_ext)
+                if data.analysis_approach_rationale:
+                    rationale_ext = {
+                        "id": f"ext_analysis_approach_rationale",
+                        "url": "http://www.example.org/usdm/extensions/x-analysisApproachRationale",
+                        "valueString": data.analysis_approach_rationale,
+                        "instanceType": "ExtensionAttribute",
+                    }
+                    study_design["extensionAttributes"].append(rationale_ext)
+            
             objectives_added = True
         
         # Fallback to previously extracted objectives

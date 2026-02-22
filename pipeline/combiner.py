@@ -20,6 +20,8 @@ from .integrations import (
     resolve_content_references,
     reconcile_estimand_population_refs,
     reconcile_estimand_endpoint_refs,
+    reconcile_estimand_intervention_refs,
+    reconcile_method_estimand_refs,
 )
 from extraction.execution.pipeline_integration import resolve_execution_model_references, emit_placeholder_activities
 from .post_processing import (
@@ -41,8 +43,11 @@ from .post_processing import (
     nest_sites_in_organizations,
     wire_document_layer,
     nest_cohorts_in_population,
+    create_strata_cohorts,
     promote_footnotes_to_conditions,
     promote_activity_groups_to_parents,
+    promote_transition_rules_to_elements,
+    normalize_durations_to_iso8601,
 )
 from .promotion import promote_extensions_to_usdm
 from core.constants import SYSTEM_NAME, VERSION
@@ -232,6 +237,10 @@ def combine_to_full_usdm(
     reconcile_estimand_population_refs(study_design)
     # FIX-5: Reconcile estimand.variableOfInterestId → Endpoint references
     reconcile_estimand_endpoint_refs(study_design)
+    # OBJ-1: Reconcile estimand.interventionIds → StudyIntervention references
+    reconcile_estimand_intervention_refs(study_design, study_version)
+    # SAP-1: Reconcile SAP statistical methods → estimand references
+    reconcile_method_estimand_refs(study_design)
     
     # Add studyDesign to study_version
     study_version["studyDesigns"] = [study_design]
@@ -333,11 +342,24 @@ def combine_to_full_usdm(
     # P3: Nest sites into Organization.managedSites
     combined = nest_sites_in_organizations(combined)
     
+    # C1: Create StudyCohort entities from stratification factor levels
+    combined = create_strata_cohorts(combined)
+    
     # P4: Nest cohorts into population.cohorts
     combined = nest_cohorts_in_population(combined)
     
+    # B1-B4: Cross-phase stratification linking
+    from pipeline.stratification_linker import run_stratification_linking
+    run_stratification_linking(combined)
+    
     # P7: Promote conditional SoA footnotes to Condition entities
     combined = promote_footnotes_to_conditions(combined)
+    
+    # DES-1: Promote TransitionRule onto StudyElement entities
+    combined = promote_transition_rules_to_elements(combined)
+    
+    # DES-3: Normalize durations to ISO 8601
+    combined = normalize_durations_to_iso8601(combined)
     
     # Validate anchor consistency against SoA encounters
     combined = validate_anchor_consistency(combined, expansion_results)
@@ -363,6 +385,20 @@ def combine_to_full_usdm(
     combined.pop("studyAmendmentImpacts", None)
     combined.pop("studyChanges", None)
     
+    # Final guard: prune StudyCells with dangling epochIds (may be missed when SoA fails)
+    try:
+        sd = combined.get("study", {}).get("versions", [{}])[0].get("studyDesigns", [{}])[0]
+        valid_epoch_ids = {e.get("id") for e in sd.get("epochs", []) if isinstance(e, dict)}
+        cells = sd.get("studyCells", [])
+        if valid_epoch_ids and isinstance(cells, list):
+            clean = [c for c in cells if not isinstance(c, dict) or c.get("epochId") in valid_epoch_ids]
+            removed = len(cells) - len(clean)
+            if removed:
+                sd["studyCells"] = clean
+                logger.info(f"  ✓ Pruned {removed} studyCell(s) with dangling epochId")
+    except Exception:
+        pass
+
     # Save combined output
     output_path = os.path.join(output_dir, "protocol_usdm.json")
     with open(output_path, 'w', encoding='utf-8') as f:

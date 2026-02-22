@@ -175,11 +175,45 @@ def _compose_synopsis(usdm: Dict) -> str:
         fields.append(('Intervention Assignment Method', rand_type))
 
     # ---- Stratification Indicator ----
-    cohorts = design.get('studyCohorts', [])
-    if cohorts:
-        fields.append(('Stratification Indicator', 'Yes'))
+    # Check randomization scheme extension for detailed stratification info
+    _strat_text = None
+    for _ext in design.get('extensionAttributes', []):
+        if isinstance(_ext, dict) and 'randomizationScheme' in _ext.get('url', ''):
+            _val = _ext.get('valueObject', _ext.get('value'))
+            _scheme = None
+            if isinstance(_val, str):
+                try:
+                    _scheme = json.loads(_val)
+                except Exception:
+                    pass
+            elif isinstance(_val, dict):
+                _scheme = _val
+            if _scheme:
+                _factors = _scheme.get('stratificationFactors', [])
+                if _factors:
+                    _parts = []
+                    for _f in _factors:
+                        _fname = _f.get('name', '')
+                        _levels = _f.get('factorLevels', [])
+                        _cats = _f.get('categories', [])
+                        _n = len(_levels) if _levels else len(_cats)
+                        _parts.append(f"{_fname} ({_n} levels)" if _n else _fname)
+                    _method = _scheme.get('method', '')
+                    _strat_text = f"Stratified by {', '.join(_parts)}"
+                    if _method:
+                        _strat_text += f" using {_method.lower()}"
+            break
+
+    if _strat_text:
+        fields.append(('Stratification', _strat_text))
     else:
-        fields.append(('Stratification Indicator', 'No'))
+        cohorts = design.get('studyCohorts', [])
+        pop = design.get('population', {})
+        pop_cohorts = pop.get('cohorts', []) if isinstance(pop, dict) else []
+        if cohorts or pop_cohorts:
+            fields.append(('Stratification Indicator', 'Yes'))
+        else:
+            fields.append(('Stratification Indicator', 'No'))
 
     # ---- Site Distribution ----
     # Per USDM v4.0, StudySites live inside Organization.managedSites[]
@@ -468,7 +502,253 @@ def _compose_study_design(usdm: Dict) -> str:
                 type_text = etype.get('decode', '') if isinstance(etype, dict) else ''
                 lines.append(f"  - {name} ({type_text})")
 
+    # §4.3 Method of Treatment Assignment
+    assignment_text = _compose_treatment_assignment(usdm)
+    if assignment_text:
+        lines.append('')
+        lines.append(assignment_text)
+
+    # §4.3 Blinding Procedures (M11-1)
+    blinding_text = _compose_blinding_procedures(usdm)
+    if blinding_text:
+        lines.append('')
+        lines.append(blinding_text)
+
     return '\n'.join(lines)
+
+
+def _compose_treatment_assignment(usdm: Dict) -> str:
+    """Compose §4.3 Method of Treatment Assignment from randomization scheme.
+
+    ICH M11 §4.3 requires:
+      - Method of randomization
+      - Stratification factors and their levels
+      - Allocation ratio
+      - IWRS/IXRS system
+      - Allocation concealment method
+
+    Data sourced from x-executionModel-randomizationScheme extension.
+    """
+    study = usdm.get('study', {})
+    versions = study.get('versions', [{}])
+    version = versions[0] if versions else {}
+    design = (version.get('studyDesigns', [{}]) or [{}])[0]
+
+    # Find the randomization scheme extension
+    scheme = None
+    for ext in design.get('extensionAttributes', []):
+        if isinstance(ext, dict) and 'randomizationScheme' in ext.get('url', ''):
+            val = ext.get('valueObject', ext.get('value'))
+            if isinstance(val, str):
+                try:
+                    scheme = json.loads(val)
+                except (json.JSONDecodeError, TypeError):
+                    pass
+            elif isinstance(val, dict):
+                scheme = val
+            break
+
+    if not scheme:
+        return ''
+
+    lines = ['**4.3 Method of Treatment Assignment**', '']
+
+    # Method
+    method = scheme.get('method', '')
+    if method:
+        lines.append(f"Participants will be assigned to treatment using {method.lower()}.")
+
+    # Allocation ratio
+    ratio = scheme.get('ratio', '')
+    arms = design.get('studyArms', design.get('arms', []))
+    if ratio:
+        arm_names = [a.get('name', '') for a in arms if isinstance(a, dict) and a.get('name')]
+        if arm_names:
+            lines.append(
+                f"The allocation ratio will be {ratio} "
+                f"({' : '.join(arm_names)})."
+            )
+        else:
+            lines.append(f"The allocation ratio will be {ratio}.")
+
+    # Block size
+    block_sizes = scheme.get('blockSizes', [])
+    block_size = scheme.get('blockSize')
+    if block_sizes and len(block_sizes) > 1:
+        sizes_str = ', '.join(str(s) for s in block_sizes)
+        lines.append(f"Variable block sizes of {sizes_str} will be used.")
+    elif block_size:
+        lines.append(f"A fixed block size of {block_size} will be used.")
+
+    # Stratification factors
+    factors = scheme.get('stratificationFactors', [])
+    if factors:
+        lines.append('')
+        lines.append('Randomization will be stratified by the following factors:')
+        lines.append('')
+        for factor in factors:
+            fname = factor.get('name', '')
+            levels = factor.get('factorLevels', [])
+            categories = factor.get('categories', [])
+            level_labels = [fl.get('label', '') for fl in levels] if levels else categories
+
+            if level_labels:
+                levels_str = ', '.join(level_labels)
+                lines.append(f"  - **{fname}**: {levels_str}")
+            else:
+                lines.append(f"  - **{fname}**")
+        lines.append('')
+
+    # IWRS / central randomization
+    iwrs = scheme.get('iwrsSystem')
+    central = scheme.get('centralRandomization', False)
+    if iwrs:
+        lines.append(
+            f"Treatment assignment will be managed through an interactive "
+            f"response technology system ({iwrs})."
+        )
+    elif central:
+        lines.append(
+            "Treatment assignment will be managed through a central "
+            "interactive response technology system."
+        )
+
+    # Allocation concealment
+    concealment = scheme.get('concealmentMethod')
+    if concealment:
+        lines.append(f"Allocation concealment will be maintained via {concealment.lower()}.")
+
+    # Adaptive design note
+    if scheme.get('isAdaptive'):
+        rules = scheme.get('adaptiveRules', '')
+        if rules:
+            lines.append(f"\nThis study uses response-adaptive randomization. {rules}")
+        else:
+            lines.append("\nThis study uses response-adaptive randomization.")
+
+    return '\n'.join(lines)
+
+
+def _compose_blinding_procedures(usdm: Dict) -> str:
+    """Compose §4.3 Blinding Procedures from USDM masking data.
+
+    ICH M11 §4.3 requires:
+      - Description of the blinding/masking schema
+      - Who is blinded (subjects, investigators, outcome assessors, etc.)
+      - Measures to maintain blinding (matching placebos, packaging, etc.)
+      - Emergency unblinding procedures
+      - Conditions under which unblinding is permissible
+
+    Data sourced from:
+      - studyDesign.blindingSchema (Code)
+      - studyDesign.maskingRoles (list of {role, isMasked})
+      - studyDesign.masking (Masking entity with role[] codes)
+      - Narrative content for §4 (unblinding procedures)
+    """
+    study = usdm.get('study', {})
+    versions = study.get('versions', [{}])
+    version = versions[0] if versions else {}
+    design = (version.get('studyDesigns', [{}]) or [{}])[0]
+
+    # --- Blinding Schema ---
+    blinding = design.get('blindingSchema', {})
+    blind_text = ''
+    if isinstance(blinding, dict):
+        std_code = blinding.get('standardCode', blinding)
+        if isinstance(std_code, dict):
+            blind_text = std_code.get('decode', std_code.get('code', ''))
+        else:
+            blind_text = str(std_code) if std_code else ''
+    elif isinstance(blinding, str):
+        blind_text = blinding
+
+    if not blind_text:
+        return ''
+
+    is_open = 'open' in blind_text.lower()
+    lines = ['**4.3 Blinding**', '']
+
+    if is_open:
+        lines.append(f'This is an {blind_text.lower()} study. '
+                      'No blinding or masking procedures are employed.')
+        return '\n'.join(lines)
+
+    # --- Describe the schema ---
+    lines.append(f'This is a {blind_text.lower()} study.')
+
+    # --- Masked Roles ---
+    masking_roles = design.get('maskingRoles', [])
+    masked = []
+    unmasked = []
+    for mr in masking_roles:
+        if not isinstance(mr, dict):
+            continue
+        role_name = mr.get('role', mr.get('text', ''))
+        if not role_name:
+            continue
+        if mr.get('isMasked', True):
+            masked.append(role_name)
+        else:
+            unmasked.append(role_name)
+
+    # Also check USDM masking.role[] codes
+    masking_entity = design.get('masking', {})
+    if isinstance(masking_entity, dict):
+        for role_code in masking_entity.get('role', []):
+            if isinstance(role_code, dict):
+                role_decode = role_code.get('decode', '')
+                if role_decode and role_decode not in masked:
+                    masked.append(role_decode)
+
+    if masked:
+        roles_str = ', '.join(masked)
+        lines.append(f'The following parties will be blinded to treatment assignment: {roles_str}.')
+
+    if unmasked:
+        roles_str = ', '.join(unmasked)
+        lines.append(f'The following parties will not be blinded: {roles_str}.')
+
+    # --- Blinding measures from narrative (only if present in source) ---
+    blinding_narrative = (_find_narrative_about(version, 'maintain blind')
+                          or _find_narrative_about(version, 'blinding procedure'))
+    if blinding_narrative:
+        lines.append('')
+        lines.append(blinding_narrative)
+
+    # --- Emergency unblinding from narrative (only if present in source) ---
+    unblinding_text = _find_narrative_about(version, 'unblind')
+    if unblinding_text:
+        lines.append('')
+        lines.append('**Emergency Unblinding**')
+        lines.append('')
+        lines.append(unblinding_text)
+
+    return '\n'.join(lines)
+
+
+def _find_narrative_about(version: dict, keyword: str) -> str:
+    """Search narrative content items for text about a specific topic."""
+    doc = version.get('documentedBy', version.get('studyDefinitionDocument', {}))
+    if isinstance(doc, dict):
+        contents = []
+        for v in doc.get('versions', []):
+            contents.extend(v.get('contents', []) if isinstance(v, dict) else [])
+        if not contents:
+            contents = doc.get('contents', [])
+    else:
+        contents = []
+
+    for content in contents:
+        if not isinstance(content, dict):
+            continue
+        for item in content.get('contentItems', content.get('items', [])):
+            if not isinstance(item, dict):
+                continue
+            text = item.get('text', '')
+            if keyword.lower() in text.lower() and len(text) > 50:
+                return text
+
+    return ''
 
 
 def _compose_eligibility(usdm: Dict) -> str:
@@ -523,38 +803,96 @@ def _compose_eligibility(usdm: Dict) -> str:
 
 
 def _compose_estimands(usdm: Dict) -> str:
-    """Compose estimands subsection from USDM estimand entities."""
+    """Compose estimands subsection from USDM estimand entities.
+
+    Handles three scenarios per ICH E9(R1) and M11 §3.1:
+    1. Estimands explicitly defined → render full estimand framework
+    2. Descriptive/exploratory study → note that estimands are not applicable
+    3. Confirmatory study with missing estimands → note the gap
+    """
     study = usdm.get('study', {})
     versions = study.get('versions', [{}])
     version = versions[0] if versions else {}
     design = (version.get('studyDesigns', [{}]) or [{}])[0]
 
     estimands = design.get('estimands', [])
+
+    # Determine analysis approach from objectives summary (stored during extraction)
+    approach = _get_analysis_approach(usdm)
+
     if not estimands:
+        if approach == 'descriptive':
+            return (
+                'Estimands are not formally defined for this study. '
+                'Per ICH E9(R1), the estimand framework is intended for confirmatory trials '
+                'with pre-specified hypotheses. This study uses descriptive statistics only; '
+                'statistical analyses are summarized in Section 10.'
+            )
+        elif approach == 'confirmatory':
+            return (
+                'No estimands were identified in the protocol. '
+                'For confirmatory studies, ICH E9(R1) recommends defining estimands '
+                'with all five attributes (treatment, population, variable, '
+                'intercurrent events, and summary measure).'
+            )
         return ''
 
-    lines = ['Estimands:']
+    lines = ['Estimands (ICH E9(R1)):']
     for i, est in enumerate(estimands):
         if not isinstance(est, dict):
             continue
+        name = est.get('name', f'Estimand {i+1}')
         summary = est.get('summaryMeasure', est.get('summary', ''))
         treatment = est.get('treatment', '')
-        lines.append(f"\n  Estimand {i+1}:")
-        if summary:
-            lines.append(f"    Summary Measure: {summary}")
+        population = est.get('analysisPopulation', est.get('populationSummary', ''))
+        variable = est.get('variableOfInterest', '')
+
+        lines.append(f"\n  {name}:")
+        if population:
+            lines.append(f"    Population: {population}")
         if treatment:
             lines.append(f"    Treatment: {treatment}")
+        if variable:
+            lines.append(f"    Variable of Interest: {variable}")
+        if summary:
+            lines.append(f"    Summary Measure: {summary}")
 
         # Intercurrent events
         ices = est.get('intercurrentEvents', [])
-        for ice in ices:
-            if isinstance(ice, dict):
-                name = ice.get('name', ice.get('intercurrentEventName', ''))
-                strategy = ice.get('strategy', ice.get('intercurrentEventStrategy', ''))
-                if name:
-                    lines.append(f"    ICE: {name} — Strategy: {strategy}")
+        if ices:
+            lines.append("    Intercurrent Events:")
+            for ice in ices:
+                if isinstance(ice, dict):
+                    ice_name = ice.get('name', ice.get('intercurrentEventName', ''))
+                    strategy = ice.get('strategy', ice.get('intercurrentEventStrategy', ''))
+                    ice_text = ice.get('text', '')
+                    if ice_name:
+                        line = f"      - {ice_name}: Strategy = {strategy}"
+                        if ice_text and ice_text != ice_name:
+                            line += f" ({ice_text})"
+                        lines.append(line)
 
     return '\n'.join(lines)
+
+
+def _get_analysis_approach(usdm: Dict) -> str:
+    """Extract analysisApproach from the objectives summary in USDM data.
+
+    The approach is stored by the objectives extractor in the combined output
+    under studyDesign > objectives summary, or as an extension attribute.
+    """
+    study = usdm.get('study', {})
+    versions = study.get('versions', [{}])
+    version = versions[0] if versions else {}
+    design = (version.get('studyDesigns', [{}]) or [{}])[0]
+
+    # Check extension attributes for x-analysisApproach
+    for ext in design.get('extensionAttributes', []):
+        url = ext.get('url', '')
+        if 'x-analysisApproach' in url:
+            return ext.get('valueString', 'unknown').lower()
+
+    return 'unknown'
 
 
 def _compose_statistics(usdm: Dict) -> str:

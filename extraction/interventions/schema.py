@@ -144,7 +144,7 @@ class Administration:
             "name": self.name,
             "instanceType": self.instance_type,
         }
-        # H6: Emit dose as USDM Quantity object
+        # H6: Emit dose as USDM Quantity object (unit is AliasCode per schema)
         if self.dose:
             value, unit = self._parse_dose_string(self.dose)
             if value is not None:
@@ -153,10 +153,15 @@ class Administration:
                     "value": value,
                     "unit": {
                         "id": generate_uuid(),
-                        "code": "",
-                        "codeSystem": "http://unitsofmeasure.org",
-                        "decode": unit,
-                        "instanceType": "Code",
+                        "standardCode": {
+                            "id": generate_uuid(),
+                            "code": "",
+                            "codeSystem": "http://unitsofmeasure.org",
+                            "decode": unit,
+                            "instanceType": "Code",
+                        },
+                        "standardCodeAliases": [],
+                        "instanceType": "AliasCode",
                     },
                     "instanceType": "Quantity",
                 }
@@ -166,44 +171,61 @@ class Administration:
                     "value": 0,
                     "unit": {
                         "id": generate_uuid(),
-                        "code": "",
-                        "codeSystem": "http://unitsofmeasure.org",
-                        "decode": self.dose,
-                        "instanceType": "Code",
+                        "standardCode": {
+                            "id": generate_uuid(),
+                            "code": "",
+                            "codeSystem": "http://unitsofmeasure.org",
+                            "decode": self.dose,
+                            "instanceType": "Code",
+                        },
+                        "standardCodeAliases": [],
+                        "instanceType": "AliasCode",
                     },
                     "instanceType": "Quantity",
                 }
-        # H7: Emit frequency as USDM Code object
+        # H7: Emit frequency as USDM AliasCode per schema
         if self.dose_frequency:
             result["frequency"] = {
                 "id": generate_uuid(),
-                "code": "",
-                "codeSystem": "http://www.cdisc.org",
-                "decode": self.dose_frequency,
-                "instanceType": "Code",
+                "standardCode": {
+                    "id": generate_uuid(),
+                    "code": "",
+                    "codeSystem": "http://www.cdisc.org",
+                    "decode": self.dose_frequency,
+                    "instanceType": "Code",
+                },
+                "standardCodeAliases": [],
+                "instanceType": "AliasCode",
             }
         if self.route:
             route_term = _cr.match("routeOfAdministration", self.route.value)
             if route_term:
                 route_code = _cr.make_code("routeOfAdministration", route_term.code)
                 route_code["id"] = generate_uuid()
-                result["route"] = route_code
+                inner_code = route_code
             else:
-                result["route"] = {
+                inner_code = {
                     "id": generate_uuid(),
                     "code": self.route.value,
                     "codeSystem": "http://www.cdisc.org",
                     "decode": self.route.value,
                     "instanceType": "Code",
                 }
-        if self.duration:
-            result["duration"] = {
+            result["route"] = {
                 "id": generate_uuid(),
-                "text": self.duration,
-                "durationWillVary": True,
-                "reasonDurationWillVary": self.duration,
-                "instanceType": "Duration",
+                "standardCode": inner_code,
+                "standardCodeAliases": [],
+                "instanceType": "AliasCode",
             }
+        # duration is required (cardinality 1) per USDM schema
+        dur_text = self.duration or self.name or "As prescribed"
+        result["duration"] = {
+            "id": generate_uuid(),
+            "text": dur_text,
+            "durationWillVary": True,
+            "reasonDurationWillVary": dur_text,
+            "instanceType": "Duration",
+        }
         if self.description:
             result["description"] = self.description
         return result

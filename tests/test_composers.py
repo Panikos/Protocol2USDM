@@ -17,6 +17,7 @@ def _make_usdm(
     indications=None, epochs=None, estimands=None,
     blinding=None, randomization=None, titles=None,
     identifiers=None, organizations=None,
+    extension_attributes=None,
 ):
     """Build a minimal USDM dict for composer testing."""
     design = {}
@@ -40,6 +41,8 @@ def _make_usdm(
         design["endpoints"] = endpoints
     if estimands is not None:
         design["estimands"] = estimands
+    if extension_attributes is not None:
+        design["extensionAttributes"] = extension_attributes
 
     if eligibility is not None:
         design["population"] = design.get("population", {})
@@ -326,6 +329,62 @@ class TestComposeEstimands:
         from rendering.composers import _compose_estimands
         text = _compose_estimands({})
         assert isinstance(text, str)
+
+    def test_estimands_descriptive_study_no_estimands(self):
+        """Descriptive study with no estimands should explain why per ICH E9(R1)."""
+        from rendering.composers import _compose_estimands
+        ext = [{
+            "id": "ext_1",
+            "url": "http://www.example.org/usdm/extensions/x-analysisApproach",
+            "valueString": "descriptive",
+        }]
+        usdm = _make_usdm(extension_attributes=ext)
+        text = _compose_estimands(usdm)
+        assert "not formally defined" in text.lower() or "descriptive" in text.lower()
+        assert "ICH E9" in text
+
+    def test_estimands_confirmatory_study_no_estimands(self):
+        """Confirmatory study with no estimands should note the gap."""
+        from rendering.composers import _compose_estimands
+        ext = [{
+            "id": "ext_1",
+            "url": "http://www.example.org/usdm/extensions/x-analysisApproach",
+            "valueString": "confirmatory",
+        }]
+        usdm = _make_usdm(extension_attributes=ext)
+        text = _compose_estimands(usdm)
+        assert "no estimands" in text.lower() or "not identified" in text.lower()
+        assert "ICH E9" in text
+
+    def test_estimands_renders_all_e9_attributes(self):
+        """Estimands with full ICH E9(R1) data should render all 5 attributes."""
+        from rendering.composers import _compose_estimands
+        estimands = [{
+            "id": "est_1",
+            "name": "Primary Efficacy Estimand",
+            "populationSummary": "ITT Population",
+            "analysisPopulation": "Intent-to-Treat",
+            "treatment": "Drug X 100mg vs Placebo",
+            "variableOfInterest": "Change from baseline in HbA1c at Week 24",
+            "summaryMeasure": "Difference in LS means",
+            "intercurrentEvents": [
+                {"id": "ice_1", "name": "Treatment discontinuation",
+                 "text": "Discontinues before Week 24", "strategy": "Treatment Policy"},
+                {"id": "ice_2", "name": "Rescue medication",
+                 "text": "Uses rescue medication", "strategy": "Hypothetical"},
+            ],
+            "instanceType": "Estimand",
+        }]
+        usdm = _make_usdm(estimands=estimands)
+        text = _compose_estimands(usdm)
+        assert "ICH E9" in text
+        assert "Population" in text
+        assert "Treatment" in text
+        assert "Variable of Interest" in text
+        assert "Summary Measure" in text
+        assert "Intercurrent Events" in text
+        assert "Treatment discontinuation" in text
+        assert "Rescue medication" in text
 
 
 # ============================================================================
