@@ -335,6 +335,27 @@ def convert_provenance_to_uuids(
     # Build set of valid USDM activity UUIDs for validation
     usdm_activity_ids = set(act_name_to_uuid.values()) if act_name_to_uuid else set()
     
+    def _fuzzy_match_activity(soa_name: str) -> str | None:
+        """Fuzzy match SoA activity name to USDM activity by word overlap.
+        
+        Handles reconciliation renames like 'physical measurements' -> 'physical examination'.
+        Returns the best-matching USDM activity UUID, or None.
+        """
+        if not soa_name or not act_name_to_uuid:
+            return None
+        soa_words = set(soa_name.lower().split())
+        best_uuid = None
+        best_overlap = 0
+        for usdm_name, usdm_uuid in act_name_to_uuid.items():
+            usdm_words = set(usdm_name.lower().split())
+            overlap = len(soa_words & usdm_words)
+            # Require at least 1 shared word and >= 50% overlap with the shorter name
+            min_len = min(len(soa_words), len(usdm_words))
+            if overlap > best_overlap and min_len > 0 and overlap / min_len >= 0.5:
+                best_overlap = overlap
+                best_uuid = usdm_uuid
+        return best_uuid
+
     def convert_id(old_id: str) -> str:
         """Convert ID using id_map, with name-based fallback for replaced activities."""
         # Direct lookup first
@@ -348,8 +369,14 @@ def convert_provenance_to_uuids(
         # Name-based fallback for act_N IDs that got replaced during reconciliation
         if old_id.startswith('act_') and soa_act_id_to_name and act_name_to_uuid:
             act_name = soa_act_id_to_name.get(old_id)
-            if act_name and act_name in act_name_to_uuid:
-                return act_name_to_uuid[act_name]
+            if act_name:
+                # Exact match first
+                if act_name in act_name_to_uuid:
+                    return act_name_to_uuid[act_name]
+                # Fuzzy match for reconciliation renames (e.g. 'physical measurements' -> 'physical examination')
+                fuzzy = _fuzzy_match_activity(act_name)
+                if fuzzy:
+                    return fuzzy
         
         # Return original or id_map result if nothing else works
         return id_map.get(old_id, old_id)

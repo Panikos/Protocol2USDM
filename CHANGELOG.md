@@ -23,6 +23,12 @@ All notable changes documented here. Dates in ISO-8601.
 ### Visit Resolution
 - **pipeline_integration.py**: Added `'study intervention'`, `'intervention administration'` to `_VISIT_EPOCH_MAP` keywords so "Study Intervention Administration" resolves to treatment epoch encounters
 
+### SoA Provenance & UI
+- **validation.py**: Added fuzzy word-overlap matching in `convert_provenance_to_uuids()` for reconciled activities — resolves red "orphaned" SoA cells when SoA activity names differ from procedure names (e.g., "Physical Measurements" → "Physical examination")
+- **SoAView.tsx**: Fixed `needsReviewCount` to include orphaned cells (`source === 'none'`) — toolbar now correctly counts all red cells needing review
+- **InterventionsView.tsx**: Fixed `[object Object]` rendering for duration/dose/frequency fields; resolved ID-like substance names via product ingredient lookup
+- **EditableField.tsx**: Added `_safeString()` defensive unwrapper for USDM objects (Duration, Quantity, AliasCode)
+
 ### Files Changed
 | File | Change |
 |------|--------|
@@ -33,6 +39,11 @@ All notable changes documented here. Dates in ISO-8601.
 | `extraction/narrative/extractor.py` | `None` section_number guard |
 | `extraction/validator.py` | Vision footnote capture prompt |
 | `extraction/pipeline.py` | Footnote merge from validation |
+| `core/validation.py` | Fuzzy name matching in provenance ID conversion |
+| `web-ui/components/soa/SoAView.tsx` | Orphaned cell count + filter fix |
+| `web-ui/components/protocol/InterventionsView.tsx` | Object unwrapping + substance name resolution |
+| `web-ui/components/semantic/EditableField.tsx` | `_safeString()` defensive unwrapper |
+| `llm_config.yaml` | Gemini 3.1 Pro `top_p: 0.9` model overrides |
 
 ### Cross-Protocol Test Results
 | Protocol | Model | Phases | Schema | M11 Conf | Cost |
@@ -42,7 +53,7 @@ All notable changes documented here. Dates in ISO-8601.
 | CheckMate 227 (NCT02576509) | gemini-3.1-pro | 14/14 ✓ | Valid | 93% | $0.39 |
 
 ### Test Results
-- 1366 collected, 1327 passed, 36 skipped (e2e), 3 pre-existing M11 regression
+- 1369 collected, 1330 passed, 36 skipped (e2e), 3 pre-existing M11 regression
 
 ---
 

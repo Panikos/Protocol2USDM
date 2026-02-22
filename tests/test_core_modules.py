@@ -348,3 +348,67 @@ class TestNormalization:
         # Should NOT have top-level code/codeSystem fields
         assert "code" not in dose_form
         assert "codeSystem" not in dose_form
+
+
+class TestConvertProvenanceToUuids:
+    """Tests for provenance ID conversion with fuzzy name matching."""
+
+    def test_exact_name_match(self):
+        """Direct name match resolves correctly."""
+        from core.validation import convert_provenance_to_uuids
+
+        provenance = {"cells": {"act_1|enc_1": "both"}}
+        id_map = {"enc_1": "uuid-enc-1"}
+        soa_data = {"study": {"versions": [{"studyDesigns": [{"activities": [
+            {"id": "act_1", "name": "Lab Tests"}
+        ]}]}]}}
+        usdm_data = {"study": {"versions": [{"studyDesigns": [{"activities": [
+            {"id": "uuid-act-lab", "name": "Lab Tests"}
+        ]}]}]}}
+
+        result = convert_provenance_to_uuids(provenance, id_map, soa_data=soa_data, usdm_data=usdm_data)
+        cells = result.get("cells", {})
+        assert "uuid-act-lab|uuid-enc-1" in cells
+        assert cells["uuid-act-lab|uuid-enc-1"] == "both"
+
+    def test_fuzzy_name_match_reconciliation_rename(self):
+        """Fuzzy matching resolves 'Physical Measurements' -> 'Physical examination'."""
+        from core.validation import convert_provenance_to_uuids
+
+        provenance = {"cells": {"act_6|enc_1": "both", "act_20|enc_2": "both"}}
+        id_map = {"enc_1": "uuid-enc-1", "enc_2": "uuid-enc-2"}
+        soa_data = {"study": {"versions": [{"studyDesigns": [{"activities": [
+            {"id": "act_6", "name": "Physical Measurements"},
+            {"id": "act_20", "name": "Physical Measurements"},
+        ]}]}]}}
+        usdm_data = {"study": {"versions": [{"studyDesigns": [{"activities": [
+            {"id": "uuid-phys-exam", "name": "Physical examination"},
+            {"id": "uuid-targeted", "name": "Targeted Physical examination"},
+        ]}]}]}}
+
+        result = convert_provenance_to_uuids(provenance, id_map, soa_data=soa_data, usdm_data=usdm_data)
+        cells = result.get("cells", {})
+        # Both should resolve to UUID-based keys (not remain as act_6/act_20)
+        for key in cells:
+            act_id = key.split("|")[0]
+            assert not act_id.startswith("act_"), f"Unconverted key: {key}"
+        # At least one cell should exist
+        assert len(cells) >= 1
+
+    def test_no_false_fuzzy_match(self):
+        """Completely different names should NOT fuzzy-match."""
+        from core.validation import convert_provenance_to_uuids
+
+        provenance = {"cells": {"act_1|enc_1": "both"}}
+        id_map = {"enc_1": "uuid-enc-1"}
+        soa_data = {"study": {"versions": [{"studyDesigns": [{"activities": [
+            {"id": "act_1", "name": "Informed Consent"}
+        ]}]}]}}
+        usdm_data = {"study": {"versions": [{"studyDesigns": [{"activities": [
+            {"id": "uuid-ecg", "name": "Electrocardiogram"}
+        ]}]}]}}
+
+        result = convert_provenance_to_uuids(provenance, id_map, soa_data=soa_data, usdm_data=usdm_data)
+        cells = result.get("cells", {})
+        # Should remain unconverted (no match)
+        assert "act_1|uuid-enc-1" in cells

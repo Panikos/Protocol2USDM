@@ -45,7 +45,7 @@ export function SoAView({ provenance }: SoAViewProps) {
   const stats = useMemo(() => {
     let needsReviewCount = 0;
     for (const cell of tableModel.cells.values()) {
-      if (cell.provenance.needsReview && cell.mark) {
+      if (cell.mark && (cell.provenance.needsReview || cell.provenance.source === 'none')) {
         needsReviewCount++;
       }
     }
@@ -68,7 +68,7 @@ export function SoAView({ provenance }: SoAViewProps) {
     if (filter.showOnlyNeedsReview) {
       const rowsWithReview = new Set<string>();
       for (const [key, cell] of tableModel.cells.entries()) {
-        if (cell.provenance.needsReview && cell.mark) {
+        if (cell.mark && (cell.provenance.needsReview || cell.provenance.source === 'none')) {
           const [activityId] = key.split('|');
           rowsWithReview.add(activityId);
         }
