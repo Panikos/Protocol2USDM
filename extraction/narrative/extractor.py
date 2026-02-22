@@ -1145,7 +1145,7 @@ def _refine_section_type_with_content(
     text_lower = text[:2000].lower()
 
     is_m11_top_level = bool(
-        section_number.isdigit()
+        section_number and section_number.isdigit()
         and 1 <= int(section_number) <= 14
     )
 
@@ -1227,7 +1227,7 @@ def _build_narrative_data(
         subsections = sec.get('subsections', [])
         sub_texts = _split_subsection_texts(parent_text, subsections) if parent_text else {}
         
-        sec_num = sec.get('number', '')
+        sec_num = sec.get('number') or ''
         sec_title = sec.get('title') or ''
         sec_text = section_texts.get(sec_num, '')
         section_type = _refine_section_type_with_content(
@@ -1243,7 +1243,7 @@ def _build_narrative_data(
             if isinstance(sub, dict):
                 item_id = f"nci_{i+1}_{j+1}"
                 child_ids.append(item_id)
-                sub_num = sub.get('number', '')
+                sub_num = sub.get('number') or ''
                 sub_text = sub_texts.get(sub_num, '')
                 sub_title = sub.get('title') or ''
                 sub_declared_type = sub.get('type', sec.get('type', 'Other'))
