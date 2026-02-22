@@ -1,7 +1,7 @@
 # Protocol2USDM User Guide
 
 **Version:** 8.1  
-**Last Updated:** 2026-02-22
+**Last Updated:** 2026-02-23
 
 > **📢 What's New in v8.1:** **Encounter→epoch resolution** — USDM v4.0 encounters linked via `ScheduledActivityInstance` bridge (SoA table, graph view, quality dashboard). **UNS detached** — unscheduled visits shown as isolated islands in graph, state machine, and traversal constraints. **Schema compliance** — administrations nested in StudyIntervention, blindingSchema as AliasCode, activityGroups→parent Activity with childIds. **UI data fixes** — InterventionsView aligned to USDM v4.0 nested structure, estimand ID→name resolution, boolean Yes/No display, randomization from `subTypes[]`, SAP population fields corrected, substance type/description from linked intervention, amendment changes human-readable, procedures filter non-clinical items, numeric footnote markers, unicode dash fix. **CORE compliance** — 11 automated fixes + **log-only audit mode** (property stripping replaced with `compliance_log.json` output and Compliance Audit card in Validation tab). P3–P7 structural compliance, Reviewer v9 Org/Site alignment. **v8.0.1–v8.0.2:** 5 schema fixes eliminating ~88% validation errors across 34 trials, 4 non-USDM properties removed, estimand→endpoint reconciliation. **1117 tests** passing.
 > **v8.1:** **Stratification & Randomization** (5 sprints) -- full pipeline from extraction to web UI. **SAP Multi-Pass** (4 sprints) -- 4-pass LLM extraction, AnalysisSpecification bridge, MissingDataStrategy, StatisticalTraceabilityView. **Tier 1 Enhancements** -- OBJ-1/2 estimand reconciliation, DES-1 TransitionRule promotion, DES-3 ISO 8601 durations with EVS-verified C-codes, M11-1 blinding (narrative-sourced only), SOA-2 ConditionAssignment from footnotes, SAP-1 method-to-estimand binding, VAL-1/4 integrity checks S9-S14. **Hallucination audit** -- removed fabricated clinical text, verified all C-codes via NCI EVS API. **1366 tests** collected, **1327 passed**.
@@ -685,5 +685,5 @@ A: Check logs in `output/<protocol>/`, capture error messages, report to maintai
 
 ---
 
-**Last Updated:** 2026-02-19  
+**Last Updated:** 2026-02-23  
 **Version:** 8.1

@@ -9,7 +9,7 @@ USDM_VERSION: str = "4.0"
 
 # System Metadata (appears in output JSON)
 SYSTEM_NAME: str = "Protocol2USDM"
-VERSION: str = "8.1.0"
+VERSION: str = "8.1.1"
 # Backward compatibility alias (preferred constant is VERSION)
 SYSTEM_VERSION: str = VERSION
 

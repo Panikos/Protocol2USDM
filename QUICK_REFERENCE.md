@@ -292,5 +292,5 @@ CDISC_API_KEY=...            # For CORE (optional)
 
 **Docs:** [README.md](README.md) | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
-**Last Updated:** 2026-02-19  
+**Last Updated:** 2026-02-23  
 **Version:** 8.1

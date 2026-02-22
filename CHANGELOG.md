@@ -4,6 +4,48 @@ All notable changes documented here. Dates in ISO-8601.
 
 ---
 
+## [8.1.1] – 2026-02-22
+
+**Bug Fixes — Cross-Protocol Hardening + Gemini 3.1 Pro Compatibility** — 6 bug fixes discovered by running CheckMate 227 (NCT02576509) and ADAURA (NCT03036124) Phase 3 protocols with both Gemini 3.0 Pro and 3.1 Pro.
+
+### SoA Footnote & Vision Capture
+- **footnote_condition_extractor.py**: Fixed `TypeError` when LLM returns `footnoteIndex` as string — explicit `int()` cast with `try/except` guard
+- **validator.py**: Enhanced vision validation prompt to capture superscript footnote markers (e.g., `X^a`, `✓^m,n`) from SoA images; new `cell_footnotes` dict on `ValidationResult`
+- **pipeline.py**: Merge cell-level footnote refs from image validation into provenance tracker
+
+### Execution Model Crashes
+- **state_machine_generator.py**: Fixed `'StateType' object has no attribute 'lower'` — use `_to_str()` helper before `.lower()` on mixed enum/string states (line 308-309)
+- **reconciliation_layer.py**: Fixed `'str' object has no attribute 'sequence_name'` — handle crossover sequences that are plain strings (e.g., `"AB"`, `"BA"`) via `hasattr` guards
+
+### Gemini 3.1 Pro Compatibility
+- **narrative/extractor.py**: Fixed `'NoneType' object has no attribute 'isdigit'` — guard `section_number` against `None` in `_refine_section_type_with_content`; use `or ''` pattern for `sec.get('number')` to handle explicit `null` from LLM JSON
+
+### Visit Resolution
+- **pipeline_integration.py**: Added `'study intervention'`, `'intervention administration'` to `_VISIT_EPOCH_MAP` keywords so "Study Intervention Administration" resolves to treatment epoch encounters
+
+### Files Changed
+| File | Change |
+|------|--------|
+| `extraction/execution/footnote_condition_extractor.py` | `int()` cast for `footnoteIndex` |
+| `extraction/execution/state_machine_generator.py` | `_to_str()` before `.lower()` |
+| `extraction/execution/reconciliation_layer.py` | String sequence handling |
+| `extraction/execution/pipeline_integration.py` | Visit keyword additions |
+| `extraction/narrative/extractor.py` | `None` section_number guard |
+| `extraction/validator.py` | Vision footnote capture prompt |
+| `extraction/pipeline.py` | Footnote merge from validation |
+
+### Cross-Protocol Test Results
+| Protocol | Model | Phases | Schema | M11 Conf | Cost |
+|----------|-------|--------|--------|----------|------|
+| Wilson's (NCT04573309) | gemini-3-pro | 14/14 ✓ | Valid | — | $0.99 |
+| ADAURA (NCT03036124) | gemini-3-pro | 14/14 ✓ | Valid | — | $0.80 |
+| CheckMate 227 (NCT02576509) | gemini-3.1-pro | 14/14 ✓ | Valid | 93% | $0.39 |
+
+### Test Results
+- 1366 collected, 1327 passed, 36 skipped (e2e), 3 pre-existing M11 regression
+
+---
+
 ## [8.1.0] – 2026-02-22
 
 **Stratification & Randomization, SAP Multi-Pass, Tier 1 Enhancements, Hallucination Audit** — Major feature release with 5 stratification sprints, 4 SAP enhancement sprints, 7 tier-1 extraction/rendering fixes, and systematic hallucination removal.

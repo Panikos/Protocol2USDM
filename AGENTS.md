@@ -573,8 +573,9 @@ All 28 extractor gaps (3 CRITICAL, 10 HIGH, 9 MEDIUM, 6 LOW) identified in the U
 ## 7. LLM Configuration
 - Config file: `llm_config.yaml`
 - Provider abstraction: `providers/` package (backward-compat shim: `llm_providers.py`)
-- Supported: OpenAI (GPT-4o, GPT-4-turbo, GPT-5), Google (Gemini 2.5 Pro, Gemini 3 Flash), Anthropic (Claude)
+- Supported: OpenAI (GPT-4o, GPT-4-turbo, GPT-5), Google (Gemini 2.5 Pro, Gemini 3 Flash/Pro, Gemini 3.1 Pro), Anthropic (Claude)
 - Default model: `gemini-3-flash-preview` (with Gemini 2.5 Pro fallback for SoA text extraction)
+- Gemini 3.1 Pro: ~47% cheaper than 3.0 Pro, better SoA extraction. Requires `None` guards for section numbers in narrative extraction (LLM may return explicit `null`).
 - Reasoning models (special parameter handling): o1, o3, gpt-5, gpt-5.1
 - API keys: Environment variables, never hardcoded
 
