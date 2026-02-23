@@ -4,6 +4,44 @@ All notable changes documented here. Dates in ISO-8601.
 
 ---
 
+## [8.1.2] – 2026-02-23
+
+**Fix: Protocol Quality Findings (C1, H1, H3, H4) + UI StratificationSchemeView** — Fixes critical and high-priority findings from local quality review of the ANGEL/Dapagliflozin protocol.
+
+### Pipeline Fixes
+
+- **C1: studyPhase null** — Added title-based phase inference fallback in `pipeline/phases/metadata.py` when LLM extraction returns no phase
+- **H1: plannedEnrollmentNumber missing** — Added Rule 1b in `pipeline/promotion.py` to promote `_temp_planned_enrollment` from metadata when SAP sample-size extensions are absent
+- **H3: Admin→Intervention nesting mismatches** — Three-layer fix:
+  - Replaced positional admin→SI linkage in `extraction/interventions/extractor.py` with `interventionName`-based matching from LLM output
+  - Added `interventionName` field to LLM prompt (`extraction/interventions/prompts.py`) with explicit rule about correct parent linkage
+  - Added semantic sanity check (`_names_related()`) in `pipeline/phases/interventions.py` to reject mismatched LLM linkages; Pass 2 re-assigns by name
+- **H4: Epoch type inference** — Added enrolment/randomisation/baseline/closure keywords to `EPOCH_TYPE_CODES` in both `core/reconciliation/epoch_reconciler.py` and `core/epoch_reconciler.py`
+
+### Web UI Fixes
+
+- **StratificationSchemeView** — Fixed "No randomization scheme detected" for randomized studies; root cause was extension data stored in `valueString` (correct USDM v4.0 field) but component only checked `valueObject`/`value`
+- **`lib/extensions.ts`** — Added `getExtObject<T>()` helper that reads parsed object data from extensions (checks `valueObject` → `value` → `valueString` JSON.parse)
+
+### Files Changed
+| File | Change |
+|------|--------|
+| `pipeline/phases/metadata.py` | Title-based phase inference fallback |
+| `pipeline/promotion.py` | Rule 1b: metadata enrollment promotion |
+| `pipeline/phases/interventions.py` | `_names_related()` semantic check + logging |
+| `extraction/interventions/extractor.py` | `interventionName`-based admin linkage |
+| `extraction/interventions/prompts.py` | Added `interventionName` field + rule 6 |
+| `core/reconciliation/epoch_reconciler.py` | Epoch type keywords |
+| `core/epoch_reconciler.py` | Epoch type keywords (legacy mirror) |
+| `web-ui/components/timeline/StratificationSchemeView.tsx` | Use `getExtObject` helper |
+| `web-ui/lib/extensions.ts` | New `getExtObject<T>()` helper |
+| `tests/test_sprint1_gap_fixes.py` | 37 new regression tests (C1, H1, H3, H4) |
+
+### Test Results
+- 1409 collected, 1373 passed, 36 skipped (e2e)
+
+---
+
 ## [8.1.1] – 2026-02-22
 
 **Bug Fixes — Cross-Protocol Hardening + Gemini 3.1 Pro Compatibility** — 6 bug fixes discovered by running CheckMate 227 (NCT02576509) and ADAURA (NCT03036124) Phase 3 protocols with both Gemini 3.0 Pro and 3.1 Pro.

@@ -788,14 +788,21 @@ def link_administrations_to_products(combined: dict) -> dict:
     """H8: Link Administration.administrableProductId by name matching.
     
     Matches administrations to products by comparing normalized names
-    (exact, then whole-phrase fuzzy matching).
+    (exact, then whole-phrase fuzzy matching, then drug-name matching).
+    Also links nested admins inside studyInterventions.
     """
     try:
         sv = combined.get("study", {}).get("versions", [{}])[0]
         products = sv.get("administrableProducts", [])
-        administrations = combined.get("administrations", [])
         
-        if not products or not administrations:
+        # Collect all admin dicts: flat list + nested inside studyInterventions
+        all_admins = list(combined.get("administrations", []))
+        for intv in sv.get("studyInterventions", []):
+            for a in intv.get("administrations", []):
+                if a not in all_admins:
+                    all_admins.append(a)
+        
+        if not products or not all_admins:
             return combined
         
         # Build normalized product name lookup (normalized name → id)
@@ -805,14 +812,41 @@ def link_administrations_to_products(combined: dict) -> dict:
             if name:
                 prod_by_name[name] = p.get("id")
         
+        # Build drug-name → product id lookup
+        # Extract core drug name by stripping dose-form suffixes
+        _FORM_SUFFIXES = {
+            "tablet", "tablets", "capsule", "capsules", "solution", "injection",
+            "cream", "patch", "suspension", "powder", "for", "oral", "iv",
+        }
+        prod_by_drug = {}
+        for p in products:
+            words = _normalize_link_name(p.get("name") or "").split()
+            # Core drug name = all words before form suffixes
+            core = []
+            for w in words:
+                if w in _FORM_SUFFIXES:
+                    break
+                core.append(w)
+            drug_key = " ".join(core)
+            if drug_key and len(drug_key) >= 3:
+                prod_by_drug[drug_key] = p.get("id")
+        
         linked = 0
-        for admin in administrations:
+        for admin in all_admins:
             if admin.get("administrableProductId"):
                 continue  # already linked
-            if not _normalize_link_name(admin.get("name") or ""):
+            admin_name = _normalize_link_name(admin.get("name") or "")
+            if not admin_name:
                 continue
 
             prod_id = _find_best_name_match(admin.get("name") or "", prod_by_name)
+            
+            # Fallback: match by core drug name in admin name
+            if not prod_id:
+                for drug_key, pid in prod_by_drug.items():
+                    if _is_whole_phrase_match(drug_key, admin_name):
+                        prod_id = pid
+                        break
             
             if prod_id:
                 admin["administrableProductId"] = prod_id

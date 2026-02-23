@@ -94,6 +94,7 @@ Return a JSON object with this exact structure:
   "administrations": [
     {
       "name": "ABC-1234 100 mg daily",
+      "interventionName": "ABC-1234",
       "dose": "100 mg",
       "frequency": "once daily",
       "route": "Oral",
@@ -101,10 +102,19 @@ Return a JSON object with this exact structure:
     },
     {
       "name": "ABC-1234 200 mg daily",
+      "interventionName": "ABC-1234",
       "dose": "200 mg",
       "frequency": "once daily",
       "route": "Oral",
       "duration": "After Week 4"
+    },
+    {
+      "name": "Placebo once daily",
+      "interventionName": "Placebo",
+      "dose": "N/A",
+      "frequency": "once daily",
+      "route": "Oral",
+      "duration": "24 weeks"
     }
   ],
   "devices": []
@@ -122,7 +132,8 @@ Return a JSON object with this exact structure:
    - Routes: "Oral", "Intravenous", "Subcutaneous", "Intramuscular", "Topical", "Inhalation"
    - Forms: "Tablet", "Capsule", "Solution", "Injection", "Cream", "Patch"
 5. **Be precise with doses** - Include units (mg, mg/kg, mg/m2, etc.)
-6. **Return ONLY valid JSON** - no markdown, no explanations
+6. **Link admins to interventions** - Each administration MUST include `interventionName` matching exactly one intervention's `name`. A placebo administration belongs to the Placebo intervention, NOT to the investigational drug intervention.
+7. **Return ONLY valid JSON** - no markdown, no explanations
 
 Now analyze the protocol content and extract the interventions:
 """

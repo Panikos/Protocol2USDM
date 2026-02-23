@@ -175,6 +175,18 @@ class ArmType(Enum):
     OTHER = "Other Arm"
 
 
+# NCI C-codes for ArmType (CDISC CT 2024-09-27)
+ARM_TYPE_C_CODES: Dict[str, str] = {
+    "Experimental Arm": "C174266",
+    "Active Comparator Arm": "C174267",
+    "Placebo Comparator Arm": "C174268",
+    "Sham Comparator Arm": "C174267",  # Mapped to Active Comparator
+    "No Intervention Arm": "C174451",
+    "Other Arm": "C174451",
+    "Investigational Arm": "C174266",  # Alias
+}
+
+
 class BlindingSchema(Enum):
     """USDM blinding schema codes."""
     UNKNOWN = ""  # Not extracted from source
@@ -258,13 +270,17 @@ class StudyArm:
     instance_type: str = "StudyArm"
     
     def to_dict(self) -> Dict[str, Any]:
+        c_code = ARM_TYPE_C_CODES.get(self.arm_type.value, "C174451")
         result = {
             "id": self.id,
             "name": self.name,
             "type": {
-                "code": self.arm_type.value,
-                "codeSystem": "http://www.cdisc.org",
-                "decode": self.arm_type.value,
+                "id": generate_uuid(),
+                "code": c_code,
+                "codeSystem": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+                "codeSystemVersion": "2024-09-27",
+                "decode": self.arm_type.value or "Other Arm",
+                "instanceType": "Code",
             },
             "instanceType": self.instance_type,
         }

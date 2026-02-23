@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { usePatchedStudyDesign } from '@/hooks/usePatchedUsdm';
+import { getExtObject } from '@/lib/extensions';
 
 // ── Types ──────────────────────────────────────────────────
 
@@ -80,21 +81,10 @@ export function StratificationSchemeView() {
   const studyDesign = usePatchedStudyDesign();
 
   const scheme = useMemo<RandomizationScheme | null>(() => {
-    const extensions = (studyDesign?.extensionAttributes ?? []) as Array<{
-      url?: string;
-      value?: unknown;
-      valueObject?: unknown;
-    }>;
-    for (const ext of extensions) {
-      if (ext?.url?.includes('randomizationScheme')) {
-        const val = ext.valueObject ?? ext.value;
-        if (val && typeof val === 'object') return val as RandomizationScheme;
-        if (typeof val === 'string') {
-          try { return JSON.parse(val); } catch { /* ignore */ }
-        }
-      }
-    }
-    return null;
+    return getExtObject<RandomizationScheme>(
+      studyDesign?.extensionAttributes,
+      'randomizationScheme',
+    ) ?? null;
   }, [studyDesign]);
 
   if (!scheme) {

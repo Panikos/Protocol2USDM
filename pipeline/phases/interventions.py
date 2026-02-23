@@ -1,10 +1,13 @@
 """Interventions extraction phase."""
 
+import logging
 from typing import Optional
 import uuid
 from ..base_phase import BasePhase, PhaseConfig, PhaseResult
 from ..phase_registry import register_phase
 from extraction.pipeline_context import PipelineContext
+
+logger = logging.getLogger(__name__)
 
 
 class InterventionsPhase(BasePhase):
@@ -112,12 +115,38 @@ class InterventionsPhase(BasePhase):
                     study_version["medicalDevices"] = intv['medicalDevices']
     
     @staticmethod
+    def _names_related(intv_name: str, admin_name: str) -> bool:
+        """Check if an administration name is semantically related to an intervention name.
+        
+        Returns True if either name contains the other, or if they share a
+        significant drug-name token (first word ≥3 chars).
+        """
+        intv_lower = intv_name.lower().strip()
+        admin_lower = admin_name.lower().strip()
+        if not intv_lower or not admin_lower:
+            return False
+        # Direct containment (either direction) — require ≥3 chars to avoid
+        # spurious substring hits (e.g. "ab" inside "tablets")
+        if len(intv_lower) >= 3 and intv_lower in admin_lower:
+            return True
+        if len(admin_lower) >= 3 and admin_lower in intv_lower:
+            return True
+        # First-token match (drug name): e.g. "Dapagliflozin" in "Dapagliflozin 10 mg"
+        intv_first = intv_lower.split()[0] if intv_lower else ""
+        admin_first = admin_lower.split()[0] if admin_lower else ""
+        if len(intv_first) >= 3 and intv_first in admin_lower:
+            return True
+        if len(admin_first) >= 3 and admin_first in intv_lower:
+            return True
+        return False
+
+    @staticmethod
     def _nest_administrations(interventions: list, administrations: list) -> None:
         """Nest Administration entities inside their parent StudyIntervention.
         
         USDM v4.0: StudyIntervention.administrations[] is the correct path.
-        Uses administrationIds linkage from the extractor, then falls back to
-        name-based matching (intervention name appears in administration name).
+        Uses administrationIds linkage from the extractor with a semantic
+        sanity check, then falls back to name-based matching.
         """
         if not interventions or not administrations:
             return
@@ -125,16 +154,24 @@ class InterventionsPhase(BasePhase):
         admin_by_id = {a.get('id'): a for a in administrations}
         assigned = set()
         
-        # Pass 1: Use administrationIds linkage
+        # Pass 1: Use administrationIds linkage WITH semantic sanity check
         for intv in interventions:
             admin_ids = intv.pop('administrationIds', []) or []
             intv.pop('productIds', None)  # Non-USDM property, remove
             nested = []
+            intv_name = intv.get('name') or ''
             for aid in admin_ids:
                 admin = admin_by_id.get(aid)
                 if admin:
-                    nested.append(admin)
-                    assigned.add(aid)
+                    admin_name = admin.get('name') or ''
+                    if InterventionsPhase._names_related(intv_name, admin_name):
+                        nested.append(admin)
+                        assigned.add(aid)
+                    else:
+                        logger.warning(
+                            f"  H3 sanity: rejected LLM linkage "
+                            f"SI '{intv_name}' <- Admin '{admin_name}' (no name overlap)"
+                        )
             if nested:
                 intv['administrations'] = nested
         
@@ -142,12 +179,13 @@ class InterventionsPhase(BasePhase):
         for admin in administrations:
             if admin.get('id') in assigned:
                 continue
-            admin_name = (admin.get('name') or '').lower()
+            admin_name = admin.get('name') or ''
             for intv in interventions:
-                intv_name = (intv.get('name') or '').lower()
-                if intv_name and intv_name in admin_name:
+                intv_name = intv.get('name') or ''
+                if InterventionsPhase._names_related(intv_name, admin_name):
                     intv.setdefault('administrations', []).append(admin)
                     assigned.add(admin.get('id'))
+                    logger.info(f"  H3 pass-2: nested Admin '{admin_name}' -> SI '{intv_name}'")
                     break
     
     def _fix_dose_form_codes(self, products: list) -> list:

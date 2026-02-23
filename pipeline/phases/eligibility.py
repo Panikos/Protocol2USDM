@@ -76,11 +76,15 @@ class EligibilityPhase(BasePhase):
         
         if result.success and result.data:
             data = result.data
-            if data.criterion_items:
-                study_version["eligibilityCriterionItems"] = [
-                    item.to_dict() for item in data.criterion_items
-                ]
-            study_design["eligibilityCriteria"] = [c.to_dict() for c in data.criteria]
+            item_dicts = [item.to_dict() for item in data.criterion_items]
+            criteria_dicts = [c.to_dict() for c in data.criteria]
+            
+            # Nest each criterion inside its parent item (USDM v4.0)
+            self._nest_criteria_in_items(item_dicts, criteria_dicts)
+            
+            if item_dicts:
+                study_version["eligibilityCriterionItems"] = item_dicts
+            study_design["eligibilityCriteria"] = criteria_dicts
             if data.population:
                 study_design["population"] = data.population.to_dict()
             eligibility_added = True
@@ -90,12 +94,42 @@ class EligibilityPhase(BasePhase):
             prev = previous_extractions['eligibility']
             if prev.get('eligibility'):
                 elig = prev['eligibility']
-                if elig.get('criterionItems'):
-                    study_version["eligibilityCriterionItems"] = elig['criterionItems']
-                if elig.get('criteria'):
-                    study_design["eligibilityCriteria"] = elig['criteria']
+                item_dicts = elig.get('eligibilityCriterionItems') or elig.get('criterionItems') or []
+                criteria_dicts = elig.get('eligibilityCriteria') or elig.get('criteria') or []
+                
+                # Nest criteria in items if not already nested
+                self._nest_criteria_in_items(item_dicts, criteria_dicts)
+                
+                if item_dicts:
+                    study_version["eligibilityCriterionItems"] = item_dicts
+                if criteria_dicts:
+                    study_design["eligibilityCriteria"] = criteria_dicts
                 if elig.get('population'):
                     study_design["population"] = elig['population']
+    
+    @staticmethod
+    def _nest_criteria_in_items(items: list, criteria: list) -> None:
+        """Nest each EligibilityCriterion inside its parent EligibilityCriterionItem.
+        
+        USDM v4.0: EligibilityCriterionItem.criterion should contain the
+        EligibilityCriterion with category (C25532 Inclusion / C25370 Exclusion).
+        """
+        if not items or not criteria:
+            return
+        
+        # Build criterion lookup by criterionItemId
+        crit_by_item_id = {}
+        for c in criteria:
+            item_id = c.get('criterionItemId')
+            if item_id:
+                crit_by_item_id[item_id] = c
+        
+        for item in items:
+            if item.get('criterion'):
+                continue  # Already nested
+            crit = crit_by_item_id.get(item.get('id'))
+            if crit:
+                item['criterion'] = crit
 
 
 # Register the phase

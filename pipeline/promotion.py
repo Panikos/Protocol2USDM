@@ -81,6 +81,14 @@ def promote_extensions_to_usdm(combined: dict) -> None:
                 logger.info(f"  ✓ Promoted SAP sample size ({sample_size}) → population.plannedEnrollmentNumber")
                 promotions += 1
         
+        # --- Rule 1b: Metadata planned enrollment fallback ---
+        if not population.get('plannedEnrollmentNumber'):
+            meta_enrollment = combined.get('_temp_planned_enrollment')
+            if meta_enrollment and isinstance(meta_enrollment, (int, float)) and meta_enrollment > 0:
+                population['plannedEnrollmentNumber'] = _build_participant_quantity(int(meta_enrollment))
+                logger.info(f"  ✓ Promoted metadata enrollment ({int(meta_enrollment)}) → population.plannedEnrollmentNumber")
+                promotions += 1
+        
         # --- Rule 2: SAP completers → plannedCompletionNumber ---
         if not population.get('plannedCompletionNumber'):
             completion_n = _extract_completion_number_from_extensions(design)

@@ -87,6 +87,28 @@ export function findAllExts(
   );
 }
 
+/**
+ * Get a parsed object value from an extension by URL suffix.
+ * Handles: valueString (JSON), value (object), valueObject (object).
+ * Returns undefined if not found or unparseable.
+ */
+export function getExtObject<T = unknown>(
+  exts: ExtensionAttribute[] | unknown[] | undefined | null,
+  urlSuffix: string,
+): T | undefined {
+  const ext = findExt(exts, urlSuffix) as Record<string, unknown> | undefined;
+  if (!ext) return undefined;
+  // Direct object fields first
+  const obj = ext.valueObject ?? ext.value;
+  if (obj && typeof obj === 'object') return obj as T;
+  // Parse from valueString (JSON-serialized)
+  const str = ext.valueString;
+  if (typeof str === 'string') {
+    try { return JSON.parse(str) as T; } catch { /* ignore */ }
+  }
+  return undefined;
+}
+
 // ---------------------------------------------------------------------------
 // Write helpers
 // ---------------------------------------------------------------------------

@@ -246,9 +246,14 @@ def fuzzy_match_names(name1: str, name2: str, threshold: float = 0.85) -> bool:
 
 EPOCH_TYPE_CODES = {
     "screening": ("C48262", "Trial Screening"),
+    "enrol": ("C48262", "Trial Screening"),       # H4: enrolment/enrollment
+    "randomis": ("C48262", "Trial Screening"),     # H4: randomisation/randomization
+    "randomiz": ("C48262", "Trial Screening"),     # H4: US spelling
+    "baseline": ("C48262", "Trial Screening"),     # H4: baseline visit epoch
     "treatment": ("C101526", "Treatment Epoch"),
     "follow-up": ("C99158", "Clinical Study Follow-up"),
     "followup": ("C99158", "Clinical Study Follow-up"),
+    "closure": ("C99158", "Clinical Study Follow-up"),  # H4: study closure
     "washout": ("C48262", "Trial Screening"),  # No dedicated NCI code; closest match
     "wash-out": ("C48262", "Trial Screening"),
     "run-in": ("C98779", "Run-in Period"),

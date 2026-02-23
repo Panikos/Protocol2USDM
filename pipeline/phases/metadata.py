@@ -1,5 +1,6 @@
 """Metadata extraction phase."""
 
+import re
 from typing import Optional
 from core.usdm_types import generate_uuid
 from ..base_phase import BasePhase, PhaseConfig, PhaseResult
@@ -81,9 +82,13 @@ class MetadataPhase(BasePhase):
             study_version["titles"] = [t.to_dict() for t in md.titles]
             study_version["studyIdentifiers"] = [i.to_dict() for i in md.identifiers]
             study_version["organizations"] = [o.to_dict() for o in md.organizations]
-            if md.study_phase:
-                # H3: studyPhase belongs on StudyDesign per USDM v4.0 schema
-                study_design["studyPhase"] = md.study_phase.to_dict()
+            # H3: studyPhase belongs on StudyDesign per USDM v4.0 schema
+            phase_obj = md.study_phase
+            if not phase_obj:
+                # C1 fallback: infer phase from study titles
+                phase_obj = self._infer_phase_from_titles(md.titles)
+            if phase_obj:
+                study_design["studyPhase"] = phase_obj.to_dict()
             # C1: Map protocolVersion → versionIdentifier
             if md.protocol_version:
                 study_version["versionIdentifier"] = md.protocol_version
@@ -221,6 +226,25 @@ class MetadataPhase(BasePhase):
                     combined["_temp_indications"] = md['indications']
                 if md.get('studyType'):
                     combined["_temp_study_type"] = md['studyType']
+
+
+    @staticmethod
+    def _infer_phase_from_titles(titles) -> Optional[object]:
+        """C1 fallback: infer StudyPhase from title text when LLM omits it."""
+        from extraction.metadata.schema import StudyPhase
+        _PHASE_RE = re.compile(
+            r'Phase\s*(IV|III|II|I|4|3|2|1)(?:\s*/\s*(IV|III|II|I|4|3|2|1))?',
+            re.IGNORECASE,
+        )
+        for title in titles:
+            text = title.text if hasattr(title, 'text') else str(title)
+            m = _PHASE_RE.search(text)
+            if m:
+                phase_str = f"Phase {m.group(1)}"
+                if m.group(2):
+                    phase_str += f"/{m.group(2)}"
+                return StudyPhase(phase=phase_str)
+        return None
 
 
 # Register the phase

@@ -381,12 +381,9 @@ class ReconciliationLayer:
                         )
                         design.setdefault('studyCells', []).append(cell)
         
-        # Update study design type
-        design['studyDesignType'] = self._create_code(
-            "C98388",  # Crossover
-            "http://www.cdisc.org",
-            "Crossover Study"
-        )
+        # Note: Do NOT override studyDesignType here — it should come from
+        # the studydesign extractor based on the actual protocol description.
+        # Crossover sequences are already represented via the sequence arms/cells above.
         
         return design
     

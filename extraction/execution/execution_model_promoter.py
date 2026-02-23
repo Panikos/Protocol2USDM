@@ -580,6 +580,19 @@ class ExecutionModelPromoter:
         administrations = version.setdefault('administrations', [])
         existing_admin_ids = {a.get('id') for a in administrations}
         
+        # Build set of existing admin names (flat + nested inside interventions)
+        # to prevent duplicate creation when the interventions phase already extracted admins
+        existing_admin_names = set()
+        for a in administrations:
+            n = (a.get('name') or '').lower().strip()
+            if n:
+                existing_admin_names.add(n)
+        for intv in interventions:
+            for a in intv.get('administrations', []):
+                n = (a.get('name') or '').lower().strip()
+                if n:
+                    existing_admin_names.add(n)
+        
         for regimen in dosing_regimens:
             regimen_id = getattr(regimen, 'id', str(uuid.uuid4()))
             treatment_name = getattr(regimen, 'treatment_name', '')
@@ -604,6 +617,15 @@ class ExecutionModelPromoter:
             # Create Administration entity
             admin_id = f"admin_{regimen_id}"
             if admin_id in existing_admin_ids:
+                continue
+            
+            # Skip if an admin with this treatment name already exists (name-based dedup)
+            candidate_name = (f"Administration of {treatment_name}" if treatment_name else "Study Drug Administration").lower().strip()
+            treatment_lower = (treatment_name or '').lower().strip()
+            if candidate_name in existing_admin_names or any(
+                treatment_lower and treatment_lower in en for en in existing_admin_names
+            ):
+                logger.debug(f"  Skipping duplicate admin for: {treatment_name}")
                 continue
             
             admin_name = f"Administration of {treatment_name}" if treatment_name else "Study Drug Administration"

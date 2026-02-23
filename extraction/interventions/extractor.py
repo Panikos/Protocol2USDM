@@ -319,12 +319,53 @@ def _parse_interventions_response(raw: Dict[str, Any]) -> Optional[Interventions
                 manufacturer=dev_data.get('manufacturer'),
             ))
         
-        # Link products to interventions
-        for i, intervention in enumerate(interventions):
-            if i < len(products):
-                intervention.product_ids.append(products[i].id)
-            if i < len(administrations):
-                intervention.administration_ids.append(administrations[i].id)
+        # Link administrations to interventions by interventionName (H3b)
+        intv_by_name = {iv.name.lower(): iv for iv in interventions if iv.name}
+        has_intv_names = any(
+            raw_admin.get('interventionName')
+            for raw_admin in raw.get('administrations', [])
+            if isinstance(raw_admin, dict)
+        )
+        if has_intv_names:
+            # Name-based linkage from LLM output
+            for raw_admin, admin_obj in zip(raw.get('administrations', []), administrations):
+                if not isinstance(raw_admin, dict):
+                    continue
+                intv_name_raw = (raw_admin.get('interventionName') or '').lower()
+                matched = intv_by_name.get(intv_name_raw)
+                if not matched:
+                    # Fuzzy: check if intv_name_raw is a substring of any intervention
+                    for iv_lower, iv_obj in intv_by_name.items():
+                        if intv_name_raw and (intv_name_raw in iv_lower or iv_lower in intv_name_raw):
+                            matched = iv_obj
+                            break
+                if matched:
+                    matched.administration_ids.append(admin_obj.id)
+                else:
+                    logger.warning(
+                        f"Admin '{admin_obj.name}' has interventionName='{raw_admin.get('interventionName')}' "
+                        f"which doesn't match any intervention"
+                    )
+        else:
+            # Legacy fallback: positional linkage
+            for i, intervention in enumerate(interventions):
+                if i < len(administrations):
+                    intervention.administration_ids.append(administrations[i].id)
+        
+        # Link products to interventions by name similarity
+        for product in products:
+            prod_name_lower = (product.name or '').lower().split()[0] if product.name else ''
+            if len(prod_name_lower) >= 3:
+                for iv in interventions:
+                    iv_lower = (iv.name or '').lower()
+                    if prod_name_lower in iv_lower or iv_lower in (product.name or '').lower():
+                        if product.id not in iv.product_ids:
+                            iv.product_ids.append(product.id)
+                        break
+            elif interventions:
+                # Very short product name — fall back to first intervention
+                if product.id not in interventions[0].product_ids:
+                    interventions[0].product_ids.append(product.id)
         
         # Link substances to products
         for i, product in enumerate(products):
